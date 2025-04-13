@@ -1,0 +1,29 @@
+{
+  "name": "Dash Platform Extension",
+  "version": "0.0.1",
+  "manifest_version": 3,
+  "minimum_chrome_version": "119",
+  "description": "A browser extension that let users easily interact with Dash Platform DApps in Metamask-like style.",
+  "permissions": ["storage"],
+  "host_permissions": ["*://localhost/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
+  },
+  "action":{
+    "default_popup": "index.html",
+    "default_title": "EvoBox Wallet"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://localhost/*"],
+      "js": ["content-script.js"]
+    }
+  ],
+  "web_accessible_resources": [{
+    "resources": ["injected.js", "index.html"],
+    "matches": ["<all_urls>"]
+  }],
+  "externally_connectable": {
+    "matches": ["*://localhost/*"]
+  }
+}

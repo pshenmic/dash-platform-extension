@@ -1,0 +1,15 @@
+.DocumentsBatchDetails__Error {
+
+}
+.DocumentsBatchDetails__Details {
+    display: flex;
+    flex-direction: column;
+
+}
+
+.DocumentsBatchDetails__Details > div {
+    padding-top: 5px;
+    font-size: 10pt;
+    word-wrap: break-word;
+
+}
