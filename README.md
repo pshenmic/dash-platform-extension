@@ -9,7 +9,7 @@ ___
 
 ## General
 
-Dash Platform extension is browser extension that shares an instance of Dash Platform SDK to the webpages when this extension is installed in your browser.
+Dash Platform extension is browser extension that shares an instance of [Dash Platform SDK](https://github.com/pshenmic/dash-platform-sdk) to the webpages when this extension is installed in your browser.
 
 It works by providing a Javascript interface in the window object that let developers request transaction signing without asking them from a private key or seed phrase on the website itself.
 
