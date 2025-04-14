@@ -39,12 +39,12 @@
 
 .HomeState__Identity__Select {
     width: 100%;
-    font-size: 16pt;
+    font-size: 12pt;
     border: none;
 }
 
 .HomeState__Identity__Balance {
-    font-size: 16pt;
+    font-size: 12pt;
     margin-top: 6px;
 }
 
@@ -59,11 +59,13 @@
 .HomeState__Identity__Buttons__Send {
     padding: 10px;
     border: 1px solid black;
+    border-radius: 12px;
 }
 
 .HomeState__Identity__Buttons__Withdraw {
     padding: 10px;
     border: 1px solid black;
+    border-radius: 12px;
 }
 
 .HomeState__Transactions {
@@ -77,7 +79,7 @@
 }
 
 .HomeState__Transactions__Title {
-    font-size: 16pt;
+    font-size: 12pt;
 }
 
 .HomeState__Transactions__Error {
@@ -88,6 +90,7 @@
     overflow: hidden;
     color: black;
     text-decoration: none;
+    padding-top: 3px
 }
 .HomeState__Transactions__Item > a {
     color: black;
