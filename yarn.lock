@@ -2438,7 +2438,7 @@ __metadata:
     babel-loader: "npm:^9.1.3"
     copy-webpack-plugin: "npm:^12.0.2"
     css-loader: "npm:^6.10.0"
-    dash-platform-sdk: "npm:^1.0.4"
+    dash-platform-sdk: "npm:^1.0.5"
     hash.js: "npm:^1.1.7"
     html-webpack-plugin: "npm:^5.6.0"
     react: "npm:^19.1.0"
@@ -2453,15 +2453,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"dash-platform-sdk@npm:^1.0.4":
-  version: 1.0.4
-  resolution: "dash-platform-sdk@npm:1.0.4"
+"dash-platform-sdk@npm:^1.0.5":
+  version: 1.0.5
+  resolution: "dash-platform-sdk@npm:1.0.5"
   dependencies:
     "@scure/base": "npm:^1.2.4"
     cbor: "npm:^10.0.3"
-    pshenmic-dpp: "npm:^1.0.3"
+    grpc-web: "npm:^1.5.0"
+    pshenmic-dpp: "npm:^1.0.5"
     rfc4648: "npm:^1.5.4"
-  checksum: 10c0/58629fefb628df3e86860cd38a7f2f74220ba75944df0821c8b50210f35d0b358c68ad7885d4279988c640a9c7731c2300bff51423580142c428554c02fcd749
+  checksum: 10c0/7c161d780531469937cd2e15df76991447fc2631bc3ad0f2def37f015aaa68d94537688a3a3946b863bee95d662f3c91c0cd914cc4e2f8965dc146dd6abb3929
   languageName: node
   linkType: hard
 
@@ -3212,6 +3213,13 @@ __metadata:
   version: 4.2.11
   resolution: "graceful-fs@npm:4.2.11"
   checksum: 10c0/386d011a553e02bc594ac2ca0bd6d9e4c22d7fa8cfbfc448a6d148c59ea881b092db9dbe3547ae4b88e55f1b01f7c4a2ecc53b310c042793e63aa44cf6c257f2
+  languageName: node
+  linkType: hard
+
+"grpc-web@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "grpc-web@npm:1.5.0"
+  checksum: 10c0/3aeac51fae5271b50ed23f9d20326a590e067998d920ac8cb85ba4b3a33e545b6eb35966d7c1dd356668cc67cebafd4ee31074a768ba062c087d2a0329ce1f97
   languageName: node
   linkType: hard
 
@@ -4566,10 +4574,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pshenmic-dpp@npm:^1.0.3":
-  version: 1.0.4
-  resolution: "pshenmic-dpp@npm:1.0.4"
-  checksum: 10c0/892b8caa4bd4a0bcb91b25d92aa983a367f9418eba363337edf6b58185a03031215c5f917c353f68db810654cddc4a26265e00f0808d1c71c5fc420d7c23979a
+"pshenmic-dpp@npm:^1.0.5":
+  version: 1.0.5
+  resolution: "pshenmic-dpp@npm:1.0.5"
+  checksum: 10c0/425d6fc32b78ccd0bd3ecf0af11c44d79f78b1274ff9852b62b393576e9ba48bcb1584780b78e24232f9a24debadebcbcb3673dfa27cdcc070adf9eb644c7c87
   languageName: node
   linkType: hard
 
