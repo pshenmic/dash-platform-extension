@@ -54,12 +54,13 @@ export default function () {
   }
 
   const doSign = () => {
+    debugger
     const {PrivateKeyWASM, IdentityWASM} = sdk.wasm
     const {bytesToHex, hexToBytes} = sdk.utils
 
     const [privateKey] = identity.privateKeys
 
-    const privateKeyWASM = PrivateKeyWASM.fromBytes(sdk.utils.hexToBytes(privateKey), 'Testnet')
+    const privateKeyWASM = PrivateKeyWASM.fromBytes(hexToBytes(privateKey), 'Testnet')
     console.log('pkh', privateKeyWASM.getPublicKeyHash())
 
     const [identityPublicKey] = IdentityWASM

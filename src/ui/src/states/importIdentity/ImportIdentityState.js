@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useSdk } from '../../hooks/useSdk'
 import { useNavigate } from 'react-router'
 import { useIdentitiesStore } from '../../stores/identitiesStore'
@@ -10,9 +10,10 @@ export default function () {
   const navigate = useNavigate()
   const sdk = useSdk()
 
-  const { uint8ArrayToBase58, bytesToHex } = sdk.utils
+  const { uint8ArrayToBase58 } = sdk.utils
 
   const [privateKey, setPrivateKey] = useState(null)
+  const [privateKeyWASM, setPrivateKeyWASM] = useState(null)
   const [identity, setIdentity] = useState(null)
   const [balance, setBalance] = useState(null)
   const [error, setError] = useState('')
@@ -27,18 +28,32 @@ export default function () {
   const checkPrivateKey = async () => {
     setError(null)
 
-    try {
-      if (!checkHex(privateKey)) {
-        return setError('Private key should be in hex')
+    let pkeyWASM = null
+
+    if (privateKey.length === 52) {
+      // wif
+      try {
+        pkeyWASM = sdk.wasm.PrivateKeyWASM.fromWIF((privateKey))
+        setPrivateKeyWASM(pkeyWASM)
+      } catch (e) {
+        console.error(e)
+        return setError('Could not decode private key from WIF')
       }
+    } else if (privateKey.length === 64) {
+      //hex
+      try {
+        pkeyWASM = sdk.wasm.PrivateKeyWASM.fromHex(privateKey, 'testnet')
+        setPrivateKeyWASM(pkeyWASM)
+      } catch (e) {
+        console.error(e)
+        return setError('Could not decode private key from hex')
+      }
+    } else {
+      return setError('Unrecognized private key format')
+    }
 
-      const { PrivateKeyWASM } = sdk.wasm
-      const { hexToBytes } = sdk.utils
-
-      const privateKeyWASM = PrivateKeyWASM.fromBytes(hexToBytes(privateKey), 'Testnet')
-      const publicKeyHash = privateKeyWASM.getPublicKeyHash()
-
-      const identity = await sdk.identities.getByPublicKeyHash(publicKeyHash)
+    try {
+      const identity = await sdk.identities.getByPublicKeyHash(pkeyWASM.getPublicKeyHash())
       const balance = await sdk.identities.getBalance(uint8ArrayToBase58(identity.getId()))
 
       setIdentity(identity)
@@ -61,7 +76,7 @@ export default function () {
     const identities = [{
       identifier: uint8ArrayToBase58(identity.getId()),
       raw: sdk.utils.bytesToHex(identity.toBytes()),
-      privateKeys: [privateKey]
+      privateKeys: [privateKeyWASM.getHex()]
     }]
 
     setIdentities(identities)
@@ -77,7 +92,9 @@ export default function () {
       {!identity && <div>
         <div className={'ImportIdentityState__Description'}>
           <div className={'ImportIdentityState__Description__Item'}>Paste your identity Private Key in HEX format</div>
-          <div className={'ImportIdentityState__Description__Item'}>You can export it from the Dash Evonode Tool application</div>
+          <div className={'ImportIdentityState__Description__Item'}>You can export it from the Dash Evonode Tool
+            application
+          </div>
         </div>
         <div className={'ImportIdentityState__PrivateKey'}>
           <span className={'ImportIdentityState__PrivateKey__Title'}>Private Key:</span>
@@ -90,7 +107,9 @@ export default function () {
         </div>}
 
         <div>
-          <button className={'ImportIdentityState__Check_Button'} disabled={!privateKey} onClick={checkPrivateKey}>Check</button>
+          <button className={'ImportIdentityState__Check_Button'} disabled={!privateKey}
+                  onClick={checkPrivateKey}>Check
+          </button>
         </div>
       </div>}
 
@@ -98,7 +117,8 @@ export default function () {
         <span className={'ImportIdentityState__Identity_Description'}>We found an identity associated with the given private key</span>
         <div className={'ImportIdentityState__Identity__Identity'}>
           <span className={'ImportIdentityState__Identity__Identity__Item'}>Identifier:</span>
-          <span className={'ImportIdentityState__Identity__Identity__Item'}>{uint8ArrayToBase58(identity.getId())}</span>
+          <span
+            className={'ImportIdentityState__Identity__Identity__Item'}>{uint8ArrayToBase58(identity.getId())}</span>
         </div>
         <div className={'ImportIdentityState__Identity__Balance'}>
           <span className={'ImportIdentityState__Identity__Identity__Item'}>Balance:</span>
