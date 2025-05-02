@@ -62,7 +62,8 @@ export default function () {
         <div className={'HomeState__Transactions__Container'}>
           {transactions?.length && transactions.map((transaction) => <div key={transaction.hash}
                                                                           className={'HomeState__Transactions__Item'}>
-            <a target={'_blank'} href={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}>{transaction.hash}</a>
+            <a target={'_blank'}
+               href={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}>{transaction.hash}</a>
           </div>)}
         </div>
       </div>

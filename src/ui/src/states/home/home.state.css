@@ -7,25 +7,61 @@
     display: flex;
     flex-direction: column;
     justify-content: space-around;
-    padding: 15px;
-    height: 200px;
 }
-.HomeState__NoIdentities__Title {
 
+.HomeState__NoIdentities__Title {
+    padding-left: 12px;
+    font-size: 18pt;
+    font-weight: 600;
 }
+
+.HomeState__NoIdentities__Images {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.HomeState__NoIdentities__Images__DashLogo {
+    width: 18px;
+    padding-left: 12px;
+    padding-top: 10px;
+}
+
+.HomeState__NoIdentities__Images__CoinImage {
+    width: 150px;
+}
+
+.HomeState__NoIdentities__Container {
+    padding: 20px;
+    min-width: 200px;
+}
+
 .HomeState__NoIdentities__Buttons {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    text-decoration: none;
 }
 
 .HomeState__NoIdentities__Buttons__Import {
-    margin:10px;
+    margin: 10px;
     padding: 10px;
+    min-width: 70px;
+    border: none;
+    border-radius: 20px;
+    font-weight: 400;
+    color: white;
+    background-color: #4C7EFF;
 }
 
 .HomeState__NoIdentities__Buttons__Register {
-    margin:10px;
+    margin: 10px;
     padding: 10px;
+    min-width: 80px;
+    border: none;
+    font-weight: 400;
+    border-radius: 20px;
+    color: black;
+    background-color: #60F6D2;
 }
 
 .HomeState__NoIdentities__Import {
@@ -92,6 +128,7 @@
     text-decoration: none;
     padding-top: 3px
 }
+
 .HomeState__Transactions__Item > a {
     color: black;
     text-decoration: none;

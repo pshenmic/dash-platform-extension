@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import {
   createHashRouter,
@@ -66,7 +66,5 @@ document.body.appendChild(root)
 
 const rootDiv = ReactDOM.createRoot(root)
 rootDiv.render(
-  <Suspense fallback={<div>Loading...</div>}>
-    <App/>
-  </Suspense>
+  <App/>
 )
