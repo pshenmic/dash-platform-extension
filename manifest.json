@@ -11,7 +11,7 @@
   },
   "action":{
     "default_popup": "index.html",
-    "default_title": "EvoBox Wallet"
+    "default_title": "Dash Platform Extension"
   },
   "content_scripts": [
     {
