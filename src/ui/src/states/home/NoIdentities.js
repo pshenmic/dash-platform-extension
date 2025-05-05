@@ -7,7 +7,7 @@ import Test from './Test.tsx'
 export default function () {
   const navigate = useNavigate();
 
-  const imagePath = useImage('dash_cointest3.png')
+  const imagePath = useImage('assets/dash_cointest3.png')
 
   return (
     <div className={'HomeState__NoIdentities'}>
