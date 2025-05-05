@@ -20,6 +20,8 @@ module.exports = {
         test: /\.css$/i,
         use: ['style-loader', 'css-loader'],
       },
+      // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
+      { test: /\.tsx?$/, loader: "ts-loader" },
       {
         test: /\.(?:js|mjs|cjs)$/,
         exclude: /node_modules/,

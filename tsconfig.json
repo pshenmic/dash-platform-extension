@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "outDir": "./built",
+    "allowJs": true,
+    "target": "es5",
+    "jsx": "react",
+    "lib": ["dom", "esnext"],
+    "esModuleInterop": true
+  },
+  "include": ["./src/**/*"]
+}

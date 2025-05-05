@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import './home.state.css'
 import { useNavigate } from 'react-router'
 import { useImage } from '../../hooks/useImage'
+import Test from './Test.tsx'
 
 export default function () {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ export default function () {
 
   return (
     <div className={'HomeState__NoIdentities'}>
+      <Test/>
       <div className={'HomeState__NoIdentities__Images'}>
         <svg width="37" height="30" viewBox="0 0 37 30" fill="none" xmlns="http://www.w3.org/2000/svg" className={'HomeState__NoIdentities__Images__DashLogo'}>
           <path
