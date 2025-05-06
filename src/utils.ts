@@ -7,5 +7,3 @@ export const getRunningEnv = () => {
 
     return chrome?.runtime?.onMessage ? 'CONTENT' : 'WEB';
 };
-
-
