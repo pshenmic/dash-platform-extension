@@ -25,6 +25,7 @@
   "devDependencies": {
     "@babel/core": "^7.23.5",
     "@babel/preset-env": "^7.23.5",
+    "@types/chrome": "^0.0.319",
     "@types/react": "^19.1.2",
     "babel-loader": "^9.1.3",
     "css-loader": "^6.10.0",
