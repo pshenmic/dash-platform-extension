@@ -11,7 +11,7 @@ import { useIdentitiesStore } from './src/stores/identitiesStore'
 import { useSdk } from './src/hooks/useSdk'
 import { useChromeStorage } from './src/hooks/useChromeStorage'
 import ApproveTransactionState from './src/states/approveTransaction/ApproveTransactionState'
-import '../style.css'
+import '../style.pcss'
 
 const App = function () {
   const sdk = useSdk()

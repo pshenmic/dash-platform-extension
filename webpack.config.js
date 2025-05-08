@@ -20,7 +20,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.css$/i,
+        test: /\.p?css$/i,
         use: ['style-loader', 'css-loader', 'postcss-loader'],
       },
       // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
