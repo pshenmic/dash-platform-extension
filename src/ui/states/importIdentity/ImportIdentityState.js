@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useSdk } from '../../hooks/useSdk'
 import { useNavigate } from 'react-router'
-import { useIdentitiesStore } from '../../stores/identitiesStore'
+import { useIdentitiesStore } from '../../../stores/identitiesStore'
 import './import.identity.state.css'
 
 const checkHex = (string) => /\b[0-9A-F]{64}/gi.test(string)
