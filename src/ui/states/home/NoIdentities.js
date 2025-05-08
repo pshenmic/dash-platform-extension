@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import './home.state.css'
 import { useNavigate } from 'react-router'
-import { useImage } from '../../../hooks/useImage'
+import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import Test from './Test.tsx'
 
 export default function () {
   const navigate = useNavigate();
 
-  const imagePath = useImage('dash_cointest3.png')
+  const imagePath = useStaticAsset('dash_cointest3.png')
 
   return (
     <div className={'HomeState__NoIdentities'}>
