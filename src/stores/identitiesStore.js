@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { useChromeStorage } from '../ui/hooks/useChromeStorage'
+import { useChromeStorage } from '../hooks/useChromeStorage'
 import { ZUSTAND_IDENTITIES_STORE_KEY } from '../ui/constants'
 
 const storage = useChromeStorage()

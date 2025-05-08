@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import './home.state.css'
 import { useNavigate } from 'react-router'
-import { useImage } from '../../hooks/useImage'
+import { useImage } from '../../../hooks/useImage'
 import Test from './Test.tsx'
 
 export default function () {

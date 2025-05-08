@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
 import { base64 as base64Decoder } from '@scure/base'
-import { useSdk } from '../../hooks/useSdk'
+import { useSdk } from '../../../hooks/useSdk'
 import { useIdentitiesStore } from '../../../stores/identitiesStore'
 import hash from 'hash.js'
 import './approve.transaction.css'

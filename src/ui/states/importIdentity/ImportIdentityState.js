@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useSdk } from '../../hooks/useSdk'
+import { useSdk } from '../../../hooks/useSdk'
 import { useNavigate } from 'react-router'
 import { useIdentitiesStore } from '../../../stores/identitiesStore'
 import './import.identity.state.css'

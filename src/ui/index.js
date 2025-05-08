@@ -8,8 +8,8 @@ import HomeState from './states/home/HomeState'
 import ImportIdentityState from './states/importIdentity/ImportIdentityState'
 import './styles/app.pcss'
 import { useIdentitiesStore } from '../stores/identitiesStore'
-import { useSdk } from './hooks/useSdk'
-import { useChromeStorage } from './hooks/useChromeStorage'
+import { useSdk } from '../hooks/useSdk'
+import { useChromeStorage } from '../hooks/useChromeStorage'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 
 const App = function () {
