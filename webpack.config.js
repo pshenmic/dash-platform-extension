@@ -8,8 +8,8 @@ module.exports = {
   entry: {
     'ui': './src/ui/index.js',
     ...(mode === 'production' && {
-      'content-script': './src/content-script.js',
-      'injected': './src/injected.js',
+      'content-script': './src/content-scripts/content-script.js',
+      'injected': './src/content-scripts/injected.js',
     })
   },
   output: {

@@ -12,7 +12,7 @@ const testClasses = cva('btn-base', {
 });
 
 export default function () {
-  const isDisabled = true
+  const isDisabled = false
 
   return (
     <div className={testClasses({ state: isDisabled ? 'disabled' : 'active' })}>
