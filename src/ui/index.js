@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import {
   createHashRouter,
   RouterProvider,
+  Outlet
 } from 'react-router'
 import HomeState from './states/home/HomeState'
 import ImportIdentityState from './states/importIdentity/ImportIdentityState'
@@ -12,6 +13,10 @@ import { useSdk } from '../hooks/useSdk'
 import { useChromeStorage } from '../hooks/useChromeStorage'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 
+const Layout = () => {
+  return <Outlet/>
+}
+
 const App = function () {
   const sdk = useSdk()
 
@@ -20,16 +25,22 @@ const App = function () {
 
   const router = createHashRouter([
     {
-      path: '/',
-      element: <HomeState/>,
-    },
-    {
-      path: '/import',
-      element: <ImportIdentityState/>,
-    },
-    {
-      path: '/approve/:txhash',
-      element: <ApproveTransactionState/>,
+      element: <Layout/>,
+      children: [
+        {
+          index: true,
+          path: '/',
+          element: <HomeState/>
+        },
+        {
+          path: '/import',
+          element: <ImportIdentityState/>,
+        },
+        {
+          path: '/approve/:txhash',
+          element: <ApproveTransactionState/>,
+        },
+      ],
     },
   ])
   const populateBalances = async () => {
