@@ -1,16 +1,22 @@
 import React, { useEffect, useState } from 'react'
 import './home.state.css'
-import { useNavigate } from 'react-router'
+import { useNavigate, useMatches } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
-import Test from './Test.tsx'
+import Test from './Test'
+import Header from "../../components/layout/header/index";
 
 export default function () {
   const navigate = useNavigate();
+  const matches = useMatches();
+
+  console.log('matches', matches)
 
   const imagePath = useStaticAsset('dash_cointest3.png')
 
   return (
     <div className={'HomeState__NoIdentities'}>
+      {/*<Header right={{ variant: 'image', imageType: 'coins' }} />*/}
+
       <Test/>
       <div className={'HomeState__NoIdentities__Images'}>
         <svg width="37" height="30" viewBox="0 0 37 30" fill="none" xmlns="http://www.w3.org/2000/svg" className={'HomeState__NoIdentities__Images__DashLogo'}>
