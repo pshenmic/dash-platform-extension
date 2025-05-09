@@ -3,8 +3,9 @@ import ReactDOM from 'react-dom/client'
 import {
   createHashRouter,
   RouterProvider,
-  Outlet
-} from 'react-router'
+  Outlet,
+  RouteObject
+} from 'react-router-dom'
 import HomeState from './states/home/HomeState'
 import ImportIdentityState from './states/importIdentity/ImportIdentityState'
 import './styles/app.pcss'
@@ -13,15 +14,15 @@ import { useSdk } from '../hooks/useSdk'
 import { useChromeStorage } from '../hooks/useChromeStorage'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 
-const Layout = () => {
+const Layout: React.FC = () => {
   return <Outlet/>
 }
 
-const App = function () {
-  const sdk = useSdk()
+const App: React.FC = function () {
+  const sdk: any = useSdk()
 
-  const identities = useIdentitiesStore((state) => state.identities)
-  const setIdentityBalance = useIdentitiesStore((state) => state.setIdentityBalance)
+  const identities: any = useIdentitiesStore((state: any) => state.identities)
+  const setIdentityBalance: any = useIdentitiesStore((state: any) => state.setIdentityBalance)
 
   const router = createHashRouter([
     {
@@ -42,8 +43,8 @@ const App = function () {
         },
       ],
     },
-  ])
-  const populateBalances = async () => {
+  ] as RouteObject[])
+  const populateBalances = async (): Promise<void> => {
     const balances = await Promise.all(identities.map((async identity => ({
       identifier: identity.identifier,
       balance: (await sdk.identities.getBalance(identity.identifier)).toString()
