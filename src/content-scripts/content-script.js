@@ -1,6 +1,6 @@
 import { base64 } from '@scure/base';
 import hash from 'hash.js'
-import { ZUSTAND_IDENTITIES_STORE_KEY } from './ui/constants'
+import { ZUSTAND_IDENTITIES_STORE_KEY } from '../ui/constants'
 
 window.addEventListener("message",
   async function (event) {

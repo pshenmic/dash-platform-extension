@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import './home.state.css'
 import NoIdentities from './NoIdentities'
-import { useIdentitiesStore } from '../../stores/identitiesStore'
+import { useIdentitiesStore } from '../../../stores/identitiesStore'
 
 export default function () {
   const currentIdentity = useIdentitiesStore((state) => state.currentIdentity)
@@ -62,7 +62,8 @@ export default function () {
         <div className={'HomeState__Transactions__Container'}>
           {transactions?.length && transactions.map((transaction) => <div key={transaction.hash}
                                                                           className={'HomeState__Transactions__Item'}>
-            <a target={'_blank'} href={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}>{transaction.hash}</a>
+            <a target={'_blank'}
+               href={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}>{transaction.hash}</a>
           </div>)}
         </div>
       </div>
