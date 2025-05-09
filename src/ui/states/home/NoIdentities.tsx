@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import './home.state.css'
-import { useNavigate, useMatches } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import Test from './Test'
 import Header from "../../components/layout/header/index";
 
 export default function () {
   const navigate = useNavigate();
-  const matches = useMatches();
-
-  console.log('matches', matches)
 
   const imagePath = useStaticAsset('dash_cointest3.png')
 
