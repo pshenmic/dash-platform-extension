@@ -6,7 +6,7 @@ const mode = process.env.NODE_ENV
 
 module.exports = {
   entry: {
-    'ui': './src/ui/index.js',
+    'ui': './src/ui/index.tsx',
     ...(mode === 'production' && {
       'content-script': './src/content-scripts/content-script.js',
       'injected': './src/content-scripts/injected.js',
@@ -20,13 +20,22 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.module\.p?css$/i,
+        use: [
+          'style-loader',
+          { loader: 'css-loader', options: { modules: true } },
+          'postcss-loader'
+        ],
+      },
+      {
         test: /\.p?css$/i,
+        exclude: /\.module\.p?css$/i,
         use: ['style-loader', 'css-loader', 'postcss-loader'],
       },
       // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
       { test: /\.tsx?$/, loader: "ts-loader" },
       {
-        test: /\.(?:js|mjs|cjs)$/,
+        test: /\.(?:js|mjs|cjs|jsx)$/,
         exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
