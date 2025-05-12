@@ -1,12 +1,10 @@
 import React from 'react'
 import './home.state.css'
 import { useNavigate } from 'react-router-dom'
-// import { useStaticAsset } from '../../../hooks/useStaticAsset'
+import { Button } from "../../components/controls/buttons";
 
 export default function () {
   const navigate = useNavigate();
-
-  // const imagePath = useStaticAsset('dash_cointest3.png')
 
   return (
     <div className={'HomeState__NoIdentities'}>
@@ -17,6 +15,10 @@ export default function () {
           <button className={'HomeState__NoIdentities__Buttons__Import'} onClick={() => navigate('import')}>Import
           </button>
           <button className={'HomeState__NoIdentities__Buttons__Register'} disabled={true}>Register</button>
+
+          <Button onClick={() => console.log('click')}>
+            test
+          </Button>
         </div>
       </div>
 

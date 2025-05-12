@@ -7,7 +7,7 @@ const IMAGE_VARIANTS = {
   coins: {
     src: 'coin_bagel.png',
     alt: 'Badge',
-    positionClasses: 'max-w -mt-[19%]'
+    positionClasses: 'max-w -mt-[22%]'
   },
 } as const
 
@@ -40,7 +40,7 @@ export interface HeaderProps {
 }
 
 const headerStyles = cva(
-  'relative flex items-start justify-between bg-white pt-5 -mt-10'
+  'relative flex items-start justify-between'
 )
 
 const backButtonStyles = cva(
