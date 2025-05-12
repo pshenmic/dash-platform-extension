@@ -1,11 +1,6 @@
 import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
-import {
-  createHashRouter,
-  RouterProvider,
-  Outlet,
-  RouteObject
-} from 'react-router-dom'
+import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import HomeState from './states/home/HomeState'
 import ImportIdentityState from './states/importIdentity/ImportIdentityState'
 import './styles/app.pcss'
@@ -13,10 +8,7 @@ import { useIdentitiesStore } from '../stores/identitiesStore'
 import { useSdk } from '../hooks/useSdk'
 import { useChromeStorage } from '../hooks/useChromeStorage'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
-
-const Layout: React.FC = () => {
-  return <Outlet/>
-}
+import Layout from './components/layout/Layout'
 
 const App: React.FC = function () {
   const sdk: any = useSdk()
