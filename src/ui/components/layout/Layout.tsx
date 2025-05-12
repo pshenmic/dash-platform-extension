@@ -4,10 +4,10 @@ import Header from './header'
 
 const Layout: FC = () => {
   return (
-    <>
-      <Header right={'back'}/>
+    <div className={'p-10'}>
+      <Header/>
       <Outlet/>
-    </>
+    </div>
   )
 }
 

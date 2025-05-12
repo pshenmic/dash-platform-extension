@@ -23,7 +23,8 @@ const App: React.FC = function () {
         {
           index: true,
           path: '/',
-          element: <HomeState/>
+          element: <HomeState/>,
+          handle: { imageType: 'coins' }
         },
         {
           path: '/import',
@@ -65,7 +66,7 @@ const App: React.FC = function () {
 }
 
 const root = document.createElement('div')
-root.className = 'container main_container'
+root.className = 'main_container'
 document.body.appendChild(root)
 
 const rootDiv = ReactDOM.createRoot(root)

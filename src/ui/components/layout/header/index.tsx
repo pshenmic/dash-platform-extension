@@ -1,4 +1,4 @@
-import React, { FC } from 'react'
+import React from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches } from 'react-router-dom'
 import { useStaticAsset } from '../../../../hooks/useStaticAsset'
@@ -7,7 +7,7 @@ const IMAGE_VARIANTS = {
   coins: {
     src: 'coin_bagel.png',
     alt: 'Badge',
-    positionClasses: '-top-18 -right-36'
+    positionClasses: 'max-w -mt-[19%]'
   },
 } as const
 
@@ -25,52 +25,67 @@ type RightBack = {
 
 type RightProps = RightImage | RightBack
 
+type Match = {
+  id: string
+  pathname: string
+  handle?: {
+    imageType?: string
+    [key: string]: any
+  }
+  params: Record<string, string>
+}
+
 export interface HeaderProps {
   right?: RightProps
 }
 
 const headerStyles = cva(
-  'flex items-center justify-between bg-white px-4 py-2 border-b border-gray-200'
+  'relative flex items-start justify-between bg-white pt-5 -mt-10'
 )
 
 const backButtonStyles = cva(
   'p-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-gray-100'
 )
 
-export default function Header ({ right }) {
-  const matches = useMatches();
-
+export default function Header () {
+  const matches = useMatches() as Match[]
   const navigate = useNavigate()
 
+  const deepestRoute = [...matches].reverse().find(m => m.handle?.imageType)
+  const right = deepestRoute?.handle?.imageType
+    ? { variant: 'image', imageType: deepestRoute?.handle?.imageType}
+    : { variant: 'back' }
+
+  console.log('Все совпадения:', matches)
+  console.log('Найденный handle.imageType:', deepestRoute?.handle?.imageType)
+
+
   const handleBack = () => {
-    if (right?.variant === 'back') {
-      right.onClick
-        ? right.onClick()
-        : navigate(-1)
-    }
+    right?.variant === 'back'
+      ? navigate(-1)
+      : null
   }
 
   return (
     <header className={headerStyles()}>
       <div>
         <img
-          src={useStaticAsset('dash_logo.png')}
+          src={useStaticAsset('dash_logo.svg')}
           alt={'Platform Explorer'}
-          className={'h-10 w-auto object-contain'}
+          className={'w-[2.25rem] h-[1.75rem] object-contain'}
         />
       </div>
 
       {right && (
-        <div>
+        <div className={'w-[120%] -mr-[55%]'}>
           {right.variant === 'image'
             ? (() => {
-              const { src, alt, positionClasses } =
-                IMAGE_VARIANTS[right.imageType]
+              const { src, alt, positionClasses } = IMAGE_VARIANTS[right.imageType]
               return (
                 <img
                   src={useStaticAsset(src)}
                   alt={alt}
-                  className={`fixed ${positionClasses}`}
+                  className={`relative ${positionClasses} max-w-[348px] max-h-[327px]`}
                 />
               )
             })()
