@@ -3,6 +3,7 @@ import { useSdk } from '../../../hooks/useSdk'
 import { useNavigate } from 'react-router-dom'
 import { useIdentitiesStore } from '../../../stores/identitiesStore'
 import { Button } from '../../components/controls/buttons'
+import Textarea from '../../components/controls/form/Textarea'
 import './import.identity.state.css'
 
 const checkHex = (string) => /\b[0-9A-F]{64}/gi.test(string)
@@ -21,10 +22,6 @@ export default function () {
   const setIdentities = useIdentitiesStore((state) => state.setIdentities)
   const setCurrentIdentity = useIdentitiesStore((state) => state.setCurrentIdentity)
   const setIdentityBalance = useIdentitiesStore((state) => state.setIdentityBalance)
-
-  const handlePrivateKeyChange = (e) => {
-    setPrivateKey(e.target.value)
-  }
 
   const checkPrivateKey = async () => {
     setError(null)
@@ -91,18 +88,19 @@ export default function () {
       <span className={'h1-title'}>Import your identity</span>
 
       {!identity &&
-        <div>
+        <div className={'flex flex-col gap-[0.875rem]'}>
           <div className={'ImportIdentityState__Description'}>
             <div className={'ImportIdentityState__Description__Item'}>Paste your identity Private Key in HEX format</div>
             <div className={'ImportIdentityState__Description__Item'}>You can export it from the Dash Evonode Tool
               application
             </div>
           </div>
-          <div className={'ImportIdentityState__PrivateKey'}>
-            <span className={'ImportIdentityState__PrivateKey__Title'}>Private Key:</span>
-            <textarea className={'ImportIdentityState__PrivateKey__Input'} value={privateKey}
-                      onChange={handlePrivateKeyChange}></textarea>
-          </div>
+
+          <Textarea
+            rows={3}
+            placeholder={'your private key...'}
+            onChange={setPrivateKey}
+          />
 
           {!!error &&
             <div className={'ImportIdentityState__Check_Message'}>
@@ -111,7 +109,7 @@ export default function () {
           }
 
           <div>
-            <Button color={'brand'}>
+            <Button color={'brand'} disabled={!privateKey} className={'w-full'}>
               Import
             </Button>
           </div>
