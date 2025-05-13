@@ -9,9 +9,9 @@ export default function () {
   return (
     <div className={'HomeState__NoIdentities'}>
       <div className={'HomeState__NoIdentities__Container'}>
-        <div className={'HomeState__NoIdentities__Title'}>
+        <h1 className={'h1-title'}>
           <b>You have<br/>no identities yet</b>
-        </div>
+        </h1>
 
         <div className={'HomeState__NoIdentities__Buttons'}>
           <Button onClick={() => navigate('import')}>

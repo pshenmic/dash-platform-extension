@@ -10,13 +10,6 @@
     margin-top: -0.5rem;
 }
 
-.HomeState__NoIdentities__Title {
-    font-size: 2.375rem;
-    font-weight: 800;
-    line-height: 130%;
-    letter-spacing: -0.3px;
-}
-
 .HomeState__NoIdentities__Images {
     display: flex;
     flex-direction: row;
