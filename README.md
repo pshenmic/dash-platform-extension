@@ -7,7 +7,7 @@ ___
 
 ##### This package in very early stage of development, and only testnet network supported at the moment.
 
-![title](assets/img/overview.png)
+![title](public/img/overview.png)
 
 ## General
 

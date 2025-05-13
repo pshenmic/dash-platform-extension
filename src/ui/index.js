@@ -4,13 +4,13 @@ import {
   createHashRouter,
   RouterProvider,
 } from 'react-router'
-import HomeState from './src/states/home/HomeState'
-import ImportIdentityState from './src/states/importIdentity/ImportIdentityState'
-import './styles/app.css'
-import { useIdentitiesStore } from './src/stores/identitiesStore'
-import { useSdk } from './src/hooks/useSdk'
-import { useChromeStorage } from './src/hooks/useChromeStorage'
-import ApproveTransactionState from './src/states/approveTransaction/ApproveTransactionState'
+import HomeState from './states/home/HomeState'
+import ImportIdentityState from './states/importIdentity/ImportIdentityState'
+import './styles/app.pcss'
+import { useIdentitiesStore } from '../stores/identitiesStore'
+import { useSdk } from '../hooks/useSdk'
+import { useChromeStorage } from '../hooks/useChromeStorage'
+import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 
 const App = function () {
   const sdk = useSdk()

@@ -2,12 +2,15 @@ const path = require('path')
 const webpack = require('webpack')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
+const mode = process.env.NODE_ENV
 
 module.exports = {
   entry: {
     'ui': './src/ui/index.js',
-    // 'content-script': './src/content-script.js',
-    // 'injected': './src/injected.js',
+    ...(mode === 'production' && {
+      'content-script': './src/content-scripts/content-script.js',
+      'injected': './src/content-scripts/injected.js',
+    })
   },
   output: {
     publicPath: '',
@@ -17,8 +20,8 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.css$/i,
-        use: ['style-loader', 'css-loader'],
+        test: /\.p?css$/i,
+        use: ['style-loader', 'css-loader', 'postcss-loader'],
       },
       // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
       { test: /\.tsx?$/, loader: "ts-loader" },
@@ -35,6 +38,9 @@ module.exports = {
         }
       }
     ]
+  },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js', '.jsx', '.json']
   },
   plugins: [
     new CopyWebpackPlugin({

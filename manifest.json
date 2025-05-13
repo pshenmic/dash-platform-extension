@@ -20,7 +20,7 @@
     }
   ],
   "web_accessible_resources": [{
-    "resources": ["injected.js", "index.html"],
+    "resources": ["injected.js", "index.html", "/assets/dash_logo.png", "/assets/dash_cointest3.png"],
     "matches": ["<all_urls>"]
   }]
 }

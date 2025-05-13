@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import './home.state.css'
 import NoIdentities from './NoIdentities'
-import { useIdentitiesStore } from '../../stores/identitiesStore'
+import { useIdentitiesStore } from '../../../stores/identitiesStore'
 
 export default function () {
   const currentIdentity = useIdentitiesStore((state) => state.currentIdentity)
