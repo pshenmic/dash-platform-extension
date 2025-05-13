@@ -15,6 +15,7 @@
       transition-colors
       rounded-[1.25rem]
       hover:cursor-pointer
+      justify-center
     `,
     {
       variants: {
@@ -31,12 +32,12 @@
         {
           color: 'brand',
           state: 'disabled',
-          class: '!bg-brand/30',
+          class: '!bg-brand/10 !text-brand-dim',
         },
         {
           color: 'mint',
           state: 'disabled',
-          class: '!bg-mint/30 !text-black/80',
+          class: '!bg-mint/30 !text-black/60',
         },
       ],
       defaultVariants: {
