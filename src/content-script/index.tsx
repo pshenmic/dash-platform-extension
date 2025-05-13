@@ -1,3 +1,5 @@
+// This file only runs in the extension context (content-script)
+
 import {MessageHandler, Messaging} from "../types/Messaging";
 import {EVENTS} from "../constants";
 import onOpenPopupWindow from "../injected/messaging/handlers/onOpenPopupWindow";

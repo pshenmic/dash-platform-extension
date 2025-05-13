@@ -1,9 +1,9 @@
 import {base64} from "@scure/base";
 import hash from "hash.js";
-import {ZUSTAND_IDENTITIES_STORE_KEY} from "../../../ui/constants";
 import {EventData} from "../../../types/EventData";
+import {EVENTS, ZUSTAND_IDENTITIES_STORE_KEY} from "../../../constants";
 
-export default async function (data: EventData){
+export default async function (data: EventData) {
     const buffer = base64.decode(data.payload.base64)
     const state_transition_hash = hash.sha256().update(buffer).digest('hex')
 
@@ -13,9 +13,24 @@ export default async function (data: EventData){
 
     const {unsignedStateTransitions} = originalState.state
 
-    const newState =  {version: originalState.version, state: {...originalState.state, unsignedStateTransitions: [...unsignedStateTransitions, {hash: state_transition_hash, base64: data.payload.base64}]}}
+    const newState = {
+        version: originalState.version,
+        state: {
+            ...originalState.state,
+            unsignedStateTransitions: [...unsignedStateTransitions, {
+                hash: state_transition_hash,
+                base64: data.payload.base64
+            }]
+        }
+    }
 
-    await chrome.storage.local.set({ [ZUSTAND_IDENTITIES_STORE_KEY]: JSON.stringify(newState)});
+    await chrome.storage.local.set({[ZUSTAND_IDENTITIES_STORE_KEY]: JSON.stringify(newState)});
 
-    window.postMessage({target: 'window', method: 'openUrl', payload: {url: chrome.runtime.getURL(`/index.html#approve/${state_transition_hash}`) }})
+    window.postMessage({
+        target: 'webpage',
+        method: EVENTS.OPEN_POPUP_WINDOW,
+        payload: {
+            url: chrome.runtime.getURL(`/index.html#approve/${state_transition_hash}`)
+        }
+    })
 }

@@ -5,21 +5,21 @@ import {EventData} from "../types/EventData";
 export class ExtensionSigner {
     // todo StateTransitionWASM
     async signStateTransition(stateTransition: any) {
-        const eventData: EventData = await this._rpcCall(
-            EVENTS.SIGN_STATE_TRANSITION,
+        const eventData: EventData = await this._rpcCall(EVENTS.SIGN_STATE_TRANSITION,
             {
                 base64: stateTransition.toBytes()
             })
-
-        window.postMessage({
-            method: 'signStateTransition',
-            payload: {base64: base64.encode(stateTransition.toBytes())}
-        })
-
-        console.log('Sent signStateTransition() method from webpage')
     }
 
-    _rpcCall(method: string, payload: object): Promise<EventData> {
+    async getIdentities() {
+        const eventData: EventData = await this._rpcCall(EVENTS.GET_IDENTITIES)
+
+        const {identities} = eventData.payload
+
+        return identities
+    }
+
+    _rpcCall(method: string, payload?: object): Promise<EventData> {
         return new Promise((resolve, reject) => {
             const rejectWithError = (message: string) => {
                 window.removeEventListener('message', handleMessage)

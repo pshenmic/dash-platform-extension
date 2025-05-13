@@ -1,3 +1,5 @@
+// This file injects on webpages by extension
+
 declare global {
     interface Window {
         dashPlatformSDK: DashPlatformSDK
