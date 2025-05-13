@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useSdk } from '../../../hooks/useSdk'
 import { useNavigate } from 'react-router-dom'
 import { useIdentitiesStore } from '../../../stores/identitiesStore'
+import { Button } from '../../components/controls/buttons'
 import './import.identity.state.css'
 
 const checkHex = (string) => /\b[0-9A-F]{64}/gi.test(string)
@@ -89,29 +90,33 @@ export default function () {
   return (<div>
       <span className={'h1-title'}>Import your identity</span>
 
-      {!identity && <div>
-        <div className={'ImportIdentityState__Description'}>
-          <div className={'ImportIdentityState__Description__Item'}>Paste your identity Private Key in HEX format</div>
-          <div className={'ImportIdentityState__Description__Item'}>You can export it from the Dash Evonode Tool
-            application
+      {!identity &&
+        <div>
+          <div className={'ImportIdentityState__Description'}>
+            <div className={'ImportIdentityState__Description__Item'}>Paste your identity Private Key in HEX format</div>
+            <div className={'ImportIdentityState__Description__Item'}>You can export it from the Dash Evonode Tool
+              application
+            </div>
+          </div>
+          <div className={'ImportIdentityState__PrivateKey'}>
+            <span className={'ImportIdentityState__PrivateKey__Title'}>Private Key:</span>
+            <textarea className={'ImportIdentityState__PrivateKey__Input'} value={privateKey}
+                      onChange={handlePrivateKeyChange}></textarea>
+          </div>
+
+          {!!error &&
+            <div className={'ImportIdentityState__Check_Message'}>
+              <span>{error}</span>
+            </div>
+          }
+
+          <div>
+            <Button color={'brand'}>
+              Import
+            </Button>
           </div>
         </div>
-        <div className={'ImportIdentityState__PrivateKey'}>
-          <span className={'ImportIdentityState__PrivateKey__Title'}>Private Key:</span>
-          <textarea className={'ImportIdentityState__PrivateKey__Input'} value={privateKey}
-                    onChange={handlePrivateKeyChange}></textarea>
-        </div>
-
-        {!!error && <div className={'ImportIdentityState__Check_Message'}>
-          <span>{error}</span>
-        </div>}
-
-        <div>
-          <button className={'ImportIdentityState__Check_Button'} disabled={!privateKey}
-                  onClick={checkPrivateKey}>Check
-          </button>
-        </div>
-      </div>}
+      }
 
       {identity && <div className={'ImportIdentityState__Identity'}>
         <span className={'ImportIdentityState__Identity_Description'}>We found an identity associated with the given private key</span>
