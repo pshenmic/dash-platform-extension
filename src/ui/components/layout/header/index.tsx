@@ -42,7 +42,18 @@ export interface HeaderProps {
 }
 
 const headerStyles = cva(
-  'relative flex items-start justify-between'
+  'relative flex justify-between',
+  {
+    variants: {
+      type: {
+        image: 'items-start',
+        button: 'items-center -mt-[0.625rem]'
+      }
+    },
+    defaultVariants: {
+      type: 'button'
+    }
+  },
 )
 
 export default function Header () {
@@ -65,7 +76,9 @@ export default function Header () {
   }
 
   return (
-    <header className={headerStyles()}>
+    <header className={headerStyles({
+      type: right.variant === 'image' ? 'image' : 'button'
+    })}>
       <div>
         <img
           src={useStaticAsset('dash_logo.svg')}
