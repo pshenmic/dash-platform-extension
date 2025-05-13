@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useIdentitiesStore } from '../../../stores/identitiesStore'
 import { Button } from '../../components/controls/buttons'
 import Textarea from '../../components/controls/form/Textarea'
+import { Highlight as H } from '../../text/Highlight'
 import './import.identity.state.css'
 
 const checkHex = (string) => /\b[0-9A-F]{64}/gi.test(string)
@@ -90,7 +91,8 @@ export default function () {
       {!identity &&
         <div className={'flex flex-col gap-[0.875rem]'}>
           <div className={'ImportIdentityState__Description'}>
-            <div className={'ImportIdentityState__Description__Item'}>Paste your identity Private Key in HEX format</div>
+            <div className={'ImportIdentityState__Description__Item'}>Paste your identity <H>Private Key</H> in <H>HEX format</H>
+            </div>
             <div className={'ImportIdentityState__Description__Item'}>You can export it from the Dash Evonode Tool
               application
             </div>
