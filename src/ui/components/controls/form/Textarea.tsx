@@ -1,14 +1,15 @@
 import React, { useState, useRef, TextareaHTMLAttributes } from 'react'
+import { Button } from '../buttons'
 import { cva } from 'class-variance-authority'
 
-// Define the styles for the textarea container
 const textAreaContainerStyles = cva(
   `
     flex
-    items-center
+    items-baseline
     rounded-xl
     transition-colors
     w-full
+    font-grotesque
   `,
   {
     variants: {
@@ -152,13 +153,9 @@ export const Textarea: React.FC<TextareaProps> = ({
       />
       
       {showPasteButton && !hasValue && (
-        <button
-          type="button"
-          onClick={handlePaste}
-          className={pasteButtonStyles()}
-        >
+        <Button color={'brand'} size={'sm'} onClick={handlePaste}>
           PASTE
-        </button>
+        </Button>
       )}
     </div>
   )
