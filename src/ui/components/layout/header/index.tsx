@@ -3,6 +3,7 @@ import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches } from 'react-router-dom'
 import { useStaticAsset } from '../../../../hooks/useStaticAsset'
 import { Button } from '../../controls/buttons'
+import { ArrowIcon } from '../../icons'
 
 const IMAGE_VARIANTS = {
   coins: {
@@ -102,7 +103,7 @@ export default function Header () {
             )
           })()
           : <Button onClick={handleBack}>
-            {'<'}
+            <ArrowIcon className={'mr-[0.625rem] h-[0.875rem] w-auto'}/>
             Back
           </Button>
       )}
