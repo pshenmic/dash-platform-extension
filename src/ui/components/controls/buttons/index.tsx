@@ -2,34 +2,41 @@
   import React from 'react'
 
   const styles = cva(
-    'btn-base px-[1.563rem] flex items-center font-bold capitalize transition-colors',
+    `
+      btn-base
+      select-none
+      px-[1.563rem]
+      py-[0.625rem]
+      min-h-11
+      flex
+      items-center
+      font-bold
+      capitalize
+      transition-colors
+      rounded-[1.25rem]
+      hover:cursor-pointer
+    `,
     {
       variants: {
         color: {
-          brand: 'bg-brand text-white',
-          red: 'bg-red-500 text-white',
-          green: 'bg-green-500 text-white',
+          brand: 'bg-brand hover:bg-brand/80 text-white',
+          mint: 'bg-mint hover:bg-mint/80 text-black'
         },
         state: {
           active: '',
-          disabled: '',
+          disabled: 'hover:!cursor-default',
         },
       },
       compoundVariants: [
         {
           color: 'brand',
           state: 'disabled',
-          class: '!bg-blue-100 text-gray-200 cursor-not-allowed',
+          class: '!bg-brand/30',
         },
         {
-          color: 'red',
+          color: 'mint',
           state: 'disabled',
-          class: 'bg-red-300 text-gray-200 cursor-not-allowed',
-        },
-        {
-          color: 'green',
-          state: 'disabled',
-          class: 'bg-green-300 text-gray-200 cursor-not-allowed',
+          class: '!bg-mint/30 !text-black/80',
         },
       ],
       defaultVariants: {
@@ -48,8 +55,8 @@
 
     return (
       <div className={`${styles({
-        // state: 'disabled',
-        color: 'brand'
+        state: 'disabled',
+        color: props.color
       })}`} {...props}>
         {children}
       </div>
