@@ -109,8 +109,13 @@ export default function () {
           }
 
           <div>
-            <Button color={'brand'} disabled={!privateKey} className={'w-full'}>
-              Import
+            <Button
+              color={'brand'}
+              disabled={!privateKey}
+              className={'w-full'}
+              onClick={checkPrivateKey}
+            >
+              Check
             </Button>
           </div>
         </div>
@@ -128,9 +133,14 @@ export default function () {
           <span className={'ImportIdentityState__Identity__Identity__Item'}>{balance} credits</span>
         </div>
         <div className={'ImportIdentityState__Identity__Import'}>
-          <button className={'ImportIdentityState__Identity__Import__Button'} onClick={() => importIdentity()}>
+          <Button
+            color={'brand'}
+            disabled={!privateKey}
+            className={'w-full'}
+            onClick={importIdentity}
+          >
             Import
-          </button>
+          </Button>
         </div>
       </div>}
     </div>
