@@ -87,7 +87,7 @@ export default function () {
   }
 
   return (<div>
-      <span className={'ImportIdentityState__Title'}>Import your identity</span>
+      <span className={'h1-title'}>Import your identity</span>
 
       {!identity && <div>
         <div className={'ImportIdentityState__Description'}>
