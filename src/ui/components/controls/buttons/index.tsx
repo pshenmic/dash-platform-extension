@@ -24,7 +24,7 @@
         },
         state: {
           active: '',
-          disabled: 'hover:!cursor-default',
+          disabled: 'hover:!cursor-not-allowed',
         },
       },
       compoundVariants: [
