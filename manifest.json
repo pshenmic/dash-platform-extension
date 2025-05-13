@@ -15,15 +15,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://localhost/*"],
+      "matches": ["<all_urls>"],
       "js": ["content-script.js"]
     }
   ],
   "web_accessible_resources": [{
     "resources": ["injected.js", "index.html"],
     "matches": ["<all_urls>"]
-  }],
-  "externally_connectable": {
-    "matches": ["*://localhost/*"]
-  }
+  }]
 }
