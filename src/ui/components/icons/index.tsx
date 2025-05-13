@@ -8,10 +8,10 @@ interface IconProps {
 }
 
 export const ArrowIcon: React.FC<IconProps> = ({ 
-  color = 'white', 
-  size = 14, 
+  color = 'white',
+  size = 14,
   className = '', 
-  onClick 
+  onClick
 }) => {
   return (
     <svg 
