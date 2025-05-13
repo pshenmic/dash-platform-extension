@@ -9,19 +9,20 @@ export default function () {
   return (
     <div className={'HomeState__NoIdentities'}>
       <div className={'HomeState__NoIdentities__Container'}>
-        <div className={'HomeState__NoIdentities__Title'}><b>You have<br/>no identities yet</b></div>
+        <div className={'HomeState__NoIdentities__Title'}>
+          <b>You have<br/>no identities yet</b>
+        </div>
 
         <div className={'HomeState__NoIdentities__Buttons'}>
-          <button className={'HomeState__NoIdentities__Buttons__Import'} onClick={() => navigate('import')}>Import
-          </button>
-          <button className={'HomeState__NoIdentities__Buttons__Register'} disabled={true}>Register</button>
+          <Button onClick={() => navigate('import')}>
+            Import
+          </Button>
 
-          <Button onClick={() => console.log('click')}>
-            test
+          <Button color={'mint'} disabled={true}>
+            Register
           </Button>
         </div>
       </div>
-
     </div>
   )
 }

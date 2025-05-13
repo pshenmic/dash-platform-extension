@@ -55,8 +55,8 @@
 
     return (
       <div className={`${styles({
-        state: 'disabled',
-        color: props.color
+        state: props?.disabled ? 'disabled' : 'active',
+        color: props?.color
       })}`} {...props}>
         {children}
       </div>
