@@ -17,7 +17,7 @@ const valueCard = cva(
       },
       size: {
         default: 'px-3 py-2',
-        sm:      'px-[10px] py-[5px] text-sm leading-[14px] rounded-[4px]',
+        sm:      'px-[0.625rem] py-[0.375rem] text-sm leading-[0.875rem] rounded-[0.25]',
       },
       clickable: {
         false: '',
