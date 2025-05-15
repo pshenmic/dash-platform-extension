@@ -15,7 +15,7 @@ const textStyles = cva(
       },
       color: {
         default: '',
-        blue:    'text-blue-800 dark:text-blue-300',
+        blue:    '!text-brand-dark dark:text-brand-dim',
       },
       size: {
         sm: 'text-sm',
