@@ -7,14 +7,14 @@ const valueCard = cva(
   {
     variants: {
       theme: {
-        light: 'border-gray-600',
+        light: 'border-gray-200',
         dark: 'bg-gray-800/50 border-gray-400',
       },
       colorScheme: {
         default: '',
         transparent: 'bg-transparent',
         green: 'text-green-500 bg-green-200 border-green-400',
-        lightBlue: 'bg-brand-dim/10',
+        lightBlue: 'bg-brand-dim/10 !border-brand/20',
         white: 'bg-white'
       },
       size: {
@@ -30,7 +30,7 @@ const valueCard = cva(
         true:  'animate-pulse',
       },
       border: {
-        false: 'border-none',
+        false: '!border-none',
         true: '',
       },
     },
@@ -45,8 +45,7 @@ const valueCard = cva(
       { theme: 'light', colorScheme: 'green', clickable: true, class: 'hover:bg-green-300' },
       { theme: 'dark',  colorScheme: 'green', clickable: true, class: 'hover:bg-green-400' },
       // green lightBlue
-      { theme: 'light', colorScheme: 'lightBlue', clickable: true, class: 'hover:bg-brand/15' },
-      { theme: 'dark',  colorScheme: 'lightBlue', clickable: true, class: 'hover:bg-brand-brand/15' },
+      { colorScheme: 'lightBlue', clickable: true, class: 'hover:bg-brand/15' },
     ],
     defaultVariants: {
       theme:       'light',
