@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react'
 import { cva } from 'class-variance-authority'
-// import { Copy } from 'lucide-react'
 // import { Tooltip } from '../../ui/Tooltips'
 import copyToClipboard from '../../../../utils/copyToClipboard'
 import { CopyIcon } from '../../icons'
+import { useTheme } from '../../../contexts/ThemeContext'
 
 const copyBtn = cva(
   'p-0 flex-shrink-0 h-[max-content] min-w-0 bg-transparent transition-colors'
@@ -14,11 +14,9 @@ export interface CopyButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
   text: string
 }
 
-export const CopyButton: React.FC<CopyButtonProps> = ({
-  text,
-  className,
-  ...props
-}) => {
+export const CopyButton: React.FC<CopyButtonProps> = ({ text, className, ...props }) => {
+  const { theme } = useTheme()
+
   const [messageState, setMessageState] = useState({
     active: false,
     text: 'Copied',
@@ -36,8 +34,8 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
 
   return (
     <button
-      type="button"
-      className={`${copyBtn()} ${className ?? ''} hover:text-gray-100 active:text-white`}
+      type='button'
+      className={`${copyBtn()} ${className ?? ''} hover:text-gray-100 hover:cursor-pointer active:text-white`}
       onClick={e => {
         e.stopPropagation()
         e.preventDefault()
@@ -49,10 +47,10 @@ export const CopyButton: React.FC<CopyButtonProps> = ({
       {/*  label={messageState.text}*/}
       {/*  isOpen={messageState.active}*/}
       {/*  isDisabled={!messageState.active}*/}
-      {/*  placement="top"*/}
-      {/*  className="bg-gray-700 text-white p-3"*/}
+      {/*  placement='top'*/}
+      {/*  className='bg-gray-700 text-white p-3'*/}
       {/*>*/}
-        <CopyIcon className="w-4 h-4 text-gray-300 hover:text-white active:text-gray-100 transition" />
+        <CopyIcon className={`${theme === 'light' ? 'text-black' : 'text-white'} w-4 h-4 active:text-gray-100 transition`}/>
       {/*</Tooltip>*/}
     </button>
   )
