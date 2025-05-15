@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router'
+import { useParams } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
 import { useSdk } from '../../../hooks/useSdk'
 import { useIdentitiesStore } from '../../../stores/identitiesStore'
