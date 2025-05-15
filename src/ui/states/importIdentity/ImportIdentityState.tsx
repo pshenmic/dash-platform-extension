@@ -1,25 +1,26 @@
-import React, { useState } from 'react'
+import React, {useEffect, useState} from 'react'
 import { useSdk } from '../../../hooks/useSdk'
 import { useNavigate } from 'react-router-dom'
 import { useIdentitiesStore } from '../../../stores/identitiesStore'
 import { Button } from '../../components/controls/buttons'
-import Textarea from '../../components/controls/form/Textarea'
-import { Highlight as H } from '../../text/Highlight'
-import './import.identity.state.css'
+import Textarea from '../../components/form/Textarea'
+import { ValueCard } from '../../components/containers/ValueCard'
+import Identifier from '../../components/data/Indetifier'
+import BigNumber from '../../components/data/BigNumber'
+import { NotActive } from '../../components/data/NotActive'
+import Text from '../../text/Text'
 
 const checkHex = (string) => /\b[0-9A-F]{64}/gi.test(string)
 
 export default function () {
   const navigate = useNavigate()
   const sdk = useSdk()
-
   const { uint8ArrayToBase58 } = sdk.utils
-
   const [privateKey, setPrivateKey] = useState(null)
   const [privateKeyWASM, setPrivateKeyWASM] = useState(null)
   const [identity, setIdentity] = useState(null)
   const [balance, setBalance] = useState(null)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(null)
   const setIdentities = useIdentitiesStore((state) => state.setIdentities)
   const setCurrentIdentity = useIdentitiesStore((state) => state.setCurrentIdentity)
   const setIdentityBalance = useIdentitiesStore((state) => state.setIdentityBalance)
@@ -71,6 +72,12 @@ export default function () {
     }
   }
 
+  useEffect(() => {
+    if (error) {
+      setError(null)
+    }
+  }, [privateKey])
+
   const importIdentity = async () => {
     const identities = [{
       identifier: uint8ArrayToBase58(identity.getId()),
@@ -85,17 +92,18 @@ export default function () {
     navigate('/')
   }
 
-  return (<div>
+  return (<div className={'flex flex-col gap-2'}>
       <span className={'h1-title'}>Import your identity</span>
 
       {!identity &&
         <div className={'flex flex-col gap-[0.875rem]'}>
-          <div className={'ImportIdentityState__Description'}>
-            <div className={'ImportIdentityState__Description__Item'}>Paste your identity <H>Private Key</H> in <H>HEX format</H>
-            </div>
-            <div className={'ImportIdentityState__Description__Item'}>You can export it from the Dash Evonode Tool
-              application
-            </div>
+          <div className={'flex flex-col gap-2'}>
+            <Text color={'blue'} size={'lg'}>
+              Paste your identity <Text size={'lg'}>Private Key</Text> in <Text size={'lg'}>HEX format</Text>
+            </Text>
+            <Text color={'blue'} size={'lg'}>
+              You can export it from the Dash Evonode Tool application
+            </Text>
           </div>
 
           <Textarea
@@ -105,7 +113,7 @@ export default function () {
           />
 
           {!!error &&
-            <div className={'ImportIdentityState__Check_Message'}>
+            <div className={'py-1'}>
               <span>{error}</span>
             </div>
           }
@@ -123,18 +131,49 @@ export default function () {
         </div>
       }
 
-      {identity && <div className={'ImportIdentityState__Identity'}>
-        <span className={'ImportIdentityState__Identity_Description'}>We found an identity associated with the given private key</span>
-        <div className={'ImportIdentityState__Identity__Identity'}>
-          <span className={'ImportIdentityState__Identity__Identity__Item'}>Identifier:</span>
-          <span
-            className={'ImportIdentityState__Identity__Identity__Item'}>{uint8ArrayToBase58(identity.getId())}</span>
-        </div>
-        <div className={'ImportIdentityState__Identity__Balance'}>
-          <span className={'ImportIdentityState__Identity__Identity__Item'}>Balance:</span>
-          <span className={'ImportIdentityState__Identity__Identity__Item'}>{balance} credits</span>
-        </div>
-        <div className={'ImportIdentityState__Identity__Import'}>
+      {identity &&
+        <div className={'flex flex-col gap-[0.875rem]'}>
+          <Text size={'lg'} color={'blue'}>
+            We found an identity associated with the given private key
+          </Text>
+
+          <ValueCard colorScheme={'lightBlue'}>
+            <div className={'flex flex-col gap-[0.875rem]'}>
+              <div className={'flex flex-col gap-[0.125rem]'}>
+                <Text size={'md'} dim>Identifier</Text>
+                <ValueCard colorScheme={'white'}>
+                  <Identifier
+                    highlight={'both'}
+                    copyButton={true}
+                    ellipsis={false}
+                    linesAdjustment={false}
+                  >
+                    {identity?.getId() instanceof Uint8Array ? uint8ArrayToBase58(identity.getId()) : ''}
+                  </Identifier>
+                </ValueCard>
+              </div>
+              <div className={'flex flex-col gap-[0.125rem]'}>
+                <Text dim>Balance</Text>
+
+                <span>
+                  {!Number.isNaN(Number(balance))
+                    ? <Text size={'xl'} weight={'bold'} monospace>
+                        <BigNumber>
+                          {balance}
+                        </BigNumber>
+                      </Text>
+                    : <NotActive>N/A</NotActive>
+                  }
+                  <Text
+                    size={'lg'}
+                    className={'ml-2'}
+                  >
+                    Credits
+                  </Text>
+                </span>
+              </div>
+            </div>
+          </ValueCard>
           <Button
             color={'brand'}
             disabled={!privateKey}
@@ -144,7 +183,7 @@ export default function () {
             Import
           </Button>
         </div>
-      </div>}
+      }
     </div>
   )
 }
