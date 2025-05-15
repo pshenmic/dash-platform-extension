@@ -6,8 +6,11 @@ import ValueCard from '../../components/containers/ValueCard'
 import Text from '../../text/Text'
 import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
-import './home.state.css'
 import Identifier from "../../components/data/Indetifier";
+import StatusIcon from "../../components/icons/StatusIcon";
+import { TransactionTypes } from '../../../enums/TransactionTypes'
+import DateBlock from "../../components/data/DateBlock";
+import './home.state.css'
 
 export default function () {
   const currentIdentity = useIdentitiesStore((state) => state.currentIdentity)
@@ -98,11 +101,26 @@ export default function () {
                 target={'_blank'}
                 href={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}
               >
-                <ValueCard clickable>
-                  <Identifier highlight={'both'} ellipsis>{transaction.hash}</Identifier>
+                <ValueCard clickable className={'flex gap-2'}>
+                  <StatusIcon size={16} status={transaction.status} className={'shrink-0'}/>
+
+                  <div className={'flex flex-col gap-1 justify-between grow'}>
+                    <Text size={'sm'}>{TransactionTypes[transaction.type]}</Text>
+                    <DateBlock timestamp={transaction.timestamp} format={'dateOnly'}/>
+                  </div>
+
+                  <div className={'flex flex-col gap-1 overflow-hidden max-w-full'}>
+                    <Identifier
+                      highlight={'both'}
+                      // ellipsis
+                      className={'overflow-hidden max-w-full'}
+                    >
+                    {transaction.hash}
+                    </Identifier>
+                  </div>
                 </ValueCard>
               </a>
-          </div>)}
+            </div>)}
         </div>
       </div>
     </div>)
