@@ -3,33 +3,35 @@ import { cva, VariantProps } from 'class-variance-authority'
 import { useTheme } from '../../contexts/ThemeContext'
 
 const valueCard = cva(
-  'flex items-center rounded transition-all border',
+  'flex items-center transition-all border',
   {
     variants: {
       theme: {
         light: 'border-gray-600',
-        dark:  'bg-gray-800/50 border-gray-400',
+        dark: 'bg-gray-800/50 border-gray-400',
       },
       colorScheme: {
-        default:     '',
+        default: '',
         transparent: 'bg-transparent',
-        green:       'text-green-500 bg-green-200 border-green-400',
+        green: 'text-green-500 bg-green-200 border-green-400',
+        lightBlue: 'bg-brand-dim/10',
+        white: 'bg-white'
       },
       size: {
-        default: 'px-3 py-2',
-        sm:      'px-[0.625rem] py-[0.375rem] text-sm leading-[0.875rem] rounded-[0.25]',
+        md: 'px-3 py-2 rounded-xl',
+        sm: 'px-[0.625rem] py-[0.375rem] text-sm leading-[0.875rem] rounded-[0.25]',
       },
       clickable: {
         false: '',
-        true:  'cursor-pointer transition-colors active:translate-y-px active:opacity-90',
+        true: 'cursor-pointer transition-colors active:translate-y-px active:opacity-90',
       },
       loading: {
         false: '',
         true:  'animate-pulse',
       },
-      borderless: {
-        false: '',
-        true:  'border-none',
+      border: {
+        false: 'border-none',
+        true: '',
       },
     },
     compoundVariants: [
@@ -42,14 +44,17 @@ const valueCard = cva(
       // green scheme hover
       { theme: 'light', colorScheme: 'green', clickable: true, class: 'hover:bg-green-300' },
       { theme: 'dark',  colorScheme: 'green', clickable: true, class: 'hover:bg-green-400' },
+      // green lightBlue
+      { theme: 'light', colorScheme: 'lightBlue', clickable: true, class: 'hover:bg-brand/15' },
+      { theme: 'dark',  colorScheme: 'lightBlue', clickable: true, class: 'hover:bg-brand-brand/15' },
     ],
     defaultVariants: {
       theme:       'light',
       colorScheme: 'default',
-      size:        'default',
+      size:        'md',
       clickable:   false,
       loading:     false,
-      borderless:  false,
+      border:  true,
     },
   }
 )
@@ -68,10 +73,10 @@ export interface ValueCardProps extends Omit<ValueCardVariants, 'theme'> {
 /**
  * A card container that adapts to light/dark theme,
  * supports various color schemes, sizes, clickability,
- * loading state, and optional borderless styling.
+ * loading state, and optional border styling.
  *
  * @example
- * <ValueCard colorScheme="green" borderless as={Link} link="/foo">
+ * <ValueCard colorScheme="green" border as={Link} link="/foo">
  *   Go
  * </ValueCard>
  */
@@ -82,7 +87,7 @@ export const ValueCard: React.FC<ValueCardProps> = ({
   size,
   clickable,
   loading,
-  borderless,
+  border,
   className,
   children,
   ...props
@@ -96,7 +101,7 @@ export const ValueCard: React.FC<ValueCardProps> = ({
     size,
     clickable: isClickable,
     loading,
-    borderless,
+    border,
   }) + (className ? ` ${className}` : '')
 
   // choose element: custom `as`, or <a> if link, else <div>
