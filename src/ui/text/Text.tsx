@@ -45,21 +45,25 @@ const textStyles = cva(
         capitalize: 'capitalize',
       },
       opacity: {
-        0:  'opacity-0',
-        10: 'opacity-10',
-        20: 'opacity-20',
-        30: 'opacity-30',
-        40: 'opacity-40',
-        50: 'opacity-50',
-        60: 'opacity-60',
-        70: 'opacity-70',
-        80: 'opacity-80',
-        90: 'opacity-90',
-        100:'opacity-100',
+        0:   'opacity-0',
+        10:  'opacity-10',
+        20:  'opacity-20',
+        30:  'opacity-30',
+        40:  'opacity-40',
+        50:  'opacity-50',
+        60:  'opacity-60',
+        70:  'opacity-70',
+        80:  'opacity-80',
+        90:  'opacity-90',
+        100: 'opacity-100',
       },
       monospace: {
         false: '',
         true:  'font-mono',
+      },
+      dim: {
+        false: '',
+        true:  'text-gray-500 dark:text-gray-400',
       },
     },
     defaultVariants: {
@@ -74,6 +78,7 @@ const textStyles = cva(
       transform:  'none',
       opacity:    100,
       monospace:  false,
+      dim:        false,
     },
   }
 )
@@ -91,7 +96,7 @@ export interface TextProps extends TextVariants {
 
 /**
  * A versatile text component with size, color, weight, decoration,
- * transform, opacity, monospace and theme-aware defaults.
+ * transform, opacity, monospace, dimming, and theme-aware defaults.
  */
 export const Text: React.FC<TextProps> = ({ as, className = '', children, ...variantProps }) => {
   const { theme } = useTheme()
