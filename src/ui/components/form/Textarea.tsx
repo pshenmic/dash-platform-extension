@@ -1,5 +1,5 @@
 import React, { useState, useRef, TextareaHTMLAttributes } from 'react'
-import { Button } from '../buttons'
+import { Button } from '../controls/buttons'
 import { cva } from 'class-variance-authority'
 
 const textAreaContainerStyles = cva(
@@ -30,7 +30,6 @@ const textAreaContainerStyles = cva(
   }
 );
 
-// Define the styles for the textarea
 const textAreaStyles = cva(
   `
     text-2xl
@@ -52,26 +51,7 @@ const textAreaStyles = cva(
       hasValue: false,
     },
   }
-);
-
-const pasteButtonStyles = cva(
-  `
-    bg-[#4C7EFF]
-    text-white
-    font-['Manrope']
-    font-bold
-    text-sm
-    px-[15px]
-    py-[8px]
-    rounded-[10px]
-    flex
-    items-center
-    justify-center
-    hover:bg-[#4C7EFF]/90
-    transition-colors
-    backdrop-blur-[14.9px]
-  `
-);
+)
 
 export interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
   onChange?: (value: string) => void;
