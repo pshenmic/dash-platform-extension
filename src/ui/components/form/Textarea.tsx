@@ -60,7 +60,7 @@ export interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaE
   rows?: number;
 }
 
-export const Textarea: React.FC<TextareaProps> = ({
+const Textarea: React.FC<TextareaProps> = ({
   onChange,
   showPasteButton = true,
   validator = null,
