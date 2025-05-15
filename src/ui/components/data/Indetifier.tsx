@@ -67,21 +67,22 @@ const highlightModes = {
 } as const
 type HighlightMode = keyof typeof highlightModes
 
-interface IdentifierProps extends IdentifierVariants {
+export interface IdentifierProps extends IdentifierVariants {
   children?: string
   avatar?: boolean
   copyButton?: boolean
   linesAdjustment?: boolean
+  maxLines?: number
   className?: string
 }
 
-const HighlightedID: React.FC<PropsWithChildren<{ mode: HighlightMode }>> = ({ children, mode, }) => {
+const HighlightedID: React.FC<PropsWithChildren<{ mode: HighlightMode }>> = ({ children, mode }) => {
   if (!children) return <NotActive/>
   const text: string = String(children)
   const count = 5
-  const first: string  = text.slice(0, count)
+  const first: string = text.slice(0, count)
   const middle: string = text.slice(count, text.length - count)
-  const last: string   = text.slice(-count)
+  const last: string = text.slice(-count)
   const cfg = highlightModes[mode]
 
   return (
@@ -93,6 +94,10 @@ const HighlightedID: React.FC<PropsWithChildren<{ mode: HighlightMode }>> = ({ c
   )
 }
 
+/**
+ * Identifier component shows an ID string with optional highlighting, avatar,
+ * copy button, dynamic line adjustment, and multi-line clamp.
+ */
 const Identifier: React.FC<IdentifierProps> = ({
   children,
   ellipsis,
@@ -100,6 +105,7 @@ const Identifier: React.FC<IdentifierProps> = ({
   avatar,
   copyButton,
   linesAdjustment = true,
+  maxLines,
   className
 }) => {
   const { theme } = useTheme()
@@ -112,7 +118,7 @@ const Identifier: React.FC<IdentifierProps> = ({
   const [winWidth, setWinWidth]             = useState(0)
   const debouncedWin = useDebounce(winWidth, 500)
 
-  if (ellipsis) linesAdjustment = false
+  if (ellipsis || maxLines) linesAdjustment = false
 
   useResizeObserver(symbolsRef, entry => {
     setContainerWidth(entry.contentRect.width)
@@ -129,7 +135,7 @@ const Identifier: React.FC<IdentifierProps> = ({
     temp.style.fontWeight = styles.fontWeight
     temp.textContent      = 'A'
     document.body.appendChild(temp)
-    const w = temp.getBoundingClientRect().width
+    const w = temp.getBoundingClientRect().width || 0
     document.body.removeChild(temp)
     return w
   }, [linesAdjustment])
@@ -190,9 +196,19 @@ const Identifier: React.FC<IdentifierProps> = ({
     identifier({ theme, ellipsis, highlight }) +
     (className ? ` ${className}` : '')
 
+  const clampStyles: React.CSSProperties = maxLines
+    ? {
+        display: '-webkit-box',
+        WebkitLineClamp: maxLines,
+        WebkitBoxOrient: 'vertical' as any,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }
+    : {}
+
   const symbolContainerClass = ellipsis
-    ? 'flex-1 overflow-hidden whitespace-nowrap text-ellipsis'
-    : 'flex-1 leading-[1rem]'
+      ? 'flex-1 overflow-hidden whitespace-nowrap text-ellipsis'
+      : 'flex-1 leading-[1rem]'
 
   return (
     <div className={rootClass}>
@@ -202,7 +218,10 @@ const Identifier: React.FC<IdentifierProps> = ({
       <div
         ref={symbolsRef}
         className={symbolContainerClass}
-        style={{ maxWidth: widthCounted ? linesMaxWidth : 'none' }}
+        style={{
+          ...(widthCounted && !maxLines ? { maxWidth: linesMaxWidth } : {}),
+          ...clampStyles,
+        }}
       >
         {children && highlight
           ? <HighlightedID mode={highlight}>{children}</HighlightedID>
