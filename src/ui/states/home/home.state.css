@@ -68,54 +68,16 @@
     padding: 10px;
 }
 
-
 .HomeState__Identity__Select {
     width: 100%;
     font-size: 12pt;
     border: none;
 }
 
-.HomeState__Identity__Balance {
-    font-size: 12pt;
-    margin-top: 6px;
-}
-
-.HomeState__Identity__Buttons {
-    display: flex;
-    flex-direction: row;
-    padding: 10px;
-    justify-content: space-around;
-    color: gray;
-}
-
-.HomeState__Identity__Buttons__Send {
-    padding: 10px;
-    border: 1px solid black;
-    border-radius: 12px;
-}
-
-.HomeState__Identity__Buttons__Withdraw {
-    padding: 10px;
-    border: 1px solid black;
-    border-radius: 12px;
-}
-
-.HomeState__Transactions {
-    margin-top: 6px;
-}
-
 .HomeState__Transactions__Container {
     margin-top: 6px;
     height: 100%;
     overflow: hidden;
-}
-
-.HomeState__Transactions__Title {
-    font-size: 12pt;
-}
-
-.HomeState__Transactions__Error {
-
 }
 
 .HomeState__Transactions__Item {
