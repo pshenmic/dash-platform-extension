@@ -63,7 +63,7 @@ const textStyles = cva(
       },
       dim: {
         false: '',
-        true:  'text-gray-500 dark:text-gray-400',
+        true:  '!opacity-60',
       },
     },
     defaultVariants: {
