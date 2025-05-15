@@ -14,8 +14,8 @@ const textStyles = cva(
         dark:  'text-gray-100',
       },
       color: {
-        default:     '',
-        blue:        'text-blue-800 dark:text-blue-300',
+        default: '',
+        blue:    'text-blue-800 dark:text-blue-300',
       },
       size: {
         sm: 'text-sm',
@@ -42,7 +42,7 @@ const textStyles = cva(
       transform: {
         none:       '',
         uppercase:  'uppercase',
-        capitalize:'capitalize',
+        capitalize: 'capitalize',
       },
       opacity: {
         0:  'opacity-0',
