@@ -59,7 +59,7 @@ const textStyles = cva(
       },
       monospace: {
         false: '',
-        true:  'font-mono',
+        true:  'font-grotesque',
       },
       dim: {
         false: '',
