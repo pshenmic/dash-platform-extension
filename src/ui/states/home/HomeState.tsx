@@ -111,9 +111,9 @@ export default function () {
 
                   <div className={'flex flex-col gap-1 overflow-hidden max-w-full'}>
                     <Identifier
-                      highlight={'both'}
-                      // ellipsis
-                      className={'overflow-hidden max-w-full'}
+                      highlight={'dim'}
+                      maxLines={2}
+                      className={'overflow-hidden max-w-full w-[8rem]'}
                     >
                     {transaction.hash}
                     </Identifier>
