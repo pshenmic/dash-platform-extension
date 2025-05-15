@@ -10,12 +10,17 @@ import useResizeObserver from '@react-hook/resize-observer'
 import useDebounce from '../../../hooks/useDebounce'
 import { NotActive } from './NotActive'
 import CopyButton from '../controls/buttons/CopyButton'
+import { useTheme } from '../../contexts/ThemeContext'
 
-/** CVA for the root container */
+/** CVA for the root container, now with light/dark theme */
 const identifier = cva(
   'flex items-center font-mono text-sm font-normal break-all',
   {
     variants: {
+      theme: {
+        light: 'text-gray-900',
+        dark: 'text-white',
+      },
       ellipsis: {
         false: '',
         true: 'overflow-hidden',
@@ -30,6 +35,7 @@ const identifier = cva(
       },
     },
     defaultVariants: {
+      theme: 'light',
       ellipsis: false,
       highlight: 'default',
     },
@@ -37,12 +43,12 @@ const identifier = cva(
 )
 type IdentifierVariants = VariantProps<typeof identifier>
 
-/** CVA for each symbol span */
+/** CVA for each symbol span: inherits root color or dims */
 const symbol = cva('flex-1', {
   variants: {
     dim: {
-      false: 'text-white',
-      true:  'text-gray-300',
+      false: 'text-inherit',
+      true: 'text-gray-500',
     },
   },
   defaultVariants: {
@@ -50,15 +56,16 @@ const symbol = cva('flex-1', {
   },
 })
 
-type HighlightMode = keyof typeof highlightModes
+/** Highlight‐modes config */
 const highlightModes = {
-  default:   { first: true,  middle: false, last: true  },
-  dim:       { first: false, middle: false, last: false },
-  highlight: { first: true,  middle: true,  last: true  },
-  first:     { first: true,  middle: false, last: false },
-  last:      { first: false, middle: false, last: true  },
-  both:      { first: true,  middle: false, last: true  },
+  default: { first: true, middle: false, last: true },
+  dim: { first: false, middle: false, last: false },
+  highlight: { first: true, middle: true,  last: true },
+  first: { first: true, middle: false, last: false },
+  last: { first: false, middle: false, last: true },
+  both: { first: true, middle: false, last: true },
 } as const
+type HighlightMode = keyof typeof highlightModes
 
 interface IdentifierProps extends IdentifierVariants {
   children?: string
@@ -70,18 +77,18 @@ interface IdentifierProps extends IdentifierVariants {
 
 const HighlightedID: React.FC<PropsWithChildren<{ mode: HighlightMode }>> = ({ children, mode, }) => {
   if (!children) return <NotActive/>
-  const text = String(children)
+  const text: string = String(children)
   const count = 5
-  const first  = text.slice(0, count)
-  const middle = text.slice(count, text.length - count)
-  const last   = text.slice(-count)
-  const cfg    = highlightModes[mode] || highlightModes.default
+  const first: string  = text.slice(0, count)
+  const middle: string = text.slice(count, text.length - count)
+  const last: string   = text.slice(-count)
+  const cfg = highlightModes[mode]
 
   return (
     <>
-      <span className={symbol({ dim: !cfg.first  })}>{first}</span>
+      <span className={symbol({ dim: !cfg.first })}>{first}</span>
       <span className={symbol({ dim: !cfg.middle })}>{middle}</span>
-      <span className={symbol({ dim: !cfg.last   })}>{last}</span>
+      <span className={symbol({ dim: !cfg.last })}>{last}</span>
     </>
   )
 }
@@ -95,16 +102,16 @@ const Identifier: React.FC<IdentifierProps> = ({
   linesAdjustment = true,
   className
 }) => {
+  const { theme } = useTheme()
   const symbolsRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(0)
-  const [charWidth, setCharWidth] = useState(0)
-  const [linesMaxWidth, setLinesMaxWidth] = useState<'none' | string>('none')
-  const [widthCounted, setWidthCounted] = useState(false)
+  const [charWidth, setCharWidth]           = useState(0)
+  const [linesMaxWidth, setLinesMaxWidth]   = useState<'none' | string>('none')
+  const [widthCounted, setWidthCounted]     = useState(false)
   const prevWinRef = useRef<number | null>(null)
-  const [winWidth, setWinWidth] = useState(0)
+  const [winWidth, setWinWidth]             = useState(0)
   const debouncedWin = useDebounce(winWidth, 500)
 
-  // disable dynamic lines if ellipsis
   if (ellipsis) linesAdjustment = false
 
   useResizeObserver(symbolsRef, entry => {
@@ -115,12 +122,12 @@ const Identifier: React.FC<IdentifierProps> = ({
     if (!symbolsRef.current || !linesAdjustment) return 0
     const temp = document.createElement('span')
     const styles = getComputedStyle(symbolsRef.current)
-    temp.style.position = 'absolute'
+    temp.style.position   = 'absolute'
     temp.style.visibility = 'hidden'
     temp.style.fontFamily = styles.fontFamily
-    temp.style.fontSize = styles.fontSize
+    temp.style.fontSize   = styles.fontSize
     temp.style.fontWeight = styles.fontWeight
-    temp.textContent = 'A'
+    temp.textContent      = 'A'
     document.body.appendChild(temp)
     const w = temp.getBoundingClientRect().width
     document.body.removeChild(temp)
@@ -180,7 +187,7 @@ const Identifier: React.FC<IdentifierProps> = ({
   }, [])
 
   const rootClass =
-    identifier({ ellipsis, highlight }) +
+    identifier({ theme, ellipsis, highlight }) +
     (className ? ` ${className}` : '')
 
   const symbolContainerClass = ellipsis
@@ -190,7 +197,7 @@ const Identifier: React.FC<IdentifierProps> = ({
   return (
     <div className={rootClass}>
       {avatar && children && (
-        <div className='w-6 h-6 rounded-full mr-2 flex-shrink-0'/>
+        <div className={'w-6 h-6 rounded-full mr-2 flex-shrink-0'}/>
       )}
       <div
         ref={symbolsRef}
