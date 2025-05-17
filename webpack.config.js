@@ -7,10 +7,8 @@ const mode = process.env.NODE_ENV
 module.exports = {
   entry: {
     'ui': './src/ui/index.js',
-    ...(mode === 'production' && {
-      'content-script': './src/content-scripts/content-script.js',
-      'injected': './src/content-scripts/injected.js',
-    })
+    'content-script': './src/content-script/index.tsx',
+    'injected': './src/injected/index.tsx',
   },
   output: {
     publicPath: '',

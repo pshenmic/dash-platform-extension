@@ -17,11 +17,12 @@ const signer = { signStateTransition: () => {} }
 const messaging = new Messaging(handlers, 'webpage')
 messaging.init()
 
+// create DashPlatformSDK
+window.dashPlatformSDK = new DashPlatformSDK({ network: 'testnet', signer })
+
+
 // create custom signer function for DashPlatformSDK
 const extensionSigner = new ExtensionSigner()
 window.dashPlatformSDK.signer = extensionSigner
-
-// create DashPlatformSDK
-window.dashPlatformSDK = new DashPlatformSDK({ network: 'testnet', signer })
 
 console.log('injected')
