@@ -1,11 +1,16 @@
 {
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "outDir": "./built",
     "allowJs": true,
-    "target": "es5",
-    "jsx": "react",
-    "lib": ["dom", "esnext"],
-    "esModuleInterop": true
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+//    "strict": true
+    "resolveJsonModule": true,
   },
   "include": [
     "./src/**/*",
