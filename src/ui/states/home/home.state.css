@@ -67,9 +67,3 @@
 .HomeState__NoIdentities__Register {
     padding: 10px;
 }
-
-.HomeState__Identity__Select {
-    width: 100%;
-    font-size: 12pt;
-    border: none;
-}

@@ -50,7 +50,7 @@ export default function () {
     <div className={'screen-content'}>
       <ValueCard colorScheme={'lightBlue'}>
         <div className={'flex flex-col gap-1'}>
-          <select className={'HomeState__Identity__Select'}>
+          <select>
             {identities.map((identity) => <option
               key={identity.identifier}
               value={identity.identifier}>
