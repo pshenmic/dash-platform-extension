@@ -15,7 +15,7 @@ const valueCard = cva(
         transparent: 'bg-transparent',
         green: 'text-green-500 bg-green-200 border-green-400',
         lightBlue: 'bg-brand-dim/10 !border-brand/20',
-        white: 'bg-white hover:bg-gray-100'
+        white: 'bg-white'
       },
       size: {
         md: 'px-3 py-2 rounded-xl',
@@ -46,6 +46,8 @@ const valueCard = cva(
       { theme: 'dark',  colorScheme: 'green', clickable: true, class: 'hover:bg-green-400' },
       // green lightBlue
       { colorScheme: 'lightBlue', clickable: true, class: 'hover:bg-brand/15' },
+      // white
+      { theme: 'light', colorScheme: 'white', clickable: true, class: 'hover:bg-gray-100' },
     ],
     defaultVariants: {
       theme:       'light',
