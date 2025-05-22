@@ -73,22 +73,3 @@
     font-size: 12pt;
     border: none;
 }
-
-.HomeState__Transactions__Container {
-    margin-top: 6px;
-    height: 100%;
-    overflow: hidden;
-}
-
-.HomeState__Transactions__Item {
-    overflow: hidden;
-    color: black;
-    text-decoration: none;
-    padding-top: 3px
-}
-
-.HomeState__Transactions__Item > a {
-    color: black;
-    text-decoration: none;
-    font-size: 10pt;
-}

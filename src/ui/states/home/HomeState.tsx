@@ -80,7 +80,7 @@ export default function () {
         </div>
       </ValueCard>
 
-      <div className={'flex gap-2'}>
+      <div className={'flex gap-5'}>
         <Button className={'w-1/2'} disabled>Send</Button>
         <Button colorScheme={'gray'} variant={'outline'} className={'w-1/2'} disabled>Withdraw</Button>
       </div>
@@ -94,14 +94,18 @@ export default function () {
           </div>
         }
 
-        <div className={'HomeState__Transactions__Container'}>
+        <div className={'flex flex-col gap-3 mt-3'}>
           {transactions?.length && transactions.map((transaction) =>
-            <div key={transaction.hash} className={'HomeState__Transactions__Item'}>
               <a
                 target={'_blank'}
                 href={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}
+                key={transaction.hash}
               >
-                <ValueCard clickable className={'flex gap-2'}>
+                <ValueCard
+                  clickable
+                  className={'flex gap-2'}
+                  link={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}
+                >
                   <StatusIcon size={16} status={transaction.status} className={'shrink-0'}/>
 
                   <div className={'flex flex-col gap-1 justify-between grow'}>
@@ -120,7 +124,7 @@ export default function () {
                   </div>
                 </ValueCard>
               </a>
-            </div>)}
+          )}
         </div>
       </div>
     </div>)
