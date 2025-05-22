@@ -55,7 +55,7 @@ const valueCard = cva(
       size:        'md',
       clickable:   false,
       loading:     false,
-      border:  true,
+      border:      true,
     },
   }
 )
