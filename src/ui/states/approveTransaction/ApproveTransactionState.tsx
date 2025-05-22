@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
 import { useSdk } from '../../../hooks/useSdk'
 import { useIdentitiesStore } from '../../../stores/identitiesStore'
 import hash from 'hash.js'
-import './approve.transaction.css'
 import TransactionDetails from './TransactionDetails'
+import ValueCard from '../../components/containers/ValueCard'
+import Identifier from '../../components/data/Indetifier'
+import Text from '../../text/Text'
+import Button from '../../components/controls/buttons'
 
 export default function () {
+  const navigate = useNavigate()
   const sdk = useSdk()
 
   const params = useParams()
@@ -26,10 +30,6 @@ export default function () {
   }
 
   const [unsignedStateTransition] = unsignedStateTransitions.filter(tx => tx.hash === params.txhash)
-
-  if (!unsignedStateTransition) {
-    return <div className={'ApproveTransaction__Error'}>Could not find transaction with hash {params.txhash}</div>
-  }
 
   useEffect(() => {
     try {
@@ -87,37 +87,74 @@ export default function () {
   }
 
   if (txHash) {
-    return <div className={'ApproveTransaction__Container'}>
-      <span className={'ApproveTransaction__Title'}>Transaction was successfully broadcasted</span>
-      <hr/>
-      <span className={'ApproveTransaction__TxHash'}>{txHash}</span>
-      <hr/>
-      <div className={'ApproveTransaction__Buttons'}>
-        <button onClick={() => window.close()}>Close</button>
+    return (
+      <div className={'screen-content'}>
+        <h1 className={'h1-title'}>Transaction was successfully broadcasted</h1>
+
+        <ValueCard colorScheme={'lightBlue'} className={'flex flex-col items-start gap-1'}>
+          <Text size={'md'} dim>Transaction hash</Text>
+
+          <ValueCard colorScheme={'white'} className={'flex justify-between w-full'}>
+            <Identifier
+              highlight={'both'}
+              copyButton={true}
+              ellipsis={false}
+              className={'w-full justify-between'}
+            >
+              {txHash}
+            </Identifier>
+          </ValueCard>
+        </ValueCard>
+
+        <div className={'flex gap-5 mt-5 w-full'}>
+          <Button className={'w-full'} onClick={() => window.close()}>Close</Button>
+        </div>
       </div>
-    </div>
+    )
   }
 
   return (
-    <div className={'ApproveTransaction__Container'}>
-      <div className={'ApproveTransaction__Title'}>Approve transaction</div>
-      <hr/>
-      <div className={'ApproveTransaction__TxHash'}>{params.txhash}</div>
-      <hr/>
+    <div className={'screen-content'}>
+      <h1 className={'h1-title'}>Transaction approval</h1>
 
-      {transactionDecodeError && <div className={'ApproveTransaction__Error'}>Error decoding state transition, please report the issue</div>}
-      {stateTransition && <TransactionDetails stateTransition={stateTransition}/>}
-      <hr/>
+      <ValueCard colorScheme={'lightBlue'} className={'flex flex-col items-start gap-1'}>
+        <Text size={'md'} dim>Transaction hash</Text>
 
-      <span className={'ApproveTransaction__SignWith'}>Sign with identity:</span>
-      <select className={'ApproveTransaction__SignWith__Select'}>
-        <option>{identity.identifier}</option>
-      </select>
+        <ValueCard colorScheme={'white'} className={'flex justify-between w-full'}>
+          <Identifier
+            highlight={'both'}
+            copyButton={true}
+            ellipsis={false}
+            className={'w-full justify-between'}
+          >
+            {params.txhash}
+          </Identifier>
+        </ValueCard>
 
-      <div className={'ApproveTransaction__Buttons'}>
-        <button onClick={reject}>Reject</button>
-        <button onClick={doSign}>Sign</button>
-      </div>
+        <div className={'mt-2'}>
+          {!unsignedStateTransition
+            ? <Text color={'red'} weight={'bold'}>Could not find transaction with hash</Text>
+            : transactionDecodeError
+              ? <Text color={'red'} weight={'bold'}>Error decoding state transition, please report the issue</Text>
+              : <TransactionDetails stateTransition={stateTransition}/>
+          }
+        </div>
+      </ValueCard>
+
+      {!unsignedStateTransition
+        ? <Button onClick={() => navigate('/')} className={'mt-2'}>Close</Button>
+        : <div>
+            <Text>Sign with identity:</Text>
+            <select>
+              <option>{identity.identifier}</option>
+            </select>
+
+            <div className={'flex gap-5 mt-5'}>
+              <Button onClick={reject} colorScheme={'red'} variant={'outline'} className={'w-1/2'}>Reject</Button>
+              <Button onClick={doSign} colorScheme={'mint'} className={'w-1/2'}>Sign</Button>
+            </div>
+          </div>
+      }
     </div>
   )
 }
