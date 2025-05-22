@@ -96,36 +96,33 @@ export default function () {
 
         <div className={'flex flex-col gap-3 mt-3'}>
           {transactions?.length && transactions.map((transaction) =>
-              <a
-                target={'_blank'}
-                href={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}
-                key={transaction.hash}
-              >
-                <ValueCard
-                  clickable
-                  className={'flex gap-2'}
-                  link={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}
-                >
-                  <StatusIcon size={16} status={transaction.status} className={'shrink-0'}/>
+            <a
+              target={'_blank'}
+              href={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}
+              key={transaction.hash}
+            >
+              <ValueCard clickable className={'flex gap-2'}>
+                <StatusIcon size={16} status={transaction.status} className={'shrink-0'}/>
 
-                  <div className={'flex flex-col gap-1 justify-between grow'}>
-                    <Text size={'sm'}>{TransactionTypes[transaction.type]}</Text>
-                    <DateBlock timestamp={transaction.timestamp} format={'dateOnly'}/>
-                  </div>
+                <div className={'flex flex-col gap-1 justify-between grow'}>
+                  <Text size={'sm'}>{TransactionTypes[transaction.type]}</Text>
+                  <DateBlock timestamp={transaction.timestamp} format={'dateOnly'}/>
+                </div>
 
-                  <div className={'flex flex-col gap-1 overflow-hidden max-w-full'}>
-                    <Identifier
-                      highlight={'dim'}
-                      maxLines={2}
-                      className={'overflow-hidden max-w-full w-[8rem]'}
-                    >
-                    {transaction.hash}
-                    </Identifier>
-                  </div>
-                </ValueCard>
-              </a>
+                <div className={'flex flex-col gap-1 overflow-hidden max-w-full'}>
+                  <Identifier
+                    highlight={'dim'}
+                    maxLines={2}
+                    className={'overflow-hidden max-w-full w-[8rem]'}
+                  >
+                  {transaction.hash}
+                  </Identifier>
+                </div>
+              </ValueCard>
+            </a>
           )}
         </div>
       </div>
-    </div>)
+    </div>
+  )
 }
