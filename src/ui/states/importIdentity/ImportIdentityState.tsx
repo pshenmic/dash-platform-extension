@@ -120,7 +120,7 @@ export default function () {
 
           <div>
             <Button
-              color={'brand'}
+              colorScheme={'brand'}
               disabled={!privateKey}
               className={'w-full'}
               onClick={checkPrivateKey}
@@ -175,7 +175,7 @@ export default function () {
             </div>
           </ValueCard>
           <Button
-            color={'brand'}
+            colorScheme={'brand'}
             disabled={!privateKey}
             className={'w-full'}
             onClick={importIdentity}

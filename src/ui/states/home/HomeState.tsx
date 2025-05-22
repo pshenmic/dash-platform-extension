@@ -47,7 +47,7 @@ export default function () {
   console.log('transactions', transactions)
 
   return (
-    <div className={'flex flex-col gap-4'}>
+    <div className={'screen-content'}>
       <ValueCard colorScheme={'lightBlue'}>
         <div className={'flex flex-col gap-1'}>
           <select className={'HomeState__Identity__Select'}>
@@ -82,7 +82,7 @@ export default function () {
 
       <div className={'flex gap-2'}>
         <Button className={'w-1/2'} disabled>Send</Button>
-        <Button color={'gray'} variant={'outline'} className={'w-1/2'} disabled>Withdraw</Button>
+        <Button colorScheme={'gray'} variant={'outline'} className={'w-1/2'} disabled>Withdraw</Button>
       </div>
 
       <div>

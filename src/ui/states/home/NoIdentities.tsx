@@ -7,7 +7,7 @@ export default function () {
   const navigate = useNavigate();
 
   return (
-    <div className={'HomeState__NoIdentities'}>
+    <div className={'screen-content'}>
       <div className={'HomeState__NoIdentities__Container'}>
         <h1 className={'h1-title'}>
           <b>You have<br/>no identities yet</b>
@@ -18,7 +18,7 @@ export default function () {
             Import
           </Button>
 
-          <Button color={'mint'} disabled={true}>
+          <Button colorScheme={'mint'} disabled={true}>
             Register
           </Button>
         </div>
