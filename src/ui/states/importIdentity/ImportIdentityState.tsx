@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react'
-import { useSdk } from '../../../hooks/useSdk'
+import { useSdk } from '../../../hooks/useSdk.js'
 import { useNavigate } from 'react-router-dom'
 import { useIdentitiesStore } from '../../../stores/identitiesStore'
 import { Button } from '../../components/controls/buttons'
