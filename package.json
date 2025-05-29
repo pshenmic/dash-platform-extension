@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@babel/preset-react": "^7.23.3",
+    "@react-hook/resize-observer": "^2.0.2",
     "@scure/base": "^1.2.4",
     "copy-webpack-plugin": "^12.0.2",
     "dash-platform-sdk": "^1.0.5",
@@ -19,13 +20,14 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router": "^7.4.1",
+    "react-router-dom": "^7.6.0",
     "sha256": "^0.2.0",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.23.5",
     "@babel/preset-env": "^7.23.5",
-    "@types/chrome": "^0.0.319",
+    "@tailwindcss/nesting": "^0.0.0-insiders.565cd3e",
     "@tailwindcss/postcss": "^4.1.5",
     "@types/react": "^19.1.2",
     "autoprefixer": "^10.4.21",

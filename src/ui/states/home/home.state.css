@@ -7,12 +7,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-around;
-}
-
-.HomeState__NoIdentities__Title {
-    padding-left: 12px;
-    font-size: 18pt;
-    font-weight: 600;
+    margin-top: -0.5rem;
 }
 
 .HomeState__NoIdentities__Images {
@@ -32,18 +27,20 @@
 }
 
 .HomeState__NoIdentities__Container {
-    padding: 20px;
     min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
 }
 
 .HomeState__NoIdentities__Buttons {
     display: flex;
     flex-direction: row;
     text-decoration: none;
+    gap: 1.25rem;
 }
 
 .HomeState__NoIdentities__Buttons__Import {
-    margin: 10px;
     padding: 10px;
     min-width: 70px;
     border: none;
@@ -54,7 +51,6 @@
 }
 
 .HomeState__NoIdentities__Buttons__Register {
-    margin: 10px;
     padding: 10px;
     min-width: 80px;
     border: none;
@@ -70,67 +66,4 @@
 
 .HomeState__NoIdentities__Register {
     padding: 10px;
-}
-
-
-.HomeState__Identity__Select {
-    width: 100%;
-    font-size: 12pt;
-    border: none;
-}
-
-.HomeState__Identity__Balance {
-    font-size: 12pt;
-    margin-top: 6px;
-}
-
-.HomeState__Identity__Buttons {
-    display: flex;
-    flex-direction: row;
-    padding: 10px;
-    justify-content: space-around;
-    color: gray;
-}
-
-.HomeState__Identity__Buttons__Send {
-    padding: 10px;
-    border: 1px solid black;
-    border-radius: 12px;
-}
-
-.HomeState__Identity__Buttons__Withdraw {
-    padding: 10px;
-    border: 1px solid black;
-    border-radius: 12px;
-}
-
-.HomeState__Transactions {
-    margin-top: 6px;
-}
-
-.HomeState__Transactions__Container {
-    margin-top: 6px;
-    height: 100%;
-    overflow: hidden;
-}
-
-.HomeState__Transactions__Title {
-    font-size: 12pt;
-}
-
-.HomeState__Transactions__Error {
-
-}
-
-.HomeState__Transactions__Item {
-    overflow: hidden;
-    color: black;
-    text-decoration: none;
-    padding-top: 3px
-}
-
-.HomeState__Transactions__Item > a {
-    color: black;
-    text-decoration: none;
-    font-size: 10pt;
 }
