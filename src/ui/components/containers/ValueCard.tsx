@@ -1,6 +1,6 @@
 import React from 'react'
 import { cva, VariantProps } from 'class-variance-authority'
-import { useTheme } from '../../contexts/ThemeContext'
+import { useTheme } from 'dash-ui/react'
 
 const valueCard = cva(
   'flex items-center transition-all border',

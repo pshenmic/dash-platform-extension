@@ -10,7 +10,7 @@ import useResizeObserver from '@react-hook/resize-observer'
 import useDebounce from '../../../hooks/useDebounce'
 import { NotActive } from './NotActive'
 import CopyButton from '../controls/buttons/CopyButton'
-import { useTheme } from '../../contexts/ThemeContext'
+import { useTheme } from 'dash-ui/react'
 
 /** CVA for the root container, now with light/dark theme */
 const identifier = cva(

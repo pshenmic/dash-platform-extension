@@ -2,13 +2,12 @@ import React, {useEffect, useState} from 'react'
 import { useSdk } from '../../../hooks/useSdk.js'
 import { useNavigate } from 'react-router-dom'
 import { useIdentitiesStore } from '../../../stores/identitiesStore'
-import { Button } from '../../components/controls/buttons'
 import Textarea from '../../components/form/Textarea'
 import { ValueCard } from '../../components/containers/ValueCard'
 import Identifier from '../../components/data/Indetifier'
 import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
-import Text from '../../text/Text'
+import { Button, Text } from 'dash-ui/react'
 
 const checkHex = (string) => /\b[0-9A-F]{64}/gi.test(string)
 

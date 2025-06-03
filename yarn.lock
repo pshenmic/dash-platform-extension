@@ -1817,9 +1817,10 @@ dash-platform-sdk@^1.0.5:
     pshenmic-dpp "^1.0.5"
     rfc4648 "^1.5.4"
 
-"dash-ui@github:AlexeyTripleA/dash-ui-kit":
+"dash-ui@file:../dash-ui/dash-ui-0.1.0.tgz":
   version "0.1.0"
-  resolved "git+ssh://git@github.com/AlexeyTripleA/dash-ui-kit.git#4ae584229633680d88a074852485f296da56f17e"
+  resolved "file:../dash-ui/dash-ui-0.1.0.tgz"
+  integrity sha512-l9r3Xi2bSuzNRLy4dxqtQlc/D4PpaZxDEkvubI+vMaS8KINljr3hJsfJK5u8RgUSv1RnAoFA9vjXkEY4lOy7Ng==
   dependencies:
     class-variance-authority "^0.7.1"
 
@@ -3285,7 +3286,7 @@ raw-body@2.5.2:
     iconv-lite "0.4.24"
     unpipe "1.0.0"
 
-react-dom@^19.1.0, react-dom@>=18:
+react-dom@^19.1.0, react-dom@>=18, react-dom@>=18.0.0:
   version "19.1.0"
   resolved "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz"
   integrity sha512-Xs1hdnE+DyKgeHJeJznQmYMIBG3TKIHJJT95Q58nHLSrElKlGQqDTR2HQ9fx5CN/Gk6Vh/kupBTDLU11/nDk/g==
