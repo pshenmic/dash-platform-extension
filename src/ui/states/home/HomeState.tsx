@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import NoIdentities from './NoIdentities'
 import { useIdentitiesStore } from '../../../stores/identitiesStore'
-import { Button } from '../../components/controls/buttons'
+import { Button } from 'dash-ui/react'
 import ValueCard from '../../components/containers/ValueCard'
 import Text from '../../text/Text'
 import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
-import Identifier from "../../components/data/Indetifier";
-import StatusIcon from "../../components/icons/StatusIcon";
+import Identifier from "../../components/data/Indetifier"
+import StatusIcon from "../../components/icons/StatusIcon"
 import { TransactionTypes } from '../../../enums/TransactionTypes'
-import DateBlock from "../../components/data/DateBlock";
+import DateBlock from '../../components/data/DateBlock'
 import './home.state.css'
 
 export default function () {

@@ -16,7 +16,7 @@
     "@scure/base": "^1.2.4",
     "copy-webpack-plugin": "^12.0.2",
     "dash-platform-sdk": "^1.0.5",
-    "dash-ui": "git+https://github.com/AlexeyTripleA/dash-ui-react.git",
+    "dash-ui": "github:AlexeyTripleA/dash-ui-kit",
     "hash.js": "^1.1.7",
     "html-webpack-plugin": "^5.6.0",
     "react": "^19.1.0",
