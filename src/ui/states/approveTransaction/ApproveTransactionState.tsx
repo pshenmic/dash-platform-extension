@@ -7,8 +7,7 @@ import hash from 'hash.js'
 import TransactionDetails from './TransactionDetails'
 import ValueCard from '../../components/containers/ValueCard'
 import Identifier from '../../components/data/Indetifier'
-import Text from '../../text/Text'
-import Button from '../../components/controls/buttons'
+import { Button, Text } from 'dash-ui/react'
 
 export default function () {
   const navigate = useNavigate()
