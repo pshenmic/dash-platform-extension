@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { useSdk } from '../../../../hooks/useSdk'
+import { useSdk } from '../../../../hooks/useSdk.js'
 import './documents.batch.details.css'
-import DocumentCreateTransition from './DocumentCreateTransition'
+import DocumentCreateTransition from './DocumentCreateTransition.js'
 
 export default function DocumentsBatchDetails ({stateTransition}) {
   const sdk = useSdk()

@@ -1,5 +1,5 @@
 import React, { useState, useRef, TextareaHTMLAttributes } from 'react'
-import { Button } from '../controls/buttons'
+import { Button } from 'dash-ui/react'
 import { cva } from 'class-variance-authority'
 
 const textAreaContainerStyles = cva(

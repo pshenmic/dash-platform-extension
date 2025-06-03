@@ -1,6 +1,6 @@
 import React from 'react'
 import './documents.batch.details.css'
-import { useSdk } from '../../../../hooks/useSdk'
+import { useSdk } from '../../../../hooks/useSdk.js'
 
 export default function DocumentCreateTransition ({transition, createTransition}) {
   const sdk = useSdk()
