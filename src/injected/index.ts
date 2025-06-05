@@ -1,5 +1,8 @@
 // This file injects on webpages by extension
 
+import {MessagingAPI} from "../types/MessagingAPI";
+import {DashPlatformSDK} from 'dash-platform-sdk/dist/main'
+
 declare global {
     interface Window {
         dashPlatformSDK: DashPlatformSDK
@@ -7,22 +10,17 @@ declare global {
 }
 
 import {ExtensionSigner} from "./ExtensionSigner";
-import DashPlatformSDK from 'dash-platform-sdk'
-import {Messaging} from "../types/Messaging";
-import {handlers} from './messaging'
 
 const signer = { signStateTransition: () => {} }
-
-// init message handlers (from content-script to webpage)
-const messaging = new Messaging(handlers, 'webpage')
-messaging.init()
 
 // create DashPlatformSDK
 window.dashPlatformSDK = new DashPlatformSDK({ network: 'testnet', signer })
 
+// initialize messaging layer
+const messagingAPI = new MessagingAPI()
 
 // create custom signer function for DashPlatformSDK
-const extensionSigner = new ExtensionSigner()
+const extensionSigner = new ExtensionSigner(messagingAPI, window.dashPlatformSDK.wasm)
 window.dashPlatformSDK.signer = extensionSigner
 
-console.log('injected')
+console.log('injected Dash Platform SDK')

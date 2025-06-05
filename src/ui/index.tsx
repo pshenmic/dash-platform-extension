@@ -50,7 +50,7 @@ const App: React.FC = function () {
 
   useEffect(() => {
     const storage = useChromeStorage()
-    storage.onChanged.addListener((changes, areaName) => {
+    storage.onChanged.addListener(() => {
         console.log('changes detected, rehydrating')
         useIdentitiesStore.persist.rehydrate()
       }

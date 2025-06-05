@@ -1,60 +1,65 @@
-import {base64} from "@scure/base";
-import {EVENTS, MESSAGING_TIMEOUT} from "../constants";
-import {EventData} from "../types/EventData";
+import {AbstractSigner} from "dash-platform-sdk";
+import {DashPlatformProtocolWASM, StateTransitionWASM} from "pshenmic-dpp";
+import {popupWindow} from "../utils";
+import {MessagingAPI} from "../types/MessagingAPI";
+import {MESSAGING_TIMEOUT} from "../constants";
+import {StateTransitionStatus} from "../types/enums/StateTransitionStatus";
 
-export class ExtensionSigner {
-    // todo StateTransitionWASM
-    async signStateTransition(stateTransition: any) {
-        const eventData: EventData = await this._rpcCall(EVENTS.SIGN_STATE_TRANSITION,
-            {
-                base64: stateTransition.toBytes()
-            })
+export class ExtensionSigner implements AbstractSigner {
+    messagingAPI: MessagingAPI
+    wasm: DashPlatformProtocolWASM
+
+    constructor(messagingAPI: MessagingAPI, wasm: DashPlatformProtocolWASM) {
+        this.messagingAPI = messagingAPI
+        this.wasm = wasm
     }
 
-    async getIdentities() {
-        const eventData: EventData = await this._rpcCall(EVENTS.GET_IDENTITIES)
+    async connect(url: string): Promise<void> {
+        const response = await this.messagingAPI.connectApp(url)
 
-        const {identities} = eventData.payload
+        let {appConnect, redirectUrl} = response
 
-        return identities
+        popupWindow(response.redirectUrl, 'connect', window, 300, 300)
+
+        const startTimestamp = new Date()
+
+        while (appConnect.status === 'pending') {
+            if (new Date().getTime() - startTimestamp.getTime() < MESSAGING_TIMEOUT) {
+                throw new Error('Failed to connect app due timeout')
+            }
+
+            const appConnectResponse = await this.messagingAPI.getAppConnect(appConnect.id)
+
+            appConnect = appConnectResponse.appConnect
+        }
+
+        if (appConnect.status === 'rejected') {
+            throw new Error('Connection of the extension to the website was rejected')
+        }
     }
 
-    _rpcCall(method: string, payload?: object): Promise<EventData> {
-        return new Promise((resolve, reject) => {
-            const rejectWithError = (message: string) => {
-                window.removeEventListener('message', handleMessage)
+    async signStateTransition(stateTransitionWASM: StateTransitionWASM) {
+        const response = await this.messagingAPI.requestStateTransitionApproval(stateTransitionWASM)
 
-                reject(message)
+        popupWindow(response.redirectUrl, 'approval', window, 300, 300)
+
+        let stateTransition = response.stateTransition
+
+        const startTimestamp = new Date()
+
+        while (stateTransition.status === StateTransitionStatus.pending) {
+            if (new Date().getTime() - startTimestamp.getTime() < MESSAGING_TIMEOUT) {
+                throw new Error('Failed to receive state transition signing approval due timeout')
             }
 
-            const handleMessage = (event: MessageEvent) => {
-                const data: EventData = event.data
+            const getStateTransitionResponse = await this.messagingAPI.getStateTransition(stateTransition.hash)
 
-                if (event.data.target === 'window' && data.method === method) {
-                    const {error} = event.data
-                    const {base64} = event.data.payload
+            stateTransition = getStateTransitionResponse.stateTransition
+        }
 
-                    if (error) {
-                        return rejectWithError(error)
-                    }
-
-                    resolve(base64)
-                }
-            }
-
-            window.addEventListener('message', handleMessage)
-
-            setTimeout(() => {
-                rejectWithError(`Timed out waiting for response of ${method}, (${payload})`)
-            }, MESSAGING_TIMEOUT)
-
-            window.postMessage({
-                method: 'signStateTransition',
-                payload
-            })
-
-            console.log(`Sent ${method} message (${payload}) from webpage`)
-        })
+        if (stateTransition.status === StateTransitionStatus.rejected) {
+            throw new Error('State transition signing error')
+        }
     }
 }
 
