@@ -1,3 +1,5 @@
+import {Identity} from "../../Identity";
+
 export interface GetCurrentIdentityResponse  {
-    base64: string
+    currentIdentity: Identity
 }

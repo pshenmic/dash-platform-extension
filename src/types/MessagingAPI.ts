@@ -5,6 +5,7 @@ import {MessagingMethods} from "./enums/MessagingMethods";
 import {ConnectAppResponse} from "./messages/response/ConnectAppResponse";
 import {RequestStateTransitionApprovalResponse} from "./messages/response/RequestStateTransitionApprovalResponse";
 import {GetStateTransitionResponse} from "./messages/response/GetStateTransitionResponse";
+import {GetCurrentIdentityResponse} from "./messages/response/GetCurrentIdentityResponse";
 
 export class MessagingAPI {
     async requestStateTransitionApproval(stateTransition: StateTransitionWASM): Promise<RequestStateTransitionApprovalResponse> {
@@ -28,6 +29,12 @@ export class MessagingAPI {
 
     async getAppConnect(id: string): Promise<ConnectAppResponse> {
         const eventData: EventData = await this._rpcCall(MessagingMethods.GET_APP_CONNECT, {id})
+
+        return eventData.payload
+    }
+
+    async getCurrentIdentity(): Promise<GetCurrentIdentityResponse> {
+        const eventData: EventData = await this._rpcCall(MessagingMethods.GET_CURRENT_IDENTITY, {})
 
         return eventData.payload
     }

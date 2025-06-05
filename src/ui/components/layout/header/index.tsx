@@ -1,7 +1,7 @@
 import React from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches } from 'react-router-dom'
-import { useStaticAsset } from '../../../../hooks/useStaticAsset'
+import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import { Button } from '../../controls/buttons'
 import { ArrowIcon } from '../../icons'
 

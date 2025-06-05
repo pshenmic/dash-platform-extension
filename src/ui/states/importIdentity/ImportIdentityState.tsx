@@ -1,11 +1,10 @@
 import React, {useEffect, useState} from 'react'
-import { useSdk } from '../../../hooks/useSdk'
+import {useSdk} from "../../hooks/useSdk";
 import { useNavigate } from 'react-router-dom'
-import { useIdentitiesStore } from '../../../stores/identitiesStore'
 import { Button } from '../../components/controls/buttons'
 import Textarea from '../../components/form/Textarea'
 import { ValueCard } from '../../components/containers/ValueCard'
-import Identifier from '../../components/data/Indetifier'
+import Identifier from '../../components/data/Identifier'
 import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
 import Text from '../../text/Text'
@@ -21,9 +20,11 @@ export default function () {
   const [identity, setIdentity] = useState(null)
   const [balance, setBalance] = useState(null)
   const [error, setError] = useState(null)
-  const setIdentities = useIdentitiesStore((state) => state.setIdentities)
-  const setCurrentIdentity = useIdentitiesStore((state) => state.setCurrentIdentity)
-  const setIdentityBalance = useIdentitiesStore((state) => state.setIdentityBalance)
+
+  // TODO implement new storage
+  const [identities,setIdentities] = useState([])
+  const [currentIdentity, setCurrentIdentity] = useState(null)
+  const [identityBalance, setIdentityBalance] = useState(0)
 
   const checkPrivateKey = async () => {
     setError(null)
@@ -87,7 +88,7 @@ export default function () {
 
     setIdentities(identities)
     setCurrentIdentity(identities[0].identifier)
-    setIdentityBalance(identities[0].identifier, balance.toString())
+    setIdentityBalance(balance.toString())
 
     navigate('/')
   }

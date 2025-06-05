@@ -1,14 +1,19 @@
 import {AppConnect} from "../../types/AppConnect";
+import {StorageAdapter} from "../storage/storageAdapter";
 
 const CHROME_STORAGE_KEY = 'appConnects'
 
 export class AppConnectRepository {
     walletId: string
     network: string
+    storageKey: string
+    storageAdapter: StorageAdapter
 
-    constructor(walletId: string, network: string) {
+    constructor(walletId: string, network: string, storageAdapter: StorageAdapter) {
         this.walletId = walletId
         this.network = network
+        this.storageKey = `${network}_${walletId}_appConnects`
+        this.storageAdapter = storageAdapter
     }
 
     async create(url: string): Promise<AppConnect> {
@@ -18,23 +23,23 @@ export class AppConnectRepository {
             url
         }
 
-        const {appConnects} = await chrome.storage.local.get([CHROME_STORAGE_KEY])
+        const appConnects = await this.storageAdapter.get(this.storageKey)
 
-        if ((appConnects ?? {})[appConnectRequest.id]) {
+        if (!appConnects[appConnectRequest.id]) {
             throw new Error('AppConnect with such id already exists')
         }
 
         appConnects[appConnectRequest.id] = appConnectRequest
 
-        await chrome.storage.local.set({appConnects})
+        await this.storageAdapter.set(this.storageKey, appConnects)
 
         return appConnectRequest
     }
 
     async get(id: string) : Promise<AppConnect>{
-        const {appConnects} = await chrome.storage.local.get([CHROME_STORAGE_KEY])
+        const appConnects = await this.storageAdapter.get(this.storageKey)
 
-        if (!(appConnects ?? {})[id]) {
+        if (appConnects[id]) {
             throw new Error(`AppConnect with request ${id} does not exist`)
         }
 

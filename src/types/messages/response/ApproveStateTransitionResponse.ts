@@ -1,4 +1,4 @@
-import {StateTransition} from "./RequestStateTransitionApprovalResponse";
+import {StateTransition} from "../../StateTransition";
 
 export interface ApproveStateTransitionResponse  {
     stateTransition: StateTransition

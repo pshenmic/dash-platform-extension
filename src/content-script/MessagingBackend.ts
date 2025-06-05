@@ -9,6 +9,7 @@ import getIdentitiesHandler from "./messaging/handlers/identities/getIdentities"
 import requestStateTransitionApprovalHandler
     from "./messaging/handlers/stateTransitions/requestStateTransitionApproval";
 import getAppConnectHandler from "./messaging/handlers/appConnect/getAppConnect";
+import {ExtensionStorageAdapter} from "./storage/extensionStorageAdapter";
 
 export class MessagingBackend {
     dpp: DashPlatformProtocolWASM
@@ -17,7 +18,7 @@ export class MessagingBackend {
         this.dpp = dpp
     }
 
-    handlers : {
+    handlers: {
         [key: string]: Function
     }
 
@@ -25,15 +26,17 @@ export class MessagingBackend {
         const walletId = '1'
         const network = 'testnet'
 
-        const appConnectRepository = new AppConnectRepository(walletId, network)
-        const identitiesRepository = new IdentitiesRepository(walletId, network)
-        const stateTransitionsRepository = new StateTransitionsRepository(walletId, network)
+        const storageAdapter = new ExtensionStorageAdapter()
+
+        const appConnectRepository = new AppConnectRepository(walletId, network, storageAdapter)
+        const identitiesRepository = new IdentitiesRepository(walletId, network, storageAdapter)
+        const stateTransitionsRepository = new StateTransitionsRepository(walletId, network, storageAdapter)
 
         this.handlers = {
-            [MessagingMethods.CONNECT_APP] : connectAppHandler(appConnectRepository),
-            [MessagingMethods.GET_IDENTITIES] : getIdentitiesHandler(identitiesRepository),
-            [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL] : requestStateTransitionApprovalHandler(stateTransitionsRepository, this.dpp),
-            [MessagingMethods.GET_APP_CONNECT] : getAppConnectHandler(appConnectRepository),
+            [MessagingMethods.CONNECT_APP]: connectAppHandler(appConnectRepository),
+            [MessagingMethods.GET_IDENTITIES]: getIdentitiesHandler(identitiesRepository),
+            [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: requestStateTransitionApprovalHandler(stateTransitionsRepository, this.dpp),
+            [MessagingMethods.GET_APP_CONNECT]: getAppConnectHandler(appConnectRepository),
         }
 
         window.addEventListener('message', (event: MessageEvent) => {
