@@ -25,7 +25,7 @@ export class AppConnectRepository {
 
         const appConnects = await this.storageAdapter.get(this.storageKey)
 
-        if (!appConnects[appConnectRequest.id]) {
+        if (appConnects[appConnectRequest.id]) {
             throw new Error('AppConnect with such id already exists')
         }
 

@@ -9,13 +9,15 @@ import getIdentitiesHandler from "./messaging/handlers/identities/getIdentities"
 import requestStateTransitionApprovalHandler
     from "./messaging/handlers/stateTransitions/requestStateTransitionApproval";
 import getAppConnectHandler from "./messaging/handlers/appConnect/getAppConnect";
-import {ExtensionStorageAdapter} from "./storage/extensionStorageAdapter";
+import {StorageAdapter} from "./storage/storageAdapter";
 
 export class MessagingBackend {
     dpp: DashPlatformProtocolWASM
+    storageAdapter: StorageAdapter
 
-    constructor(dpp) {
+    constructor(dpp: DashPlatformProtocolWASM, storageAdapter: StorageAdapter) {
         this.dpp = dpp
+        this.storageAdapter = storageAdapter
     }
 
     handlers: {
@@ -26,11 +28,9 @@ export class MessagingBackend {
         const walletId = '1'
         const network = 'testnet'
 
-        const storageAdapter = new ExtensionStorageAdapter()
-
-        const appConnectRepository = new AppConnectRepository(walletId, network, storageAdapter)
-        const identitiesRepository = new IdentitiesRepository(walletId, network, storageAdapter)
-        const stateTransitionsRepository = new StateTransitionsRepository(walletId, network, storageAdapter)
+        const appConnectRepository = new AppConnectRepository(walletId, network, this.storageAdapter)
+        const identitiesRepository = new IdentitiesRepository(walletId, network, this.storageAdapter)
+        const stateTransitionsRepository = new StateTransitionsRepository(walletId, network, this.storageAdapter)
 
         this.handlers = {
             [MessagingMethods.CONNECT_APP]: connectAppHandler(appConnectRepository),
@@ -42,9 +42,9 @@ export class MessagingBackend {
         window.addEventListener('message', (event: MessageEvent) => {
             const data = event.data as EventData
 
-            const {context} = data
+            const {context, type} = data
 
-            if (context !== 'dash-platform-extension') {
+            if (context !== 'dash-platform-extension' || type === 'response') {
                 return
             }
 
@@ -56,7 +56,7 @@ export class MessagingBackend {
                 const message: EventData = {
                     id,
                     context: 'dash-platform-extension',
-                    target: 'webpage',
+                    type: 'response',
                     method,
                     payload: null,
                     error: 'Could not find handler for method ' + method
@@ -72,7 +72,7 @@ export class MessagingBackend {
                     const message: EventData = {
                         id,
                         context: 'dash-platform-extension',
-                        target: 'webpage',
+                        type: 'response',
                         method,
                         payload: result,
                         error: null
@@ -84,7 +84,7 @@ export class MessagingBackend {
                     const message: EventData = {
                         id,
                         context: 'dash-platform-extension',
-                        target: 'webpage',
+                        type: 'response',
                         method,
                         payload: null,
                         error: e.message

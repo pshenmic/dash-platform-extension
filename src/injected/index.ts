@@ -1,7 +1,7 @@
 // This file injects on webpages by extension
 
 import {MessagingAPI} from "../types/MessagingAPI";
-import {DashPlatformSDK} from 'dash-platform-sdk/dist/main'
+import {DashPlatformSDK} from 'dash-platform-sdk'
 
 declare global {
     interface Window {

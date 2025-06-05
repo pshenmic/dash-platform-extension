@@ -1,7 +1,7 @@
 import {StateTransitionsRepository} from "../../../repository/StateTransitionsRepository";
 import {IdentitiesRepository} from "../../../repository/IdentitiesRepository";
 import {DashPlatformProtocolWASM, IdentityPublicKeyWASM, PrivateKeyWASM} from "pshenmic-dpp";
-import DashPlatformSDK from "dash-platform-sdk/dist/main";
+import DashPlatformSDK from "dash-platform-sdk";
 import {Network} from "../../../../types/enums/Network";
 import {EventData} from "../../../../types/EventData";
 import {ApproveStateTransitionResponse} from "../../../../types/messages/response/ApproveStateTransitionResponse";

@@ -1,7 +1,7 @@
 // This file only runs in the extension context (content-script)
 
 
-import DashPlatformSDK from "dash-platform-sdk/dist/main";
+import DashPlatformSDK from "dash-platform-sdk";
 
 const sdk = new DashPlatformSDK({network: 'mainnet'})
 
@@ -28,8 +28,11 @@ const sdk = new DashPlatformSDK({network: 'mainnet'})
 
 // init messaging (from webpage to content-script)
 import {MessagingBackend} from "./MessagingBackend";
+import {ExtensionStorageAdapter} from "./storage/extensionStorageAdapter";
 
-const messaging = new MessagingBackend(sdk.wasm)
+const extensionStorageAdapter = new ExtensionStorageAdapter()
+
+const messaging = new MessagingBackend(sdk.wasm, extensionStorageAdapter)
 
 messaging.init()
 

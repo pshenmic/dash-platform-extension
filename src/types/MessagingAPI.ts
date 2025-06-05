@@ -22,9 +22,9 @@ export class MessagingAPI {
     }
 
     async connectApp(url: string): Promise<ConnectAppResponse> {
-        const eventData: EventData = await this._rpcCall(MessagingMethods.CONNECT_APP, {url})
+        const response: ConnectAppResponse = await this._rpcCall(MessagingMethods.CONNECT_APP, {url})
 
-        return eventData.payload
+        return new ConnectAppResponse(response.appConnect, response.redirectUrl)
     }
 
     async getAppConnect(id: string): Promise<ConnectAppResponse> {
@@ -53,7 +53,7 @@ export class MessagingAPI {
             const handleMessage = (event: MessageEvent) => {
                 const data: EventData = event.data
 
-                if (data.target === 'webpage' && data.id === id) {
+                if (data.type === 'response' && data.id === id) {
                     if (data.error) {
                         return rejectWithError(data.error)
                     }
@@ -69,6 +69,16 @@ export class MessagingAPI {
             setTimeout(() => {
                 rejectWithError(`Timed out waiting for response of ${method}, (${payload})`)
             }, MESSAGING_TIMEOUT)
+
+            const message : EventData = {
+                context: "dash-platform-extension",
+                id,
+                method,
+                payload,
+                type: "request"
+            }
+
+            window.postMessage(message)
         })
     }
 }
