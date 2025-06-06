@@ -4,12 +4,19 @@ import {IdentitiesRepository} from "./repository/IdentitiesRepository";
 import {StateTransitionsRepository} from "./repository/StateTransitionsRepository";
 import {DashPlatformProtocolWASM} from "pshenmic-dpp";
 import {MessagingMethods} from "../types/enums/MessagingMethods";
-import connectAppHandler from "./messaging/handlers/appConnect/connectApp";
-import getIdentitiesHandler from "./messaging/handlers/identities/getIdentities";
-import requestStateTransitionApprovalHandler
-    from "./messaging/handlers/stateTransitions/requestStateTransitionApproval";
-import getAppConnectHandler from "./messaging/handlers/appConnect/getAppConnect";
 import {StorageAdapter} from "./storage/storageAdapter";
+import {GetIdentitiesHandler} from "./messaging/handlers/identities/getIdentities";
+import {PayloadNotValidError} from "./errors/PayloadNotValidError";
+import {ConnectAppHandler} from "./messaging/handlers/appConnect/connectApp";
+import {
+    RequestStateTransitionApprovalHandler
+} from "./messaging/handlers/stateTransitions/requestStateTransitionApproval";
+import {GetAppConnectHandler} from "./messaging/handlers/appConnect/getAppConnect";
+
+export interface MessageBackendHandler {
+    handle(event: EventData) : Promise<any>
+    validatePayload(payload: any) : Promise<boolean>
+}
 
 export class MessagingBackend {
     dpp: DashPlatformProtocolWASM
@@ -21,7 +28,7 @@ export class MessagingBackend {
     }
 
     handlers: {
-        [key: string]: Function
+        [key: string]: MessageBackendHandler
     }
 
     init() {
@@ -33,10 +40,10 @@ export class MessagingBackend {
         const stateTransitionsRepository = new StateTransitionsRepository(walletId, network, this.storageAdapter)
 
         this.handlers = {
-            [MessagingMethods.CONNECT_APP]: connectAppHandler(appConnectRepository),
-            [MessagingMethods.GET_IDENTITIES]: getIdentitiesHandler(identitiesRepository),
-            [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: requestStateTransitionApprovalHandler(stateTransitionsRepository, this.dpp),
-            [MessagingMethods.GET_APP_CONNECT]: getAppConnectHandler(appConnectRepository),
+            [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository),
+            [MessagingMethods.GET_IDENTITIES]: new GetIdentitiesHandler(identitiesRepository),
+            [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(stateTransitionsRepository),
+            [MessagingMethods.GET_APP_CONNECT]: new GetAppConnectHandler(appConnectRepository),
         }
 
         window.addEventListener('message', (event: MessageEvent) => {
@@ -67,7 +74,11 @@ export class MessagingBackend {
 
             // todo validate input fields
 
-            handler(data)
+            if (!handler.validatePayload(payload)) {
+                throw new PayloadNotValidError()
+            }
+
+            handler.handle(data)
                 .then((result: any) => {
                     const message: EventData = {
                         id,

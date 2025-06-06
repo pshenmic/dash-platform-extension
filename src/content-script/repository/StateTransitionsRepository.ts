@@ -44,7 +44,7 @@ export class StateTransitionsRepository {
         const stateTransitions = await this.storageAdapter.get(this.storageKey)
 
         if (!stateTransitions[hash]) {
-            throw new Error(`AppConnect with request ${hash} does not exist`)
+            throw new Error(`State transition with hash ${hash} does not exist`)
         }
 
         return stateTransitions[hash]
@@ -82,7 +82,6 @@ export class StateTransitionsRepository {
         stateTransition.status = StateTransitionStatus.rejected
 
         stateTransitions[hash] = stateTransition
-
 
         await this.storageAdapter.set(this.storageKey, stateTransitions)
 

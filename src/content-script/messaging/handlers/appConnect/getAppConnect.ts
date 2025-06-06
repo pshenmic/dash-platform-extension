@@ -1,26 +1,26 @@
 import {AppConnectRepository} from "../../../repository/AppConnectRepository";
-import {EventData} from "../../../../types/EventData";
 import {ConnectAppResponse} from "../../../../types/messages/response/ConnectAppResponse";
+import {EventData} from "../../../../types/EventData";
+import {MessageBackendHandler} from "../../../MessagingBackend";
+import {GetAppConnectPayload} from "../../../../types/messages/payloads/GetAppConnectPayload";
 
-interface GetAppConnectPayload {
-    id: string
-}
+export class GetAppConnectHandler implements MessageBackendHandler {
+    appConnectRepository: AppConnectRepository
 
-const validatePayload = (payload: GetAppConnectPayload) => {
-    // todo validate url
-    return payload && typeof payload.id === 'string'
-}
+    constructor(appConnectRepository: AppConnectRepository) {
+        this.appConnectRepository = appConnectRepository
+    }
 
-export default function getAppConnectHandler(appConnectRepository: AppConnectRepository) {
-    return async (data: EventData): Promise<ConnectAppResponse> => {
-        const payload: GetAppConnectPayload = data.payload
+    async handle(event: EventData): Promise<ConnectAppResponse> {
+        const payload: GetAppConnectPayload = event.payload
 
-        if (!validatePayload(payload)) {
-            throw new Error('AppConnectRequestPayload is not valid')
-        }
-
-        const appConnect = await appConnectRepository.get(payload.id)
+        const appConnect = await this.appConnectRepository.get(payload.id)
 
         return {redirectUrl: chrome.runtime.getURL(`connect.html`), appConnect}
+    }
+
+    async validatePayload(payload: GetAppConnectPayload): Promise<boolean> {
+        // todo validate url
+        return payload && typeof payload.id === 'string'
     }
 }

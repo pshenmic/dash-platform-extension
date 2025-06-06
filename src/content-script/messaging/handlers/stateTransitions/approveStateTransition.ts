@@ -8,31 +8,42 @@ import {ApproveStateTransitionResponse} from "../../../../types/messages/respons
 import {ApproveStateTransitionPayload} from "../../../../types/messages/payloads/ApproveStateTransitionPayload";
 import {StateTransition} from "../../../../types/StateTransition";
 import {base64} from "@scure/base";
+import {MessageBackendHandler} from "../../../MessagingBackend";
+import {KeyPair} from "../../../../types/KeyPair";
 
-interface KeyPair {
-    identityPublicKey: IdentityPublicKeyWASM
-    privateKey?: PrivateKeyWASM
-}
+export class ApproveStateTransitionHandler implements MessageBackendHandler{
+    stateTransitionsRepository: StateTransitionsRepository
+    identitiesRepository: IdentitiesRepository
+    dpp: DashPlatformProtocolWASM
+    sdk: DashPlatformSDK
+    network: Network
 
-export default function approveStateTransitionHandler(stateTransitionsRepository: StateTransitionsRepository, identitiesRepository: IdentitiesRepository, dpp: DashPlatformProtocolWASM, sdk: DashPlatformSDK, network: Network) {
-    return async (data: EventData): Promise<ApproveStateTransitionResponse> => {
-        const payload: ApproveStateTransitionPayload = data.payload
+    constructor(stateTransitionsRepository: StateTransitionsRepository, identitiesRepository: IdentitiesRepository, dpp: DashPlatformProtocolWASM, sdk: DashPlatformSDK, network: Network) {
+        this.stateTransitionsRepository = stateTransitionsRepository
+        this.identitiesRepository = identitiesRepository
+        this.dpp = dpp
+        this.sdk = sdk
+        this.network = network
+    }
 
-        const identity = await identitiesRepository.getByIdentifier(payload.identity)
+    async handle(event: EventData): Promise<ApproveStateTransitionResponse> {
+        const payload: ApproveStateTransitionPayload = event.payload
+
+        const identity = await this.identitiesRepository.getByIdentifier(payload.identity)
 
         if (!identity) {
             throw new Error(`Identity with identifier ${payload.identity} is not found`)
         }
 
-        const {PrivateKeyWASM} = dpp
+        const {PrivateKeyWASM} = this.dpp
 
-        const identityPublicKeys: IdentityPublicKeyWASM[] = await sdk.identities.getIdentityPublicKeys(identity.identifier)
+        const identityPublicKeys: IdentityPublicKeyWASM[] = await this.sdk.identities.getIdentityPublicKeys(identity.identifier)
 
         const [keyPair]: KeyPair[] = identityPublicKeys
             .map((identityPublicKey) => {
                 // get identity
                 const [privateKey] = identity.privateKeys
-                    .map(privateKey => PrivateKeyWASM.fromHex(privateKey, network))
+                    .map(privateKey => PrivateKeyWASM.fromHex(privateKey, this.network))
                     .filter(privateKey => privateKey.getPublicKeyHash() === identityPublicKey.getPublicKeyHash())
 
                 return {identityPublicKey, privateKey}
@@ -43,9 +54,9 @@ export default function approveStateTransitionHandler(stateTransitionsRepository
             throw new Error(`Matching private key for Identity ${identity.identifier} is not found`)
         }
 
-        const stateTransition: StateTransition = await stateTransitionsRepository.get(payload.hash)
+        const stateTransition: StateTransition = await this.stateTransitionsRepository.get(payload.hash)
 
-        const stateTransitionWASM = dpp.StateTransitionWASM.fromBytes(base64.decode(stateTransition.unsigned))
+        const stateTransitionWASM = this.dpp.StateTransitionWASM.fromBytes(base64.decode(stateTransition.unsigned))
 
         stateTransitionWASM.sign(keyPair.privateKey, keyPair.identityPublicKey)
 
@@ -53,7 +64,11 @@ export default function approveStateTransitionHandler(stateTransitionsRepository
         const signaturePublicKeyId = stateTransitionWASM.signaturePublicKeyId
 
         return {
-            stateTransition: await stateTransitionsRepository.markApproved(stateTransition.hash, sdk.utils.bytesToHex(signature), signaturePublicKeyId)
+            stateTransition: await this.stateTransitionsRepository.markApproved(stateTransition.hash, this.sdk.utils.bytesToHex(signature), signaturePublicKeyId)
         }
+    }
+
+    async validatePayload(payload: ApproveStateTransitionPayload): Promise<boolean> {
+        return true
     }
 }

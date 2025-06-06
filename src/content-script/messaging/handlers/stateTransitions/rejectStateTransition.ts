@@ -1,18 +1,25 @@
 import {StateTransitionsRepository} from "../../../repository/StateTransitionsRepository";
-import {DashPlatformProtocolWASM} from "pshenmic-dpp";
 import {EventData} from "../../../../types/EventData";
 import {RejectStateTransitionResponse} from "../../../../types/messages/response/RejectStateTransitionResponse";
 import {RejectStateTransitionPayload} from "../../../../types/messages/payloads/RejectStateTransitionPayload";
-import {StateTransition} from "../../../../types/StateTransition";
+import {MessageBackendHandler} from "../../../MessagingBackend";
 
-export default function rejectStateTransitionHandler(stateTransitionsRepository: StateTransitionsRepository, dpp: DashPlatformProtocolWASM) {
-    return async (data: EventData): Promise<RejectStateTransitionResponse> => {
-        const payload: RejectStateTransitionPayload = data.payload
+export class RejectStateTransitionHandler implements MessageBackendHandler{
+    stateTransitionsRepository: StateTransitionsRepository
 
-        const stateTransition: StateTransition = await stateTransitionsRepository.get(payload.hash)
+    constructor(stateTransitionsRepository: StateTransitionsRepository) {
+        this.stateTransitionsRepository = stateTransitionsRepository
+    }
+
+    async handle(event: EventData): Promise<RejectStateTransitionResponse> {
+        const payload: RejectStateTransitionPayload = event.payload
 
         return {
-            stateTransition: await stateTransitionsRepository.markRejected(stateTransition.hash)
+            stateTransition: await this.stateTransitionsRepository.markRejected(payload.hash)
         }
+    }
+
+    async validatePayload(key: object): Promise<boolean> {
+        return true
     }
 }

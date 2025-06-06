@@ -10,6 +10,7 @@ import Text from '../../text/Text'
 import Button from '../../components/controls/buttons'
 import {useMessagingAPI} from "../../hooks/useMessagingAPI";
 import {Identity} from "../../../types/Identity";
+import {GetStateTransitionResponse} from "../../../types/messages/response/GetStateTransitionResponse";
 
 export default function () {
     const navigate = useNavigate()
@@ -33,7 +34,7 @@ export default function () {
     useEffect(() => {
         messagingAPI
             .getStateTransition(params.hash)
-            .then(stateTransitionResponse => {
+            .then((stateTransitionResponse: GetStateTransitionResponse) => {
                 try {
                     const {StateTransitionWASM} = sdk.wasm
 

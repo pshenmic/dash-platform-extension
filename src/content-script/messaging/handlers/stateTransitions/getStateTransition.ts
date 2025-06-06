@@ -1,18 +1,23 @@
 import {StateTransitionsRepository} from "../../../repository/StateTransitionsRepository";
-import {DashPlatformProtocolWASM} from "pshenmic-dpp";
-import {EventData} from "../../../../types/EventData";
-import {StateTransition} from "../../../../types/StateTransition";
-import {GetStateTransitionResponse} from "../../../../types/messages/response/GetStateTransitionResponse";
 import {GetStateTransitionPayload} from "../../../../types/messages/payloads/GetStateTransitionPayload";
+import {Identity} from "../../../../types/Identity";
+import {EventData} from "../../../../types/EventData";
+import {MessageBackendHandler} from "../../../MessagingBackend";
 
-export default function rejectStateTransitionHandler(stateTransitionsRepository: StateTransitionsRepository, dpp: DashPlatformProtocolWASM) {
-    return async (data: EventData): Promise<GetStateTransitionResponse> => {
-        const payload: GetStateTransitionPayload = data.payload
+export class GetStateTransitionHandler implements MessageBackendHandler{
+    stateTransitionsRepository: StateTransitionsRepository
 
-        const stateTransition: StateTransition = await stateTransitionsRepository.get(payload.hash)
+    constructor(stateTransitionsRepository: StateTransitionsRepository) {
+        this.stateTransitionsRepository = stateTransitionsRepository
+    }
 
-        return {
-            stateTransition
-        }
+    async handle(event: EventData): Promise<Identity[]> {
+        const payload: GetStateTransitionPayload = event.payload
+
+        return this.stateTransitionsRepository.get(payload.hash)
+    }
+
+    async validatePayload(key: object): Promise<boolean> {
+        return true
     }
 }
