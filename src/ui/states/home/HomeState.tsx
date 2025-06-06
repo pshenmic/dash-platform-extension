@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from 'react'
 import NoIdentities from './NoIdentities'
-import { useIdentitiesStore } from '../../../stores/identitiesStore'
 import { Button } from '../../components/controls/buttons'
 import ValueCard from '../../components/containers/ValueCard'
 import Text from '../../text/Text'
 import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
-import Identifier from "../../components/data/Indetifier";
+import Identifier from "../../components/data/Identifier";
 import StatusIcon from "../../components/icons/StatusIcon";
 import { TransactionTypes } from '../../../enums/TransactionTypes'
 import DateBlock from "../../components/data/DateBlock";
 import './home.state.css'
+import {useMessagingAPI} from "../../hooks/useMessagingAPI";
+import {Identity} from "../../../types/Identity";
 
 export default function () {
-  const currentIdentity = useIdentitiesStore((state) => state.currentIdentity)
-  const identities = useIdentitiesStore((state) => state.identities)
+  const messagingAPI = useMessagingAPI()
+  const [identities, setIdentities] = useState<Identity[]>([])
+  const [currentIdentity, setCurrentIdentity] = useState<Identity>(null)
   const [transactionsLoadError, setTransactionsLoadError] = useState(null)
   const [transactions, setTransactions] = useState(null)
 
@@ -22,9 +24,13 @@ export default function () {
     return <NoIdentities/>
   }
 
-  const [identity] = identities.filter(identity => identity.identifier === currentIdentity)
 
   useEffect(() => {
+    messagingAPI
+        .getCurrentIdentity()
+        .then(response => setCurrentIdentity(response.currentIdentity))
+        .catch(console.error)
+
     fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${currentIdentity}/transactions`)
       .then(response => {
           if (response.status === 200) {
@@ -46,6 +52,9 @@ export default function () {
 
   console.log('transactions', transactions)
 
+  // todo implement retrieving balance
+  let balance = 0
+
   return (
     <div className={'screen-content'}>
       <ValueCard colorScheme={'lightBlue'}>
@@ -61,10 +70,10 @@ export default function () {
           <div className={'flex flex-col gap-[0.125rem]'}>
             <Text dim>Balance</Text>
             <span>
-              {!Number.isNaN(Number(identity?.balance))
+              {!Number.isNaN(Number(balance))
                 ? <Text size={'xl'} weight={'bold'} monospace>
                   <BigNumber>
-                    {identity.balance}
+                    {balance}
                   </BigNumber>
                 </Text>
                 : <NotActive>N/A</NotActive>

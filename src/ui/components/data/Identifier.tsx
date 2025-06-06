@@ -7,7 +7,7 @@ import React, {
 } from 'react'
 import { cva, VariantProps } from 'class-variance-authority'
 import useResizeObserver from '@react-hook/resize-observer'
-import useDebounce from '../../../hooks/useDebounce'
+import useDebounce from '../../hooks/useDebounce'
 import { NotActive } from './NotActive'
 import CopyButton from '../controls/buttons/CopyButton'
 import { useTheme } from '../../contexts/ThemeContext'
