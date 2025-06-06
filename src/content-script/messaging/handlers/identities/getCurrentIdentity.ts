@@ -3,6 +3,7 @@ import {Identity} from "../../../../types/Identity";
 import {EventData} from "../../../../types/EventData";
 import {PayloadNotValidError} from "../../../errors/PayloadNotValidError";
 import {MessageBackendHandler} from "../../../MessagingBackend";
+import {GetCurrentIdentityResponse} from "../../../../types/messages/response/GetCurrentIdentityResponse";
 
 export class GetCurrentIdentityHandler implements MessageBackendHandler {
     identitiesRepository: IdentitiesRepository
@@ -11,11 +12,11 @@ export class GetCurrentIdentityHandler implements MessageBackendHandler {
         this.identitiesRepository = identitiesRepository
     }
 
-    async handle(event: EventData): Promise<Identity> {
-        return this.identitiesRepository.getCurrentIdentity()
+    async handle(event: EventData): Promise<GetCurrentIdentityResponse> {
+        return {currentIdentity: await this.identitiesRepository.getCurrentIdentity()}
     }
 
-    async validatePayload(key: object): Promise<boolean> {
+    validatePayload(key: object): boolean {
         return true
     }
 }

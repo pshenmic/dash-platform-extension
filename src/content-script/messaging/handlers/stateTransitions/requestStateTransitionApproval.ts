@@ -26,7 +26,7 @@ export class RequestStateTransitionApprovalHandler implements MessageBackendHand
         }
     }
 
-    async validatePayload(payload: SignStateTransitionRequestPayload): Promise<boolean> {
+    validatePayload(payload: SignStateTransitionRequestPayload): boolean {
         return true
     }
 }

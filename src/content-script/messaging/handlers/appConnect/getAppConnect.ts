@@ -19,7 +19,7 @@ export class GetAppConnectHandler implements MessageBackendHandler {
         return {redirectUrl: chrome.runtime.getURL(`connect.html`), appConnect}
     }
 
-    async validatePayload(payload: GetAppConnectPayload): Promise<boolean> {
+    validatePayload(payload: GetAppConnectPayload): boolean {
         // todo validate url
         return payload && typeof payload.id === 'string'
     }

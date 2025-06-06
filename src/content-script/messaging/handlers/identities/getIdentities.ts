@@ -14,7 +14,7 @@ export class GetIdentitiesHandler implements MessageBackendHandler{
         return this.identitiesRepository.getAll()
     }
 
-    async validatePayload(key: object): Promise<boolean> {
+    validatePayload(key: object): boolean {
         return true
     }
 }

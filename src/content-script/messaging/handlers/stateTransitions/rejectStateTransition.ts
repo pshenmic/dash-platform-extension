@@ -19,7 +19,7 @@ export class RejectStateTransitionHandler implements MessageBackendHandler{
         }
     }
 
-    async validatePayload(key: object): Promise<boolean> {
+    validatePayload(key: object): boolean {
         return true
     }
 }

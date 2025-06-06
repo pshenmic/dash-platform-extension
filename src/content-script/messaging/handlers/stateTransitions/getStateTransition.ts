@@ -17,7 +17,7 @@ export class GetStateTransitionHandler implements MessageBackendHandler{
         return this.stateTransitionsRepository.get(payload.hash)
     }
 
-    async validatePayload(key: object): Promise<boolean> {
+    validatePayload(key: object): boolean {
         return true
     }
 }

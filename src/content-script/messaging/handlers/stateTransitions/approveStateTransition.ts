@@ -18,11 +18,11 @@ export class ApproveStateTransitionHandler implements MessageBackendHandler{
     sdk: DashPlatformSDK
     network: Network
 
-    constructor(stateTransitionsRepository: StateTransitionsRepository, identitiesRepository: IdentitiesRepository, dpp: DashPlatformProtocolWASM, sdk: DashPlatformSDK, network: Network) {
+    constructor(stateTransitionsRepository: StateTransitionsRepository, identitiesRepository: IdentitiesRepository, sdk: DashPlatformSDK, network: Network) {
         this.stateTransitionsRepository = stateTransitionsRepository
         this.identitiesRepository = identitiesRepository
-        this.dpp = dpp
         this.sdk = sdk
+        this.dpp = sdk.wasm
         this.network = network
     }
 
@@ -68,7 +68,7 @@ export class ApproveStateTransitionHandler implements MessageBackendHandler{
         }
     }
 
-    async validatePayload(payload: ApproveStateTransitionPayload): Promise<boolean> {
+    validatePayload(payload: ApproveStateTransitionPayload): boolean {
         return true
     }
 }

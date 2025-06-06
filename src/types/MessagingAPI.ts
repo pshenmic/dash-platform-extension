@@ -6,6 +6,7 @@ import {ConnectAppResponse} from "./messages/response/ConnectAppResponse";
 import {RequestStateTransitionApprovalResponse} from "./messages/response/RequestStateTransitionApprovalResponse";
 import {GetStateTransitionResponse} from "./messages/response/GetStateTransitionResponse";
 import {GetCurrentIdentityResponse} from "./messages/response/GetCurrentIdentityResponse";
+import {ConnectAppPayload} from "./messages/payloads/ConnectAppPayload";
 
 export class MessagingAPI {
     async requestStateTransitionApproval(stateTransition: StateTransitionWASM): Promise<RequestStateTransitionApprovalResponse> {
@@ -22,9 +23,14 @@ export class MessagingAPI {
     }
 
     async connectApp(url: string): Promise<ConnectAppResponse> {
+        const payload: ConnectAppPayload = {url}
+
         const response: ConnectAppResponse = await this._rpcCall(MessagingMethods.CONNECT_APP, {url})
 
-        return new ConnectAppResponse(response.appConnect, response.redirectUrl)
+        return {
+            appConnect: response.appConnect,
+            redirectUrl: response.redirectUrl
+        }
     }
 
     async getAppConnect(id: string): Promise<ConnectAppResponse> {

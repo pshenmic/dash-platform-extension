@@ -1,12 +1,6 @@
 import {AppConnect} from "../../AppConnect";
 
-export class ConnectAppResponse  {
-
-    constructor(appConnect: AppConnect, redirectUrl: string) {
-        this.appConnect = appConnect;
-        this.redirectUrl = redirectUrl;
-    }
-
+export type ConnectAppResponse = {
     appConnect: AppConnect
     redirectUrl: string
 }
