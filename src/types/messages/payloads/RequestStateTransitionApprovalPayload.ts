@@ -1,3 +1,3 @@
-export interface SignStateTransitionRequestPayload {
+export interface RequestStateTransitionApprovalPayload {
     base64: string
 }

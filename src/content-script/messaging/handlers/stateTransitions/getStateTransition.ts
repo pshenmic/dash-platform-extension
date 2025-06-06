@@ -3,6 +3,7 @@ import {GetStateTransitionPayload} from "../../../../types/messages/payloads/Get
 import {Identity} from "../../../../types/Identity";
 import {EventData} from "../../../../types/EventData";
 import {MessageBackendHandler} from "../../../MessagingBackend";
+import {validateHex} from "../../../../utils";
 
 export class GetStateTransitionHandler implements MessageBackendHandler{
     stateTransitionsRepository: StateTransitionsRepository
@@ -17,7 +18,11 @@ export class GetStateTransitionHandler implements MessageBackendHandler{
         return this.stateTransitionsRepository.get(payload.hash)
     }
 
-    validatePayload(key: object): boolean {
-        return true
+    validatePayload(payload: GetStateTransitionPayload): null | string {
+        if (!validateHex(payload.hash))  {
+            return 'State transition hash is not valid'
+        }
+
+        return null
     }
 }

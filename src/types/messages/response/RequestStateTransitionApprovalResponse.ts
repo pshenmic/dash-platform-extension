@@ -1,6 +1,4 @@
-import {StateTransition} from "../../StateTransition";
-
 export interface RequestStateTransitionApprovalResponse {
-    stateTransition: StateTransition,
+    hash: string
     redirectUrl: string
 }

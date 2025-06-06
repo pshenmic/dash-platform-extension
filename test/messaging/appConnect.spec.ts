@@ -3,10 +3,12 @@ import DashPlatformSDK from 'dash-platform-sdk'
 import {MessagingAPI} from "../../src/types/MessagingAPI";
 import {MemoryStorageAdapter} from "../../src/content-script/storage/memoryStorageAdapter";
 import {PayloadNotValidError} from "../../src/content-script/errors/PayloadNotValidError";
+import {StorageAdapter} from "../../src/content-script/storage/storageAdapter";
 
 describe('appConnect tests', () => {
     let messagingBackend: MessagingBackend
     let messagingAPI: MessagingAPI
+    let storage: StorageAdapter
 
     beforeAll(()=> {
         const sdk = new DashPlatformSDK()
@@ -14,6 +16,7 @@ describe('appConnect tests', () => {
 
         messagingBackend = new MessagingBackend(sdk.wasm, memoryStorageAdapter)
         messagingAPI = new MessagingAPI()
+        storage = memoryStorageAdapter
 
         messagingBackend.init()
     })
@@ -21,6 +24,9 @@ describe('appConnect tests', () => {
     describe('connectApp', () => {
         describe('should create app connect', () => {
             test('should create AppConnect with domain', async () => {
+                const storageKey = `testnet_1_appConnects`
+                await storage.set(storageKey, {})
+
                 const url = 'https://google.com'
                 const response = await messagingAPI.connectApp(url)
 
@@ -30,6 +36,9 @@ describe('appConnect tests', () => {
                 expect(response.appConnect.status).toBe('pending')
             });
             test('should create AppConnect with domain with port', async () => {
+                const storageKey = `testnet_1_appConnects`
+                await storage.set(storageKey, {})
+
                 const url = 'https://google.com:8080'
                 const response = await messagingAPI.connectApp(url)
 
@@ -40,6 +49,9 @@ describe('appConnect tests', () => {
             });
 
             test('should create AppConnect with ipv4 with port', async () => {
+                const storageKey = `testnet_1_appConnects`
+                await storage.set(storageKey, {})
+
                 const url = 'http://127.0.0.1:8080'
                 const response = await messagingAPI.connectApp(url)
 
@@ -51,6 +63,9 @@ describe('appConnect tests', () => {
 
 
             test('should create AppConnect with ipv4 without port', async () => {
+                const storageKey = `testnet_1_appConnects`
+                await storage.set(storageKey, {})
+
                 const url = 'http://127.0.0.1'
                 const response = await messagingAPI.connectApp(url)
 
@@ -61,6 +76,9 @@ describe('appConnect tests', () => {
             });
 
             test('should create AppConnect with localhost', async () => {
+                const storageKey = `testnet_1_appConnects`
+                await storage.set(storageKey, {})
+
                 const url = 'http://localhost:8080'
                 const response = await messagingAPI.connectApp(url)
 
@@ -71,6 +89,9 @@ describe('appConnect tests', () => {
             });
 
             test('should create AppConnect with localhost without port', async () => {
+                const storageKey = `testnet_1_appConnects`
+                await storage.set(storageKey, {})
+
                 const url = 'http://localhost'
                 const response = await messagingAPI.connectApp(url)
 
@@ -120,25 +141,5 @@ describe('appConnect tests', () => {
             });
         })
     })
-
-    // describe('getAppConnect', () => {
-    //     test('should retrieve AppConnect by id', async () => {
-    //         const response = await messagingAPI.connectApp('https://localhost:8080')
-    //
-    //         console.log(response)
-    //     });
-    //
-    //     test('should fail if payload not valid', async () => {
-    //         const response = await messagingAPI.connectApp('https://localhost:8080')
-    //
-    //         console.log(response)
-    //     });
-    //
-    //     test('should fail if app connect not found', async () => {
-    //         const response = await messagingAPI.connectApp('https://localhost:8080')
-    //
-    //         console.log(response)
-    //     });
-    // })
 
 })

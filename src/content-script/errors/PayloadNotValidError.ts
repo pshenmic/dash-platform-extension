@@ -1,5 +1,5 @@
 export class PayloadNotValidError extends Error {
-    constructor() {
-        super(`Request payload is not valid`);
+    constructor(reason: string) {
+        super(`Request payload is not valid: ${reason}`);
     }
 }

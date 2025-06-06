@@ -25,29 +25,33 @@ export class ConnectAppHandler implements MessageBackendHandler {
         return {redirectUrl: chrome.runtime.getURL(`connect.html`), appConnect}
     }
 
-    validatePayload(payload: AppConnectRequestPayload): boolean {
+    validatePayload(payload: AppConnectRequestPayload): null | string {
         // check it is a string
         if (typeof payload?.url !== 'string') {
-            return false
+            return 'Url is missing'
         }
 
         // checks it starts with http:// or https://
         if (!payload.url.startsWith('http://') && !payload.url.startsWith('https://')) {
-            return false
+            return 'Bad protocol'
         }
 
         const [, domainOrIpWithPort] = payload.url.split('://')
         const [domainOrIp, port] = domainOrIpWithPort.split(':')
 
         if (port && isNaN(Number(port)) || Number(port) > 65535) {
-            return false
+            return 'Port number is not valid'
         }
 
         if (domainOrIp === 'localhost') {
-            return true
+            return null
         }
 
         // check it is domain (ex. google.com) or ip address (ipv6 or ipv4)
-        return (/^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6}$/i.test(domainOrIp) || validateIp(domainOrIp))
+        if (!/^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6}$/i.test(domainOrIp) || !validateIp(domainOrIp)) {
+            return 'Invalid app domain url'
+        }
+
+        return null
     }
 }

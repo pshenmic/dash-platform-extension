@@ -24,6 +24,21 @@ export class IdentitiesRepository {
         this.storageAdapter = storageAdapter
     }
 
+    async create(identifier: string, privateKeys: string[]): Promise<Identity> {
+        const identities = await this.storageAdapter.get(this.storageKey)
+
+        const identity: Identity = {
+            identifier,
+            privateKeys
+        }
+
+        identities[identifier] = identity
+
+        await this.storageAdapter.set(this.storageKey, identities)
+
+        return identity
+    }
+
     async getAll(): Promise<Identity[]> {
         const identities = await this.storageAdapter.get(this.storageKey)
 
@@ -40,7 +55,7 @@ export class IdentitiesRepository {
         const identities = await this.storageAdapter.get(this.storageKey)
 
         if (!identities[identifier]) {
-            throw new Error(`Could not find identity with identifier ${identifier}`)
+            return null
         }
 
         return identities[identifier]
@@ -52,7 +67,7 @@ export class IdentitiesRepository {
         const currentIdentity = entry['currentIdentity']
 
         if (!currentIdentity) {
-            throw new Error(`No current identity is set yet`)
+            return null
         }
 
         return this.getByIdentifier(currentIdentity)

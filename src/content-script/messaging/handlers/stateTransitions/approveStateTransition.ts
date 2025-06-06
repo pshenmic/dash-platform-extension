@@ -1,6 +1,6 @@
 import {StateTransitionsRepository} from "../../../repository/StateTransitionsRepository";
 import {IdentitiesRepository} from "../../../repository/IdentitiesRepository";
-import {DashPlatformProtocolWASM, IdentityPublicKeyWASM, PrivateKeyWASM} from "pshenmic-dpp";
+import {DashPlatformProtocolWASM, IdentityPublicKeyWASM, PrivateKeyWASM} from "dash-platform-sdk";
 import DashPlatformSDK from "dash-platform-sdk";
 import {Network} from "../../../../types/enums/Network";
 import {EventData} from "../../../../types/EventData";
@@ -10,6 +10,7 @@ import {StateTransition} from "../../../../types/StateTransition";
 import {base64} from "@scure/base";
 import {MessageBackendHandler} from "../../../MessagingBackend";
 import {KeyPair} from "../../../../types/KeyPair";
+import {validateHex, validateIdentifier} from "../../../../utils";
 
 export class ApproveStateTransitionHandler implements MessageBackendHandler{
     stateTransitionsRepository: StateTransitionsRepository
@@ -68,7 +69,15 @@ export class ApproveStateTransitionHandler implements MessageBackendHandler{
         }
     }
 
-    validatePayload(payload: ApproveStateTransitionPayload): boolean {
-        return true
+    validatePayload(payload: ApproveStateTransitionPayload): null | string {
+        if (!validateHex(payload.hash))  {
+            return 'State transition hash is not valid'
+        }
+
+        if(!validateIdentifier(payload.identity)) {
+            return 'Identity identifier is not valid'
+        }
+
+        return null
     }
 }

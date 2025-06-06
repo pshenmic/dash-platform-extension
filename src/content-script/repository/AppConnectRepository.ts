@@ -1,8 +1,6 @@
 import {AppConnect} from "../../types/AppConnect";
 import {StorageAdapter} from "../storage/storageAdapter";
 
-const CHROME_STORAGE_KEY = 'appConnects'
-
 export class AppConnectRepository {
     walletId: string
     network: string
