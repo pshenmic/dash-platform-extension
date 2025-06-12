@@ -7,7 +7,13 @@ ___
 
 ##### This package in very early stage of development, and only testnet network supported at the moment.
 
-![title](public/img/overview.png)
+The following features are currently available:
+
+Import Identity by private key:
+![title](public/img/screenshots/import-identity-flow.png)
+
+View and confirm transactions:
+![title](public/img/screenshots/identity-actions.png)
 
 ## General
 
