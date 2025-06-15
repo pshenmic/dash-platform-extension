@@ -16,6 +16,19 @@ export class MessagingAPI {
                 base64
             })
     }
+    async approveStateTransition(hash: string, identity: string): Promise<void> {
+        await this._rpcCall(MessagingMethods.APPROVE_STATE_TRANSITION,
+            {
+                hash,
+                identity
+            })
+    }
+    async rejectStateTransition(hash: string): Promise<void> {
+        await this._rpcCall(MessagingMethods.REJECT_STATE_TRANSITION,
+            {
+                hash,
+            })
+    }
 
     async getStateTransition(hash: string): Promise<GetStateTransitionResponse> {
         const eventData: EventData = await this._rpcCall(MessagingMethods.GET_STATE_TRANSITION, {hash})
