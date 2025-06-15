@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react'
 import { cva } from 'class-variance-authority'
 // import { Tooltip } from '../../ui/Tooltips'
-import copyToClipboard from '../../../../utils/copyToClipboard'
 import { CopyIcon } from '../../icons'
 import { useTheme } from '../../../contexts/ThemeContext'
+import copyToClipboard from "../../../../copyToClipboard";
 
 const copyBtn = cva(
   'p-0 flex-shrink-0 h-[max-content] min-w-0 bg-transparent transition-colors'
