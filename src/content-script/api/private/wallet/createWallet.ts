@@ -4,9 +4,6 @@ import {DashPlatformProtocolWASM} from "pshenmic-dpp";
 import {CreateWalletPayload} from "../../../../types/messages/payloads/CreateWalletPayload";
 import {WalletRepository} from "../../../repository/WalletRepository";
 import {WalletType} from "../../../../types/WalletType";
-import { PublicKey, PrivateKey } from "eciesjs";
-
-import hash from "hash.js";
 import {CreateWalletResponse} from "../../../../types/messages/response/CreateWalletResponse";
 
 export class CreateWalletHandler implements APIHandler {
@@ -23,10 +20,7 @@ export class CreateWalletHandler implements APIHandler {
 
         const walletType = WalletType[payload.walletType]
 
-        const passwordHash = hash.sha256().update(payload.password).digest('hex')
-        const password = PrivateKey.fromHex(passwordHash)
-
-        await this.walletRepository.create(walletType, password.publicKey)
+        await this.walletRepository.create(walletType)
 
         return {}
     }

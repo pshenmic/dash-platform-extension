@@ -14,7 +14,13 @@ export class WalletRepository {
         this.storageAdapter = storageAdapter
     }
 
-    async create(type: WalletType, passwordPublicKey: PublicKey): Promise<void> {
+    async create(type: WalletType): Promise<void> {
+        const passwordPublicKey = await this.storageAdapter.get('network') as string
+
+        if (!passwordPublicKey) {
+            throw new Error('Password is not set for an extension')
+        }
+
         const currentNetwork = await this.storageAdapter.get('network') as string
         const walletId = generateWalletId()
 

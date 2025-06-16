@@ -10,13 +10,6 @@ import {CreateIdentityPayload} from "./messages/payloads/CreateIdentityPayload";
 import {GetAvailableIdentitiesResponse} from "./messages/response/GetAvailableIdentitiesResponse";
 
 export class PrivateAPIClient {
-    async requestStateTransitionApproval(base64: string): Promise<RequestStateTransitionApprovalResponse> {
-        return await this._rpcCall(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL,
-            {
-                base64
-            })
-    }
-
     async approveStateTransition(hash: string, identity: string): Promise<void> {
         await this._rpcCall(MessagingMethods.APPROVE_STATE_TRANSITION,
             {
@@ -38,15 +31,6 @@ export class PrivateAPIClient {
         return eventData.payload
     }
 
-    async connectApp(url: string): Promise<ConnectAppResponse> {
-        const response: ConnectAppResponse = await this._rpcCall(MessagingMethods.CONNECT_APP, {url})
-
-        return {
-            status: response.status,
-            redirectUrl: response.redirectUrl
-        }
-    }
-
     async getCurrentIdentity(): Promise<IdentifierWASM> {
         const eventData: EventData = await this._rpcCall(MessagingMethods.GET_CURRENT_IDENTITY, {})
 
@@ -66,7 +50,6 @@ export class PrivateAPIClient {
     _rpcCall<T>(method: string, payload?: object): Promise<T> {
         console.log(`RPC call to extension with method ${method} payload ${JSON.stringify(payload)}`)
 
-
         const id = new Date().getTime() + ''
 
         const message: EventData = {
@@ -76,7 +59,6 @@ export class PrivateAPIClient {
             payload,
             type: "request"
         }
-
 
         return new Promise((resolve, reject) => {
             const rejectWithError = (message: string) => {
@@ -88,8 +70,6 @@ export class PrivateAPIClient {
             }, MESSAGING_TIMEOUT)
 
             chrome.runtime.sendMessage(undefined, message, undefined, (data: EventData) => {
-
-
                 if (data.type === 'response' && data.id === id) {
                     if (data.error) {
                         return rejectWithError(data.error)

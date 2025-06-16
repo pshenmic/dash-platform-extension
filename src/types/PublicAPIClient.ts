@@ -23,14 +23,6 @@ export class PublicAPIClient {
             })
     }
 
-    async getCurrentIdentity(): Promise<IdentifierWASM> {
-        const eventData: EventData = await this._rpcCall(MessagingMethods.GET_CURRENT_IDENTITY, {})
-
-        const payload: GetCurrentIdentityResponse = eventData.payload
-
-        return new IdentifierWASM(payload.currentIdentity)
-    }
-
     _rpcCall<T>(method: string, payload?: object): Promise<T> {
         console.log(`RPC call to extension with method ${method} payload ${JSON.stringify(payload)}`)
         const id = new Date().getTime() + ''
