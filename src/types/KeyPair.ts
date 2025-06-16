@@ -1,6 +1,6 @@
-import {DashPlatformProtocolWASM, IdentityPublicKeyWASM, PrivateKeyWASM} from "pshenmic-dpp";
+import {IdentityPublicKeyWASM} from "pshenmic-dpp";
 
 export interface KeyPair {
     identityPublicKey: IdentityPublicKeyWASM
-    privateKey?: PrivateKeyWASM
+    encryptedPrivateKey?: string
 }

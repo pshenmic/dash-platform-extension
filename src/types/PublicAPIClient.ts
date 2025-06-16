@@ -6,54 +6,21 @@ import {RequestStateTransitionApprovalResponse} from "./messages/response/Reques
 import {GetStateTransitionResponse} from "./messages/response/GetStateTransitionResponse";
 import {GetCurrentIdentityResponse} from "./messages/response/GetCurrentIdentityResponse";
 import {IdentifierWASM} from 'pshenmic-dpp'
-import {ImportIdentityPayload} from "./messages/payloads/ImportIdentityPayload";
+import {CreateIdentityPayload} from "./messages/payloads/CreateIdentityPayload";
 import {GetAvailableIdentitiesResponse} from "./messages/response/GetAvailableIdentitiesResponse";
 
-export class MessagingAPI {
-    async requestStateTransitionApproval(base64: string): Promise<RequestStateTransitionApprovalResponse> {
+export class PublicAPIClient {
+    async connectApp(url: string): Promise<ConnectAppResponse> {
+        return await this._rpcCall(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL,
+            {
+                url
+            })
+    }
+    async requestTransactionApproval(base64: string): Promise<RequestStateTransitionApprovalResponse> {
         return await this._rpcCall(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL,
             {
                 base64
             })
-    }
-    async approveStateTransition(hash: string, identity: string): Promise<void> {
-        await this._rpcCall(MessagingMethods.APPROVE_STATE_TRANSITION,
-            {
-                hash,
-                identity
-            })
-    }
-    async rejectStateTransition(hash: string): Promise<void> {
-        await this._rpcCall(MessagingMethods.REJECT_STATE_TRANSITION,
-            {
-                hash,
-            })
-    }
-
-    async getStateTransition(hash: string): Promise<GetStateTransitionResponse> {
-        const eventData: EventData = await this._rpcCall(MessagingMethods.GET_STATE_TRANSITION, {hash})
-
-        return eventData.payload
-    }
-
-    async connectApp(url: string): Promise<ConnectAppResponse> {
-        const response: ConnectAppResponse = await this._rpcCall(MessagingMethods.CONNECT_APP, {url})
-
-        return {
-            appConnect: response.appConnect,
-            redirectUrl: response.redirectUrl
-        }
-    }
-
-    async importIdentity(identifier: string, privateKeys: string[]): Promise<void> {
-        const payload : ImportIdentityPayload = {
-            identifier,
-            privateKeys
-        }
-
-        await this._rpcCall(MessagingMethods.IMPORT_IDENTITY, payload)
-
-        return
     }
 
     async getCurrentIdentity(): Promise<IdentifierWASM> {
@@ -62,14 +29,6 @@ export class MessagingAPI {
         const payload: GetCurrentIdentityResponse = eventData.payload
 
         return new IdentifierWASM(payload.currentIdentity)
-    }
-
-    async getAvailableIdentities(): Promise<IdentifierWASM[]> {
-        const eventData: EventData = await this._rpcCall(MessagingMethods.GET_AVAILABLE_IDENTITIES, {})
-
-        const payload: GetAvailableIdentitiesResponse = eventData.payload
-
-        return payload.identities.map((identity: string) => new IdentifierWASM(identity))
     }
 
     _rpcCall<T>(method: string, payload?: object): Promise<T> {

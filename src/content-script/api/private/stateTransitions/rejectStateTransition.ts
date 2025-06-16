@@ -2,26 +2,33 @@ import {StateTransitionsRepository} from "../../../repository/StateTransitionsRe
 import {EventData} from "../../../../types/EventData";
 import {RejectStateTransitionResponse} from "../../../../types/messages/response/RejectStateTransitionResponse";
 import {RejectStateTransitionPayload} from "../../../../types/messages/payloads/RejectStateTransitionPayload";
-import {MessageBackendHandler} from "../../../MessagingBackend";
 import {validateHex} from "../../../../utils";
+import {APIHandler} from "../../APIHandler";
+import {WalletRepository} from "../../../repository/WalletRepository";
+import {StateTransitionStatus} from "../../../../types/enums/StateTransitionStatus";
 
-export class RejectStateTransitionHandler implements MessageBackendHandler{
+export class RejectStateTransitionHandler implements APIHandler {
     stateTransitionsRepository: StateTransitionsRepository
+    walletRepository: WalletRepository
 
-    constructor(stateTransitionsRepository: StateTransitionsRepository) {
+    constructor(stateTransitionsRepository: StateTransitionsRepository, walletRepository: WalletRepository) {
         this.stateTransitionsRepository = stateTransitionsRepository
+        this.walletRepository = walletRepository
     }
 
     async handle(event: EventData): Promise<RejectStateTransitionResponse> {
         const payload: RejectStateTransitionPayload = event.payload
 
+        // todo move check to middleware
+        await this.walletRepository.get()
+
         return {
-            stateTransition: await this.stateTransitionsRepository.markRejected(payload.hash)
+            stateTransition: await this.stateTransitionsRepository.update(payload.hash, StateTransitionStatus.rejected)
         }
     }
 
-    validatePayload(payload: RejectStateTransitionPayload): null|string{
-        if(!validateHex(payload.hash)) {
+    validatePayload(payload: RejectStateTransitionPayload): null | string {
+        if (!validateHex(payload.hash)) {
             return 'State transition hash is not valid'
         }
 

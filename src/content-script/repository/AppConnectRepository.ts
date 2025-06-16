@@ -2,26 +2,26 @@ import {AppConnect} from "../../types/AppConnect";
 import {StorageAdapter} from "../storage/storageAdapter";
 
 export class AppConnectRepository {
-    walletId: string
-    network: string
     storageKey: string
     storageAdapter: StorageAdapter
 
-    constructor(walletId: string, network: string, storageAdapter: StorageAdapter) {
-        this.walletId = walletId
-        this.network = network
-        this.storageKey = `${network}_${walletId}_appConnects`
+    constructor(storageAdapter: StorageAdapter) {
         this.storageAdapter = storageAdapter
     }
 
     async create(url: string): Promise<AppConnect> {
+        const network = await this.storageAdapter.get('network')
+        const walletId = await this.storageAdapter.get('currentWalletId')
+
+        const storageKey = `${network}_${walletId}_appConnects`
+
         const appConnectRequest: AppConnect = {
             id: new Date().getTime() + '',
             status: 'pending',
             url
         }
 
-        const appConnects = await this.storageAdapter.get(this.storageKey)
+        const appConnects = await this.storageAdapter.get(storageKey)
 
         if (appConnects[appConnectRequest.id]) {
             throw new Error('AppConnect with such id already exists')
@@ -29,13 +29,18 @@ export class AppConnectRepository {
 
         appConnects[appConnectRequest.id] = appConnectRequest
 
-        await this.storageAdapter.set(this.storageKey, appConnects)
+        await this.storageAdapter.set(storageKey, appConnects)
 
         return appConnectRequest
     }
 
     async get(id: string) : Promise<AppConnect>{
-        const appConnects = await this.storageAdapter.get(this.storageKey)
+        const network = await this.storageAdapter.get('network')
+        const walletId = await this.storageAdapter.get('currentWalletId')
+
+        const storageKey = `${network}_${walletId}_appConnects`
+
+        const appConnects = await this.storageAdapter.get(storageKey)
 
         if (appConnects[id]) {
             throw new Error(`AppConnect with request ${id} does not exist`)

@@ -8,14 +8,14 @@ import ValueCard from '../../components/containers/ValueCard'
 import Identifier from '../../components/data/Identifier'
 import Text from '../../text/Text'
 import Button from '../../components/controls/buttons'
-import {useMessagingAPI} from "../../hooks/useMessagingAPI";
 import {Identity} from "../../../types/Identity";
 import {GetStateTransitionResponse} from "../../../types/messages/response/GetStateTransitionResponse";
+import {useExtensionAPI} from "../../hooks/useExtensionAPI";
 
 export default function () {
     const navigate = useNavigate()
     const sdk = useSdk()
-    const messagingAPI = useMessagingAPI()
+    const extensionAPI = useExtensionAPI()
 
     const params = useParams()
 
@@ -32,7 +32,7 @@ export default function () {
     }
 
     useEffect(() => {
-        messagingAPI
+        extensionAPI
             .getStateTransition(params.hash)
             .then((stateTransitionResponse: GetStateTransitionResponse) => {
                 try {
@@ -53,14 +53,14 @@ export default function () {
     }
 
     const doSign = () => {
-        messagingAPI.requestStateTransitionApproval(stateTransition)
+        extensionAPI.requestStateTransitionApproval(stateTransition)
             .then(response=> {})
             .catch(console.error)
 
 
         sdk.stateTransitions.broadcast(stateTransition)
             .then(() => {
-                const state_transition_hash = hash.sha256().update(stateTransition.toBytes()).digest('hex')
+                const state_transition_hash = stateTransition.hash
 
                 setTxHash(state_transition_hash)
             }).catch((error) => {

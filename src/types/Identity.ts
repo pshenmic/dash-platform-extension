@@ -1,4 +1,8 @@
+import {IdentityPublicKeyWASM} from 'pshenmic-dpp'
+
 export interface Identity {
+    index: number
     identifier: string
-    privateKeys: string[]
+    label?: string
+    identityPublicKeys: IdentityPublicKeyWASM[]
 }

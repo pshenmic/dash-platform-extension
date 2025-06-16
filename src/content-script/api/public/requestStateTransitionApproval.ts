@@ -1,16 +1,16 @@
-import {
-    RequestStateTransitionApprovalPayload
-} from "../../../../types/messages/payloads/RequestStateTransitionApprovalPayload";
-import {StateTransitionsRepository} from "../../../repository/StateTransitionsRepository";
-import {EventData} from "../../../../types/EventData";
-import {MessageBackendHandler} from "../../../MessagingBackend";
+import {DashPlatformProtocolWASM} from 'pshenmic-dpp'
+import {base64} from '@scure/base'
+import {APIHandler} from "../APIHandler";
+import {StateTransitionsRepository} from "../../repository/StateTransitionsRepository";
+import {EventData} from "../../../types/EventData";
 import {
     RequestStateTransitionApprovalResponse
-} from "../../../../types/messages/response/RequestStateTransitionApprovalResponse";
-import {DashPlatformProtocolWASM, StateTransitionWASM} from 'dash-platform-sdk'
-import {base64} from '@scure/base'
+} from "../../../types/messages/response/RequestStateTransitionApprovalResponse";
+import {
+    RequestStateTransitionApprovalPayload
+} from "../../../types/messages/payloads/RequestStateTransitionApprovalPayload";
 
-export class RequestStateTransitionApprovalHandler implements MessageBackendHandler {
+export class RequestStateTransitionApprovalHandler implements APIHandler {
     stateTransitionsRepository: StateTransitionsRepository
     dpp: DashPlatformProtocolWASM
 
@@ -22,10 +22,13 @@ export class RequestStateTransitionApprovalHandler implements MessageBackendHand
     async handle(event: EventData): Promise<RequestStateTransitionApprovalResponse> {
         const payload: RequestStateTransitionApprovalPayload = event.payload
 
-        const stateTransition = await this.stateTransitionsRepository.create(payload.base64)
+        const stateTransitionWASM = this.dpp.StateTransitionWASM.fromBytes(base64.decode(payload.base64))
+
+        const stateTransition = await this.stateTransitionsRepository.create(stateTransitionWASM)
 
         return {
-            stateTransition: stateTransition,
+            hash: stateTransition.hash,
+            status: stateTransition.status,
             redirectUrl: chrome.runtime.getURL(`index.html/#approve/${stateTransition.hash}`)
         }
     }

@@ -1,4 +1,4 @@
 export interface StorageAdapter {
-    get(key: string) : Promise<object>
-    set(key: string, value: object) : Promise<void>
+    get(key: string) : Promise<object | number | string | null>
+    set(key: string, value: object | number | string) : Promise<void>
 }

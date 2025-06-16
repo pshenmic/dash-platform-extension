@@ -1,4 +1,5 @@
 import {base58} from "@scure/base";
+import hash from "hash.js";
 
 export const getRunningEnv = () => {
     let getBackgroundPage = chrome?.extension?.getBackgroundPage;
@@ -10,8 +11,23 @@ export const getRunningEnv = () => {
     return chrome?.runtime?.onMessage ? 'CONTENT' : 'WEB';
 };
 
+export const hexToBytes = (hex: string): Uint8Array => {
+    return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
+}
+
+export const bytesToHex = (bytes: Uint8Array): string  => {
+    return Array.prototype.map.call(bytes, (x: number) => ('00' + x.toString(16)).slice(-2)).join('')
+}
+
 export const validateHex = (str: string): boolean =>{
     return /[0-9a-fA-F]{32}/.test(str)
+}
+
+export const validateWalletId = (walletId: string): boolean =>{
+    return /[0-9a-fA-F]{6}/.test(walletId)
+}
+export const generateWalletId = (): string => {
+    return hash.sha256().update(new Date().getTime() + '').digest('hex').substring(0, 6)
 }
 
 export const validateIdentifier = (str: string): boolean => {

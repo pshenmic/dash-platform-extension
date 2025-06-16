@@ -10,13 +10,14 @@ import StatusIcon from "../../components/icons/StatusIcon";
 import { TransactionTypes } from '../../../enums/TransactionTypes'
 import DateBlock from "../../components/data/DateBlock";
 import './home.state.css'
-import {useMessagingAPI} from "../../hooks/useMessagingAPI";
+import {useExtensionAPI} from "../../hooks/useExtensionAPI";
 import {Identity} from "../../../types/Identity";
+import {IdentifierWASM} from 'pshenmic-dpp'
 
 export default function () {
-  const messagingAPI = useMessagingAPI()
-  const [identities, setIdentities] = useState<Identity[]>([])
-  const [currentIdentity, setCurrentIdentity] = useState<Identity>(null)
+  const extensionAPI = useExtensionAPI()
+  const [identities, setIdentities] = useState<IdentifierWASM[]>([])
+  const [currentIdentity, setCurrentIdentity] = useState<IdentifierWASM>(null)
   const [transactionsLoadError, setTransactionsLoadError] = useState(null)
   const [transactions, setTransactions] = useState(null)
 
@@ -26,9 +27,9 @@ export default function () {
 
 
   useEffect(() => {
-    messagingAPI
+    extensionAPI
         .getCurrentIdentity()
-        .then(response => setCurrentIdentity(response.currentIdentity))
+        .then(response => setCurrentIdentity(response))
         .catch(console.error)
 
     fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${currentIdentity}/transactions`)
@@ -60,10 +61,10 @@ export default function () {
       <ValueCard colorScheme={'lightBlue'}>
         <div className={'flex flex-col gap-1'}>
           <select>
-            {identities.map((identity) => <option
-              key={identity.identifier}
-              value={identity.identifier}>
-              {identity.identifier}
+            {identities.map((identifier) => <option
+              key={identifier.base58()}
+              value={identifier.base58()}>
+              {identifier.base58()}
             </option>)}
           </select>
 

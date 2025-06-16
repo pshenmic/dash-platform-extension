@@ -2,10 +2,10 @@ import {StateTransitionsRepository} from "../../../repository/StateTransitionsRe
 import {GetStateTransitionPayload} from "../../../../types/messages/payloads/GetStateTransitionPayload";
 import {Identity} from "../../../../types/Identity";
 import {EventData} from "../../../../types/EventData";
-import {MessageBackendHandler} from "../../../MessagingBackend";
 import {validateHex} from "../../../../utils";
+import {APIHandler} from "../../APIHandler";
 
-export class GetStateTransitionHandler implements MessageBackendHandler{
+export class GetStateTransitionHandler implements APIHandler{
     stateTransitionsRepository: StateTransitionsRepository
 
     constructor(stateTransitionsRepository: StateTransitionsRepository) {

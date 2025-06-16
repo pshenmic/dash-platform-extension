@@ -1,55 +1,72 @@
 import {StorageAdapter} from "../storage/storageAdapter";
-
-const CHROME_STORAGE_KEY = 'identities'
-
-export interface Identity {
-    identifier: string
-    privateKeys: string[]
-}
-
-export interface IdentityStorageEntry {
-    privateKeys: string[]
-}
+import {Identity} from "../../types/Identity";
+import {IdentityPublicKeyWASM, DashPlatformProtocolWASM} from 'pshenmic-dpp'
+import {IdentitiesStoreSchema, IdentityStoreSchema} from "../storage/storageSchema";
+import {base64} from "@scure/base";
 
 export class IdentitiesRepository {
-    walletId: string
-    network: string
+    dpp: DashPlatformProtocolWASM
     storageKey: string
     storageAdapter: StorageAdapter
 
-    constructor(walletId: string, network: string, storageAdapter: StorageAdapter) {
-        this.walletId = walletId
-        this.network = network
-        this.storageKey = `${network}_${walletId}_identities`
+    constructor(storageAdapter: StorageAdapter, dpp: DashPlatformProtocolWASM) {
+        this.dpp = dpp
         this.storageAdapter = storageAdapter
     }
 
-    async create(identifier: string, privateKeys: string[]): Promise<Identity> {
-        const identities = await this.storageAdapter.get(this.storageKey)
+    async create(index: number, identifier: string, identityPublicKeys: IdentityPublicKeyWASM[]): Promise<Identity> {
+        const network = await this.storageAdapter.get('network')
+        const walletId = await this.storageAdapter.get('currentWalletId')
 
-        const identity: Identity = {
+
+        const storageKey = `${network}_${walletId}_identities`
+
+        const identities = await this.storageAdapter.get(storageKey)
+
+        const identityStoreSchema: IdentityStoreSchema = {
+            index,
+            label: null,
             identifier,
-            privateKeys
+            identityPublicKeys: identityPublicKeys.map(identityPublicKey => base64.encode(identityPublicKey.toBytes()))
         }
 
-        identities[identifier] = identity
+        identities[identifier] = identityStoreSchema
 
-        await this.storageAdapter.set(this.storageKey, identities)
+        await this.storageAdapter.set(storageKey, identities)
 
-        return identity
+        return {
+            identifier: identityStoreSchema.identifier,
+            identityPublicKeys,
+            index: identityStoreSchema.index,
+            label: identityStoreSchema.label
+        }
     }
 
     async getAll(): Promise<Identity[]> {
-        const identities = await this.storageAdapter.get(this.storageKey)
+        const network = await this.storageAdapter.get('network')
+        const walletId = await this.storageAdapter.get('currentWalletId')
 
-        return Object.entries(identities).map(([identifier, entry]) => {
-                return {
-                    identifier: identifier as string,
-                    privateKeys: (entry as IdentityStorageEntry).privateKeys
-                } as Identity
-            }
-        )
+        const storageKey = `identities_${network}_${walletId}`
+
+        const identities = await this.storageAdapter.get(storageKey) as IdentitiesStoreSchema
+
+        if (!identities || !Object.keys(identities).length) {
+            return []
+        }
+
+        return Object.entries(identities)
+            .map(([identifier, entry]) =>
+                ({
+                        identifier,
+                        identityPublicKeys: entry.identityPublicKeys.map((identityPublicKey) =>
+                            this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(identityPublicKey))),
+                        index: entry.index,
+                        label: entry.label
+                    }
+                )
+            )
     }
+
 
     async getByIdentifier(identifier: string): Promise<Identity> {
         const identities = await this.storageAdapter.get(this.storageKey)

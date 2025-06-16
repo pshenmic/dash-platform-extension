@@ -1,12 +1,10 @@
 import {IdentitiesRepository} from "../../../repository/IdentitiesRepository";
-import {Identity} from "../../../../types/Identity";
 import {EventData} from "../../../../types/EventData";
-import {PayloadNotValidError} from "../../../errors/PayloadNotValidError";
-import {MessageBackendHandler} from "../../../MessagingBackend";
 import {GetCurrentIdentityResponse} from "../../../../types/messages/response/GetCurrentIdentityResponse";
 import {GetCurrentIdentityPayload} from "../../../../types/messages/payloads/GetCurrentIdentityPayload";
+import {APIHandler} from "../../APIHandler";
 
-export class GetCurrentIdentityHandler implements MessageBackendHandler {
+export class GetCurrentIdentityHandler implements APIHandler {
     identitiesRepository: IdentitiesRepository
 
     constructor(identitiesRepository: IdentitiesRepository) {

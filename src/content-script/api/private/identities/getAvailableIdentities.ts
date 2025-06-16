@@ -1,11 +1,11 @@
 import {IdentitiesRepository} from "../../../repository/IdentitiesRepository";
 import {Identity} from "../../../../types/Identity";
 import {EventData} from "../../../../types/EventData";
-import {MessageBackendHandler} from "../../../MessagingBackend";
 import {GetAvailableIdentitiesResponse} from "../../../../types/messages/response/GetAvailableIdentitiesResponse";
 import {GetAvailableIdentitiesPayload} from "../../../../types/messages/payloads/GetAvailableIdentitiesPayload";
+import {APIHandler} from "../../APIHandler";
 
-export class GetAvailableIdentitiesHandler implements MessageBackendHandler{
+export class GetAvailableIdentitiesHandler implements APIHandler{
     identitiesRepository: IdentitiesRepository
 
     constructor(identitiesRepository: IdentitiesRepository) {

@@ -1,8 +1,8 @@
-import {AppConnectRepository} from "../../../repository/AppConnectRepository";
-import {ConnectAppResponse} from "../../../../types/messages/response/ConnectAppResponse";
-import {EventData} from "../../../../types/EventData";
-import {MessageBackendHandler} from "../../../MessagingBackend";
 import ipValidator from 'is-my-ip-valid'
+import {AppConnectRepository} from "../../repository/AppConnectRepository";
+import {ConnectAppResponse} from "../../../types/messages/response/ConnectAppResponse";
+import {EventData} from "../../../types/EventData";
+import {APIHandler} from "../APIHandler";
 
 const validateIp = ipValidator({ version: 4 })
 
@@ -10,7 +10,7 @@ interface AppConnectRequestPayload {
     url: string
 }
 
-export class ConnectAppHandler implements MessageBackendHandler {
+export class ConnectAppHandler implements APIHandler {
     appConnectRepository: AppConnectRepository
 
     constructor(appConnectRepository: AppConnectRepository) {
@@ -22,7 +22,7 @@ export class ConnectAppHandler implements MessageBackendHandler {
 
         const appConnect = await this.appConnectRepository.create(payload.url)
 
-        return {redirectUrl: chrome.runtime.getURL(`connect.html`), appConnect}
+        return {redirectUrl: chrome.runtime.getURL(`connect.html`), status: appConnect.status}
     }
 
     validatePayload(payload: AppConnectRequestPayload): null | string {
