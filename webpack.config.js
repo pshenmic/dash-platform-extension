@@ -10,8 +10,8 @@ module.exports = (env, argv) => {
     entry: {
       'ui': './src/ui/index.tsx',
       ...(mode === 'production' && {
-        'content-script': './src/content-scripts/content-script.js',
-        'injected': './src/content-scripts/injected.js',
+        'content-script': './src/content-script/index.ts',
+        'injected': './src/injected/index.ts',
       })
     },
     output: {
