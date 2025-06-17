@@ -1,0 +1,83 @@
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '../../components/controls/buttons'
+import Text from '../../text/Text'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+
+export default function SetupPasswordState() {
+  const navigate = useNavigate()
+  const extensionAPI = useExtensionAPI()
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSetupPassword = async () => {
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      await extensionAPI.setupPassword(password)
+      navigate('/login')
+    } catch (err) {
+      setError(err.toString())
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className={'flex flex-col gap-4'}>
+      <Text size={'xl'} weight={'bold'}>
+        Setup Password
+      </Text>
+
+      <Text color={'blue'}>
+        Create a password to secure your wallet
+      </Text>
+
+      <div className={'flex flex-col gap-2'}>
+        <input
+          type={'password'}
+          placeholder={'Enter password'}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className={'p-3 border rounded'}
+        />
+
+        <input
+          type={'password'}
+          placeholder={'Confirm password'}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className={'p-3 border rounded'}
+        />
+      </div>
+
+      {error && (
+        <div className={'text-red-500 text-sm'}>
+          {error}
+        </div>
+      )}
+
+      <Button
+        colorScheme={'brand'}
+        onClick={handleSetupPassword}
+        disabled={!password || !confirmPassword || isLoading}
+        className={'w-full'}
+      >
+        {isLoading ? 'Setting up...' : 'Setup Password'}
+      </Button>
+    </div>
+  )
+}
