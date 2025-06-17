@@ -21,6 +21,31 @@ export class PrivateAPIClient {
         return this._rpcCall(MessagingMethods.SETUP_PASSWORD, payload)
     }
 
+    async checkPassword(password: string): Promise<{success: boolean}> {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({ success: true })
+            }, 500)
+        })
+    }
+
+    async createWallet(walletType: string): Promise<void> {
+        const payload = {
+            walletType
+        }
+
+        return this._rpcCall(MessagingMethods.CREATE_WALLET, payload)
+    }
+
+    async createIdentity(identifier: string, privateKeys: string[]): Promise<void> {
+        const payload = {
+            identifier,
+            privateKeys
+        }
+
+        return this._rpcCall(MessagingMethods.CREATE_IDENTITY, payload)
+    }
+
     async approveStateTransition(hash: string, identity: string): Promise<void> {
         await this._rpcCall(MessagingMethods.APPROVE_STATE_TRANSITION,
             {
