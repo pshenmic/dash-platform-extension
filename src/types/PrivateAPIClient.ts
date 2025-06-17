@@ -6,10 +6,19 @@ import {GetCurrentIdentityResponse} from "./messages/response/GetCurrentIdentity
 import {IdentifierWASM} from 'pshenmic-dpp'
 import {GetAvailableIdentitiesResponse} from "./messages/response/GetAvailableIdentitiesResponse";
 import {GetStatusResponse} from "./messages/response/GetStatusResponse";
+import {SetupPasswordPayload} from "./messages/payloads/SetupPasswordPayload";
 
 export class PrivateAPIClient {
     async getStatus(): Promise<GetStatusResponse> {
         return this._rpcCall(MessagingMethods.GET_STATUS, {})
+    }
+
+    async setupPassword(password: string): Promise<GetStatusResponse> {
+        const payload: SetupPasswordPayload = {
+            password
+        }
+
+        return this._rpcCall(MessagingMethods.SETUP_PASSWORD, payload)
     }
 
     async approveStateTransition(hash: string, identity: string): Promise<void> {

@@ -7,5 +7,6 @@ export default async function up(storageAdapter: StorageAdapter) {
         await storageAdapter.set('schema_version', 1)
         await storageAdapter.set('currentWalletId', null)
         await storageAdapter.set('network', 'testnet')
+        await storageAdapter.set('passwordPublicKey', null)
     }
 }

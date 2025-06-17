@@ -20,6 +20,7 @@ import {SwitchWalletHandler} from "./private/wallet/switchWallet";
 import {KeypairRepository} from "../repository/KeypairRepository";
 import {WalletRepository} from "../repository/WalletRepository";
 import {GetStatusHandler} from "./private/extension/status";
+import {SetupPasswordHandler} from "./private/extension/setupPassword";
 
 /**
  * Handlers for a messages within extension context
@@ -45,6 +46,7 @@ export class PrivateAPI {
 
         this.handlers = {
             [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
+            [MessagingMethods.SETUP_PASSWORD]: new SetupPasswordHandler(this.storageAdapter),
             [MessagingMethods.CREATE_IDENTITY]: new CreateIdentityHandler(identitiesRepository, keypairRepository, this.sdk.dpp),
             [MessagingMethods.GET_AVAILABLE_IDENTITIES]: new GetAvailableIdentitiesHandler(identitiesRepository),
             [MessagingMethods.GET_CURRENT_IDENTITY]: new GetCurrentIdentityHandler(identitiesRepository),
