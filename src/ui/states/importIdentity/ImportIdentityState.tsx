@@ -8,12 +8,15 @@ import Identifier from '../../components/data/Identifier'
 import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
 import Text from '../../text/Text'
+import {useExtensionAPI} from "../../hooks/useExtensionAPI";
 
 const checkHex = (string) => /\b[0-9A-F]{64}/gi.test(string)
 
 export default function () {
   const navigate = useNavigate()
   const sdk = useSdk()
+
+  const extensionAPI = useExtensionAPI()
   const { uint8ArrayToBase58 } = sdk.utils
   const [privateKey, setPrivateKey] = useState(null)
   const [privateKeyWASM, setPrivateKeyWASM] = useState(null)
@@ -27,50 +30,52 @@ export default function () {
   const [identityBalance, setIdentityBalance] = useState(0)
 
   const checkPrivateKey = async () => {
-    setError(null)
-
-    let pkeyWASM = null
-
-    if (privateKey.length === 52) {
-      // wif
-      try {
-        pkeyWASM = sdk.wasm.PrivateKeyWASM.fromWIF((privateKey))
-        setPrivateKeyWASM(pkeyWASM)
-      } catch (e) {
-        console.error(e)
-        return setError('Could not decode private key from WIF')
-      }
-    } else if (privateKey.length === 64) {
-      //hex
-      try {
-        pkeyWASM = sdk.wasm.PrivateKeyWASM.fromHex(privateKey, 'testnet')
-        setPrivateKeyWASM(pkeyWASM)
-      } catch (e) {
-        console.error(e)
-        return setError('Could not decode private key from hex')
-      }
-    } else {
-      return setError('Unrecognized private key format')
-    }
-
-    try {
-      const identity = await sdk.identities.getByPublicKeyHash(pkeyWASM.getPublicKeyHash())
-      const balance = await sdk.identities.getBalance(uint8ArrayToBase58(identity.getId()))
-
-      setIdentity(identity)
-      setBalance(balance)
-    } catch (e) {
-      console.error(e)
-      if (typeof e === 'string') {
-        return setError(e)
-      }
-
-      if (e.code === 5) {
-        return setError('Identity related to this private key was not found')
-      }
-
-      setError(e.toString())
-    }
+    const status = await extensionAPI.getStatus()
+    console.log(status)
+    // setError(null)
+    //
+    // let pkeyWASM = null
+    //
+    // if (privateKey.length === 52) {
+    //   // wif
+    //   try {
+    //     pkeyWASM = sdk.wasm.PrivateKeyWASM.fromWIF((privateKey))
+    //     setPrivateKeyWASM(pkeyWASM)
+    //   } catch (e) {
+    //     console.error(e)
+    //     return setError('Could not decode private key from WIF')
+    //   }
+    // } else if (privateKey.length === 64) {
+    //   //hex
+    //   try {
+    //     pkeyWASM = sdk.wasm.PrivateKeyWASM.fromHex(privateKey, 'testnet')
+    //     setPrivateKeyWASM(pkeyWASM)
+    //   } catch (e) {
+    //     console.error(e)
+    //     return setError('Could not decode private key from hex')
+    //   }
+    // } else {
+    //   return setError('Unrecognized private key format')
+    // }
+    //
+    // try {
+    //   const identity = await sdk.identities.getByPublicKeyHash(pkeyWASM.getPublicKeyHash())
+    //   const balance = await sdk.identities.getBalance(uint8ArrayToBase58(identity.getId()))
+    //
+    //   setIdentity(identity)
+    //   setBalance(balance)
+    // } catch (e) {
+    //   console.error(e)
+    //   if (typeof e === 'string') {
+    //     return setError(e)
+    //   }
+    //
+    //   if (e.code === 5) {
+    //     return setError('Identity related to this private key was not found')
+    //   }
+    //
+    //   setError(e.toString())
+    // }
   }
 
   useEffect(() => {

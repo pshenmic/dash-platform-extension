@@ -2,7 +2,6 @@ import {StorageAdapter} from "../storage/storageAdapter";
 import {generateWalletId} from "../../utils";
 import {Network} from "../../types/enums/Network";
 import {WalletStoreSchema} from "../storage/storageSchema";
-import {PublicKey} from "eciesjs";
 import {WalletType} from "../../types/WalletType";
 import {Wallet} from "../../types/Wallet";
 

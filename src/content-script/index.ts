@@ -1,15 +1,18 @@
 // This file only runs in the extension context (content-script)
-
+import {ExtensionStorageAdapter} from "./storage/extensionStorageAdapter";
 import {DashPlatformSDK} from "dash-platform-sdk";
+import {PrivateAPI} from "./api/PrivateAPI";
+import {PublicAPI} from "./api/PublicAPI";
+import runMigrations from "./storage/runMigrations";
+
+
+const extensionStorageAdapter = new ExtensionStorageAdapter()
+
+// do migrations
+runMigrations(extensionStorageAdapter).catch(console.error)
 
 const sdk = new DashPlatformSDK({network: 'mainnet'})
 
-import {ExtensionStorageAdapter} from "./storage/extensionStorageAdapter";
-
-import {PrivateAPI} from "./api/PrivateAPI";
-import {PublicAPI} from "./api/PublicAPI";
-
-const extensionStorageAdapter = new ExtensionStorageAdapter()
 
 const privateAPI = new PrivateAPI(sdk, extensionStorageAdapter)
 const publicAPI = new PublicAPI(sdk, extensionStorageAdapter)

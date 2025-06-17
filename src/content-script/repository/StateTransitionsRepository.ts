@@ -1,4 +1,3 @@
-import hash from "hash.js";
 import {StateTransitionStatus} from "../../types/enums/StateTransitionStatus";
 import {StateTransition} from "../../types/StateTransition";
 import {StorageAdapter} from "../storage/storageAdapter";

@@ -1,15 +1,17 @@
 import {MESSAGING_TIMEOUT} from "../constants";
 import {EventData} from "./EventData";
 import {MessagingMethods} from "./enums/MessagingMethods";
-import {ConnectAppResponse} from "./messages/response/ConnectAppResponse";
-import {RequestStateTransitionApprovalResponse} from "./messages/response/RequestStateTransitionApprovalResponse";
 import {GetStateTransitionResponse} from "./messages/response/GetStateTransitionResponse";
 import {GetCurrentIdentityResponse} from "./messages/response/GetCurrentIdentityResponse";
 import {IdentifierWASM} from 'pshenmic-dpp'
-import {CreateIdentityPayload} from "./messages/payloads/CreateIdentityPayload";
 import {GetAvailableIdentitiesResponse} from "./messages/response/GetAvailableIdentitiesResponse";
+import {GetStatusResponse} from "./messages/response/GetStatusResponse";
 
 export class PrivateAPIClient {
+    async getStatus(): Promise<GetStatusResponse> {
+        return this._rpcCall(MessagingMethods.GET_STATUS, {})
+    }
+
     async approveStateTransition(hash: string, identity: string): Promise<void> {
         await this._rpcCall(MessagingMethods.APPROVE_STATE_TRANSITION,
             {
@@ -49,45 +51,43 @@ export class PrivateAPIClient {
 
     _rpcCall<T>(method: string, payload?: object): Promise<T> {
         console.log(`RPC call to extension with method ${method} payload ${JSON.stringify(payload)}`)
-
         const id = new Date().getTime() + ''
-
-        const message: EventData = {
-            context: "dash-platform-extension",
-            id,
-            method,
-            payload,
-            type: "request"
-        }
 
         return new Promise((resolve, reject) => {
             const rejectWithError = (message: string) => {
+                chrome.runtime.onMessage.removeListener(handleMessage)
+
                 reject(message)
             }
 
-            setTimeout(() => {
-                rejectWithError(`Timed out waiting for response of ${method}, (${payload})`)
-            }, MESSAGING_TIMEOUT)
-
-            chrome.runtime.sendMessage(undefined, message, undefined, (data: EventData) => {
+            const handleMessage = (data: EventData) => {
                 if (data.type === 'response' && data.id === id) {
                     if (data.error) {
                         return rejectWithError(data.error)
                     }
 
+                    chrome.runtime.onMessage.removeListener(handleMessage)
+
                     resolve(data.payload)
                 }
+            }
 
-                const message: EventData = {
-                    context: "dash-platform-extension",
-                    id,
-                    method,
-                    payload,
-                    type: "request"
-                }
+            chrome.runtime.onMessage.addListener(handleMessage)
 
-                resolve(message.payload)
-            })
+            setTimeout(() => {
+                rejectWithError(`Timed out waiting for response of ${method}, (${payload})`)
+            }, MESSAGING_TIMEOUT)
+
+            const message : EventData = {
+                context: "dash-platform-extension",
+                id,
+                method,
+                payload,
+                type: "request"
+            }
+
+            // @ts-ignore
+            chrome.runtime.onMessage.dispatch(message)
         })
     }
 }

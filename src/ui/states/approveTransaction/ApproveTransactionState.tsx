@@ -2,7 +2,6 @@ import React, {useEffect, useState} from 'react'
 import {useNavigate, useParams} from 'react-router-dom'
 import {base64 as base64Decoder} from '@scure/base'
 import {useSdk} from '../../hooks/useSdk'
-import hash from 'hash.js'
 import TransactionDetails from './TransactionDetails'
 import ValueCard from '../../components/containers/ValueCard'
 import Identifier from '../../components/data/Identifier'
@@ -53,11 +52,6 @@ export default function () {
     }
 
     const doSign = () => {
-        extensionAPI.requestStateTransitionApproval(stateTransition)
-            .then(response=> {})
-            .catch(console.error)
-
-
         sdk.stateTransitions.broadcast(stateTransition)
             .then(() => {
                 const state_transition_hash = stateTransition.hash

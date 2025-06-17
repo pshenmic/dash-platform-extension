@@ -2,9 +2,9 @@ import {WalletType} from "../../types/WalletType";
 import {StateTransitionStatus} from "../../types/enums/StateTransitionStatus";
 
 export interface StorageSchema {
-    schemaVersion: number
+    version: number
+    network: number
     currentWalletId: string
-    wallets: WalletSchema[]
 }
 
 export interface KeyPairSchema {

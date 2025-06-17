@@ -19,6 +19,7 @@ import {CreateWalletHandler} from "./private/wallet/createWallet";
 import {SwitchWalletHandler} from "./private/wallet/switchWallet";
 import {KeypairRepository} from "../repository/KeypairRepository";
 import {WalletRepository} from "../repository/WalletRepository";
+import {GetStatusHandler} from "./private/extension/status";
 
 /**
  * Handlers for a messages within extension context
@@ -43,6 +44,7 @@ export class PrivateAPI {
         const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter, this.sdk.dpp)
 
         this.handlers = {
+            [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
             [MessagingMethods.CREATE_IDENTITY]: new CreateIdentityHandler(identitiesRepository, keypairRepository, this.sdk.dpp),
             [MessagingMethods.GET_AVAILABLE_IDENTITIES]: new GetAvailableIdentitiesHandler(identitiesRepository),
             [MessagingMethods.GET_CURRENT_IDENTITY]: new GetCurrentIdentityHandler(identitiesRepository),
@@ -53,62 +55,65 @@ export class PrivateAPI {
             [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository, this.sdk.dpp),
         }
 
-        chrome.runtime.onMessage.addListener((message: EventData, sender: MessageSender, sendResponse) => {
-            const {context, type} = message
+        chrome.runtime.onMessage.addListener((data: EventData) => {
+            const {context, type} = data
 
             if (context !== 'dash-platform-extension' || type === 'response') {
-                return
+            return
+        }
+
+        const {id, method, payload, error} = data
+
+        const handler = this.handlers[data.method]
+
+        if (!handler) {
+            const message: EventData = {
+                id,
+                context: 'dash-platform-extension',
+                type: 'response',
+                method,
+                payload: null,
+                error: 'Could not find handler for method ' + method
             }
 
-            const {id, method, payload, error} = message
+            // @ts-ignore
+            return chrome.runtime.onMessage.dispatch(message)
+        }
 
-            const handler = this.handlers[message.method]
+        const validation = handler.validatePayload(payload)
 
-            if (!handler) {
+        if (validation) {
+            throw new PayloadNotValidError(validation)
+        }
+
+        handler.handle(data)
+            .then((result: any) => {
+                const message: EventData = {
+                    id,
+                    context: 'dash-platform-extension',
+                    type: 'response',
+                    method,
+                    payload: result,
+                    error: null
+                }
+
+                // @ts-ignore
+                return chrome.runtime.onMessage.dispatch(message)
+            })
+            .catch(e => {
                 const message: EventData = {
                     id,
                     context: 'dash-platform-extension',
                     type: 'response',
                     method,
                     payload: null,
-                    error: 'Could not find handler for method ' + method
+                    error: e.message
                 }
 
-                return window.postMessage(message)
-            }
+                // @ts-ignore
+                return chrome.runtime.onMessage.dispatch(message)
+            })
+    })
 
-            const validation = handler.validatePayload(payload)
-
-            if (validation) {
-                throw new PayloadNotValidError(validation)
-            }
-
-            handler
-                .handle(message)
-                .then((result: any) => {
-                    const message: EventData = {
-                        id,
-                        context: 'dash-platform-extension',
-                        type: 'response',
-                        method,
-                        payload: result,
-                        error: null
-                    }
-
-                    sendResponse(message)
-                })
-                .catch(e => {
-                    const message: EventData = {
-                        id,
-                        context: 'dash-platform-extension',
-                        type: 'response',
-                        method,
-                        payload: null,
-                        error: e.message
-                    }
-
-                    sendResponse(message)
-                })
-        })
     }
 }
