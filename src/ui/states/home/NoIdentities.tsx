@@ -14,7 +14,7 @@ export default function () {
         </h1>
 
         <div className={'HomeState__NoIdentities__Buttons'}>
-          <Button onClick={() => navigate('import')}>
+          <Button onClick={() => navigate('/import')}>
             Import
           </Button>
 
