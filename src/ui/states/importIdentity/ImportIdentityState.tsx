@@ -71,7 +71,9 @@ export default function () {
 
     try {
       const identity = await sdk.identities.getByPublicKeyHash(pkeyWASM.getPublicKeyHash())
-      
+
+      // TODO: if Purpose !== Authentication && Security Level !== High => error, does not fit
+
       // Get identifier as base58 string directly from IdentifierWASM
       const identifierString = identity.getId().base58()
       const balance = await sdk.identities.getBalance(identifierString)
@@ -132,6 +134,15 @@ export default function () {
       navigate('/')
     } catch (e) {
       console.error(e)
+
+      // TODO: need to test it
+      // Check if it's a wallet not found error
+      if (e.message && e.message.includes('Wallet not found')) {
+        // Redirect to wallet creation
+        navigate('/create-wallet')
+        return
+      }
+      
       setError(e.message || e.toString())
     }
 
