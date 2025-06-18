@@ -16,15 +16,25 @@ export class CreateIdentityHandler implements APIHandler {
     walletRepository: WalletRepository
     dpp: DashPlatformProtocolWASM
 
-    constructor(identitiesRepository: IdentitiesRepository, keypairRepository: KeypairRepository, dpp: DashPlatformProtocolWASM) {
+    constructor(identitiesRepository: IdentitiesRepository, keypairRepository: KeypairRepository, walletRepository: WalletRepository, dpp: DashPlatformProtocolWASM) {
         this.identitiesRepository = identitiesRepository
         this.keypairRepository = keypairRepository
+        this.walletRepository = walletRepository
         this.dpp = dpp
     }
 
     async handle(event: EventData): Promise<CreateIdentityResponse> {
         const payload: CreateIdentityPayload = event.payload
-        const wallet = await this.walletRepository.get()
+        
+        // Check if wallet exists, create if not
+        let wallet
+        try {
+            wallet = await this.walletRepository.get()
+        } catch (error) {
+            console.log('Wallet not found, creating default keystore wallet:', error.message)
+            await this.walletRepository.create(WalletType.keystore)
+            wallet = await this.walletRepository.get()
+        }
 
         // store identity public keys
         const identity = await this.identitiesRepository.getByIdentifier(payload.identifier)
