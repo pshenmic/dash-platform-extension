@@ -14,7 +14,7 @@ export class GetCurrentIdentityHandler implements APIHandler {
     async handle(event: EventData): Promise<GetCurrentIdentityResponse> {
         const identity = await this.identitiesRepository.getCurrentIdentity()
 
-        return {currentIdentity: identity.identifier}
+        return {currentIdentity: identity ? identity?.identifier : null}
     }
 
     validatePayload(payload: GetCurrentIdentityPayload): null | string {
