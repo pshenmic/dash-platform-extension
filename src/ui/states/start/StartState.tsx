@@ -26,6 +26,7 @@ export default function StartState() {
         }
       } catch (err) {
         setError('Failed to check status: ' + err.toString())
+        console.error(err)
       } finally {
         setIsLoading(false)
       }
