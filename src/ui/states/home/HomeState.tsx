@@ -12,48 +12,73 @@ import DateBlock from "../../components/data/DateBlock";
 import './home.state.css'
 import {useExtensionAPI} from "../../hooks/useExtensionAPI";
 import {Identity} from "../../../types/Identity";
-import {IdentifierWASM} from 'pshenmic-dpp'
-
 export default function () {
   const extensionAPI = useExtensionAPI()
-  const [identities, setIdentities] = useState<IdentifierWASM[]>([])
-  const [currentIdentity, setCurrentIdentity] = useState<IdentifierWASM>(null)
+  const [identities, setIdentities] = useState<string[]>([])
+  const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [transactionsLoadError, setTransactionsLoadError] = useState(null)
   const [transactions, setTransactions] = useState(null)
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load all identities and current identity
+        const [availableIdentities, current] = await Promise.all([
+          extensionAPI.getAvailableIdentities(),
+          extensionAPI.getCurrentIdentity()
+        ])
+        
+        setIdentities(availableIdentities)
+        setCurrentIdentity(current)
+
+        console.log('availableIdentities', availableIdentities)
+        console.log('current', current)
+
+        // Auto-set first identity as current if no current identity is set
+        if (!current && availableIdentities.length > 0) {
+          console.log('Setting first identity as current:', availableIdentities[0])
+          try {
+            await extensionAPI.setCurrentIdentity(availableIdentities[0])
+            setCurrentIdentity(availableIdentities[0])
+          } catch (error) {
+            console.error('Failed to set current identity:', error)
+          }
+        }
+
+        // Load transactions for current identity (use updated currentIdentity)
+        const activeIdentity = currentIdentity || current
+        if (activeIdentity) {
+          try {
+            const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${activeIdentity}/transactions`)
+            if (response.status === 200) {
+              const data = await response.json()
+              if (!data.error) {
+                setTransactions(data.resultSet)
+              } else {
+                setTransactionsLoadError(true)
+              }
+            } else {
+              setTransactionsLoadError(true)
+            }
+          } catch {
+            setTransactionsLoadError(true)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load data:', error)
+      }
+    }
+
+    loadData()
+  }, [])
 
   if (!identities?.length) {
     return <NoIdentities/>
   }
 
-
-  useEffect(() => {
-    extensionAPI
-        .getCurrentIdentity()
-        .then(response => setCurrentIdentity(response))
-        .catch(console.error)
-
-    fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${currentIdentity}/transactions`)
-      .then(response => {
-          if (response.status === 200) {
-            return response.json()
-          } else {
-            setTransactionsLoadError(true)
-          }
-        }
-      )
-      .then((data) => {
-        if (data.error) {
-          setTransactionsLoadError(true)
-        }
-
-        setTransactions(data.resultSet)
-      })
-      .catch(() => setTransactionsLoadError(true))
-  }, [])
-
   console.log('transactions', transactions)
 
-  // todo implement retrieving balance
+  // TODO implement retrieving balance
   let balance = 0
 
   return (
@@ -62,9 +87,9 @@ export default function () {
         <div className={'flex flex-col gap-1'}>
           <select>
             {identities.map((identifier) => <option
-              key={identifier.base58()}
-              value={identifier.base58()}>
-              {identifier.base58()}
+              key={identifier}
+              value={identifier}>
+              {identifier}
             </option>)}
           </select>
 
