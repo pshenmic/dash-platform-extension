@@ -19,9 +19,9 @@ export class IdentitiesRepository {
         const walletId = await this.storageAdapter.get('currentWalletId')
 
 
-        const storageKey = `${network}_${walletId}_identities`
+        const storageKey = `identities_${network}_${walletId}`
 
-        const identities = await this.storageAdapter.get(storageKey)
+        const identities = await this.storageAdapter.get(storageKey) as IdentitiesStoreSchema || {}
 
         const identityStoreSchema: IdentityStoreSchema = {
             index,
@@ -33,6 +33,14 @@ export class IdentitiesRepository {
         identities[identifier] = identityStoreSchema
 
         await this.storageAdapter.set(storageKey, identities)
+
+        // Set as current identity if it's the first one
+        const currentIdentityKey = `identities_${network}_${walletId}_currentIdentity`
+        const currentIdentityData = await this.storageAdapter.get(currentIdentityKey) as any
+        
+        if (!currentIdentityData || !currentIdentityData.currentIdentity) {
+            await this.storageAdapter.set(currentIdentityKey, { currentIdentity: identifier })
+        }
 
         return {
             identifier: identityStoreSchema.identifier,
@@ -69,24 +77,49 @@ export class IdentitiesRepository {
 
 
     async getByIdentifier(identifier: string): Promise<Identity> {
-        const identities = await this.storageAdapter.get(this.storageKey)
+        const network = await this.storageAdapter.get('network')
+        const walletId = await this.storageAdapter.get('currentWalletId')
+        
+        const storageKey = `identities_${network}_${walletId}`
+        
+        const identities = await this.storageAdapter.get(storageKey) as IdentitiesStoreSchema || {}
 
         if (!identities[identifier]) {
             return null
         }
 
-        return identities[identifier]
+        const entry = identities[identifier]
+        return {
+            identifier: entry.identifier,
+            identityPublicKeys: entry.identityPublicKeys.map((identityPublicKey) =>
+                this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(identityPublicKey))),
+            index: entry.index,
+            label: entry.label
+        }
     }
 
     async getCurrentIdentity(): Promise<Identity> {
-        const entry = await this.storageAdapter.get(`${this.storageKey}_currentIdentity`)
+        const network = await this.storageAdapter.get('network')
+        const walletId = await this.storageAdapter.get('currentWalletId')
+        
+        const storageKey = `identities_${network}_${walletId}_currentIdentity`
+        const entry = await this.storageAdapter.get(storageKey) as any
 
-        const currentIdentity = entry['currentIdentity']
+        const currentIdentity = entry?.['currentIdentity']
 
         if (!currentIdentity) {
             return null
         }
 
         return this.getByIdentifier(currentIdentity)
+    }
+
+    async setCurrentIdentity(identifier: string): Promise<void> {
+        const network = await this.storageAdapter.get('network')
+        const walletId = await this.storageAdapter.get('currentWalletId')
+        
+        const storageKey = `identities_${network}_${walletId}_currentIdentity`
+        
+        await this.storageAdapter.set(storageKey, { currentIdentity: identifier })
     }
 }
