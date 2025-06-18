@@ -3,6 +3,10 @@ import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import HomeState from './states/home/HomeState'
 import ImportIdentityState from './states/importIdentity/ImportIdentityState'
+import StartState from './states/start/StartState'
+import SetupPasswordState from './states/setup/SetupPasswordState'
+import LoginState from './states/login/LoginState'
+import CreateWalletState from './states/wallet/CreateWalletState'
 import './styles/app.pcss'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 import Layout from './components/layout/Layout'
@@ -22,8 +26,24 @@ const App: React.FC = function () {
         {
           index: true,
           path: '/',
+          element: <StartState/>,
+        },
+        {
+          path: '/home',
           element: <HomeState/>,
           handle: { imageType: 'coins' }
+        },
+        {
+          path: '/setup-password',
+          element: <SetupPasswordState/>,
+        },
+        {
+          path: '/login',
+          element: <LoginState/>,
+        },
+        {
+          path: '/create-wallet',
+          element: <CreateWalletState/>,
         },
         {
           path: '/import',
