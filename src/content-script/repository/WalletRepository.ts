@@ -14,7 +14,7 @@ export class WalletRepository {
     }
 
     async create(type: WalletType): Promise<void> {
-        const passwordPublicKey = await this.storageAdapter.get('network') as string
+        const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string
 
         if (!passwordPublicKey) {
             throw new Error('Password is not set for an extension')
@@ -39,7 +39,8 @@ export class WalletRepository {
             walletId
         }
 
-        await this.storageAdapter.set(this.storageKey, walletSchema)
+        await this.storageAdapter.set(storageKey, walletSchema)
+        await this.storageAdapter.set('currentWalletId', walletId)
     }
 
     async get(): Promise<Wallet> {
@@ -69,6 +70,6 @@ export class WalletRepository {
 
     async switchWallet(network: Network, walletId: string): Promise<void> {
         await this.storageAdapter.set('network', network)
-        await this.storageAdapter.set('walletId', walletId)
+        await this.storageAdapter.set('currentWalletId', walletId)
     }
 }
