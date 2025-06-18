@@ -9,6 +9,7 @@ import {WalletType} from "../../../../types/WalletType";
 import {base64} from "@scure/base";
 import {KeypairRepository} from "../../../repository/KeypairRepository";
 import {validateHex, } from "../../../../utils";
+import {WalletNotFoundError} from "../../../errors/WalletNotFoundError";
 
 export class CreateIdentityHandler implements APIHandler {
     keypairRepository: KeypairRepository
@@ -26,14 +27,13 @@ export class CreateIdentityHandler implements APIHandler {
     async handle(event: EventData): Promise<CreateIdentityResponse> {
         const payload: CreateIdentityPayload = event.payload
         
-        // Check if wallet exists, create if not
+        // Check if wallet exists, throw error if not
         let wallet
         try {
             wallet = await this.walletRepository.get()
         } catch (error) {
-            console.log('Wallet not found, creating default keystore wallet:', error.message)
-            await this.walletRepository.create(WalletType.keystore)
-            wallet = await this.walletRepository.get()
+            console.log('Wallet not found:', error.message)
+            throw new WalletNotFoundError()
         }
 
         // store identity public keys
