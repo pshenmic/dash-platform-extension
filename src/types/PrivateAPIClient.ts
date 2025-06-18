@@ -106,7 +106,7 @@ export class PrivateAPIClient {
                 }
             }
 
-            chrome.runtime.onMessage.addListener(handleMessage)
+            chrome?.runtime?.onMessage?.addListener(handleMessage)
 
             setTimeout(() => {
                 rejectWithError(`Timed out waiting for response of ${method}, (${payload})`)
@@ -121,7 +121,7 @@ export class PrivateAPIClient {
             }
 
             // @ts-ignore
-            chrome.runtime.onMessage.dispatch(message)
+            chrome?.runtime?.onMessage?.dispatch(message)
         })
     }
 }
