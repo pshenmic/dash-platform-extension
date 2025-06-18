@@ -22,9 +22,13 @@ export class KeypairRepository {
         const network = await this.storageAdapter.get('network')
         const walletId = await this.storageAdapter.get('currentWalletId')
 
+        if (!walletId) {
+            throw new Error('No wallet is currently selected. Please create or select a wallet first.')
+        }
+
         const storageKey = `keypairs_${walletId}_${network}`
 
-        const keyPairsSchema = (await this.storageAdapter.get(this.storageKey)) as KeyPairsSchema
+        const keyPairsSchema = (await this.storageAdapter.get(storageKey)) as KeyPairsSchema || {}
 
         let keyPairs: KeyPairSchema[] = keyPairsSchema[identity]
 
@@ -50,7 +54,7 @@ export class KeypairRepository {
 
         const storageKey = `keypairs_${walletId}_${network}`
 
-        const storedKeyPairs = (await this.storageAdapter.get(this.storageKey)) as KeyPairsSchema
+        const storedKeyPairs = (await this.storageAdapter.get(storageKey)) as KeyPairsSchema || {}
 
         const keyPairs = storedKeyPairs[identifier]
 
