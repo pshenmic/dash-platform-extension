@@ -10,6 +10,7 @@ import MessageSender = chrome.runtime.MessageSender;
 import {Network} from "../../types/enums/Network";
 import {GetCurrentIdentityHandler} from "./private/identities/getCurrentIdentity";
 import {GetAvailableIdentitiesHandler} from "./private/identities/getAvailableIdentities";
+import {SetCurrentIdentityHandler} from "./private/identities/setCurrentIdentity";
 import {GetStateTransitionHandler} from "./private/stateTransitions/getStateTransition";
 import {ApproveStateTransitionHandler} from "./private/stateTransitions/approveStateTransition";
 import {RejectStateTransitionHandler} from "./private/stateTransitions/rejectStateTransition";
@@ -47,9 +48,10 @@ export class PrivateAPI {
         this.handlers = {
             [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
             [MessagingMethods.SETUP_PASSWORD]: new SetupPasswordHandler(this.storageAdapter),
-            [MessagingMethods.CREATE_IDENTITY]: new CreateIdentityHandler(identitiesRepository, keypairRepository, this.sdk.dpp),
+            [MessagingMethods.CREATE_IDENTITY]: new CreateIdentityHandler(identitiesRepository, keypairRepository, walletRepository, this.sdk.dpp),
             [MessagingMethods.GET_AVAILABLE_IDENTITIES]: new GetAvailableIdentitiesHandler(identitiesRepository),
             [MessagingMethods.GET_CURRENT_IDENTITY]: new GetCurrentIdentityHandler(identitiesRepository),
+            [MessagingMethods.SET_CURRENT_IDENTITY]: new SetCurrentIdentityHandler(identitiesRepository),
             [MessagingMethods.APPROVE_STATE_TRANSITION]: new ApproveStateTransitionHandler(stateTransitionsRepository, identitiesRepository, walletRepository, keypairRepository, this.sdk.dpp),
             [MessagingMethods.GET_STATE_TRANSITION]: new GetStateTransitionHandler(stateTransitionsRepository),
             [MessagingMethods.REJECT_STATE_TRANSITION]: new RejectStateTransitionHandler(stateTransitionsRepository, walletRepository),
