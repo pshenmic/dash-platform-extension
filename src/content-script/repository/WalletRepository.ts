@@ -98,6 +98,6 @@ export class WalletRepository {
 
   async switchWallet (network: Network, walletId: string): Promise<void> {
     await this.storageAdapter.set('network', network)
-    await this.storageAdapter.set('walletId', walletId)
+    await this.storageAdapter.set('currentWalletId', walletId)
   }
 }
