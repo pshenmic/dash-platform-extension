@@ -4,7 +4,7 @@ import { Button } from '../../components/controls/buttons'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
-export default function SetupPasswordState () {
+export default function SetupPasswordState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [password, setPassword] = useState('')
@@ -12,7 +12,7 @@ export default function SetupPasswordState () {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSetupPassword = async () => {
+  const handleSetupPassword = async (): Promise<void> => {
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       return
@@ -28,12 +28,16 @@ export default function SetupPasswordState () {
 
     try {
       await extensionAPI.setupPassword(password)
-      navigate('/login')
+      void navigate('/login')
     } catch (err) {
-      setError(err.toString())
+      setError((err as Error).toString())
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleSetupClick = (): void => {
+    void handleSetupPassword()
   }
 
   return (
@@ -64,7 +68,7 @@ export default function SetupPasswordState () {
         />
       </div>
 
-      {error && (
+      {error != null && (
         <div className='text-red-500 text-sm'>
           {error}
         </div>
@@ -72,8 +76,8 @@ export default function SetupPasswordState () {
 
       <Button
         colorScheme='brand'
-        onClick={handleSetupPassword}
-        disabled={!password || !confirmPassword || isLoading}
+        onClick={handleSetupClick}
+        disabled={password === '' || confirmPassword === '' || isLoading}
         className='w-full'
       >
         {isLoading ? 'Setting up...' : 'Setup Password'}
