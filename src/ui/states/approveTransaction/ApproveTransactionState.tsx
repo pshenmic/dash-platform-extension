@@ -11,57 +11,59 @@ import { Identity } from '../../../types/Identity'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
-export default function () {
+export default function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
   const extensionAPI = useExtensionAPI()
 
   const params = useParams()
 
-  const [transactionDecodeError, setTransactionDecodeError] = useState(null)
-  const [txHash, setTxHash] = useState(null)
+  const [transactionDecodeError, setTransactionDecodeError] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<string | null>(null)
 
-  const [identities, setIdentities] = useState<Identity[]>([])
-  const [currentIdentity, setCurrentIdentity] = useState<Identity>(null)
+  const [identities] = useState<Identity[]>([])
+  const [currentIdentity] = useState<Identity | null>(null)
 
-  const [stateTransition, setStateTransition] = useState(null)
+  const [stateTransition, setStateTransition] = useState<any>(null)
 
-  if (!identities?.length) {
+  if (identities.length === 0) {
     return <div>No identities</div>
   }
 
   useEffect(() => {
-    extensionAPI
-      .getStateTransition(params.hash)
-      .then((stateTransitionResponse: GetStateTransitionResponse) => {
-        try {
-          const { StateTransitionWASM } = sdk.wasm
+    if (params.hash != null) {
+      extensionAPI
+        .getStateTransition(params.hash)
+        .then((stateTransitionResponse: GetStateTransitionResponse) => {
+          try {
+            const { StateTransitionWASM } = sdk.wasm
 
-          setStateTransition(StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)))
-        } catch (e) {
-          setTransactionDecodeError(e.toString())
-        }
-      })
-      .catch(console.error)
+            setStateTransition(StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)))
+          } catch (e) {
+            setTransactionDecodeError(String(e))
+          }
+        })
+        .catch(console.error)
+    }
   }, [])
 
-  const reject = () => {
+  const reject = (): void => {
     window.postMessage({ target: 'window', method: 'rejectSigning' })
     window.close()
   }
 
-  const doSign = () => {
+  const doSign = (): void => {
     sdk.stateTransitions.broadcast(stateTransition)
       .then(() => {
-        const state_transition_hash = stateTransition.hash
+        const stateTransitionHash = stateTransition.hash
 
-        setTxHash(state_transition_hash)
-      }).catch((error) => {
+        setTxHash(stateTransitionHash)
+      }).catch((error: Error) => {
         console.error('failz', error)
       })
   }
 
-  if (txHash) {
+  if (txHash != null) {
     return (
       <div className='screen-content'>
         <h1 className='h1-title'>Transaction was successfully broadcasted</h1>
@@ -107,33 +109,38 @@ export default function () {
         </ValueCard>
 
         <div className='mt-2'>
-          {!stateTransition
+          {stateTransition == null
             ? <Text color='red' weight='bold'>Could not find transaction with hash</Text>
-            : transactionDecodeError
-              ? <Text color='red' weight='bold'>Error decoding state transition, please report the
-                issue
-                </Text>
-              : <TransactionDetails stateTransition={stateTransition} />}
+            : (transactionDecodeError != null
+                ? (
+                  <Text color='red' weight='bold'>
+                    Error decoding state transition, please report the issue
+                  </Text>
+                  )
+                : <TransactionDetails stateTransition={stateTransition} />)}
         </div>
       </ValueCard>
 
-      {!stateTransition
-        ? <Button onClick={async () => await navigate('/')} className='mt-2'>Close</Button>
-        : <div>
-          <Text>Sign with identity:</Text>
-          <select>
-            <option>{currentIdentity.identifier}</option>
-          </select>
+      {stateTransition == null
+        ? <Button onClick={() => { void navigate('/') }} className='mt-2'>Close</Button>
+        : (
+          <div>
+            <Text>Sign with identity:</Text>
+            <select>
+              <option>{currentIdentity?.identifier}</option>
+            </select>
 
-          <div className='flex gap-5 mt-5'>
-            <Button
-              onClick={reject} colorScheme='red' variant='outline'
-              className='w-1/2'
-            >Reject
-            </Button>
-            <Button onClick={doSign} colorScheme='mint' className='w-1/2'>Sign</Button>
+            <div className='flex gap-5 mt-5'>
+              <Button
+                onClick={reject} colorScheme='red' variant='outline'
+                className='w-1/2'
+              >
+                Reject
+              </Button>
+              <Button onClick={doSign} colorScheme='mint' className='w-1/2'>Sign</Button>
+            </div>
           </div>
-        </div>}
+          )}
     </div>
   )
 }

@@ -4,15 +4,15 @@ import { Button } from '../../components/controls/buttons'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
-export default function LoginState () {
+export default function LoginState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleLogin = async () => {
-    if (!password) {
+  const handleLogin = async (): Promise<void> => {
+    if (password === '') {
       setError('Password is required')
       return
     }
@@ -23,7 +23,7 @@ export default function LoginState () {
     try {
       const result = await extensionAPI.checkPassword(password)
       if (result.success) {
-        navigate('/create-wallet')
+        void navigate('/create-wallet')
       } else {
         setError('Invalid password')
       }
@@ -31,6 +31,16 @@ export default function LoginState () {
       setError('Login failed')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleLoginClick = (): void => {
+    void handleLogin()
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === 'Enter') {
+      void handleLogin()
     }
   }
 
@@ -50,13 +60,13 @@ export default function LoginState () {
           placeholder='Enter password'
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          onKeyPress={async (e) => await (e.key === 'Enter' && handleLogin())}
+          onKeyPress={handleKeyPress}
           className='p-3 border rounded'
           autoFocus
         />
       </div>
 
-      {error && (
+      {error != null && (
         <div className='text-red-500 text-sm'>
           {error}
         </div>
@@ -64,8 +74,8 @@ export default function LoginState () {
 
       <Button
         colorScheme='brand'
-        onClick={handleLogin}
-        disabled={!password || isLoading}
+        onClick={handleLoginClick}
+        disabled={password === '' || isLoading}
         className='w-full'
       >
         {isLoading ? 'Logging in...' : 'Login'}

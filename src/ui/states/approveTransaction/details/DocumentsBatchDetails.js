@@ -5,22 +5,18 @@ import DocumentCreateTransition from './DocumentCreateTransition'
 
 export default function DocumentsBatchDetails ({ stateTransition }) {
   const sdk = useSdk()
-  const { uint8ArrayToBase58 } = sdk.utils
 
   const [transitions, setTransitions] = useState(false)
-  const [documentsBatch, setDocumentsBatch] = useState(null)
   const [error, setError] = useState(false)
 
   useEffect(() => {
     try {
       const documentsBatch = sdk.wasm.DocumentsBatchWASM.fromStateTransition(stateTransition)
-      setDocumentsBatch(documentsBatch)
 
       const { transitions } = documentsBatch
       setTransitions(transitions)
     } catch (e) {
       console.error(e)
-      setDocumentsBatch(null)
       setTransitions(null)
       setError(e)
     }

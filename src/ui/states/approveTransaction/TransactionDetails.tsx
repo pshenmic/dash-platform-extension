@@ -1,7 +1,7 @@
 import React from 'react'
 import DocumentsBatchDetails from './details/DocumentsBatchDetails'
 
-export default function TransactionDetails ({ stateTransition }) {
+export default function TransactionDetails ({ stateTransition }: { stateTransition: any }): React.JSX.Element {
   switch (stateTransition?.type) {
     default:
       return <DocumentsBatchDetails stateTransition={stateTransition} />

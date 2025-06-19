@@ -3,8 +3,12 @@ import './home.state.css'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/controls/buttons'
 
-export default function () {
+export default function NoIdentities (): React.JSX.Element {
   const navigate = useNavigate()
+
+  const handleImportClick = (): void => {
+    void navigate('/import')
+  }
 
   return (
     <div className='screen-content'>
@@ -14,7 +18,7 @@ export default function () {
         </h1>
 
         <div className='HomeState__NoIdentities__Buttons'>
-          <Button onClick={async () => await navigate('/import')}>
+          <Button onClick={handleImportClick}>
             Import
           </Button>
 

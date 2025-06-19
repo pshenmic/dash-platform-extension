@@ -10,32 +10,26 @@ import { NotActive } from '../../components/data/NotActive'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
-export default function () {
+export default function ImportIdentityState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
 
   const extensionAPI = useExtensionAPI()
-  const { uint8ArrayToBase58 } = sdk.utils
-  const [privateKey, setPrivateKey] = useState(null)
-  const [privateKeyWASM, setPrivateKeyWASM] = useState(null)
-  const [identity, setIdentity] = useState(null)
-  const [balance, setBalance] = useState(null)
-  const [error, setError] = useState(null)
+  const [privateKey, setPrivateKey] = useState('')
+  const [privateKeyWASM, setPrivateKeyWASM] = useState<any>(null)
+  const [identity, setIdentity] = useState<any>(null)
+  const [balance, setBalance] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  // TODO implement new storage
-  const [identities, setIdentities] = useState([])
-  const [currentIdentity, setCurrentIdentity] = useState(null)
-  const [identityBalance, setIdentityBalance] = useState(0)
-
-  const checkPrivateKey = async () => {
+  const checkPrivateKey = async (): Promise<void> => {
     const status = await extensionAPI.getStatus()
     console.log(status)
     setError(null)
     setIsLoading(true)
 
     // Check if DPP is available
-    if (!sdk.dpp || !sdk.dpp.PrivateKeyWASM) {
+    if (sdk.dpp?.PrivateKeyWASM == null) {
       setIsLoading(false)
       return setError('DPP module not available. Please try again.')
     }
@@ -53,7 +47,7 @@ export default function () {
         return setError('Could not decode private key from WIF')
       }
     } else if (privateKey.length === 64) {
-      //hex
+      // hex
       try {
         pkeyWASM = sdk.dpp.PrivateKeyWASM.fromHex(privateKey, 'testnet')
         setPrivateKeyWASM(pkeyWASM)
@@ -67,8 +61,13 @@ export default function () {
       return setError('Unrecognized private key format')
     }
 
+    if (pkeyWASM == null) {
+      setIsLoading(false)
+      return setError('Failed to process private key')
+    }
+
     try {
-      const identity = await sdk.identities.getByPublicKeyHash(pkeyWASM.getPublicKeyHash())
+      const identity = await sdk.identities.getByPublicKeyHash((pkeyWASM as any).getPublicKeyHash())
 
       // TODO: if Purpose !== Authentication && Security Level !== High => error, does not fit
 
@@ -85,25 +84,25 @@ export default function () {
         return setError(e)
       }
 
-      if (e.code === 5) {
+      if ((e)?.code === 5) {
         setIsLoading(false)
         return setError('Identity related to this private key was not found')
       }
 
       setIsLoading(false)
-      setError(e.toString())
+      setError(e?.toString() ?? 'Unknown error')
     }
 
     setIsLoading(false)
   }
 
   useEffect(() => {
-    if (error) {
+    if (error != null) {
       setError(null)
     }
   }, [privateKey])
 
-  const importIdentity = async () => {
+  const importIdentity = async (): Promise<void> => {
     setIsLoading(true)
     setError(null)
 
@@ -125,29 +124,37 @@ export default function () {
 
       await extensionAPI.createIdentity(identifier, privateKeys)
 
-      navigate('/')
+      void navigate('/')
     } catch (e) {
       console.error(e)
 
       // TODO: need to test it
       // Check if it's a wallet not found error
-      if (e.message && e.message.includes('Wallet not found')) {
+      if ((e)?.message?.includes('Wallet not found') === true) {
         // Redirect to wallet creation
-        navigate('/create-wallet')
+        void navigate('/create-wallet')
         return
       }
 
-      setError(e.message || e.toString())
+      setError((e)?.message ?? e?.toString() ?? 'Unknown error')
     }
 
     setIsLoading(false)
+  }
+
+  const handleCheckClick = (): void => {
+    void checkPrivateKey()
+  }
+
+  const handleImportClick = (): void => {
+    void importIdentity()
   }
 
   return (
     <div className='flex flex-col gap-2'>
       <span className='h1-title'>Import your identity</span>
 
-      {!identity &&
+      {identity == null &&
         <div className='flex flex-col gap-[0.875rem]'>
           <div className='flex flex-col gap-2'>
             <Text color='blue' size='lg'>
@@ -164,25 +171,24 @@ export default function () {
             onChange={setPrivateKey}
           />
 
-          {!!error &&
+          {error != null &&
             <div className='py-1'>
               <span>{error}</span>
             </div>}
 
           <div>
             <Button
-              colorScheme={'brand'}
-              disabled={!privateKey || isLoading}
-              className={'w-full'}
-              onClick={checkPrivateKey}
+              colorScheme='brand'
+              disabled={privateKey === '' || isLoading}
+              className='w-full'
+              onClick={handleCheckClick}
             >
               {isLoading ? 'Checking...' : 'Check'}
             </Button>
           </div>
-        </div>
-      }
+        </div>}
 
-      {identity &&
+      {identity != null &&
         <div className='flex flex-col gap-[0.875rem]'>
           <Text size='lg' color='blue'>
             We found an identity associated with the given private key
@@ -200,7 +206,7 @@ export default function () {
                     linesAdjustment={false}
                   >
                     {/* TODO check it */}
-                    {identity || ''}
+                    {identity ?? ''}
                   </Identifier>
                 </ValueCard>
               </div>
@@ -208,12 +214,14 @@ export default function () {
                 <Text dim>Balance</Text>
 
                 <span>
-                  {!Number.isNaN(Number(balance))
-                    ? <Text size='xl' weight='bold' monospace>
-                      <BigNumber>
-                        {balance}
-                      </BigNumber>
-                    </Text>
+                  {balance !== null && !Number.isNaN(Number(balance))
+                    ? (
+                      <Text size='xl' weight='bold' monospace>
+                        <BigNumber>
+                          {balance}
+                        </BigNumber>
+                      </Text>
+                      )
                     : <NotActive>N/A</NotActive>}
                   <Text
                     size='lg'
@@ -226,15 +234,14 @@ export default function () {
             </div>
           </ValueCard>
           <Button
-            colorScheme={'brand'}
-            disabled={!privateKey || isLoading}
-            className={'w-full'}
-            onClick={importIdentity}
+            colorScheme='brand'
+            disabled={privateKey === '' || isLoading}
+            className='w-full'
+            onClick={handleImportClick}
           >
             {isLoading ? 'Importing...' : 'Import'}
           </Button>
-        </div>
-      }
+        </div>}
     </div>
   )
 }

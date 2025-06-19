@@ -29,23 +29,23 @@ export interface TimeDeltaProps {
 export const TimeDelta: React.FC<TimeDeltaProps> = ({
   startDate,
   endDate,
-  showTimestampTooltip = true,
-  tooltipDate,
+  // showTimestampTooltip = true,
+  // tooltipDate,
   format = 'default'
 }) => {
   const [timeDelta, setTimeDelta] = useState<string | null>(null)
-  const tooltipDateObj = new Date(tooltipDate ?? endDate)
+  // const tooltipDateObj = new Date(tooltipDate ?? endDate)
 
   useEffect(() => {
-    if (!endDate) {
+    if (endDate == null) {
       setTimeDelta(null)
       return
     }
 
     let timeoutId: ReturnType<typeof setTimeout>
 
-    const updateDelta = () => {
-      const start = startDate ? new Date(startDate) : new Date()
+    const updateDelta = (): void => {
+      const start = startDate != null ? new Date(startDate) : new Date()
       const end = new Date(endDate)
       setTimeDelta(getTimeDelta(start, end, format))
 
@@ -64,7 +64,7 @@ export const TimeDelta: React.FC<TimeDeltaProps> = ({
     return () => clearTimeout(timeoutId)
   }, [startDate, endDate, format])
 
-  if (!timeDelta) {
+  if (timeDelta == null || timeDelta === '') {
     return <NotActive />
   }
 

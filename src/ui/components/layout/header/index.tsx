@@ -57,22 +57,19 @@ const headerStyles = cva(
   }
 )
 
-export default function Header () {
+export default function Header (): React.JSX.Element {
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
 
-  const deepestRoute = [...matches].reverse().find(m => m.handle?.imageType)
-  const right = deepestRoute?.handle?.imageType
-    ? { variant: 'image', imageType: deepestRoute?.handle?.imageType }
-    : { variant: 'back' }
+  const deepestRoute = [...matches].reverse().find((m): boolean => m.handle?.imageType != null)
+  const right = (deepestRoute?.handle?.imageType != null)
+    ? { variant: 'image' as const, imageType: deepestRoute.handle.imageType as ImageVariant }
+    : { variant: 'back' as const }
 
-  console.log('Все совпадения:', matches)
-  console.log('Найденный handle.imageType:', deepestRoute?.handle?.imageType)
-
-  const handleBack = () => {
-    right?.variant === 'back'
-      ? navigate(-1)
-      : null
+  const handleBack = (): void => {
+    if (right?.variant === 'back') {
+      void navigate(-1)
+    }
   }
 
   return (
@@ -88,25 +85,25 @@ export default function Header () {
         />
       </div>
 
-      {right && (
-        right.variant === 'image'
-          ? (() => {
-              const { src, alt, imgClasses, containerClasses } = IMAGE_VARIANTS[right.imageType]
-              return (
-                <div className={containerClasses}>
-                  <img
-                    src={useStaticAsset(src)}
-                    alt={alt}
-                    className={`relative ${imgClasses} max-w-[348px] max-h-[327px]`}
-                  />
-                </div>
-              )
-            })()
-          : <Button onClick={handleBack}>
+      {right.variant === 'image'
+        ? ((): React.JSX.Element => {
+            const { src, alt, imgClasses, containerClasses } = IMAGE_VARIANTS[right.imageType]
+            return (
+              <div className={containerClasses}>
+                <img
+                  src={useStaticAsset(src)}
+                  alt={alt}
+                  className={`relative ${imgClasses} max-w-[348px] max-h-[327px]`}
+                />
+              </div>
+            )
+          })()
+        : (
+          <Button onClick={handleBack}>
             <ArrowIcon className='mr-[0.625rem] h-[0.875rem] w-auto' />
             Back
           </Button>
-      )}
+          )}
     </header>
   )
 }

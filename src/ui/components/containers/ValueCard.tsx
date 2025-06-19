@@ -83,18 +83,18 @@ export interface ValueCardProps extends Omit<ValueCardVariants, 'theme'> {
  */
 export const ValueCard: React.FC<ValueCardProps> = ({
   as,
-  link,
+  link = '',
   colorScheme,
   size,
-  clickable,
+  clickable = false,
   loading,
   border,
-  className,
+  className = '',
   children,
   ...props
 }) => {
   const { theme } = useTheme()
-  const isClickable = Boolean(link || clickable)
+  const isClickable = Boolean(link !== '' || clickable)
 
   const classes = valueCard({
     theme,
@@ -103,13 +103,13 @@ export const ValueCard: React.FC<ValueCardProps> = ({
     clickable: isClickable,
     loading,
     border
-  }) + (className ? ` ${className}` : '')
+  }) + (String(className))
 
   // choose element: custom `as`, or <a> if link, else <div>
-  const Component = as ?? (link ? 'a' : 'div')
+  const Component = as ?? (link !== '' ? 'a' : 'div')
 
   const mergedProps: any = { ...props, className: classes }
-  if (link) mergedProps.href = link
+  if (link !== '') mergedProps.href = link
 
   return <Component {...mergedProps}>{children}</Component>
 }

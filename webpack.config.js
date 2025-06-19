@@ -53,7 +53,7 @@ module.exports = (env, argv) => {
     resolve: {
       extensions: ['.tsx', '.ts', '.js', '.jsx', '.json'],
       fallback: {
-        "buffer": require.resolve("buffer")
+        buffer: require.resolve('buffer')
       }
     },
     plugins: [
@@ -79,7 +79,7 @@ module.exports = (env, argv) => {
         maxChunks: 1
       }),
       new webpack.ProvidePlugin({
-        Buffer: ['buffer', 'Buffer'],
+        Buffer: ['buffer', 'Buffer']
       })
     ],
     optimization: {

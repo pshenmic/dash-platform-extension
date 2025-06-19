@@ -1,3 +1,3 @@
 export interface CreateWalletResponse {
-    walletId: string
+  walletId: string
 }

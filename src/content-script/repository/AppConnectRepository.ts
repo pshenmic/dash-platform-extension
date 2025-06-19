@@ -1,7 +1,7 @@
 import { AppConnect } from '../../types/AppConnect'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { AppConnectsStorageSchema } from '../storage/storageSchema'
-import {AppConnectStatus} from "../../types/enums/AppConnectStatus";
+import { AppConnectStatus } from '../../types/enums/AppConnectStatus'
 
 export class AppConnectRepository {
   storageKey: string
@@ -12,20 +12,24 @@ export class AppConnectRepository {
   }
 
   async create (url: string): Promise<AppConnect> {
-    const network = await this.storageAdapter.get('network')
-    const walletId = await this.storageAdapter.get('currentWalletId')
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
 
     const storageKey = `appConnects_${network}_${walletId}`
 
     const appConnectRequest: AppConnect = {
-      id: new Date().getTime() + '',
+      id: new Date().getTime().toString(),
       status: 'pending',
       url
     }
 
-    const appConnects = (await this.storageAdapter.get(storageKey) || {}) as AppConnectsStorageSchema
+    const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
 
-    if (appConnects[appConnectRequest.id]) {
+    if (appConnects[appConnectRequest.id] != null) {
       throw new Error('AppConnect with such id already exists')
     }
 
@@ -37,14 +41,18 @@ export class AppConnectRepository {
   }
 
   async get (id: string): Promise<AppConnect | null> {
-    const network = await this.storageAdapter.get('network')
-    const walletId = await this.storageAdapter.get('currentWalletId')
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
 
     const storageKey = `appConnects_${network}_${walletId}`
 
-    const appConnects = (await this.storageAdapter.get(storageKey) || {}) as AppConnectsStorageSchema
+    const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
 
-    if (appConnects[id]) {
+    if (appConnects[id] == null) {
       return null
     }
 
