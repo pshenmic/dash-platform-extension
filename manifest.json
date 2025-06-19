@@ -1,6 +1,6 @@
 {
   "name": "Dash Platform Extension",
-  "version": "0.0.1",
+  "version": "0.0.1-rc.1",
   "manifest_version": 3,
   "minimum_chrome_version": "119",
   "description": "A browser extension that let users easily interact with Dash Platform DApps in Metamask-like style.",
