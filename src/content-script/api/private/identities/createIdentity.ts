@@ -18,9 +18,10 @@ export class CreateIdentityHandler implements APIHandler {
   dpp: DashPlatformProtocolWASM
   sdk: DashPlatformSDK
 
-  constructor (identitiesRepository: IdentitiesRepository, keypairRepository: KeypairRepository, dpp: DashPlatformProtocolWASM, sdk: DashPlatformSDK) {
+  constructor (identitiesRepository: IdentitiesRepository, walletRepository: WalletRepository, keypairRepository: KeypairRepository, dpp: DashPlatformProtocolWASM, sdk: DashPlatformSDK) {
     this.identitiesRepository = identitiesRepository
     this.keypairRepository = keypairRepository
+    this.walletRepository = walletRepository
     this.dpp = dpp
     this.sdk = sdk
   }
