@@ -43,7 +43,7 @@ export class WalletRepository {
 
     await this.storageAdapter.set(storageKey, walletSchema)
 
-    return {...wallet, type: WalletType[wallet.type]}
+    return {...wallet, type: WalletType[walletSchema.type]}
   }
 
   async getCurrent (): Promise<Wallet | null> {
