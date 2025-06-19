@@ -30,14 +30,14 @@ export default function HomeState (): React.JSX.Element {
           extensionAPI.getCurrentIdentity()
         ])
 
-        setIdentities(availableIdentities)
+        setIdentities(availableIdentities ?? [])
         setCurrentIdentity(current)
 
         console.log('availableIdentities', availableIdentities)
         console.log('current', current)
 
         // Auto-set first identity as current if no current identity is set
-        if ((current == null || current === '') && availableIdentities.length > 0) {
+        if ((current == null || current === '') && (availableIdentities?.length ?? 0) > 0) {
           console.log('Setting first identity as current:', availableIdentities[0])
           try {
             await extensionAPI.switchIdentity(availableIdentities[0])
@@ -86,7 +86,7 @@ export default function HomeState (): React.JSX.Element {
       <ValueCard colorScheme='lightBlue'>
         <div className='flex flex-col gap-1'>
           <select>
-            {identities.map((identifier) =>
+            {identities?.map((identifier) =>
               <option
                 key={identifier}
                 value={identifier}
