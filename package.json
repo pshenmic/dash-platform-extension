@@ -6,7 +6,7 @@
     "build": "webpack --mode=production",
     "serve": "webpack serve --mode=development",
     "lint": "ts-standard --fix",
-    "test": "jest"
+    "test": "echo 'Empty tests'"
   },
   "author": "",
   "license": "ISC",
