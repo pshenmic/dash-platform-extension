@@ -23,7 +23,7 @@ export class KeypairRepository {
 
     const storageKey = `keypairs_${walletId}_${network}`
 
-    const keyPairsSchema = (await this.storageAdapter.get(storageKey)) as KeyPairsSchema
+    const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
 
     let keyPairs: KeyPairSchema[] = keyPairsSchema[identity]
 
@@ -49,9 +49,9 @@ export class KeypairRepository {
 
     const storageKey = `keypairs_${walletId}_${network}`
 
-    const storedKeyPairs = (await this.storageAdapter.get(storageKey)) as KeyPairsSchema
+    const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
 
-    const keyPairs = storedKeyPairs[identifier]
+    const keyPairs = keyPairsSchema[identifier]
 
     if (!keyPairs?.length) {
       return null

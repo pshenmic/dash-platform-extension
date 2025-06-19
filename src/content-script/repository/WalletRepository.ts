@@ -4,12 +4,15 @@ import { Network } from '../../types/enums/Network'
 import { WalletStoreSchema } from '../storage/storageSchema'
 import { WalletType } from '../../types/WalletType'
 import { Wallet } from '../../types/Wallet'
+import { IdentitiesRepository } from './IdentitiesRepository'
 
 export class WalletRepository {
   storageAdapter: StorageAdapter
+  identitiesRepository: IdentitiesRepository
 
-  constructor (storageAdapter: StorageAdapter) {
+  constructor (storageAdapter: StorageAdapter, identitiesRepository: IdentitiesRepository) {
     this.storageAdapter = storageAdapter
+    this.identitiesRepository = identitiesRepository
   }
 
   async create (type: WalletType): Promise<void> {
@@ -64,6 +67,31 @@ export class WalletRepository {
       label: wallet.label,
       currentIdentity: wallet.currentIdentity
     }
+  }
+
+  async switchIdentity (identifier: string) {
+    const currentWallet = await this.getCurrent()
+    const network = await this.storageAdapter.get('network') as string
+
+    if (!currentWallet) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `wallet_${currentWallet.walletId}_${network}`
+
+    const walletStoreSchema = await this.storageAdapter.get(storageKey) as WalletStoreSchema
+
+    if (!walletStoreSchema) {
+      throw new Error('Could not find wallet in the store')
+    }
+
+    const identity = await this.identitiesRepository.getByIdentifier(identifier)
+
+    if (!identity) {
+      throw new Error(`Identity with identifier ${identifier} does not exists`)
+    }
+
+    await this.storageAdapter.set(storageKey, { ...walletStoreSchema, currentIdentity: identity.identifier })
   }
 
   async switchWallet (network: Network, walletId: string): Promise<void> {

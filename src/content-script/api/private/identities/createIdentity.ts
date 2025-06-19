@@ -2,24 +2,27 @@ import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData } from '../../../../types/EventData'
 import { CreateIdentityPayload } from '../../../../types/messages/payloads/CreateIdentityPayload'
 import { APIHandler } from '../../APIHandler'
-import { DashPlatformProtocolWASM } from 'pshenmic-dpp'
+import { DashPlatformProtocolWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { WalletType } from '../../../../types/WalletType'
 import { base64 } from '@scure/base'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { validateHex } from '../../../../utils'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
+import { DashPlatformSDK } from 'dash-platform-sdk'
 
 export class CreateIdentityHandler implements APIHandler {
   keypairRepository: KeypairRepository
   identitiesRepository: IdentitiesRepository
   walletRepository: WalletRepository
   dpp: DashPlatformProtocolWASM
+  sdk: DashPlatformSDK
 
-  constructor (identitiesRepository: IdentitiesRepository, keypairRepository: KeypairRepository, dpp: DashPlatformProtocolWASM) {
+  constructor (identitiesRepository: IdentitiesRepository, keypairRepository: KeypairRepository, dpp: DashPlatformProtocolWASM, sdk: DashPlatformSDK) {
     this.identitiesRepository = identitiesRepository
     this.keypairRepository = keypairRepository
     this.dpp = dpp
+    this.sdk = sdk
   }
 
   async handle (event: EventData): Promise<VoidResponse> {
@@ -30,34 +33,37 @@ export class CreateIdentityHandler implements APIHandler {
       throw new Error('No wallet is chosen')
     }
 
-    // store identity public keys
     const identity = await this.identitiesRepository.getByIdentifier(payload.identifier)
 
     if (identity != null) {
       throw new Error(`Identity with identifier ${payload.identifier} already exists`)
     }
 
-    const identityPublicKeysWASM = payload.identityPublicKeys.map(identityPublicKey => this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(identityPublicKey)))
+    const identityPublicKeysWASM = await this.sdk.identities.getIdentityPublicKeys(payload.identifier)
 
     if (wallet.type === WalletType.keystore) {
+      if (!payload.privateKeys) {
+        throw new Error('Private keys must be provided when wallet type is keystore')
+      }
+
       // check if all private keys belongs to identity public keys
       if (!payload.privateKeys
         .every(privateKey => identityPublicKeysWASM
-          .some(identityPublicKey => identityPublicKey.getPublicKeyHash() ===
+          .some((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
                         this.dpp.PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash()))) {
         throw new Error('Private key does not belong to any of identity\'s public keys')
       }
 
       for (const privateKey of payload.privateKeys) {
         const [identityPublicKey] = identityPublicKeysWASM
-          .filter((identityPublicKey) => identityPublicKey.getPublicKeyHash() ===
+          .filter((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
                         this.dpp.PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash())
 
         await this.keypairRepository.add(payload.identifier, privateKey, identityPublicKey)
       }
     }
 
-    await this.identitiesRepository.create(payload.index, payload.identifier, identityPublicKeysWASM)
+    await this.identitiesRepository.create(payload.identifier)
 
     return {}
   }

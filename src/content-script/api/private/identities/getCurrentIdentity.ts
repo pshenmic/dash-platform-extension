@@ -1,5 +1,4 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { EventData } from '../../../../types/EventData'
 import { GetCurrentIdentityResponse } from '../../../../types/messages/response/GetCurrentIdentityResponse'
 import { APIHandler } from '../../APIHandler'
 import { EmptyPayload } from '../../../../types/messages/payloads/EmptyPayload'
@@ -15,10 +14,10 @@ export class GetCurrentIdentityHandler implements APIHandler {
     const identity = await this.identitiesRepository.getCurrent()
 
     if (identity == null) {
-      return { currentIdentity: identity.identifier }
+      return { currentIdentity: null }
     }
 
-    return { currentIdentity: null }
+    return { currentIdentity: identity.identifier }
   }
 
   validatePayload (payload: EmptyPayload): null | string {

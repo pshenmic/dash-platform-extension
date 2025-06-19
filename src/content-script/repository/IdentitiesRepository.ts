@@ -21,7 +21,7 @@ export class IdentitiesRepository {
 
     const storageKey = `identities_${network}_${walletId}`
 
-    const identities = await this.storageAdapter.get(storageKey) as IdentitiesStoreSchema
+    const identities = (await this.storageAdapter.get(storageKey) ?? {}) as IdentitiesStoreSchema
 
     if (identities[identifier]) {
       throw new Error(`Identity with identifier ${identifier} already exists`)
@@ -56,7 +56,7 @@ export class IdentitiesRepository {
 
     const storageKey = `identities_${network}_${walletId}`
 
-    const identities = await this.storageAdapter.get(storageKey) as IdentitiesStoreSchema
+    const identities = (await this.storageAdapter.get(storageKey) ?? {}) as IdentitiesStoreSchema
 
     if (!identities || (Object.keys(identities).length === 0)) {
       return []
@@ -80,7 +80,7 @@ export class IdentitiesRepository {
 
     const storageKey = `identities_${network}_${walletId}`
 
-    const identities = await this.storageAdapter.get(storageKey) as IdentitiesStoreSchema
+    const identities = (await this.storageAdapter.get(storageKey) ?? {}) as IdentitiesStoreSchema
 
     const identity = identities[identifier]
 
@@ -110,15 +110,5 @@ export class IdentitiesRepository {
     }
 
     return identity
-  }
-
-  async switchIdentity (identifier: string) {
-    const identity = await this.getByIdentifier(identifier)
-
-    if (identity == null) {
-      throw new Error(`Identity with identifier ${identifier} does not exists`)
-    }
-
-    await this.storageAdapter.set('currentIdentity', identifier)
   }
 }

@@ -1,3 +1,3 @@
 export interface GetCurrentIdentityResponse {
-  currentIdentity?: string
+  currentIdentity: string | null
 }

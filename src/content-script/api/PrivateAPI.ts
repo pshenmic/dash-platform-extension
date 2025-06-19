@@ -1,13 +1,10 @@
 import { EventData } from '../../types/EventData'
-import { AppConnectRepository } from '../repository/AppConnectRepository'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { PayloadNotValidError } from '../errors/PayloadNotValidError'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import MessageSender = chrome.runtime.MessageSender
-import { Network } from '../../types/enums/Network'
 import { GetCurrentIdentityHandler } from './private/identities/getCurrentIdentity'
 import { GetAvailableIdentitiesHandler } from './private/identities/getAvailableIdentities'
 import { GetStateTransitionHandler } from './private/stateTransitions/getStateTransition'
@@ -21,8 +18,8 @@ import { KeypairRepository } from '../repository/KeypairRepository'
 import { WalletRepository } from '../repository/WalletRepository'
 import { GetStatusHandler } from './private/extension/status'
 import { SetupPasswordHandler } from './private/extension/setupPassword'
-import { SwitchIdentityHandler } from './private/identities/switchIdentity'
 import { CheckPasswordHandler } from './private/extension/checkPassword'
+import { SwitchIdentityHandler } from './private/wallet/switchIdentity'
 
 /**
  * Handlers for a messages within extension context
@@ -41,17 +38,17 @@ export class PrivateAPI {
   }
 
   init () {
-    const walletRepository = new WalletRepository(this.storageAdapter)
+    const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk.dpp, this.sdk)
+    const walletRepository = new WalletRepository(this.storageAdapter, identitiesRepository)
     const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk.dpp)
-    const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk.dpp)
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter, this.sdk.dpp)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
       [MessagingMethods.SETUP_PASSWORD]: new SetupPasswordHandler(this.storageAdapter),
       [MessagingMethods.CHECK_PASSWORD]: new CheckPasswordHandler(this.storageAdapter),
-      [MessagingMethods.CREATE_IDENTITY]: new CreateIdentityHandler(identitiesRepository, keypairRepository, this.sdk.dpp),
-      [MessagingMethods.SWITCH_IDENTITY]: new SwitchIdentityHandler(identitiesRepository),
+      [MessagingMethods.CREATE_IDENTITY]: new CreateIdentityHandler(identitiesRepository, keypairRepository, this.sdk.dpp, this.sdk),
+      [MessagingMethods.SWITCH_IDENTITY]: new SwitchIdentityHandler(identitiesRepository, walletRepository),
       [MessagingMethods.GET_AVAILABLE_IDENTITIES]: new GetAvailableIdentitiesHandler(identitiesRepository),
       [MessagingMethods.GET_CURRENT_IDENTITY]: new GetCurrentIdentityHandler(identitiesRepository),
       [MessagingMethods.APPROVE_STATE_TRANSITION]: new ApproveStateTransitionHandler(stateTransitionsRepository, identitiesRepository, walletRepository, keypairRepository, this.sdk.dpp),

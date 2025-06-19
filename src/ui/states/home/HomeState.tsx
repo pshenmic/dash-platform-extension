@@ -17,7 +17,7 @@ import { IdentifierWASM } from 'pshenmic-dpp'
 export default function () {
   const extensionAPI = useExtensionAPI()
   const [identities, setIdentities] = useState<IdentifierWASM[]>([])
-  const [currentIdentity, setCurrentIdentity] = useState<IdentifierWASM>(null)
+  const [currentIdentity, setCurrentIdentity] = useState<string>(null)
   const [transactionsLoadError, setTransactionsLoadError] = useState(null)
   const [transactions, setTransactions] = useState(null)
 

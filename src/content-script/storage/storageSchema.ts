@@ -13,7 +13,7 @@ export interface KeyPairsSchema {
 export interface IdentityStoreSchema {
   index: number
   identifier: string
-  label?: string
+  label: string | null
 }
 
 export interface IdentitiesStoreSchema {
@@ -24,15 +24,19 @@ export interface WalletStoreSchema {
   walletId: string
   type: string
   network: string
-  label?: string
-  currentIdentity?: string
+  label: string | null
+  currentIdentity: string | null
+}
+
+export interface StateTransitionsStoreSchema {
+  [hash: string]: StateTransitionStoreSchema
 }
 
 export interface StateTransitionStoreSchema {
   hash: string
   unsigned: string
-  signature?: string
-  signaturePublicKeyId?: number
+  signature: string | null
+  signaturePublicKeyId: number | null
   status: string
 }
 
@@ -45,4 +49,14 @@ interface Identity {
   label?: string
   identifier: string
   privateKeys: string[]
+}
+
+export interface AppConnectStorageSchema {
+  id: string
+  url: string
+  status: string
+}
+
+export interface AppConnectsStorageSchema {
+  [id: string]: AppConnectStorageSchema
 }

@@ -1,10 +1,10 @@
 import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { StorageAdapter } from '../../../storage/storageAdapter'
-import { SetupPasswordResponse } from '../../../../types/messages/response/SetupPasswordResponse'
 import { SetupPasswordPayload } from '../../../../types/messages/payloads/SetupPasswordPayload'
 import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
+import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
 
 export class SetupPasswordHandler implements APIHandler {
   storageAdapter: StorageAdapter
@@ -13,7 +13,7 @@ export class SetupPasswordHandler implements APIHandler {
     this.storageAdapter = storageAdapter
   }
 
-  async handle (event: EventData): Promise<SetupPasswordResponse> {
+  async handle (event: EventData): Promise<VoidResponse> {
     const payload: SetupPasswordPayload = event.payload
 
     const isSet = await this.storageAdapter.get('passwordPublicKey')

@@ -3,10 +3,10 @@ import { StateTransition } from '../../types/StateTransition'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { DashPlatformProtocolWASM, StateTransitionWASM } from 'pshenmic-dpp'
 import { base64 } from '@scure/base'
-import { StateTransitionStoreSchema } from '../storage/storageSchema'
+import { StateTransitionsStoreSchema, StateTransitionStoreSchema } from '../storage/storageSchema'
+
 export class StateTransitionsRepository {
   dpp: DashPlatformProtocolWASM
-  storageKey: string
   storageAdapter: StorageAdapter
 
   constructor (storageAdapter: StorageAdapter, dpp: DashPlatformProtocolWASM) {
@@ -14,7 +14,7 @@ export class StateTransitionsRepository {
     this.storageAdapter = storageAdapter
   }
 
-  async create (stateTransitionWASM: StateTransitionWASM): Promise<StateTransition | null> {
+  async create (stateTransitionWASM: StateTransitionWASM): Promise<StateTransition> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string
     const hash = stateTransitionWASM.hash(true)
@@ -22,13 +22,13 @@ export class StateTransitionsRepository {
 
     const storageKey = `stateTransitions_${network}_${walletId}`
 
-    const stateTransitions = await this.storageAdapter.get(storageKey)
+    const stateTransitions = await this.storageAdapter.get(storageKey) as StateTransitionsStoreSchema
 
     if (stateTransitions[hash]) {
-      return null
+      throw new Error(`State transition with hash ${hash} already exists`)
     }
 
-    const stateTransition = {
+    const stateTransition: StateTransitionStoreSchema = {
       unsigned,
       hash,
       status: StateTransitionStatus.pending,
@@ -36,11 +36,14 @@ export class StateTransitionsRepository {
       signaturePublicKeyId: null
     }
 
-    stateTransitions[hash] = stateTransition as StateTransitionStoreSchema
+    stateTransitions[hash] = stateTransition
 
     await this.storageAdapter.set(storageKey, stateTransitions)
 
-    return stateTransition
+    return {
+      ...stateTransition,
+      status: StateTransitionStatus[stateTransition.status]
+    }
   }
 
   async get (hash: string): Promise<StateTransition | null> {
@@ -49,13 +52,18 @@ export class StateTransitionsRepository {
 
     const storageKey = `stateTransitions_${network}_${walletId}`
 
-    const stateTransitions = await this.storageAdapter.get(storageKey)
+    const stateTransitions = await this.storageAdapter.get(storageKey) as StateTransitionsStoreSchema
 
-    if (!stateTransitions[hash]) {
+    const stateTransition: StateTransitionStoreSchema = stateTransitions[hash]
+
+    if (!stateTransition) {
       return null
     }
 
-    return stateTransitions[hash]
+    return {
+      ...stateTransition,
+      status: StateTransitionStatus[stateTransition.status]
+    }
   }
 
   async update (hash: string, status: StateTransitionStatus, signature?: string, signaturePublicKeyId?: number): Promise<StateTransition> {
@@ -64,13 +72,13 @@ export class StateTransitionsRepository {
 
     const storageKey = `stateTransitions_${network}_${walletId}`
 
-    const stateTransitions = await this.get(hash)
+    const stateTransitions = await this.storageAdapter.get(storageKey) as StateTransitionsStoreSchema
 
     if (!stateTransitions[hash]) {
       throw new Error(`State transition with hash ${hash} does not exist`)
     }
 
-    const stateTransition = stateTransitions[hash]
+    const stateTransition: StateTransitionStoreSchema = stateTransitions[hash]
 
     if (status === StateTransitionStatus.approved) {
       stateTransition.signature = signature
@@ -83,6 +91,9 @@ export class StateTransitionsRepository {
 
     await this.storageAdapter.set(storageKey, stateTransitions)
 
-    return stateTransition
+    return {
+      ...stateTransition,
+      status: StateTransitionStatus[stateTransition.status]
+    }
   }
 }

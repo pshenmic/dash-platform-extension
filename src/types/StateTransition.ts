@@ -3,7 +3,7 @@ import { StateTransitionStatus } from './enums/StateTransitionStatus'
 export interface StateTransition {
   hash: string
   unsigned: string
-  signature?: string
-  signaturePublicKeyId?: number
+  signature: string | null
+  signaturePublicKeyId: number | null
   status: StateTransitionStatus
 }

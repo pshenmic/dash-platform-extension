@@ -16,6 +16,7 @@ import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { decrypt } from 'eciesjs'
 import hash from 'hash.js'
 import { StateTransitionStatus } from '../../../../types/enums/StateTransitionStatus'
+import { StateTransitionStoreSchema } from '../../../storage/storageSchema'
 
 export class ApproveStateTransitionHandler implements APIHandler {
   keyPairRepository: KeypairRepository
@@ -47,7 +48,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       throw new Error(`Identity with identifier ${payload.identity} not found`)
     }
 
-    let keyPair: KeyPair
+    let keyPair: KeyPair | null
 
     if (wallet.type === WalletType.keystore) {
       const identityPublicKeyWASM = this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(payload.identityPublicKey))
@@ -61,7 +62,11 @@ export class ApproveStateTransitionHandler implements APIHandler {
       throw new Error('Seedphrases are not supported yet')
     }
 
-    const stateTransition: StateTransition = await this.stateTransitionsRepository.get(payload.hash)
+    const stateTransition = await this.stateTransitionsRepository.get(payload.hash)
+
+    if (!stateTransition) {
+      throw new Error(`Could not find state transition with hash ${payload.hash} for signing`)
+    }
 
     const stateTransitionWASM = this.dpp.StateTransitionWASM.fromBytes(base64.decode(stateTransition.unsigned))
 

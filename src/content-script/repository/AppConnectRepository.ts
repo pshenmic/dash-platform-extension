@@ -1,5 +1,7 @@
 import { AppConnect } from '../../types/AppConnect'
 import { StorageAdapter } from '../storage/storageAdapter'
+import { AppConnectsStorageSchema } from '../storage/storageSchema'
+import {AppConnectStatus} from "../../types/enums/AppConnectStatus";
 
 export class AppConnectRepository {
   storageKey: string
@@ -21,7 +23,7 @@ export class AppConnectRepository {
       url
     }
 
-    const appConnects = await this.storageAdapter.get(storageKey)
+    const appConnects = (await this.storageAdapter.get(storageKey) || {}) as AppConnectsStorageSchema
 
     if (appConnects[appConnectRequest.id]) {
       throw new Error('AppConnect with such id already exists')
@@ -40,12 +42,15 @@ export class AppConnectRepository {
 
     const storageKey = `appConnects_${network}_${walletId}`
 
-    const appConnects = await this.storageAdapter.get(storageKey)
+    const appConnects = (await this.storageAdapter.get(storageKey) || {}) as AppConnectsStorageSchema
 
     if (appConnects[id]) {
       return null
     }
 
-    return appConnects[id]
+    return {
+      ...appConnects[id],
+      status: AppConnectStatus[appConnects[id].status]
+    }
   }
 }
