@@ -10,7 +10,7 @@ const extensionStorageAdapter = new ExtensionStorageAdapter()
 // do migrations
 runMigrations(extensionStorageAdapter).catch(console.error)
 
-const sdk = new DashPlatformSDK({ network: 'mainnet' })
+const sdk = new DashPlatformSDK({ network: 'testnet' })
 
 const privateAPI = new PrivateAPI(sdk, extensionStorageAdapter)
 const publicAPI = new PublicAPI(sdk, extensionStorageAdapter)
