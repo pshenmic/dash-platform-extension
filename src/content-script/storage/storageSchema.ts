@@ -1,12 +1,3 @@
-import {WalletType} from "../../types/WalletType";
-import {StateTransitionStatus} from "../../types/enums/StateTransitionStatus";
-
-export interface StorageSchema {
-    version: number
-    network: number
-    currentWalletId: string
-}
-
 export interface KeyPairSchema {
     // base64
     identityPublicKey: string
@@ -30,24 +21,21 @@ export interface IdentitiesStoreSchema {
     [identity: string]: IdentityStoreSchema
 }
 
-export interface  WalletStoreSchema {
+export interface WalletStoreSchema {
     walletId: string
     type: string
     network: string
     label?: string
     currentIdentity?: string
 }
-export interface  StateTransitionStoreSchema {
+
+export interface StateTransitionStoreSchema {
     hash: string
     unsigned: string
     signature?: string
     signaturePublicKeyId?: number
     status: string
 }
-
-// wallet_deadbeef
-// schemaVersion 1
-// currentWalletId deadbeef
 
 interface WalletSchema {
     seed?: string

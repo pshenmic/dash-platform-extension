@@ -19,8 +19,11 @@ export class RejectStateTransitionHandler implements APIHandler {
     async handle(event: EventData): Promise<RejectStateTransitionResponse> {
         const payload: RejectStateTransitionPayload = event.payload
 
-        // todo move check to middleware
-        await this.walletRepository.get()
+        const wallet = await this.walletRepository.getCurrent()
+
+        if (!wallet) {
+            throw new Error('No ')
+        }
 
         return {
             stateTransition: await this.stateTransitionsRepository.update(payload.hash, StateTransitionStatus.rejected)

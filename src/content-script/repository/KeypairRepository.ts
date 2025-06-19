@@ -7,7 +7,6 @@ import {bytesToHex, hexToBytes} from "../../utils";
 import { encrypt } from "eciesjs";
 
 export class KeypairRepository {
-    storageKey: string
     storageAdapter: StorageAdapter
     dpp: DashPlatformProtocolWASM
 
@@ -24,7 +23,7 @@ export class KeypairRepository {
 
         const storageKey = `keypairs_${walletId}_${network}`
 
-        const keyPairsSchema = (await this.storageAdapter.get(this.storageKey)) as KeyPairsSchema
+        const keyPairsSchema = (await this.storageAdapter.get(storageKey)) as KeyPairsSchema
 
         let keyPairs: KeyPairSchema[] = keyPairsSchema[identity]
 
@@ -50,7 +49,7 @@ export class KeypairRepository {
 
         const storageKey = `keypairs_${walletId}_${network}`
 
-        const storedKeyPairs = (await this.storageAdapter.get(this.storageKey)) as KeyPairsSchema
+        const storedKeyPairs = (await this.storageAdapter.get(storageKey)) as KeyPairsSchema
 
         const keyPairs = storedKeyPairs[identifier]
 

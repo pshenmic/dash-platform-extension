@@ -15,10 +15,11 @@ export class GetStatusHandler implements APIHandler {
         const payload: GetStatusPayload = event.payload
 
         const network = await this.storageAdapter.get('network') as string
-        const walletId = (await this.storageAdapter.get('currentWalletId')) as (string | null)
+        const currentWalletId = (await this.storageAdapter.get('currentWalletId')) as (string | null)
+        const currentIdentity = (await this.storageAdapter.get('currentIdentity')) as (string | null)
         const passwordPublicKey = (await this.storageAdapter.get('passwordPublicKey')) as (string | null)
 
-        return { passwordSet: !!passwordPublicKey, network, currentWalletId: walletId}
+        return { passwordSet: !!passwordPublicKey, network, currentWalletId, currentIdentity}
     }
 
     validatePayload(payload: GetStatusPayload): string | null {

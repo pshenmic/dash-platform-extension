@@ -1,9 +1,9 @@
 import {StateTransitionsRepository} from "../../../repository/StateTransitionsRepository";
 import {GetStateTransitionPayload} from "../../../../types/messages/payloads/GetStateTransitionPayload";
-import {Identity} from "../../../../types/Identity";
 import {EventData} from "../../../../types/EventData";
 import {validateHex} from "../../../../utils";
 import {APIHandler} from "../../APIHandler";
+import {GetStateTransitionResponse} from "../../../../types/messages/response/GetStateTransitionResponse";
 
 export class GetStateTransitionHandler implements APIHandler{
     stateTransitionsRepository: StateTransitionsRepository
@@ -12,10 +12,16 @@ export class GetStateTransitionHandler implements APIHandler{
         this.stateTransitionsRepository = stateTransitionsRepository
     }
 
-    async handle(event: EventData): Promise<Identity[]> {
+    async handle(event: EventData): Promise<GetStateTransitionResponse> {
         const payload: GetStateTransitionPayload = event.payload
 
-        return this.stateTransitionsRepository.get(payload.hash)
+        const stateTransition = await this.stateTransitionsRepository.get(payload.hash)
+
+        if (!stateTransition) {
+            throw new Error(`Could not find state transition by hash ${payload.hash}`)
+        }
+
+        return {stateTransition}
     }
 
     validatePayload(payload: GetStateTransitionPayload): null | string {

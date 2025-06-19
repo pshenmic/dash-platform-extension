@@ -16,6 +16,12 @@ export class SetupPasswordHandler implements APIHandler {
     async handle(event: EventData): Promise<SetupPasswordResponse> {
         const payload: SetupPasswordPayload = event.payload
 
+        const isSet = await this.storageAdapter.get('passwordPublicKey')
+
+        if (isSet) {
+            throw new Error('Password already set')
+        }
+
         const passwordHash = hash.sha256().update(payload.password).digest('hex')
         const secretKey = PrivateKey.fromHex(passwordHash);
 

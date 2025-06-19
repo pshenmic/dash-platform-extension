@@ -9,6 +9,12 @@ import {GetStatusResponse} from "./messages/response/GetStatusResponse";
 import {SetupPasswordPayload} from "./messages/payloads/SetupPasswordPayload";
 
 export class PrivateAPIClient {
+    constructor() {
+        if(!chrome.runtime.onMessage) {
+            throw new Error('PrivateAPIClient could only be used inside extension context')
+        }
+    }
+
     async getStatus(): Promise<GetStatusResponse> {
         return this._rpcCall(MessagingMethods.GET_STATUS, {})
     }
@@ -106,7 +112,7 @@ export class PrivateAPIClient {
                 }
             }
 
-            chrome?.runtime?.onMessage?.addListener(handleMessage)
+            chrome.runtime.onMessage.addListener(handleMessage)
 
             setTimeout(() => {
                 rejectWithError(`Timed out waiting for response of ${method}, (${payload})`)
@@ -121,7 +127,7 @@ export class PrivateAPIClient {
             }
 
             // @ts-ignore
-            chrome?.runtime?.onMessage?.dispatch(message)
+            chrome.runtime.onMessage.dispatch(message)
         })
     }
 }

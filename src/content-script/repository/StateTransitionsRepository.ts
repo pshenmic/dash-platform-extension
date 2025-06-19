@@ -14,7 +14,7 @@ export class StateTransitionsRepository {
         this.storageAdapter = storageAdapter
     }
 
-    async create(stateTransitionWASM: StateTransitionWASM): Promise<StateTransition> {
+    async create(stateTransitionWASM: StateTransitionWASM): Promise<StateTransition|null> {
         const network = await this.storageAdapter.get('network') as string
         const walletId = await this.storageAdapter.get('currentWalletId') as string
         const hash = stateTransitionWASM.hash(true)
@@ -25,7 +25,7 @@ export class StateTransitionsRepository {
         const stateTransitions = await this.storageAdapter.get(storageKey)
 
         if (stateTransitions[hash]) {
-            throw new Error(`State Transition with tx hash ${hash} already exists`)
+            return null
         }
 
         const stateTransition = {
@@ -43,11 +43,16 @@ export class StateTransitionsRepository {
         return stateTransition
     }
 
-    async get(hash: string) {
-        const stateTransitions = await this.storageAdapter.get(this.storageKey)
+    async get(hash: string): Promise<StateTransition|null> {
+        const network = await this.storageAdapter.get('network') as string
+        const walletId = await this.storageAdapter.get('currentWalletId') as string
+
+        const storageKey = `stateTransitions_${network}_${walletId}`
+
+        const stateTransitions = await this.storageAdapter.get(storageKey)
 
         if (!stateTransitions[hash]) {
-            throw new Error(`State transition with hash ${hash} does not exist`)
+            return null
         }
 
         return stateTransitions[hash]
@@ -59,7 +64,7 @@ export class StateTransitionsRepository {
 
         const storageKey = `stateTransitions_${network}_${walletId}`
 
-        const stateTransitions = await this.storageAdapter.get(storageKey)
+        const stateTransitions = await this.get(hash)
 
         if (!stateTransitions[hash]) {
             throw new Error(`State transition with hash ${hash} does not exist`)

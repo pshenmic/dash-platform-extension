@@ -35,14 +35,17 @@ export class ApproveStateTransitionHandler implements APIHandler {
     async handle(event: EventData): Promise<ApproveStateTransitionResponse> {
         const payload: ApproveStateTransitionPayload = event.payload
 
-        const wallet = await this.walletRepository.get()
+        const wallet = await this.walletRepository.getCurrent()
+
+        if (!wallet) {
+            throw new Error('No wallet is chosen')
+        }
 
         const identity = await this.identitiesRepository.getByIdentifier(payload.identity)
 
         if (!identity) {
             throw new Error(`Identity with identifier ${payload.identity} not found`)
         }
-
 
         let keyPair: KeyPair
 
@@ -54,9 +57,8 @@ export class ApproveStateTransitionHandler implements APIHandler {
             if (!keyPair) {
                 throw new Error(`Could not find private key for identity public key (pkh ${base64.encode(identityPublicKeyWASM.toBytes())})`)
             }
-
         } else if (wallet.type === WalletType.seed) {
-            // todo
+            throw new Error('Seedphrases are not supported yet')
         }
 
         const stateTransition: StateTransition = await this.stateTransitionsRepository.get(payload.hash)

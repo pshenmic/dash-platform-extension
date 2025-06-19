@@ -6,7 +6,6 @@ import {WalletType} from "../../types/WalletType";
 import {Wallet} from "../../types/Wallet";
 
 export class WalletRepository {
-    storageKey: string
     storageAdapter: StorageAdapter
 
     constructor(storageAdapter: StorageAdapter) {
@@ -39,31 +38,31 @@ export class WalletRepository {
             walletId
         }
 
-        await this.storageAdapter.set(this.storageKey, walletSchema)
+        await this.storageAdapter.set(storageKey, walletSchema)
     }
 
-    async get(): Promise<Wallet> {
-        const currentNetwork = await this.storageAdapter.get('network') as string
-        const walletId = await this.storageAdapter.get('currentWalletId') as string
+    async getCurrent(): Promise<Wallet|null> {
+        const network = await this.storageAdapter.get('network') as string
+        const currentWalletId = await this.storageAdapter.get('currentWalletId') as string
 
-        if (!walletId) {
-            throw new Error('Default wallet is not chosen')
+        if (!currentWalletId) {
+            return null
         }
 
-        const storageKey = `wallet_${walletId}_${currentNetwork}`
+        const storageKey = `wallet_${currentWalletId}_${network}`
 
-        const walletStoreSchema = await this.storageAdapter.get(storageKey) as WalletStoreSchema
+        const wallet = await this.storageAdapter.get(storageKey) as WalletStoreSchema
 
-        if (!walletStoreSchema) {
-            throw new Error(`Could not find wallet ${walletId} for network ${currentNetwork}`)
+        if (!wallet) {
+            throw new Error("Could not find current wallet")
         }
 
         return {
-            walletId: walletStoreSchema.walletId,
-            type: WalletType[walletStoreSchema.type],
-            network: Network[currentNetwork],
-            label: walletStoreSchema.label,
-            currentIdentity: walletStoreSchema.currentIdentity,
+            walletId: wallet.walletId,
+            type: WalletType[wallet.type],
+            network: Network[network],
+            label: wallet.label,
+            currentIdentity: wallet.currentIdentity,
         }
     }
 

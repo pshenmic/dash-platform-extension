@@ -6,7 +6,6 @@ import {base64} from "@scure/base";
 
 export class IdentitiesRepository {
     dpp: DashPlatformProtocolWASM
-    storageKey: string
     storageAdapter: StorageAdapter
 
     constructor(storageAdapter: StorageAdapter, dpp: DashPlatformProtocolWASM) {
@@ -18,8 +17,7 @@ export class IdentitiesRepository {
         const network = await this.storageAdapter.get('network')
         const walletId = await this.storageAdapter.get('currentWalletId')
 
-
-        const storageKey = `${network}_${walletId}_identities`
+        const storageKey = `identities_${network}_${walletId}`
 
         const identities = await this.storageAdapter.get(storageKey)
 
@@ -33,6 +31,7 @@ export class IdentitiesRepository {
         identities[identifier] = identityStoreSchema
 
         await this.storageAdapter.set(storageKey, identities)
+        await this.storageAdapter.set('currentIdentity', identifier)
 
         return {
             identifier: identityStoreSchema.identifier,
@@ -68,25 +67,41 @@ export class IdentitiesRepository {
     }
 
 
-    async getByIdentifier(identifier: string): Promise<Identity> {
-        const identities = await this.storageAdapter.get(this.storageKey)
+    async getByIdentifier(identifier: string): Promise<Identity|null> {
+        const network = await this.storageAdapter.get('network')
+        const walletId = await this.storageAdapter.get('currentWalletId')
+
+        const storageKey = `identities_${network}_${walletId}`
+
+        const identities = await this.storageAdapter.get(storageKey) as IdentitiesStoreSchema
+
+        const identity = identities[identifier]
 
         if (!identities[identifier]) {
             return null
         }
 
-        return identities[identifier]
+        return {
+            index: identity.index,
+            identifier: identity.identifier,
+            label: identity.label,
+            identityPublicKeys: identity.identityPublicKeys.map((identityPublicKey) => this.dpp.IdentityPublicKeyWASM.fromHex(identityPublicKey))
+        }
     }
 
-    async getCurrentIdentity(): Promise<Identity> {
-        const entry = await this.storageAdapter.get(`${this.storageKey}_currentIdentity`)
-
-        const currentIdentity = entry['currentIdentity']
+    async getCurrentIdentity(): Promise<Identity|null> {
+        const currentIdentity = await this.storageAdapter.get('currentIdentity') as string
 
         if (!currentIdentity) {
             return null
         }
 
-        return this.getByIdentifier(currentIdentity)
+        const identity = await this.getByIdentifier(currentIdentity)
+
+        if (!identity) {
+            throw new Error(`Could not find current identity ${currentIdentity}`)
+        }
+
+        return identity
     }
 }

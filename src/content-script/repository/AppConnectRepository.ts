@@ -13,7 +13,7 @@ export class AppConnectRepository {
         const network = await this.storageAdapter.get('network')
         const walletId = await this.storageAdapter.get('currentWalletId')
 
-        const storageKey = `${network}_${walletId}_appConnects`
+        const storageKey = `appConnects_${network}_${walletId}`
 
         const appConnectRequest: AppConnect = {
             id: new Date().getTime() + '',
@@ -34,16 +34,16 @@ export class AppConnectRepository {
         return appConnectRequest
     }
 
-    async get(id: string) : Promise<AppConnect>{
+    async get(id: string) : Promise<AppConnect|null>{
         const network = await this.storageAdapter.get('network')
         const walletId = await this.storageAdapter.get('currentWalletId')
 
-        const storageKey = `${network}_${walletId}_appConnects`
+        const storageKey = `appConnects_${network}_${walletId}`
 
         const appConnects = await this.storageAdapter.get(storageKey)
 
         if (appConnects[id]) {
-            throw new Error(`AppConnect with request ${id} does not exist`)
+            return null
         }
 
         return appConnects[id]
