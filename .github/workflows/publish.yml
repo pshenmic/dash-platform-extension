@@ -23,7 +23,9 @@ jobs:
           extensionDir: dist
           zipFilePath: release/dash-platform-extension_${{ github.ref }}_chrome.zip
 
-      - uses: actions/upload-artifact@v4
+      - name: Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: my-artifact
-          path: release/dash-platform-extension_${{ github.ref }}_chrome.zip
+          files: release/dash-platform-extension_${{ github.ref }}_chrome.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
