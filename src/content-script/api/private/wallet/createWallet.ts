@@ -5,6 +5,7 @@ import { CreateWalletPayload } from '../../../../types/messages/payloads/CreateW
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { WalletType } from '../../../../types/WalletType'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
+import {CreateWalletResponse} from "../../../../types/messages/response/CreateWalletResponse";
 
 export class CreateWalletHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -15,14 +16,14 @@ export class CreateWalletHandler implements APIHandler {
     this.dpp = dpp
   }
 
-  async handle (event: EventData): Promise<VoidResponse> {
+  async handle (event: EventData): Promise<CreateWalletResponse> {
     const payload: CreateWalletPayload = event.payload
 
     const walletType = WalletType[payload.walletType]
 
-    await this.walletRepository.create(walletType)
+    const wallet = await this.walletRepository.create(walletType)
 
-    return {}
+    return { walletId: wallet.walletId}
   }
 
   validatePayload (payload: CreateWalletPayload): string | null {

@@ -15,7 +15,7 @@ export class WalletRepository {
     this.identitiesRepository = identitiesRepository
   }
 
-  async create (type: WalletType): Promise<void> {
+  async create (type: WalletType): Promise<Wallet> {
     const passwordPublicKey = await this.storageAdapter.get('network') as string
 
     if (!passwordPublicKey) {
@@ -42,6 +42,8 @@ export class WalletRepository {
     }
 
     await this.storageAdapter.set(storageKey, walletSchema)
+
+    return {...wallet, type: WalletType[wallet.type]}
   }
 
   async getCurrent (): Promise<Wallet | null> {
