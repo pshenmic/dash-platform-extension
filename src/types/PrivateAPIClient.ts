@@ -143,7 +143,7 @@ export class PrivateAPIClient {
 
       const handleMessage = (data: EventData): void => {
         if (data.type === 'response' && data.id === id) {
-          if (data.error == null) {
+          if (data.error != null) {
             return rejectWithError(data.error)
           }
 

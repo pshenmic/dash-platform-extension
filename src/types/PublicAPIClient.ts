@@ -6,7 +6,7 @@ import { RequestStateTransitionApprovalResponse } from './messages/response/Requ
 
 export class PublicAPIClient {
   async connectApp (url: string): Promise<ConnectAppResponse> {
-    return await this._rpcCall(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL,
+    return await this._rpcCall(MessagingMethods.CONNECT_APP,
       {
         url
       })
