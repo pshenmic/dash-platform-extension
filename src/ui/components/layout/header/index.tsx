@@ -68,7 +68,7 @@ export default function Header (): React.JSX.Element {
 
   const handleBack = (): void => {
     if (right?.variant === 'back') {
-      navigate(-1)
+      void navigate(-1)
     }
   }
 
@@ -87,22 +87,23 @@ export default function Header (): React.JSX.Element {
 
       {right.variant === 'image'
         ? ((): React.JSX.Element => {
-          const {src, alt, imgClasses, containerClasses} = IMAGE_VARIANTS[right.imageType]
-          return (
-            <div className={containerClasses}>
-              <img
-                src={useStaticAsset(src)}
-                alt={alt}
-                className={`relative ${imgClasses} max-w-[348px] max-h-[327px]`}
-              />
-            </div>
-          )
-        })()
-        : <Button onClick={handleBack}>
-          <ArrowIcon className='mr-[0.625rem] h-[0.875rem] w-auto'/>
-          Back
-        </Button>
-      }
+            const { src, alt, imgClasses, containerClasses } = IMAGE_VARIANTS[right.imageType]
+            return (
+              <div className={containerClasses}>
+                <img
+                  src={useStaticAsset(src)}
+                  alt={alt}
+                  className={`relative ${imgClasses} max-w-[348px] max-h-[327px]`}
+                />
+              </div>
+            )
+          })()
+        : (
+          <Button onClick={handleBack}>
+            <ArrowIcon className='mr-[0.625rem] h-[0.875rem] w-auto' />
+            Back
+          </Button>
+          )}
     </header>
   )
 }
