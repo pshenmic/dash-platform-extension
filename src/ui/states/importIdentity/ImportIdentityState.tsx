@@ -110,9 +110,6 @@ export default function () {
     try {
       // Prepare data for CREATE_IDENTITY
       const identifier = identity.getId().base58()
-      const identityPublicKeys = identity.getPublicKeys().map(pk =>
-        btoa(String.fromCharCode(...new Uint8Array(pk.toBytes())))
-      )
 
       // Convert private key to hex format
       let privateKeyHex
@@ -125,7 +122,6 @@ export default function () {
       }
 
       const privateKeys = [privateKeyHex]
-      const index = 0
 
       await extensionAPI.createIdentity(identifier, privateKeys)
 
