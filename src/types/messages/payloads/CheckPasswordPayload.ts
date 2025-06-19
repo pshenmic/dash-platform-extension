@@ -1,3 +1,3 @@
 export interface CheckPasswordPayload {
-    password: string
+  password: string
 }

@@ -1,3 +1,3 @@
-export interface GetAvailableIdentitiesResponse  {
-    identities: string[]
+export interface GetAvailableIdentitiesResponse {
+  identities: string[]
 }

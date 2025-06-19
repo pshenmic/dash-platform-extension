@@ -1,3 +1,3 @@
 export interface RequestStateTransitionApprovalPayload {
-    base64: string
+  base64: string
 }

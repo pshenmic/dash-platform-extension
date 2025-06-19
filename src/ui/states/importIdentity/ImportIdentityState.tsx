@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react'
-import {useSdk} from "../../hooks/useSdk";
+import React, { useEffect, useState } from 'react'
+import { useSdk } from '../../hooks/useSdk'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/controls/buttons'
 import Textarea from '../../components/form/Textarea'
@@ -8,7 +8,7 @@ import Identifier from '../../components/data/Identifier'
 import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
 import Text from '../../text/Text'
-import {useExtensionAPI} from "../../hooks/useExtensionAPI";
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 const checkHex = (string) => /\b[0-9A-F]{64}/gi.test(string)
 
@@ -25,7 +25,7 @@ export default function () {
   const [error, setError] = useState(null)
 
   // TODO implement new storage
-  const [identities,setIdentities] = useState([])
+  const [identities, setIdentities] = useState([])
   const [currentIdentity, setCurrentIdentity] = useState(null)
   const [identityBalance, setIdentityBalance] = useState(0)
 
@@ -98,59 +98,58 @@ export default function () {
     navigate('/')
   }
 
-  return (<div className={'flex flex-col gap-2'}>
-      <span className={'h1-title'}>Import your identity</span>
+  return (
+    <div className='flex flex-col gap-2'>
+      <span className='h1-title'>Import your identity</span>
 
       {!identity &&
-        <div className={'flex flex-col gap-[0.875rem]'}>
-          <div className={'flex flex-col gap-2'}>
-            <Text color={'blue'} size={'lg'}>
-              Paste your identity <Text size={'lg'}>Private Key</Text> in <Text size={'lg'}>HEX format</Text>
+        <div className='flex flex-col gap-[0.875rem]'>
+          <div className='flex flex-col gap-2'>
+            <Text color='blue' size='lg'>
+              Paste your identity <Text size='lg'>Private Key</Text> in <Text size='lg'>HEX format</Text>
             </Text>
-            <Text color={'blue'} size={'lg'}>
+            <Text color='blue' size='lg'>
               You can export it from the Dash Evonode Tool application
             </Text>
           </div>
 
           <Textarea
             rows={3}
-            placeholder={'your private key...'}
+            placeholder='your private key...'
             onChange={setPrivateKey}
           />
 
           {!!error &&
-            <div className={'py-1'}>
+            <div className='py-1'>
               <span>{error}</span>
-            </div>
-          }
+            </div>}
 
           <div>
             <Button
-              colorScheme={'brand'}
+              colorScheme='brand'
               disabled={!privateKey}
-              className={'w-full'}
+              className='w-full'
               onClick={checkPrivateKey}
             >
               Check
             </Button>
           </div>
-        </div>
-      }
+        </div>}
 
       {identity &&
-        <div className={'flex flex-col gap-[0.875rem]'}>
-          <Text size={'lg'} color={'blue'}>
+        <div className='flex flex-col gap-[0.875rem]'>
+          <Text size='lg' color='blue'>
             We found an identity associated with the given private key
           </Text>
 
-          <ValueCard colorScheme={'lightBlue'}>
-            <div className={'flex flex-col gap-[0.875rem]'}>
-              <div className={'flex flex-col gap-[0.125rem]'}>
-                <Text size={'md'} dim>Identifier</Text>
-                <ValueCard colorScheme={'white'}>
+          <ValueCard colorScheme='lightBlue'>
+            <div className='flex flex-col gap-[0.875rem]'>
+              <div className='flex flex-col gap-[0.125rem]'>
+                <Text size='md' dim>Identifier</Text>
+                <ValueCard colorScheme='white'>
                   <Identifier
-                    highlight={'both'}
-                    copyButton={true}
+                    highlight='both'
+                    copyButton
                     ellipsis={false}
                     linesAdjustment={false}
                   >
@@ -158,21 +157,20 @@ export default function () {
                   </Identifier>
                 </ValueCard>
               </div>
-              <div className={'flex flex-col gap-[0.125rem]'}>
+              <div className='flex flex-col gap-[0.125rem]'>
                 <Text dim>Balance</Text>
 
                 <span>
                   {!Number.isNaN(Number(balance))
-                    ? <Text size={'xl'} weight={'bold'} monospace>
-                        <BigNumber>
-                          {balance}
-                        </BigNumber>
-                      </Text>
-                    : <NotActive>N/A</NotActive>
-                  }
+                    ? <Text size='xl' weight='bold' monospace>
+                      <BigNumber>
+                        {balance}
+                      </BigNumber>
+                    </Text>
+                    : <NotActive>N/A</NotActive>}
                   <Text
-                    size={'lg'}
-                    className={'ml-2'}
+                    size='lg'
+                    className='ml-2'
                   >
                     Credits
                   </Text>
@@ -181,15 +179,14 @@ export default function () {
             </div>
           </ValueCard>
           <Button
-            colorScheme={'brand'}
+            colorScheme='brand'
             disabled={!privateKey}
-            className={'w-full'}
+            className='w-full'
             onClick={importIdentity}
           >
             Import
           </Button>
-        </div>
-      }
+        </div>}
     </div>
   )
 }

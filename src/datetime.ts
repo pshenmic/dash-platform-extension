@@ -11,7 +11,7 @@ export type DateInput = Date | string | number
  * @param endDate   - The end date (Date | ISO string | timestamp)
  * @returns Number of days difference, or 0 if either date is missing/invalid
  */
-export function getDaysBetweenDates(
+export function getDaysBetweenDates (
   startDate?: DateInput,
   endDate?: DateInput
 ): number {
@@ -32,7 +32,7 @@ export function getDaysBetweenDates(
  * @param duration - Time span in milliseconds
  * @returns Object with `start` and `end` ISO date strings
  */
-export function getDynamicRange(duration: number): {
+export function getDynamicRange (duration: number): {
   start: string
   end: string
 } {
@@ -60,7 +60,7 @@ export type TimeDeltaFormat = 'default' | 'detailed'
  * @param format    - `'default'` or `'detailed'`
  * @returns A string describing the time delta
  */
-export function getTimeDelta(
+export function getTimeDelta (
   startDate: DateInput,
   endDate: DateInput,
   format: TimeDeltaFormat = 'default'

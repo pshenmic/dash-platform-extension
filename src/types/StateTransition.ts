@@ -1,9 +1,9 @@
-import {StateTransitionStatus} from "./enums/StateTransitionStatus";
+import { StateTransitionStatus } from './enums/StateTransitionStatus'
 
 export interface StateTransition {
-    hash: string
-    unsigned: string
-    signature?: string
-    signaturePublicKeyId?: number
-    status: StateTransitionStatus
+  hash: string
+  unsigned: string
+  signature?: string
+  signaturePublicKeyId?: number
+  status: StateTransitionStatus
 }

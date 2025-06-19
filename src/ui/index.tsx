@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react'
+import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import HomeState from './states/home/HomeState'
@@ -10,8 +10,8 @@ import CreateWalletState from './states/wallet/CreateWalletState'
 import './styles/app.pcss'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 import Layout from './components/layout/Layout'
-import {useSdk} from "./hooks/useSdk";
-import {Identity} from "../types/Identity";
+import { useSdk } from './hooks/useSdk'
+import { Identity } from '../types/Identity'
 
 const App: React.FC = function () {
   const sdk: any = useSdk()
@@ -21,46 +21,46 @@ const App: React.FC = function () {
 
   const router = createHashRouter([
     {
-      element: <Layout/>,
+      element: <Layout />,
       children: [
         {
           index: true,
           path: '/',
-          element: <StartState/>,
+          element: <StartState />
         },
         {
           path: '/home',
-          element: <HomeState/>,
+          element: <HomeState />,
           handle: { imageType: 'coins' }
         },
         {
           path: '/setup-password',
-          element: <SetupPasswordState/>,
+          element: <SetupPasswordState />
         },
         {
           path: '/login',
-          element: <LoginState/>,
+          element: <LoginState />
         },
         {
           path: '/create-wallet',
-          element: <CreateWalletState/>,
+          element: <CreateWalletState />
         },
         {
           path: '/import',
-          element: <ImportIdentityState/>,
+          element: <ImportIdentityState />
         },
         {
           path: '/approve/:txhash',
-          element: <ApproveTransactionState/>,
-        },
-      ],
-    },
+          element: <ApproveTransactionState />
+        }
+      ]
+    }
   ] as RouteObject[])
   const populateBalances = async (): Promise<void> => {
-    const balances = await Promise.all(identities.map((async identity => ({
+    const balances = await Promise.all(identities.map(async identity => ({
       identifier: identity.identifier,
       balance: (await sdk.identities.getBalance(identity.identifier)).toString()
-    }))))
+    })))
 
     for (const { identifier, balance } of balances) {
       setIdentityBalance(0n)
@@ -73,7 +73,7 @@ const App: React.FC = function () {
   }, [])
 
   return (
-    <RouterProvider router={router}/>
+    <RouterProvider router={router} />
   )
 }
 
@@ -83,5 +83,5 @@ document.body.appendChild(root)
 
 const rootDiv = ReactDOM.createRoot(root)
 rootDiv.render(
-  <App/>
+  <App />
 )

@@ -1,6 +1,6 @@
 const LOCAL_STORAGE_KEY = 'dash-platform-extension-storage'
 
-let localStorageAdapter = {
+const localStorageAdapter = {
   async get () {
     const value = localStorage.getItem(LOCAL_STORAGE_KEY)
 

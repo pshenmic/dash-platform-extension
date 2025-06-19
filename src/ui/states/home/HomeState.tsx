@@ -5,14 +5,14 @@ import ValueCard from '../../components/containers/ValueCard'
 import Text from '../../text/Text'
 import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
-import Identifier from "../../components/data/Identifier";
-import StatusIcon from "../../components/icons/StatusIcon";
+import Identifier from '../../components/data/Identifier'
+import StatusIcon from '../../components/icons/StatusIcon'
 import { TransactionTypes } from '../../../enums/TransactionTypes'
-import DateBlock from "../../components/data/DateBlock";
+import DateBlock from '../../components/data/DateBlock'
 import './home.state.css'
-import {useExtensionAPI} from "../../hooks/useExtensionAPI";
-import {Identity} from "../../../types/Identity";
-import {IdentifierWASM} from 'pshenmic-dpp'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { Identity } from '../../../types/Identity'
+import { IdentifierWASM } from 'pshenmic-dpp'
 
 export default function () {
   const extensionAPI = useExtensionAPI()
@@ -22,24 +22,23 @@ export default function () {
   const [transactions, setTransactions] = useState(null)
 
   if (!identities?.length) {
-    return <NoIdentities/>
+    return <NoIdentities />
   }
-
 
   useEffect(() => {
     extensionAPI
-        .getCurrentIdentity()
-        .then(response => setCurrentIdentity(response))
-        .catch(console.error)
+      .getCurrentIdentity()
+      .then(response => setCurrentIdentity(response))
+      .catch(console.error)
 
     fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${currentIdentity}/transactions`)
-      .then(response => {
-          if (response.status === 200) {
-            return response.json()
-          } else {
-            setTransactionsLoadError(true)
-          }
+      .then(async response => {
+        if (response.status === 200) {
+          return await response.json()
+        } else {
+          setTransactionsLoadError(true)
         }
+      }
       )
       .then((data) => {
         if (data.error) {
@@ -54,34 +53,34 @@ export default function () {
   console.log('transactions', transactions)
 
   // todo implement retrieving balance
-  let balance = 0
+  const balance = 0
 
   return (
-    <div className={'screen-content'}>
-      <ValueCard colorScheme={'lightBlue'}>
-        <div className={'flex flex-col gap-1'}>
+    <div className='screen-content'>
+      <ValueCard colorScheme='lightBlue'>
+        <div className='flex flex-col gap-1'>
           <select>
             {identities.map((identifier) => <option
               key={identifier.base58()}
-              value={identifier.base58()}>
+              value={identifier.base58()}
+                                            >
               {identifier.base58()}
             </option>)}
           </select>
 
-          <div className={'flex flex-col gap-[0.125rem]'}>
+          <div className='flex flex-col gap-[0.125rem]'>
             <Text dim>Balance</Text>
             <span>
               {!Number.isNaN(Number(balance))
-                ? <Text size={'xl'} weight={'bold'} monospace>
+                ? <Text size='xl' weight='bold' monospace>
                   <BigNumber>
                     {balance}
                   </BigNumber>
                 </Text>
-                : <NotActive>N/A</NotActive>
-              }
+                : <NotActive>N/A</NotActive>}
               <Text
-                size={'lg'}
-                className={'ml-2'}
+                size='lg'
+                className='ml-2'
               >
                 Credits
               </Text>
@@ -90,42 +89,41 @@ export default function () {
         </div>
       </ValueCard>
 
-      <div className={'flex gap-5'}>
-        <Button className={'w-1/2'} disabled>Send</Button>
-        <Button colorScheme={'gray'} variant={'outline'} className={'w-1/2'} disabled>Withdraw</Button>
+      <div className='flex gap-5'>
+        <Button className='w-1/2' disabled>Send</Button>
+        <Button colorScheme='gray' variant='outline' className='w-1/2' disabled>Withdraw</Button>
       </div>
 
       <div>
-        <Text size={'lg'} weight={'bold'}>Transactions:</Text>
+        <Text size='lg' weight='bold'>Transactions:</Text>
 
         {transactionsLoadError &&
           <div>
             Error during loading transactions, please try again later
-          </div>
-        }
+          </div>}
 
-        <div className={'flex flex-col gap-3 mt-3'}>
+        <div className='flex flex-col gap-3 mt-3'>
           {transactions?.length && transactions.map((transaction) =>
             <a
-              target={'_blank'}
+              target='_blank'
               href={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}
-              key={transaction.hash}
+              key={transaction.hash} rel='noreferrer'
             >
-              <ValueCard clickable className={'flex gap-2'}>
-                <StatusIcon size={16} status={transaction.status} className={'shrink-0'}/>
+              <ValueCard clickable className='flex gap-2'>
+                <StatusIcon size={16} status={transaction.status} className='shrink-0' />
 
-                <div className={'flex flex-col gap-1 justify-between grow'}>
-                  <Text size={'sm'}>{TransactionTypes[transaction.type]}</Text>
-                  <DateBlock timestamp={transaction.timestamp} format={'dateOnly'}/>
+                <div className='flex flex-col gap-1 justify-between grow'>
+                  <Text size='sm'>{TransactionTypes[transaction.type]}</Text>
+                  <DateBlock timestamp={transaction.timestamp} format='dateOnly' />
                 </div>
 
-                <div className={'flex flex-col gap-1 overflow-hidden max-w-full'}>
+                <div className='flex flex-col gap-1 overflow-hidden max-w-full'>
                   <Identifier
-                    highlight={'dim'}
+                    highlight='dim'
                     maxLines={2}
-                    className={'overflow-hidden max-w-full w-[8rem]'}
+                    className='overflow-hidden max-w-full w-[8rem]'
                   >
-                  {transaction.hash}
+                    {transaction.hash}
                   </Identifier>
                 </div>
               </ValueCard>

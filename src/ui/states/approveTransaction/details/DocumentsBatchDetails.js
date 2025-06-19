@@ -3,9 +3,9 @@ import { useSdk } from '../../../hooks/useSdk'
 import './documents.batch.details.css'
 import DocumentCreateTransition from './DocumentCreateTransition'
 
-export default function DocumentsBatchDetails ({stateTransition}) {
+export default function DocumentsBatchDetails ({ stateTransition }) {
   const sdk = useSdk()
-  const {uint8ArrayToBase58} = sdk.utils
+  const { uint8ArrayToBase58 } = sdk.utils
 
   const [transitions, setTransitions] = useState(false)
   const [documentsBatch, setDocumentsBatch] = useState(null)
@@ -16,7 +16,7 @@ export default function DocumentsBatchDetails ({stateTransition}) {
       const documentsBatch = sdk.wasm.DocumentsBatchWASM.fromStateTransition(stateTransition)
       setDocumentsBatch(documentsBatch)
 
-      const {transitions} = documentsBatch
+      const { transitions } = documentsBatch
       setTransitions(transitions)
     } catch (e) {
       console.error(e)
@@ -31,15 +31,15 @@ export default function DocumentsBatchDetails ({stateTransition}) {
   }
 
   if (!transitions) {
-    return <div></div>
+    return <div />
   }
   const transitionComponent = {
-    'create': <DocumentCreateTransition createTransition={transitions[0].createTransition} transition={transitions[0]}/>
+    create: <DocumentCreateTransition createTransition={transitions[0].createTransition} transition={transitions[0]} />
   }[transitions[0].actionType]
 
   return (
     <div>
-      {error && <div className={'DocumentsBatchDetails__Error'}>Error during decoding DocumentsBatch state transition</div>}
+      {error && <div className='DocumentsBatchDetails__Error'>Error during decoding DocumentsBatch state transition</div>}
       {transitionComponent}
     </div>
   )

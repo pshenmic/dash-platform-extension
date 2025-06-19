@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { cva } from 'class-variance-authority'
 import { NotActive } from './NotActive'
-import {getTimeDelta} from "../../../datetime";
+import { getTimeDelta } from '../../../datetime'
 // import { Tooltip } from '../ui/Tooltips'
 
 const wrapperStyles = cva('inline')
@@ -31,7 +31,7 @@ export const TimeDelta: React.FC<TimeDeltaProps> = ({
   endDate,
   showTimestampTooltip = true,
   tooltipDate,
-  format = 'default',
+  format = 'default'
 }) => {
   const [timeDelta, setTimeDelta] = useState<string | null>(null)
   const tooltipDateObj = new Date(tooltipDate ?? endDate)

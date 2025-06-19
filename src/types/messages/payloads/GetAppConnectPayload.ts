@@ -1,3 +1,3 @@
 export interface GetAppConnectPayload {
-    id: string
+  id: string
 }

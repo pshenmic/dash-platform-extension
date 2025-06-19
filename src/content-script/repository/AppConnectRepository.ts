@@ -1,51 +1,51 @@
-import {AppConnect} from "../../types/AppConnect";
-import {StorageAdapter} from "../storage/storageAdapter";
+import { AppConnect } from '../../types/AppConnect'
+import { StorageAdapter } from '../storage/storageAdapter'
 
 export class AppConnectRepository {
-    storageKey: string
-    storageAdapter: StorageAdapter
+  storageKey: string
+  storageAdapter: StorageAdapter
 
-    constructor(storageAdapter: StorageAdapter) {
-        this.storageAdapter = storageAdapter
+  constructor (storageAdapter: StorageAdapter) {
+    this.storageAdapter = storageAdapter
+  }
+
+  async create (url: string): Promise<AppConnect> {
+    const network = await this.storageAdapter.get('network')
+    const walletId = await this.storageAdapter.get('currentWalletId')
+
+    const storageKey = `appConnects_${network}_${walletId}`
+
+    const appConnectRequest: AppConnect = {
+      id: new Date().getTime() + '',
+      status: 'pending',
+      url
     }
 
-    async create(url: string): Promise<AppConnect> {
-        const network = await this.storageAdapter.get('network')
-        const walletId = await this.storageAdapter.get('currentWalletId')
+    const appConnects = await this.storageAdapter.get(storageKey)
 
-        const storageKey = `appConnects_${network}_${walletId}`
-
-        const appConnectRequest: AppConnect = {
-            id: new Date().getTime() + '',
-            status: 'pending',
-            url
-        }
-
-        const appConnects = await this.storageAdapter.get(storageKey)
-
-        if (appConnects[appConnectRequest.id]) {
-            throw new Error('AppConnect with such id already exists')
-        }
-
-        appConnects[appConnectRequest.id] = appConnectRequest
-
-        await this.storageAdapter.set(storageKey, appConnects)
-
-        return appConnectRequest
+    if (appConnects[appConnectRequest.id]) {
+      throw new Error('AppConnect with such id already exists')
     }
 
-    async get(id: string) : Promise<AppConnect|null>{
-        const network = await this.storageAdapter.get('network')
-        const walletId = await this.storageAdapter.get('currentWalletId')
+    appConnects[appConnectRequest.id] = appConnectRequest
 
-        const storageKey = `appConnects_${network}_${walletId}`
+    await this.storageAdapter.set(storageKey, appConnects)
 
-        const appConnects = await this.storageAdapter.get(storageKey)
+    return appConnectRequest
+  }
 
-        if (appConnects[id]) {
-            return null
-        }
+  async get (id: string): Promise<AppConnect | null> {
+    const network = await this.storageAdapter.get('network')
+    const walletId = await this.storageAdapter.get('currentWalletId')
 
-        return appConnects[id]
+    const storageKey = `appConnects_${network}_${walletId}`
+
+    const appConnects = await this.storageAdapter.get(storageKey)
+
+    if (appConnects[id]) {
+      return null
     }
+
+    return appConnects[id]
+  }
 }

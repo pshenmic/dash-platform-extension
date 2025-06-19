@@ -4,7 +4,7 @@ import { Button } from '../../components/controls/buttons'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
-export default function SetupPasswordState() {
+export default function SetupPasswordState () {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [password, setPassword] = useState('')
@@ -37,44 +37,44 @@ export default function SetupPasswordState() {
   }
 
   return (
-    <div className={'flex flex-col gap-4'}>
-      <Text size={'xl'} weight={'bold'}>
+    <div className='flex flex-col gap-4'>
+      <Text size='xl' weight='bold'>
         Setup Password
       </Text>
 
-      <Text color={'blue'}>
+      <Text color='blue'>
         Create a password to secure your wallet
       </Text>
 
-      <div className={'flex flex-col gap-2'}>
+      <div className='flex flex-col gap-2'>
         <input
-          type={'password'}
-          placeholder={'Enter password'}
+          type='password'
+          placeholder='Enter password'
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className={'p-3 border rounded'}
+          className='p-3 border rounded'
         />
 
         <input
-          type={'password'}
-          placeholder={'Confirm password'}
+          type='password'
+          placeholder='Confirm password'
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          className={'p-3 border rounded'}
+          className='p-3 border rounded'
         />
       </div>
 
       {error && (
-        <div className={'text-red-500 text-sm'}>
+        <div className='text-red-500 text-sm'>
           {error}
         </div>
       )}
 
       <Button
-        colorScheme={'brand'}
+        colorScheme='brand'
         onClick={handleSetupPassword}
         disabled={!password || !confirmPassword || isLoading}
-        className={'w-full'}
+        className='w-full'
       >
         {isLoading ? 'Setting up...' : 'Setup Password'}
       </Button>

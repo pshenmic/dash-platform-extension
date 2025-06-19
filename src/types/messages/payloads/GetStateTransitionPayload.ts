@@ -1,3 +1,3 @@
 export interface GetStateTransitionPayload {
-    hash: string
+  hash: string
 }

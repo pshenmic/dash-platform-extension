@@ -1,6 +1,6 @@
 export interface ApproveStateTransitionPayload {
-    hash: string,
-    identity: string
-    identityPublicKey: string
-    password: string
+  hash: string
+  identity: string
+  identityPublicKey: string
+  password: string
 }

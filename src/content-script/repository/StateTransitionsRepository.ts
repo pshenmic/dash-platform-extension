@@ -1,88 +1,88 @@
-import {StateTransitionStatus} from "../../types/enums/StateTransitionStatus";
-import {StateTransition} from "../../types/StateTransition";
-import {StorageAdapter} from "../storage/storageAdapter";
-import {DashPlatformProtocolWASM, StateTransitionWASM} from 'pshenmic-dpp'
-import {base64} from "@scure/base";
-import {StateTransitionStoreSchema} from "../storage/storageSchema";
+import { StateTransitionStatus } from '../../types/enums/StateTransitionStatus'
+import { StateTransition } from '../../types/StateTransition'
+import { StorageAdapter } from '../storage/storageAdapter'
+import { DashPlatformProtocolWASM, StateTransitionWASM } from 'pshenmic-dpp'
+import { base64 } from '@scure/base'
+import { StateTransitionStoreSchema } from '../storage/storageSchema'
 export class StateTransitionsRepository {
-    dpp: DashPlatformProtocolWASM
-    storageKey: string
-    storageAdapter: StorageAdapter
+  dpp: DashPlatformProtocolWASM
+  storageKey: string
+  storageAdapter: StorageAdapter
 
-    constructor(storageAdapter: StorageAdapter, dpp: DashPlatformProtocolWASM) {
-        this.dpp = dpp
-        this.storageAdapter = storageAdapter
+  constructor (storageAdapter: StorageAdapter, dpp: DashPlatformProtocolWASM) {
+    this.dpp = dpp
+    this.storageAdapter = storageAdapter
+  }
+
+  async create (stateTransitionWASM: StateTransitionWASM): Promise<StateTransition | null> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string
+    const hash = stateTransitionWASM.hash(true)
+    const unsigned = base64.encode(stateTransitionWASM.toBytes())
+
+    const storageKey = `stateTransitions_${network}_${walletId}`
+
+    const stateTransitions = await this.storageAdapter.get(storageKey)
+
+    if (stateTransitions[hash]) {
+      return null
     }
 
-    async create(stateTransitionWASM: StateTransitionWASM): Promise<StateTransition|null> {
-        const network = await this.storageAdapter.get('network') as string
-        const walletId = await this.storageAdapter.get('currentWalletId') as string
-        const hash = stateTransitionWASM.hash(true)
-        const unsigned = base64.encode(stateTransitionWASM.toBytes())
-
-        const storageKey = `stateTransitions_${network}_${walletId}`
-
-        const stateTransitions = await this.storageAdapter.get(storageKey)
-
-        if (stateTransitions[hash]) {
-            return null
-        }
-
-        const stateTransition = {
-            unsigned,
-            hash,
-            status: StateTransitionStatus.pending,
-            signature: null,
-            signaturePublicKeyId: null
-        }
-
-        stateTransitions[hash] = stateTransition as StateTransitionStoreSchema
-
-        await this.storageAdapter.set(storageKey, stateTransitions)
-
-        return stateTransition
+    const stateTransition = {
+      unsigned,
+      hash,
+      status: StateTransitionStatus.pending,
+      signature: null,
+      signaturePublicKeyId: null
     }
 
-    async get(hash: string): Promise<StateTransition|null> {
-        const network = await this.storageAdapter.get('network') as string
-        const walletId = await this.storageAdapter.get('currentWalletId') as string
+    stateTransitions[hash] = stateTransition as StateTransitionStoreSchema
 
-        const storageKey = `stateTransitions_${network}_${walletId}`
+    await this.storageAdapter.set(storageKey, stateTransitions)
 
-        const stateTransitions = await this.storageAdapter.get(storageKey)
+    return stateTransition
+  }
 
-        if (!stateTransitions[hash]) {
-            return null
-        }
+  async get (hash: string): Promise<StateTransition | null> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string
 
-        return stateTransitions[hash]
+    const storageKey = `stateTransitions_${network}_${walletId}`
+
+    const stateTransitions = await this.storageAdapter.get(storageKey)
+
+    if (!stateTransitions[hash]) {
+      return null
     }
 
-    async update(hash: string, status: StateTransitionStatus, signature?: string, signaturePublicKeyId?: number): Promise<StateTransition> {
-        const network = await this.storageAdapter.get('network') as string
-        const walletId = await this.storageAdapter.get('currentWalletId') as string
+    return stateTransitions[hash]
+  }
 
-        const storageKey = `stateTransitions_${network}_${walletId}`
+  async update (hash: string, status: StateTransitionStatus, signature?: string, signaturePublicKeyId?: number): Promise<StateTransition> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string
 
-        const stateTransitions = await this.get(hash)
+    const storageKey = `stateTransitions_${network}_${walletId}`
 
-        if (!stateTransitions[hash]) {
-            throw new Error(`State transition with hash ${hash} does not exist`)
-        }
+    const stateTransitions = await this.get(hash)
 
-        const stateTransition = stateTransitions[hash]
-
-        if (status === StateTransitionStatus.approved) {
-            stateTransition.signature = signature
-            stateTransition.signaturePublicKeyId = signaturePublicKeyId
-        }
-
-        stateTransition.status = status
-
-        stateTransitions[hash] = stateTransition
-
-        await this.storageAdapter.set(storageKey, stateTransitions)
-
-        return stateTransition
+    if (!stateTransitions[hash]) {
+      throw new Error(`State transition with hash ${hash} does not exist`)
     }
+
+    const stateTransition = stateTransitions[hash]
+
+    if (status === StateTransitionStatus.approved) {
+      stateTransition.signature = signature
+      stateTransition.signaturePublicKeyId = signaturePublicKeyId
+    }
+
+    stateTransition.status = status
+
+    stateTransitions[hash] = stateTransition
+
+    await this.storageAdapter.set(storageKey, stateTransitions)
+
+    return stateTransition
+  }
 }

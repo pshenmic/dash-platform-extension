@@ -1,4 +1,4 @@
 export interface SwitchWalletPayload {
-    walletId: string
-    network: string
+  walletId: string
+  network: string
 }

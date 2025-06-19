@@ -9,11 +9,12 @@
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "esModuleInterop": true,
     "skipLibCheck": true,
-//    "strict": true
+    "strictNullChecks": true,
     "resolveJsonModule": true,
   },
   "include": [
     "./src/**/*",
+    "./test/**/*",
     "./types/global.d.ts"
   ]
 }

@@ -1,3 +1,3 @@
 export interface SwitchIdentityPayload {
-    identity: string
+  identity: string
 }

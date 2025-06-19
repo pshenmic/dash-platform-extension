@@ -3,7 +3,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
-  PropsWithChildren,
+  PropsWithChildren
 } from 'react'
 import { cva, VariantProps } from 'class-variance-authority'
 import useResizeObserver from '@react-hook/resize-observer'
@@ -19,11 +19,11 @@ const identifier = cva(
     variants: {
       theme: {
         light: 'text-gray-900',
-        dark: 'text-white',
+        dark: 'text-white'
       },
       ellipsis: {
         false: '',
-        true: 'overflow-hidden',
+        true: 'overflow-hidden'
       },
       highlight: {
         default: '',
@@ -31,14 +31,14 @@ const identifier = cva(
         highlight: '',
         first: '',
         last: '',
-        both: '',
-      },
+        both: ''
+      }
     },
     defaultVariants: {
       theme: 'light',
       ellipsis: false,
-      highlight: 'default',
-    },
+      highlight: 'default'
+    }
   }
 )
 type IdentifierVariants = VariantProps<typeof identifier>
@@ -48,22 +48,22 @@ const symbol = cva('flex-1', {
   variants: {
     dim: {
       false: 'text-inherit',
-      true: 'text-gray-500',
-    },
+      true: 'text-gray-500'
+    }
   },
   defaultVariants: {
-    dim: false,
-  },
+    dim: false
+  }
 })
 
 /** Highlight‐modes config */
 const highlightModes = {
   default: { first: true, middle: false, last: true },
   dim: { first: false, middle: false, last: false },
-  highlight: { first: true, middle: true,  last: true },
+  highlight: { first: true, middle: true, last: true },
   first: { first: true, middle: false, last: false },
   last: { first: false, middle: false, last: true },
-  both: { first: true, middle: false, last: true },
+  both: { first: true, middle: false, last: true }
 } as const
 type HighlightMode = keyof typeof highlightModes
 
@@ -77,7 +77,7 @@ export interface IdentifierProps extends IdentifierVariants {
 }
 
 const HighlightedID: React.FC<PropsWithChildren<{ mode: HighlightMode }>> = ({ children, mode }) => {
-  if (!children) return <NotActive/>
+  if (!children) return <NotActive />
   const text: string = String(children)
   const count = 5
   const first: string = text.slice(0, count)
@@ -111,11 +111,11 @@ const Identifier: React.FC<IdentifierProps> = ({
   const { theme } = useTheme()
   const symbolsRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(0)
-  const [charWidth, setCharWidth]           = useState(0)
-  const [linesMaxWidth, setLinesMaxWidth]   = useState<'none' | string>('none')
-  const [widthCounted, setWidthCounted]     = useState(false)
+  const [charWidth, setCharWidth] = useState(0)
+  const [linesMaxWidth, setLinesMaxWidth] = useState<'none' | string>('none')
+  const [widthCounted, setWidthCounted] = useState(false)
   const prevWinRef = useRef<number | null>(null)
-  const [winWidth, setWinWidth]             = useState(0)
+  const [winWidth, setWinWidth] = useState(0)
   const debouncedWin = useDebounce(winWidth, 500)
 
   if (ellipsis || maxLines) linesAdjustment = false
@@ -125,15 +125,15 @@ const Identifier: React.FC<IdentifierProps> = ({
   })
 
   const measureChar = useCallback(() => {
-    if (!symbolsRef.current || !linesAdjustment) return 0
+    if ((symbolsRef.current == null) || !linesAdjustment) return 0
     const temp = document.createElement('span')
     const styles = getComputedStyle(symbolsRef.current)
-    temp.style.position   = 'absolute'
+    temp.style.position = 'absolute'
     temp.style.visibility = 'hidden'
     temp.style.fontFamily = styles.fontFamily
-    temp.style.fontSize   = styles.fontSize
+    temp.style.fontSize = styles.fontSize
     temp.style.fontWeight = styles.fontWeight
-    temp.textContent      = 'A'
+    temp.textContent = 'A'
     document.body.appendChild(temp)
     const w = temp.getBoundingClientRect().width || 0
     document.body.removeChild(temp)
@@ -141,7 +141,7 @@ const Identifier: React.FC<IdentifierProps> = ({
   }, [linesAdjustment])
 
   useEffect(() => {
-    if (!symbolsRef.current || !linesAdjustment) return
+    if ((symbolsRef.current == null) || !linesAdjustment) return
     setCharWidth(measureChar() || 0)
   }, [measureChar])
 
@@ -153,14 +153,14 @@ const Identifier: React.FC<IdentifierProps> = ({
       return
     }
     const spacingF = 0.1625
-    const perLine  = Math.floor(containerWidth / charWidth + spacingF)
+    const perLine = Math.floor(containerWidth / charWidth + spacingF)
     if (perLine <= len / 8 || perLine > len) {
       setLinesMaxWidth('none')
       return
     }
-    const lines  = Math.max(Math.ceil(len / perLine), 1)
+    const lines = Math.max(Math.ceil(len / perLine), 1)
     const adjust = 0.7
-    const width  = charWidth * (len / lines + adjust)
+    const width = charWidth * (len / lines + adjust)
     setLinesMaxWidth(`${width}px`)
     setWidthCounted(true)
   }
@@ -202,33 +202,33 @@ const Identifier: React.FC<IdentifierProps> = ({
         WebkitLineClamp: maxLines,
         WebkitBoxOrient: 'vertical' as any,
         overflow: 'hidden',
-        textOverflow: 'ellipsis',
+        textOverflow: 'ellipsis'
       }
     : {}
 
   const symbolContainerClass = ellipsis
-      ? 'flex-1 overflow-hidden whitespace-nowrap text-ellipsis'
-      : 'flex-1 leading-[1rem]'
+    ? 'flex-1 overflow-hidden whitespace-nowrap text-ellipsis'
+    : 'flex-1 leading-[1rem]'
 
   return (
     <div className={rootClass}>
       {avatar && children && (
-        <div className={'w-6 h-6 rounded-full mr-2 flex-shrink-0'}/>
+        <div className='w-6 h-6 rounded-full mr-2 flex-shrink-0' />
       )}
       <div
         ref={symbolsRef}
         className={symbolContainerClass}
         style={{
           ...(widthCounted && !maxLines ? { maxWidth: linesMaxWidth } : {}),
-          ...clampStyles,
+          ...clampStyles
         }}
       >
         {children && highlight
           ? <HighlightedID mode={highlight}>{children}</HighlightedID>
-          : (children || <NotActive/>)}
+          : (children || <NotActive />)}
       </div>
       {copyButton && children && (
-        <CopyButton className='ml-3' text={children}/>
+        <CopyButton className='ml-3' text={children} />
       )}
     </div>
   )

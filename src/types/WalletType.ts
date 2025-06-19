@@ -1,4 +1,4 @@
 export enum WalletType {
-    seed = 'seed',
-    keystore = 'keystore'
+  seed = 'seed',
+  keystore = 'keystore'
 }

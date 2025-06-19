@@ -1,82 +1,82 @@
-import {IdentitiesRepository} from "../../../repository/IdentitiesRepository";
-import {EventData} from "../../../../types/EventData";
-import {CreateIdentityPayload} from "../../../../types/messages/payloads/CreateIdentityPayload";
-import {APIHandler} from "../../APIHandler";
-import {DashPlatformProtocolWASM} from "pshenmic-dpp";
-import {WalletRepository} from "../../../repository/WalletRepository";
-import {WalletType} from "../../../../types/WalletType";
-import {base64} from "@scure/base";
-import {KeypairRepository} from "../../../repository/KeypairRepository";
-import {validateHex, } from "../../../../utils";
-import {VoidResponse} from "../../../../types/messages/response/VoidResponse";
+import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
+import { EventData } from '../../../../types/EventData'
+import { CreateIdentityPayload } from '../../../../types/messages/payloads/CreateIdentityPayload'
+import { APIHandler } from '../../APIHandler'
+import { DashPlatformProtocolWASM } from 'pshenmic-dpp'
+import { WalletRepository } from '../../../repository/WalletRepository'
+import { WalletType } from '../../../../types/WalletType'
+import { base64 } from '@scure/base'
+import { KeypairRepository } from '../../../repository/KeypairRepository'
+import { validateHex } from '../../../../utils'
+import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
 
 export class CreateIdentityHandler implements APIHandler {
-    keypairRepository: KeypairRepository
-    identitiesRepository: IdentitiesRepository
-    walletRepository: WalletRepository
-    dpp: DashPlatformProtocolWASM
+  keypairRepository: KeypairRepository
+  identitiesRepository: IdentitiesRepository
+  walletRepository: WalletRepository
+  dpp: DashPlatformProtocolWASM
 
-    constructor(identitiesRepository: IdentitiesRepository, keypairRepository: KeypairRepository, dpp: DashPlatformProtocolWASM) {
-        this.identitiesRepository = identitiesRepository
-        this.keypairRepository = keypairRepository
-        this.dpp = dpp
+  constructor (identitiesRepository: IdentitiesRepository, keypairRepository: KeypairRepository, dpp: DashPlatformProtocolWASM) {
+    this.identitiesRepository = identitiesRepository
+    this.keypairRepository = keypairRepository
+    this.dpp = dpp
+  }
+
+  async handle (event: EventData): Promise<VoidResponse> {
+    const payload: CreateIdentityPayload = event.payload
+    const wallet = await this.walletRepository.getCurrent()
+
+    if (wallet == null) {
+      throw new Error('No wallet is chosen')
     }
 
-    async handle(event: EventData): Promise<VoidResponse> {
-        const payload: CreateIdentityPayload = event.payload
-        const wallet = await this.walletRepository.getCurrent()
+    // store identity public keys
+    const identity = await this.identitiesRepository.getByIdentifier(payload.identifier)
 
-        if (!wallet) {
-            throw new Error('No wallet is chosen')
-        }
+    if (identity != null) {
+      throw new Error(`Identity with identifier ${payload.identifier} already exists`)
+    }
 
-        // store identity public keys
-        const identity = await this.identitiesRepository.getByIdentifier(payload.identifier)
+    const identityPublicKeysWASM = payload.identityPublicKeys.map(identityPublicKey => this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(identityPublicKey)))
 
-        if (identity) {
-            throw new Error(`Identity with identifier ${payload.identifier} already exists`)
-        }
-
-        const identityPublicKeysWASM = payload.identityPublicKeys.map(identityPublicKey => this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(identityPublicKey)))
-
-        if (wallet.type === WalletType.keystore) {
-            // check if all private keys belongs to identity public keys
-            if (!payload.privateKeys
-                .every(privateKey => identityPublicKeysWASM
-                    .some(identityPublicKey => identityPublicKey.getPublicKeyHash() ===
+    if (wallet.type === WalletType.keystore) {
+      // check if all private keys belongs to identity public keys
+      if (!payload.privateKeys
+        .every(privateKey => identityPublicKeysWASM
+          .some(identityPublicKey => identityPublicKey.getPublicKeyHash() ===
                         this.dpp.PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash()))) {
-                throw new Error(`Private key does not belong to any of identity's public keys`)
-            }
+        throw new Error('Private key does not belong to any of identity\'s public keys')
+      }
 
-            for (const privateKey of payload.privateKeys) {
-                const [identityPublicKey] = identityPublicKeysWASM
-                    .filter((identityPublicKey) => identityPublicKey.getPublicKeyHash() ===
+      for (const privateKey of payload.privateKeys) {
+        const [identityPublicKey] = identityPublicKeysWASM
+          .filter((identityPublicKey) => identityPublicKey.getPublicKeyHash() ===
                         this.dpp.PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash())
 
-                await this.keypairRepository.add(payload.identifier, privateKey, identityPublicKey)
-            }
-        }
-
-        await this.identitiesRepository.create(payload.index, payload.identifier, identityPublicKeysWASM)
-
-        return {}
+        await this.keypairRepository.add(payload.identifier, privateKey, identityPublicKey)
+      }
     }
 
-    validatePayload(payload: CreateIdentityPayload): string | null {
-        try {
-            new this.dpp.IdentifierWASM(payload.identifier)
-        } catch (e) {
-            return 'Could not decode identity identifier'
-        }
+    await this.identitiesRepository.create(payload.index, payload.identifier, identityPublicKeysWASM)
 
-        if (!payload?.privateKeys?.length) {
-            return 'Private keys are missing'
-        }
+    return {}
+  }
 
-        if (!payload.privateKeys.every(privateKey => typeof privateKey === 'string' && validateHex(privateKey))) {
-            return 'Private keys should be in hex format'
-        }
-
-        return null
+  validatePayload (payload: CreateIdentityPayload): string | null {
+    try {
+      new this.dpp.IdentifierWASM(payload.identifier)
+    } catch (e) {
+      return 'Could not decode identity identifier'
     }
+
+    if (!payload?.privateKeys?.length) {
+      return 'Private keys are missing'
+    }
+
+    if (!payload.privateKeys.every(privateKey => typeof privateKey === 'string' && validateHex(privateKey))) {
+      return 'Private keys should be in hex format'
+    }
+
+    return null
+  }
 }

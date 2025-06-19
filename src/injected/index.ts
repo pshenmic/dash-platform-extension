@@ -1,15 +1,15 @@
 // This file injects on webpages by extension
 
-import {DashPlatformSDK} from 'dash-platform-sdk'
+import { DashPlatformSDK } from 'dash-platform-sdk'
+
+import { ExtensionSigner } from './ExtensionSigner'
+import { PublicAPIClient } from '../types/PublicAPIClient'
 
 declare global {
-    interface Window {
-        dashPlatformSDK: DashPlatformSDK
-    }
+  interface Window {
+    dashPlatformSDK: DashPlatformSDK
+  }
 }
-
-import {ExtensionSigner} from "./ExtensionSigner";
-import {PublicAPIClient} from "../types/PublicAPIClient";
 
 const signer = { signStateTransition: () => {} }
 

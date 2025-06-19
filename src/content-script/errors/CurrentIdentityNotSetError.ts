@@ -1,5 +1,5 @@
 export class CurrentIdentityNotSetError extends Error {
-    constructor() {
-        super(`Current identity not set`);
-    }
+  constructor () {
+    super('Current identity not set')
+  }
 }
