@@ -23,7 +23,7 @@ export const CopyButton: React.FC<CopyButtonProps> = ({ text, className, ...prop
       onClick={e => {
         e.stopPropagation()
         e.preventDefault()
-        copyToClipboard(text, () => {})
+        copyToClipboard(text)
       }}
       {...props}
     >

@@ -18,9 +18,10 @@ const publicAPI = new PublicAPI(sdk, extensionStorageAdapter)
 privateAPI.init()
 publicAPI.init()
 
-function injectScript (src) {
+function injectScript (src: string): void {
   const s = document.createElement('script')
   s.src = chrome.runtime.getURL(src);
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   (document.head || document.documentElement).append(s)
 }
 

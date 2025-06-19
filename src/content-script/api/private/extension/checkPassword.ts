@@ -18,7 +18,7 @@ export class CheckPasswordHandler implements APIHandler {
 
     const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey')
 
-    if (!passwordPublicKey) {
+    if (passwordPublicKey == null) {
       throw new Error('Password is not set')
     }
 
@@ -31,7 +31,7 @@ export class CheckPasswordHandler implements APIHandler {
   }
 
   validatePayload (payload: CheckPasswordPayload): string | null {
-    if (!payload.password) {
+    if (typeof payload.password !== 'string' || payload.password.length === 0) {
       return 'Password must be included in the payload'
     }
 

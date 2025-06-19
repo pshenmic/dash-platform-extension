@@ -25,7 +25,7 @@ export class PublicAPI {
     [key: string]: APIHandler
   }
 
-  init () {
+  init (): void {
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter, this.sdk.dpp)
 
@@ -43,11 +43,11 @@ export class PublicAPI {
         return
       }
 
-      const { id, method, payload, error } = data
+      const { id, method, payload } = data
 
       const handler = this.handlers[event.data.method]
 
-      if (!handler) {
+      if (handler == null) {
         const message: EventData = {
           id,
           context: 'dash-platform-extension',
@@ -62,7 +62,7 @@ export class PublicAPI {
 
       const validation = handler.validatePayload(payload)
 
-      if (validation) {
+      if (validation != null) {
         throw new PayloadNotValidError(validation)
       }
 

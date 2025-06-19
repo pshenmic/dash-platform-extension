@@ -16,9 +16,9 @@ export class SetupPasswordHandler implements APIHandler {
   async handle (event: EventData): Promise<VoidResponse> {
     const payload: SetupPasswordPayload = event.payload
 
-    const isSet = await this.storageAdapter.get('passwordPublicKey')
+    const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey')
 
-    if (isSet) {
+    if (passwordPublicKey != null) {
       throw new Error('Password already set')
     }
 
@@ -31,7 +31,7 @@ export class SetupPasswordHandler implements APIHandler {
   }
 
   validatePayload (payload: SetupPasswordPayload): string | null {
-    if (!payload.password) {
+    if (typeof payload.password !== 'string' || payload.password.length === 0) {
       return 'Password must be included in the payload'
     }
 

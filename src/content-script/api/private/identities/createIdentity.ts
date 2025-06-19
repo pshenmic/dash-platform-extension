@@ -5,7 +5,6 @@ import { APIHandler } from '../../APIHandler'
 import { DashPlatformProtocolWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { WalletType } from '../../../../types/WalletType'
-import { base64 } from '@scure/base'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { validateHex } from '../../../../utils'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
@@ -43,7 +42,7 @@ export class CreateIdentityHandler implements APIHandler {
     const identityPublicKeysWASM = await this.sdk.identities.getIdentityPublicKeys(payload.identifier)
 
     if (wallet.type === WalletType.keystore) {
-      if (!payload.privateKeys) {
+      if (payload.privateKeys == null) {
         throw new Error('Private keys must be provided when wallet type is keystore')
       }
 
@@ -71,12 +70,13 @@ export class CreateIdentityHandler implements APIHandler {
 
   validatePayload (payload: CreateIdentityPayload): string | null {
     try {
+      // eslint-disable-next-line no-new
       new this.dpp.IdentifierWASM(payload.identifier)
     } catch (e) {
       return 'Could not decode identity identifier'
     }
 
-    if (!payload?.privateKeys?.length) {
+    if (payload.privateKeys == null || payload.privateKeys.length === 0) {
       return 'Private keys are missing'
     }
 
