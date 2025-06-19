@@ -7,7 +7,7 @@ import ValueCard from '../../components/containers/ValueCard'
 import Identifier from '../../components/data/Identifier'
 import Text from '../../text/Text'
 import Button from '../../components/controls/buttons'
-import { Identity } from '../../../types/Identity'
+// import { Identity } from '../../../types/Identity'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
@@ -20,32 +20,82 @@ export default function ApproveTransactionState (): React.JSX.Element {
 
   const [transactionDecodeError, setTransactionDecodeError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
+  const [isLoadingTransaction, setIsLoadingTransaction] = useState<boolean>(false)
+  const [transactionNotFound, setTransactionNotFound] = useState<boolean>(false)
 
-  const [identities] = useState<Identity[]>([])
-  const [currentIdentity] = useState<Identity | null>(null)
+  const [identities, setIdentities] = useState<string[]>([])
+  const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
 
   const [stateTransition, setStateTransition] = useState<any>(null)
 
-  if (identities.length === 0) {
-    return <div>No identities</div>
-  }
+  useEffect(() => {
+    const loadData = async (): Promise<void> => {
+      try {
+        // Load all identities and current identity
+        const [availableIdentities, current] = await Promise.all([
+          extensionAPI.getAvailableIdentities(),
+          extensionAPI.getCurrentIdentity()
+        ])
+
+        setIdentities(availableIdentities ?? [])
+        setCurrentIdentity(current)
+
+        console.log('availableIdentities', availableIdentities)
+        console.log('current', current)
+
+        // // Auto-set first identity as current if no current identity is set
+        // if ((current == null || current === '') && (availableIdentities?.length ?? 0) > 0) {
+        //   console.log('Setting first identity as current:', availableIdentities[0])
+        //   try {
+        //     await extensionAPI.switchIdentity(availableIdentities[0])
+        //     setCurrentIdentity(availableIdentities[0])
+        //   } catch (error) {
+        //     console.error('Failed to set current identity:', error)
+        //   }
+        // }
+      } catch (error) {
+        console.error('Failed to load identities:', error)
+      }
+    }
+
+    void loadData()
+  }, [])
 
   useEffect(() => {
-    if (params.hash != null) {
+    const transactionHash = params.hash ?? params.txhash
+    if (transactionHash != null) {
+      setIsLoadingTransaction(true)
+      setTransactionNotFound(false)
+      setTransactionDecodeError(null)
+
+      console.log('Loading transaction with hash:', transactionHash)
+
       extensionAPI
-        .getStateTransition(params.hash)
+        .getStateTransition(transactionHash)
         .then((stateTransitionResponse: GetStateTransitionResponse) => {
+          console.log('State transition response:', stateTransitionResponse)
           try {
-            const { StateTransitionWASM } = sdk.wasm
+            const { StateTransitionWASM } = sdk.dpp
 
             setStateTransition(StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)))
+            setIsLoadingTransaction(false)
           } catch (e) {
+            console.error('Error decoding state transition:', e)
             setTransactionDecodeError(String(e))
+            setIsLoadingTransaction(false)
           }
         })
-        .catch(console.error)
+        .catch((error) => {
+          console.error('Error getting state transition:', error)
+          setTransactionNotFound(true)
+          setIsLoadingTransaction(false)
+        })
     }
-  }, [])
+  }, [params.hash, params.txhash])
+
+  if (identities.length === 0 && currentIdentity != null && currentIdentity !== '') {
+    return <div>No identities</div>
+  }
 
   const reject = (): void => {
     window.postMessage({ target: 'window', method: 'rejectSigning' })
@@ -90,6 +140,8 @@ export default function ApproveTransactionState (): React.JSX.Element {
     )
   }
 
+  const transactionHash = params.hash ?? params.txhash
+
   return (
     <div className='screen-content'>
       <h1 className='h1-title'>Transaction approval</h1>
@@ -104,30 +156,36 @@ export default function ApproveTransactionState (): React.JSX.Element {
             ellipsis={false}
             className='w-full justify-between'
           >
-            {params.txhash}
+            {transactionHash}
           </Identifier>
         </ValueCard>
 
         <div className='mt-2'>
-          {stateTransition == null
-            ? <Text color='red' weight='bold'>Could not find transaction with hash</Text>
-            : (transactionDecodeError != null
-                ? (
-                  <Text color='red' weight='bold'>
-                    Error decoding state transition, please report the issue
-                  </Text>
-                  )
-                : <TransactionDetails stateTransition={stateTransition} />)}
+          {isLoadingTransaction
+            ? <Text>Loading transaction...</Text>
+            : (transactionNotFound
+                ? <Text color='red' weight='bold'>Could not find transaction with hash</Text>
+                : (transactionDecodeError != null
+                    ? (
+                      <Text color='red' weight='bold'>
+                        Error decoding state transition: {transactionDecodeError}
+                      </Text>
+                      )
+                    : (stateTransition != null && <TransactionDetails stateTransition={stateTransition} />)))}
         </div>
       </ValueCard>
 
-      {stateTransition == null
+      {!isLoadingTransaction && !transactionNotFound && stateTransition == null
         ? <Button onClick={() => { void navigate('/') }} className='mt-2'>Close</Button>
-        : (
+        : (stateTransition != null &&
           <div>
             <Text>Sign with identity:</Text>
             <select>
-              <option>{currentIdentity?.identifier}</option>
+              {identities.map((identifier) =>
+                <option key={identifier} value={identifier}>
+                  {identifier}
+                </option>
+              )}
             </select>
 
             <div className='flex gap-5 mt-5'>
