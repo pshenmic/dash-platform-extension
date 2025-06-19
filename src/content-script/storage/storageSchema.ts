@@ -14,7 +14,6 @@ export interface IdentityStoreSchema {
     index: number
     identifier: string
     label?: string
-    identityPublicKeys: string[]
 }
 
 export interface IdentitiesStoreSchema {

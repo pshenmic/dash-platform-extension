@@ -1,8 +1,8 @@
 import {EventData} from "../../../../types/EventData";
 import {APIHandler} from "../../APIHandler";
 import {GetStatusResponse} from "../../../../types/messages/response/GetStatusResponse";
-import {GetStatusPayload} from "../../../../types/messages/payloads/GetStatusPayload";
 import {StorageAdapter} from "../../../storage/storageAdapter";
+import {EmptyPayload} from "../../../../types/messages/payloads/EmptyPayload";
 
 export class GetStatusHandler implements APIHandler {
     storageAdapter: StorageAdapter
@@ -11,9 +11,7 @@ export class GetStatusHandler implements APIHandler {
         this.storageAdapter = storageAdapter
     }
 
-    async handle(event: EventData): Promise<GetStatusResponse> {
-        const payload: GetStatusPayload = event.payload
-
+    async handle(): Promise<GetStatusResponse> {
         const network = await this.storageAdapter.get('network') as string
         const currentWalletId = (await this.storageAdapter.get('currentWalletId')) as (string | null)
         const currentIdentity = (await this.storageAdapter.get('currentIdentity')) as (string | null)
@@ -22,7 +20,7 @@ export class GetStatusHandler implements APIHandler {
         return { passwordSet: !!passwordPublicKey, network, currentWalletId, currentIdentity}
     }
 
-    validatePayload(payload: GetStatusPayload): string | null {
+    validatePayload(payload: EmptyPayload): string | null {
         return null
     }
 }

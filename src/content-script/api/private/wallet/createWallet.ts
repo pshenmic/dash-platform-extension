@@ -4,7 +4,7 @@ import {DashPlatformProtocolWASM} from "pshenmic-dpp";
 import {CreateWalletPayload} from "../../../../types/messages/payloads/CreateWalletPayload";
 import {WalletRepository} from "../../../repository/WalletRepository";
 import {WalletType} from "../../../../types/WalletType";
-import {CreateWalletResponse} from "../../../../types/messages/response/CreateWalletResponse";
+import {VoidResponse} from "../../../../types/messages/response/VoidResponse";
 
 export class CreateWalletHandler implements APIHandler {
     walletRepository: WalletRepository
@@ -15,7 +15,7 @@ export class CreateWalletHandler implements APIHandler {
         this.dpp = dpp
     }
 
-    async handle(event: EventData): Promise<CreateWalletResponse> {
+    async handle(event: EventData): Promise<VoidResponse> {
         const payload: CreateWalletPayload = event.payload
 
         const walletType = WalletType[payload.walletType]

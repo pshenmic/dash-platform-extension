@@ -3,10 +3,17 @@ import {EventData} from "./EventData";
 import {MessagingMethods} from "./enums/MessagingMethods";
 import {GetStateTransitionResponse} from "./messages/response/GetStateTransitionResponse";
 import {GetCurrentIdentityResponse} from "./messages/response/GetCurrentIdentityResponse";
-import {IdentifierWASM} from 'pshenmic-dpp'
-import {GetAvailableIdentitiesResponse} from "./messages/response/GetAvailableIdentitiesResponse";
 import {GetStatusResponse} from "./messages/response/GetStatusResponse";
 import {SetupPasswordPayload} from "./messages/payloads/SetupPasswordPayload";
+import {VoidResponse} from "./messages/response/VoidResponse";
+import {SwitchIdentityPayload} from "./messages/payloads/SwitchIdentityPayload";
+import {EmptyPayload} from "./messages/payloads/EmptyPayload";
+import {CheckPasswordResponse} from "./messages/response/CheckPasswordResponse";
+import {CheckPasswordPayload} from "./messages/payloads/CheckPasswordPayload";
+import {CreateWalletPayload} from "./messages/payloads/CreateWalletPayload";
+import {CreateIdentityPayload} from "./messages/payloads/CreateIdentityPayload";
+import {GetStateTransitionPayload} from "./messages/payloads/GetStateTransitionPayload";
+import {GetAvailableIdentitiesResponse} from "./messages/response/GetAvailableIdentitiesResponse";
 
 export class PrivateAPIClient {
     constructor() {
@@ -16,77 +23,76 @@ export class PrivateAPIClient {
     }
 
     async getStatus(): Promise<GetStatusResponse> {
-        return this._rpcCall(MessagingMethods.GET_STATUS, {})
+        const payload: EmptyPayload = {}
+
+        return await this._rpcCall(MessagingMethods.CREATE_WALLET, payload) as GetStatusResponse
     }
 
-    async setupPassword(password: string): Promise<GetStatusResponse> {
+    async setupPassword(password: string): Promise<void> {
         const payload: SetupPasswordPayload = {
             password
         }
 
-        return this._rpcCall(MessagingMethods.SETUP_PASSWORD, payload)
+        await this._rpcCall(MessagingMethods.SETUP_PASSWORD, payload)
+
+        return null
     }
 
-    async checkPassword(password: string): Promise<{success: boolean}> {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve({ success: true })
-            }, 500)
-        })
+    async checkPassword(password: string): Promise<CheckPasswordResponse> {
+        const payload: CheckPasswordPayload = {
+            password
+        }
+
+        return await this._rpcCall(MessagingMethods.CHECK_PASSWORD, payload) as CheckPasswordResponse
     }
 
     async createWallet(walletType: string): Promise<void> {
-        const payload = {
-            walletType
-        }
+        const payload: CreateWalletPayload = {walletType}
 
-        return this._rpcCall(MessagingMethods.CREATE_WALLET, payload)
+        await this._rpcCall(MessagingMethods.CREATE_WALLET, payload)
+
+        return null
     }
 
-    async createIdentity(identifier: string, privateKeys: string[]): Promise<void> {
-        const payload = {
+    async createIdentity(identifier:string, privateKeys?: string[]): Promise<void> {
+        const payload: CreateIdentityPayload = {
             identifier,
             privateKeys
         }
 
-        return this._rpcCall(MessagingMethods.CREATE_IDENTITY, payload)
-    }
-
-    async approveStateTransition(hash: string, identity: string): Promise<void> {
-        await this._rpcCall(MessagingMethods.APPROVE_STATE_TRANSITION,
-            {
-                hash,
-                identity
-            })
-    }
-
-    async rejectStateTransition(hash: string): Promise<void> {
-        await this._rpcCall(MessagingMethods.REJECT_STATE_TRANSITION,
-            {
-                hash,
-            })
+        return await this._rpcCall(MessagingMethods.CREATE_IDENTITY, payload)
     }
 
     async getStateTransition(hash: string): Promise<GetStateTransitionResponse> {
-        const eventData: EventData = await this._rpcCall(MessagingMethods.GET_STATE_TRANSITION, {hash})
+        const payload: GetStateTransitionPayload = {
+            hash,
+        }
 
-        return eventData.payload
+        return await this._rpcCall(MessagingMethods.GET_STATE_TRANSITION, payload) as GetStateTransitionResponse
     }
 
-    async getCurrentIdentity(): Promise<IdentifierWASM> {
-        const eventData: EventData = await this._rpcCall(MessagingMethods.GET_CURRENT_IDENTITY, {})
+    async getCurrentIdentity(): Promise<string> {
+        const payload: EmptyPayload = {}
 
-        const payload: GetCurrentIdentityResponse = eventData.payload
+        const {currentIdentity}: GetCurrentIdentityResponse = await this._rpcCall(MessagingMethods.GET_CURRENT_IDENTITY, payload)
 
-        return new IdentifierWASM(payload.currentIdentity)
+        return currentIdentity
     }
 
-    async getAvailableIdentities(): Promise<IdentifierWASM[]> {
-        const eventData: EventData = await this._rpcCall(MessagingMethods.GET_AVAILABLE_IDENTITIES, {})
+    async switchIdentity(identifier: string): Promise<VoidResponse> {
+        const payload: SwitchIdentityPayload = {
+            identity: identifier
+        }
 
-        const payload: GetAvailableIdentitiesResponse = eventData.payload
+        return await this._rpcCall(MessagingMethods.SWITCH_IDENTITY, payload)
+    }
 
-        return payload.identities.map((identity: string) => new IdentifierWASM(identity))
+    async getAvailableIdentities(): Promise<string[]> {
+        const payload: EmptyPayload = {}
+
+        const response:GetAvailableIdentitiesResponse = await this._rpcCall(MessagingMethods.GET_AVAILABLE_IDENTITIES, payload)
+
+        return response.identities
     }
 
     _rpcCall<T>(method: string, payload?: object): Promise<T> {

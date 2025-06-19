@@ -1,8 +1,8 @@
 import {IdentitiesRepository} from "../../../repository/IdentitiesRepository";
 import {EventData} from "../../../../types/EventData";
 import {GetCurrentIdentityResponse} from "../../../../types/messages/response/GetCurrentIdentityResponse";
-import {GetCurrentIdentityPayload} from "../../../../types/messages/payloads/GetCurrentIdentityPayload";
 import {APIHandler} from "../../APIHandler";
+import {EmptyPayload} from "../../../../types/messages/payloads/EmptyPayload";
 
 export class GetCurrentIdentityHandler implements APIHandler {
     identitiesRepository: IdentitiesRepository
@@ -11,13 +11,17 @@ export class GetCurrentIdentityHandler implements APIHandler {
         this.identitiesRepository = identitiesRepository
     }
 
-    async handle(event: EventData): Promise<GetCurrentIdentityResponse> {
-        const identity = await this.identitiesRepository.getCurrentIdentity()
+    async handle(): Promise<GetCurrentIdentityResponse> {
+        const identity = await this.identitiesRepository.getCurrent()
 
-        return {currentIdentity: identity.identifier}
+        if (!identity) {
+            return {currentIdentity: identity.identifier}
+        }
+
+        return {currentIdentity: null}
     }
 
-    validatePayload(payload: GetCurrentIdentityPayload): null | string {
+    validatePayload(payload: EmptyPayload): null | string {
         return null
     }
 }

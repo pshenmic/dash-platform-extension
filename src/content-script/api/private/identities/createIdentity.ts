@@ -3,12 +3,12 @@ import {EventData} from "../../../../types/EventData";
 import {CreateIdentityPayload} from "../../../../types/messages/payloads/CreateIdentityPayload";
 import {APIHandler} from "../../APIHandler";
 import {DashPlatformProtocolWASM} from "pshenmic-dpp";
-import {CreateIdentityResponse} from "../../../../types/messages/response/CreateIdentityResponse";
 import {WalletRepository} from "../../../repository/WalletRepository";
 import {WalletType} from "../../../../types/WalletType";
 import {base64} from "@scure/base";
 import {KeypairRepository} from "../../../repository/KeypairRepository";
 import {validateHex, } from "../../../../utils";
+import {VoidResponse} from "../../../../types/messages/response/VoidResponse";
 
 export class CreateIdentityHandler implements APIHandler {
     keypairRepository: KeypairRepository
@@ -22,9 +22,13 @@ export class CreateIdentityHandler implements APIHandler {
         this.dpp = dpp
     }
 
-    async handle(event: EventData): Promise<CreateIdentityResponse> {
+    async handle(event: EventData): Promise<VoidResponse> {
         const payload: CreateIdentityPayload = event.payload
-        const wallet = await this.walletRepository.get()
+        const wallet = await this.walletRepository.getCurrent()
+
+        if (!wallet) {
+            throw new Error('No wallet is chosen')
+        }
 
         // store identity public keys
         const identity = await this.identitiesRepository.getByIdentifier(payload.identifier)

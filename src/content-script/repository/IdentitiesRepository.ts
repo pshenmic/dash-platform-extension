@@ -1,31 +1,40 @@
 import {StorageAdapter} from "../storage/storageAdapter";
 import {Identity} from "../../types/Identity";
-import {IdentityPublicKeyWASM, DashPlatformProtocolWASM} from 'pshenmic-dpp'
+import {DashPlatformProtocolWASM} from 'pshenmic-dpp'
 import {IdentitiesStoreSchema, IdentityStoreSchema} from "../storage/storageSchema";
-import {base64} from "@scure/base";
+import {DashPlatformSDK} from 'dash-platform-sdk';
 
 export class IdentitiesRepository {
     dpp: DashPlatformProtocolWASM
     storageAdapter: StorageAdapter
+    sdk: DashPlatformSDK
 
-    constructor(storageAdapter: StorageAdapter, dpp: DashPlatformProtocolWASM) {
+    constructor(storageAdapter: StorageAdapter, dpp: DashPlatformProtocolWASM, sdk: DashPlatformSDK) {
+        this.sdk = sdk
         this.dpp = dpp
         this.storageAdapter = storageAdapter
     }
 
-    async create(index: number, identifier: string, identityPublicKeys: IdentityPublicKeyWASM[]): Promise<Identity> {
+    async create(identifier: string): Promise<Identity> {
         const network = await this.storageAdapter.get('network')
         const walletId = await this.storageAdapter.get('currentWalletId')
 
         const storageKey = `identities_${network}_${walletId}`
 
-        const identities = await this.storageAdapter.get(storageKey)
+        const identities = await this.storageAdapter.get(storageKey) as IdentitiesStoreSchema
+
+        if (identities[identifier]) {
+            throw new Error(`Identity with identifier ${identifier} already exists`)
+        }
+
+        const allIdentityIds = Object.entries(identities)
+            .map(([, entry]) => (entry.index))
+        const index = Math.max(...allIdentityIds) + 1
 
         const identityStoreSchema: IdentityStoreSchema = {
             index,
             label: null,
             identifier,
-            identityPublicKeys: identityPublicKeys.map(identityPublicKey => base64.encode(identityPublicKey.toBytes()))
         }
 
         identities[identifier] = identityStoreSchema
@@ -35,7 +44,7 @@ export class IdentitiesRepository {
 
         return {
             identifier: identityStoreSchema.identifier,
-            identityPublicKeys,
+            identityPublicKeys: await this.sdk.identities.getIdentityPublicKeys(identifier),
             index: identityStoreSchema.index,
             label: identityStoreSchema.label
         }
@@ -53,19 +62,17 @@ export class IdentitiesRepository {
             return []
         }
 
-        return Object.entries(identities)
-            .map(([identifier, entry]) =>
+        return await Promise.all( Object.entries(identities)
+            .map(async ([identifier, entry]) =>
                 ({
                         identifier,
-                        identityPublicKeys: entry.identityPublicKeys.map((identityPublicKey) =>
-                            this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(identityPublicKey))),
+                        identityPublicKeys: await this.sdk.identities.getIdentityPublicKeys(identifier),
                         index: entry.index,
                         label: entry.label
                     }
                 )
-            )
+            ))
     }
-
 
     async getByIdentifier(identifier: string): Promise<Identity|null> {
         const network = await this.storageAdapter.get('network')
@@ -85,11 +92,11 @@ export class IdentitiesRepository {
             index: identity.index,
             identifier: identity.identifier,
             label: identity.label,
-            identityPublicKeys: identity.identityPublicKeys.map((identityPublicKey) => this.dpp.IdentityPublicKeyWASM.fromHex(identityPublicKey))
+            identityPublicKeys: await this.sdk.identities.getIdentityPublicKeys(identifier)
         }
     }
 
-    async getCurrentIdentity(): Promise<Identity|null> {
+    async getCurrent(): Promise<Identity|null> {
         const currentIdentity = await this.storageAdapter.get('currentIdentity') as string
 
         if (!currentIdentity) {
@@ -103,5 +110,15 @@ export class IdentitiesRepository {
         }
 
         return identity
+    }
+
+    async switchIdentity(identifier: string) {
+        const identity = await this.getByIdentifier(identifier)
+
+        if (!identity) {
+            throw new Error(`Identity with identifier ${identifier} does not exists`)
+        }
+
+        await this.storageAdapter.set('currentIdentity', identifier)
     }
 }
