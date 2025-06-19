@@ -17,7 +17,7 @@ const localStorageAdapter = {
   async set (object: Record<string, string>): Promise<void> {
     const [storeType] = Object.keys(object)
 
-    const value = object[storeType] ?? {}
+    const value = object[storeType] ?? '{}'
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ [storeType]: JSON.parse(value) }))
   },
   onChanged: {
