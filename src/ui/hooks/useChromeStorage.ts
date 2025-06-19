@@ -1,32 +1,32 @@
 const LOCAL_STORAGE_KEY = 'dash-platform-extension-storage'
 
 const localStorageAdapter = {
-  async get () {
+  async get (): Promise<Record<string, string>> {
     const value = localStorage.getItem(LOCAL_STORAGE_KEY)
 
-    if (!value) {
+    if (value == null || value === '') {
       return {}
     }
 
     const decoded = JSON.parse(value)
 
-    return Object.entries(decoded).reduce((acc, [storeType, value]) => {
+    return Object.entries(decoded).reduce<Record<string, string>>((acc, [storeType, value]) => {
       return { ...acc, [storeType]: JSON.stringify(value) }
     }, {})
   },
-  async set (object) {
+  async set (object: Record<string, string>): Promise<void> {
     const [storeType] = Object.keys(object)
 
-    const value = object[storeType] || {}
+    const value = object[storeType] ?? {}
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ [storeType]: JSON.parse(value) }))
   },
   onChanged: {
-    addListener: () => {}
+    addListener: (): void => {}
   }
 }
 
-export const useChromeStorage = () => {
-  if (!chrome?.storage?.local) {
+export const useChromeStorage = (): any => {
+  if (chrome?.storage?.local == null) {
     return localStorageAdapter
   }
 
