@@ -38,7 +38,7 @@ export const DateBlock: React.FC<DateBlockProps> = ({
   timestamp,
   format = 'all',
   showTime = false,
-  showRelativeTooltip = false,
+  // showRelativeTooltip = false,
   className = ''
 }) => {
   const date = new Date(timestamp)
@@ -59,9 +59,9 @@ export const DateBlock: React.FC<DateBlockProps> = ({
 
   const formattedDate = date.toLocaleDateString('en-GB', options)
 
-  const tooltipContent = showRelativeTooltip
-    ? <TimeDelta endDate={timestamp} showTimestampTooltip={false} />
-    : null
+  // const tooltipContent = showRelativeTooltip
+  //   ? <TimeDelta endDate={timestamp} showTimestampTooltip={false} />
+  //   : null
 
   const content = (
     <div className={infoContainer()}>
@@ -86,7 +86,7 @@ export const DateBlock: React.FC<DateBlockProps> = ({
     </div>
   )
 
-  const wrapperClass = `${wrapperStyles()}${className ? ` ${className}` : ''}`
+  const wrapperClass = `${wrapperStyles()} ${className !== '' ? ` ${className}` : ''}`
 
   return <div className={wrapperClass}>{content}</div>
 
