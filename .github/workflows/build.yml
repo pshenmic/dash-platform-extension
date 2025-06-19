@@ -37,3 +37,18 @@ jobs:
     - name: Build
       run: |
         yarn build
+
+    - id: packExtensionDir
+      uses: cardinalby/webext-buildtools-pack-extension-dir-action@v1
+      with:
+        extensionDir: 'release'
+        zipFilePath: 'release/extension.zip'
+
+    - uses: cardinalby/webext-buildtools-chrome-crx-action@v2
+      with:
+        # zip file made at the packExtensionDir step
+        zipFilePath: 'release/extension.zip'
+        crxFilePath: 'release/extension.crx'
+        privateKey: ${{ secrets.CHROME_CRX_PRIVATE_KEY }}
+        # The following is optional if you need update.xml file
+        #updateXmlPath: 'build/update.xml'
