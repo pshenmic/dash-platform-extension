@@ -14,7 +14,7 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 // import { Identity } from '../../../types/Identity'
 // import { IdentifierWASM } from 'pshenmic-dpp'
 
-export default function () {
+export default function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const [identities, setIdentities] = useState<string[]>([])
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
@@ -22,7 +22,7 @@ export default function () {
   const [transactions, setTransactions] = useState<any[] | null>(null)
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadData = async (): Promise<void> => {
       try {
         // Load all identities and current identity
         const [availableIdentities, current] = await Promise.all([
@@ -37,7 +37,7 @@ export default function () {
         console.log('current', current)
 
         // Auto-set first identity as current if no current identity is set
-        if (!current && availableIdentities.length > 0) {
+        if ((current == null || current === '') && availableIdentities.length > 0) {
           console.log('Setting first identity as current:', availableIdentities[0])
           try {
             await extensionAPI.switchIdentity(availableIdentities[0])
@@ -48,13 +48,13 @@ export default function () {
         }
 
         // Load transactions for current identity (use updated currentIdentity)
-        const activeIdentity = currentIdentity || current
-        if (activeIdentity) {
+        const activeIdentity = (currentIdentity != null && currentIdentity !== '') ? currentIdentity : current
+        if (activeIdentity != null && activeIdentity !== '') {
           try {
             const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${activeIdentity}/transactions`)
             if (response.status === 200) {
               const data = await response.json()
-              if (!data.error) {
+              if (data.error == null) {
                 setTransactions(data.resultSet)
               } else {
                 setTransactionsLoadError(true)
@@ -71,14 +71,12 @@ export default function () {
       }
     }
 
-    loadData()
+    void loadData()
   }, [])
 
-  if (!identities?.length) {
+  if (identities.length === 0) {
     return <NoIdentities />
   }
-
-  console.log('transactions', transactions)
 
   // TODO implement retrieving balance
   const balance = 0
@@ -93,19 +91,21 @@ export default function () {
                 key={identifier}
                 value={identifier}
               >
-              {identifier}
-            </option>)}
+                {identifier}
+              </option>)}
           </select>
 
           <div className='flex flex-col gap-[0.125rem]'>
             <Text dim>Balance</Text>
             <span>
               {!Number.isNaN(Number(balance))
-                ? <Text size='xl' weight='bold' monospace>
-                  <BigNumber>
-                    {balance}
-                  </BigNumber>
-                </Text>
+                ? (
+                  <Text size='xl' weight='bold' monospace>
+                    <BigNumber>
+                      {balance}
+                    </BigNumber>
+                  </Text>
+                  )
                 : <NotActive>N/A</NotActive>}
               <Text
                 size='lg'
@@ -132,10 +132,10 @@ export default function () {
           </div>}
 
         <div className='flex flex-col gap-3 mt-3'>
-          {transactions?.length && transactions.map((transaction) =>
+          {(transactions != null && transactions.length > 0) && transactions.map((transaction) =>
             <a
               target='_blank'
-              href={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}
+              href={`https://testnet.platform-explorer.com/transaction/${String(transaction.hash)}`}
               key={transaction.hash} rel='noreferrer'
             >
               <ValueCard clickable className='flex gap-2'>
