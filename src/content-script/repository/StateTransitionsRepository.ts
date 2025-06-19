@@ -53,7 +53,11 @@ export class StateTransitionsRepository {
 
   async getByHash (hash: string): Promise<StateTransition | null> {
     const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
 
     const storageKey = `stateTransitions_${network}_${walletId}`
 
@@ -73,7 +77,11 @@ export class StateTransitionsRepository {
 
   async update (hash: string, status: StateTransitionStatus, signature?: string, signaturePublicKeyId?: number): Promise<StateTransition> {
     const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
 
     const storageKey = `stateTransitions_${network}_${walletId}`
 
