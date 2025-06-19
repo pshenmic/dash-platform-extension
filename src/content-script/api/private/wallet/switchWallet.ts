@@ -25,7 +25,7 @@ export class SwitchWalletHandler implements APIHandler {
   }
 
   validatePayload (payload: SwitchWalletPayload): string | null {
-    if (!Network[payload.network]) {
+    if (Network[payload.network] == null) {
       return `Unknown network: ${payload.network}`
     }
 

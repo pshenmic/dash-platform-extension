@@ -39,7 +39,7 @@ export class ConnectAppHandler implements APIHandler {
     const [, domainOrIpWithPort] = payload.url.split('://')
     const [domainOrIp, port] = domainOrIpWithPort.split(':')
 
-    if (port && isNaN(Number(port)) || Number(port) > 65535) {
+    if (typeof port !== 'string' || isNaN(Number(port)) || Number(port) > 65535) {
       return 'Port number is not valid'
     }
 
@@ -48,7 +48,7 @@ export class ConnectAppHandler implements APIHandler {
     }
 
     // check it is domain (ex. google.com) or ip address (ipv6 or ipv4)
-    if (!/^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6}$/i.test(domainOrIp) || !validateIp(domainOrIp)) {
+    if (!/^[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,6}$/i.test(domainOrIp) || !(validateIp(domainOrIp) as boolean)) {
       return 'Invalid app domain url'
     }
 

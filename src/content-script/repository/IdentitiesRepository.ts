@@ -16,14 +16,18 @@ export class IdentitiesRepository {
   }
 
   async create (identifier: string): Promise<Identity> {
-    const network = await this.storageAdapter.get('network')
-    const walletId = await this.storageAdapter.get('currentWalletId')
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
 
     const storageKey = `identities_${network}_${walletId}`
 
     const identities = (await this.storageAdapter.get(storageKey) ?? {}) as IdentitiesStoreSchema
 
-    if (identities[identifier]) {
+    if (identities[identifier] != null) {
       throw new Error(`Identity with identifier ${identifier} already exists`)
     }
 
@@ -51,16 +55,16 @@ export class IdentitiesRepository {
   }
 
   async getAll (): Promise<Identity[]> {
-    const network = await this.storageAdapter.get('network')
-    const walletId = await this.storageAdapter.get('currentWalletId')
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
 
     const storageKey = `identities_${network}_${walletId}`
 
     const identities = (await this.storageAdapter.get(storageKey) ?? {}) as IdentitiesStoreSchema
-
-    if (!identities || (Object.keys(identities).length === 0)) {
-      return []
-    }
 
     return await Promise.all(Object.entries(identities)
       .map(async ([identifier, entry]) =>
@@ -75,8 +79,12 @@ export class IdentitiesRepository {
   }
 
   async getByIdentifier (identifier: string): Promise<Identity | null> {
-    const network = await this.storageAdapter.get('network')
-    const walletId = await this.storageAdapter.get('currentWalletId')
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
 
     const storageKey = `identities_${network}_${walletId}`
 
@@ -84,7 +92,7 @@ export class IdentitiesRepository {
 
     const identity = identities[identifier]
 
-    if (!identities[identifier]) {
+    if (identities[identifier] == null) {
       return null
     }
 
@@ -97,9 +105,9 @@ export class IdentitiesRepository {
   }
 
   async getCurrent (): Promise<Identity | null> {
-    const currentIdentity = await this.storageAdapter.get('currentIdentity') as string
+    const currentIdentity = await this.storageAdapter.get('currentIdentity') as string | null
 
-    if (!currentIdentity) {
+    if (currentIdentity == null) {
       return null
     }
 

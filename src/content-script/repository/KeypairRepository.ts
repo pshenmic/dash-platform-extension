@@ -16,18 +16,26 @@ export class KeypairRepository {
   }
 
   async add (identity: string, privateKey: string, identityPublicKey: IdentityPublicKeyWASM): Promise<void> {
-    const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
-    const network = await this.storageAdapter.get('network')
-    const walletId = await this.storageAdapter.get('currentWalletId')
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
 
-    const storageKey = `keypairs_${walletId}_${network}`
+    const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
+
+    if (passwordPublicKey == null) {
+      throw new Error('Password is not set for an extension')
+    }
+
+    const storageKey = `keyPairs_${walletId}_${network}`
 
     const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
 
     let keyPairs: KeyPairSchema[] = keyPairsSchema[identity]
 
-    if (!keyPairs?.length) {
+    if (keyPairs == null || keyPairs.length === 0) {
       keyPairs = []
     }
 
@@ -44,16 +52,20 @@ export class KeypairRepository {
   }
 
   async getByIdentityPublicKey (identifier: string, identityPublicKey: IdentityPublicKeyWASM): Promise<KeyPair | null> {
-    const network = await this.storageAdapter.get('network')
-    const walletId = await this.storageAdapter.get('currentWalletId')
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
-    const storageKey = `keypairs_${walletId}_${network}`
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `keyPairs_${walletId}_${network}`
 
     const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
 
     const keyPairs = keyPairsSchema[identifier]
 
-    if (!keyPairs?.length) {
+    if (keyPairs == null || keyPairs.length === 0) {
       return null
     }
 
@@ -61,7 +73,7 @@ export class KeypairRepository {
       .map((keyPairSchema: KeyPairSchema) => ({ identityPublicKey: this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(keyPairSchema.identityPublicKey)) }))
       .filter((keypair: KeyPair) => keypair.identityPublicKey.getPublicKeyHash() === identityPublicKey.getPublicKeyHash())
 
-    if (keyPair) {
+    if (keyPair != null) {
       return keyPair
     }
 

@@ -1,4 +1,3 @@
-import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { GetStatusResponse } from '../../../../types/messages/response/GetStatusResponse'
 import { StorageAdapter } from '../../../storage/storageAdapter'
@@ -17,7 +16,7 @@ export class GetStatusHandler implements APIHandler {
     const currentIdentity = (await this.storageAdapter.get('currentIdentity')) as (string | null)
     const passwordPublicKey = (await this.storageAdapter.get('passwordPublicKey')) as (string | null)
 
-    return { passwordSet: !!passwordPublicKey, network, currentWalletId, currentIdentity }
+    return { passwordSet: passwordPublicKey != null, network, currentWalletId, currentIdentity }
   }
 
   validatePayload (payload: EmptyPayload): string | null {
