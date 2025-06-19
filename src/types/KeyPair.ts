@@ -1,6 +1,6 @@
-import {IdentityPublicKeyWASM} from "pshenmic-dpp";
+import { IdentityPublicKeyWASM } from 'pshenmic-dpp'
 
 export interface KeyPair {
-    identityPublicKey: IdentityPublicKeyWASM
-    encryptedPrivateKey?: string
+  identityPublicKey: IdentityPublicKeyWASM
+  encryptedPrivateKey?: string
 }

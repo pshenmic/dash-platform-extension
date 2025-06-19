@@ -8,7 +8,7 @@ const valueCard = cva(
     variants: {
       theme: {
         light: 'border-gray-200',
-        dark: 'bg-gray-800/50 border-gray-400',
+        dark: 'bg-gray-800/50 border-gray-400'
       },
       colorScheme: {
         default: '',
@@ -19,44 +19,44 @@ const valueCard = cva(
       },
       size: {
         md: 'px-3 py-2 rounded-xl',
-        sm: 'px-[0.625rem] py-[0.375rem] text-sm leading-[0.875rem] rounded-[0.25]',
+        sm: 'px-[0.625rem] py-[0.375rem] text-sm leading-[0.875rem] rounded-[0.25]'
       },
       clickable: {
         false: '',
-        true: 'cursor-pointer transition-colors active:translate-y-px active:opacity-90',
+        true: 'cursor-pointer transition-colors active:translate-y-px active:opacity-90'
       },
       loading: {
         false: '',
-        true:  'animate-pulse',
+        true: 'animate-pulse'
       },
       border: {
         false: '!border-none',
-        true: '',
-      },
+        true: ''
+      }
     },
     compoundVariants: [
       // default scheme hover
       { theme: 'light', colorScheme: 'default', clickable: true, class: 'hover:bg-gray-200/50' },
-      { theme: 'dark',  colorScheme: 'default', clickable: true, class: 'hover:bg-gray-700/50' },
+      { theme: 'dark', colorScheme: 'default', clickable: true, class: 'hover:bg-gray-700/50' },
       // transparent scheme hover
       { theme: 'light', colorScheme: 'transparent', clickable: true, class: 'hover:bg-gray-100' },
-      { theme: 'dark',  colorScheme: 'transparent', clickable: true, class: 'hover:bg-gray-900' },
+      { theme: 'dark', colorScheme: 'transparent', clickable: true, class: 'hover:bg-gray-900' },
       // green scheme hover
       { theme: 'light', colorScheme: 'green', clickable: true, class: 'hover:bg-green-300' },
-      { theme: 'dark',  colorScheme: 'green', clickable: true, class: 'hover:bg-green-400' },
+      { theme: 'dark', colorScheme: 'green', clickable: true, class: 'hover:bg-green-400' },
       // green lightBlue
       { colorScheme: 'lightBlue', clickable: true, class: 'hover:bg-brand/15' },
       // white
-      { theme: 'light', colorScheme: 'white', clickable: true, class: 'hover:bg-gray-100' },
+      { theme: 'light', colorScheme: 'white', clickable: true, class: 'hover:bg-gray-100' }
     ],
     defaultVariants: {
-      theme:       'light',
+      theme: 'light',
       colorScheme: 'default',
-      size:        'md',
-      clickable:   false,
-      loading:     false,
-      border:      true,
-    },
+      size: 'md',
+      clickable: false,
+      loading: false,
+      border: true
+    }
   }
 )
 
@@ -102,7 +102,7 @@ export const ValueCard: React.FC<ValueCardProps> = ({
     size,
     clickable: isClickable,
     loading,
-    border,
+    border
   }) + (className ? ` ${className}` : '')
 
   // choose element: custom `as`, or <a> if link, else <div>

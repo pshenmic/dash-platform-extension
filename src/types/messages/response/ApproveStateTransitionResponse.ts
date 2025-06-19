@@ -1,5 +1,5 @@
-import {StateTransition} from "../../StateTransition";
+import { StateTransition } from '../../StateTransition'
 
-export interface ApproveStateTransitionResponse  {
-    stateTransition: StateTransition
+export interface ApproveStateTransitionResponse {
+  stateTransition: StateTransition
 }

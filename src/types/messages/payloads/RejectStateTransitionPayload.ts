@@ -1,3 +1,3 @@
 export interface RejectStateTransitionPayload {
-    hash: string
+  hash: string
 }

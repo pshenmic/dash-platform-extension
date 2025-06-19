@@ -1,69 +1,69 @@
-import {MESSAGING_TIMEOUT} from "../constants";
-import {EventData} from "./EventData";
-import {MessagingMethods} from "./enums/MessagingMethods";
-import {ConnectAppResponse} from "./messages/response/ConnectAppResponse";
-import {RequestStateTransitionApprovalResponse} from "./messages/response/RequestStateTransitionApprovalResponse";
-import {GetStateTransitionResponse} from "./messages/response/GetStateTransitionResponse";
-import {GetCurrentIdentityResponse} from "./messages/response/GetCurrentIdentityResponse";
-import {IdentifierWASM} from 'pshenmic-dpp'
-import {CreateIdentityPayload} from "./messages/payloads/CreateIdentityPayload";
-import {GetAvailableIdentitiesResponse} from "./messages/response/GetAvailableIdentitiesResponse";
+import { MESSAGING_TIMEOUT } from '../constants'
+import { EventData } from './EventData'
+import { MessagingMethods } from './enums/MessagingMethods'
+import { ConnectAppResponse } from './messages/response/ConnectAppResponse'
+import { RequestStateTransitionApprovalResponse } from './messages/response/RequestStateTransitionApprovalResponse'
+import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
+import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
+import { IdentifierWASM } from 'pshenmic-dpp'
+import { CreateIdentityPayload } from './messages/payloads/CreateIdentityPayload'
+import { GetAvailableIdentitiesResponse } from './messages/response/GetAvailableIdentitiesResponse'
 
 export class PublicAPIClient {
-    async connectApp(url: string): Promise<ConnectAppResponse> {
-        return await this._rpcCall(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL,
-            {
-                url
-            })
-    }
-    async requestTransactionApproval(base64: string): Promise<RequestStateTransitionApprovalResponse> {
-        return await this._rpcCall(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL,
-            {
-                base64
-            })
-    }
+  async connectApp (url: string): Promise<ConnectAppResponse> {
+    return await this._rpcCall(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL,
+      {
+        url
+      })
+  }
 
-    _rpcCall<T>(method: string, payload?: object): Promise<T> {
-        console.log(`RPC call to extension with method ${method} payload ${JSON.stringify(payload)}`)
-        const id = new Date().getTime() + ''
+  async requestTransactionApproval (base64: string): Promise<RequestStateTransitionApprovalResponse> {
+    return await this._rpcCall(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL,
+      {
+        base64
+      })
+  }
 
-        return new Promise((resolve, reject) => {
-            const rejectWithError = (message: string) => {
-                window.removeEventListener('message', handleMessage)
+  async _rpcCall<T>(method: string, payload?: object): Promise<T> {
+    console.log(`RPC call to extension with method ${method} payload ${JSON.stringify(payload)}`)
+    const id = new Date().getTime() + ''
 
-                reject(message)
-            }
+    return await new Promise((resolve, reject) => {
+      const rejectWithError = (message: string) => {
+        window.removeEventListener('message', handleMessage)
 
-            const handleMessage = (event: MessageEvent) => {
-                const data: EventData = event.data
+        reject(message)
+      }
 
-                if (data.type === 'response' && data.id === id) {
-                    if (data.error) {
-                        return rejectWithError(data.error)
-                    }
+      const handleMessage = (event: MessageEvent) => {
+        const data: EventData = event.data
 
-                    window.removeEventListener('message', handleMessage)
+        if (data.type === 'response' && data.id === id) {
+          if (data.error) {
+            return rejectWithError(data.error)
+          }
 
-                    resolve(data.payload)
-                }
-            }
+          window.removeEventListener('message', handleMessage)
 
-            window.addEventListener('message', handleMessage)
+          resolve(data.payload)
+        }
+      }
 
-            setTimeout(() => {
-                rejectWithError(`Timed out waiting for response of ${method}, (${payload})`)
-            }, MESSAGING_TIMEOUT)
+      window.addEventListener('message', handleMessage)
 
-            const message : EventData = {
-                context: "dash-platform-extension",
-                id,
-                method,
-                payload,
-                type: "request"
-            }
+      setTimeout(() => {
+        rejectWithError(`Timed out waiting for response of ${method}, (${payload})`)
+      }, MESSAGING_TIMEOUT)
 
-            window.postMessage(message)
-        })
-    }
+      const message: EventData = {
+        context: 'dash-platform-extension',
+        id,
+        method,
+        payload,
+        type: 'request'
+      }
+
+      window.postMessage(message)
+    })
+  }
 }
-

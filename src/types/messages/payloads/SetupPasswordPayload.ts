@@ -1,3 +1,3 @@
 export interface SetupPasswordPayload {
-    password: string
+  password: string
 }

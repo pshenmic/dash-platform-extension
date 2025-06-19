@@ -2,8 +2,8 @@ const EventEmitter = require('node:events')
 
 const eventBus = new EventEmitter()
 global.chrome = {
-  runtime:{
-    getURL : () => {
+  runtime: {
+    getURL: () => {
       return 'fake_id'
     }
   }

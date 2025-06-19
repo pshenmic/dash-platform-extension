@@ -1,4 +1,4 @@
-export interface SignStateTransitionResponse  {
-    signature: Uint8Array
-    signaturePublicKeyId: number
+export interface SignStateTransitionResponse {
+  signature: Uint8Array
+  signaturePublicKeyId: number
 }

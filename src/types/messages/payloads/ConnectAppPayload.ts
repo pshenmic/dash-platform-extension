@@ -1,3 +1,3 @@
 export interface ConnectAppPayload {
-    url: string
+  url: string
 }

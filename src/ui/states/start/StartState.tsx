@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
-export default function StartState() {
+export default function StartState () {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [isLoading, setIsLoading] = useState(true)
@@ -36,23 +36,23 @@ export default function StartState() {
   }, [navigate, extensionAPI])
 
   return !error
-    ? <div className={'flex flex-col gap-4 items-center justify-center min-h-[200px]'}>
-        <Text size={'xl'} weight={'bold'}>
-          Dash Platform Extension
-        </Text>
+    ? <div className='flex flex-col gap-4 items-center justify-center min-h-[200px]'>
+      <Text size='xl' weight='bold'>
+        Dash Platform Extension
+      </Text>
 
-        {isLoading && (
-          <Text color={'blue'}>
-            Loading...
-          </Text>
-        )}
+      {isLoading && (
+        <Text color='blue'>
+          Loading...
+        </Text>
+      )}
       </div>
-    : <div className={'flex flex-col gap-4 items-center justify-center min-h-[200px]'}>
-        <Text size={'lg'} color={'red'}>
-          Error
-        </Text>
-        <Text size={'sm'} color={'red'}>
-          {error}
-        </Text>
+    : <div className='flex flex-col gap-4 items-center justify-center min-h-[200px]'>
+      <Text size='lg' color='red'>
+        Error
+      </Text>
+      <Text size='sm' color='red'>
+        {error}
+      </Text>
       </div>
 }

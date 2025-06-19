@@ -4,7 +4,7 @@ module.exports = {
     './src/**/*.{js,jsx,ts,tsx,html,pcss}'
   ],
   theme: {
-    extend: {},
+    extend: {}
   },
-  plugins: [],
+  plugins: []
 }

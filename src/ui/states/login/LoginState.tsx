@@ -4,7 +4,7 @@ import { Button } from '../../components/controls/buttons'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
-export default function LoginState() {
+export default function LoginState () {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [password, setPassword] = useState('')
@@ -35,41 +35,41 @@ export default function LoginState() {
   }
 
   return (
-    <div className={'flex flex-col gap-4'}>
-      <Text size={'xl'} weight={'bold'}>
+    <div className='flex flex-col gap-4'>
+      <Text size='xl' weight='bold'>
         Enter Password
       </Text>
-      
-      <Text color={'blue'}>
+
+      <Text color='blue'>
         Enter your password to unlock the wallet
       </Text>
 
-      <div className={'flex flex-col gap-2'}>
+      <div className='flex flex-col gap-2'>
         <input
-          type={'password'}
-          placeholder={'Enter password'}
+          type='password'
+          placeholder='Enter password'
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-          className={'p-3 border rounded'}
+          onKeyPress={async (e) => await (e.key === 'Enter' && handleLogin())}
+          className='p-3 border rounded'
           autoFocus
         />
       </div>
 
       {error && (
-        <div className={'text-red-500 text-sm'}>
+        <div className='text-red-500 text-sm'>
           {error}
         </div>
       )}
 
       <Button
-        colorScheme={'brand'}
+        colorScheme='brand'
         onClick={handleLogin}
         disabled={!password || isLoading}
-        className={'w-full'}
+        className='w-full'
       >
         {isLoading ? 'Logging in...' : 'Login'}
       </Button>
     </div>
   )
-} 
+}

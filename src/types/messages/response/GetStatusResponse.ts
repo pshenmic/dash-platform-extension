@@ -1,5 +1,6 @@
 export interface GetStatusResponse {
-    network: string
-    currentWalletId?: string
-    passwordSet: boolean
+  network: string
+  currentWalletId: string | null
+  currentIdentity: string | null
+  passwordSet: boolean
 }

@@ -5,13 +5,15 @@ import ValueCard from '../../components/containers/ValueCard'
 import Text from '../../text/Text'
 import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
-import Identifier from "../../components/data/Identifier";
-import StatusIcon from "../../components/icons/StatusIcon";
+import Identifier from '../../components/data/Identifier'
+import StatusIcon from '../../components/icons/StatusIcon'
 import { TransactionTypes } from '../../../enums/TransactionTypes'
-import DateBlock from "../../components/data/DateBlock";
+import DateBlock from '../../components/data/DateBlock'
 import './home.state.css'
-import {useExtensionAPI} from "../../hooks/useExtensionAPI";
-import {Identity} from "../../../types/Identity";
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { Identity } from '../../../types/Identity'
+import { IdentifierWASM } from 'pshenmic-dpp'
+
 export default function () {
   const extensionAPI = useExtensionAPI()
   const [identities, setIdentities] = useState<string[]>([])
@@ -27,7 +29,7 @@ export default function () {
           extensionAPI.getAvailableIdentities(),
           extensionAPI.getCurrentIdentity()
         ])
-        
+
         setIdentities(availableIdentities)
         setCurrentIdentity(current)
 
@@ -82,9 +84,9 @@ export default function () {
   let balance = 0
 
   return (
-    <div className={'screen-content'}>
-      <ValueCard colorScheme={'lightBlue'}>
-        <div className={'flex flex-col gap-1'}>
+    <div className='screen-content'>
+      <ValueCard colorScheme='lightBlue'>
+        <div className='flex flex-col gap-1'>
           <select>
             {identities.map((identifier) => <option
               key={identifier}
@@ -97,16 +99,15 @@ export default function () {
             <Text dim>Balance</Text>
             <span>
               {!Number.isNaN(Number(balance))
-                ? <Text size={'xl'} weight={'bold'} monospace>
+                ? <Text size='xl' weight='bold' monospace>
                   <BigNumber>
                     {balance}
                   </BigNumber>
                 </Text>
-                : <NotActive>N/A</NotActive>
-              }
+                : <NotActive>N/A</NotActive>}
               <Text
-                size={'lg'}
-                className={'ml-2'}
+                size='lg'
+                className='ml-2'
               >
                 Credits
               </Text>
@@ -115,13 +116,13 @@ export default function () {
         </div>
       </ValueCard>
 
-      <div className={'flex gap-5'}>
-        <Button className={'w-1/2'} disabled>Send</Button>
-        <Button colorScheme={'gray'} variant={'outline'} className={'w-1/2'} disabled>Withdraw</Button>
+      <div className='flex gap-5'>
+        <Button className='w-1/2' disabled>Send</Button>
+        <Button colorScheme='gray' variant='outline' className='w-1/2' disabled>Withdraw</Button>
       </div>
 
       <div>
-        <Text size={'lg'} weight={'bold'}>Transactions:</Text>
+        <Text size='lg' weight='bold'>Transactions:</Text>
 
         {transactionsLoadError &&
           <div>
@@ -129,28 +130,28 @@ export default function () {
           </div>
         }
 
-        <div className={'flex flex-col gap-3 mt-3'}>
+        <div className='flex flex-col gap-3 mt-3'>
           {transactions?.length && transactions.map((transaction) =>
             <a
-              target={'_blank'}
+              target='_blank'
               href={`https://testnet.platform-explorer.com/transaction/${transaction.hash}`}
-              key={transaction.hash}
+              key={transaction.hash} rel='noreferrer'
             >
-              <ValueCard clickable className={'flex gap-2'}>
-                <StatusIcon size={16} status={transaction.status} className={'shrink-0'}/>
+              <ValueCard clickable className='flex gap-2'>
+                <StatusIcon size={16} status={transaction.status} className='shrink-0' />
 
-                <div className={'flex flex-col gap-1 justify-between grow'}>
-                  <Text size={'sm'}>{TransactionTypes[transaction.type]}</Text>
-                  <DateBlock timestamp={transaction.timestamp} format={'dateOnly'}/>
+                <div className='flex flex-col gap-1 justify-between grow'>
+                  <Text size='sm'>{TransactionTypes[transaction.type]}</Text>
+                  <DateBlock timestamp={transaction.timestamp} format='dateOnly' />
                 </div>
 
-                <div className={'flex flex-col gap-1 overflow-hidden max-w-full'}>
+                <div className='flex flex-col gap-1 overflow-hidden max-w-full'>
                   <Identifier
-                    highlight={'dim'}
+                    highlight='dim'
                     maxLines={2}
-                    className={'overflow-hidden max-w-full w-[8rem]'}
+                    className='overflow-hidden max-w-full w-[8rem]'
                   >
-                  {transaction.hash}
+                    {transaction.hash}
                   </Identifier>
                 </div>
               </ValueCard>
