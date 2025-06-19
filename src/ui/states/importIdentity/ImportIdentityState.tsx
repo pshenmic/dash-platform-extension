@@ -10,8 +10,6 @@ import { NotActive } from '../../components/data/NotActive'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
-const checkHex = (string) => /\b[0-9A-F]{64}/gi.test(string)
-
 export default function () {
   const navigate = useNavigate()
   const sdk = useSdk()
@@ -129,7 +127,7 @@ export default function () {
       const privateKeys = [privateKeyHex]
       const index = 0
 
-      await extensionAPI.createIdentity(identifier, identityPublicKeys, privateKeys, index)
+      await extensionAPI.createIdentity(identifier, privateKeys)
 
       navigate('/')
     } catch (e) {

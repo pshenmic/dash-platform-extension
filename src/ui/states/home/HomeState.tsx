@@ -40,7 +40,7 @@ export default function () {
         if (!current && availableIdentities.length > 0) {
           console.log('Setting first identity as current:', availableIdentities[0])
           try {
-            await extensionAPI.setCurrentIdentity(availableIdentities[0])
+            await extensionAPI.switchIdentity(availableIdentities[0])
             setCurrentIdentity(availableIdentities[0])
           } catch (error) {
             console.error('Failed to set current identity:', error)
