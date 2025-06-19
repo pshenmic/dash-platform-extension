@@ -25,7 +25,7 @@ export class PrivateAPIClient {
   async getStatus (): Promise<GetStatusResponse> {
     const payload: EmptyPayload = {}
 
-    return await this._rpcCall(MessagingMethods.CREATE_WALLET, payload)
+    return await this._rpcCall(MessagingMethods.GET_STATUS, payload)
   }
 
   async setupPassword (password: string): Promise<void> {
