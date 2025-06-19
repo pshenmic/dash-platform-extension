@@ -1,7 +1,7 @@
 import { AppConnect } from '../../types/AppConnect'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { AppConnectsStorageSchema } from '../storage/storageSchema'
-import {AppConnectStatus} from "../../types/enums/AppConnectStatus";
+import { AppConnectStatus } from '../../types/enums/AppConnectStatus'
 
 export class AppConnectRepository {
   storageKey: string

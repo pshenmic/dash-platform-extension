@@ -4,10 +4,23 @@ const eventBus = new EventEmitter()
 global.chrome = {
   runtime: {
     getURL: () => {
-      return 'fake_id'
-    }
+      return 'fake_url'
+    },
+    onMessage: {
+      removeListener (listener) {
+        eventBus.removeListener('message', listener)
+      },
+      addListener (listener) {
+        eventBus.on('message', listener)
+      },
+      dispatch (message) {
+        eventBus.emit('message', message)
+      }
+    },
+
   }
 }
+
 global.window = {
   addEventListener (type, listener, options) {
     eventBus.on(type, listener)

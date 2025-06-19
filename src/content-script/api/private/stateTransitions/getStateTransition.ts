@@ -15,7 +15,7 @@ export class GetStateTransitionHandler implements APIHandler {
   async handle (event: EventData): Promise<GetStateTransitionResponse> {
     const payload: GetStateTransitionPayload = event.payload
 
-    const stateTransition = await this.stateTransitionsRepository.get(payload.hash)
+    const stateTransition = await this.stateTransitionsRepository.getByHash(payload.hash)
 
     if (stateTransition == null) {
       throw new Error(`Could not find state transition by hash ${payload.hash}`)

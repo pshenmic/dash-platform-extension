@@ -4,8 +4,7 @@ import { DashPlatformProtocolWASM } from 'pshenmic-dpp'
 import { CreateWalletPayload } from '../../../../types/messages/payloads/CreateWalletPayload'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { WalletType } from '../../../../types/WalletType'
-import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
-import {CreateWalletResponse} from "../../../../types/messages/response/CreateWalletResponse";
+import { CreateWalletResponse } from '../../../../types/messages/response/CreateWalletResponse'
 
 export class CreateWalletHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -23,7 +22,7 @@ export class CreateWalletHandler implements APIHandler {
 
     const wallet = await this.walletRepository.create(walletType)
 
-    return { walletId: wallet.walletId}
+    return { walletId: wallet.walletId }
   }
 
   validatePayload (payload: CreateWalletPayload): string | null {

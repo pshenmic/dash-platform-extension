@@ -43,7 +43,7 @@ export class WalletRepository {
 
     await this.storageAdapter.set(storageKey, walletSchema)
 
-    return {...walletSchema, type: WalletType[walletSchema.type]}
+    return { ...walletSchema, type: WalletType[walletSchema.type] }
   }
 
   async getCurrent (): Promise<Wallet | null> {
@@ -75,7 +75,7 @@ export class WalletRepository {
     const currentWallet = await this.getCurrent()
     const network = await this.storageAdapter.get('network') as string
 
-    if (!currentWallet) {
+    if (currentWallet == null) {
       throw new Error('Wallet is not chosen')
     }
 
@@ -89,7 +89,7 @@ export class WalletRepository {
 
     const identity = await this.identitiesRepository.getByIdentifier(identifier)
 
-    if (!identity) {
+    if (identity == null) {
       throw new Error(`Identity with identifier ${identifier} does not exists`)
     }
 

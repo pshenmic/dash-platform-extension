@@ -24,7 +24,7 @@ export const validateIdentifier = (str: string): boolean => {
   try {
     const bytes = base58.decode(str)
 
-    return bytes.length === 64
+    return bytes.length === 32
   } catch (e) {
     return false
   }

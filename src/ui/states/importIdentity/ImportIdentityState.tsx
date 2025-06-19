@@ -53,7 +53,7 @@ export default function () {
         return setError('Could not decode private key from WIF')
       }
     } else if (privateKey.length === 64) {
-      //hex
+      // hex
       try {
         pkeyWASM = sdk.dpp.PrivateKeyWASM.fromHex(privateKey, 'testnet')
         setPrivateKeyWASM(pkeyWASM)
@@ -171,16 +171,15 @@ export default function () {
 
           <div>
             <Button
-              colorScheme={'brand'}
+              colorScheme='brand'
               disabled={!privateKey || isLoading}
-              className={'w-full'}
+              className='w-full'
               onClick={checkPrivateKey}
             >
               {isLoading ? 'Checking...' : 'Check'}
             </Button>
           </div>
-        </div>
-      }
+        </div>}
 
       {identity &&
         <div className='flex flex-col gap-[0.875rem]'>
@@ -226,15 +225,14 @@ export default function () {
             </div>
           </ValueCard>
           <Button
-            colorScheme={'brand'}
+            colorScheme='brand'
             disabled={!privateKey || isLoading}
-            className={'w-full'}
+            className='w-full'
             onClick={importIdentity}
           >
             {isLoading ? 'Importing...' : 'Import'}
           </Button>
-        </div>
-      }
+        </div>}
     </div>
   )
 }

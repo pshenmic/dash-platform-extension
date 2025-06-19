@@ -14,8 +14,13 @@ import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
 import { CreateIdentityPayload } from './messages/payloads/CreateIdentityPayload'
 import { GetStateTransitionPayload } from './messages/payloads/GetStateTransitionPayload'
 import { GetAvailableIdentitiesResponse } from './messages/response/GetAvailableIdentitiesResponse'
-import {CreateWalletResponse} from "./messages/response/CreateWalletResponse";
-import {SwitchWalletPayload} from "./messages/payloads/SwitchWalletPayload";
+import { CreateWalletResponse } from './messages/response/CreateWalletResponse'
+import { SwitchWalletPayload } from './messages/payloads/SwitchWalletPayload'
+import {ApproveStateTransitionPayload} from "./messages/payloads/ApproveStateTransitionPayload";
+import {IdentityPublicKeyWASM} from "pshenmic-dpp";
+import {ApproveStateTransitionResponse} from "./messages/response/ApproveStateTransitionResponse";
+import {RejectStateTransitionPayload} from "./messages/payloads/RejectStateTransitionPayload";
+import {RejectStateTransitionResponse} from "./messages/response/RejectStateTransitionResponse";
 
 export class PrivateAPIClient {
   constructor () {
@@ -51,7 +56,7 @@ export class PrivateAPIClient {
   async createWallet (walletType: string): Promise<CreateWalletResponse> {
     const payload: CreateWalletPayload = { walletType }
 
-    return await this._rpcCall(MessagingMethods.CREATE_WALLET, payload) as CreateWalletResponse
+    return await this._rpcCall(MessagingMethods.CREATE_WALLET, payload)
   }
 
   async switchWallet (walletId: string, network: string): Promise<void> {
@@ -67,14 +72,6 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY, payload)
-  }
-
-  async getStateTransition (hash: string): Promise<GetStateTransitionResponse> {
-    const payload: GetStateTransitionPayload = {
-      hash
-    }
-
-    return await this._rpcCall(MessagingMethods.GET_STATE_TRANSITION, payload)
   }
 
   async getCurrentIdentity (): Promise<string> {
@@ -101,14 +98,45 @@ export class PrivateAPIClient {
     return response.identities
   }
 
+  async approveStateTransition(hash: string, identity: string, identityPublicKey: IdentityPublicKeyWASM, password:string): Promise<ApproveStateTransitionResponse> {
+    const payload: ApproveStateTransitionPayload = {
+      hash,
+      identity,
+      identityPublicKey: identityPublicKey.toBase64(),
+      password
+    }
+
+    const response: ApproveStateTransitionResponse = await this._rpcCall(MessagingMethods.APPROVE_STATE_TRANSITION, payload)
+
+    return response
+  }
+
+  async rejectStateTransition(hash: string): Promise<RejectStateTransitionResponse> {
+    const payload: RejectStateTransitionPayload  = {
+      hash,
+    }
+
+    const response: RejectStateTransitionResponse = await this._rpcCall(MessagingMethods.REJECT_STATE_TRANSITION, payload)
+
+    return response
+  }
+
+  async getStateTransition(hash: string): Promise<GetStateTransitionResponse> {
+    const payload: GetStateTransitionPayload  = {
+      hash,
+    }
+
+    const response: GetStateTransitionResponse = await this._rpcCall(MessagingMethods.GET_STATE_TRANSITION, payload)
+
+    return response
+  }
+
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
     console.log(`RPC call to extension with method ${method} payload ${JSON.stringify(payload)}`)
     const id = new Date().getTime() + ''
 
     return await new Promise((resolve, reject) => {
-      const rejectWithError = (message: string) => {
-        chrome.runtime.onMessage.removeListener(handleMessage)
-
+      const rejectWithError = (message: string) => {chrome.runtime.onMessage.removeListener(handleMessage)
         reject(message)
       }
 

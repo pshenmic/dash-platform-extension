@@ -86,7 +86,17 @@ export class PrivateAPI {
       const validation = handler.validatePayload(payload)
 
       if (validation) {
-        throw new PayloadNotValidError(validation)
+        const message: EventData = {
+          id,
+          context: 'dash-platform-extension',
+          type: 'response',
+          method,
+          payload: null,
+          error: validation
+        }
+
+        // @ts-expect-error
+        return chrome.runtime.onMessage.dispatch(message)
       }
 
       handler.handle(data)

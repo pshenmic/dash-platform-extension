@@ -62,7 +62,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       throw new Error('Seedphrases are not supported yet')
     }
 
-    const stateTransition = await this.stateTransitionsRepository.get(payload.hash)
+    const stateTransition = await this.stateTransitionsRepository.getByHash(payload.hash)
 
     if (!stateTransition) {
       throw new Error(`Could not find state transition with hash ${payload.hash} for signing`)
