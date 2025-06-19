@@ -1,9 +1,9 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
 
-let sdk
+let sdk: DashPlatformSDK | null = null
 
-export const useSdk = () => {
-  if (!sdk) {
+export const useSdk = (): DashPlatformSDK => {
+  if (sdk == null) {
     sdk = new DashPlatformSDK()
   }
 
