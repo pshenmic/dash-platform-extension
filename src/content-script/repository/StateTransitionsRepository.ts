@@ -15,10 +15,17 @@ export class StateTransitionsRepository {
   }
 
   async create (stateTransitionWASM: StateTransitionWASM): Promise<StateTransition> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
     const hash = stateTransitionWASM.hash(true)
     const unsigned = base64.encode(stateTransitionWASM.toBytes())
 
-    const storageKey = 'stateTransitions'
+    const storageKey = `stateTransitions_${network}_${walletId}`
 
     const stateTransitions = (await this.storageAdapter.get(storageKey) ?? {}) as StateTransitionsStoreSchema
 
