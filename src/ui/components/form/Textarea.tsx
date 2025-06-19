@@ -68,11 +68,11 @@ const Textarea: React.FC<TextareaProps> = ({
   className = '',
   ...props
 }) => {
-  const [value, setValue] = useState<string>(props.value as string || props.defaultValue as string || '')
+  const [value, setValue] = useState<string>((props.value as string) ?? (props.defaultValue as string) ?? '')
   const [isValid, setIsValid] = useState<boolean | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
     const newValue = e.target.value
     setValue(newValue)
 
@@ -83,7 +83,7 @@ const Textarea: React.FC<TextareaProps> = ({
     validateInput(newValue)
   }
 
-  const validateInput = (input: string) => {
+  const validateInput = (input: string): void => {
     if (validator === null) {
       setIsValid(null)
       return
@@ -96,25 +96,26 @@ const Textarea: React.FC<TextareaProps> = ({
     }
   }
 
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText()
-      if (text) {
-        setValue(text)
-        if (textareaRef.current != null) {
-          textareaRef.current.value = text
+  const handlePaste = (): void => {
+    navigator.clipboard.readText()
+      .then((text) => {
+        if (text !== '') {
+          setValue(text)
+          if (textareaRef.current != null) {
+            textareaRef.current.value = text
+          }
+          if (onChange != null) {
+            onChange(text)
+          }
+          validateInput(text)
         }
-        if (onChange != null) {
-          onChange(text)
-        }
-        validateInput(text)
-      }
-    } catch (err) {
-      console.error('Failed to read clipboard contents: ', err)
-    }
+      })
+      .catch((err) => {
+        console.error('Failed to read clipboard contents: ', err)
+      })
   }
 
-  const hasValue = Boolean(value)
+  const hasValue = value !== ''
 
   return (
     <div
