@@ -52,3 +52,8 @@ jobs:
         privateKey: ${{ secrets.CHROME_CRX_PRIVATE_KEY }}
         # The following is optional if you need update.xml file
         #updateXmlPath: 'build/update.xml'
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: my-artifact
+        path: release/extension.crx
