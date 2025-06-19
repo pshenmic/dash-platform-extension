@@ -29,7 +29,7 @@ export class RequestStateTransitionApprovalHandler implements APIHandler {
     return {
       hash: stateTransition.hash,
       status: stateTransition.status,
-      redirectUrl: chrome.runtime.getURL(`index.html#approve/${stateTransition.hash}`)
+      redirectUrl: chrome.runtime.getURL(`index.html#/approve/${stateTransition.hash}`)
     }
   }
 
