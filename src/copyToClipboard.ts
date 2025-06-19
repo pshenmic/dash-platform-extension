@@ -16,15 +16,15 @@ export function copyToClipboard (
   copyText: string = '',
   callback?: CopyCallback
 ): void {
-  const cb: CopyCallback = callback ?? (() => {})
-
   navigator.clipboard
     .writeText(copyText)
     .then(() => {
-      cb({ status: true })
+      const result: CopyResult = { status: true }
+      callback?.(result)
     })
     .catch((err) => {
-      cb({ status: false, message: err })
+      const result: CopyResult = { status: false, message: err }
+      callback?.(result)
     })
 }
 
