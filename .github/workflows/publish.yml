@@ -22,11 +22,11 @@ jobs:
         uses: cardinalby/webext-buildtools-pack-extension-dir-action@v1
         with:
           extensionDir: dist
-          zipFilePath: release/dash-platform-extension_${{ github.ref }}_chrome.zip
+          zipFilePath: release/dash-platform-extension_${{ github.event.release.tag_name }}_chrome.zip
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/dash-platform-extension_${{ github.ref }}_chrome.zip
+          files: release/dash-platform-extension_${{ github.event.release.tag_name }}_chrome.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
