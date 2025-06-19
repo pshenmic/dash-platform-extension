@@ -16,8 +16,8 @@ import { Identity } from '../types/Identity'
 const App: React.FC = function () {
   const sdk: any = useSdk()
 
-  const [identities, setIdentities] = useState<Identity[]>([])
-  const [identityBalance, setIdentityBalance] = useState<bigint>(0n)
+  const [identities] = useState<Identity[]>([])
+  // const [identityBalance, setIdentityBalance] = useState<bigint>(0n)
 
   const router = createHashRouter([
     {
@@ -62,9 +62,9 @@ const App: React.FC = function () {
       balance: (await sdk.identities.getBalance(identity.identifier)).toString()
     })))
 
-    for (const { identifier, balance } of balances) {
-      setIdentityBalance(0n)
-    }
+    // for (const { identifier, balance } of balances) {
+    //   setIdentityBalance(0n)
+    // }
   }
 
   useEffect(() => {
