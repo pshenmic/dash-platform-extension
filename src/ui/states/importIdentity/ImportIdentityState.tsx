@@ -10,8 +10,6 @@ import { NotActive } from '../../components/data/NotActive'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
-const checkHex = (string) => /\b[0-9A-F]{64}/gi.test(string)
-
 export default function () {
   const navigate = useNavigate()
   const sdk = useSdk()
@@ -23,6 +21,7 @@ export default function () {
   const [identity, setIdentity] = useState(null)
   const [balance, setBalance] = useState(null)
   const [error, setError] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   // TODO implement new storage
   const [identities, setIdentities] = useState([])
@@ -30,50 +29,72 @@ export default function () {
   const [identityBalance, setIdentityBalance] = useState(0)
 
   const checkPrivateKey = async () => {
+    const status = await extensionAPI.getStatus()
+    console.log(status)
     setError(null)
+    setIsLoading(true)
+
+    // Check if DPP is available
+    if (!sdk.dpp || !sdk.dpp.PrivateKeyWASM) {
+      setIsLoading(false)
+      return setError('DPP module not available. Please try again.')
+    }
 
     let pkeyWASM = null
 
     if (privateKey.length === 52) {
       // wif
       try {
-        pkeyWASM = sdk.wasm.PrivateKeyWASM.fromWIF((privateKey))
+        pkeyWASM = sdk.dpp.PrivateKeyWASM.fromWIF(privateKey)
         setPrivateKeyWASM(pkeyWASM)
       } catch (e) {
         console.error(e)
+        setIsLoading(false)
         return setError('Could not decode private key from WIF')
       }
     } else if (privateKey.length === 64) {
-      // hex
+      //hex
       try {
-        pkeyWASM = sdk.wasm.PrivateKeyWASM.fromHex(privateKey, 'testnet')
+        pkeyWASM = sdk.dpp.PrivateKeyWASM.fromHex(privateKey, 'testnet')
         setPrivateKeyWASM(pkeyWASM)
       } catch (e) {
         console.error(e)
+        setIsLoading(false)
         return setError('Could not decode private key from hex')
       }
     } else {
+      setIsLoading(false)
       return setError('Unrecognized private key format')
     }
 
     try {
       const identity = await sdk.identities.getByPublicKeyHash(pkeyWASM.getPublicKeyHash())
-      const balance = await sdk.identities.getBalance(uint8ArrayToBase58(identity.getId()))
+
+      // TODO: if Purpose !== Authentication && Security Level !== High => error, does not fit
+
+      // Get identifier as base58 string directly from IdentifierWASM
+      const identifierString = identity.getId().base58()
+      const balance = await sdk.identities.getBalance(identifierString)
 
       setIdentity(identity)
       setBalance(balance)
     } catch (e) {
       console.error(e)
       if (typeof e === 'string') {
+        setIsLoading(false)
         return setError(e)
       }
 
       if (e.code === 5) {
+        setIsLoading(false)
         return setError('Identity related to this private key was not found')
       }
 
+      setIsLoading(false)
       setError(e.toString())
     }
+
+    setIsLoading(false)
   }
 
   useEffect(() => {
@@ -83,17 +104,47 @@ export default function () {
   }, [privateKey])
 
   const importIdentity = async () => {
-    const identities = [{
-      identifier: uint8ArrayToBase58(identity.getId()),
-      raw: sdk.utils.bytesToHex(identity.toBytes()),
-      privateKeys: [privateKeyWASM.getHex()]
-    }]
+    setIsLoading(true)
+    setError(null)
 
-    setIdentities(identities)
-    setCurrentIdentity(identities[0].identifier)
-    setIdentityBalance(balance.toString())
+    try {
+      // Prepare data for CREATE_IDENTITY
+      const identifier = identity.getId().base58()
+      const identityPublicKeys = identity.getPublicKeys().map(pk =>
+        btoa(String.fromCharCode(...new Uint8Array(pk.toBytes())))
+      )
 
-    navigate('/')
+      // Convert private key to hex format
+      let privateKeyHex
+      if (privateKey.length === 64) {
+        // Already hex format
+        privateKeyHex = privateKey
+      } else {
+        // Convert from WIF to hex using the hex() method
+        privateKeyHex = privateKeyWASM.hex()
+      }
+
+      const privateKeys = [privateKeyHex]
+      const index = 0
+
+      await extensionAPI.createIdentity(identifier, privateKeys)
+
+      navigate('/')
+    } catch (e) {
+      console.error(e)
+
+      // TODO: need to test it
+      // Check if it's a wallet not found error
+      if (e.message && e.message.includes('Wallet not found')) {
+        // Redirect to wallet creation
+        navigate('/create-wallet')
+        return
+      }
+
+      setError(e.message || e.toString())
+    }
+
+    setIsLoading(false)
   }
 
   return (
@@ -124,15 +175,16 @@ export default function () {
 
           <div>
             <Button
-              colorScheme='brand'
-              disabled={!privateKey}
-              className='w-full'
+              colorScheme={'brand'}
+              disabled={!privateKey || isLoading}
+              className={'w-full'}
               onClick={checkPrivateKey}
             >
-              Check
+              {isLoading ? 'Checking...' : 'Check'}
             </Button>
           </div>
-        </div>}
+        </div>
+      }
 
       {identity &&
         <div className='flex flex-col gap-[0.875rem]'>
@@ -151,7 +203,8 @@ export default function () {
                     ellipsis={false}
                     linesAdjustment={false}
                   >
-                    {identity?.getId() instanceof Uint8Array ? uint8ArrayToBase58(identity.getId()) : ''}
+                    {/* TODO check it */}
+                    {identity || ''}
                   </Identifier>
                 </ValueCard>
               </div>
@@ -177,14 +230,15 @@ export default function () {
             </div>
           </ValueCard>
           <Button
-            colorScheme='brand'
-            disabled={!privateKey}
-            className='w-full'
+            colorScheme={'brand'}
+            disabled={!privateKey || isLoading}
+            className={'w-full'}
             onClick={importIdentity}
           >
-            Import
+            {isLoading ? 'Importing...' : 'Import'}
           </Button>
-        </div>}
+        </div>
+      }
     </div>
   )
 }

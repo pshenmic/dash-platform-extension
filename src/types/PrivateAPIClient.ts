@@ -14,6 +14,8 @@ import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
 import { CreateIdentityPayload } from './messages/payloads/CreateIdentityPayload'
 import { GetStateTransitionPayload } from './messages/payloads/GetStateTransitionPayload'
 import { GetAvailableIdentitiesResponse } from './messages/response/GetAvailableIdentitiesResponse'
+import {CreateWalletResponse} from "./messages/response/CreateWalletResponse";
+import {SwitchWalletPayload} from "./messages/payloads/SwitchWalletPayload";
 
 export class PrivateAPIClient {
   constructor () {
@@ -25,7 +27,7 @@ export class PrivateAPIClient {
   async getStatus (): Promise<GetStatusResponse> {
     const payload: EmptyPayload = {}
 
-    return await this._rpcCall(MessagingMethods.CREATE_WALLET, payload)
+    return await this._rpcCall(MessagingMethods.GET_STATUS, payload)
   }
 
   async setupPassword (password: string): Promise<void> {
@@ -46,12 +48,16 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CHECK_PASSWORD, payload)
   }
 
-  async createWallet (walletType: string): Promise<void> {
+  async createWallet (walletType: string): Promise<CreateWalletResponse> {
     const payload: CreateWalletPayload = { walletType }
 
-    await this._rpcCall(MessagingMethods.CREATE_WALLET, payload)
+    return await this._rpcCall(MessagingMethods.CREATE_WALLET, payload) as CreateWalletResponse
+  }
 
-    return null
+  async switchWallet (walletId: string, network: string): Promise<void> {
+    const payload: SwitchWalletPayload = { walletId, network }
+
+    return await this._rpcCall(MessagingMethods.SWITCH_WALLET, payload)
   }
 
   async createIdentity (identifier: string, privateKeys?: string[]): Promise<void> {

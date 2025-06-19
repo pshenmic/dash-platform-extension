@@ -15,7 +15,9 @@ export default function CreateWalletState () {
     setError(null)
 
     try {
-      await extensionAPI.createWallet('keystore')
+      const { walletId } = await extensionAPI.createWallet('keystore')
+      await extensionAPI.switchWallet(walletId, 'testnet')
+
       navigate('/import')
     } catch (err) {
       setError(err.toString())

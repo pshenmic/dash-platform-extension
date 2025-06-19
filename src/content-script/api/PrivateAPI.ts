@@ -47,7 +47,7 @@ export class PrivateAPI {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
       [MessagingMethods.SETUP_PASSWORD]: new SetupPasswordHandler(this.storageAdapter),
       [MessagingMethods.CHECK_PASSWORD]: new CheckPasswordHandler(this.storageAdapter),
-      [MessagingMethods.CREATE_IDENTITY]: new CreateIdentityHandler(identitiesRepository, keypairRepository, this.sdk.dpp, this.sdk),
+      [MessagingMethods.CREATE_IDENTITY]: new CreateIdentityHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk.dpp, this.sdk),
       [MessagingMethods.SWITCH_IDENTITY]: new SwitchIdentityHandler(identitiesRepository, walletRepository),
       [MessagingMethods.GET_AVAILABLE_IDENTITIES]: new GetAvailableIdentitiesHandler(identitiesRepository),
       [MessagingMethods.GET_CURRENT_IDENTITY]: new GetCurrentIdentityHandler(identitiesRepository),

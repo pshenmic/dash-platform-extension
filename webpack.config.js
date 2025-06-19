@@ -51,7 +51,10 @@ module.exports = (env, argv) => {
       ]
     },
     resolve: {
-      extensions: ['.tsx', '.ts', '.js', '.jsx', '.json']
+      extensions: ['.tsx', '.ts', '.js', '.jsx', '.json'],
+      fallback: {
+        "buffer": require.resolve("buffer")
+      }
     },
     plugins: [
       new CopyWebpackPlugin({
@@ -74,6 +77,9 @@ module.exports = (env, argv) => {
       }),
       new webpack.optimize.LimitChunkCountPlugin({
         maxChunks: 1
+      }),
+      new webpack.ProvidePlugin({
+        Buffer: ['buffer', 'Buffer'],
       })
     ],
     optimization: {
