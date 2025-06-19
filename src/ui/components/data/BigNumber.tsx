@@ -13,7 +13,7 @@ export interface BigNumberProps {
 }
 
 const bigNumberStyles = cva('inline-flex whitespace-nowrap')
-const spaceStyles     = cva('inline-block w-[3px]')
+const spaceStyles = cva('inline-block w-[3px]')
 
 /**
  * Splits a numeric string into groups of three characters for display.
@@ -31,10 +31,10 @@ export const BigNumber: React.FC<BigNumberProps> = ({ children, variant = 'space
       .split('')
       .reverse()
       .reduce<string[]>((acc, char, idx) => {
-        if (idx % 3 === 0) acc.unshift('')
-        acc[0] = char + acc[0]
-        return acc
-      }, [])
+      if (idx % 3 === 0) acc.unshift('')
+      acc[0] = char + acc[0]
+      return acc
+    }, [])
 
     return (
       <span className={`${bigNumberStyles()} ${className}`}>
@@ -53,22 +53,22 @@ export const BigNumber: React.FC<BigNumberProps> = ({ children, variant = 'space
       .split('')
       .reverse()
       .reduce<string[]>((acc, char, idx) => {
-        if (idx % 3 === 0) acc.unshift('')
-        acc[0] = char + acc[0]
-        return acc
-      }, [])
+      if (idx % 3 === 0) acc.unshift('')
+      acc[0] = char + acc[0]
+      return acc
+    }, [])
 
     return (
       <span className={`${bigNumberStyles()} ${className}`}>
         {groups.map((grp, i) => (
           <span key={i}>
             <span>{grp}</span>
-            {i < groups.length - 1 && <span className="px-[0.125ch]">,</span>}
+            {i < groups.length - 1 && <span className='px-[0.125ch]'>,</span>}
           </span>
         ))}
         {fracPart != null && (
           <>
-            <span className="px-[0.125ch]">.</span>
+            <span className='px-[0.125ch]'>.</span>
             <span>{fracPart}</span>
           </>
         )}

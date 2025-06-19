@@ -8,10 +8,10 @@ module.exports = (env, argv) => {
 
   return ({
     entry: {
-      'ui': './src/ui/index.tsx',
+      ui: './src/ui/index.tsx',
       ...(mode === 'production' && {
-        'content-script': './src/content-scripts/content-script.js',
-        'injected': './src/content-scripts/injected.js',
+        'content-script': './src/content-script/index.ts',
+        injected: './src/injected/index.ts'
       })
     },
     output: {
@@ -27,15 +27,15 @@ module.exports = (env, argv) => {
             'style-loader',
             { loader: 'css-loader', options: { modules: true } },
             'postcss-loader'
-          ],
+          ]
         },
         {
           test: /\.p?css$/i,
           exclude: /\.module\.p?css$/i,
-          use: ['style-loader', 'css-loader', 'postcss-loader'],
+          use: ['style-loader', 'css-loader', 'postcss-loader']
         },
         // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
-        { test: /\.tsx?$/, loader: "ts-loader" },
+        { test: /\.tsx?$/, loader: 'ts-loader' },
         {
           test: /\.(?:js|mjs|cjs|jsx)$/,
           exclude: /node_modules/,
@@ -51,7 +51,10 @@ module.exports = (env, argv) => {
       ]
     },
     resolve: {
-      extensions: ['.tsx', '.ts', '.js', '.jsx', '.json']
+      extensions: ['.tsx', '.ts', '.js', '.jsx', '.json'],
+      fallback: {
+        "buffer": require.resolve("buffer")
+      }
     },
     plugins: [
       new CopyWebpackPlugin({
@@ -74,6 +77,9 @@ module.exports = (env, argv) => {
       }),
       new webpack.optimize.LimitChunkCountPlugin({
         maxChunks: 1
+      }),
+      new webpack.ProvidePlugin({
+        Buffer: ['buffer', 'Buffer'],
       })
     ],
     optimization: {
@@ -81,7 +87,7 @@ module.exports = (env, argv) => {
     },
     devServer: {
       static: {
-        directory: path.resolve(__dirname, 'src/ui'),
+        directory: path.resolve(__dirname, 'src/ui')
       }
     }
   })
