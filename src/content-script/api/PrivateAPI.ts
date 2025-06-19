@@ -37,7 +37,7 @@ export class PrivateAPI {
     [key: string]: APIHandler
   }
 
-  init () {
+  init (): void {
     const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk.dpp, this.sdk)
     const walletRepository = new WalletRepository(this.storageAdapter, identitiesRepository)
     const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk.dpp)
@@ -65,11 +65,11 @@ export class PrivateAPI {
         return
       }
 
-      const { id, method, payload, error } = data
+      const { id, method, payload } = data
 
       const handler = this.handlers[data.method]
 
-      if (!handler) {
+      if (handler == null) {
         const message: EventData = {
           id,
           context: 'dash-platform-extension',

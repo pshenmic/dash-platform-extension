@@ -4,13 +4,13 @@ import { Button } from '../../components/controls/buttons'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
-export default function CreateWalletState () {
+export default function CreateWalletState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleCreateWallet = async () => {
+  const handleCreateWallet = async (): Promise<void> => {
     setIsLoading(true)
     setError(null)
 
@@ -18,12 +18,16 @@ export default function CreateWalletState () {
       const { walletId } = await extensionAPI.createWallet('keystore')
       await extensionAPI.switchWallet(walletId, 'testnet')
 
-      navigate('/import')
+      void navigate('/import')
     } catch (err) {
-      setError(err.toString())
+      setError((err as Error).toString())
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleCreateClick = (): void => {
+    void handleCreateWallet()
   }
 
   return (
@@ -53,7 +57,7 @@ export default function CreateWalletState () {
         </ul>
       </div>
 
-      {error && (
+      {error != null && (
         <div className='text-red-500 text-sm'>
           {error}
         </div>
@@ -61,7 +65,7 @@ export default function CreateWalletState () {
 
       <Button
         colorScheme='brand'
-        onClick={handleCreateWallet}
+        onClick={handleCreateClick}
         disabled={isLoading}
         className='w-full'
       >

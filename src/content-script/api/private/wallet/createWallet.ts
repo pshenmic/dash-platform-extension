@@ -26,7 +26,7 @@ export class CreateWalletHandler implements APIHandler {
   }
 
   validatePayload (payload: CreateWalletPayload): string | null {
-    if (!WalletType[payload.walletType]) {
+    if (WalletType[payload.walletType] == null) {
       return `Invalid wallet type: ${payload.walletType}`
     }
 

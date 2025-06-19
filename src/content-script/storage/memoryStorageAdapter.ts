@@ -6,7 +6,7 @@ export class MemoryStorageAdapter implements StorageAdapter {
   get = async (key: string): Promise<object | number | string | null> => {
     const item = cache[key]
 
-    if (!item) {
+    if (item == null) {
       return null
     }
 

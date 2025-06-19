@@ -5,7 +5,6 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { EventData } from '../../../../types/EventData'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'
 import { ApproveStateTransitionPayload } from '../../../../types/messages/payloads/ApproveStateTransitionPayload'
-import { StateTransition } from '../../../../types/StateTransition'
 import { base64 } from '@scure/base'
 import { KeyPair } from '../../../../types/KeyPair'
 import { bytesToHex, hexToBytes, validateHex, validateIdentifier } from '../../../../utils'
@@ -16,7 +15,6 @@ import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { decrypt } from 'eciesjs'
 import hash from 'hash.js'
 import { StateTransitionStatus } from '../../../../types/enums/StateTransitionStatus'
-import { StateTransitionStoreSchema } from '../../../storage/storageSchema'
 
 export class ApproveStateTransitionHandler implements APIHandler {
   keyPairRepository: KeypairRepository
@@ -47,6 +45,13 @@ export class ApproveStateTransitionHandler implements APIHandler {
     if (identity == null) {
       throw new Error(`Identity with identifier ${payload.identity} not found`)
     }
+    const stateTransition = await this.stateTransitionsRepository.get(payload.hash)
+
+    if (stateTransition == null) {
+      throw new Error(`Could not find state transition with hash ${payload.hash} for signing`)
+    }
+
+    const stateTransitionWASM = this.dpp.StateTransitionWASM.fromBytes(base64.decode(stateTransition.unsigned))
 
     let keyPair: KeyPair | null
 
@@ -55,32 +60,26 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
       keyPair = await this.keyPairRepository.getByIdentityPublicKey(payload.identity, identityPublicKeyWASM)
 
-      if (!keyPair) {
+      if (keyPair == null || keyPair.encryptedPrivateKey == null) {
         throw new Error(`Could not find private key for identity public key (pkh ${base64.encode(identityPublicKeyWASM.toBytes())})`)
+      }
+
+      const passwordHash = hash.sha256().update(payload.password).digest('hex')
+
+      const privateKeyWASM = this.dpp.PrivateKeyWASM.fromBytes(decrypt(passwordHash, hexToBytes(keyPair.encryptedPrivateKey)), wallet.network)
+
+      stateTransitionWASM.sign(privateKeyWASM, keyPair.identityPublicKey)
+
+      const signature = stateTransitionWASM.signature
+      const signaturePublicKeyId = stateTransitionWASM.signaturePublicKeyId
+
+      return {
+        stateTransition: await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.approved, bytesToHex(signature), signaturePublicKeyId)
       }
     } else if (wallet.type === WalletType.seed) {
       throw new Error('Seedphrases are not supported yet')
-    }
-
-    const stateTransition = await this.stateTransitionsRepository.getByHash(payload.hash)
-
-    if (!stateTransition) {
-      throw new Error(`Could not find state transition with hash ${payload.hash} for signing`)
-    }
-
-    const stateTransitionWASM = this.dpp.StateTransitionWASM.fromBytes(base64.decode(stateTransition.unsigned))
-
-    const passwordHash = hash.sha256().update(payload.password).digest('hex')
-
-    const privateKeyWASM = this.dpp.PrivateKeyWASM.fromBytes(decrypt(passwordHash, hexToBytes(keyPair.encryptedPrivateKey)), wallet.network)
-
-    stateTransitionWASM.sign(privateKeyWASM, keyPair.identityPublicKey)
-
-    const signature = stateTransitionWASM.signature
-    const signaturePublicKeyId = stateTransitionWASM.signaturePublicKeyId
-
-    return {
-      stateTransition: await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.approved, bytesToHex(signature), signaturePublicKeyId)
+    } else {
+      throw new Error('Unsupported key wallet')
     }
   }
 

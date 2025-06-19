@@ -16,20 +16,21 @@ export class WalletRepository {
   }
 
   async create (type: WalletType): Promise<Wallet> {
-    const passwordPublicKey = await this.storageAdapter.get('network') as string
+    const currentNetwork = await this.storageAdapter.get('network') as string
 
-    if (!passwordPublicKey) {
+    const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
+
+    if (passwordPublicKey == null) {
       throw new Error('Password is not set for an extension')
     }
 
-    const currentNetwork = await this.storageAdapter.get('network') as string
     const walletId = generateWalletId()
 
     const storageKey = `wallet_${walletId}_${currentNetwork}`
 
     const wallet = await this.storageAdapter.get(storageKey) as WalletStoreSchema
 
-    if (wallet) {
+    if (wallet != null) {
       throw new Error('Wallet with such id already exists')
     }
 
@@ -50,7 +51,7 @@ export class WalletRepository {
     const network = await this.storageAdapter.get('network') as string
     const currentWalletId = await this.storageAdapter.get('currentWalletId') as string
 
-    if (!currentWalletId) {
+    if (currentWalletId == null) {
       return null
     }
 
@@ -58,7 +59,7 @@ export class WalletRepository {
 
     const wallet = await this.storageAdapter.get(storageKey) as WalletStoreSchema
 
-    if (!wallet) {
+    if (wallet == null) {
       throw new Error('Could not find current wallet')
     }
 
@@ -71,7 +72,7 @@ export class WalletRepository {
     }
   }
 
-  async switchIdentity (identifier: string) {
+  async switchIdentity (identifier: string): Promise<void> {
     const currentWallet = await this.getCurrent()
     const network = await this.storageAdapter.get('network') as string
 
@@ -83,7 +84,7 @@ export class WalletRepository {
 
     const walletStoreSchema = await this.storageAdapter.get(storageKey) as WalletStoreSchema
 
-    if (!walletStoreSchema) {
+    if (walletStoreSchema == null) {
       throw new Error('Could not find wallet in the store')
     }
 

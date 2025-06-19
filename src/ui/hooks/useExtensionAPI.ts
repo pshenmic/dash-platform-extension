@@ -2,8 +2,8 @@ import { PrivateAPIClient } from '../../types/PrivateAPIClient'
 
 let privateAPIClient: PrivateAPIClient
 
-export const useExtensionAPI = () => {
-  if (!privateAPIClient) {
+export const useExtensionAPI = (): PrivateAPIClient => {
+  if (privateAPIClient == null) {
     privateAPIClient = new PrivateAPIClient()
   }
 

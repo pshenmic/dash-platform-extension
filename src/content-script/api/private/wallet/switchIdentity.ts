@@ -20,7 +20,7 @@ export class SwitchIdentityHandler implements APIHandler {
 
     const wallet = await this.walletRepository.getCurrent()
 
-    if (!wallet) {
+    if (wallet == null) {
       throw new Error('Wallet is not chosen')
     }
 

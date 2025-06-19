@@ -16,15 +16,11 @@ import { GetStateTransitionPayload } from './messages/payloads/GetStateTransitio
 import { GetAvailableIdentitiesResponse } from './messages/response/GetAvailableIdentitiesResponse'
 import { CreateWalletResponse } from './messages/response/CreateWalletResponse'
 import { SwitchWalletPayload } from './messages/payloads/SwitchWalletPayload'
-import {ApproveStateTransitionPayload} from "./messages/payloads/ApproveStateTransitionPayload";
-import {IdentityPublicKeyWASM} from "pshenmic-dpp";
-import {ApproveStateTransitionResponse} from "./messages/response/ApproveStateTransitionResponse";
-import {RejectStateTransitionPayload} from "./messages/payloads/RejectStateTransitionPayload";
-import {RejectStateTransitionResponse} from "./messages/response/RejectStateTransitionResponse";
 
 export class PrivateAPIClient {
   constructor () {
-    if (!chrome.runtime.onMessage) {
+    // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+    if (!chrome?.runtime?.onMessage) {
       throw new Error('PrivateAPIClient could only be used inside extension context')
     }
   }
@@ -41,8 +37,6 @@ export class PrivateAPIClient {
     }
 
     await this._rpcCall(MessagingMethods.SETUP_PASSWORD, payload)
-
-    return null
   }
 
   async checkPassword (password: string): Promise<CheckPasswordResponse> {
@@ -133,16 +127,18 @@ export class PrivateAPIClient {
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
     console.log(`RPC call to extension with method ${method} payload ${JSON.stringify(payload)}`)
-    const id = new Date().getTime() + ''
+    const id = new Date().getTime().toString()
 
     return await new Promise((resolve, reject) => {
-      const rejectWithError = (message: string) => {chrome.runtime.onMessage.removeListener(handleMessage)
+      const rejectWithError = (message: string): void => {
+        chrome.runtime.onMessage.removeListener(handleMessage)
+
         reject(message)
       }
 
-      const handleMessage = (data: EventData) => {
+      const handleMessage = (data: EventData): void => {
         if (data.type === 'response' && data.id === id) {
-          if (data.error) {
+          if (data.error == null) {
             return rejectWithError(data.error)
           }
 
@@ -155,7 +151,7 @@ export class PrivateAPIClient {
       chrome.runtime.onMessage.addListener(handleMessage)
 
       setTimeout(() => {
-        rejectWithError(`Timed out waiting for response of ${method}, (${payload})`)
+        rejectWithError(`Timed out waiting for response of ${method}`)
       }, MESSAGING_TIMEOUT)
 
       const message: EventData = {

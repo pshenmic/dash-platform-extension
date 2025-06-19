@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import HomeState from './states/home/HomeState'
@@ -10,14 +10,14 @@ import CreateWalletState from './states/wallet/CreateWalletState'
 import './styles/app.pcss'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 import Layout from './components/layout/Layout'
-import { useSdk } from './hooks/useSdk'
-import { Identity } from '../types/Identity'
+// import { useSdk } from './hooks/useSdk'
+// import { Identity } from '../types/Identity'
 
 const App: React.FC = function () {
-  const sdk: any = useSdk()
+  // const sdk: any = useSdk()
 
-  const [identities, setIdentities] = useState<Identity[]>([])
-  const [identityBalance, setIdentityBalance] = useState<bigint>(0n)
+  // const [identities setIdentities] = useState<Identity[]>([])
+  // const [identityBalance, setIdentityBalance] = useState<bigint>(0n)
 
   const router = createHashRouter([
     {
@@ -57,14 +57,14 @@ const App: React.FC = function () {
     }
   ] as RouteObject[])
   const populateBalances = async (): Promise<void> => {
-    const balances = await Promise.all(identities.map(async identity => ({
-      identifier: identity.identifier,
-      balance: (await sdk.identities.getBalance(identity.identifier)).toString()
-    })))
+    // const balances = await Promise.all(identities.map(async identity => ({
+    //   identifier: identity.identifier,
+    //   balance: (await sdk.identities.getBalance(identity.identifier)).toString()
+    // })))
 
-    for (const { identifier, balance } of balances) {
-      setIdentityBalance(0n)
-    }
+    // for (const { identifier, balance } of balances) {
+    //   setIdentityBalance(0n)
+    // }
   }
 
   useEffect(() => {

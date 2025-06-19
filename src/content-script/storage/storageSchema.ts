@@ -40,17 +40,6 @@ export interface StateTransitionStoreSchema {
   status: string
 }
 
-interface WalletSchema {
-  seed?: string
-  identities: Identity
-}
-
-interface Identity {
-  label?: string
-  identifier: string
-  privateKeys: string[]
-}
-
 export interface AppConnectStorageSchema {
   id: string
   url: string

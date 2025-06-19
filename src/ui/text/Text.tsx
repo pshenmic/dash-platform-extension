@@ -105,7 +105,7 @@ export const Text: React.FC<TextProps> = ({ as, className = '', children, ...var
   const classes = textStyles({
     ...variantProps,
     theme
-  }) + (className ? ` ${className}` : '')
+  }) + (className !== '' ? ` ${className}` : '')
 
   const Component = as ?? 'span'
   return <Component className={classes}>{children}</Component>

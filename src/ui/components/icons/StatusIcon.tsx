@@ -47,7 +47,7 @@ export const StatusIcon: React.FC<StatusIconProps> = ({ status, ...props }) => {
 
   const IconComponent = map[status]
 
-  return IconComponent ? <IconComponent {...props} /> : null
+  return IconComponent != null ? <IconComponent {...props} /> : null
 }
 
 export default StatusIcon

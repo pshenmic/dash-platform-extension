@@ -10,7 +10,7 @@ export interface NotActiveProps extends React.HTMLAttributes<HTMLSpanElement> {
   className?: string
 }
 
-export function NotActive ({ children, className, ...props }: NotActiveProps) {
+export function NotActive ({ children, className, ...props }: NotActiveProps): React.JSX.Element {
   return (
     <span
       className={`${notActiveStyles()} ${className ?? ''}`}

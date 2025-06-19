@@ -34,11 +34,11 @@ export class RequestStateTransitionApprovalHandler implements APIHandler {
   }
 
   validatePayload (payload: RequestStateTransitionApprovalPayload): null | string {
-    if (!payload.base64 || typeof payload.base64 !== 'string') {
+    if (typeof payload.base64 !== 'string') {
       return 'State transition base64 is not string'
     }
 
-    let bytes = null
+    let bytes: Uint8Array | null = null
 
     try {
       bytes = base64.decode(payload.base64)

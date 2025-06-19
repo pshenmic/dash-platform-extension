@@ -22,7 +22,7 @@ export class StateTransitionsRepository {
 
     const stateTransitions = (await this.storageAdapter.get(storageKey) ?? {}) as StateTransitionsStoreSchema
 
-    if (stateTransitions[hash]) {
+    if (stateTransitions[hash] != null) {
       throw new Error(`State transition with hash ${hash} already exists`)
     }
 
@@ -54,7 +54,7 @@ export class StateTransitionsRepository {
 
     const stateTransition: StateTransitionStoreSchema = stateTransitions[hash]
 
-    if (!stateTransition) {
+    if (stateTransition == null) {
       return null
     }
 
@@ -72,13 +72,17 @@ export class StateTransitionsRepository {
 
     const stateTransitions = (await this.storageAdapter.get(storageKey) ?? {}) as StateTransitionsStoreSchema
 
-    if (!stateTransitions[hash]) {
+    if (stateTransitions[hash] == null) {
       throw new Error(`State transition with hash ${hash} does not exist`)
     }
 
     const stateTransition: StateTransitionStoreSchema = stateTransitions[hash]
 
     if (status === StateTransitionStatus.approved) {
+      if (signature == null || signaturePublicKeyId == null) {
+        throw new Error('Signature and signaturePublicKeyId must be provided')
+      }
+
       stateTransition.signature = signature
       stateTransition.signaturePublicKeyId = signaturePublicKeyId
     }

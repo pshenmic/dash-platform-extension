@@ -3,56 +3,60 @@ import { useNavigate } from 'react-router-dom'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
-export default function StartState () {
+export default function StartState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const checkStatus = async () => {
+    const checkStatus = async (): Promise<void> => {
       try {
         const status = await extensionAPI.getStatus()
 
         if (!status.passwordSet) {
           // Password not set - go to password setup
-          navigate('/setup-password')
-        } else if (!status.currentWalletId) {
+          void navigate('/setup-password')
+        } else if (status.currentWalletId == null || status.currentWalletId === '') {
           // Password set but wallet not created - go to login
-          navigate('/login')
+          void navigate('/login')
         } else {
           // Everything is set up - go to main screen
-          navigate('/home')
+          void navigate('/home')
         }
       } catch (err) {
-        setError('Failed to check status: ' + err.toString())
+        setError('Failed to check status: ' + String(err))
         console.error(err)
       } finally {
         setIsLoading(false)
       }
     }
 
-    checkStatus()
+    void checkStatus()
   }, [navigate, extensionAPI])
 
-  return !error
-    ? <div className='flex flex-col gap-4 items-center justify-center min-h-[200px]'>
-      <Text size='xl' weight='bold'>
-        Dash Platform Extension
-      </Text>
-
-      {isLoading && (
-        <Text color='blue'>
-          Loading...
+  return error == null
+    ? (
+      <div className='flex flex-col gap-4 items-center justify-center min-h-[200px]'>
+        <Text size='xl' weight='bold'>
+          Dash Platform Extension
         </Text>
-      )}
+
+        {isLoading && (
+          <Text color='blue'>
+            Loading...
+          </Text>
+        )}
       </div>
-    : <div className='flex flex-col gap-4 items-center justify-center min-h-[200px]'>
-      <Text size='lg' color='red'>
-        Error
-      </Text>
-      <Text size='sm' color='red'>
-        {error}
-      </Text>
+      )
+    : (
+      <div className='flex flex-col gap-4 items-center justify-center min-h-[200px]'>
+        <Text size='lg' color='red'>
+          Error
+        </Text>
+        <Text size='sm' color='red'>
+          {error}
+        </Text>
       </div>
+      )
 }

@@ -77,7 +77,7 @@ export interface IdentifierProps extends IdentifierVariants {
 }
 
 const HighlightedID: React.FC<PropsWithChildren<{ mode: HighlightMode }>> = ({ children, mode }) => {
-  if (!children) return <NotActive />
+  if (children == null || children === '') return <NotActive />
   const text: string = String(children)
   const count = 5
   const first: string = text.slice(0, count)
@@ -100,12 +100,12 @@ const HighlightedID: React.FC<PropsWithChildren<{ mode: HighlightMode }>> = ({ c
  */
 const Identifier: React.FC<IdentifierProps> = ({
   children,
-  ellipsis,
-  highlight,
-  avatar,
-  copyButton,
+  ellipsis = false,
+  highlight = undefined,
+  avatar = false,
+  copyButton = false,
   linesAdjustment = true,
-  maxLines,
+  maxLines = 0,
   className
 }) => {
   const { theme } = useTheme()
@@ -118,13 +118,13 @@ const Identifier: React.FC<IdentifierProps> = ({
   const [winWidth, setWinWidth] = useState(0)
   const debouncedWin = useDebounce(winWidth, 500)
 
-  if (ellipsis || maxLines) linesAdjustment = false
+  if ((ellipsis ?? false) || maxLines > 0) linesAdjustment = false
 
   useResizeObserver(symbolsRef, entry => {
     setContainerWidth(entry.contentRect.width)
   })
 
-  const measureChar = useCallback(() => {
+  const measureChar = useCallback((): number => {
     if ((symbolsRef.current == null) || !linesAdjustment) return 0
     const temp = document.createElement('span')
     const styles = getComputedStyle(symbolsRef.current)
@@ -135,20 +135,21 @@ const Identifier: React.FC<IdentifierProps> = ({
     temp.style.fontWeight = styles.fontWeight
     temp.textContent = 'A'
     document.body.appendChild(temp)
-    const w = temp.getBoundingClientRect().width || 0
+    const w = temp.getBoundingClientRect().width
     document.body.removeChild(temp)
-    return w
+    return w > 0 ? w : 0
   }, [linesAdjustment])
 
   useEffect(() => {
     if ((symbolsRef.current == null) || !linesAdjustment) return
-    setCharWidth(measureChar() || 0)
+    const measuredWidth = measureChar()
+    setCharWidth(measuredWidth > 0 ? measuredWidth : 0)
   }, [measureChar])
 
-  const updateSize = () => {
+  const updateSize = (): void => {
     if (widthCounted) return
-    const len = children?.length || 0
-    if (!charWidth || !containerWidth || !len) {
+    const len = children?.length ?? 0
+    if (charWidth === 0 || containerWidth === 0 || len === 0) {
       setLinesMaxWidth('none')
       return
     }
@@ -180,7 +181,7 @@ const Identifier: React.FC<IdentifierProps> = ({
   useEffect(() => {
     if (!linesAdjustment) return
     let prev = window.innerWidth
-    const handler = () => {
+    const handler = (): void => {
       const cur = window.innerWidth
       if (cur !== prev) {
         setWinWidth(cur)
@@ -194,9 +195,9 @@ const Identifier: React.FC<IdentifierProps> = ({
 
   const rootClass =
     identifier({ theme, ellipsis, highlight }) +
-    (className ? ` ${className}` : '')
+    (className != null && className !== '' ? ` ${className}` : '')
 
-  const clampStyles: React.CSSProperties = maxLines
+  const clampStyles: React.CSSProperties = maxLines > 0
     ? {
         display: '-webkit-box',
         WebkitLineClamp: maxLines,
@@ -206,28 +207,28 @@ const Identifier: React.FC<IdentifierProps> = ({
       }
     : {}
 
-  const symbolContainerClass = ellipsis
+  const symbolContainerClass = ellipsis === true
     ? 'flex-1 overflow-hidden whitespace-nowrap text-ellipsis'
     : 'flex-1 leading-[1rem]'
 
   return (
     <div className={rootClass}>
-      {avatar && children && (
+      {(avatar ?? false) && children != null && children !== '' && (
         <div className='w-6 h-6 rounded-full mr-2 flex-shrink-0' />
       )}
       <div
         ref={symbolsRef}
         className={symbolContainerClass}
         style={{
-          ...(widthCounted && !maxLines ? { maxWidth: linesMaxWidth } : {}),
+          ...(widthCounted && maxLines === 0 ? { maxWidth: linesMaxWidth } : {}),
           ...clampStyles
         }}
       >
-        {children && highlight
+        {children != null && children !== '' && highlight != null
           ? <HighlightedID mode={highlight}>{children}</HighlightedID>
-          : (children || <NotActive />)}
+          : (children ?? <NotActive />)}
       </div>
-      {copyButton && children && (
+      {(copyButton ?? false) && children != null && children !== '' && (
         <CopyButton className='ml-3' text={children} />
       )}
     </div>
