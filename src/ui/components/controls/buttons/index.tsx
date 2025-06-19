@@ -110,14 +110,14 @@ export const Button: React.FC<ButtonProps> = ({
   variant,
   colorScheme,
   size,
-  disabled,
+  disabled = false,
   className = '',
   ...props
 }) => {
   const state = disabled ? 'disabled' : 'active'
   const classes =
     styles({ variant, colorScheme, size, state }) +
-    (className ? ` ${className}` : '')
+    (className !== '' ? ` ${className}` : '')
 
   return (
     <button className={classes} disabled={disabled} {...props}>
