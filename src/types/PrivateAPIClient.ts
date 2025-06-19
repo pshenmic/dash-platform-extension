@@ -16,6 +16,11 @@ import { GetStateTransitionPayload } from './messages/payloads/GetStateTransitio
 import { GetAvailableIdentitiesResponse } from './messages/response/GetAvailableIdentitiesResponse'
 import { CreateWalletResponse } from './messages/response/CreateWalletResponse'
 import { SwitchWalletPayload } from './messages/payloads/SwitchWalletPayload'
+import { IdentityPublicKeyWASM } from 'pshenmic-dpp'
+import { ApproveStateTransitionPayload } from './messages/payloads/ApproveStateTransitionPayload'
+import { ApproveStateTransitionResponse } from './messages/response/ApproveStateTransitionResponse'
+import { RejectStateTransitionResponse } from './messages/response/RejectStateTransitionResponse'
+import { RejectStateTransitionPayload } from './messages/payloads/RejectStateTransitionPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -68,7 +73,7 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY, payload)
   }
 
-  async getCurrentIdentity (): Promise<string> {
+  async getCurrentIdentity (): Promise<string | null> {
     const payload: EmptyPayload = {}
 
     const { currentIdentity }: GetCurrentIdentityResponse = await this._rpcCall(MessagingMethods.GET_CURRENT_IDENTITY, payload)
@@ -92,7 +97,7 @@ export class PrivateAPIClient {
     return response.identities
   }
 
-  async approveStateTransition(hash: string, identity: string, identityPublicKey: IdentityPublicKeyWASM, password:string): Promise<ApproveStateTransitionResponse> {
+  async approveStateTransition (hash: string, identity: string, identityPublicKey: IdentityPublicKeyWASM, password: string): Promise<ApproveStateTransitionResponse> {
     const payload: ApproveStateTransitionPayload = {
       hash,
       identity,
@@ -105,9 +110,9 @@ export class PrivateAPIClient {
     return response
   }
 
-  async rejectStateTransition(hash: string): Promise<RejectStateTransitionResponse> {
-    const payload: RejectStateTransitionPayload  = {
-      hash,
+  async rejectStateTransition (hash: string): Promise<RejectStateTransitionResponse> {
+    const payload: RejectStateTransitionPayload = {
+      hash
     }
 
     const response: RejectStateTransitionResponse = await this._rpcCall(MessagingMethods.REJECT_STATE_TRANSITION, payload)
@@ -115,9 +120,9 @@ export class PrivateAPIClient {
     return response
   }
 
-  async getStateTransition(hash: string): Promise<GetStateTransitionResponse> {
-    const payload: GetStateTransitionPayload  = {
-      hash,
+  async getStateTransition (hash: string): Promise<GetStateTransitionResponse> {
+    const payload: GetStateTransitionPayload = {
+      hash
     }
 
     const response: GetStateTransitionResponse = await this._rpcCall(MessagingMethods.GET_STATE_TRANSITION, payload)

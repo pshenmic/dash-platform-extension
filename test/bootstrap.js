@@ -16,8 +16,7 @@ global.chrome = {
       dispatch (message) {
         eventBus.emit('message', message)
       }
-    },
-
+    }
   }
 }
 

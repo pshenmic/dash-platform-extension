@@ -3,7 +3,6 @@ import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
 import { StorageAdapter } from '../storage/storageAdapter'
-import { PayloadNotValidError } from '../errors/PayloadNotValidError'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { GetCurrentIdentityHandler } from './private/identities/getCurrentIdentity'
 import { GetAvailableIdentitiesHandler } from './private/identities/getAvailableIdentities'
@@ -85,7 +84,7 @@ export class PrivateAPI {
 
       const validation = handler.validatePayload(payload)
 
-      if (validation) {
+      if (validation != null) {
         const message: EventData = {
           id,
           context: 'dash-platform-extension',

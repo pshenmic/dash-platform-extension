@@ -18,7 +18,7 @@ export class StateTransitionsRepository {
     const hash = stateTransitionWASM.hash(true)
     const unsigned = base64.encode(stateTransitionWASM.toBytes())
 
-    const storageKey = `stateTransitions`
+    const storageKey = 'stateTransitions'
 
     const stateTransitions = (await this.storageAdapter.get(storageKey) ?? {}) as StateTransitionsStoreSchema
 
