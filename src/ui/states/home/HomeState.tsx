@@ -11,15 +11,15 @@ import { TransactionTypes } from '../../../enums/TransactionTypes'
 import DateBlock from '../../components/data/DateBlock'
 import './home.state.css'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { Identity } from '../../../types/Identity'
-import { IdentifierWASM } from 'pshenmic-dpp'
+// import { Identity } from '../../../types/Identity'
+// import { IdentifierWASM } from 'pshenmic-dpp'
 
 export default function () {
   const extensionAPI = useExtensionAPI()
   const [identities, setIdentities] = useState<string[]>([])
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
-  const [transactionsLoadError, setTransactionsLoadError] = useState(null)
-  const [transactions, setTransactions] = useState(null)
+  const [transactionsLoadError, setTransactionsLoadError] = useState<boolean>(false)
+  const [transactions, setTransactions] = useState<any[] | null>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -75,27 +75,29 @@ export default function () {
   }, [])
 
   if (!identities?.length) {
-    return <NoIdentities/>
+    return <NoIdentities />
   }
 
   console.log('transactions', transactions)
 
   // TODO implement retrieving balance
-  let balance = 0
+  const balance = 0
 
   return (
     <div className='screen-content'>
       <ValueCard colorScheme='lightBlue'>
         <div className='flex flex-col gap-1'>
           <select>
-            {identities.map((identifier) => <option
-              key={identifier}
-              value={identifier}>
+            {identities.map((identifier) =>
+              <option
+                key={identifier}
+                value={identifier}
+              >
               {identifier}
             </option>)}
           </select>
 
-          <div className={'flex flex-col gap-[0.125rem]'}>
+          <div className='flex flex-col gap-[0.125rem]'>
             <Text dim>Balance</Text>
             <span>
               {!Number.isNaN(Number(balance))
@@ -127,8 +129,7 @@ export default function () {
         {transactionsLoadError &&
           <div>
             Error during loading transactions, please try again later
-          </div>
-        }
+          </div>}
 
         <div className='flex flex-col gap-3 mt-3'>
           {transactions?.length && transactions.map((transaction) =>
