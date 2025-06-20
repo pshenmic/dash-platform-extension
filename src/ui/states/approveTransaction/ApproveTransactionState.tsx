@@ -11,8 +11,9 @@ import { GetStateTransitionResponse } from '../../../types/messages/response/Get
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { IdentityPublicKeyWASM, StateTransitionWASM } from 'pshenmic-dpp'
 import { IdentityWASM } from 'pshenmic-dpp/dist/wasm'
+import { withAuthCheck } from '../../components/auth/withAuthCheck'
 
-export default function ApproveTransactionState (): React.JSX.Element {
+function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
   const extensionAPI = useExtensionAPI()
@@ -267,3 +268,5 @@ export default function ApproveTransactionState (): React.JSX.Element {
     </div>
   )
 }
+
+export default withAuthCheck(ApproveTransactionState)
