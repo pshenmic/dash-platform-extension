@@ -44,8 +44,8 @@ describe('requestStateTransitionApproval tests', () => {
 
     expect(stateTransitionsStoreSchema[hash]).toStrictEqual(expectedStateTransition)
 
-    expect(response.hash).toBe(hash)
-    expect(response.status).toBe(StateTransitionStatus.pending)
+    expect(response.stateTransition.hash).toBe(hash)
+    expect(response.stateTransition.status).toBe(StateTransitionStatus.pending)
     expect(response.redirectUrl).toBe('fake_url')
   })
 })
