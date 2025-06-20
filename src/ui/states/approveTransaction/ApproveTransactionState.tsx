@@ -206,14 +206,14 @@ export default function ApproveTransactionState (): React.JSX.Element {
           {isLoadingTransaction
             ? <Text>Loading transaction...</Text>
             : (transactionNotFound
-              ? <Text color='red' weight='bold'>Could not find transaction with hash</Text>
-              : (transactionDecodeError != null
-                ? (
-                  <Text color='red' weight='bold'>
-                    Error decoding state transition: {transactionDecodeError}
-                  </Text>
-                )
-                : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM} />)))}
+                ? <Text color='red' weight='bold'>Could not find transaction with hash</Text>
+                : (transactionDecodeError != null
+                    ? (
+                      <Text color='red' weight='bold'>
+                        Error decoding state transition: {transactionDecodeError}
+                      </Text>
+                      )
+                    : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM} />)))}
         </div>
       </ValueCard>
 
@@ -257,13 +257,13 @@ export default function ApproveTransactionState (): React.JSX.Element {
                 onClick={() => { void doSign() }}
                 colorScheme='mint'
                 className='w-1/2'
-                disabled={!password.trim() || isSigningInProgress}
+                disabled={password.trim().length === 0 || isSigningInProgress}
               >
                 {isSigningInProgress ? 'Signing...' : 'Sign'}
               </Button>
             </div>
           </div>
-        )}
+          )}
     </div>
   )
 }
