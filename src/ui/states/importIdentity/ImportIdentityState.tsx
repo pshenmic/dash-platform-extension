@@ -93,7 +93,12 @@ function ImportIdentityState (): React.JSX.Element {
     try {
       const identity = await sdk.identities.getByPublicKeyHash(pkeyWASM.getPublicKeyHash())
 
-      // TODO: if Purpose !== Authentication && Security Level !== High => error, does not fit
+      const [identityPublicKey] = identity.getPublicKeys()
+        .filter(publicKey => publicKey.getPurpose() === 'AUTHENTICATION' && publicKey.getSecurityLevel() === 'HIGH')
+
+      if (identityPublicKey == null) {
+        throw new Error('Private key doesnt fit. No public keys with purpose AUTHENTICATION and security level HIGH')
+      }
 
       // Get identifier as base58 string directly from IdentifierWASM
       const identifierString = identity.getId().base58()
@@ -142,15 +147,7 @@ function ImportIdentityState (): React.JSX.Element {
 
       const identifier = identity.getId().base58()
 
-      // Convert private key to hex format
-      let privateKeyHex
-      if (privateKey.length === 64) {
-        // Already hex format
-        privateKeyHex = privateKey
-      } else {
-        // Convert from WIF to hex using the hex() method
-        privateKeyHex = privateKeyWASM.hex()
-      }
+      const privateKeyHex = privateKey.length === 64 ? privateKey : privateKeyWASM.hex()
 
       const privateKeys = [privateKeyHex]
 
@@ -160,7 +157,6 @@ function ImportIdentityState (): React.JSX.Element {
     } catch (e) {
       console.error(e)
 
-      // TODO: need to test it
       // Check if it's a wallet not found error
       if ((e)?.message?.includes('Wallet not found') === true) {
         // Redirect to wallet creation
@@ -176,10 +172,6 @@ function ImportIdentityState (): React.JSX.Element {
 
   const handleCheckClick = (): void => {
     void checkPrivateKey()
-  }
-
-  const handleImportClick = (): void => {
-    void importIdentity()
   }
 
   // Show loading screen while checking wallet
@@ -242,7 +234,6 @@ function ImportIdentityState (): React.JSX.Element {
                     ellipsis={false}
                     linesAdjustment={false}
                   >
-                    {/* TODO check it */}
                     {identity.getId().base58()}
                   </Identifier>
                 </ValueCard>
@@ -274,7 +265,7 @@ function ImportIdentityState (): React.JSX.Element {
             colorScheme='brand'
             disabled={privateKey === '' || isLoading}
             className='w-full'
-            onClick={handleImportClick}
+            onClick={() => void importIdentity()}
           >
             {isLoading ? 'Importing...' : 'Import'}
           </Button>
