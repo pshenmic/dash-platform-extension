@@ -1,10 +1,13 @@
 import { AbstractSigner } from 'dash-platform-sdk'
 import { DashPlatformProtocolWASM, IdentityWASM, StateTransitionWASM } from 'pshenmic-dpp/dist/wasm'
-import { popupWindow } from '../utils'
+import { popupWindow, wait } from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'
 import { PublicAPIClient } from '../types/PublicAPIClient'
 import { base64 } from '@scure/base'
+import {
+  RequestStateTransitionApprovalResponse
+} from '../types/messages/response/RequestStateTransitionApprovalResponse'
 
 export class ExtensionSigner implements AbstractSigner {
   publicAPIClient: PublicAPIClient
@@ -31,7 +34,9 @@ export class ExtensionSigner implements AbstractSigner {
     const startTimestamp = new Date()
 
     while (response.status === 'pending') {
-      if (new Date().getTime() - startTimestamp.getTime() < MESSAGING_TIMEOUT) {
+      await wait(500)
+
+      if (new Date().getTime() - startTimestamp.getTime() > MESSAGING_TIMEOUT) {
         throw new Error('Failed to connect app due timeout')
       }
 
@@ -44,18 +49,20 @@ export class ExtensionSigner implements AbstractSigner {
   }
 
   async signStateTransition (stateTransitionWASM: StateTransitionWASM): Promise<void> {
-    let response = await this.publicAPIClient.requestTransactionApproval(base64.encode(stateTransitionWASM.toBytes()))
+    let response: RequestStateTransitionApprovalResponse = await this.publicAPIClient.requestTransactionApproval(base64.encode(stateTransitionWASM.toBytes()))
 
     popupWindow(response.redirectUrl, 'approval', window, 300, 300)
 
     const startTimestamp = new Date()
 
     while (response.status === StateTransitionStatus.pending) {
-      if (new Date().getTime() - startTimestamp.getTime() < MESSAGING_TIMEOUT) {
+      await wait(500)
+
+      if (new Date().getTime() - startTimestamp.getTime() > MESSAGING_TIMEOUT) {
         throw new Error('Failed to receive state transition signing approval due timeout')
       }
 
-      response = await this.publicAPIClient.requestTransactionApproval(response.hash)
+      response = await this.publicAPIClient.requestTransactionApproval(stateTransitionWASM.toBase64())
     }
 
     if (response.status === StateTransitionStatus.rejected) {

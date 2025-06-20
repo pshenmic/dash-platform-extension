@@ -11,13 +11,15 @@ import { TransactionTypes } from '../../../enums/TransactionTypes'
 import DateBlock from '../../components/data/DateBlock'
 import './home.state.css'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-// import { Identity } from '../../../types/Identity'
-// import { IdentifierWASM } from 'pshenmic-dpp'
+import {useSdk} from "../../hooks/useSdk";
 
 export default function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
+  const sdk = useSdk()
+
   const [identities, setIdentities] = useState<string[]>([])
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
+  const [balance, setBalance] = useState<bigint>(0n)
   const [transactionsLoadError, setTransactionsLoadError] = useState<boolean>(false)
   const [transactions, setTransactions] = useState<any[] | null>(null)
 
@@ -50,6 +52,10 @@ export default function HomeState (): React.JSX.Element {
         // Load transactions for current identity (use updated currentIdentity)
         const activeIdentity = (currentIdentity != null && currentIdentity !== '') ? currentIdentity : current
         if (activeIdentity != null && activeIdentity !== '') {
+          const balance = await sdk.identities.getBalance(activeIdentity)
+
+          setBalance(balance)
+
           try {
             const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${activeIdentity}/transactions`)
             if (response.status === 200) {
@@ -78,9 +84,6 @@ export default function HomeState (): React.JSX.Element {
     return <NoIdentities />
   }
 
-  // TODO implement retrieving balance
-  const balance = 0
-
   return (
     <div className='screen-content'>
       <ValueCard colorScheme='lightBlue'>
@@ -102,7 +105,7 @@ export default function HomeState (): React.JSX.Element {
                 ? (
                   <Text size='xl' weight='bold' monospace>
                     <BigNumber>
-                      {balance}
+                      {balance.toString()}
                     </BigNumber>
                   </Text>
                   )

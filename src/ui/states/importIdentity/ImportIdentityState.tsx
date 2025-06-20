@@ -9,6 +9,8 @@ import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { PrivateKeyWASM } from 'pshenmic-dpp'
+import { IdentityWASM } from 'pshenmic-dpp/dist/wasm'
 
 export default function ImportIdentityState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -16,8 +18,8 @@ export default function ImportIdentityState (): React.JSX.Element {
 
   const extensionAPI = useExtensionAPI()
   const [privateKey, setPrivateKey] = useState('')
-  const [privateKeyWASM, setPrivateKeyWASM] = useState<any>(null)
-  const [identity, setIdentity] = useState<any>(null)
+  const [privateKeyWASM, setPrivateKeyWASM] = useState<PrivateKeyWASM | null>(null)
+  const [identity, setIdentity] = useState<IdentityWASM | null>(null)
   const [balance, setBalance] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -34,7 +36,7 @@ export default function ImportIdentityState (): React.JSX.Element {
       return setError('DPP module not available. Please try again.')
     }
 
-    let pkeyWASM = null
+    let pkeyWASM: PrivateKeyWASM | null = null
 
     if (privateKey.length === 52) {
       // wif
@@ -67,7 +69,7 @@ export default function ImportIdentityState (): React.JSX.Element {
     }
 
     try {
-      const identity = await sdk.identities.getByPublicKeyHash((pkeyWASM as any).getPublicKeyHash())
+      const identity = await sdk.identities.getByPublicKeyHash(pkeyWASM.getPublicKeyHash())
 
       // TODO: if Purpose !== Authentication && Security Level !== High => error, does not fit
 
@@ -108,6 +110,14 @@ export default function ImportIdentityState (): React.JSX.Element {
 
     try {
       // Prepare data for CREATE_IDENTITY
+      if (!identity) {
+        return setError('Could not load identity')
+      }
+
+      if (!privateKeyWASM) {
+        return setError('Could not load private key')
+      }
+
       const identifier = identity.getId().base58()
 
       // Convert private key to hex format
@@ -137,9 +147,9 @@ export default function ImportIdentityState (): React.JSX.Element {
       }
 
       setError((e)?.message ?? e?.toString() ?? 'Unknown error')
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
 
   const handleCheckClick = (): void => {
@@ -206,7 +216,7 @@ export default function ImportIdentityState (): React.JSX.Element {
                     linesAdjustment={false}
                   >
                     {/* TODO check it */}
-                    {identity ?? ''}
+                    {identity.getId().base58()}
                   </Identifier>
                 </ValueCard>
               </div>
