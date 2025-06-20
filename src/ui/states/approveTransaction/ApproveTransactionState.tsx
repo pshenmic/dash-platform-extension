@@ -12,6 +12,7 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { IdentityPublicKeyWASM, StateTransitionWASM } from 'pshenmic-dpp'
 import { IdentityWASM } from 'pshenmic-dpp/dist/wasm'
 import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import LoadingScreen from '../../components/layout/LoadingScreen'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -30,13 +31,39 @@ function ApproveTransactionState (): React.JSX.Element {
   const [password, setPassword] = useState<string>('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [isSigningInProgress, setIsSigningInProgress] = useState<boolean>(false)
+  const [isLoadingIdentities, setIsLoadingIdentities] = useState<boolean>(true)
+  const [isCheckingWallet, setIsCheckingWallet] = useState<boolean>(true)
+  const [hasWallet, setHasWallet] = useState<boolean>(false)
 
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
 
   useEffect(() => {
-    const loadData = async (): Promise<void> => {
+    const checkWallet = async (): Promise<void> => {
       try {
-        // Load all identities and current identity
+        const status = await extensionAPI.getStatus()
+        if (status.currentWalletId == null || status.currentWalletId === '') {
+          setHasWallet(false)
+        } else {
+          setHasWallet(true)
+        }
+      } catch (error) {
+        console.error('Failed to check wallet status:', error)
+        setHasWallet(false)
+      } finally {
+        setIsCheckingWallet(false)
+      }
+    }
+
+    void checkWallet()
+  }, [extensionAPI])
+
+  useEffect(() => {
+    const loadData = async (): Promise<void> => {
+      if (isCheckingWallet || !hasWallet) return
+
+      try {
+        setIsLoadingIdentities(true)
+
         const availableIdentities = await extensionAPI.getAvailableIdentities()
         const current = await extensionAPI.getCurrentIdentity()
 
@@ -58,11 +85,13 @@ function ApproveTransactionState (): React.JSX.Element {
         }
       } catch (error) {
         console.error('Failed to load identities:', error)
+      } finally {
+        setIsLoadingIdentities(false)
       }
     }
 
     void loadData()
-  }, [])
+  }, [isCheckingWallet, hasWallet])
 
   useEffect(() => {
     const transactionHash = params.hash ?? params.txhash
@@ -96,8 +125,83 @@ function ApproveTransactionState (): React.JSX.Element {
     }
   }, [params.hash, params.txhash])
 
-  if (identities.length === 0 && currentIdentity != null && currentIdentity !== '') {
-    return <div>No identities</div>
+  if (isCheckingWallet || isLoadingIdentities) {
+    return (
+      <LoadingScreen
+        message={isCheckingWallet ? 'Checking wallet...' : 'Loading identities...'}
+      />
+    )
+  }
+
+  if (!hasWallet) {
+    return (
+      <div className='screen-content'>
+        <h1 className='h1-title'>No Wallet Found</h1>
+        
+        <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-4'>
+          <Text size='lg'>
+            You need to create a wallet before you can approve transactions.
+          </Text>
+          <Text size='md' color='blue'>
+            Create a new wallet to manage your identities and approve transactions.
+          </Text>
+        </ValueCard>
+
+        <div className='flex gap-5 mt-5 w-full'>
+          <Button 
+            onClick={() => navigate('/create-wallet')} 
+            colorScheme='mint' 
+            className='w-1/2'
+          >
+            Create Wallet
+          </Button>
+          <Button 
+            onClick={() => window.close()} 
+            colorScheme='gray' 
+            variant='outline'
+            className='w-1/2'
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Show no identities message only after loading is complete
+  if (identities.length === 0) {
+    return (
+      <div className='screen-content'>
+        <h1 className='h1-title'>No Identities Available</h1>
+        
+        <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-4'>
+          <Text size='lg'>
+            You need to have at least one identity to approve transactions.
+          </Text>
+          <Text size='md' color='blue'>
+            Import an existing identity or create a new one to continue.
+          </Text>
+        </ValueCard>
+
+        <div className='flex gap-5 mt-5 w-full'>
+          <Button
+            onClick={() => navigate('/import')}
+            colorScheme='mint'
+            className='w-1/2'
+          >
+            Import Identity
+          </Button>
+          <Button 
+            onClick={() => window.close()} 
+            colorScheme='gray' 
+            variant='outline'
+            className='w-1/2'
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   const reject = (): void => {
