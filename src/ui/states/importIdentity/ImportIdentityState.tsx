@@ -11,8 +11,9 @@ import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { IdentityWASM } from 'pshenmic-dpp/dist/wasm'
+import { withAuthCheck } from '../../components/auth/withAuthCheck'
 
-export default function ImportIdentityState (): React.JSX.Element {
+function ImportIdentityState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
 
@@ -255,3 +256,5 @@ export default function ImportIdentityState (): React.JSX.Element {
     </div>
   )
 }
+
+export default withAuthCheck(ImportIdentityState)
