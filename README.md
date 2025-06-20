@@ -57,23 +57,14 @@ export const handleSendMessageButton = async () => {
     "message": "test",
   }
 
-  // const privateKey = dashPlatformSDK.wasm.PrivateKeyWASM.fromHex('E150920AA4FD530B1AFDCA7AC939EB14D63B6D065CC88BBE1A1DF66ED593FE31')
   const privateKey = dashPlatformSDK.wasm.PrivateKeyWASM.fromWIF('cV8gdL3T1syAMbg71EY7LuJAvdyVajE2XAzkdzHTw5AHmADt1pr6')
-  const identityContractNonce = dashPlatformSDK.identities.getIdentityContractNonce(identity, dataContract)
-  const document = await dashPlatformSDK.documents.create(dataContract, 'note', data, identityContractNonce + 1n, identity)
-  const createTransition = new dashPlatformSDK.wasm.DocumentCreateTransitionWASM(document, identityContractNonce + 1n, documentTypeName)
-  const documentsBatch = new dashPlatformSDK.wasm.DocumentsBatchWASM([createTransition.toDocumentTransition()], identity, 0, 0, null)
-  const stateTransition = documentsBatch.toStateTransition()
+  const identityContractNonce = await window.dashPlatformSDK.identities.getIdentityContractNonce(identity, dataContract)
+  const document = await window.dashPlatformSDK.documents.create(dataContract, 'note', data, identity, identityContractNonce + 1n)
+  const stateTransition = await dashPlatformSDK.stateTransitions.documentsBatch.create(document, identityContractNonce + 1n)
 
-  await dashPlatformSDK.signer.signStateTransition(stateTransition)
+  await window.dashPlatformSDK.signer.signStateTransition(stateTransition)
+  
+  
+  console.log('Transaction was successfully signed and broadcasted, txhash: ', stateTransition.hash(true))
 }
 ```
-
-## Next features
-
-Currently, the application is very raw and fragile and requires a lot of checks and validations for a stable work.
-
-* Multiple identities in storage
-* Import Identities from seed phrase
-* Register Identity (with different payment methods)
-* Send and Withdraw credits
