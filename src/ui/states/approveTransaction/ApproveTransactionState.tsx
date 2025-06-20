@@ -37,10 +37,8 @@ function ApproveTransactionState (): React.JSX.Element {
     const loadData = async (): Promise<void> => {
       try {
         // Load all identities and current identity
-        const [availableIdentities, current] = await Promise.all([
-          extensionAPI.getAvailableIdentities(),
-          extensionAPI.getCurrentIdentity()
-        ])
+        const availableIdentities = await extensionAPI.getAvailableIdentities()
+        const current = await extensionAPI.getCurrentIdentity()
 
         setIdentities(availableIdentities ?? [])
         setCurrentIdentity(current)
