@@ -21,6 +21,7 @@ import { ApproveStateTransitionPayload } from './messages/payloads/ApproveStateT
 import { ApproveStateTransitionResponse } from './messages/response/ApproveStateTransitionResponse'
 import { RejectStateTransitionResponse } from './messages/response/RejectStateTransitionResponse'
 import { RejectStateTransitionPayload } from './messages/payloads/RejectStateTransitionPayload'
+import {generateRandomHex} from "../utils";
 
 export class PrivateAPIClient {
   constructor () {
@@ -131,7 +132,7 @@ export class PrivateAPIClient {
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
-    const id = new Date().getTime().toString()
+    const id = generateRandomHex(8)
 
     return await new Promise((resolve, reject) => {
       const rejectWithError = (message: string): void => {

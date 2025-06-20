@@ -2,6 +2,7 @@ import { AppConnect } from '../../types/AppConnect'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { AppConnectsStorageSchema } from '../storage/storageSchema'
 import { AppConnectStatus } from '../../types/enums/AppConnectStatus'
+import {generateRandomHex} from "../../utils";
 
 export class AppConnectRepository {
   storageKey: string
@@ -22,7 +23,7 @@ export class AppConnectRepository {
     const storageKey = `appConnects_${network}_${walletId}`
 
     const appConnectRequest: AppConnect = {
-      id: new Date().getTime().toString(),
+      id: generateRandomHex(6),
       status: 'pending',
       url
     }

@@ -9,11 +9,13 @@ import Identifier from '../../components/data/Identifier'
 import StatusIcon from '../../components/icons/StatusIcon'
 import { TransactionTypes } from '../../../enums/TransactionTypes'
 import DateBlock from '../../components/data/DateBlock'
+import LoadingScreen from '../../components/layout/LoadingScreen'
 import './home.state.css'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
+import { withAuthCheck } from '../../components/auth/withAuthCheck'
 
-export default function HomeState (): React.JSX.Element {
+function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
 
@@ -22,15 +24,15 @@ export default function HomeState (): React.JSX.Element {
   const [balance, setBalance] = useState<bigint>(0n)
   const [transactionsLoadError, setTransactionsLoadError] = useState<boolean>(false)
   const [transactions, setTransactions] = useState<any[] | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(true)
 
   useEffect(() => {
     const loadData = async (): Promise<void> => {
       try {
-        // Load all identities and current identity
-        const [availableIdentities, current] = await Promise.all([
-          extensionAPI.getAvailableIdentities(),
-          extensionAPI.getCurrentIdentity()
-        ])
+        setIsLoading(true)
+
+        const availableIdentities = await extensionAPI.getAvailableIdentities()
+        const current = await extensionAPI.getCurrentIdentity()
 
         setIdentities(availableIdentities ?? [])
         setCurrentIdentity(current)
@@ -57,7 +59,7 @@ export default function HomeState (): React.JSX.Element {
           setBalance(balance)
 
           try {
-            const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${activeIdentity}/transactions`)
+            const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${activeIdentity}/transactions?order=desc`)
             if (response.status === 200) {
               const data = await response.json()
               if (data.error == null) {
@@ -74,11 +76,17 @@ export default function HomeState (): React.JSX.Element {
         }
       } catch (error) {
         console.error('Failed to load data:', error)
+      } finally {
+        setIsLoading(false)
       }
     }
 
     void loadData()
   }, [])
+
+  if (isLoading) {
+    return <LoadingScreen message='Loading wallet data...' />
+  }
 
   if (identities.length === 0) {
     return <NoIdentities />
@@ -166,3 +174,5 @@ export default function HomeState (): React.JSX.Element {
     </div>
   )
 }
+
+export default withAuthCheck(HomeState)
