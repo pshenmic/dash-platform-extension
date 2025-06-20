@@ -1,5 +1,5 @@
 import { AbstractSigner } from 'dash-platform-sdk'
-import { DashPlatformProtocolWASM, IdentityWASM, StateTransitionWASM } from 'pshenmic-dpp/dist/wasm'
+import { DashPlatformProtocolWASM, StateTransitionWASM } from 'pshenmic-dpp/dist/wasm'
 import { hexToBytes, popupWindow, wait } from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'
