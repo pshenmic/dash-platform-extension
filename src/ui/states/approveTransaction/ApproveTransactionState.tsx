@@ -10,6 +10,10 @@ import Button from '../../components/controls/buttons'
 // import { Identity } from '../../../types/Identity'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { IdentityPublicKeyWASM, StateTransitionWASM } from 'pshenmic-dpp'
+import { IdentityWASM } from 'pshenmic-dpp/dist/wasm'
+// import { ApproveStateTransitionResponse } from '../../../types/messages/response/ApproveStateTransitionResponse'
+import { hexToBytes } from '../../../utils'
 
 export default function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -26,7 +30,7 @@ export default function ApproveTransactionState (): React.JSX.Element {
   const [identities, setIdentities] = useState<string[]>([])
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
 
-  const [stateTransition, setStateTransition] = useState<any>(null)
+  const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
 
   useEffect(() => {
     const loadData = async (): Promise<void> => {
@@ -43,16 +47,16 @@ export default function ApproveTransactionState (): React.JSX.Element {
         console.log('availableIdentities', availableIdentities)
         console.log('current', current)
 
-        // // Auto-set first identity as current if no current identity is set
-        // if ((current == null || current === '') && (availableIdentities?.length ?? 0) > 0) {
-        //   console.log('Setting first identity as current:', availableIdentities[0])
-        //   try {
-        //     await extensionAPI.switchIdentity(availableIdentities[0])
-        //     setCurrentIdentity(availableIdentities[0])
-        //   } catch (error) {
-        //     console.error('Failed to set current identity:', error)
-        //   }
-        // }
+        // Auto-set first identity as current if no current identity is set
+        if ((current == null || current === '') && (availableIdentities?.length ?? 0) > 0) {
+          console.log('Setting first identity as current:', availableIdentities[0])
+          try {
+            await extensionAPI.switchIdentity(availableIdentities[0])
+            setCurrentIdentity(availableIdentities[0])
+          } catch (error) {
+            console.error('Failed to set current identity:', error)
+          }
+        }
       } catch (error) {
         console.error('Failed to load identities:', error)
       }
@@ -77,7 +81,7 @@ export default function ApproveTransactionState (): React.JSX.Element {
           try {
             const { StateTransitionWASM } = sdk.dpp
 
-            setStateTransition(StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)))
+            setStateTransitionWASM(StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)))
             setIsLoadingTransaction(false)
           } catch (e) {
             console.error('Error decoding state transition:', e)
@@ -102,15 +106,38 @@ export default function ApproveTransactionState (): React.JSX.Element {
     window.close()
   }
 
-  const doSign = (): void => {
-    sdk.stateTransitions.broadcast(stateTransition)
-      .then(() => {
-        const stateTransitionHash = stateTransition.hash
+  const doSign = async (): Promise<void> => {
+    try {
+      if (stateTransitionWASM == null) {
+        throw new Error('stateTransitionWASM is null')
+      }
+      const identity: IdentityWASM = await sdk.identities.getByIdentifier(currentIdentity)
+      const identityPublicKeys: IdentityPublicKeyWASM[] = identity.getPublicKeys()
+      const [identityPublicKey] = identityPublicKeys
+        .filter(publicKey => publicKey.getPurpose() === 'AUTHENTICATION' && publicKey.getSecurityLevel() === 'HIGH')
 
-        setTxHash(stateTransitionHash)
-      }).catch((error: Error) => {
-        console.error('failz', error)
-      })
+      if (identityPublicKey == null) {
+        throw new Error('no identity public key')
+      }
+
+      const stateTransitionHash: string | null = stateTransitionWASM?.hash(true) ?? null
+
+      if (stateTransitionHash != null && stateTransitionHash !== '' && currentIdentity != null && currentIdentity !== '') {
+        const { stateTransition } = await extensionAPI.approveStateTransition(stateTransitionHash, currentIdentity, identityPublicKey, '123123')
+        const { signature, signaturePublicKeyId } = stateTransition
+
+        if (typeof signature === 'string' && typeof signaturePublicKeyId === 'number') {
+          stateTransitionWASM.signature = hexToBytes(signature)
+          stateTransitionWASM.signaturePublicKeyId = signaturePublicKeyId
+        }
+
+        await sdk.stateTransitions.broadcast(stateTransitionWASM)
+      }
+
+      setTxHash(stateTransitionHash)
+    } catch (error) {
+      console.error('Sign transition fails', error)
+    }
   }
 
   if (txHash != null) {
@@ -171,13 +198,13 @@ export default function ApproveTransactionState (): React.JSX.Element {
                         Error decoding state transition: {transactionDecodeError}
                       </Text>
                       )
-                    : (stateTransition != null && <TransactionDetails stateTransition={stateTransition} />)))}
+                    : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM} />)))}
         </div>
       </ValueCard>
 
-      {!isLoadingTransaction && !transactionNotFound && stateTransition == null
+      {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM == null
         ? <Button onClick={() => { void navigate('/') }} className='mt-2'>Close</Button>
-        : (stateTransition != null &&
+        : (stateTransitionWASM != null &&
           <div>
             <Text>Sign with identity:</Text>
             <select>
@@ -195,7 +222,7 @@ export default function ApproveTransactionState (): React.JSX.Element {
               >
                 Reject
               </Button>
-              <Button onClick={doSign} colorScheme='mint' className='w-1/2'>Sign</Button>
+              <Button onClick={() => { void doSign() }} colorScheme='mint' className='w-1/2'>Sign</Button>
             </div>
           </div>
           )}
