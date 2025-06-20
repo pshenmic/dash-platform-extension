@@ -26,6 +26,7 @@ export default function ApproveTransactionState (): React.JSX.Element {
 
   const [identities, setIdentities] = useState<string[]>([])
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
+  const [password, setPassword] = useState<string>('')
 
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
 
@@ -120,8 +121,7 @@ export default function ApproveTransactionState (): React.JSX.Element {
       const stateTransitionHash: string | null = stateTransitionWASM?.hash(true) ?? null
 
       if (stateTransitionHash != null && stateTransitionHash !== '' && currentIdentity != null && currentIdentity !== '') {
-        const response = await extensionAPI.approveStateTransition(stateTransitionHash, currentIdentity, identityPublicKey, '123123')
-
+        const response = await extensionAPI.approveStateTransition(stateTransitionHash, currentIdentity, identityPublicKey, password)
         setTxHash(response.txHash)
       }
     } catch (error) {
@@ -204,6 +204,17 @@ export default function ApproveTransactionState (): React.JSX.Element {
               )}
             </select>
 
+            <div className='mt-4'>
+              <Text>Password:</Text>
+              <input 
+                type='password'
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className='w-full mt-2 p-2 border border-gray-300 rounded'
+                placeholder='Enter password'
+              />
+            </div>
+
             <div className='flex gap-5 mt-5'>
               <Button
                 onClick={reject} colorScheme='red' variant='outline'
@@ -211,7 +222,14 @@ export default function ApproveTransactionState (): React.JSX.Element {
               >
                 Reject
               </Button>
-              <Button onClick={() => { void doSign() }} colorScheme='mint' className='w-1/2'>Sign</Button>
+              <Button 
+                onClick={() => { void doSign() }} 
+                colorScheme='mint' 
+                className='w-1/2'
+                disabled={!password.trim()}
+              >
+                Sign
+              </Button>
             </div>
           </div>
           )}
