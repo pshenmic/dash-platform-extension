@@ -11,7 +11,7 @@ export default function DocumentsBatchDetails ({ stateTransition }) {
 
   useEffect(() => {
     try {
-      const documentsBatch = sdk.wasm.DocumentsBatchWASM.fromStateTransition(stateTransition)
+      const documentsBatch = sdk.dpp.BatchTransitionWASM.fromStateTransition(stateTransition)
 
       const { transitions } = documentsBatch
       setTransitions(transitions)

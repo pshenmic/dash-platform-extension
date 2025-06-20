@@ -22,7 +22,7 @@ export class RejectStateTransitionHandler implements APIHandler {
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
-      throw new Error('No ')
+      throw new Error('No wallet is chosen')
     }
 
     return {

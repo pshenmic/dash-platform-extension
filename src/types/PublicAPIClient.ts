@@ -6,7 +6,7 @@ import { RequestStateTransitionApprovalResponse } from './messages/response/Requ
 
 export class PublicAPIClient {
   async connectApp (url: string): Promise<ConnectAppResponse> {
-    return await this._rpcCall(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL,
+    return await this._rpcCall(MessagingMethods.CONNECT_APP,
       {
         url
       })
@@ -20,7 +20,6 @@ export class PublicAPIClient {
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
-    console.log(`RPC call to extension with method ${method} payload ${JSON.stringify(payload)}`)
     const id = new Date().getTime().toString()
 
     return await new Promise((resolve, reject) => {

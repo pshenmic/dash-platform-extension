@@ -3,7 +3,6 @@ import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
 import { StorageAdapter } from '../storage/storageAdapter'
-import { PayloadNotValidError } from '../errors/PayloadNotValidError'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { GetCurrentIdentityHandler } from './private/identities/getCurrentIdentity'
 import { GetAvailableIdentitiesHandler } from './private/identities/getAvailableIdentities'
@@ -51,7 +50,7 @@ export class PrivateAPI {
       [MessagingMethods.SWITCH_IDENTITY]: new SwitchIdentityHandler(identitiesRepository, walletRepository),
       [MessagingMethods.GET_AVAILABLE_IDENTITIES]: new GetAvailableIdentitiesHandler(identitiesRepository),
       [MessagingMethods.GET_CURRENT_IDENTITY]: new GetCurrentIdentityHandler(identitiesRepository),
-      [MessagingMethods.APPROVE_STATE_TRANSITION]: new ApproveStateTransitionHandler(stateTransitionsRepository, identitiesRepository, walletRepository, keypairRepository, this.sdk.dpp),
+      [MessagingMethods.APPROVE_STATE_TRANSITION]: new ApproveStateTransitionHandler(stateTransitionsRepository, identitiesRepository, walletRepository, keypairRepository, this.sdk.dpp, this.sdk),
       [MessagingMethods.GET_STATE_TRANSITION]: new GetStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.REJECT_STATE_TRANSITION]: new RejectStateTransitionHandler(stateTransitionsRepository, walletRepository),
       [MessagingMethods.CREATE_WALLET]: new CreateWalletHandler(walletRepository, this.sdk.dpp),
@@ -86,7 +85,17 @@ export class PrivateAPI {
       const validation = handler.validatePayload(payload)
 
       if (validation != null) {
-        throw new PayloadNotValidError(validation)
+        const message: EventData = {
+          id,
+          context: 'dash-platform-extension',
+          type: 'response',
+          method,
+          payload: null,
+          error: validation
+        }
+
+        // @ts-expect-error
+        return chrome.runtime.onMessage.dispatch(message)
       }
 
       handler.handle(data)

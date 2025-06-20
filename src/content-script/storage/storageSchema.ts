@@ -3,7 +3,7 @@ export interface KeyPairSchema {
   identityPublicKey: string
 
   // hex
-  encryptedPrivateKey?: string
+  encryptedPrivateKey: string | null
 }
 
 export interface KeyPairsSchema {

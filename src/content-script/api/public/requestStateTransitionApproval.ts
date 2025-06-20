@@ -24,12 +24,15 @@ export class RequestStateTransitionApprovalHandler implements APIHandler {
 
     const stateTransitionWASM = this.dpp.StateTransitionWASM.fromBytes(base64.decode(payload.base64))
 
-    const stateTransition = await this.stateTransitionsRepository.create(stateTransitionWASM)
+    let stateTransition = await this.stateTransitionsRepository.getByHash(stateTransitionWASM.hash(true))
+
+    if (stateTransition == null) {
+      stateTransition = await this.stateTransitionsRepository.create(stateTransitionWASM)
+    }
 
     return {
-      hash: stateTransition.hash,
-      status: stateTransition.status,
-      redirectUrl: chrome.runtime.getURL(`index.html/#approve/${stateTransition.hash}`)
+      stateTransition,
+      redirectUrl: `chrome-extension://${chrome.runtime.id}/index.html#/approve/${stateTransition.hash}`
     }
   }
 

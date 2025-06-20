@@ -9,6 +9,10 @@ export const bytesToHex = (bytes: Uint8Array): string => {
   return Array.prototype.map.call(bytes, (x: number) => ('00' + x.toString(16)).slice(-2)).join('')
 }
 
+export const wait = async (ms: number): Promise<void> => {
+  return await new Promise((resolve, reject) => setTimeout(resolve, ms))
+}
+
 export const validateHex = (str: string): boolean => {
   return /[0-9a-fA-F]{32}/.test(str)
 }
@@ -24,7 +28,7 @@ export const validateIdentifier = (str: string): boolean => {
   try {
     const bytes = base58.decode(str)
 
-    return bytes.length === 64
+    return bytes.length === 32
   } catch (e) {
     return false
   }

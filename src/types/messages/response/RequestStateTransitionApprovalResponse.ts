@@ -1,5 +1,6 @@
+import { StateTransition } from '../../StateTransition'
+
 export interface RequestStateTransitionApprovalResponse {
-  hash: string
-  status: 'pending' | 'approved' | 'rejected'
+  stateTransition: StateTransition
   redirectUrl: string
 }
