@@ -12,6 +12,7 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { IdentityWASM } from 'pshenmic-dpp/dist/wasm'
 import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import LoadingScreen from '../../components/layout/LoadingScreen'
 
 function ImportIdentityState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -24,6 +25,26 @@ function ImportIdentityState (): React.JSX.Element {
   const [balance, setBalance] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isCheckingWallet, setIsCheckingWallet] = useState(true)
+
+  // Check if wallet exists on component mount
+  useEffect(() => {
+    const checkWallet = async (): Promise<void> => {
+      try {
+        const status = await extensionAPI.getStatus()
+        if (status.currentWalletId == null || status.currentWalletId === '') {
+          void navigate('/create-wallet')
+          return
+        }
+        setIsCheckingWallet(false)
+      } catch (error) {
+        console.error('Failed to check wallet status:', error)
+        void navigate('/create-wallet')
+      }
+    }
+
+    void checkWallet()
+  }, [extensionAPI, navigate])
 
   const checkPrivateKey = async (): Promise<void> => {
     const status = await extensionAPI.getStatus()
@@ -159,6 +180,11 @@ function ImportIdentityState (): React.JSX.Element {
 
   const handleImportClick = (): void => {
     void importIdentity()
+  }
+
+  // Show loading screen while checking wallet
+  if (isCheckingWallet || isLoading) {
+    return <LoadingScreen message={isCheckingWallet ? 'Checking wallet...' : 'Loading...'} />
   }
 
   return (
