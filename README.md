@@ -57,7 +57,6 @@ export const handleSendMessageButton = async () => {
     "message": "test",
   }
 
-  const privateKey = dashPlatformSDK.wasm.PrivateKeyWASM.fromWIF('cV8gdL3T1syAMbg71EY7LuJAvdyVajE2XAzkdzHTw5AHmADt1pr6')
   const identityContractNonce = await window.dashPlatformSDK.identities.getIdentityContractNonce(identity, dataContract)
   const document = await window.dashPlatformSDK.documents.create(dataContract, 'note', data, identity, identityContractNonce + 1n)
   const stateTransition = await dashPlatformSDK.stateTransitions.documentsBatch.create(document, identityContractNonce + 1n)
