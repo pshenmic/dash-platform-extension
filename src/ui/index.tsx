@@ -10,15 +10,8 @@ import CreateWalletState from './states/wallet/CreateWalletState'
 import './styles/app.pcss'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 import Layout from './components/layout/Layout'
-// import { useSdk } from './hooks/useSdk'
-// import { Identity } from '../types/Identity'
 
 const App: React.FC = function () {
-  // const sdk: any = useSdk()
-
-  // const [identities setIdentities] = useState<Identity[]>([])
-  // const [identityBalance, setIdentityBalance] = useState<bigint>(0n)
-
   const router = createHashRouter([
     {
       element: <Layout />,

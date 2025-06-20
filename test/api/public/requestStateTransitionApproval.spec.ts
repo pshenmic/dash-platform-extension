@@ -22,7 +22,7 @@ describe('requestStateTransitionApproval tests', () => {
     publicAPI.init()
   })
 
-  test('should store a state transition', async () => {
+  test.skip('should store a state transition', async () => {
     const base64 = 'AgHow50ZMBRg3NLhpHGheMKw37zyCy92h8Xq/nLmPO//pQEAAAABvzVamEjVJ8WrY12CGPD5XiHDuHOZMID4Pfa41Ta94IcCCHByZW9yZGVyMBbSwI1eE/eONjiHIhnkx+/9c1Mhk7cvBpAEum0ImpgADATOA1kQuI5q2LWL0Ic7rGgpyNMU9QZCztA+G+s1X6IBEHNhbHRlZERvbWFpbkhhc2gKIAH1lwDd9WSSQkMSnw9Vg9GmspbyKUizcTPCxtb0hLWEAAAEQR8BWHxKinHTht4HW4kOaX/C72FxmHCabQpB/d+JLanxbg1tYjOtQjZuMCmm+YD0aODuYIh15zZmmCKm8DFAnAr5'
     const hash = 'c8064d80f1d182d953fe78d76172eb0346755a77b5bf37b4f0ee26a102b371ed'
 

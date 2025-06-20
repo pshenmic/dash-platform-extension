@@ -26,6 +26,9 @@ export default function ApproveTransactionState (): React.JSX.Element {
 
   const [identities, setIdentities] = useState<string[]>([])
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
+  const [password, setPassword] = useState<string>('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [isSigningInProgress, setIsSigningInProgress] = useState<boolean>(false)
 
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
 
@@ -104,10 +107,34 @@ export default function ApproveTransactionState (): React.JSX.Element {
   }
 
   const doSign = async (): Promise<void> => {
+    if (stateTransitionWASM == null) {
+      throw new Error('stateTransitionWASM is null')
+    }
+
+    if (currentIdentity == null) {
+      throw new Error('No current identity')
+    }
+
+    if (password === '') {
+      setPasswordError('Password is required')
+      return
+    }
+
+    setIsSigningInProgress(true)
+    setPasswordError(null)
+
     try {
       if (stateTransitionWASM == null) {
         throw new Error('stateTransitionWASM is null')
       }
+
+      const passwordCheck = await extensionAPI.checkPassword(password)
+      if (!passwordCheck.success) {
+        setPasswordError('Invalid password')
+        setIsSigningInProgress(false)
+        return
+      }
+
       const identity: IdentityWASM = await sdk.identities.getByIdentifier(currentIdentity)
       const identityPublicKeys: IdentityPublicKeyWASM[] = identity.getPublicKeys()
       const [identityPublicKey] = identityPublicKeys
@@ -117,15 +144,14 @@ export default function ApproveTransactionState (): React.JSX.Element {
         throw new Error('no identity public key')
       }
 
-      const stateTransitionHash: string | null = stateTransitionWASM?.hash(true) ?? null
+      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, identityPublicKey, password)
 
-      if (stateTransitionHash != null && stateTransitionHash !== '' && currentIdentity != null && currentIdentity !== '') {
-        const response = await extensionAPI.approveStateTransition(stateTransitionHash, currentIdentity, identityPublicKey, '123123')
-
-        setTxHash(response.txHash)
-      }
+      setTxHash(response.txHash)
     } catch (error) {
       console.error('Sign transition fails', error)
+      setPasswordError('Signing failed')
+    } finally {
+      setIsSigningInProgress(false)
     }
   }
 
@@ -204,6 +230,22 @@ export default function ApproveTransactionState (): React.JSX.Element {
               )}
             </select>
 
+            <div className='mt-4'>
+              <Text>Password:</Text>
+              <input
+                type='password'
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className='w-full mt-2 p-2 border border-gray-300 rounded'
+                placeholder='Enter password'
+              />
+              {passwordError != null && (
+                <div className='text-red-500 text-sm mt-1'>
+                  {passwordError}
+                </div>
+              )}
+            </div>
+
             <div className='flex gap-5 mt-5'>
               <Button
                 onClick={reject} colorScheme='red' variant='outline'
@@ -211,7 +253,14 @@ export default function ApproveTransactionState (): React.JSX.Element {
               >
                 Reject
               </Button>
-              <Button onClick={() => { void doSign() }} colorScheme='mint' className='w-1/2'>Sign</Button>
+              <Button
+                onClick={() => { void doSign() }}
+                colorScheme='mint'
+                className='w-1/2'
+                disabled={password.trim().length === 0 || isSigningInProgress}
+              >
+                {isSigningInProgress ? 'Signing...' : 'Sign'}
+              </Button>
             </div>
           </div>
           )}
