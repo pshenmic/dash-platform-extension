@@ -48,7 +48,7 @@ export class ExtensionSigner implements AbstractSigner {
     }
   }
 
-  async signStateTransition (stateTransitionWASM: StateTransitionWASM): Promise<StateTransitionWASM> {
+  async signAndBroadcast (stateTransitionWASM: StateTransitionWASM): Promise<StateTransitionWASM> {
     let response: RequestStateTransitionApprovalResponse = await this.publicAPIClient.requestTransactionApproval(base64.encode(stateTransitionWASM.toBytes()))
 
     popupWindow(response.redirectUrl, 'approval', window, 430, 600)
