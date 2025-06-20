@@ -31,8 +31,7 @@ export class RequestStateTransitionApprovalHandler implements APIHandler {
     }
 
     return {
-      hash: stateTransition.hash,
-      status: stateTransition.status,
+      stateTransition,
       redirectUrl: `chrome-extension://${chrome.runtime.id}/index.html#/approve/${stateTransition.hash}`
     }
   }

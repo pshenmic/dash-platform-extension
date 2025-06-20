@@ -1,6 +1,6 @@
 import { AbstractSigner } from 'dash-platform-sdk'
 import { DashPlatformProtocolWASM, IdentityWASM, StateTransitionWASM } from 'pshenmic-dpp/dist/wasm'
-import { popupWindow, wait } from '../utils'
+import {hexToBytes, popupWindow, wait} from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'
 import { PublicAPIClient } from '../types/PublicAPIClient'
@@ -48,14 +48,14 @@ export class ExtensionSigner implements AbstractSigner {
     }
   }
 
-  async signStateTransition (stateTransitionWASM: StateTransitionWASM): Promise<void> {
+  async signStateTransition (stateTransitionWASM: StateTransitionWASM): Promise<StateTransitionWASM> {
     let response: RequestStateTransitionApprovalResponse = await this.publicAPIClient.requestTransactionApproval(base64.encode(stateTransitionWASM.toBytes()))
 
     popupWindow(response.redirectUrl, 'approval', window, 300, 300)
 
     const startTimestamp = new Date()
 
-    while (response.status === StateTransitionStatus.pending) {
+    while (response.stateTransition.status === StateTransitionStatus.pending) {
       await wait(500)
 
       if (new Date().getTime() - startTimestamp.getTime() > MESSAGING_TIMEOUT) {
@@ -65,8 +65,19 @@ export class ExtensionSigner implements AbstractSigner {
       response = await this.publicAPIClient.requestTransactionApproval(stateTransitionWASM.toBase64())
     }
 
-    if (response.status === StateTransitionStatus.rejected) {
+    if (response.stateTransition.status === StateTransitionStatus.rejected) {
       throw new Error('State transition signing error')
     }
+
+    const {signature, signaturePublicKeyId} = response.stateTransition
+
+    if( signature == null || signaturePublicKeyId == null) {
+      throw new Error('Signature is missing')
+    }
+
+    stateTransitionWASM.signature = hexToBytes(signature)
+    stateTransitionWASM.signaturePublicKeyId = signaturePublicKeyId
+
+    return stateTransitionWASM
   }
 }
