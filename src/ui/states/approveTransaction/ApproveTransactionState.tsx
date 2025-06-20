@@ -27,6 +27,8 @@ export default function ApproveTransactionState (): React.JSX.Element {
   const [identities, setIdentities] = useState<string[]>([])
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [password, setPassword] = useState<string>('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [isSigningInProgress, setIsSigningInProgress] = useState<boolean>(false)
 
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
 
@@ -113,7 +115,26 @@ export default function ApproveTransactionState (): React.JSX.Element {
       throw new Error('No current identity')
     }
 
+    if (password === '') {
+      setPasswordError('Password is required')
+      return
+    }
+
+    setIsSigningInProgress(true)
+    setPasswordError(null)
+
     try {
+      if (stateTransitionWASM == null) {
+        throw new Error('stateTransitionWASM is null')
+      }
+
+      const passwordCheck = await extensionAPI.checkPassword(password)
+      if (!passwordCheck.success) {
+        setPasswordError('Invalid password')
+        setIsSigningInProgress(false)
+        return
+      }
+
       const identity: IdentityWASM = await sdk.identities.getByIdentifier(currentIdentity)
       const identityPublicKeys: IdentityPublicKeyWASM[] = identity.getPublicKeys()
       const [identityPublicKey] = identityPublicKeys
@@ -123,11 +144,14 @@ export default function ApproveTransactionState (): React.JSX.Element {
         throw new Error('no identity public key')
       }
 
-      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, identityPublicKey, '123123')
+      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, identityPublicKey, password)
 
       setTxHash(response.txHash)
     } catch (error) {
       console.error('Sign transition fails', error)
+      setPasswordError('Signing failed')
+    } finally {
+      setIsSigningInProgress(false)
     }
   }
 
@@ -182,14 +206,14 @@ export default function ApproveTransactionState (): React.JSX.Element {
           {isLoadingTransaction
             ? <Text>Loading transaction...</Text>
             : (transactionNotFound
-                ? <Text color='red' weight='bold'>Could not find transaction with hash</Text>
-                : (transactionDecodeError != null
-                    ? (
-                      <Text color='red' weight='bold'>
-                        Error decoding state transition: {transactionDecodeError}
-                      </Text>
-                      )
-                    : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM} />)))}
+              ? <Text color='red' weight='bold'>Could not find transaction with hash</Text>
+              : (transactionDecodeError != null
+                ? (
+                  <Text color='red' weight='bold'>
+                    Error decoding state transition: {transactionDecodeError}
+                  </Text>
+                )
+                : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM} />)))}
         </div>
       </ValueCard>
 
@@ -215,6 +239,11 @@ export default function ApproveTransactionState (): React.JSX.Element {
                 className='w-full mt-2 p-2 border border-gray-300 rounded'
                 placeholder='Enter password'
               />
+              {passwordError != null && (
+                <div className='text-red-500 text-sm mt-1'>
+                  {passwordError}
+                </div>
+              )}
             </div>
 
             <div className='flex gap-5 mt-5'>
@@ -228,13 +257,13 @@ export default function ApproveTransactionState (): React.JSX.Element {
                 onClick={() => { void doSign() }}
                 colorScheme='mint'
                 className='w-1/2'
-                disabled={!password.trim()}
+                disabled={!password.trim() || isSigningInProgress}
               >
-                Sign
+                {isSigningInProgress ? 'Signing...' : 'Sign'}
               </Button>
             </div>
           </div>
-          )}
+        )}
     </div>
   )
 }
