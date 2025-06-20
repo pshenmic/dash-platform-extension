@@ -11,7 +11,7 @@ import { TransactionTypes } from '../../../enums/TransactionTypes'
 import DateBlock from '../../components/data/DateBlock'
 import './home.state.css'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import {useSdk} from "../../hooks/useSdk";
+import { useSdk } from '../../hooks/useSdk'
 
 export default function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
