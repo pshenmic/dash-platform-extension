@@ -1,6 +1,6 @@
 import { AbstractSigner } from 'dash-platform-sdk'
 import { DashPlatformProtocolWASM, IdentityWASM, StateTransitionWASM } from 'pshenmic-dpp/dist/wasm'
-import {hexToBytes, popupWindow, wait} from '../utils'
+import { hexToBytes, popupWindow, wait } from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'
 import { PublicAPIClient } from '../types/PublicAPIClient'
@@ -69,9 +69,9 @@ export class ExtensionSigner implements AbstractSigner {
       throw new Error('State transition signing error')
     }
 
-    const {signature, signaturePublicKeyId} = response.stateTransition
+    const { signature, signaturePublicKeyId } = response.stateTransition
 
-    if( signature == null || signaturePublicKeyId == null) {
+    if (signature == null || signaturePublicKeyId == null) {
       throw new Error('Signature is missing')
     }
 

@@ -110,11 +110,11 @@ export default function ImportIdentityState (): React.JSX.Element {
 
     try {
       // Prepare data for CREATE_IDENTITY
-      if (!identity) {
+      if (identity == null) {
         return setError('Could not load identity')
       }
 
-      if (!privateKeyWASM) {
+      if (privateKeyWASM == null) {
         return setError('Could not load private key')
       }
 
