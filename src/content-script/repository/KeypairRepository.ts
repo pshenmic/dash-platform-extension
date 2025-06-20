@@ -70,7 +70,10 @@ export class KeypairRepository {
     }
 
     const [keyPair] = keyPairs
-      .map((keyPairSchema: KeyPairSchema) => ({ identityPublicKey: this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(keyPairSchema.identityPublicKey)) }))
+      .map((keyPairSchema: KeyPairSchema) => ({
+        identityPublicKey: this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(keyPairSchema.identityPublicKey)),
+        encryptedPrivateKey: keyPairSchema.encryptedPrivateKey
+      }))
       .filter((keypair: KeyPair) => keypair.identityPublicKey.getPublicKeyHash() === identityPublicKey.getPublicKeyHash())
 
     if (keyPair != null) {
