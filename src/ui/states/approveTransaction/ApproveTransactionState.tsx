@@ -105,10 +105,15 @@ export default function ApproveTransactionState (): React.JSX.Element {
   }
 
   const doSign = async (): Promise<void> => {
+    if (stateTransitionWASM == null) {
+      throw new Error('stateTransitionWASM is null')
+    }
+
+    if (currentIdentity == null) {
+      throw new Error('No current identity')
+    }
+
     try {
-      if (stateTransitionWASM == null) {
-        throw new Error('stateTransitionWASM is null')
-      }
       const identity: IdentityWASM = await sdk.identities.getByIdentifier(currentIdentity)
       const identityPublicKeys: IdentityPublicKeyWASM[] = identity.getPublicKeys()
       const [identityPublicKey] = identityPublicKeys
@@ -118,12 +123,9 @@ export default function ApproveTransactionState (): React.JSX.Element {
         throw new Error('no identity public key')
       }
 
-      const stateTransitionHash: string | null = stateTransitionWASM?.hash(true) ?? null
+      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, identityPublicKey, '123123')
 
-      if (stateTransitionHash != null && stateTransitionHash !== '' && currentIdentity != null && currentIdentity !== '') {
-        const response = await extensionAPI.approveStateTransition(stateTransitionHash, currentIdentity, identityPublicKey, password)
-        setTxHash(response.txHash)
-      }
+      setTxHash(response.txHash)
     } catch (error) {
       console.error('Sign transition fails', error)
     }
@@ -206,7 +208,7 @@ export default function ApproveTransactionState (): React.JSX.Element {
 
             <div className='mt-4'>
               <Text>Password:</Text>
-              <input 
+              <input
                 type='password'
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -222,9 +224,9 @@ export default function ApproveTransactionState (): React.JSX.Element {
               >
                 Reject
               </Button>
-              <Button 
-                onClick={() => { void doSign() }} 
-                colorScheme='mint' 
+              <Button
+                onClick={() => { void doSign() }}
+                colorScheme='mint'
                 className='w-1/2'
                 disabled={!password.trim()}
               >

@@ -89,14 +89,12 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
       try {
         await this.sdk.stateTransitions.broadcast(stateTransitionWASM)
+
         await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.approved, bytesToHex(signature), signaturePublicKeyId)
-        await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransitionWASM.toBytes())
       } catch (e) {
         console.log('Failed to broadcast transaction', e)
         await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.error)
       }
-
-      await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransitionWASM.toBytes())
 
       return {
         txHash: stateTransition.hash
