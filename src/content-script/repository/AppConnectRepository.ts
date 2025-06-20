@@ -2,7 +2,7 @@ import { AppConnect } from '../../types/AppConnect'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { AppConnectsStorageSchema } from '../storage/storageSchema'
 import { AppConnectStatus } from '../../types/enums/AppConnectStatus'
-import {generateRandomHex} from "../../utils";
+import { generateRandomHex } from '../../utils'
 
 export class AppConnectRepository {
   storageKey: string

@@ -135,7 +135,7 @@ function ApproveTransactionState (): React.JSX.Element {
     return (
       <div className='screen-content'>
         <h1 className='h1-title'>No Wallet Found</h1>
-        
+
         <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-4'>
           <Text size='lg'>
             You need to create a wallet before you can approve transactions.
@@ -146,16 +146,17 @@ function ApproveTransactionState (): React.JSX.Element {
         </ValueCard>
 
         <div className='flex gap-5 mt-5 w-full'>
-          <Button 
-            onClick={() => navigate('/create-wallet')} 
-            colorScheme='mint' 
+          <Button
+            // eslint-disable-next-line @typescript-eslint/no-misused-promises
+            onClick={async () => await navigate('/create-wallet')}
+            colorScheme='mint'
             className='w-1/2'
           >
             Create Wallet
           </Button>
-          <Button 
-            onClick={() => window.close()} 
-            colorScheme='gray' 
+          <Button
+            onClick={() => window.close()}
+            colorScheme='gray'
             variant='outline'
             className='w-1/2'
           >
@@ -171,7 +172,7 @@ function ApproveTransactionState (): React.JSX.Element {
     return (
       <div className='screen-content'>
         <h1 className='h1-title'>No Identities Available</h1>
-        
+
         <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-4'>
           <Text size='lg'>
             You need to have at least one identity to approve transactions.
@@ -183,15 +184,16 @@ function ApproveTransactionState (): React.JSX.Element {
 
         <div className='flex gap-5 mt-5 w-full'>
           <Button
-            onClick={() => navigate('/import')}
+            // eslint-disable-next-line @typescript-eslint/no-misused-promises
+            onClick={async () => await navigate('/import')}
             colorScheme='mint'
             className='w-1/2'
           >
             Import Identity
           </Button>
-          <Button 
-            onClick={() => window.close()} 
-            colorScheme='gray' 
+          <Button
+            onClick={() => window.close()}
+            colorScheme='gray'
             variant='outline'
             className='w-1/2'
           >

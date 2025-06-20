@@ -3,7 +3,7 @@ import { EventData } from './EventData'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { ConnectAppResponse } from './messages/response/ConnectAppResponse'
 import { RequestStateTransitionApprovalResponse } from './messages/response/RequestStateTransitionApprovalResponse'
-import {generateRandomHex} from "../utils";
+import { generateRandomHex } from '../utils'
 
 export class PublicAPIClient {
   async connectApp (url: string): Promise<ConnectAppResponse> {

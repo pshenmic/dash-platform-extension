@@ -1,5 +1,4 @@
 import { base58 } from '@scure/base'
-import hash from 'hash.js'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -24,8 +23,7 @@ export const generateWalletId = (): string => {
   return generateRandomHex(6)
 }
 
-export const generateRandomHex = (size: number): string => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-
+export const generateRandomHex = (size: number): string => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')
 
 export const validateIdentifier = (str: string): boolean => {
   try {

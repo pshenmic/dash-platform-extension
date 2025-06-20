@@ -21,7 +21,7 @@ import { ApproveStateTransitionPayload } from './messages/payloads/ApproveStateT
 import { ApproveStateTransitionResponse } from './messages/response/ApproveStateTransitionResponse'
 import { RejectStateTransitionResponse } from './messages/response/RejectStateTransitionResponse'
 import { RejectStateTransitionPayload } from './messages/payloads/RejectStateTransitionPayload'
-import {generateRandomHex} from "../utils";
+import { generateRandomHex } from '../utils'
 
 export class PrivateAPIClient {
   constructor () {

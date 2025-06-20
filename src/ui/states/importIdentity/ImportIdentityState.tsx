@@ -131,11 +131,8 @@ function ImportIdentityState (): React.JSX.Element {
     }
   }, [privateKey])
 
-  const importIdentity = async (): Promise<void> => {
-    setIsLoading(true)
-    setError(null)
-
-    try {
+  const importIdentity = (): void => {
+    const run = async (): Promise<void> => {
       // Prepare data for CREATE_IDENTITY
       if (identity == null) {
         return setError('Could not load identity')
@@ -154,20 +151,25 @@ function ImportIdentityState (): React.JSX.Element {
       await extensionAPI.createIdentity(identifier, privateKeys)
 
       void navigate('/')
-    } catch (e) {
-      console.error(e)
-
-      // Check if it's a wallet not found error
-      if ((e)?.message?.includes('Wallet not found') === true) {
-        // Redirect to wallet creation
-        void navigate('/create-wallet')
-        return
-      }
-
-      setError((e)?.message ?? e?.toString() ?? 'Unknown error')
-    } finally {
-      setIsLoading(false)
     }
+
+    setIsLoading(true)
+    setError(null)
+
+    run()
+      .catch(e => {
+        console.error(e)
+
+        // Check if it's a wallet not found error
+        if ((e)?.message?.includes('Wallet not found') === true) {
+          // Redirect to wallet creation
+          void navigate('/create-wallet')
+          return
+        }
+
+        setError((e)?.message ?? e?.toString() ?? 'Unknown error')
+      })
+      .finally(() => setIsLoading(false))
   }
 
   const handleCheckClick = (): void => {
@@ -265,7 +267,7 @@ function ImportIdentityState (): React.JSX.Element {
             colorScheme='brand'
             disabled={privateKey === '' || isLoading}
             className='w-full'
-            onClick={() => void importIdentity()}
+            onClick={() => importIdentity()}
           >
             {isLoading ? 'Importing...' : 'Import'}
           </Button>
