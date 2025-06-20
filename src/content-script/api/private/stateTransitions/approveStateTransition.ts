@@ -22,13 +22,19 @@ export class ApproveStateTransitionHandler implements APIHandler {
   identitiesRepository: IdentitiesRepository
   walletRepository: WalletRepository
   dpp: DashPlatformProtocolWASM
+  sdk: DashPlatformSDK
 
-  constructor (stateTransitionsRepository: StateTransitionsRepository, identitiesRepository: IdentitiesRepository, walletRepository: WalletRepository, keyPairRepository: KeypairRepository, dpp: DashPlatformSDK) {
+  constructor (stateTransitionsRepository: StateTransitionsRepository,
+    identitiesRepository: IdentitiesRepository,
+    walletRepository: WalletRepository,
+    keyPairRepository: KeypairRepository,
+    dpp: DashPlatformProtocolWASM, sdk: DashPlatformSDK) {
     this.keyPairRepository = keyPairRepository
     this.stateTransitionsRepository = stateTransitionsRepository
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
     this.dpp = dpp
+    this.sdk = sdk
   }
 
   async handle (event: EventData): Promise<ApproveStateTransitionResponse> {
@@ -66,15 +72,34 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
       const passwordHash = hash.sha256().update(payload.password).digest('hex')
 
-      const privateKeyWASM = this.dpp.PrivateKeyWASM.fromBytes(decrypt(passwordHash, hexToBytes(keyPair.encryptedPrivateKey)), wallet.network)
+      let privateKey
+
+      try {
+        privateKey = decrypt(passwordHash, hexToBytes(keyPair.encryptedPrivateKey))
+      } catch (e) {
+        throw new Error('Failed to decrypt')
+      }
+
+      const privateKeyWASM = this.dpp.PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 
       stateTransitionWASM.sign(privateKeyWASM, keyPair.identityPublicKey)
 
       const signature = stateTransitionWASM.signature
-      const signaturePublicKeyId = stateTransitionWASM.signaturePublicKeyId
+      const signaturePublicKeyId = stateTransitionWASM.signaturePublicKeyId as number
+
+      try {
+        await this.sdk.stateTransitions.broadcast(stateTransitionWASM)
+        await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.approved, bytesToHex(signature), signaturePublicKeyId)
+        await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransitionWASM.toBytes())
+      } catch (e) {
+        console.log('Failed to broadcast transaction', e)
+        await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.error)
+      }
+
+      await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransitionWASM.toBytes())
 
       return {
-        stateTransition: await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.approved, bytesToHex(signature), signaturePublicKeyId)
+        txHash: stateTransition.hash
       }
     } else if (wallet.type === WalletType.seed) {
       throw new Error('Seedphrases are not supported yet')

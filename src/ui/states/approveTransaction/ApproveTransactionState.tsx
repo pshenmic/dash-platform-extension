@@ -7,13 +7,10 @@ import ValueCard from '../../components/containers/ValueCard'
 import Identifier from '../../components/data/Identifier'
 import Text from '../../text/Text'
 import Button from '../../components/controls/buttons'
-// import { Identity } from '../../../types/Identity'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { IdentityPublicKeyWASM, StateTransitionWASM } from 'pshenmic-dpp'
 import { IdentityWASM } from 'pshenmic-dpp/dist/wasm'
-// import { ApproveStateTransitionResponse } from '../../../types/messages/response/ApproveStateTransitionResponse'
-import { hexToBytes } from '../../../utils'
 
 export default function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -123,18 +120,10 @@ export default function ApproveTransactionState (): React.JSX.Element {
       const stateTransitionHash: string | null = stateTransitionWASM?.hash(true) ?? null
 
       if (stateTransitionHash != null && stateTransitionHash !== '' && currentIdentity != null && currentIdentity !== '') {
-        const { stateTransition } = await extensionAPI.approveStateTransition(stateTransitionHash, currentIdentity, identityPublicKey, '123123')
-        const { signature, signaturePublicKeyId } = stateTransition
+        const response = await extensionAPI.approveStateTransition(stateTransitionHash, currentIdentity, identityPublicKey, '123123')
 
-        if (typeof signature === 'string' && typeof signaturePublicKeyId === 'number') {
-          stateTransitionWASM.signature = hexToBytes(signature)
-          stateTransitionWASM.signaturePublicKeyId = signaturePublicKeyId
-        }
-
-        await sdk.stateTransitions.broadcast(stateTransitionWASM)
+        setTxHash(response.txHash)
       }
-
-      setTxHash(stateTransitionHash)
     } catch (error) {
       console.error('Sign transition fails', error)
     }
