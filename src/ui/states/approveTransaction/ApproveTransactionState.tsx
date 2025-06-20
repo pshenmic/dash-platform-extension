@@ -59,7 +59,10 @@ function ApproveTransactionState (): React.JSX.Element {
 
   useEffect(() => {
     const loadData = async (): Promise<void> => {
-      if (isCheckingWallet || !hasWallet) return
+      if (isCheckingWallet || !hasWallet) {
+        setIsLoadingIdentities(false)
+        return
+      }
 
       try {
         setIsLoadingIdentities(true)
@@ -75,7 +78,6 @@ function ApproveTransactionState (): React.JSX.Element {
 
         // Auto-set first identity as current if no current identity is set
         if ((current == null || current === '') && (availableIdentities?.length ?? 0) > 0) {
-          console.log('Setting first identity as current:', availableIdentities[0])
           try {
             await extensionAPI.switchIdentity(availableIdentities[0])
             setCurrentIdentity(availableIdentities[0])
@@ -105,23 +107,20 @@ function ApproveTransactionState (): React.JSX.Element {
       extensionAPI
         .getStateTransition(transactionHash)
         .then((stateTransitionResponse: GetStateTransitionResponse) => {
-          console.log('State transition response:', stateTransitionResponse)
           try {
             const { StateTransitionWASM } = sdk.dpp
 
             setStateTransitionWASM(StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)))
-            setIsLoadingTransaction(false)
           } catch (e) {
             console.error('Error decoding state transition:', e)
             setTransactionDecodeError(String(e))
-            setIsLoadingTransaction(false)
           }
         })
         .catch((error) => {
           console.error('Error getting state transition:', error)
           setTransactionNotFound(true)
-          setIsLoadingTransaction(false)
         })
+        .finally(() => setIsLoadingTransaction(false))
     }
   }, [params.hash, params.txhash])
 
