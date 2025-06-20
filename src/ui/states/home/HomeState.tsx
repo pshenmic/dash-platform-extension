@@ -59,7 +59,7 @@ function HomeState (): React.JSX.Element {
           setBalance(balance)
 
           try {
-            const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${activeIdentity}/transactions`)
+            const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${activeIdentity}/transactions?order=desc`)
             if (response.status === 200) {
               const data = await response.json()
               if (data.error == null) {
