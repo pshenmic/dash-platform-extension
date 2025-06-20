@@ -3,6 +3,7 @@ import { EventData } from './EventData'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { ConnectAppResponse } from './messages/response/ConnectAppResponse'
 import { RequestStateTransitionApprovalResponse } from './messages/response/RequestStateTransitionApprovalResponse'
+import {generateRandomHex} from "../utils";
 
 export class PublicAPIClient {
   async connectApp (url: string): Promise<ConnectAppResponse> {
@@ -20,7 +21,7 @@ export class PublicAPIClient {
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
-    const id = new Date().getTime().toString()
+    const id = generateRandomHex(8)
 
     return await new Promise((resolve, reject) => {
       const rejectWithError = (message: string): void => {

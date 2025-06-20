@@ -21,8 +21,11 @@ export const validateWalletId = (walletId: string): boolean => {
   return /[0-9a-fA-F]{6}/.test(walletId)
 }
 export const generateWalletId = (): string => {
-  return hash.sha256().update(new Date().getTime().toString()).digest('hex').substring(0, 6)
+  return generateRandomHex(6)
 }
+
+export const generateRandomHex = (size: number): string => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+
 
 export const validateIdentifier = (str: string): boolean => {
   try {
