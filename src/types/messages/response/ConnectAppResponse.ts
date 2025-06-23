@@ -1,4 +1,4 @@
 export interface ConnectAppResponse {
   redirectUrl: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'error'
 }

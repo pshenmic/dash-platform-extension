@@ -22,6 +22,11 @@ import { ApproveStateTransitionResponse } from './messages/response/ApproveState
 import { RejectStateTransitionResponse } from './messages/response/RejectStateTransitionResponse'
 import { RejectStateTransitionPayload } from './messages/payloads/RejectStateTransitionPayload'
 import { generateRandomHex } from '../utils'
+import { GetAppConnectPayload } from './messages/payloads/GetAppConnectPayload'
+import { GetAppConnectResponse } from './messages/response/GetAppConnectResponse'
+import { ApproveAppConnectPayload } from './messages/payloads/ApproveAppConnectPayload'
+import { RejectAppConnectPayload } from './messages/payloads/RejectAppConnectPayload'
+import { AppConnect } from './AppConnect'
 
 export class PrivateAPIClient {
   constructor () {
@@ -129,6 +134,32 @@ export class PrivateAPIClient {
     const response: GetStateTransitionResponse = await this._rpcCall(MessagingMethods.GET_STATE_TRANSITION, payload)
 
     return response
+  }
+
+  async getAppConnect (id: string): Promise<AppConnect | null> {
+    const payload: GetAppConnectPayload = {
+      id
+    }
+
+    const response: GetAppConnectResponse = await this._rpcCall(MessagingMethods.GET_APP_CONNECT, payload)
+
+    return response.appConnect
+  }
+
+  async approveAppConnect (id: string): Promise<void> {
+    const payload: ApproveAppConnectPayload = {
+      id
+    }
+
+    await this._rpcCall(MessagingMethods.APPROVE_APP_CONNECT, payload)
+  }
+
+  async rejectAppConnect (id: string): Promise<void> {
+    const payload: RejectAppConnectPayload = {
+      id
+    }
+
+    await this._rpcCall(MessagingMethods.REJECT_APP_CONNECT, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {

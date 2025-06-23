@@ -3,6 +3,7 @@ import { AppConnectRepository } from '../../repository/AppConnectRepository'
 import { ConnectAppResponse } from '../../../types/messages/response/ConnectAppResponse'
 import { EventData } from '../../../types/EventData'
 import { APIHandler } from '../APIHandler'
+import hash from "hash.js";
 
 const validateIp = ipValidator({ version: 4 })
 
@@ -20,9 +21,20 @@ export class ConnectAppHandler implements APIHandler {
   async handle (event: EventData): Promise<ConnectAppResponse> {
     const payload: AppConnectRequestPayload = event.payload
 
-    const appConnect = await this.appConnectRepository.create(payload.url)
+    const id = hash.sha256().update(payload.url).digest('hex').substring(0, 6)
 
-    return { redirectUrl: chrome.runtime.getURL('connect.html'), status: appConnect.status }
+    let appConnect = await this.appConnectRepository.getById(id)
+
+    if (appConnect == null) {
+      appConnect = await this.appConnectRepository.create(payload.url)
+
+      return { redirectUrl: chrome.runtime.getURL(`index.html#/connect/${appConnect.id}`), status: appConnect.status }
+    }
+
+    return {
+      redirectUrl: chrome.runtime.getURL(`index.html#/connect/${appConnect.id}`),
+      status: appConnect.status
+    }
   }
 
   validatePayload (payload: AppConnectRequestPayload): null | string {
@@ -30,28 +42,24 @@ export class ConnectAppHandler implements APIHandler {
     if (typeof payload?.url !== 'string') {
       return 'Url is missing'
     }
+    try {
+      const url = new URL(payload.url)
 
-    // checks it starts with http:// or https://
-    if (!payload.url.startsWith('http://') && !payload.url.startsWith('https://')) {
-      return 'Bad protocol'
-    }
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        return 'Bad protocol'
+      }
 
-    const [, domainOrIpWithPort] = payload.url.split('://')
-    const [domainOrIp, port] = domainOrIpWithPort.split(':')
+      if (url.port !== "" && (isNaN(Number(url.port)) || Number(url.port) > 65535)) {
+        return 'Port number is not valid'
+      }
 
-    if (typeof port !== 'string' || isNaN(Number(port)) || Number(port) > 65535) {
-      return 'Port number is not valid'
-    }
+      if (payload.url !== url.origin) {
+        return 'Bad origin'
+      }
 
-    if (domainOrIp === 'localhost') {
       return null
+    } catch (error) {
+      return 'Invalid URL format'
     }
-
-    // check it is domain (ex. google.com) or ip address (ipv6 or ipv4)
-    if (!/^[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,6}$/i.test(domainOrIp) || !(validateIp(domainOrIp) as boolean)) {
-      return 'Invalid app domain url'
-    }
-
-    return null
   }
 }

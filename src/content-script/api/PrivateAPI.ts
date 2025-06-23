@@ -19,6 +19,10 @@ import { GetStatusHandler } from './private/extension/status'
 import { SetupPasswordHandler } from './private/extension/setupPassword'
 import { CheckPasswordHandler } from './private/extension/checkPassword'
 import { SwitchIdentityHandler } from './private/wallet/switchIdentity'
+import { AppConnectRepository } from '../repository/AppConnectRepository'
+import { GetAppConnectHandler } from './private/appConnect/getAppConnect'
+import { ApproveAppConnectHandler } from './private/appConnect/approveAppConnect'
+import { RejectAppConnectHandler } from './private/appConnect/rejectAppConnect'
 
 /**
  * Handlers for a messages within extension context
@@ -41,6 +45,7 @@ export class PrivateAPI {
     const walletRepository = new WalletRepository(this.storageAdapter, identitiesRepository)
     const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk.dpp)
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter, this.sdk.dpp)
+    const appConnectRepository = new AppConnectRepository(this.storageAdapter)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
@@ -54,7 +59,10 @@ export class PrivateAPI {
       [MessagingMethods.GET_STATE_TRANSITION]: new GetStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.REJECT_STATE_TRANSITION]: new RejectStateTransitionHandler(stateTransitionsRepository, walletRepository),
       [MessagingMethods.CREATE_WALLET]: new CreateWalletHandler(walletRepository, this.sdk.dpp),
-      [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository, this.sdk.dpp)
+      [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository, this.sdk.dpp),
+      [MessagingMethods.GET_APP_CONNECT]: new GetAppConnectHandler(appConnectRepository),
+      [MessagingMethods.APPROVE_APP_CONNECT]: new ApproveAppConnectHandler(appConnectRepository, this.storageAdapter),
+      [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter)
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {

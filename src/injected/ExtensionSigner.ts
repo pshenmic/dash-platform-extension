@@ -8,6 +8,7 @@ import { base64 } from '@scure/base'
 import {
   RequestStateTransitionApprovalResponse
 } from '../types/messages/response/RequestStateTransitionApprovalResponse'
+import {ConnectAppResponse} from "../types/messages/response/ConnectAppResponse";
 
 export class ExtensionSigner implements AbstractSigner {
   publicAPIClient: PublicAPIClient
@@ -16,6 +17,35 @@ export class ExtensionSigner implements AbstractSigner {
   constructor (publicAPIClient: PublicAPIClient, wasm: DashPlatformProtocolWASM) {
     this.publicAPIClient = publicAPIClient
     this.wasm = wasm
+  }
+
+  async connect (url: string): Promise<void> {
+    let response: ConnectAppResponse = await this.publicAPIClient.connectApp(url)
+
+    if (response.status === 'pending') {
+      popupWindow(response.redirectUrl, 'connectApp', window, 430, 600)
+    }
+
+
+    const startTimestamp = new Date()
+
+    while (response.status === StateTransitionStatus.pending) {
+      await wait(500)
+
+      if (new Date().getTime() - startTimestamp.getTime() > MESSAGING_TIMEOUT) {
+        throw new Error('Failed to receive state transition signing approval due timeout')
+      }
+
+      response = await this.publicAPIClient.connectApp(url)
+    }
+
+    if (response.status === 'rejected') {
+      throw new Error('Connect app rejected')
+    }
+
+    if (response.status === 'error') {
+      throw new Error('Connect app error')
+    }
   }
 
   async signAndBroadcast (stateTransitionWASM: StateTransitionWASM): Promise<StateTransitionWASM> {

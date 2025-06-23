@@ -9,6 +9,7 @@ import LoginState from './states/login/LoginState'
 import CreateWalletState from './states/wallet/CreateWalletState'
 import './styles/app.pcss'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
+import AppConnectState from './states/appConnect/AppConnectState'
 import Layout from './components/layout/Layout'
 
 const App: React.FC = function () {
@@ -45,6 +46,10 @@ const App: React.FC = function () {
         {
           path: '/approve/:txhash',
           element: <ApproveTransactionState />
+        },
+        {
+          path: '/connect/:id',
+          element: <AppConnectState />
         }
       ]
     }

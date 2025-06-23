@@ -1,5 +1,5 @@
 export interface AppConnect {
   id: string
   url: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'error'
 }
