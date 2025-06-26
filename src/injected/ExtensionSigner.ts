@@ -19,7 +19,7 @@ export class ExtensionSigner implements AbstractSigner {
     this.wasm = wasm
   }
 
-  async connect (url: string): Promise<void> {
+  async connect (url: string): Promise<ConnectAppResponse> {
     let response: ConnectAppResponse = await this.publicAPIClient.connectApp(url)
 
     if (response.status === 'pending') {
@@ -46,6 +46,8 @@ export class ExtensionSigner implements AbstractSigner {
     if (response.status === 'error') {
       throw new Error('Connect app error')
     }
+
+    return response
   }
 
   async signAndBroadcast (stateTransitionWASM: StateTransitionWASM): Promise<StateTransitionWASM> {

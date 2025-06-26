@@ -27,6 +27,8 @@ import { GetAppConnectResponse } from './messages/response/GetAppConnectResponse
 import { ApproveAppConnectPayload } from './messages/payloads/ApproveAppConnectPayload'
 import { RejectAppConnectPayload } from './messages/payloads/RejectAppConnectPayload'
 import { AppConnect } from './AppConnect'
+import {GetIdentitiesResponse} from "./messages/response/GetIdentitiesResponse";
+import {Identity} from "./Identity";
 
 export class PrivateAPIClient {
   constructor () {
@@ -95,10 +97,10 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SWITCH_IDENTITY, payload)
   }
 
-  async getAvailableIdentities (): Promise<string[]> {
+  async getIdentities (): Promise<Identity[]> {
     const payload: EmptyPayload = {}
 
-    const response: GetAvailableIdentitiesResponse = await this._rpcCall(MessagingMethods.GET_AVAILABLE_IDENTITIES, payload)
+    const response: GetIdentitiesResponse = await this._rpcCall(MessagingMethods.GET_IDENTITIES, payload)
 
     return response.identities
   }

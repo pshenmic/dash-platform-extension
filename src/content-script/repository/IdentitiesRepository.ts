@@ -48,7 +48,6 @@ export class IdentitiesRepository {
 
     return {
       identifier: identityStoreSchema.identifier,
-      identityPublicKeys: await this.sdk.identities.getIdentityPublicKeys(identifier),
       index: identityStoreSchema.index,
       label: identityStoreSchema.label
     }
@@ -70,11 +69,9 @@ export class IdentitiesRepository {
       .map(async ([identifier, entry]) =>
         ({
           identifier,
-          identityPublicKeys: await this.sdk.identities.getIdentityPublicKeys(identifier),
           index: entry.index,
           label: entry.label
-        }
-        )
+        })
       ))
   }
 
@@ -100,7 +97,6 @@ export class IdentitiesRepository {
       index: identity.index,
       identifier: identity.identifier,
       label: identity.label,
-      identityPublicKeys: await this.sdk.identities.getIdentityPublicKeys(identifier)
     }
   }
 

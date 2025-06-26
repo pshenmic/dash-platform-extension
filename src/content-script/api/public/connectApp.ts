@@ -4,6 +4,7 @@ import { ConnectAppResponse } from '../../../types/messages/response/ConnectAppR
 import { EventData } from '../../../types/EventData'
 import { APIHandler } from '../APIHandler'
 import hash from "hash.js";
+import {IdentitiesRepository} from "../../repository/IdentitiesRepository";
 
 const validateIp = ipValidator({ version: 4 })
 
@@ -13,9 +14,11 @@ interface AppConnectRequestPayload {
 
 export class ConnectAppHandler implements APIHandler {
   appConnectRepository: AppConnectRepository
+  identitiesRepository: IdentitiesRepository
 
-  constructor (appConnectRepository: AppConnectRepository) {
+  constructor (appConnectRepository: AppConnectRepository, identitiesRepository: IdentitiesRepository) {
     this.appConnectRepository = appConnectRepository
+    this.identitiesRepository = identitiesRepository
   }
 
   async handle (event: EventData): Promise<ConnectAppResponse> {
@@ -27,13 +30,16 @@ export class ConnectAppHandler implements APIHandler {
 
     if (appConnect == null) {
       appConnect = await this.appConnectRepository.create(payload.url)
-
-      return { redirectUrl: chrome.runtime.getURL(`index.html#/connect/${appConnect.id}`), status: appConnect.status }
     }
+
+    const identities = await this.identitiesRepository.getAll();
+    const currentIdentity = await this.identitiesRepository.getCurrent();
 
     return {
       redirectUrl: chrome.runtime.getURL(`index.html#/connect/${appConnect.id}`),
-      status: appConnect.status
+      status: appConnect.status,
+      identities: identities.map(identity => identity.identifier),
+      currentIdentity: currentIdentity ? currentIdentity.identifier : null
     }
   }
 
