@@ -4,10 +4,10 @@ import { StorageAdapter } from '../storage/storageAdapter'
 import { AppConnectRepository } from '../repository/AppConnectRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
-import { ConnectAppHandler } from './public/connectApp'
-import { PayloadNotValidError } from '../errors/PayloadNotValidError'
 import { APIHandler } from './APIHandler'
-import { RequestStateTransitionApprovalHandler } from './public/requestStateTransitionApproval'
+import {ConnectAppHandler} from "./public/connectApp";
+import {RequestStateTransitionApprovalHandler} from "./public/requestStateTransitionApproval";
+import {IdentitiesRepository} from "../repository/IdentitiesRepository";
 
 /**
  * Handlers for a messages from a webpage to extension (potentially insecure)
@@ -15,6 +15,9 @@ import { RequestStateTransitionApprovalHandler } from './public/requestStateTran
 export class PublicAPI {
   sdk: DashPlatformSDK
   storageAdapter: StorageAdapter
+  appConnectRepository: AppConnectRepository
+  stateTransitionsRepository: StateTransitionsRepository
+  identitiesRepository: IdentitiesRepository
 
   constructor (sdk: DashPlatformSDK, storageAdapter: StorageAdapter) {
     this.sdk = sdk
@@ -25,48 +28,57 @@ export class PublicAPI {
     [key: string]: APIHandler
   }
 
-  init (): void {
-    const appConnectRepository = new AppConnectRepository(this.storageAdapter)
-    const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter, this.sdk.dpp)
+  async handleMessage(event: MessageEvent): Promise<any> {
+      const {origin,data} = event
+    const { method, payload } = data
 
-    this.handlers = {
-      [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository),
-      [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(stateTransitionsRepository, this.sdk.dpp)
+    const handler = this.handlers[method]
+
+    if (handler == null) {
+      throw new Error(`Could not find handler for method ${method}`)
     }
 
-    window.addEventListener('message', (event: MessageEvent) => {
-      const data = event.data as EventData
+    const appConnect = await this.appConnectRepository.getByURL(origin)
 
-      const { context, type } = data
+    // check that origin exists in appConnect
+    if (method !== MessagingMethods.CONNECT_APP && (appConnect == null || appConnect.status !== 'approved')) {
+      throw new Error(`Application on url ${origin} is not authorized`)
+    }
+
+    const validation = handler.validatePayload(payload)
+
+    if (validation != null) {
+      throw new Error(`Invalid payload: ${validation}`)
+    }
+
+    return handler.handle(data)
+  }
+
+  init(): void {
+    const appConnectRepository = new AppConnectRepository(this.storageAdapter)
+    this.appConnectRepository = appConnectRepository
+
+    const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter, this.sdk.dpp)
+    this.stateTransitionsRepository = stateTransitionsRepository
+
+    const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk.dpp, this.sdk)
+    this.identitiesRepository = identitiesRepository
+
+    this.handlers = {
+      [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository, identitiesRepository),
+      [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(stateTransitionsRepository, this.sdk.dpp),
+    }
+
+    window.addEventListener('message', (message: MessageEvent) => {
+      const data = message.data as EventData
+
+      const { context, type, id, method } = data
 
       if (context !== 'dash-platform-extension' || type === 'response') {
         return
       }
 
-      const { id, method, payload } = data
-
-      const handler = this.handlers[event.data.method]
-
-      if (handler == null) {
-        const message: EventData = {
-          id,
-          context: 'dash-platform-extension',
-          type: 'response',
-          method,
-          payload: null,
-          error: 'Could not find handler for method ' + method
-        }
-
-        return window.postMessage(message)
-      }
-
-      const validation = handler.validatePayload(payload)
-
-      if (validation != null) {
-        throw new PayloadNotValidError(validation)
-      }
-
-      handler.handle(data)
+      this.handleMessage(message)
         .then((result: any) => {
           const message: EventData = {
             id,

@@ -67,7 +67,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       keyPair = await this.keyPairRepository.getByIdentityPublicKey(payload.identity, identityPublicKeyWASM)
 
       if (keyPair == null || keyPair.encryptedPrivateKey == null) {
-        throw new Error(`Could not find private key for identity public key (pkh ${base64.encode(identityPublicKeyWASM.toBytes())})`)
+        throw new Error(`Could not find private key for identity public key (pkh ${base64.encode(identityPublicKeyWASM.bytes())})`)
       }
 
       const passwordHash = hash.sha256().update(payload.password).digest('hex')
@@ -94,6 +94,8 @@ export class ApproveStateTransitionHandler implements APIHandler {
       } catch (e) {
         console.log('Failed to broadcast transaction', e)
         await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.error)
+
+        throw e
       }
 
       return {

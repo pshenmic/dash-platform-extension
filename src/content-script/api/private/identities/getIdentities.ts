@@ -3,18 +3,19 @@ import { Identity } from '../../../../types/Identity'
 import { GetAvailableIdentitiesResponse } from '../../../../types/messages/response/GetAvailableIdentitiesResponse'
 import { APIHandler } from '../../APIHandler'
 import { EmptyPayload } from '../../../../types/messages/payloads/EmptyPayload'
+import {GetIdentitiesResponse} from "../../../../types/messages/response/GetIdentitiesResponse";
 
-export class GetAvailableIdentitiesHandler implements APIHandler {
+export class GetIdentitiesHandler implements APIHandler {
   identitiesRepository: IdentitiesRepository
 
   constructor (identitiesRepository: IdentitiesRepository) {
     this.identitiesRepository = identitiesRepository
   }
 
-  async handle (): Promise<GetAvailableIdentitiesResponse> {
+  async handle (): Promise<GetIdentitiesResponse> {
     const identities = await this.identitiesRepository.getAll()
 
-    return { identities: identities.map((identity: Identity) => identity.identifier) }
+    return { identities }
   }
 
   validatePayload (payload: EmptyPayload): null | string {

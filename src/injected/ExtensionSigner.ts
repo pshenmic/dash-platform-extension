@@ -8,6 +8,7 @@ import { base64 } from '@scure/base'
 import {
   RequestStateTransitionApprovalResponse
 } from '../types/messages/response/RequestStateTransitionApprovalResponse'
+import {ConnectAppResponse} from "../types/messages/response/ConnectAppResponse";
 
 export class ExtensionSigner implements AbstractSigner {
   publicAPIClient: PublicAPIClient
@@ -18,8 +19,32 @@ export class ExtensionSigner implements AbstractSigner {
     this.wasm = wasm
   }
 
+  async connect (): Promise<ConnectAppResponse> {
+    const url = window.location.origin
+
+    let response: ConnectAppResponse = await this.publicAPIClient.connectApp(url)
+
+    if (response.status === 'pending') {
+      popupWindow(response.redirectUrl, 'connectApp', window, 430, 600)
+    }
+
+    const startTimestamp = new Date()
+
+    while (response.status === StateTransitionStatus.pending) {
+      await wait(500)
+
+      if (new Date().getTime() - startTimestamp.getTime() > MESSAGING_TIMEOUT) {
+        throw new Error('Failed to receive state transition signing approval due timeout')
+      }
+
+      response = await this.publicAPIClient.connectApp(url)
+    }
+
+    return response
+  }
+
   async signAndBroadcast (stateTransitionWASM: StateTransitionWASM): Promise<StateTransitionWASM> {
-    let response: RequestStateTransitionApprovalResponse = await this.publicAPIClient.requestTransactionApproval(base64.encode(stateTransitionWASM.toBytes()))
+    let response: RequestStateTransitionApprovalResponse = await this.publicAPIClient.requestTransactionApproval(base64.encode(stateTransitionWASM.bytes()))
 
     popupWindow(response.redirectUrl, 'approval', window, 430, 600)
 
@@ -32,11 +57,15 @@ export class ExtensionSigner implements AbstractSigner {
         throw new Error('Failed to receive state transition signing approval due timeout')
       }
 
-      response = await this.publicAPIClient.requestTransactionApproval(stateTransitionWASM.toBase64())
+      response = await this.publicAPIClient.requestTransactionApproval(stateTransitionWASM.base64())
     }
 
     if (response.stateTransition.status === StateTransitionStatus.rejected) {
-      throw new Error('State transition signing error')
+      throw new Error('Transaction signing was rejected')
+    }
+
+    if (response.stateTransition.status === StateTransitionStatus.error) {
+      throw new Error('Internal error during singing the transaction')
     }
 
     const { signature, signaturePublicKeyId } = response.stateTransition

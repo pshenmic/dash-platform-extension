@@ -23,7 +23,7 @@ export class StateTransitionsRepository {
     }
 
     const hash = stateTransitionWASM.hash(true)
-    const unsigned = base64.encode(stateTransitionWASM.toBytes())
+    const unsigned = base64.encode(stateTransitionWASM.bytes())
 
     const storageKey = `stateTransitions_${network}_${walletId}`
 
