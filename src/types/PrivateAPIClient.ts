@@ -109,7 +109,7 @@ export class PrivateAPIClient {
     const payload: ApproveStateTransitionPayload = {
       hash,
       identity,
-      identityPublicKey: identityPublicKey.toBase64(),
+      identityPublicKey: identityPublicKey.base64(),
       password
     }
 

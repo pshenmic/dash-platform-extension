@@ -206,9 +206,18 @@ function ApproveTransactionState (): React.JSX.Element {
     )
   }
 
-  const reject = (): void => {
-    window.postMessage({ target: 'window', method: 'rejectSigning' })
-    window.close()
+  const reject = async (): Promise<void> => {
+    if (stateTransitionWASM == null) {
+      throw new Error('stateTransitionWASM is null')
+    }
+
+    try {
+      await extensionAPI.rejectStateTransition(stateTransitionWASM.hash(true))
+
+      window.close()
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   const doSign = async (): Promise<void> => {

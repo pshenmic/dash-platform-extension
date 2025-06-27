@@ -41,7 +41,7 @@ export class KeypairRepository {
 
     const keyPairSchema: KeyPairSchema = {
       encryptedPrivateKey: bytesToHex(encrypt(passwordPublicKey, hexToBytes(privateKey))),
-      identityPublicKey: base64.encode(identityPublicKey.toBytes())
+      identityPublicKey: base64.encode(identityPublicKey.bytes())
     }
 
     keyPairs.push(keyPairSchema)
