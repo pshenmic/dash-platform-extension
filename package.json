@@ -13,7 +13,7 @@
   "dependencies": {
     "@react-hook/resize-observer": "^2.0.2",
     "@scure/base": "^1.2.4",
-    "dash-platform-sdk": "^1.0.6-rc.1",
+    "dash-platform-sdk": "^1.0.6-rc.2",
     "eciesjs": "^0.4.15",
     "hash.js": "^1.1.7",
     "is-my-ip-valid": "^1.0.1",
