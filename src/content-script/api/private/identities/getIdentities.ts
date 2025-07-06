@@ -1,9 +1,7 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { Identity } from '../../../../types/Identity'
-import { GetAvailableIdentitiesResponse } from '../../../../types/messages/response/GetAvailableIdentitiesResponse'
 import { APIHandler } from '../../APIHandler'
 import { EmptyPayload } from '../../../../types/messages/payloads/EmptyPayload'
-import {GetIdentitiesResponse} from "../../../../types/messages/response/GetIdentitiesResponse";
+import { GetIdentitiesResponse } from '../../../../types/messages/response/GetIdentitiesResponse'
 
 export class GetIdentitiesHandler implements APIHandler {
   identitiesRepository: IdentitiesRepository

@@ -8,7 +8,7 @@ import { base64 } from '@scure/base'
 import {
   RequestStateTransitionApprovalResponse
 } from '../types/messages/response/RequestStateTransitionApprovalResponse'
-import {ConnectAppResponse} from "../types/messages/response/ConnectAppResponse";
+import { ConnectAppResponse } from '../types/messages/response/ConnectAppResponse'
 
 export class ExtensionSigner implements AbstractSigner {
   publicAPIClient: PublicAPIClient

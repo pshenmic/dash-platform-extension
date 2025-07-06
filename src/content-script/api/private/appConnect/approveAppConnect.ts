@@ -11,14 +11,14 @@ export class ApproveAppConnectHandler implements APIHandler {
   appConnectRepository: AppConnectRepository
   storageAdapter: StorageAdapter
 
-  constructor(appConnectRepository: AppConnectRepository, storageAdapter: StorageAdapter) {
+  constructor (appConnectRepository: AppConnectRepository, storageAdapter: StorageAdapter) {
     this.appConnectRepository = appConnectRepository
     this.storageAdapter = storageAdapter
   }
 
-  async handle(event: EventData): Promise<VoidResponse> {
+  async handle (event: EventData): Promise<VoidResponse> {
     const payload: ApproveAppConnectPayload = event.payload
-    
+
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
@@ -40,11 +40,11 @@ export class ApproveAppConnectHandler implements APIHandler {
     return {}
   }
 
-  validatePayload(payload: ApproveAppConnectPayload): null | string {
+  validatePayload (payload: ApproveAppConnectPayload): null | string {
     if (typeof payload?.id !== 'string' || payload.id.length === 0) {
       return 'ID is required'
     }
 
     return null
   }
-} 
+}

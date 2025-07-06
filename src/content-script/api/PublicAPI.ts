@@ -5,9 +5,9 @@ import { AppConnectRepository } from '../repository/AppConnectRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
 import { APIHandler } from './APIHandler'
-import {ConnectAppHandler} from "./public/connectApp";
-import {RequestStateTransitionApprovalHandler} from "./public/requestStateTransitionApproval";
-import {IdentitiesRepository} from "../repository/IdentitiesRepository";
+import { ConnectAppHandler } from './public/connectApp'
+import { RequestStateTransitionApprovalHandler } from './public/requestStateTransitionApproval'
+import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 
 /**
  * Handlers for a messages from a webpage to extension (potentially insecure)
@@ -28,14 +28,14 @@ export class PublicAPI {
     [key: string]: APIHandler
   }
 
-  async handleMessage(event: MessageEvent): Promise<any> {
-      const {origin,data} = event
+  async handleMessage (event: MessageEvent): Promise<any> {
+    const { origin, data } = event
     const { method, payload } = data
 
     const handler = this.handlers[method]
 
     if (handler == null) {
-      throw new Error(`Could not find handler for method ${method}`)
+      throw new Error(`Could not find handler for method ${method as string}`)
     }
 
     const appConnect = await this.appConnectRepository.getByURL(origin)
@@ -51,10 +51,10 @@ export class PublicAPI {
       throw new Error(`Invalid payload: ${validation}`)
     }
 
-    return handler.handle(data)
+    return await handler.handle(data)
   }
 
-  init(): void {
+  init (): void {
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
     this.appConnectRepository = appConnectRepository
 
@@ -66,7 +66,7 @@ export class PublicAPI {
 
     this.handlers = {
       [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository, identitiesRepository),
-      [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(stateTransitionsRepository, this.sdk.dpp),
+      [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(stateTransitionsRepository, this.sdk.dpp)
     }
 
     window.addEventListener('message', (message: MessageEvent) => {

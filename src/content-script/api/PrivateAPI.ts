@@ -22,7 +22,7 @@ import { AppConnectRepository } from '../repository/AppConnectRepository'
 import { GetAppConnectHandler } from './private/appConnect/getAppConnect'
 import { ApproveAppConnectHandler } from './private/appConnect/approveAppConnect'
 import { RejectAppConnectHandler } from './private/appConnect/rejectAppConnect'
-import {GetIdentitiesHandler} from "./private/identities/getIdentities";
+import { GetIdentitiesHandler } from './private/identities/getIdentities'
 
 /**
  * Handlers for a messages within extension context
@@ -40,7 +40,7 @@ export class PrivateAPI {
     [key: string]: APIHandler
   }
 
-  async handleMessage(data: EventData): Promise<any> {
+  async handleMessage (data: EventData): Promise<any> {
     const { method, payload } = data
 
     const handler = this.handlers[method]
@@ -55,9 +55,8 @@ export class PrivateAPI {
       throw new Error(`Invalid payload: ${validation}`)
     }
 
-    return handler.handle(data)
+    return await handler.handle(data)
   }
-
 
   init (): void {
     const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk.dpp, this.sdk)
@@ -91,7 +90,7 @@ export class PrivateAPI {
         return
       }
 
-      const { id, method, payload } = data
+      const { id, method } = data
 
       this.handleMessage(data)
         .then((result: any) => {

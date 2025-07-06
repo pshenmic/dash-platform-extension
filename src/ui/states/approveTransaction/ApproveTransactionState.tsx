@@ -67,7 +67,7 @@ function ApproveTransactionState (): React.JSX.Element {
         setIsLoadingIdentities(true)
 
         const availableIdentities = (await extensionAPI.getIdentities())
-            .map(identity => identity.identifier)
+          .map(identity => identity.identifier)
 
         const current = await extensionAPI.getCurrentIdentity()
 
@@ -206,18 +206,12 @@ function ApproveTransactionState (): React.JSX.Element {
     )
   }
 
-  const reject = async (): Promise<void> => {
+  const reject = (): void => {
     if (stateTransitionWASM == null) {
       throw new Error('stateTransitionWASM is null')
     }
 
-    try {
-      await extensionAPI.rejectStateTransition(stateTransitionWASM.hash(true))
-
-      window.close()
-    } catch (e) {
-      console.error(e)
-    }
+    extensionAPI.rejectStateTransition(stateTransitionWASM.hash(true)).then(() => window.close).catch(console.error)
   }
 
   const doSign = async (): Promise<void> => {

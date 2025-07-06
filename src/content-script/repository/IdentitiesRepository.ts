@@ -96,7 +96,7 @@ export class IdentitiesRepository {
     return {
       index: identity.index,
       identifier: identity.identifier,
-      label: identity.label,
+      label: identity.label
     }
   }
 
