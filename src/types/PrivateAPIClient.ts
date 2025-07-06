@@ -13,7 +13,6 @@ import { CheckPasswordPayload } from './messages/payloads/CheckPasswordPayload'
 import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
 import { CreateIdentityPayload } from './messages/payloads/CreateIdentityPayload'
 import { GetStateTransitionPayload } from './messages/payloads/GetStateTransitionPayload'
-import { GetAvailableIdentitiesResponse } from './messages/response/GetAvailableIdentitiesResponse'
 import { CreateWalletResponse } from './messages/response/CreateWalletResponse'
 import { SwitchWalletPayload } from './messages/payloads/SwitchWalletPayload'
 import { IdentityPublicKeyWASM } from 'pshenmic-dpp'
@@ -27,8 +26,8 @@ import { GetAppConnectResponse } from './messages/response/GetAppConnectResponse
 import { ApproveAppConnectPayload } from './messages/payloads/ApproveAppConnectPayload'
 import { RejectAppConnectPayload } from './messages/payloads/RejectAppConnectPayload'
 import { AppConnect } from './AppConnect'
-import {GetIdentitiesResponse} from "./messages/response/GetIdentitiesResponse";
-import {Identity} from "./Identity";
+import { GetIdentitiesResponse } from './messages/response/GetIdentitiesResponse'
+import { Identity } from './Identity'
 
 export class PrivateAPIClient {
   constructor () {

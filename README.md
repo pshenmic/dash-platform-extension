@@ -67,3 +67,7 @@ export const handleSendMessageButton = async () => {
   console.log('Transaction was successfully signed and broadcasted, txhash: ', stateTransition.hash(true))
 }
 ```
+
+seedphrase
+register identity
+identity by id

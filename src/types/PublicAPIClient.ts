@@ -4,8 +4,8 @@ import { MessagingMethods } from './enums/MessagingMethods'
 import { ConnectAppResponse } from './messages/response/ConnectAppResponse'
 import { RequestStateTransitionApprovalResponse } from './messages/response/RequestStateTransitionApprovalResponse'
 import { generateRandomHex } from '../utils'
-import {GetCurrentIdentityResponse} from "./messages/response/GetCurrentIdentityResponse";
-import {GetAvailableIdentitiesResponse} from "./messages/response/GetAvailableIdentitiesResponse";
+import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
+import { GetAvailableIdentitiesResponse } from './messages/response/GetAvailableIdentitiesResponse'
 
 export class PublicAPIClient {
   async connectApp (url: string): Promise<ConnectAppResponse> {

@@ -7,11 +7,11 @@ import { AppConnectRepository } from '../../../repository/AppConnectRepository'
 export class GetAppConnectHandler implements APIHandler {
   appConnectRepository: AppConnectRepository
 
-  constructor(appConnectRepository: AppConnectRepository) {
+  constructor (appConnectRepository: AppConnectRepository) {
     this.appConnectRepository = appConnectRepository
   }
 
-  async handle(event: EventData): Promise<GetAppConnectResponse> {
+  async handle (event: EventData): Promise<GetAppConnectResponse> {
     const payload: GetAppConnectPayload = event.payload
 
     const appConnect = await this.appConnectRepository.getById(payload.id)
@@ -19,7 +19,7 @@ export class GetAppConnectHandler implements APIHandler {
     return { appConnect }
   }
 
-  validatePayload(payload: GetAppConnectPayload): null | string {
+  validatePayload (payload: GetAppConnectPayload): null | string {
     if (typeof payload?.id !== 'string' || payload.id.length === 0) {
       return 'ID is required'
     }

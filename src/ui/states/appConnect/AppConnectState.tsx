@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import ValueCard from '../../components/containers/ValueCard'
 import Text from '../../text/Text'
@@ -10,8 +10,7 @@ import { AppConnect } from '../../../types/AppConnect'
 import { AppConnectStatus } from '../../../types/enums/AppConnectStatus'
 import './appConnect.state.css'
 
-function AppConnectState(): React.JSX.Element {
-  const navigate = useNavigate()
+function AppConnectState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const params = useParams()
 
@@ -74,7 +73,7 @@ function AppConnectState(): React.JSX.Element {
   }
 
   if (isLoading) {
-    return <LoadingScreen message="Loading connection request..." />
+    return <LoadingScreen message='Loading connection request...' />
   }
 
   if (error != null || appConnect == null) {

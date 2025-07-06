@@ -2,7 +2,7 @@ import { AppConnect } from '../../types/AppConnect'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { AppConnectsStorageSchema } from '../storage/storageSchema'
 import { AppConnectStatus } from '../../types/enums/AppConnectStatus'
-import hash from "hash.js";
+import hash from 'hash.js'
 
 export class AppConnectRepository {
   storageKey: string
@@ -42,7 +42,7 @@ export class AppConnectRepository {
     return appConnectRequest
   }
 
-  async getByURL(url: string): Promise<AppConnect | null> {
+  async getByURL (url: string): Promise<AppConnect | null> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 

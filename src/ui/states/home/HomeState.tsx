@@ -32,7 +32,7 @@ function HomeState (): React.JSX.Element {
         setIsLoading(true)
 
         const availableIdentities = (await extensionAPI.getIdentities())
-            .map(identity => identity.identifier)
+          .map(identity => identity.identifier)
 
         const current = await extensionAPI.getCurrentIdentity()
 
@@ -56,7 +56,7 @@ function HomeState (): React.JSX.Element {
         // Load transactions for current identity (use updated currentIdentity)
         const activeIdentity = (currentIdentity != null && currentIdentity !== '') ? currentIdentity : current
         if (activeIdentity != null && activeIdentity !== '') {
-          const balance = await sdk.identities.getBalance(activeIdentity)
+          const balance = await sdk.identities.getIdentityBalance(activeIdentity)
 
           setBalance(balance)
 
