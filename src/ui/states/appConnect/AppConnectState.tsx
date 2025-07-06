@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import ValueCard from '../../components/containers/ValueCard'
 import Text from '../../text/Text'
