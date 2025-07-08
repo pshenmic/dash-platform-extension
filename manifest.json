@@ -1,6 +1,6 @@
 {
   "name": "Dash Platform Extension",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "manifest_version": 3,
   "minimum_chrome_version": "119",
   "description": "A browser extension wallet for interacting with Dash Platform blockchain",
