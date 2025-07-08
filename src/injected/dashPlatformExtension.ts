@@ -1,18 +1,12 @@
 // This file injects on webpages by extension
-
-import { DashPlatformSDK } from 'dash-platform-sdk'
-
 import { ExtensionSigner } from './ExtensionSigner'
 import { PublicAPIClient } from '../types/PublicAPIClient'
 
 declare global {
   interface Window {
-    dashPlatformSDK: DashPlatformSDK
+    dashPlatformExtension: { signer: ExtensionSigner }
   }
 }
-
-// create DashPlatformSDK
-window.dashPlatformSDK = new DashPlatformSDK({ network: 'testnet' })
 
 // initialize messaging layer
 const publicAPIClient = new PublicAPIClient()
@@ -20,6 +14,6 @@ const publicAPIClient = new PublicAPIClient()
 // create custom signer function for DashPlatformSDK
 const extensionSigner = new ExtensionSigner(publicAPIClient)
 
-window.dashPlatformSDK.signer = extensionSigner
+window.dashPlatformExtension = { signer: extensionSigner }
 
-console.log('injected Dash Platform SDK')
+console.log('Dash Platform Extension messaging bridge initialized')

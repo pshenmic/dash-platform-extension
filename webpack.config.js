@@ -11,7 +11,8 @@ module.exports = (env, argv) => {
       ui: './src/ui/index.tsx',
       ...(mode === 'production' && {
         'content-script': './src/content-script/index.ts',
-        injected: './src/injected/index.ts'
+        injectExtension: './src/injected/dashPlatformExtension.ts',
+        injectSdk: './src/injected/dashPlatformSdk.ts'
       })
     },
     output: {
