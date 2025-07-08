@@ -3,7 +3,7 @@
   "version": "0.0.2",
   "manifest_version": 3,
   "minimum_chrome_version": "119",
-  "description": "A browser extension that let users easily interact with Dash Platform DApps in Metamask-like style.",
+  "description": "A browser extension wallet for interacting with Dash Platform blockchain",
   "permissions": ["storage"],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
@@ -20,7 +20,7 @@
     }
   ],
   "web_accessible_resources": [{
-    "resources": ["injected.js", "index.html", "/assets/dash_logo.png", "/assets/dash_cointest3.png"],
+    "resources": ["injectSdk.js", "injectExtension.js", "index.html", "/assets/dash_logo.png", "/assets/dash_cointest3.png"],
     "matches": ["<all_urls>"]
   }]
 }
