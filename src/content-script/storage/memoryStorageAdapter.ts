@@ -16,4 +16,8 @@ export class MemoryStorageAdapter implements StorageAdapter {
   set = async (key: string, value: object | number | string | null): Promise<void> => {
     cache[key] = value
   }
+
+  remove = async (key: string): Promise<void> => {
+    cache[key] = undefined
+  }
 }

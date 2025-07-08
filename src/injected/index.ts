@@ -11,16 +11,15 @@ declare global {
   }
 }
 
-const signer = { signStateTransition: () => {} }
-
 // create DashPlatformSDK
-window.dashPlatformSDK = new DashPlatformSDK({ network: 'testnet', signer })
+window.dashPlatformSDK = new DashPlatformSDK({ network: 'testnet' })
 
 // initialize messaging layer
 const publicAPIClient = new PublicAPIClient()
 
 // create custom signer function for DashPlatformSDK
-const extensionSigner = new ExtensionSigner(publicAPIClient, window.dashPlatformSDK.wasm)
+const extensionSigner = new ExtensionSigner(publicAPIClient)
+
 window.dashPlatformSDK.signer = extensionSigner
 
 console.log('injected Dash Platform SDK')

@@ -246,7 +246,7 @@ function ApproveTransactionState (): React.JSX.Element {
       const identity: IdentityWASM = await sdk.identities.getByIdentifier(currentIdentity)
       const identityPublicKeys: IdentityPublicKeyWASM[] = identity.getPublicKeys()
       const [identityPublicKey] = identityPublicKeys
-        .filter(publicKey => publicKey.getPurpose() === 'AUTHENTICATION' && publicKey.getSecurityLevel() === 'HIGH')
+        .filter(publicKey => publicKey.purpose === 'AUTHENTICATION' && publicKey.securityLevel === 'HIGH')
 
       if (identityPublicKey == null) {
         throw new Error('no identity public key')

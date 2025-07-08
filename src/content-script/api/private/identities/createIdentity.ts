@@ -2,7 +2,7 @@ import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData } from '../../../../types/EventData'
 import { CreateIdentityPayload } from '../../../../types/messages/payloads/CreateIdentityPayload'
 import { APIHandler } from '../../APIHandler'
-import { DashPlatformProtocolWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
+import { IdentityPublicKeyWASM, PrivateKeyWASM, IdentifierWASM } from 'pshenmic-dpp'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { WalletType } from '../../../../types/WalletType'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
@@ -14,14 +14,12 @@ export class CreateIdentityHandler implements APIHandler {
   keypairRepository: KeypairRepository
   identitiesRepository: IdentitiesRepository
   walletRepository: WalletRepository
-  dpp: DashPlatformProtocolWASM
   sdk: DashPlatformSDK
 
-  constructor (identitiesRepository: IdentitiesRepository, walletRepository: WalletRepository, keypairRepository: KeypairRepository, dpp: DashPlatformProtocolWASM, sdk: DashPlatformSDK) {
+  constructor (identitiesRepository: IdentitiesRepository, walletRepository: WalletRepository, keypairRepository: KeypairRepository, sdk: DashPlatformSDK) {
     this.identitiesRepository = identitiesRepository
     this.keypairRepository = keypairRepository
     this.walletRepository = walletRepository
-    this.dpp = dpp
     this.sdk = sdk
   }
 
@@ -50,14 +48,14 @@ export class CreateIdentityHandler implements APIHandler {
       if (!payload.privateKeys
         .every(privateKey => identityPublicKeysWASM
           .some((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
-                        this.dpp.PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash()))) {
+                        PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash()))) {
         throw new Error('Private key does not belong to any of identity\'s public keys')
       }
 
       for (const privateKey of payload.privateKeys) {
         const [identityPublicKey] = identityPublicKeysWASM
           .filter((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
-                        this.dpp.PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash())
+                        PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash())
 
         await this.keypairRepository.add(payload.identifier, privateKey, identityPublicKey)
       }
@@ -71,7 +69,7 @@ export class CreateIdentityHandler implements APIHandler {
   validatePayload (payload: CreateIdentityPayload): string | null {
     try {
       // eslint-disable-next-line no-new
-      new this.dpp.IdentifierWASM(payload.identifier)
+      new IdentifierWASM(payload.identifier)
     } catch (e) {
       return 'Could not decode identity identifier'
     }

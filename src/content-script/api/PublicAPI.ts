@@ -58,15 +58,15 @@ export class PublicAPI {
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
     this.appConnectRepository = appConnectRepository
 
-    const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter, this.sdk.dpp)
+    const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)
     this.stateTransitionsRepository = stateTransitionsRepository
 
-    const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk.dpp, this.sdk)
+    const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk)
     this.identitiesRepository = identitiesRepository
 
     this.handlers = {
       [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository, identitiesRepository),
-      [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(stateTransitionsRepository, this.sdk.dpp)
+      [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(stateTransitionsRepository)
     }
 
     window.addEventListener('message', (message: MessageEvent) => {

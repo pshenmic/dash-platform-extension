@@ -1,16 +1,14 @@
 import { StateTransitionStatus } from '../../types/enums/StateTransitionStatus'
 import { StateTransition } from '../../types/StateTransition'
 import { StorageAdapter } from '../storage/storageAdapter'
-import { DashPlatformProtocolWASM, StateTransitionWASM } from 'pshenmic-dpp'
+import {StateTransitionWASM } from 'pshenmic-dpp'
 import { base64 } from '@scure/base'
 import { StateTransitionsStoreSchema, StateTransitionStoreSchema } from '../storage/storageSchema'
 
 export class StateTransitionsRepository {
-  dpp: DashPlatformProtocolWASM
   storageAdapter: StorageAdapter
 
-  constructor (storageAdapter: StorageAdapter, dpp: DashPlatformProtocolWASM) {
-    this.dpp = dpp
+  constructor (storageAdapter: StorageAdapter) {
     this.storageAdapter = storageAdapter
   }
 
