@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useSdk } from '../../../hooks/useSdk'
 import './documents.batch.details.css'
 import DocumentCreateTransition from './DocumentCreateTransition'
-import {BatchTransitionWASM} from 'pshenmic-dpp'
+import { BatchTransitionWASM } from 'pshenmic-dpp'
 
 export default function DocumentsBatchDetails ({ stateTransition }) {
   const sdk = useSdk()

@@ -1,7 +1,6 @@
 import { EventData } from '../../../../types/EventData'
 import { validateWalletId } from '../../../../utils'
 import { APIHandler } from '../../APIHandler'
-import {  } from 'pshenmic-dpp'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { SwitchWalletPayload } from '../../../../types/messages/payloads/SwitchWalletPayload'
 import { Network } from '../../../../types/enums/Network'

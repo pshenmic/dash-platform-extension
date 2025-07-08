@@ -1,6 +1,5 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { Identity } from '../../types/Identity'
-import {  } from 'pshenmic-dpp'
 import { IdentitiesStoreSchema, IdentityStoreSchema } from '../storage/storageSchema'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 

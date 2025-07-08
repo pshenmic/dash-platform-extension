@@ -1,6 +1,6 @@
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import {IdentityPublicKeyWASM, PrivateKeyWASM, StateTransitionWASM} from 'pshenmic-dpp'
+import { IdentityPublicKeyWASM, PrivateKeyWASM, StateTransitionWASM } from 'pshenmic-dpp'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { EventData } from '../../../../types/EventData'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'

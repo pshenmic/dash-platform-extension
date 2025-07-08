@@ -1,6 +1,6 @@
 import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
-import {  } from 'pshenmic-dpp'
+import { } from 'pshenmic-dpp'
 import { CreateWalletPayload } from '../../../../types/messages/payloads/CreateWalletPayload'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { WalletType } from '../../../../types/WalletType'
