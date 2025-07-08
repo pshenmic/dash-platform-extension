@@ -1,7 +1,7 @@
 {
   "name": "dash-platform-extension",
-  "version": "0.0.2",
-  "description": "A browser extension for interacting with Dash Platform DApps, providing secure identity management, wallet functionality, and transaction signing capabilities.",
+  "version": "0.0.5",
+  "description": "A browser extension for interacting with Dash Platform, providing secure identity management, wallet functionality, and transaction signing capabilities for DApps.",
   "scripts": {
     "build": "webpack --mode=production",
     "serve": "webpack serve --mode=development",
