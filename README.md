@@ -5,8 +5,6 @@
 
 ___
 
-##### This package in very early stage of development, and only testnet network supported at the moment.
-
 The following features are currently available:
 
 Import Identity by private key:
@@ -17,28 +15,40 @@ View and confirm transactions:
 
 ## General
 
-Dash Platform extension is browser extension that shares an instance of [Dash Platform SDK](https://github.com/pshenmic/dash-platform-sdk) to the webpages when this extension is installed in your browser.
-
-It works by providing a Javascript interface in the window object that let developers request transaction signing without asking them from a private key or seed phrase on the website itself.
-
-Currently, it works by storing a private key from the Identity in the extension's storage, but in the next versions it is going to be possible to hand off storage of private keys to the Mobile device for enhanced security or pay with QR code.
-
-It is not necessary to import all of Identity's keys to start interacting with applications, usually you only need AUTHENTICATION public key to start submitting documents, while other of your keys can be stay safe.
-
-Furthermore, if your key is leaked, it is always possible to revoke leaked key and recreate new one for your identity.
+A browser extension and a wallet specifically for Dash Platform network, that let you securely keep access to your identities in your browser and provide developers with SDK and 
 
 
 ## Current features
 
-* Import identity by private key (only one currently supported)
-* Show basic info (balance, transactions)
-* Javascript API for transaction signing window dialogue
+- Testnet
+- Identity management (with secure key storage)
+- Show your Identity balance & transactions
+- Developer SDK for interaction with extension & blockchain (with cryptographic proofs)
+- Sign transactions with your wallet without sharing with the website
+- DApp Permission system (choose which DApps allowed to read wallet data)
 
-## Install
 
-Only manual installation is currently supported
+### Next features (unordered)
+- Chrome Web Store publish
+- Seedphrase support
+- Network switch (mainnet / testnet)
+- Multiple accounts / identities
+- Identity registration
+- DPNS Names
+- Send & Withdraw credits
+- Tokens (with direct purchase)
 
-Head over to the Releases section, download a build archive, unpack it, and go to your Chrome's extensions menu and click "Load unpacked" button.
+
+## Install (manual)
+
+1) Open [Releases](https://github.com/pshenmic/dash-platform-extension/releases)
+2) Download last stable build
+3) Unzip the archive
+4) Open "Manage Extensions" in the Chrome Browser
+5) Enable "Developer mode" in top right
+6) Click "Load Unpacked" in top left
+7) Optionally pin the extension to the toolbar for easier access
+
 
 ## Developer API
 
@@ -47,27 +57,50 @@ When user installs the extension and visit the DApp website, it injects a Dash P
 For instance:
 ```js
 export const handleSendMessageButton = async () => {
+  const {dashPlatformExtension} = window
+  
+  if (dashPlatformExtension == null) {
+    throw new Error('Dash Platform Extension is not installed')
+  }
+
+  const {currentIdentity: identity} = await dashPlatformExtension.connect()
+ 
   const {dashPlatformSDK} = window
 
-  // owner
-  const identity = '8eTDkBhpQjHeqgbVeriwLeZr1tCa6yBGw76SckvD1cwc'
+  if (dashPlatformSDK == null) {
+    throw new Error('Dash Platform SDK is not injected')
+  }
+  
   const dataContract = '9jf2T5mLuoEXN2r24w9Kd5MNtJUnoMoB7YtFQNRznem3'
   const documentTypeName = 'note'
   const data = {
     "message": "test",
   }
 
-  const identityContractNonce = await window.dashPlatformSDK.identities.getIdentityContractNonce(identity, dataContract)
-  const document = await window.dashPlatformSDK.documents.create(dataContract, 'note', data, identity, identityContractNonce + 1n)
-  const stateTransition = await dashPlatformSDK.stateTransitions.documentsBatch.create(document, identityContractNonce + 1n)
+  const identityContractNonce = await dashPlatformSDK.identities.getIdentityContractNonce(identity, dataContract)
+  const document = await dashPlatformSDK.documents.create(dataContract, 'note', data, identity, 1)
+  const stateTransitions = await sdk.documents.createStateTransition(document, BatchType.Create, identityContractNonce + 1n)
 
-  await window.dashPlatformSDK.signer.signStateTransition(stateTransition)
+  await dashPlatformExtension.signer.signAndBroadcast(stateTransition)
   
   
   console.log('Transaction was successfully signed and broadcasted, txhash: ', stateTransition.hash(true))
 }
 ```
 
-seedphrase
-register identity
-identity by id
+
+## Technical details
+
+
+Extension works by keeping your wallet data in the browser storage, like your current wallet, stored identities and settings. 
+All private keys are always encrypted before saving with password, that is asked every time your want to sign new transaction. 
+There is no way to recover the password.
+
+When user visit a webpage, a small public interface (40kb) gets injected into the <head> at the document_start. It provides
+developers with an API interface to request transaction signing, without needing to ask them to put it in the website itself.
+
+When user visit websites, extension injects a little script, a simple messaging bridge that allow webpages to communicate with Extension.
+It shares a public API allowing devs to connect their application and asking permission from user to share wallet data with. If user approves
+the connection, it also injects a (https://github.com/pshenmic/dash-platform-sdk)[Dash Platform SDK] in the `window.dashPlatformSDK` that let
+devs use the functions to operate in blockchain network right away. Extension does not inject any SDK libraries on all websites by default,
+only on specific ones that user gave permissions to.
