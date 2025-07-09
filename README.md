@@ -29,7 +29,7 @@ interface for developers to integrate their application and create transactions.
 - Show your Identity balance & transactions
 - Developer SDK for interaction with extension & blockchain (with cryptographic proofs)
 - Sign transactions with your wallet without sharing with the website
-- DApp Permission system (choose which DApps allowed to read wallet data)
+- DApp permission system (choose which DApps allowed to read wallet data)
 
 
 ### Next features (unordered)
