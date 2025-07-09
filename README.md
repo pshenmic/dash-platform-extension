@@ -105,6 +105,6 @@ developers with an API interface to request transaction signing, without needing
 
 When user visit websites, extension injects a little script, a simple messaging bridge that allow webpages to communicate with Extension.
 It shares a public API allowing devs to connect their application and asking permission from user to share wallet data with. If user approves
-the connection, it also injects a (https://github.com/pshenmic/dash-platform-sdk)[Dash Platform SDK] in the `window.dashPlatformSDK` that let
+the connection, it also injects a [Dash Platform SDK](https://github.com/pshenmic/dash-platform-sdk) in the `window.dashPlatformSDK` that let
 devs use the functions to operate in blockchain network right away. Extension does not inject any SDK libraries on all websites by default,
 only on specific ones that user gave permissions to.
