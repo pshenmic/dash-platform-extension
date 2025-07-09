@@ -9,7 +9,6 @@ import { AppConnectStorageSchema } from './storage/storageSchema'
 import { AppConnectStatus } from '../types/enums/AppConnectStatus'
 import { EventData } from '../types/EventData'
 import { MessagingMethods } from '../types/enums/MessagingMethods'
-import { ConnectAppResponse } from '../types/messages/response/ConnectAppResponse'
 
 const extensionStorageAdapter = new ExtensionStorageAdapter()
 
@@ -39,9 +38,9 @@ function injectScript (src: string): void {
 }
 
 // get current wallet
-const checkAppConnectedAndInjectScript = async () => {
-  const network = await extensionStorageAdapter.get('network')
-  const walletId = await extensionStorageAdapter.get('currentWalletId')
+const checkAppConnectedAndInjectScript = async (): Promise<void> => {
+  const network = await extensionStorageAdapter.get('network') as string
+  const walletId = await extensionStorageAdapter.get('currentWalletId') as string | null
   const origin = window.location.origin
 
   if (walletId == null) {
@@ -78,6 +77,8 @@ window.addEventListener('message', handleMessage)
 
 injectScript('injectExtension.js')
 
-checkAppConnectedAndInjectScript().catch((e) => console.log(`Failed to inject Dash Platform SDK: ${e}`))
+checkAppConnectedAndInjectScript().catch((e) => {
+  console.error('Failed to inject Dash Platform SDK', e)
+})
 
 console.log('content script loaded')
