@@ -5,12 +5,8 @@
 
 ___
 
-The following features are currently available:
-
-Import Identity by private key:
 ![title](public/img/screenshots/import-identity-flow.png)
 
-View and confirm transactions:
 ![title](public/img/screenshots/identity-actions.png)
 
 ## General
