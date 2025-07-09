@@ -12,9 +12,7 @@
 
 ___
 
-![title](public/img/screenshots/import-identity-flow.png)
-
-![title](public/img/screenshots/identity-actions.png)
+![title](public/img/screenshots/Git_Frame-1.png)
 
 ## General
 
