@@ -16,12 +16,11 @@ View and confirm transactions:
 ## General
 
 A browser extension and a wallet specifically for Dash Platform network, that securely keep access to your 
-identities in browser and provide developers with SDK and APIs to interact with chain and make transactions.
+identities in browser and provide developers with SDK and APIs to interact with chain and make transactions in a 
+Metamask-like style
 
-The browser keeps your wallet data and encrypted private keys in the extension storage, while providing a public API for
- developers to integrate their application and create transactions.
-
-
+Extension keep your wallet data and encrypted private keys in the browser storage, and provide a secure public API 
+interface for developers to integrate their application and create transactions. 
 
 ## Current features
 
