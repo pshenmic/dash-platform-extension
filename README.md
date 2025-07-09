@@ -2,6 +2,13 @@
 
 
 ###### A browser extension that let users easily interact with Dash Platform DApps.
+![Dash](https://img.shields.io/badge/dash-008DE4?style=for-the-badge&logo=dash&logoColor=white)
+![Google Chrome](https://img.shields.io/badge/Google%20Chrome-4285F4?style=for-the-badge&logo=GoogleChrome&logoColor=white)
+![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+
+
+![a](https://github.com/pshenmic/platform-explorer/actions/workflows/build.yml/badge.svg)
 
 ___
 
@@ -52,8 +59,70 @@ interface for developers to integrate their application and create transactions.
 
 ## Developer API
 
-When user installs the extension and visit the DApp website, it injects a Dash Platform SDK instance in the `window` object, that let developers start working with it straight right away.
+When user have extension running, it injects a small javascript code in the <head> block of the html pages, that let 
+website communicate with extension. When website wish to use Dash Platform features, it connects through .connect() method
+that asks user permission to share some of your public data (list of identities, currentIdentity). After connection is
+successful, extension also injects and SDK into `window.dashPlatformSDK` for developers to quickly use it. It is possible
+to use extension with SDK separately, or even with other SDKs.
 
+`window.dashPlatformExtension.signer`:
+
+```typescript
+export interface AppConnectInfo {
+    identities: string[];
+    currentIdentity: string | null;
+}
+export interface AbstractSigner {
+    connect: () => Promise<AppConnectInfo>;
+    signAndBroadcast: (stateTransition: StateTransitionWASM) => Promise<StateTransitionWASM>;
+}
+```
+
+
+## Integration
+
+The integration of SDK is quite simple, first you need to call .connect() method, and ensure permission to connect, and then
+you make a transaction with SDK and pass it to .signAndBroadcast() function:
+
+
+#### 1) Check for Dash Platform Extension installed
+
+When user installed the extension, it injects small messaging layer in the `window.dashPlatformExtension`. Check if it exists, 
+and if true that means you're safe to proceed to next steps
+
+
+#### 2) Ask extension permission to connect
+
+Call `window.dashPlatformExtension.signer.connect()` async function that asks extension permission to connect. When it's executed
+first time for the user, it will open dialogue asking for permission to share some wallet information with the current website.
+If access is granted, it successfully adds the website in whitelist of current account in the extension.
+
+### 3) Prepare unsigned Transaction (State Transition)
+
+After successful connection, extension injects [Dash Platform SDK](https://github.com/pshenmic/dash-platform-sdk) instance 
+in the `window.dashPlatformSdk` that you can use to create a transaction. It may be anything, such like creating a document, 
+or registering data contract. Use Dash Platform SDK to create a transaction, for example:
+
+```typescript
+  const {dashPlatformSDK} = window
+    
+  const {currentIdentity: identity} = await window.dashPlatformExtension.signer.connect()
+  const dataContract = '9jf2T5mLuoEXN2r24w9Kd5MNtJUnoMoB7YtFQNRznem3'
+  const documentTypeName = 'note'
+  const data = {
+    "message": "test",
+  }
+
+  const identityContractNonce = await dashPlatformSDK.identities.getIdentityContractNonce(identity, dataContract)
+  const document = await dashPlatformSDK.documents.create(dataContract, 'note', data, identity, 1)
+  const stateTransition = await sdk.documents.createStateTransition(document, BatchType.Create, identityContractNonce + 1n)
+```
+### 4) Ask extension to sign the transaction
+Pass your unsigned transaction to  `window.dashPlatformExtension.signer.signAndBroadcast(stateTransitionWASM)` and the user
+will be prompted with transaction approval dialogue. After user enter the password and signs the transaction, it gets
+broadcasted in the network and return a signed state transition in response
+
+## Example
 For instance:
 ```js
 export const handleSendMessageButton = async () => {

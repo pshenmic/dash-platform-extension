@@ -1,4 +1,4 @@
-import { AbstractSigner, AppConnectInfo } from 'dash-platform-sdk'
+import { AbstractSigner, AppConnectInfo } from 'dash-platform-sdk/dist/src/signer/AbstractSigner'
 import { StateTransitionWASM } from 'pshenmic-dpp/dist/wasm'
 import { hexToBytes, popupWindow, wait } from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
