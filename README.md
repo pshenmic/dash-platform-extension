@@ -69,7 +69,12 @@ export const handleSendMessageButton = async () => {
 
   const {currentIdentity: identity} = await dashPlatformExtension.connect()
  
+  // window.dashPlatformSdk populates after successful connection
   const {dashPlatformSDK} = window
+  
+  if (dashPlatformSDK == null) {
+    throw new Error('Dash Platform SDK is not injected')
+  }
 
   if (dashPlatformSDK == null) {
     throw new Error('Dash Platform SDK is not injected')
