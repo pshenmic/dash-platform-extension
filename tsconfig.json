@@ -1,19 +1,20 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "outDir": "./built",
-    "allowJs": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./build",
+    "allowJs": false,
     "jsx": "react-jsx",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "esModuleInterop": true,
     "skipLibCheck": true,
-//    "strict": true
+    "strictNullChecks": true,
     "resolveJsonModule": true,
   },
   "include": [
     "./src/**/*",
+    "./test/**/*",
     "./types/global.d.ts"
   ]
 }

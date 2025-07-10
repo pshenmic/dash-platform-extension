@@ -1,26 +1,20 @@
 import React, { useEffect, useState } from 'react'
-import { useSdk } from '../../../../hooks/useSdk.js'
 import './documents.batch.details.css'
-import DocumentCreateTransition from './DocumentCreateTransition.js'
+import DocumentCreateTransition from './DocumentCreateTransition'
+import { BatchTransitionWASM } from 'pshenmic-dpp'
 
-export default function DocumentsBatchDetails ({stateTransition}) {
-  const sdk = useSdk()
-  const {uint8ArrayToBase58} = sdk.utils
-
+export default function DocumentsBatchDetails ({ stateTransition }) {
   const [transitions, setTransitions] = useState(false)
-  const [documentsBatch, setDocumentsBatch] = useState(null)
   const [error, setError] = useState(false)
 
   useEffect(() => {
     try {
-      const documentsBatch = sdk.wasm.DocumentsBatchWASM.fromStateTransition(stateTransition)
-      setDocumentsBatch(documentsBatch)
+      const documentsBatch = BatchTransitionWASM.fromStateTransition(stateTransition)
 
-      const {transitions} = documentsBatch
+      const { transitions } = documentsBatch
       setTransitions(transitions)
     } catch (e) {
       console.error(e)
-      setDocumentsBatch(null)
       setTransitions(null)
       setError(e)
     }
@@ -31,15 +25,15 @@ export default function DocumentsBatchDetails ({stateTransition}) {
   }
 
   if (!transitions) {
-    return <div></div>
+    return <div />
   }
   const transitionComponent = {
-    'create': <DocumentCreateTransition createTransition={transitions[0].createTransition} transition={transitions[0]}/>
+    create: <DocumentCreateTransition createTransition={transitions[0].createTransition} transition={transitions[0]} />
   }[transitions[0].actionType]
 
   return (
     <div>
-      {error && <div className={'DocumentsBatchDetails__Error'}>Error during decoding DocumentsBatch state transition</div>}
+      {error && <div className='DocumentsBatchDetails__Error'>Error during decoding DocumentsBatch state transition</div>}
       {transitionComponent}
     </div>
   )

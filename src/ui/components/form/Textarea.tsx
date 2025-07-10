@@ -15,20 +15,20 @@ const textAreaContainerStyles = cva(
     variants: {
       hasValue: {
         true: 'bg-[#96A7FF] px-[15px] py-[10px]',
-        false: 'bg-[#EDF2FF] px-[15px] py-[10px] pr-[10px]',
+        false: 'bg-[#EDF2FF] px-[15px] py-[10px] pr-[10px]'
       },
       isValid: {
         true: '',
         false: 'border-2 border-red-500',
-        null: '',
-      },
+        null: ''
+      }
     },
     defaultVariants: {
       hasValue: false,
-      isValid: null,
-    },
+      isValid: null
+    }
   }
-);
+)
 
 const textAreaStyles = cva(
   `
@@ -44,20 +44,20 @@ const textAreaStyles = cva(
     variants: {
       hasValue: {
         true: 'text-white',
-        false: 'text-[#96A7FF] placeholder:text-[#96A7FF]',
-      },
+        false: 'text-[#96A7FF] placeholder:text-[#96A7FF]'
+      }
     },
     defaultVariants: {
-      hasValue: false,
-    },
+      hasValue: false
+    }
   }
 )
 
 export interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
-  onChange?: (value: string) => void;
-  showPasteButton?: boolean;
-  validator?: ((value: string) => boolean) | boolean;
-  rows?: number;
+  onChange?: (value: string) => void
+  showPasteButton?: boolean
+  validator?: ((value: string) => boolean) | boolean
+  rows?: number
 }
 
 const Textarea: React.FC<TextareaProps> = ({
@@ -68,59 +68,60 @@ const Textarea: React.FC<TextareaProps> = ({
   className = '',
   ...props
 }) => {
-  const [value, setValue] = useState<string>(props.value as string || props.defaultValue as string || '');
-  const [isValid, setIsValid] = useState<boolean | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [value, setValue] = useState<string>((props.value as string) ?? (props.defaultValue as string) ?? '')
+  const [isValid, setIsValid] = useState<boolean | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
+    const newValue = e.target.value
     setValue(newValue)
-    
+
     if (typeof onChange === 'function') {
       onChange(newValue)
     }
-    
-    validateInput(newValue)
-  };
 
-  const validateInput = (input: string) => {
+    validateInput(newValue)
+  }
+
+  const validateInput = (input: string): void => {
     if (validator === null) {
       setIsValid(null)
       return
     }
-    
+
     if (typeof validator === 'function') {
       setIsValid(validator(input))
     } else {
       setIsValid(Boolean(validator))
     }
-  };
-
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText()
-      if (text) {
-        setValue(text)
-        if (textareaRef.current) {
-          textareaRef.current.value = text
-        }
-        if (onChange) {
-          onChange(text)
-        }
-        validateInput(text)
-      }
-    } catch (err) {
-      console.error('Failed to read clipboard contents: ', err)
-    }
   }
 
-  const hasValue = Boolean(value);
+  const handlePaste = (): void => {
+    navigator.clipboard.readText()
+      .then((text) => {
+        if (text !== '') {
+          setValue(text)
+          if (textareaRef.current != null) {
+            textareaRef.current.value = text
+          }
+          if (onChange != null) {
+            onChange(text)
+          }
+          validateInput(text)
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to read clipboard contents: ', err)
+      })
+  }
+
+  const hasValue = value !== ''
 
   return (
-    <div 
-      className={textAreaContainerStyles({ 
-        hasValue, 
-        isValid: typeof isValid === 'boolean' ? isValid : null 
+    <div
+      className={textAreaContainerStyles({
+        hasValue,
+        isValid: typeof isValid === 'boolean' ? isValid : null
       })}
     >
       <textarea
@@ -131,9 +132,9 @@ const Textarea: React.FC<TextareaProps> = ({
         className={`${textAreaStyles({ hasValue })} ${className}`}
         {...props}
       />
-      
+
       {showPasteButton && !hasValue && (
-        <Button color={'brand'} size={'sm'} onClick={handlePaste}>
+        <Button color='brand' size='sm' onClick={handlePaste}>
           PASTE
         </Button>
       )}

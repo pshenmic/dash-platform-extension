@@ -1,159 +1,377 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { useSdk } from '../../../hooks/useSdk'
-import { useIdentitiesStore } from '../../../stores/identitiesStore'
-import hash from 'hash.js'
+import { useSdk } from '../../hooks/useSdk'
 import TransactionDetails from './TransactionDetails'
 import ValueCard from '../../components/containers/ValueCard'
-import Identifier from '../../components/data/Indetifier'
-import { Button, Text } from 'dash-ui/react'
+import Identifier from '../../components/data/Identifier'
+import Text from '../../text/Text'
+import Button from '../../components/controls/buttons'
+import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { IdentityPublicKeyWASM, StateTransitionWASM, IdentityWASM } from 'pshenmic-dpp'
+import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import LoadingScreen from '../../components/layout/LoadingScreen'
 
-export default function () {
+function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
+  const extensionAPI = useExtensionAPI()
 
   const params = useParams()
 
-  const [transactionDecodeError, setTransactionDecodeError] = useState(null)
-  const [txHash, setTxHash] = useState(null)
+  const [transactionDecodeError, setTransactionDecodeError] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<string | null>(null)
+  const [isLoadingTransaction, setIsLoadingTransaction] = useState<boolean>(false)
+  const [transactionNotFound, setTransactionNotFound] = useState<boolean>(false)
 
-  const identities = useIdentitiesStore((state) => state.identities)
-  const currentIdentity = useIdentitiesStore((state) => state.currentIdentity)
-  const unsignedStateTransitions = useIdentitiesStore((state) => state.unsignedStateTransitions)
+  const [identities, setIdentities] = useState<string[]>([])
+  const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
+  const [password, setPassword] = useState<string>('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [isSigningInProgress, setIsSigningInProgress] = useState<boolean>(false)
+  const [isLoadingIdentities, setIsLoadingIdentities] = useState<boolean>(true)
+  const [isCheckingWallet, setIsCheckingWallet] = useState<boolean>(true)
+  const [hasWallet, setHasWallet] = useState<boolean>(false)
 
-  const [stateTransition, setStateTransition] = useState(null)
-
-  if (!identities?.length) {
-    return <div>No identities</div>
-  }
-
-  const [unsignedStateTransition] = unsignedStateTransitions.filter(tx => tx.hash === params.txhash)
+  const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
 
   useEffect(() => {
-    try {
-      const {StateTransitionWASM} = sdk.wasm
+    const checkWallet = async (): Promise<void> => {
+      try {
+        const status = await extensionAPI.getStatus()
+        if (status.currentWalletId == null || status.currentWalletId === '') {
+          setHasWallet(false)
+        } else {
+          setHasWallet(true)
+        }
+      } catch (error) {
+        console.error('Failed to check wallet status:', error)
+        setHasWallet(false)
+      } finally {
+        setIsCheckingWallet(false)
+      }
+    }
 
-      if (!unsignedStateTransition) {
-        return setTransactionDecodeError(`Could not find state transition with hash ${[params.txhash]}`)
+    void checkWallet()
+  }, [extensionAPI])
+
+  useEffect(() => {
+    const loadData = async (): Promise<void> => {
+      if (isCheckingWallet || !hasWallet) {
+        setIsLoadingIdentities(false)
+        return
       }
 
-      setStateTransition(StateTransitionWASM.fromBytes(base64Decoder.decode(unsignedStateTransition.base64)))
-    } catch (e) {
-      setTransactionDecodeError(e.toString())
-    }
-  }, [])
+      try {
+        setIsLoadingIdentities(true)
 
-  const [identity] = identities.filter(identity => identity.identifier === currentIdentity)
+        const availableIdentities = (await extensionAPI.getIdentities())
+          .map(identity => identity.identifier)
 
-  const reject = () => {
-    debugger
-    window.postMessage({target: 'window', method: 'rejectSigning'})
-    window.close()
-  }
+        const current = await extensionAPI.getCurrentIdentity()
 
-  const doSign = () => {
-    debugger
-    const {PrivateKeyWASM, IdentityWASM} = sdk.wasm
-    const {bytesToHex, hexToBytes} = sdk.utils
+        setIdentities(availableIdentities ?? [])
+        setCurrentIdentity(current)
 
-    const [privateKey] = identity.privateKeys
+        console.log('availableIdentities', availableIdentities)
+        console.log('current', current)
 
-    const privateKeyWASM = PrivateKeyWASM.fromBytes(hexToBytes(privateKey), 'Testnet')
-    console.log('pkh', privateKeyWASM.getPublicKeyHash())
-
-    const [identityPublicKey] = IdentityWASM
-      .fromBytes(hexToBytes(identity.raw))
-      .getPublicKeys()
-      .filter((identityPublicKey) => identityPublicKey.getPublicKeyHash() === privateKeyWASM.getPublicKeyHash())
-
-    if (!identityPublicKey) {
-      throw new Error('Could not find a proper identity public key')
+        // Auto-set first identity as current if no current identity is set
+        if ((current == null || current === '') && (availableIdentities?.length ?? 0) > 0) {
+          try {
+            await extensionAPI.switchIdentity(availableIdentities[0])
+            setCurrentIdentity(availableIdentities[0])
+          } catch (error) {
+            console.error('Failed to set current identity:', error)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load identities:', error)
+      } finally {
+        setIsLoadingIdentities(false)
+      }
     }
 
-    stateTransition.sign(privateKeyWASM, identityPublicKey)
+    void loadData()
+  }, [isCheckingWallet, hasWallet])
 
-    console.log(bytesToHex(stateTransition.toBytes()))
+  useEffect(() => {
+    const transactionHash = params.hash ?? params.txhash
+    if (transactionHash != null) {
+      setIsLoadingTransaction(true)
+      setTransactionNotFound(false)
+      setTransactionDecodeError(null)
 
-    sdk.stateTransitions.broadcast(stateTransition)
-      .then(() => {
-        const state_transition_hash = hash.sha256().update(stateTransition.toBytes()).digest('hex')
+      console.log('Loading transaction with hash:', transactionHash)
 
-        setTxHash(state_transition_hash)
-    }).catch((error) => {
-      console.error('failz',error)
-    })
-  }
+      extensionAPI
+        .getStateTransition(transactionHash)
+        .then((stateTransitionResponse: GetStateTransitionResponse) => {
+          try {
+            setStateTransitionWASM(StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)))
+          } catch (e) {
+            console.error('Error decoding state transition:', e)
+            setTransactionDecodeError(String(e))
+          }
+        })
+        .catch((error) => {
+          console.error('Error getting state transition:', error)
+          setTransactionNotFound(true)
+        })
+        .finally(() => setIsLoadingTransaction(false))
+    }
+  }, [params.hash, params.txhash])
 
-  if (txHash) {
+  if (isCheckingWallet || isLoadingIdentities) {
     return (
-      <div className={'screen-content'}>
-        <h1 className={'h1-title'}>Transaction was successfully broadcasted</h1>
+      <LoadingScreen
+        message={isCheckingWallet ? 'Checking wallet...' : 'Loading identities...'}
+      />
+    )
+  }
 
-        <ValueCard colorScheme={'lightBlue'} className={'flex flex-col items-start gap-1'}>
-          <Text size={'md'} dim>Transaction hash</Text>
+  if (!hasWallet) {
+    return (
+      <div className='screen-content'>
+        <h1 className='h1-title'>No Wallet Found</h1>
 
-          <ValueCard colorScheme={'white'} className={'flex justify-between w-full'}>
+        <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-4'>
+          <Text size='lg'>
+            You need to create a wallet before you can approve transactions.
+          </Text>
+          <Text size='md' color='blue'>
+            Create a new wallet to manage your identities and approve transactions.
+          </Text>
+        </ValueCard>
+
+        <div className='flex gap-5 mt-5 w-full'>
+          <Button
+            // eslint-disable-next-line @typescript-eslint/no-misused-promises
+            onClick={async () => await navigate('/create-wallet')}
+            colorScheme='mint'
+            className='w-1/2'
+          >
+            Create Wallet
+          </Button>
+          <Button
+            onClick={() => window.close()}
+            colorScheme='gray'
+            variant='outline'
+            className='w-1/2'
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Show no identities message only after loading is complete
+  if (identities.length === 0) {
+    return (
+      <div className='screen-content'>
+        <h1 className='h1-title'>No Identities Available</h1>
+
+        <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-4'>
+          <Text size='lg'>
+            You need to have at least one identity to approve transactions.
+          </Text>
+          <Text size='md' color='blue'>
+            Import an existing identity or create a new one to continue.
+          </Text>
+        </ValueCard>
+
+        <div className='flex gap-5 mt-5 w-full'>
+          <Button
+            // eslint-disable-next-line @typescript-eslint/no-misused-promises
+            onClick={async () => await navigate('/import')}
+            colorScheme='mint'
+            className='w-1/2'
+          >
+            Import Identity
+          </Button>
+          <Button
+            onClick={() => window.close()}
+            colorScheme='gray'
+            variant='outline'
+            className='w-1/2'
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const reject = (): void => {
+    if (stateTransitionWASM == null) {
+      throw new Error('stateTransitionWASM is null')
+    }
+
+    extensionAPI.rejectStateTransition(stateTransitionWASM.hash(true)).then(() => window.close).catch(console.error)
+  }
+
+  const doSign = async (): Promise<void> => {
+    if (stateTransitionWASM == null) {
+      throw new Error('stateTransitionWASM is null')
+    }
+
+    if (currentIdentity == null) {
+      throw new Error('No current identity')
+    }
+
+    if (password === '') {
+      setPasswordError('Password is required')
+      return
+    }
+
+    setIsSigningInProgress(true)
+    setPasswordError(null)
+
+    try {
+      if (stateTransitionWASM == null) {
+        throw new Error('stateTransitionWASM is null')
+      }
+
+      const passwordCheck = await extensionAPI.checkPassword(password)
+      if (!passwordCheck.success) {
+        setPasswordError('Invalid password')
+        setIsSigningInProgress(false)
+        return
+      }
+
+      const identity: IdentityWASM = await sdk.identities.getIdentityByIdentifier(currentIdentity)
+      const identityPublicKeys: IdentityPublicKeyWASM[] = identity.getPublicKeys()
+      const [identityPublicKey] = identityPublicKeys
+        .filter(publicKey => publicKey.purpose === 'AUTHENTICATION' && publicKey.securityLevel === 'HIGH')
+
+      if (identityPublicKey == null) {
+        throw new Error('no identity public key')
+      }
+
+      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, identityPublicKey, password)
+
+      setTxHash(response.txHash)
+    } catch (error) {
+      console.error('Sign transition fails', error)
+      setPasswordError('Signing failed')
+    } finally {
+      setIsSigningInProgress(false)
+    }
+  }
+
+  if (txHash != null) {
+    return (
+      <div className='screen-content'>
+        <h1 className='h1-title'>Transaction was successfully broadcasted</h1>
+
+        <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-1'>
+          <Text size='md' dim>Transaction hash</Text>
+
+          <ValueCard colorScheme='white' className='flex justify-between w-full'>
             <Identifier
-              highlight={'both'}
-              copyButton={true}
+              highlight='both'
+              copyButton
               ellipsis={false}
-              className={'w-full justify-between'}
+              className='w-full justify-between'
             >
               {txHash}
             </Identifier>
           </ValueCard>
         </ValueCard>
 
-        <div className={'flex gap-5 mt-5 w-full'}>
-          <Button className={'w-full'} onClick={() => window.close()}>Close</Button>
+        <div className='flex gap-5 mt-5 w-full'>
+          <Button className='w-full' onClick={() => window.close()}>Close</Button>
         </div>
       </div>
     )
   }
 
+  const transactionHash = params.hash ?? params.txhash
+
   return (
-    <div className={'screen-content'}>
-      <h1 className={'h1-title'}>Transaction approval</h1>
+    <div className='screen-content'>
+      <h1 className='h1-title'>Transaction approval</h1>
 
-      <ValueCard colorScheme={'lightBlue'} className={'flex flex-col items-start gap-1'}>
-        <Text size={'md'} dim>Transaction hash</Text>
+      <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-1'>
+        <Text size='md' dim>Transaction hash</Text>
 
-        <ValueCard colorScheme={'white'} className={'flex justify-between w-full'}>
+        <ValueCard colorScheme='white' className='flex justify-between w-full'>
           <Identifier
-            highlight={'both'}
-            copyButton={true}
+            highlight='both'
+            copyButton
             ellipsis={false}
-            className={'w-full justify-between'}
+            className='w-full justify-between'
           >
-            {params.txhash}
+            {transactionHash}
           </Identifier>
         </ValueCard>
 
-        <div className={'mt-2'}>
-          {!unsignedStateTransition
-            ? <Text color={'red'} weight={'bold'}>Could not find transaction with hash</Text>
-            : transactionDecodeError
-              ? <Text color={'red'} weight={'bold'}>Error decoding state transition, please report the issue</Text>
-              : <TransactionDetails stateTransition={stateTransition}/>
-          }
+        <div className='mt-2'>
+          {isLoadingTransaction
+            ? <Text>Loading transaction...</Text>
+            : (transactionNotFound
+                ? <Text color='red' weight='bold'>Could not find transaction with hash</Text>
+                : (transactionDecodeError != null
+                    ? (
+                      <Text color='red' weight='bold'>
+                        Error decoding state transition: {transactionDecodeError}
+                      </Text>
+                      )
+                    : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM} />)))}
         </div>
       </ValueCard>
 
-      {!unsignedStateTransition
-        ? <Button onClick={() => navigate('/')} className={'mt-2'}>Close</Button>
-        : <div>
+      {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM == null
+        ? <Button onClick={() => { void navigate('/') }} className='mt-2'>Close</Button>
+        : (stateTransitionWASM != null &&
+          <div>
             <Text>Sign with identity:</Text>
             <select>
-              <option>{identity.identifier}</option>
+              {identities.map((identifier) =>
+                <option key={identifier} value={identifier}>
+                  {identifier}
+                </option>
+              )}
             </select>
 
-            <div className={'flex gap-5 mt-5'}>
-              <Button onClick={reject} colorScheme={'red'} variant={'outline'} className={'w-1/2'}>Reject</Button>
-              <Button onClick={doSign} colorScheme={'mint'} className={'w-1/2'}>Sign</Button>
+            <div className='mt-4'>
+              <Text>Password:</Text>
+              <input
+                type='password'
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className='w-full mt-2 p-2 border border-gray-300 rounded'
+                placeholder='Enter password'
+              />
+              {passwordError != null && (
+                <div className='text-red-500 text-sm mt-1'>
+                  {passwordError}
+                </div>
+              )}
+            </div>
+
+            <div className='flex gap-5 mt-5'>
+              <Button
+                onClick={reject} colorScheme='red' variant='outline'
+                className='w-1/2'
+              >
+                Reject
+              </Button>
+              <Button
+                onClick={() => { void doSign() }}
+                colorScheme='mint'
+                className='w-1/2'
+                disabled={password.trim().length === 0 || isSigningInProgress}
+              >
+                {isSigningInProgress ? 'Signing...' : 'Sign'}
+              </Button>
             </div>
           </div>
-      }
+          )}
     </div>
   )
 }
+
+export default withAuthCheck(ApproveTransactionState)

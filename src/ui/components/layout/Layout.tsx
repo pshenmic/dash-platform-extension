@@ -5,10 +5,10 @@ import { ThemeProvider } from 'dash-ui/react'
 
 const Layout: FC = () => {
   return (
-    <ThemeProvider initialTheme={'light'}>
-      <div className={'p-10'}>
-        <Header/>
-        <Outlet/>
+    <ThemeProvider initialTheme='light'>
+      <div className='p-10'>
+        <Header />
+        <Outlet />
       </div>
     </ThemeProvider>
   )

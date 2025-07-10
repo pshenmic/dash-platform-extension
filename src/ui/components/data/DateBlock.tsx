@@ -38,30 +38,30 @@ export const DateBlock: React.FC<DateBlockProps> = ({
   timestamp,
   format = 'all',
   showTime = false,
-  showRelativeTooltip = false,
-  className = '',
+  // showRelativeTooltip = false,
+  className = ''
 }) => {
   const date = new Date(timestamp)
   if (isNaN(date.getTime())) return null
 
   const modes = {
-    all: {calendarIcon: true, date: true, delta: true},
-    deltaOnly: {calendarIcon: false, date: false, delta: true},
-    dateOnly: {calendarIcon: false, date: true, delta: false},
+    all: { calendarIcon: true, date: true, delta: true },
+    deltaOnly: { calendarIcon: false, date: false, delta: true },
+    dateOnly: { calendarIcon: false, date: true, delta: false }
   } as const
 
   const options: Intl.DateTimeFormatOptions = {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-    ...(showTime ? {hour: '2-digit', minute: '2-digit'} : {}),
+    ...(showTime ? { hour: '2-digit', minute: '2-digit' } : {})
   }
 
   const formattedDate = date.toLocaleDateString('en-GB', options)
 
-  const tooltipContent = showRelativeTooltip
-    ? <TimeDelta endDate={timestamp} showTimestampTooltip={false}/>
-    : null
+  // const tooltipContent = showRelativeTooltip
+  //   ? <TimeDelta endDate={timestamp} showTimestampTooltip={false} />
+  //   : null
 
   const content = (
     <div className={infoContainer()}>
@@ -86,7 +86,7 @@ export const DateBlock: React.FC<DateBlockProps> = ({
     </div>
   )
 
-  const wrapperClass = `${wrapperStyles()}${className ? ` ${className}` : ''}`
+  const wrapperClass = `${wrapperStyles()} ${className !== '' ? ` ${className}` : ''}`
 
   return <div className={wrapperClass}>{content}</div>
 

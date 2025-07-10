@@ -1,4 +1,6 @@
 .idea
 node_modules
 dist
+build
 .yarn
+release

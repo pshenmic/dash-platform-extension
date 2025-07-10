@@ -4,7 +4,7 @@ import {
   ErrorIcon,
   QueuedIcon,
   PooledIcon,
-  BroadcastedIcon,
+  BroadcastedIcon
 } from './index'
 
 /**
@@ -39,15 +39,15 @@ export interface StatusIconProps
 export const StatusIcon: React.FC<StatusIconProps> = ({ status, ...props }) => {
   const map = {
     SUCCESS: SuccessIcon,
-    FAIL:    ErrorIcon,
-    QUEUED:  QueuedIcon,
-    POOLED:  PooledIcon,
-    BROADCASTED: BroadcastedIcon,
+    FAIL: ErrorIcon,
+    QUEUED: QueuedIcon,
+    POOLED: PooledIcon,
+    BROADCASTED: BroadcastedIcon
   } as const
 
   const IconComponent = map[status]
 
-  return IconComponent ? <IconComponent {...props} /> : null
+  return IconComponent != null ? <IconComponent {...props} /> : null
 }
 
 export default StatusIcon

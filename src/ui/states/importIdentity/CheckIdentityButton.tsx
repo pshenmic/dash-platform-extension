@@ -1,9 +1,14 @@
 import React from 'react'
 
-export default function CheckIdentityButton({ callback, disabled }) {
+interface CheckIdentityButtonProps {
+  callback: () => void
+  disabled: boolean
+}
+
+export default function CheckIdentityButton ({ callback, disabled }: CheckIdentityButtonProps): React.JSX.Element {
   return (
-      <div>
-        <button disabled={disabled} onClick={callback}>Check</button>
-      </div>
+    <div>
+      <button disabled={disabled} onClick={callback}>Check</button>
+    </div>
   )
 }
