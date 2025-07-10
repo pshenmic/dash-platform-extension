@@ -8,6 +8,5 @@ export default async function up (storageAdapter: StorageAdapter): Promise<void>
     await storageAdapter.set('network', 'testnet')
     await storageAdapter.set('currentWalletId', null)
     await storageAdapter.set('passwordPublicKey', null)
-    await storageAdapter.set('stateTransitions', {})
   }
 }
