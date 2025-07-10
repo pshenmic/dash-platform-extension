@@ -1,13 +1,20 @@
 {
-  "name": "Dash Platform Extension",
-  "version": "0.0.2",
   "manifest_version": 3,
+  "name": "Dash Platform Extension",
+  "version": "0.0.5",
+  "author": "pshenmic",
+  "homepage_url": "https://github.com/pshenmic/dash-platform-extension",
   "minimum_chrome_version": "119",
-  "description": "A browser extension that let users easily interact with Dash Platform DApps in Metamask-like style.",
+  "description": "A browser extension wallet for interacting with Dash Platform blockchain",
   "permissions": ["storage"],
-  "host_permissions": ["*://localhost/*"],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
+  },
+  "icons": {
+    "16": "assets/extension_icon_16.png",
+    "32": "assets/extension_icon_32.png",
+    "48": "assets/extension_icon_48.png",
+    "128": "assets/extension_icon_128.png"
   },
   "action":{
     "default_popup": "index.html",
@@ -21,7 +28,7 @@
     }
   ],
   "web_accessible_resources": [{
-    "resources": ["injected.js", "index.html", "/assets/dash_logo.png", "/assets/dash_cointest3.png"],
+    "resources": ["injectSdk.js", "injectExtension.js", "index.html", "/assets/dash_logo.png", "/assets/dash_cointest3.png"],
     "matches": ["<all_urls>"]
   }]
 }

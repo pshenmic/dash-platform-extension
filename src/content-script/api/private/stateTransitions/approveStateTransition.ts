@@ -1,6 +1,6 @@
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { DashPlatformProtocolWASM } from 'pshenmic-dpp'
+import { IdentityPublicKeyWASM, PrivateKeyWASM, StateTransitionWASM } from 'pshenmic-dpp'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { EventData } from '../../../../types/EventData'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'
@@ -21,19 +21,16 @@ export class ApproveStateTransitionHandler implements APIHandler {
   stateTransitionsRepository: StateTransitionsRepository
   identitiesRepository: IdentitiesRepository
   walletRepository: WalletRepository
-  dpp: DashPlatformProtocolWASM
   sdk: DashPlatformSDK
 
   constructor (stateTransitionsRepository: StateTransitionsRepository,
     identitiesRepository: IdentitiesRepository,
     walletRepository: WalletRepository,
-    keyPairRepository: KeypairRepository,
-    dpp: DashPlatformProtocolWASM, sdk: DashPlatformSDK) {
+    keyPairRepository: KeypairRepository, sdk: DashPlatformSDK) {
     this.keyPairRepository = keyPairRepository
     this.stateTransitionsRepository = stateTransitionsRepository
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
-    this.dpp = dpp
     this.sdk = sdk
   }
 
@@ -57,12 +54,12 @@ export class ApproveStateTransitionHandler implements APIHandler {
       throw new Error(`Could not find state transition with hash ${payload.hash} for signing`)
     }
 
-    const stateTransitionWASM = this.dpp.StateTransitionWASM.fromBytes(base64.decode(stateTransition.unsigned))
+    const stateTransitionWASM = StateTransitionWASM.fromBytes(base64.decode(stateTransition.unsigned))
 
     let keyPair: KeyPair | null
 
     if (wallet.type === WalletType.keystore) {
-      const identityPublicKeyWASM = this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(payload.identityPublicKey))
+      const identityPublicKeyWASM = IdentityPublicKeyWASM.fromBytes(base64.decode(payload.identityPublicKey))
 
       keyPair = await this.keyPairRepository.getByIdentityPublicKey(payload.identity, identityPublicKeyWASM)
 
@@ -80,7 +77,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
         throw new Error('Failed to decrypt')
       }
 
-      const privateKeyWASM = this.dpp.PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+      const privateKeyWASM = PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 
       stateTransitionWASM.sign(privateKeyWASM, keyPair.identityPublicKey)
 

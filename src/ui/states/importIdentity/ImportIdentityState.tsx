@@ -9,8 +9,7 @@ import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
 import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { PrivateKeyWASM } from 'pshenmic-dpp'
-import { IdentityWASM } from 'pshenmic-dpp/dist/wasm'
+import { PrivateKeyWASM, IdentityWASM } from 'pshenmic-dpp'
 import { withAuthCheck } from '../../components/auth/withAuthCheck'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 
@@ -22,7 +21,7 @@ function ImportIdentityState (): React.JSX.Element {
   const [privateKey, setPrivateKey] = useState('')
   const [privateKeyWASM, setPrivateKeyWASM] = useState<PrivateKeyWASM | null>(null)
   const [identity, setIdentity] = useState<IdentityWASM | null>(null)
-  const [balance, setBalance] = useState<number | null>(null)
+  const [balance, setBalance] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isCheckingWallet, setIsCheckingWallet] = useState(true)
@@ -53,7 +52,7 @@ function ImportIdentityState (): React.JSX.Element {
     setIsLoading(true)
 
     // Check if DPP is available
-    if (sdk.dpp?.PrivateKeyWASM == null) {
+    if (PrivateKeyWASM == null) {
       setIsLoading(false)
       return setError('DPP module not available. Please try again.')
     }
@@ -63,7 +62,7 @@ function ImportIdentityState (): React.JSX.Element {
     if (privateKey.length === 52) {
       // wif
       try {
-        pkeyWASM = sdk.dpp.PrivateKeyWASM.fromWIF(privateKey)
+        pkeyWASM = PrivateKeyWASM.fromWIF(privateKey)
         setPrivateKeyWASM(pkeyWASM)
       } catch (e) {
         console.error(e)
@@ -73,7 +72,7 @@ function ImportIdentityState (): React.JSX.Element {
     } else if (privateKey.length === 64) {
       // hex
       try {
-        pkeyWASM = sdk.dpp.PrivateKeyWASM.fromHex(privateKey, 'testnet')
+        pkeyWASM = PrivateKeyWASM.fromHex(privateKey, 'testnet')
         setPrivateKeyWASM(pkeyWASM)
       } catch (e) {
         console.error(e)
@@ -91,10 +90,10 @@ function ImportIdentityState (): React.JSX.Element {
     }
 
     try {
-      const identity = await sdk.identities.getByPublicKeyHash(pkeyWASM.getPublicKeyHash())
+      const identity = await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
 
       const [identityPublicKey] = identity.getPublicKeys()
-        .filter(publicKey => publicKey.getPurpose() === 'AUTHENTICATION' && publicKey.getSecurityLevel() === 'HIGH')
+        .filter(publicKey => publicKey.purpose === 'AUTHENTICATION' && publicKey.securityLevel === 'HIGH')
 
       if (identityPublicKey == null) {
         throw new Error('Private key doesnt fit. No public keys with purpose AUTHENTICATION and security level HIGH')
@@ -102,10 +101,10 @@ function ImportIdentityState (): React.JSX.Element {
 
       // Get identifier as base58 string directly from IdentifierWASM
       const identifierString = identity.getId().base58()
-      const balance = await sdk.identities.getBalance(identifierString)
+      const balance = await sdk.identities.getIdentityBalance(identifierString)
 
       setIdentity(identity)
-      setBalance(balance)
+      setBalance(balance.toString())
     } catch (e) {
       console.error(e)
       if (typeof e === 'string') {
@@ -244,7 +243,7 @@ function ImportIdentityState (): React.JSX.Element {
                 <Text dim>Balance</Text>
 
                 <span>
-                  {balance !== null && !Number.isNaN(Number(balance))
+                  {balance != null
                     ? (
                       <Text size='xl' weight='bold' monospace>
                         <BigNumber>

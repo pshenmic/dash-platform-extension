@@ -109,8 +109,6 @@ function ApproveTransactionState (): React.JSX.Element {
         .getStateTransition(transactionHash)
         .then((stateTransitionResponse: GetStateTransitionResponse) => {
           try {
-            const { StateTransitionWASM } = sdk.dpp
-
             setStateTransitionWASM(StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)))
           } catch (e) {
             console.error('Error decoding state transition:', e)
@@ -243,10 +241,10 @@ function ApproveTransactionState (): React.JSX.Element {
         return
       }
 
-      const identity: IdentityWASM = await sdk.identities.getByIdentifier(currentIdentity)
+      const identity: IdentityWASM = await sdk.identities.getIdentityByIdentifier(currentIdentity)
       const identityPublicKeys: IdentityPublicKeyWASM[] = identity.getPublicKeys()
       const [identityPublicKey] = identityPublicKeys
-        .filter(publicKey => publicKey.getPurpose() === 'AUTHENTICATION' && publicKey.getSecurityLevel() === 'HIGH')
+        .filter(publicKey => publicKey.purpose === 'AUTHENTICATION' && publicKey.securityLevel === 'HIGH')
 
       if (identityPublicKey == null) {
         throw new Error('no identity public key')

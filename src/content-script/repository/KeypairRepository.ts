@@ -1,5 +1,5 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import { IdentityPublicKeyWASM, DashPlatformProtocolWASM } from 'pshenmic-dpp'
+import { IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { KeyPair } from '../../types/KeyPair'
 import { base64 } from '@scure/base'
 import { KeyPairSchema, KeyPairsSchema } from '../storage/storageSchema'
@@ -8,10 +8,8 @@ import { encrypt } from 'eciesjs'
 
 export class KeypairRepository {
   storageAdapter: StorageAdapter
-  dpp: DashPlatformProtocolWASM
 
-  constructor (storageAdapter: StorageAdapter, dpp: DashPlatformProtocolWASM) {
-    this.dpp = dpp
+  constructor (storageAdapter: StorageAdapter) {
     this.storageAdapter = storageAdapter
   }
 
@@ -71,7 +69,7 @@ export class KeypairRepository {
 
     const [keyPair] = keyPairs
       .map((keyPairSchema: KeyPairSchema) => ({
-        identityPublicKey: this.dpp.IdentityPublicKeyWASM.fromBytes(base64.decode(keyPairSchema.identityPublicKey)),
+        identityPublicKey: IdentityPublicKeyWASM.fromBytes(base64.decode(keyPairSchema.identityPublicKey)),
         encryptedPrivateKey: keyPairSchema.encryptedPrivateKey
       }))
       .filter((keypair: KeyPair) => keypair.identityPublicKey.getPublicKeyHash() === identityPublicKey.getPublicKeyHash())

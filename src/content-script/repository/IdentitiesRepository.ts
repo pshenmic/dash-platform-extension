@@ -1,17 +1,14 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { Identity } from '../../types/Identity'
-import { DashPlatformProtocolWASM } from 'pshenmic-dpp'
 import { IdentitiesStoreSchema, IdentityStoreSchema } from '../storage/storageSchema'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 
 export class IdentitiesRepository {
-  dpp: DashPlatformProtocolWASM
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
 
-  constructor (storageAdapter: StorageAdapter, dpp: DashPlatformProtocolWASM, sdk: DashPlatformSDK) {
+  constructor (storageAdapter: StorageAdapter, sdk: DashPlatformSDK) {
     this.sdk = sdk
-    this.dpp = dpp
     this.storageAdapter = storageAdapter
   }
 

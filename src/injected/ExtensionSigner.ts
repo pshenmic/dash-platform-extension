@@ -1,5 +1,5 @@
-import { AbstractSigner } from 'dash-platform-sdk'
-import { DashPlatformProtocolWASM, StateTransitionWASM } from 'pshenmic-dpp/dist/wasm'
+import { AbstractSigner, AppConnectInfo } from 'dash-platform-sdk/src/signer/AbstractSigner'
+import { StateTransitionWASM } from 'pshenmic-dpp/dist/wasm'
 import { hexToBytes, popupWindow, wait } from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'
@@ -12,14 +12,12 @@ import { ConnectAppResponse } from '../types/messages/response/ConnectAppRespons
 
 export class ExtensionSigner implements AbstractSigner {
   publicAPIClient: PublicAPIClient
-  wasm: DashPlatformProtocolWASM
 
-  constructor (publicAPIClient: PublicAPIClient, wasm: DashPlatformProtocolWASM) {
+  constructor (publicAPIClient: PublicAPIClient) {
     this.publicAPIClient = publicAPIClient
-    this.wasm = wasm
   }
 
-  async connect (): Promise<ConnectAppResponse> {
+  async connect (): Promise<AppConnectInfo> {
     const url = window.location.origin
 
     let response: ConnectAppResponse = await this.publicAPIClient.connectApp(url)
@@ -40,7 +38,15 @@ export class ExtensionSigner implements AbstractSigner {
       response = await this.publicAPIClient.connectApp(url)
     }
 
-    return response
+    if (response.status === 'error') {
+      throw new Error('An error occurred while connecting app')
+    }
+
+    if (response.status === 'rejected') {
+      throw new Error('App connection was rejected')
+    }
+
+    return { currentIdentity: response.currentIdentity, identities: response.identities }
   }
 
   async signAndBroadcast (stateTransitionWASM: StateTransitionWASM): Promise<StateTransitionWASM> {

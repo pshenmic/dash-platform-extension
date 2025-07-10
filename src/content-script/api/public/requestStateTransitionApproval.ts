@@ -1,4 +1,4 @@
-import { DashPlatformProtocolWASM } from 'pshenmic-dpp'
+import { StateTransitionWASM } from 'pshenmic-dpp'
 import { base64 } from '@scure/base'
 import { APIHandler } from '../APIHandler'
 import { StateTransitionsRepository } from '../../repository/StateTransitionsRepository'
@@ -12,17 +12,15 @@ import {
 
 export class RequestStateTransitionApprovalHandler implements APIHandler {
   stateTransitionsRepository: StateTransitionsRepository
-  dpp: DashPlatformProtocolWASM
 
-  constructor (stateTransitionsRepository: StateTransitionsRepository, dpp: DashPlatformProtocolWASM) {
+  constructor (stateTransitionsRepository: StateTransitionsRepository) {
     this.stateTransitionsRepository = stateTransitionsRepository
-    this.dpp = dpp
   }
 
   async handle (event: EventData): Promise<RequestStateTransitionApprovalResponse> {
     const payload: RequestStateTransitionApprovalPayload = event.payload
 
-    const stateTransitionWASM = this.dpp.StateTransitionWASM.fromBytes(base64.decode(payload.base64))
+    const stateTransitionWASM = StateTransitionWASM.fromBytes(base64.decode(payload.base64))
 
     let stateTransition = await this.stateTransitionsRepository.getByHash(stateTransitionWASM.hash(true))
 
@@ -50,7 +48,7 @@ export class RequestStateTransitionApprovalHandler implements APIHandler {
     }
 
     try {
-      this.dpp.StateTransitionWASM.fromBytes(bytes)
+      StateTransitionWASM.fromBytes(bytes)
     } catch (e) {
       return 'Failed to deserialize state transition from base64'
     }
