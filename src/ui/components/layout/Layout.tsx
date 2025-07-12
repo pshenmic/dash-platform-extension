@@ -1,7 +1,7 @@
 import React, { FC } from 'react'
 import { Outlet } from 'react-router-dom'
 import Header from './header'
-import { ThemeProvider } from '../../contexts/ThemeContext'
+import { ThemeProvider } from 'dash-ui/react'
 
 const Layout: FC = () => {
   return (
