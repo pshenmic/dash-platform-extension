@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Text from '../../text/Text'
+import { Text } from 'dash-ui/react'
+
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 export default function StartState (): React.JSX.Element {
