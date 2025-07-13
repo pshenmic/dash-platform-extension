@@ -5,7 +5,7 @@
   "author": "pshenmic",
   "homepage_url": "https://github.com/pshenmic/dash-platform-extension",
   "minimum_chrome_version": "119",
-  "description": "A browser extension wallet for interacting with Dash Platform blockchain",
+  "description": "A browser extension wallet for Dash Platform blockchain",
   "permissions": ["storage"],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
