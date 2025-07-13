@@ -100,7 +100,7 @@ function ImportIdentityState (): React.JSX.Element {
       }
 
       // Get identifier as base58 string directly from IdentifierWASM
-      const identifierString = identity.getId().base58()
+      const identifierString = identity.id.base58()
       const balance = await sdk.identities.getIdentityBalance(identifierString)
 
       setIdentity(identity)
@@ -141,7 +141,7 @@ function ImportIdentityState (): React.JSX.Element {
         return setError('Could not load private key')
       }
 
-      const identifier = identity.getId().base58()
+      const identifier = identity.id.base58()
 
       const privateKeyHex = privateKey.length === 64 ? privateKey : privateKeyWASM.hex()
 
@@ -235,7 +235,7 @@ function ImportIdentityState (): React.JSX.Element {
                     ellipsis={false}
                     linesAdjustment={false}
                   >
-                    {identity.getId().base58()}
+                    {identity.id.base58()}
                   </Identifier>
                 </ValueCard>
               </div>
