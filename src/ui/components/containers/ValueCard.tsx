@@ -1,6 +1,6 @@
 import React from 'react'
 import { cva, VariantProps } from 'class-variance-authority'
-import { useTheme } from '../../contexts/ThemeContext'
+import { useTheme } from 'dash-ui/react'
 
 const valueCard = cva(
   'flex items-center transition-all border',
@@ -14,7 +14,7 @@ const valueCard = cva(
         default: '',
         transparent: 'bg-transparent',
         green: 'text-green-500 bg-green-200 border-green-400',
-        lightBlue: 'bg-brand-dim/10 !border-brand/20',
+        lightBlue: 'bg-dash-brand-dim/10 !border-dash-brand/20',
         white: 'bg-white'
       },
       size: {
@@ -45,7 +45,7 @@ const valueCard = cva(
       { theme: 'light', colorScheme: 'green', clickable: true, class: 'hover:bg-green-300' },
       { theme: 'dark', colorScheme: 'green', clickable: true, class: 'hover:bg-green-400' },
       // green lightBlue
-      { colorScheme: 'lightBlue', clickable: true, class: 'hover:bg-brand/15' },
+      { colorScheme: 'lightBlue', clickable: true, class: 'hover:bg-dash-brand/15' },
       // white
       { theme: 'light', colorScheme: 'white', clickable: true, class: 'hover:bg-gray-100' }
     ],
