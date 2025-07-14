@@ -4,6 +4,3 @@ dist
 build
 .yarn
 release
-dash-ui
-**/dash-ui/**
-/dash-ui/**
