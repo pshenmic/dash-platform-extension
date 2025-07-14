@@ -1,7 +1,7 @@
 import React from 'react'
 import { cva } from 'class-variance-authority'
 import { CopyIcon } from '../../icons'
-import { useTheme } from '../../../contexts/ThemeContext'
+import { useTheme } from 'dash-ui/react'
 import copyToClipboard from '../../../../copyToClipboard'
 
 const copyBtn = cva(

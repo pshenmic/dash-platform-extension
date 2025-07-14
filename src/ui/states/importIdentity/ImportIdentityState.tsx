@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useSdk } from '../../hooks/useSdk'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../../components/controls/buttons'
+import { Button } from 'dash-ui/react'
 import Textarea from '../../components/form/Textarea'
 import { ValueCard } from '../../components/containers/ValueCard'
 import Identifier from '../../components/data/Identifier'

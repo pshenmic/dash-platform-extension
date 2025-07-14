@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import NoIdentities from './NoIdentities'
-import { Button } from '../../components/controls/buttons'
+import { Button } from 'dash-ui/react'
 import ValueCard from '../../components/containers/ValueCard'
 import { Text } from 'dash-ui/react'
 import BigNumber from '../../components/data/BigNumber'
