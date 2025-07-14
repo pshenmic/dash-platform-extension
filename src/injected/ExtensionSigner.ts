@@ -1,4 +1,4 @@
-import { AbstractSigner, AppConnectInfo } from 'dash-platform-sdk/src/signer/AbstractSigner'
+import { AbstractSigner, WalletInfo } from 'dash-platform-sdk/src/signer/AbstractSigner'
 import { StateTransitionWASM } from 'pshenmic-dpp/dist/wasm'
 import { hexToBytes, popupWindow, wait } from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
@@ -17,7 +17,7 @@ export class ExtensionSigner implements AbstractSigner {
     this.publicAPIClient = publicAPIClient
   }
 
-  async connect (): Promise<AppConnectInfo> {
+  async connect (): Promise<WalletInfo> {
     const url = window.location.origin
 
     let response: ConnectAppResponse = await this.publicAPIClient.connectApp(url)
