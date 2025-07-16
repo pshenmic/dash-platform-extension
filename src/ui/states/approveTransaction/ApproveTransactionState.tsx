@@ -5,6 +5,7 @@ import { useSdk } from '../../hooks/useSdk'
 import TransactionDetails from './TransactionDetails'
 import ValueCard from '../../components/containers/ValueCard'
 import Identifier from '../../components/data/Identifier'
+import { Input, Select } from '../../components/form'
 import { Text, Button } from 'dash-ui/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
@@ -135,21 +136,19 @@ function ApproveTransactionState (): React.JSX.Element {
       <div className='screen-content'>
         <h1 className='h1-title'>No Wallet Found</h1>
 
-        <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-4'>
-          <Text size='lg'>
+        <ValueCard colorScheme='lightGray' border={false} className='flex flex-col items-start gap-2'>
+          <Text size='md'>
             You need to create a wallet before you can approve transactions.
           </Text>
-          <Text size='md' color='blue'>
+          <Text size='md'>
             Create a new wallet to manage your identities and approve transactions.
           </Text>
         </ValueCard>
 
-        <div className='flex gap-5 mt-5 w-full'>
+        <div className='flex flex-col gap-2 w-full'>
           <Button
-            // eslint-disable-next-line @typescript-eslint/no-misused-promises
             onClick={async () => await navigate('/create-wallet')}
             colorScheme='mint'
-            className='w-1/2'
           >
             Create Wallet
           </Button>
@@ -157,7 +156,6 @@ function ApproveTransactionState (): React.JSX.Element {
             onClick={() => window.close()}
             colorScheme='gray'
             variant='outline'
-            className='w-1/2'
           >
             Cancel
           </Button>
@@ -172,21 +170,19 @@ function ApproveTransactionState (): React.JSX.Element {
       <div className='screen-content'>
         <h1 className='h1-title'>No Identities Available</h1>
 
-        <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-4'>
-          <Text size='lg'>
+        <ValueCard colorScheme='lightGray' border={false} className='flex flex-col items-start gap-4'>
+          <Text size='md'>
             You need to have at least one identity to approve transactions.
           </Text>
-          <Text size='md' color='blue'>
+          <Text size='md'>
             Import an existing identity or create a new one to continue.
           </Text>
         </ValueCard>
 
-        <div className='flex gap-5 mt-5 w-full'>
+        <div className='flex flex-col gap-2 w-full'>
           <Button
-            // eslint-disable-next-line @typescript-eslint/no-misused-promises
             onClick={async () => await navigate('/import')}
             colorScheme='mint'
-            className='w-1/2'
           >
             Import Identity
           </Button>
@@ -194,7 +190,6 @@ function ApproveTransactionState (): React.JSX.Element {
             onClick={() => window.close()}
             colorScheme='gray'
             variant='outline'
-            className='w-1/2'
           >
             Cancel
           </Button>
@@ -263,12 +258,13 @@ function ApproveTransactionState (): React.JSX.Element {
   if (txHash != null) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>Transaction was successfully broadcasted</h1>
+        <h1 className='h1-title'>
+          Transaction was successfully broadcasted
+        </h1>
 
-        <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-1'>
-          <Text size='md' dim>Transaction hash</Text>
-
-          <ValueCard colorScheme='white' className='flex justify-between w-full'>
+        <div className='flex flex-col gap-2.5'>
+          <Text size='md' className='opacity-50 font-medium'>Transaction hash</Text>
+          <ValueCard colorScheme='lightBlue' size='xl'>
             <Identifier
               highlight='both'
               copyButton
@@ -278,10 +274,16 @@ function ApproveTransactionState (): React.JSX.Element {
               {txHash}
             </Identifier>
           </ValueCard>
-        </ValueCard>
+        </div>
 
-        <div className='flex gap-5 mt-5 w-full'>
-          <Button className='w-full' onClick={() => window.close()}>Close</Button>
+        <div>
+          <Button
+            className='w-full'
+            onClick={() => window.close()}
+            colorScheme='mint'
+          >
+            Close
+          </Button>
         </div>
       </div>
     )
@@ -289,86 +291,119 @@ function ApproveTransactionState (): React.JSX.Element {
 
   const transactionHash = params.hash ?? params.txhash
 
+  // Prepare identity options for select
+  const identityOptions = identities.map(identifier => ({
+    value: identifier,
+    label: identifier,
+    avatar: true
+  }))
+
   return (
     <div className='screen-content'>
-      <h1 className='h1-title'>Transaction approval</h1>
-
-      <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-1'>
-        <Text size='md' dim>Transaction hash</Text>
-
-        <ValueCard colorScheme='white' className='flex justify-between w-full'>
-          <Identifier
-            highlight='both'
-            copyButton
-            ellipsis={false}
-            className='w-full justify-between'
-          >
-            {transactionHash}
-          </Identifier>
-        </ValueCard>
-
-        <div className='mt-2'>
-          {isLoadingTransaction
-            ? <Text>Loading transaction...</Text>
-            : (transactionNotFound
-                ? <Text color='red' weight='bold'>Could not find transaction with hash</Text>
-                : (transactionDecodeError != null
-                    ? (
-                      <Text color='red' weight='bold'>
-                        Error decoding state transition: {transactionDecodeError}
-                      </Text>
-                      )
-                    : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM} />)))}
+      <div className='flex flex-col gap-6'>
+        {/* Header */}
+        <div className='flex flex-col gap-2.5'>
+          <h1 className='h1-title'>
+            Transaction{'\n'}Approval
+          </h1>
+          <Text size='sm' opacity='50'>
+            Carefully check the transaction details before signing
+          </Text>
         </div>
-      </ValueCard>
 
-      {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM == null
-        ? <Button onClick={() => { void navigate('/') }} className='mt-2'>Close</Button>
-        : (stateTransitionWASM != null &&
-          <div>
-            <Text>Sign with identity:</Text>
-            <select>
-              {identities.map((identifier) =>
-                <option key={identifier} value={identifier}>
-                  {identifier}
-                </option>
-              )}
-            </select>
+        <div className='flex flex-col gap-2.5'>
+          <Text size='md' opacity='50'>Transaction Hash</Text>
+          <ValueCard colorScheme='lightGray' size='xl'>
+            <Identifier
+              highlight='both'
+              linesAdjustment={false}
+            >
+              {transactionHash}
+            </Identifier>
+          </ValueCard>
 
-            <div className='mt-4'>
-              <Text>Password:</Text>
-              <input
-                type='password'
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className='w-full mt-2 p-2 border border-gray-300 rounded'
-                placeholder='Enter password'
-              />
-              {passwordError != null && (
-                <div className='text-red-500 text-sm mt-1'>
-                  {passwordError}
-                </div>
-              )}
-            </div>
-
-            <div className='flex gap-5 mt-5'>
-              <Button
-                onClick={reject} colorScheme='red' variant='outline'
-                className='w-1/2'
-              >
-                Reject
-              </Button>
-              <Button
-                onClick={() => { void doSign() }}
-                colorScheme='mint'
-                className='w-1/2'
-                disabled={password.trim().length === 0 || isSigningInProgress}
-              >
-                {isSigningInProgress ? 'Signing...' : 'Sign'}
-              </Button>
-            </div>
+          <div className='mt-3'>
+            {isLoadingTransaction
+              ? <Text size='sm'>Loading transaction...</Text>
+              : (transactionNotFound
+                ? <Text size='sm' color='red' weight='bold'>Could not find transaction with hash</Text>
+                : (transactionDecodeError != null
+                  ? (
+                    <Text size='sm' color='red' weight='bold'>
+                      Error decoding state transition: {transactionDecodeError}
+                    </Text>
+                  )
+                  : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM}/>)))}
           </div>
-          )}
+        </div>
+
+        {/* Choose Identity */}
+        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
+          <div className='flex flex-col gap-2.5'>
+            <Text size='md' opacity='50'>Choose Identity</Text>
+            <Select
+              value={currentIdentity ?? ''}
+              onChange={(e) => setCurrentIdentity(e.target.value)}
+              options={identityOptions}
+              showArrow
+              size='xl'
+            />
+          </div>
+        )}
+
+        {/* Password */}
+        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
+          <div className='flex flex-col gap-2.5'>
+            <Text size='md' opacity='50'>Password</Text>
+            <Input
+              type='password'
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder='Your Password'
+              size='xl'
+              variant='outlined'
+              error={passwordError != null}
+            />
+            {passwordError != null && (
+              <Text size='sm' color='red' className='mt-1'>
+                {passwordError}
+              </Text>
+            )}
+          </div>
+        )}
+
+        {/* Buttons */}
+        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM == null
+          ? (
+            <div className='w-full'>
+              <Button
+                onClick={() => { void navigate('/') }}
+                className='w-full'
+                colorScheme='gray'
+              >
+                Close
+              </Button>
+            </div>
+            )
+          : (stateTransitionWASM != null && (
+              <div className='flex gap-2 w-full'>
+                <Button
+                  onClick={reject}
+                  colorScheme='lightBlue'
+                  className='w-1/2'
+                >
+                  Reject
+                </Button>
+                <Button
+                  onClick={() => { void doSign() }}
+                  colorScheme='brand'
+                  className='w-1/2'
+                >
+                  {isSigningInProgress ? 'Signing...' : 'Sign'}
+                </Button>
+              </div>
+            ))}
+      </div>
     </div>
   )
 }
