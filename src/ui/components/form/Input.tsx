@@ -3,28 +3,26 @@ import { cva, VariantProps } from 'class-variance-authority'
 import { useTheme } from 'dash-ui/react'
 
 const input = cva(
-  'w-full outline-none transition-all font-inter placeholder:text-opacity-60',
+  'w-full transition-all font-inter placeholder:text-opacity-60 text-[0.875rem] leading-[1.0625rem]',
   {
     variants: {
       theme: {
-        light: 'text-[#111111] placeholder:text-[rgba(17,17,17,0.6)]',
+        light: 'text-[#111111] placeholder:text-[rgba(17,17,17,0.6)] bg-white',
         dark: 'text-white placeholder:text-gray-400 bg-gray-800'
       },
       colorScheme: {
-        default: 'border-[rgba(17,17,17,0.32)] focus:border-[rgba(17,17,17,0.6)] focus:ring-blue-500/20',
-        brand: 'border-dash-brand/30 focus:border-dash-brand focus:ring-dash-brand/20',
-        error: 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
-        success: 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
+        default: 'focus:ring-blue-500/20',
+        brand: 'focus:ring-dash-brand/20',
+        error: 'focus:ring-red-500/20',
+        success: 'focus:ring-green-500/20'
       },
       size: {
-        sm: 'px-3 py-2 text-sm font-light rounded-[10px]',
-        md: 'px-[18px] py-3 text-base font-light rounded-[14px]',
-        xl: 'px-6 py-4 text-lg font-light rounded-[18px]'
+        sm: 'dash-block-sm font-light',
+        md: 'dash-block-md font-light',
+        xl: 'dash-block-xl font-light'
       },
       variant: {
-        outlined: 'border bg-transparent',
-        filled: 'border-0',
-        flushed: 'border-0 border-b-2 rounded-none bg-transparent'
+        outlined: 'outline outline-1 outline-offset-[-1px]'
       },
       disabled: {
         false: '',
@@ -32,73 +30,31 @@ const input = cva(
       }
     },
     compoundVariants: [
-      // Light theme filled variant
-      { 
-        theme: 'light', 
-        variant: 'filled', 
-        colorScheme: 'default', 
-        class: 'bg-gray-100 focus:bg-gray-50' 
+      // Outlined variant colors
+      {
+        variant: 'outlined',
+        colorScheme: 'default',
+        class: 'outline-[rgba(17,17,17,0.32)] focus:outline-[rgba(17,17,17,0.6)]'
       },
-      { 
-        theme: 'light', 
-        variant: 'filled', 
-        colorScheme: 'brand', 
-        class: 'bg-dash-brand/10 focus:bg-dash-brand/15' 
+      {
+        variant: 'outlined',
+        colorScheme: 'brand',
+        class: 'outline-dash-brand/30 focus:outline-dash-brand'
       },
-      { 
-        theme: 'light', 
-        variant: 'filled', 
-        colorScheme: 'error', 
-        class: 'bg-red-50 focus:bg-red-100' 
+      {
+        variant: 'outlined',
+        colorScheme: 'error',
+        class: 'outline-red-500 focus:outline-red-500'
       },
-      { 
-        theme: 'light', 
-        variant: 'filled', 
-        colorScheme: 'success', 
-        class: 'bg-green-50 focus:bg-green-100' 
-      },
-      // Dark theme filled variant
-      { 
-        theme: 'dark', 
-        variant: 'filled', 
-        colorScheme: 'default', 
-        class: 'bg-gray-700 focus:bg-gray-600' 
-      },
-      { 
-        theme: 'dark', 
-        variant: 'filled', 
-        colorScheme: 'brand', 
-        class: 'bg-dash-brand/20 focus:bg-dash-brand/25' 
-      },
-      { 
-        theme: 'dark', 
-        variant: 'filled', 
-        colorScheme: 'error', 
-        class: 'bg-red-900/30 focus:bg-red-900/40' 
-      },
-      { 
-        theme: 'dark', 
-        variant: 'filled', 
-        colorScheme: 'success', 
-        class: 'bg-green-900/30 focus:bg-green-900/40' 
+      {
+        variant: 'outlined',
+        colorScheme: 'success',
+        class: 'outline-green-500 focus:outline-green-500'
       },
       // Outlined variant with focus ring
       { 
         variant: 'outlined', 
         class: 'focus:ring-2' 
-      },
-      // Flushed variant focus colors
-      { 
-        theme: 'light', 
-        variant: 'flushed', 
-        colorScheme: 'default', 
-        class: 'border-gray-300 focus:border-blue-500' 
-      },
-      { 
-        theme: 'dark', 
-        variant: 'flushed', 
-        colorScheme: 'default', 
-        class: 'border-gray-600 focus:border-blue-400' 
       }
     ],
     defaultVariants: {
@@ -128,8 +84,7 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
  *   type="password" 
  *   placeholder="Enter password" 
  *   colorScheme="brand" 
- *   size="lg"
- *   variant="filled"
+ *   size="xl"
  * />
  */
 export const Input: React.FC<InputProps> = ({
