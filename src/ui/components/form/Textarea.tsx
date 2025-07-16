@@ -21,11 +21,11 @@ const textAreaContainerStyles = cva(
         false: 'outline outline-2 outline-red-500 outline-offset-[-2px]',
         null: ''
       },
-        size: {
-          sm: 'dash-block-sm',
-          md: 'dash-block-md',
-          xl: 'dash-block-xl text-base'
-        }
+      size: {
+        sm: 'dash-block-sm',
+        md: 'dash-block-md',
+        xl: 'dash-block-xl text-base'
+      }
     },
     compoundVariants: [
       // Add extra padding for PASTE button when no value
