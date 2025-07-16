@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from 'dash-ui/react'
-import { Text } from 'dash-ui/react'
+import { Button, Text } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 export default function CreateWalletState (): React.JSX.Element {
