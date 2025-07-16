@@ -3,24 +3,26 @@ import { cva, VariantProps } from 'class-variance-authority'
 import { useTheme } from 'dash-ui/react'
 
 const valueCard = cva(
-  'flex items-center transition-all border',
+  'flex items-center transition-all outline outline-1 outline-offset-[-1px]',
   {
     variants: {
       theme: {
-        light: 'border-gray-200',
-        dark: 'bg-gray-800/50 border-gray-400'
+        light: 'outline-gray-200',
+        dark: 'bg-gray-800/50 outline-gray-400'
       },
       colorScheme: {
         default: '',
         transparent: 'bg-transparent',
-        green: 'text-green-500 bg-green-200 border-green-400',
-        lightBlue: 'bg-dash-brand-dim/10 !border-dash-brand/20',
-        white: 'bg-white'
+        green: 'text-green-500 bg-green-200 outline-green-400',
+        lightBlue: 'bg-dash-brand-dim/10 !outline-dash-brand/20',
+        white: 'bg-white',
+        lightGray: 'bg-dash-primary-die-subdued'
       },
-      size: {
-        md: 'px-3 py-2 rounded-xl',
-        sm: 'px-[0.625rem] py-[0.375rem] text-sm leading-[0.875rem] rounded-[0.25]'
-      },
+        size: {
+    sm: 'dash-block-sm',
+    md: 'dash-block-md',
+    xl: 'dash-block-xl'
+  },
       clickable: {
         false: '',
         true: 'cursor-pointer transition-colors active:translate-y-px active:opacity-90'
@@ -30,7 +32,7 @@ const valueCard = cva(
         true: 'animate-pulse'
       },
       border: {
-        false: '!border-none',
+        false: '!outline-none',
         true: ''
       }
     },
@@ -103,7 +105,7 @@ export const ValueCard: React.FC<ValueCardProps> = ({
     clickable: isClickable,
     loading,
     border
-  }) + (String(className))
+  }) + ' ' + (String(className))
 
   // choose element: custom `as`, or <a> if link, else <div>
   const Component = as ?? (link !== '' ? 'a' : 'div')
