@@ -1,12 +1,11 @@
 import React, { useState, useRef, TextareaHTMLAttributes } from 'react'
 import { Button } from 'dash-ui/react'
-import { cva } from 'class-variance-authority'
+import { cva, VariantProps } from 'class-variance-authority'
 
 const textAreaContainerStyles = cva(
   `
     flex
     items-baseline
-    rounded-xl
     transition-colors
     w-full
     font-grotesque
@@ -14,18 +13,30 @@ const textAreaContainerStyles = cva(
   {
     variants: {
       hasValue: {
-        true: 'bg-[#96A7FF] px-[15px] py-[10px]',
-        false: 'bg-[#EDF2FF] px-[15px] py-[10px] pr-[10px]'
+        true: 'bg-[#96A7FF]',
+        false: 'bg-[#EDF2FF]'
       },
       isValid: {
         true: '',
-        false: 'border-2 border-red-500',
+        false: 'outline outline-2 outline-red-500 outline-offset-[-2px]',
         null: ''
-      }
+      },
+        size: {
+          sm: 'dash-block-sm',
+          md: 'dash-block-md',
+          xl: 'dash-block-xl text-base'
+        }
     },
+    compoundVariants: [
+      // Add extra padding for PASTE button when no value
+      { hasValue: false, size: 'sm', class: 'pr-[10px]' },
+      { hasValue: false, size: 'md', class: 'pr-[10px]' },
+      { hasValue: false, size: 'xl', class: 'pr-[10px]' }
+    ],
     defaultVariants: {
       hasValue: false,
-      isValid: null
+      isValid: null,
+      size: 'md'
     }
   }
 )
@@ -53,7 +64,9 @@ const textAreaStyles = cva(
   }
 )
 
-export interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange'> {
+type TextareaVariants = VariantProps<typeof textAreaContainerStyles>
+
+export interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange' | 'size'>, Omit<TextareaVariants, 'hasValue' | 'isValid'> {
   onChange?: (value: string) => void
   showPasteButton?: boolean
   validator?: ((value: string) => boolean) | boolean
@@ -65,6 +78,7 @@ const Textarea: React.FC<TextareaProps> = ({
   showPasteButton = true,
   validator = null,
   rows = 1,
+  size = 'md',
   className = '',
   ...props
 }) => {
@@ -121,7 +135,8 @@ const Textarea: React.FC<TextareaProps> = ({
     <div
       className={textAreaContainerStyles({
         hasValue,
-        isValid: typeof isValid === 'boolean' ? isValid : null
+        isValid: typeof isValid === 'boolean' ? isValid : null,
+        size
       })}
     >
       <textarea
