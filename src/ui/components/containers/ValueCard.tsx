@@ -18,11 +18,11 @@ const valueCard = cva(
         white: 'bg-white',
         lightGray: 'bg-dash-primary-die-subdued'
       },
-        size: {
-    sm: 'dash-block-sm',
-    md: 'dash-block-md',
-    xl: 'dash-block-xl'
-  },
+      size: {
+        sm: 'dash-block-sm',
+        md: 'dash-block-md',
+        xl: 'dash-block-xl'
+      },
       clickable: {
         false: '',
         true: 'cursor-pointer transition-colors active:translate-y-px active:opacity-90'
