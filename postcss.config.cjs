@@ -5,21 +5,21 @@ module.exports = {
         const specialImports = [
           'tailwindcss',
           'tailwindcss/base',
-          'tailwindcss/components', 
+          'tailwindcss/components',
           'tailwindcss/utilities',
           'tailwindcss/variants'
-        ];
-        
+        ]
+
         if (specialImports.includes(id)) {
-          return id;
+          return id
         }
-        
+
         try {
-          return require.resolve(id, { 
-            paths: [basedir, process.cwd()] 
-          });
+          return require.resolve(id, {
+            paths: [basedir, process.cwd()]
+          })
         } catch (e) {
-          return id;
+          return id
         }
       }
     },
