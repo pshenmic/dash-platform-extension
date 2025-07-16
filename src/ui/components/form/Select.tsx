@@ -1,6 +1,7 @@
 import React, { SelectHTMLAttributes } from 'react'
 import { cva, VariantProps } from 'class-variance-authority'
 import { useTheme } from 'dash-ui/react'
+import { ArrowIcon } from '../icons'
 
 const select = cva(
   'w-full outline outline-1 outline-offset-[-1px] transition-all font-inter appearance-none cursor-pointer relative text-[0.875rem] leading-[1.0625rem] focus:ring-2',
@@ -68,7 +69,7 @@ const selectContainer = cva(
 )
 
 const selectIcon = cva(
-  'absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none',
+  'absolute right-0 top-1/2 transform -translate-y-1/2 pointer-events-none flex items-center justify-center',
   {
     variants: {
       size: {
@@ -154,12 +155,7 @@ export const Select: React.FC<SelectProps> = ({
 
         {showArrow && (
           <div className={iconClasses}>
-            <svg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'>
-              <path
-                d='M4.94 6.47L8 9.53l3.06-3.06c.29-.29.77-.29 1.06 0s.29.77 0 1.06l-3.59 3.59c-.29.29-.77.29-1.06 0L3.88 7.53c-.29-.29-.29-.77 0-1.06s.77-.29 1.06 0z'
-                fill='currentColor'
-              />
-            </svg>
+            <ArrowIcon size={10} color='#0C1C33' className='rotate-[-90deg]' />
           </div>
         )}
       </div>
