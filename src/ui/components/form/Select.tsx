@@ -101,9 +101,9 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
  * Can display options with avatars and identifiers.
  *
  * @example
- * <Select 
+ * <Select
  *   options={[{value: 'id1', label: 'Option 1'}, {value: 'id2', label: 'Option 2'}]}
- *   colorScheme="default" 
+ *   colorScheme="default"
  *   size="xl"
  * />
  */
@@ -120,7 +120,7 @@ export const Select: React.FC<SelectProps> = ({
   ...props
 }) => {
   const { theme } = useTheme()
-  
+
   // Determine color scheme based on state
   let finalColorScheme = colorScheme
   if (error) finalColorScheme = 'error'
@@ -138,7 +138,7 @@ export const Select: React.FC<SelectProps> = ({
 
   return (
     <div className={containerClasses}>
-      <div className="relative flex items-center">
+      <div className='relative flex items-center'>
         <select
           className={`${selectClasses} ${showArrow ? 'pr-12' : ''}`}
           disabled={disabled}
@@ -154,10 +154,10 @@ export const Select: React.FC<SelectProps> = ({
 
         {showArrow && (
           <div className={iconClasses}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'>
               <path
-                d="M4.94 6.47L8 9.53l3.06-3.06c.29-.29.77-.29 1.06 0s.29.77 0 1.06l-3.59 3.59c-.29.29-.77.29-1.06 0L3.88 7.53c-.29-.29-.29-.77 0-1.06s.77-.29 1.06 0z"
-                fill="currentColor"
+                d='M4.94 6.47L8 9.53l3.06-3.06c.29-.29.77-.29 1.06 0s.29.77 0 1.06l-3.59 3.59c-.29.29-.77.29-1.06 0L3.88 7.53c-.29-.29-.29-.77 0-1.06s.77-.29 1.06 0z'
+                fill='currentColor'
               />
             </svg>
           </div>
@@ -167,4 +167,4 @@ export const Select: React.FC<SelectProps> = ({
   )
 }
 
-export default Select 
+export default Select
