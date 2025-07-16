@@ -1,6 +1,7 @@
-import React, { InputHTMLAttributes } from 'react'
+import React, { InputHTMLAttributes, useState } from 'react'
 import { cva, VariantProps } from 'class-variance-authority'
 import { useTheme } from 'dash-ui/react'
+import { EyeOpenIcon, EyeClosedIcon } from '../icons'
 
 const input = cva(
   'w-full transition-all font-inter placeholder:text-opacity-60 text-[0.875rem] leading-[1.0625rem]',
@@ -52,9 +53,9 @@ const input = cva(
         class: 'outline-green-500 focus:outline-green-500'
       },
       // Outlined variant with focus ring
-      { 
-        variant: 'outlined', 
-        class: 'focus:ring-2' 
+      {
+        variant: 'outlined',
+        class: 'focus:ring-2'
       }
     ],
     defaultVariants: {
@@ -78,13 +79,14 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
 /**
  * A versatile input component that adapts to light/dark theme,
  * supports various color schemes, sizes, variants, and states.
+ * For password inputs, includes a toggleable eye icon.
  *
  * @example
- * <Input 
- *   type="password" 
- *   placeholder="Enter password" 
- *   colorScheme="brand" 
- *   size="xl"
+ * <Input
+ *   type='password'
+ *   placeholder='Enter password'
+ *   colorScheme='brand'
+ *   size='xl'
  * />
  */
 export const Input: React.FC<InputProps> = ({
@@ -95,10 +97,12 @@ export const Input: React.FC<InputProps> = ({
   error = false,
   success = false,
   disabled = false,
+  type,
   ...props
 }) => {
   const { theme } = useTheme()
-  
+  const [showPassword, setShowPassword] = useState(false)
+
   // Determine color scheme based on state
   let finalColorScheme = colorScheme
   if (error) finalColorScheme = 'error'
@@ -112,13 +116,44 @@ export const Input: React.FC<InputProps> = ({
     disabled
   }) + ' ' + className
 
+  const isPassword = type === 'password'
+  const inputType = isPassword && showPassword ? 'text' : type
+
+  const togglePasswordVisibility = (): void => {
+    setShowPassword(!showPassword)
+  }
+
+  if (isPassword) {
+    return (
+      <div className='relative'>
+        <input
+          className={classes + (isPassword ? ' pr-12' : '')}
+          disabled={disabled}
+          type={inputType}
+          {...props}
+        />
+        <button
+          type='button'
+          className='absolute right-4 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-70 transition-opacity cursor-pointer focus:outline-none'
+          onClick={togglePasswordVisibility}
+          tabIndex={-1}
+        >
+          {showPassword
+            ? <EyeClosedIcon size={16} color='#0C1C33' />
+            : <EyeOpenIcon size={16} color='#0C1C33' />}
+        </button>
+      </div>
+    )
+  }
+
   return (
     <input
       className={classes}
       disabled={disabled}
+      type={inputType}
       {...props}
     />
   )
 }
 
-export default Input 
+export default Input
