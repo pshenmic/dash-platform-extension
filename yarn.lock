@@ -2962,9 +2962,9 @@ dash-platform-sdk@^1.1.1:
     rfc4648 "^1.5.4"
     wasm-drive-verify "github:owl352/wasm-drive-verify#fe2a9406609ee2a9d42a6b4be7214395bd164155"
 
-"dash-ui@github:AlexeyTripleA/dash-ui-kit":
+"dash-ui@github:AlexeyTripleA/dash-ui-kit#feat/improve-components":
   version "0.1.0"
-  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/43ca463c7a92778a649c630cde4f14a677640193"
+  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/e833deb158acedc7b0fc52ab163f40d8c9f78c23"
   dependencies:
     class-variance-authority "^0.7.1"
 
