@@ -1,5 +1,5 @@
 import React from 'react'
-import Text from '../../text/Text'
+import { Text } from 'dash-ui/react'
 
 interface LoadingScreenProps {
   message?: string

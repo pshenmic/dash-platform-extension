@@ -46,3 +46,13 @@ export const popupWindow = (url: string, windowName: string, win: Window, w: num
 
   win.open(url, windowName, `popup, width=${w}, height=${h}, top=${y}, left=${x}`)
 }
+
+export const getFaviconUrl = (url: string, size: number = 32): string => {
+  try {
+    const domain = new URL(url).hostname
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`
+  } catch (error) {
+    console.warn('Invalid URL provided to getFaviconUrl:', url)
+    return `https://www.google.com/s2/favicons?domain=example.com&sz=${size}`
+  }
+}

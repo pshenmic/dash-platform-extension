@@ -1,7 +1,7 @@
 import React from 'react'
 import { useAuthCheck } from '../../hooks/useAuthCheck'
 import LoadingScreen from '../layout/LoadingScreen'
-import Text from '../../text/Text'
+import { Text } from 'dash-ui/react'
 
 export function withAuthCheck<T extends object> (Component: React.ComponentType<T>) {
   return function AuthenticatedComponent (props: T) {
