@@ -4,7 +4,7 @@ import { useTheme } from 'dash-ui/react'
 import { ArrowIcon } from '../icons'
 
 const select = cva(
-  'w-full outline outline-1 outline-offset-[-1px] transition-all font-inter appearance-none cursor-pointer relative text-[0.875rem] leading-[1.0625rem] focus:ring-2',
+  'w-full transition-all font-inter appearance-none cursor-pointer relative text-[0.875rem] leading-[1.0625rem] focus:ring-2',
   {
     variants: {
       theme: {
@@ -22,27 +22,35 @@ const select = cva(
         md: 'dash-block-md',
         xl: 'dash-block-xl'
       },
+      border: {
+        true: 'outline outline-1 outline-offset-[-1px]',
+        false: ''
+      },
       disabled: {
         false: '',
         true: 'opacity-60 cursor-not-allowed'
       }
     },
     compoundVariants: [
-      // Outline colors by colorScheme
+      // Outline colors by colorScheme - only when border is true
       {
         colorScheme: 'default',
+        border: true,
         class: 'outline-[rgba(12,28,51,0.35)] focus:outline-[rgba(12,28,51,0.6)]'
       },
       {
         colorScheme: 'brand',
+        border: true,
         class: 'outline-dash-brand/30 focus:outline-dash-brand'
       },
       {
         colorScheme: 'error',
+        border: true,
         class: 'outline-red-500 focus:outline-red-500'
       },
       {
         colorScheme: 'success',
+        border: true,
         class: 'outline-green-500 focus:outline-green-500'
       }
     ],
@@ -50,6 +58,7 @@ const select = cva(
       theme: 'light',
       colorScheme: 'default',
       size: 'xl',
+      border: true,
       disabled: false
     }
   }
@@ -92,6 +101,7 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
   className?: string
   error?: boolean
   success?: boolean
+  border?: boolean
   options?: SelectOption[]
   showArrow?: boolean
 }
@@ -106,6 +116,7 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
  *   options={[{value: 'id1', label: 'Option 1'}, {value: 'id2', label: 'Option 2'}]}
  *   colorScheme="default"
  *   size="xl"
+ *   border={true}
  * />
  */
 export const Select: React.FC<SelectProps> = ({
@@ -114,6 +125,7 @@ export const Select: React.FC<SelectProps> = ({
   size,
   error = false,
   success = false,
+  border = true,
   disabled = false,
   options = [],
   showArrow = true,
@@ -131,6 +143,7 @@ export const Select: React.FC<SelectProps> = ({
     theme,
     colorScheme: finalColorScheme,
     size,
+    border,
     disabled
   }) + ' ' + className
 
