@@ -16,7 +16,8 @@ const valueCard = cva(
         green: 'text-green-500 bg-green-200 outline-green-400',
         lightBlue: 'bg-dash-brand-dim/10 !outline-dash-brand/20',
         white: 'bg-white',
-        lightGray: 'bg-dash-primary-die-subdued'
+        lightGray: 'bg-dash-primary-die-subdued',
+        yellow: 'bg-dash-yellow-light !outline-dash-yellow'
       },
       size: {
         sm: 'dash-block-sm',
@@ -49,7 +50,9 @@ const valueCard = cva(
       // green lightBlue
       { colorScheme: 'lightBlue', clickable: true, class: 'hover:bg-dash-brand/15' },
       // white
-      { theme: 'light', colorScheme: 'white', clickable: true, class: 'hover:bg-gray-100' }
+      { theme: 'light', colorScheme: 'white', clickable: true, class: 'hover:bg-gray-100' },
+      // yellow scheme hover
+      { colorScheme: 'yellow', clickable: true, class: 'hover:bg-dash-yellow' }
     ],
     defaultVariants: {
       theme: 'light',
