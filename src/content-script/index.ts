@@ -66,7 +66,7 @@ const checkAppConnectedAndInjectScript = async (): Promise<void> => {
 const handleMessage = (event: MessageEvent): void => {
   const data: EventData = event.data
 
-  if (data.type !== 'response' && data.method !== MessagingMethods.CONNECT_APP && data.payload.status !== 'approved') {
+  if (data?.type !== 'response' && data?.method !== MessagingMethods.CONNECT_APP && data?.payload?.status !== 'approved') {
     return
   }
 
