@@ -255,7 +255,7 @@ function ApproveTransactionState (): React.JSX.Element {
       setTxHash(response.txHash)
     } catch (error) {
       console.error('Sign transition fails', error)
-      setPasswordError('Signing failed: ' + error.toString())
+      setPasswordError(`Signing failed: ${error.toString() as string}`)
     } finally {
       setIsSigningInProgress(false)
     }
