@@ -1,7 +1,7 @@
 // This file only runs in the extension context (content-script)
 import { ExtensionStorageAdapter } from './storage/extensionStorageAdapter'
 import runMigrations from './storage/runMigrations'
-import {checkWebAssembly} from "../utils";
+import { checkWebAssembly } from '../utils'
 const extensionStorageAdapter = new ExtensionStorageAdapter()
 
 // do migrations
@@ -16,7 +16,8 @@ const start = async (): Promise<void> => {
   }
 
   // Dynamic import to bypass automatic WebAssembly modules initialization
-  // @ts-expect-error
+  // eslint-disable-next-line
+  // @ts-ignore
   const { initApp } = await import('./initApp')
 
   await initApp()
