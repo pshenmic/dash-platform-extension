@@ -2942,7 +2942,7 @@ csstype@^3.0.2:
   resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.1.3.tgz#d80ff294d114fb0e6ac500fbf85b60137d7eff81"
   integrity sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==
 
-dash-platform-sdk@1.1.3:
+dash-platform-sdk@^1.1.3:
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.1.3.tgz#a2ad0f226565da39e06f98b373fee55c4ede74b6"
   integrity sha512-qTnbowERpladlXFeaRMzpLgmJjaVH6G/f39XB7QZl3aXMcnoBnnGR2bDcuSxQD9hR65Czd24qeVlYP1dECPZPA==
