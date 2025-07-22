@@ -4,7 +4,7 @@
 
 Improved error handling, support non-unique identities during import, and update Dash Platform SDK to v1.1.3
 
-# Major changes
+## Major changes
 * Extension code is now minified through Webpack (re-enabled optimizations)
 
 ## What's Changed
