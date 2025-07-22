@@ -107,7 +107,7 @@ function ImportIdentityState (): React.JSX.Element {
       const [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e != null)
 
       if (identity == null) {
-        throw new Error('Could not find identity belonging to this private key')
+        return setError('Could not find identity belonging to this private key')
       }
 
       const [identityPublicKey] = identity.getPublicKeys()
@@ -117,7 +117,7 @@ function ImportIdentityState (): React.JSX.Element {
             publicKey.securityLevel === 'HIGH')
 
       if (identityPublicKey == null) {
-        throw new Error('Please use a key with purpose AUTHENTICATION and security level HIGH')
+        return setError('Please use a key with purpose AUTHENTICATION and security level HIGH')
       }
 
       // Get identifier as base58 string directly from IdentifierWASM
@@ -128,21 +128,15 @@ function ImportIdentityState (): React.JSX.Element {
       setBalance(balance.toString())
     } catch (e) {
       console.error(e)
+
       if (typeof e === 'string') {
-        setIsLoading(false)
         return setError(e)
       }
 
-      if ((e)?.code === 5) {
-        setIsLoading(false)
-        return setError('Identity related to this private key was not found')
-      }
-
-      setIsLoading(false)
       setError(e?.toString() ?? 'Unknown error')
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
 
   useEffect(() => {
