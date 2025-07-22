@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { useSdk } from '../../hooks/useSdk'
 import TransactionDetails from './TransactionDetails'
 import ValueCard from '../../components/containers/ValueCard'
 import Identifier from '../../components/data/Identifier'
@@ -9,13 +8,12 @@ import Text from '../../text/Text'
 import Button from '../../components/controls/buttons'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { IdentityPublicKeyWASM, StateTransitionWASM, IdentityWASM } from 'pshenmic-dpp'
+import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAuthCheck } from '../../components/auth/withAuthCheck'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
-  const sdk = useSdk()
   const extensionAPI = useExtensionAPI()
 
   const params = useParams()
@@ -241,20 +239,11 @@ function ApproveTransactionState (): React.JSX.Element {
         return
       }
 
-      const identity: IdentityWASM = await sdk.identities.getIdentityByIdentifier(currentIdentity)
-      const identityPublicKeys: IdentityPublicKeyWASM[] = identity.getPublicKeys()
-      const [identityPublicKey] = identityPublicKeys
-        .filter(publicKey => publicKey.purpose === 'AUTHENTICATION' && publicKey.securityLevel === 'HIGH')
-
-      if (identityPublicKey == null) {
-        throw new Error('no identity public key')
-      }
-
-      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, identityPublicKey, password)
+      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, password)
 
       setTxHash(response.txHash)
     } catch (error) {
-      console.error('Sign transition fails', error)
+      console.log('Signing transition failed', error)
       setPasswordError(`Signing failed: ${error.toString() as string}`)
     } finally {
       setIsSigningInProgress(false)
