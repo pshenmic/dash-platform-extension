@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 0.0.7
+
+Improved error handling, support non-unique identities during import, and update Dash Platform SDK to v1.1.3
+## What's Changed
+* Bugfixes after a integration tests by @pshenmic in https://github.com/pshenmic/dash-platform-extension/pull/26
+* Support non-unique identities on import private keys screen by @pshenmic in https://github.com/pshenmic/dash-platform-extension/pull/27
+
+
+**Full Changelog**: https://github.com/pshenmic/dash-platform-extension/compare/0.0.6...0.0.7
+
 ## 0.0.6
 Upgrade the Dash Platform SDK to v1.1.1 (fixes FetchError)
 
