@@ -64,7 +64,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       keyPair = await this.keyPairRepository.getByIdentityPublicKey(payload.identity, identityPublicKeyWASM)
 
       if (keyPair == null || keyPair.encryptedPrivateKey == null) {
-        throw new Error(`Could not find private key for identity public key (pkh ${base64.encode(identityPublicKeyWASM.bytes())})`)
+        throw new Error(`Could not find private key for identity public key (pkh ${identityPublicKeyWASM.getPublicKeyHash()})`)
       }
 
       const passwordHash = hash.sha256().update(payload.password).digest('hex')

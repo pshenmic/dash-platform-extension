@@ -46,3 +46,31 @@ export const popupWindow = (url: string, windowName: string, win: Window, w: num
 
   win.open(url, windowName, `popup, width=${w}, height=${h}, top=${y}, left=${x}`)
 }
+
+export const injectScript = (document: Document, src: string): void => {
+  if (document.getElementById(src) != null) {
+    return
+  }
+
+  const s = document.createElement('script')
+  s.id = src
+  s.src = chrome.runtime.getURL(src);
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+  (document.head || document.documentElement).append(s)
+
+  console.log(`Injected ${src}`)
+}
+
+/**
+ * Checks that there is WebAssembly support on the page
+ */
+export const checkWebAssembly = (): boolean => {
+  try {
+    // eslint-disable-next-line
+    new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00))
+
+    return true
+  } catch (e) {
+    return false
+  }
+}
