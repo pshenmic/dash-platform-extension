@@ -1,6 +1,14 @@
 # CHANGELOG
 
 ## 0.0.7
+A small bugfix that resolves "Signing Error" when there is more than one AUTHENTICATION / HIGH public keys in the identity.
+
+## What's Changed
+* Fix signing error when identity has more than one public key of one type by @pshenmic in https://github.com/pshenmic/dash-platform-extension/pull/28
+
+**Full Changelog**: https://github.com/pshenmic/dash-platform-extension/compare/0.0.7...0.0.8
+
+## 0.0.7
 
 Improved error handling, support non-unique identities during import, and update Dash Platform SDK to v1.1.3
 
