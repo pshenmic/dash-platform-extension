@@ -56,15 +56,13 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
     const stateTransitionWASM = StateTransitionWASM.fromBytes(base64.decode(stateTransition.unsigned))
 
-    let keyPair: KeyPair | null
-
     if (wallet.type === WalletType.keystore) {
-      const identityPublicKeyWASM = IdentityPublicKeyWASM.fromBytes(base64.decode(payload.identityPublicKey))
-
-      keyPair = await this.keyPairRepository.getByIdentityPublicKey(payload.identity, identityPublicKeyWASM)
+      const keyPairs = await this.keyPairRepository.getAllByIdentity(payload.identity)
+      const [keyPair] = keyPairs
+          .filter(keyPair => keyPair.identityPublicKey.securityLevel === 'HIGH' && keyPair.identityPublicKey.purpose === 'AUTHENTICATION')
 
       if (keyPair == null || keyPair.encryptedPrivateKey == null) {
-        throw new Error(`Could not find private key for identity public key (pkh ${identityPublicKeyWASM.getPublicKeyHash()})`)
+        throw new Error(`Could not find HIGH / AUTHENTICATION private key for identity ${payload.identity}`)
       }
 
       const passwordHash = hash.sha256().update(payload.password).digest('hex')

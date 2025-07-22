@@ -241,20 +241,11 @@ function ApproveTransactionState (): React.JSX.Element {
         return
       }
 
-      const identity: IdentityWASM = await sdk.identities.getIdentityByIdentifier(currentIdentity)
-      const identityPublicKeys: IdentityPublicKeyWASM[] = identity.getPublicKeys()
-      const [identityPublicKey] = identityPublicKeys
-        .filter(publicKey => publicKey.purpose === 'AUTHENTICATION' && publicKey.securityLevel === 'HIGH')
-
-      if (identityPublicKey == null) {
-        throw new Error('no identity public key')
-      }
-
-      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, identityPublicKey, password)
+      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, password)
 
       setTxHash(response.txHash)
     } catch (error) {
-      console.error('Sign transition fails', error)
+      console.log('Signing transition failed', error)
       setPasswordError(`Signing failed: ${error.toString() as string}`)
     } finally {
       setIsSigningInProgress(false)

@@ -104,11 +104,10 @@ export class PrivateAPIClient {
     return response.identities
   }
 
-  async approveStateTransition (hash: string, identity: string, identityPublicKey: IdentityPublicKeyWASM, password: string): Promise<ApproveStateTransitionResponse> {
+  async approveStateTransition (hash: string, identity: string, password: string): Promise<ApproveStateTransitionResponse> {
     const payload: ApproveStateTransitionPayload = {
       hash,
       identity,
-      identityPublicKey: identityPublicKey.base64(),
       password
     }
 
