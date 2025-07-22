@@ -90,13 +90,34 @@ function ImportIdentityState (): React.JSX.Element {
     }
 
     try {
-      const identity = await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
+      let uniqueIdentity
+
+      try {
+        uniqueIdentity =await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
+      } catch (e) {
+      }
+
+      let nonUniqueIdentity
+
+      try {
+        nonUniqueIdentity =await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkeyWASM.getPublicKeyHash())
+      } catch (e) {
+      }
+
+      const [identity] = [uniqueIdentity, nonUniqueIdentity].filter((e => e != null))
+
+      if (!identity) {
+        throw new Error('Could not find identity belonging to this private key')
+      }
 
       const [identityPublicKey] = identity.getPublicKeys()
-        .filter(publicKey => publicKey.purpose === 'AUTHENTICATION' && publicKey.securityLevel === 'HIGH')
+        .filter(publicKey =>
+            publicKey.getPublicKeyHash() === privateKeyWASM?.getPublicKeyHash() &&
+            publicKey.purpose === 'AUTHENTICATION' &&
+            publicKey.securityLevel === 'HIGH')
 
       if (identityPublicKey == null) {
-        throw new Error('Private key doesnt fit. No public keys with purpose AUTHENTICATION and security level HIGH')
+        throw new Error('Please use a key with purpose AUTHENTICATION and security level HIGH')
       }
 
       // Get identifier as base58 string directly from IdentifierWASM
