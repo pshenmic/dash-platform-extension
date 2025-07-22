@@ -63,6 +63,4 @@ export async function initApp (): Promise<void> {
   checkAppConnectedAndInjectScript().catch((e) => {
     console.error('Failed to inject Dash Platform SDK', e)
   })
-
-  console.log('content script loaded')
 }
