@@ -93,26 +93,26 @@ function ImportIdentityState (): React.JSX.Element {
       let uniqueIdentity
 
       try {
-        uniqueIdentity =await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
+        uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
       } catch (e) {
       }
 
       let nonUniqueIdentity
 
       try {
-        nonUniqueIdentity =await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkeyWASM.getPublicKeyHash())
+        nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkeyWASM.getPublicKeyHash())
       } catch (e) {
       }
 
-      const [identity] = [uniqueIdentity, nonUniqueIdentity].filter((e => e != null))
+      const [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e != null)
 
-      if (!identity) {
+      if (identity == null) {
         throw new Error('Could not find identity belonging to this private key')
       }
 
       const [identityPublicKey] = identity.getPublicKeys()
         .filter(publicKey =>
-            publicKey.getPublicKeyHash() === privateKeyWASM?.getPublicKeyHash() &&
+          publicKey.getPublicKeyHash() === privateKeyWASM?.getPublicKeyHash() &&
             publicKey.purpose === 'AUTHENTICATION' &&
             publicKey.securityLevel === 'HIGH')
 
