@@ -1,12 +1,11 @@
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { IdentityPublicKeyWASM, PrivateKeyWASM, StateTransitionWASM } from 'pshenmic-dpp'
+import { PrivateKeyWASM, StateTransitionWASM } from 'pshenmic-dpp'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { EventData } from '../../../../types/EventData'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'
 import { ApproveStateTransitionPayload } from '../../../../types/messages/payloads/ApproveStateTransitionPayload'
 import { base64 } from '@scure/base'
-import { KeyPair } from '../../../../types/KeyPair'
 import { bytesToHex, hexToBytes, validateHex, validateIdentifier } from '../../../../utils'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
@@ -59,7 +58,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
     if (wallet.type === WalletType.keystore) {
       const keyPairs = await this.keyPairRepository.getAllByIdentity(payload.identity)
       const [keyPair] = keyPairs
-          .filter(keyPair => keyPair.identityPublicKey.securityLevel === 'HIGH' && keyPair.identityPublicKey.purpose === 'AUTHENTICATION')
+        .filter(keyPair => keyPair.identityPublicKey.securityLevel === 'HIGH' && keyPair.identityPublicKey.purpose === 'AUTHENTICATION')
 
       if (keyPair == null || keyPair.encryptedPrivateKey == null) {
         throw new Error(`Could not find HIGH / AUTHENTICATION private key for identity ${payload.identity}`)
