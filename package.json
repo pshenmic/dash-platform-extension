@@ -1,8 +1,8 @@
 {
   "name": "dash-platform-extension",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "homepage": "https://github.com/pshenmic/dash-platform-extension",
-  "description": "A browser extension for interacting with Dash Platform, providing secure identity management, wallet functionality, and transaction signing capabilities for DApps.",
+  "description": "A browser extension wallet for interacting with Dash Platform, providing secure identity management, wallet functionality, and transaction signing capabilities for DApps.",
   "scripts": {
     "build": "webpack --mode=production",
     "serve": "webpack serve --mode=development",
