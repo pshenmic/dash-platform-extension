@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { cva } from 'class-variance-authority'
-import { NotActive } from './NotActive'
+import { NotActive } from 'dash-ui/react'
 import { getTimeDelta } from '../../../datetime'
 // import { Tooltip } from '../ui/Tooltips'
 

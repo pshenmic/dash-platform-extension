@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { Button, Text } from 'dash-ui/react'
-import Input from '../../components/form/Input'
+import { Button, Text, Input } from 'dash-ui/react'
 
 export default function SetupPasswordState (): React.JSX.Element {
   const navigate = useNavigate()
