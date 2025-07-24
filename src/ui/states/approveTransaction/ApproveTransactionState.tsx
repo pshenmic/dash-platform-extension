@@ -295,7 +295,6 @@ function ApproveTransactionState (): React.JSX.Element {
   const identityOptions = identities.map(identifier => ({
     value: identifier,
     label: identifier,
-    avatar: true
   }))
 
   return (
