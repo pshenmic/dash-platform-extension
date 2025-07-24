@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import NoIdentities from './NoIdentities'
-import { Button, Text } from 'dash-ui/react'
+import { Button, Text, Select, Identifier } from 'dash-ui/react'
 import ValueCard from '../../components/containers/ValueCard'
 import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
-import Identifier from '../../components/data/Identifier'
 import StatusIcon from '../../components/icons/StatusIcon'
 import { TransactionTypes } from '../../../enums/TransactionTypes'
 import DateBlock from '../../components/data/DateBlock'
@@ -95,17 +94,37 @@ function HomeState (): React.JSX.Element {
 
   return (
     <div className='screen-content'>
-      <ValueCard colorScheme='lightBlue'>
-        <div className='flex flex-col gap-1'>
-          <select>
-            {identities?.map((identifier) =>
-              <option
-                key={identifier}
-                value={identifier}
-              >
-                {identifier}
-              </option>)}
-          </select>
+      <ValueCard colorScheme='lightBlue' size='xl'>
+        <div className='flex flex-col gap-4 w-full'>
+          <Select
+            value={identities?.[0]}
+            // onChange={(e) => setCurrentIdentity(e.target.value)}
+            options={identities?.map((identifier) => ({
+              value: identifier,
+              content: (
+                <Identifier
+                  middleEllipsis={true}
+                  edgeChars={6}
+                  avatar={true}
+                >
+                  6Eb4tQdp24cuPuffJyGfyNKkKhNJUfyupUdJcj1m87sj
+                </Identifier>
+              )
+            }))}
+            border={true}
+            showArrow
+            size='md'
+          />
+
+          {/*<select>*/}
+          {/*  {identities?.map((identifier) =>*/}
+          {/*    <option*/}
+          {/*      key={identifier}*/}
+          {/*      value={identifier}*/}
+          {/*    >*/}
+          {/*      {identifier}*/}
+          {/*    </option>)}*/}
+          {/*</select>*/}
 
           <div className='flex flex-col gap-[0.125rem]'>
             <Text dim>Balance</Text>
