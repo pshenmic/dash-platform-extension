@@ -2,10 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
 import TransactionDetails from './TransactionDetails'
-import ValueCard from '../../components/containers/ValueCard'
-import Identifier from '../../components/data/Identifier'
-import { Input, Select } from '../../components/form'
-import { Text, Button } from 'dash-ui/react'
+import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { StateTransitionWASM } from 'pshenmic-dpp'
@@ -146,14 +143,13 @@ function ApproveTransactionState (): React.JSX.Element {
         <div className='flex flex-col gap-2 w-full'>
           <Button
             onClick={async () => await navigate('/create-wallet')}
-            colorScheme='mint'
+            colorScheme='brand'
           >
             Create Wallet
           </Button>
           <Button
             onClick={() => window.close()}
-            colorScheme='gray'
-            variant='outline'
+            colorScheme='lightBlue'
           >
             Cancel
           </Button>
@@ -180,14 +176,13 @@ function ApproveTransactionState (): React.JSX.Element {
         <div className='flex flex-col gap-2 w-full'>
           <Button
             onClick={async () => await navigate('/import')}
-            colorScheme='mint'
+            colorScheme='brand'
           >
             Import Identity
           </Button>
           <Button
             onClick={() => window.close()}
-            colorScheme='gray'
-            variant='outline'
+            colorScheme='lightBlue'
           >
             Cancel
           </Button>
@@ -269,7 +264,7 @@ function ApproveTransactionState (): React.JSX.Element {
           <Button
             className='w-full'
             onClick={() => window.close()}
-            colorScheme='mint'
+            colorScheme='lightBlue'
           >
             Close
           </Button>
@@ -283,7 +278,15 @@ function ApproveTransactionState (): React.JSX.Element {
   // Prepare identity options for select
   const identityOptions = identities.map(identifier => ({
     value: identifier,
-    label: identifier,
+    content: (
+      <Identifier
+        middleEllipsis={true}
+        edgeChars={6}
+        avatar={true}
+      >
+        {identifier}
+      </Identifier>
+    )
   }))
 
   return (
@@ -310,7 +313,7 @@ function ApproveTransactionState (): React.JSX.Element {
             </Identifier>
           </ValueCard>
 
-          <div className='mt-3'>
+          <div>
             {isLoadingTransaction
               ? <Text size='sm'>Loading transaction...</Text>
               : (transactionNotFound
@@ -367,7 +370,7 @@ function ApproveTransactionState (): React.JSX.Element {
               <Button
                 onClick={() => { void navigate('/') }}
                 className='w-full'
-                colorScheme='gray'
+                colorScheme='lightBlue'
               >
                 Close
               </Button>
