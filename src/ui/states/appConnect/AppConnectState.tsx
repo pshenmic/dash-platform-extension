@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import ValueCard from '../../components/containers/ValueCard'
-import { Text, Button } from 'dash-ui/react'
+import { Text, Button, Select, Avatar, Heading, List, Identifier, ValueCard } from 'dash-ui/react'
 import { withAuthCheck } from '../../components/auth/withAuthCheck'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { AppConnect } from '../../../types/AppConnect'
 import { AppConnectStatus } from '../../../types/enums/AppConnectStatus'
+import { getFaviconUrl } from '../../../utils'
 import './appConnect.state.css'
 
 function AppConnectState (): React.JSX.Element {
@@ -109,45 +109,98 @@ function AppConnectState (): React.JSX.Element {
   }
 
   return (
-    <div className='screen-content'>
-      <h1 className='h1-title'>Website Connection Request</h1>
+    <div className='screen-content gap-8'>
+      <div className='flex flex-col items-center gap-2'>
+        <div className='w-12 h-12 rounded-lg overflow-hidden shadow-xl mx-auto'>
+          <img
+            src={getFaviconUrl(appConnect.url, 48)}
+            alt='Site favicon'
+            className='w-full h-full object-cover'
+            onError={(e) => {
+              e.currentTarget.src = getFaviconUrl(appConnect.url, 32)
+            }}
+          />
+        </div>
 
-      <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-4'>
-        <Text size='lg' weight='bold'>
-          The website is requesting permission to connect
+        <Heading as='h1' size='xl' className='text-center'>
+          Website Connection Request
+        </Heading>
+
+        <Text size='sm' className='break-all text-center'>
+           {appConnect.url}
         </Text>
+      </div>
 
-        <Text size='md'>
-          The following website wants to access your Dash wallet:
-        </Text>
+      <div className='flex flex-col gap-4 w-full hidden'>
+        <Select
+          value={'user1'}
+          // onChange={(e) => setCurrentIdentity(e.target.value)}
+          options={[
+            {
+              value: 'user1',
+              label: 'Main_account',
+              content: (
+                <div className='flex grow items-center justify-between !w-full'>
+                  <div className='flex items-center gap-[15px]'>
+                    <div className='w-[50px] h-[50px] bg-[rgba(12,28,51,0.03)] rounded-full flex items-center justify-center'>
+                      <div className='w-8 h-8 font-bold flex items-center justify-center text-sm'>
+                        <Avatar className='w-10 h-10' username={'6Eb4tQdp24cuPuffJyGfyNKkKhNJUfyupUdJcj1m87sj'}/>
+                      </div>
+                    </div>
+                    <div className='flex flex-col gap-[5px]'>
+                      <Identifier
+                        middleEllipsis={true}
+                        edgeChars={4}
+                      >
+                        6Eb4tQdp24cuPuffJyGfyNKkKhNJUfyupUdJcj1m87sj
+                      </Identifier>
+                      <div className='text-[12px] font-light leading-[1.2] text-[rgba(12,28,51,0.5)] font-space-grotesk'>
+                        Main_account
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+          ]}
+          border={false}
+          showArrow
+          size='md'
+          className={'shadow-xl'}
+        />
 
-        <ValueCard colorScheme='white' className='w-full p-4'>
-          <Text size='lg' className='break-all'>
-            {appConnect.url}
+        <ValueCard
+          colorScheme='white'
+          border={false}
+          className='flex flex-col items-start gap-4 shadow-xl z-10'
+        >
+          <Text size='sm'>
+            By allowing the connection, you permit this website to:
           </Text>
+          <List
+            items={[
+              { text: 'View public information of your wallet' },
+              { text: 'Request transaction approvals' },
+              {
+                text: 'Interact with Dash Platform',
+                description: 'You will be prompted with password to approve transaction'
+              }
+            ]}
+            iconType='check'
+            size='sm'
+          />
         </ValueCard>
 
-        <Text size='sm' dim>
-          By allowing the connection, you permit this website to:
-        </Text>
-        <ul className='list-disc list-inside space-y-1'>
-          <li><Text size='sm'>View public information of your wallet</Text></li>
-          <li><Text size='sm'>Request transaction approvals</Text></li>
-          <li><Text size='sm'>Interact with Dash Platform</Text></li>
-        </ul>
-
-        <ValueCard colorScheme='default' className='w-full app-connect-warning'>
+        <ValueCard colorScheme='yellow' className='w-full app-connect-warning'>
           <Text size='sm' weight='bold'>
             ⚠️ Warning: Only connect trusted websites!
           </Text>
         </ValueCard>
-      </ValueCard>
-
-      <div className='flex gap-5 mt-5 w-full'>
+      </div>
+      <div className='flex gap-2 w-full'>
         <Button
           onClick={() => { void handleReject() }}
-          colorScheme='red'
-          variant='outline'
+          colorScheme='lightBlue'
           className='w-1/2'
           disabled={processingStatus != null}
         >
@@ -155,7 +208,7 @@ function AppConnectState (): React.JSX.Element {
         </Button>
         <Button
           onClick={() => { void handleApprove() }}
-          colorScheme='mint'
+          colorScheme='brand'
           className='w-1/2'
           disabled={processingStatus != null}
         >
