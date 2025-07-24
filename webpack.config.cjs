@@ -83,9 +83,6 @@ module.exports = (env, argv) => {
         Buffer: ['buffer', 'Buffer']
       })
     ],
-    optimization: {
-      minimize: false
-    },
     devServer: {
       static: {
         directory: path.resolve(__dirname, 'src/ui')

@@ -80,4 +80,28 @@ export class KeypairRepository {
 
     return null
   }
+
+  async getAllByIdentity (identifier: string): Promise<KeyPair[]> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `keyPairs_${walletId}_${network}`
+
+    const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
+
+    const keyPairs = keyPairsSchema[identifier]
+
+    if (keyPairs == null || keyPairs.length === 0) {
+      return []
+    }
+
+    return keyPairs.map((keyPair) => ({
+      identityPublicKey: IdentityPublicKeyWASM.fromBase64(keyPair.identityPublicKey),
+      encryptedPrivateKey: keyPair.encryptedPrivateKey
+    }))
+  }
 }
