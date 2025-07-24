@@ -8,7 +8,7 @@ import Identifier from '../../components/data/Identifier'
 import BigNumber from '../../components/data/BigNumber'
 import { NotActive } from '../../components/data/NotActive'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { PrivateKeyWASM, IdentityWASM } from 'pshenmic-dpp'
+import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { withAuthCheck } from '../../components/auth/withAuthCheck'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 
@@ -45,57 +45,67 @@ function ImportIdentityState (): React.JSX.Element {
   }, [extensionAPI, navigate])
 
   const checkPrivateKey = async (): Promise<void> => {
-    const status = await extensionAPI.getStatus()
-    console.log(status)
     setError(null)
     setIsLoading(true)
 
-    // Check if DPP is available
-    if (PrivateKeyWASM == null) {
-      setIsLoading(false)
-      return setError('DPP module not available. Please try again.')
-    }
-
-    let pkeyWASM: PrivateKeyWASM | null = null
-
-    if (privateKey.length === 52) {
-      // wif
-      try {
-        pkeyWASM = PrivateKeyWASM.fromWIF(privateKey)
-        setPrivateKeyWASM(pkeyWASM)
-      } catch (e) {
-        console.error(e)
-        setIsLoading(false)
-        return setError('Could not decode private key from WIF')
-      }
-    } else if (privateKey.length === 64) {
-      // hex
-      try {
-        pkeyWASM = PrivateKeyWASM.fromHex(privateKey, 'testnet')
-        setPrivateKeyWASM(pkeyWASM)
-      } catch (e) {
-        console.error(e)
-        setIsLoading(false)
-        return setError('Could not decode private key from hex')
-      }
-    } else {
-      setIsLoading(false)
-      return setError('Unrecognized private key format')
-    }
-
-    if (pkeyWASM == null) {
-      setIsLoading(false)
-      return setError('Failed to process private key')
-    }
-
     try {
-      const identity = await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
+      let pkeyWASM: PrivateKeyWASM | null = null
+
+      if (privateKey.length === 52) {
+      // wif
+        try {
+          pkeyWASM = PrivateKeyWASM.fromWIF(privateKey)
+          setPrivateKeyWASM(pkeyWASM)
+        } catch (e) {
+          console.log(e)
+          return setError('Could not decode private key from WIF')
+        }
+      } else if (privateKey.length === 64) {
+      // hex
+        try {
+          pkeyWASM = PrivateKeyWASM.fromHex(privateKey, 'testnet')
+          setPrivateKeyWASM(pkeyWASM)
+        } catch (e) {
+          console.log(e)
+          return setError('Could not decode private key from hex')
+        }
+      } else {
+        return setError('Unrecognized private key format')
+      }
+
+      if (pkeyWASM == null) {
+        setIsLoading(false)
+        return setError('Failed to process private key')
+      }
+
+      let uniqueIdentity
+
+      try {
+        uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
+      } catch (e) {
+      }
+
+      let nonUniqueIdentity
+
+      try {
+        nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkeyWASM.getPublicKeyHash())
+      } catch (e) {
+      }
+
+      const [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e != null)
+
+      if (identity == null) {
+        return setError('Could not find identity belonging to this private key')
+      }
 
       const [identityPublicKey] = identity.getPublicKeys()
-        .filter(publicKey => publicKey.purpose === 'AUTHENTICATION' && publicKey.securityLevel === 'HIGH')
+        .filter((publicKey: IdentityPublicKeyWASM) =>
+          publicKey.getPublicKeyHash() === pkeyWASM?.getPublicKeyHash() &&
+            publicKey.purpose === 'AUTHENTICATION' &&
+            publicKey.securityLevel === 'HIGH')
 
       if (identityPublicKey == null) {
-        throw new Error('Private key doesnt fit. No public keys with purpose AUTHENTICATION and security level HIGH')
+        return setError('Please use a key with purpose AUTHENTICATION and security level HIGH')
       }
 
       // Get identifier as base58 string directly from IdentifierWASM
@@ -105,22 +115,14 @@ function ImportIdentityState (): React.JSX.Element {
       setIdentity(identity)
       setBalance(balance.toString())
     } catch (e) {
-      console.error(e)
       if (typeof e === 'string') {
-        setIsLoading(false)
         return setError(e)
       }
 
-      if ((e)?.code === 5) {
-        setIsLoading(false)
-        return setError('Identity related to this private key was not found')
-      }
-
-      setIsLoading(false)
       setError(e?.toString() ?? 'Unknown error')
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
 
   useEffect(() => {
@@ -171,7 +173,7 @@ function ImportIdentityState (): React.JSX.Element {
   }
 
   const handleCheckClick = (): void => {
-    void checkPrivateKey()
+    checkPrivateKey().catch(console.error)
   }
 
   // Show loading screen while checking wallet
