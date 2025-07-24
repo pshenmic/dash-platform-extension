@@ -1,12 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import NoIdentities from './NoIdentities'
-import { Button, Text, Select, Identifier, NotActive, ValueCard } from 'dash-ui/react'
-// import ValueCard from '../../components/containers/ValueCard'
-import BigNumber from '../../components/data/BigNumber'
-// import { NotActive } from '../../components/data/NotActive'
-import StatusIcon from '../../components/icons/StatusIcon'
+import { Button, Text, Select, Identifier, NotActive, ValueCard, DateBlock, BigNumber, TransactionStatusIcon } from 'dash-ui/react'
 import { TransactionTypes } from '../../../enums/TransactionTypes'
-import DateBlock from '../../components/data/DateBlock'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import './home.state.css'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
@@ -160,7 +155,7 @@ function HomeState (): React.JSX.Element {
               key={transaction.hash} rel='noreferrer'
             >
               <ValueCard clickable className='flex gap-2'>
-                <StatusIcon size={16} status={transaction.status} className='shrink-0' />
+                <TransactionStatusIcon size={16} status={transaction.status} className='shrink-0' />
 
                 <div className='flex flex-col gap-1 justify-between grow'>
                   <Text size='sm'>{TransactionTypes[transaction.type]}</Text>

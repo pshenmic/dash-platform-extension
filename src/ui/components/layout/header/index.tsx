@@ -2,8 +2,7 @@ import React from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
-import { Button } from 'dash-ui/react'
-import { ArrowIcon } from '../../icons'
+import { Button, ArrowIcon } from 'dash-ui/react'
 
 const IMAGE_VARIANTS = {
   coins: {
