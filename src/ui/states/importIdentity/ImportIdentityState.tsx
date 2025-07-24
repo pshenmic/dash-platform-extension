@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useSdk } from '../../hooks/useSdk'
 import { useNavigate } from 'react-router-dom'
-import { Button, Text, NotActive, Identifier, ValueCard, BigNumber } from 'dash-ui/react'
-import Textarea from '../../components/form/Textarea'
+import { Button, Text, NotActive, Identifier, ValueCard, BigNumber, Textarea } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { withAuthCheck } from '../../components/auth/withAuthCheck'
@@ -196,6 +195,7 @@ function ImportIdentityState (): React.JSX.Element {
             rows={3}
             placeholder='your private key...'
             onChange={setPrivateKey}
+            size='xl'
           />
 
           {error != null &&
