@@ -39,7 +39,7 @@ export default function CreateWalletState (): React.JSX.Element {
         Create a new wallet to manage your identities and funds
       </Text>
 
-      <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col items-start gap-2'>
+      <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col items-start gap-4'>
         <Text size='md' weight='bold'>
           Wallet Features:
         </Text>
