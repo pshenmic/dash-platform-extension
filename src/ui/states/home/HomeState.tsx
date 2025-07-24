@@ -116,16 +116,6 @@ function HomeState (): React.JSX.Element {
             size='md'
           />
 
-          {/*<select>*/}
-          {/*  {identities?.map((identifier) =>*/}
-          {/*    <option*/}
-          {/*      key={identifier}*/}
-          {/*      value={identifier}*/}
-          {/*    >*/}
-          {/*      {identifier}*/}
-          {/*    </option>)}*/}
-          {/*</select>*/}
-
           <div className='flex flex-col gap-[0.125rem]'>
             <Text dim>Balance</Text>
             <span>
