@@ -74,6 +74,8 @@ export interface IdentifierProps extends IdentifierVariants {
   linesAdjustment?: boolean
   maxLines?: number
   className?: string
+  middleEllipsis?: boolean
+  edgeChars?: number
 }
 
 const HighlightedID: React.FC<PropsWithChildren<{ mode: HighlightMode }>> = ({ children, mode }) => {
@@ -94,6 +96,26 @@ const HighlightedID: React.FC<PropsWithChildren<{ mode: HighlightMode }>> = ({ c
   )
 }
 
+const MiddleEllipsisText: React.FC<{ children: string; edgeChars: number }> = ({ children, edgeChars }) => {
+  if (children == null || children === '') return <NotActive />
+  const text: string = String(children)
+  
+  if (text.length <= edgeChars * 2) {
+    return <>{text}</>
+  }
+  
+  const first: string = text.slice(0, edgeChars)
+  const last: string = text.slice(-edgeChars)
+  
+  return (
+    <>
+      <span>{first}</span>
+      <span>...</span>
+      <span>{last}</span>
+    </>
+  )
+}
+
 /**
  * Identifier component shows an ID string with optional highlighting, avatar,
  * copy button, dynamic line adjustment, and multi-line clamp.
@@ -106,7 +128,9 @@ const Identifier: React.FC<IdentifierProps> = ({
   copyButton = false,
   linesAdjustment = true,
   maxLines = 0,
-  className
+  className,
+  middleEllipsis = false,
+  edgeChars = 4
 }) => {
   const { theme } = useTheme()
   const symbolsRef = useRef<HTMLDivElement>(null)
@@ -224,7 +248,9 @@ const Identifier: React.FC<IdentifierProps> = ({
           ...clampStyles
         }}
       >
-        {children != null && children !== '' && highlight != null
+        {children != null && children !== '' && middleEllipsis
+          ? <MiddleEllipsisText edgeChars={edgeChars}>{children}</MiddleEllipsisText>
+          : children != null && children !== '' && highlight != null
           ? <HighlightedID mode={highlight}>{children}</HighlightedID>
           : (children ?? <NotActive />)}
       </div>
