@@ -134,7 +134,7 @@ function ApproveTransactionState (): React.JSX.Element {
       <div className='screen-content'>
         <h1 className='h1-title'>No Wallet Found</h1>
 
-        <ValueCard colorScheme='lightGray' border={false} className='flex flex-col items-start gap-2'>
+        <ValueCard colorScheme='lightGray' size={'xl'} border={false} className='flex flex-col items-start gap-2'>
           <Text size='md'>
             You need to create a wallet before you can approve transactions.
           </Text>
