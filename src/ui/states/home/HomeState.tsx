@@ -107,7 +107,7 @@ function HomeState (): React.JSX.Element {
                   edgeChars={6}
                   avatar={true}
                 >
-                  6Eb4tQdp24cuPuffJyGfyNKkKhNJUfyupUdJcj1m87sj
+                  {identifier}
                 </Identifier>
               )
             }))}
