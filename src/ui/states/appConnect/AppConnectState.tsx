@@ -131,43 +131,45 @@ function AppConnectState (): React.JSX.Element {
         </Text>
       </div>
 
-      <div className='flex flex-col gap-4 w-full hidden'>
-        <Select
-          value={'user1'}
-          // onChange={(e) => setCurrentIdentity(e.target.value)}
-          options={[
-            {
-              value: 'user1',
-              label: 'Main_account',
-              content: (
-                <div className='flex grow items-center justify-between !w-full'>
-                  <div className='flex items-center gap-[15px]'>
-                    <div className='w-[50px] h-[50px] bg-[rgba(12,28,51,0.03)] rounded-full flex items-center justify-center'>
-                      <div className='w-8 h-8 font-bold flex items-center justify-center text-sm'>
-                        <Avatar className='w-10 h-10' username={'6Eb4tQdp24cuPuffJyGfyNKkKhNJUfyupUdJcj1m87sj'}/>
+      <div className='flex flex-col gap-4 w-full'>
+        <div className={'hidden'}>
+          <Select
+            value={'user1'}
+            // onChange={(e) => setCurrentIdentity(e.target.value)}
+            options={[
+              {
+                value: 'user1',
+                label: 'Main_account',
+                content: (
+                  <div className='flex grow items-center justify-between !w-full'>
+                    <div className='flex items-center gap-[15px]'>
+                      <div className='w-[50px] h-[50px] bg-[rgba(12,28,51,0.03)] rounded-full flex items-center justify-center'>
+                        <div className='w-8 h-8 font-bold flex items-center justify-center text-sm'>
+                          <Avatar className='w-10 h-10' username={'6Eb4tQdp24cuPuffJyGfyNKkKhNJUfyupUdJcj1m87sj'}/>
+                        </div>
                       </div>
-                    </div>
-                    <div className='flex flex-col gap-[5px]'>
-                      <Identifier
-                        middleEllipsis={true}
-                        edgeChars={4}
-                      >
-                        6Eb4tQdp24cuPuffJyGfyNKkKhNJUfyupUdJcj1m87sj
-                      </Identifier>
-                      <div className='text-[12px] font-light leading-[1.2] text-[rgba(12,28,51,0.5)] font-space-grotesk'>
-                        Main_account
+                      <div className='flex flex-col gap-[5px]'>
+                        <Identifier
+                          middleEllipsis={true}
+                          edgeChars={4}
+                        >
+                          6Eb4tQdp24cuPuffJyGfyNKkKhNJUfyupUdJcj1m87sj
+                        </Identifier>
+                        <div className='text-[12px] font-light leading-[1.2] text-[rgba(12,28,51,0.5)] font-space-grotesk'>
+                          Main_account
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )
-            }
-          ]}
-          border={false}
-          showArrow
-          size='md'
-          className={'shadow-xl'}
-        />
+                )
+              }
+            ]}
+            border={false}
+            showArrow
+            size='md'
+            className={'shadow-xl'}
+          />
+        </div>
 
         <ValueCard
           colorScheme='white'
