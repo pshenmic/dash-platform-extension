@@ -272,3 +272,38 @@ export const EyeClosedIcon: React.FC<IconProps> = ({
     <line x1='1' y1='15' x2='15' y2='1' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' />
   </svg>
 )
+
+export const CheckIcon: React.FC<IconProps> = ({
+  color = '#4C7EFF',
+  size = 20,
+  className = '',
+  onClick
+}) => {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox='0 0 20 20'
+      fill='none'
+      xmlns='http://www.w3.org/2000/svg'
+      className={className}
+      onClick={onClick}
+    >
+      {/* Background circle */}
+      <circle
+        cx="10"
+        cy="10"
+        r="10"
+        fill="rgba(12, 28, 51, 0.05)"
+      />
+      {/* Check mark */}
+      <path
+        d='M6.33 10L8.83 12.5L13.67 7.67'
+        stroke={color}
+        strokeWidth='1.5'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      />
+    </svg>
+  )
+}
