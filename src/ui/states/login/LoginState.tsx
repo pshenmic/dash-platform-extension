@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Text } from 'dash-ui/react'
+import { Button, Text, Input } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 export default function LoginState (): React.JSX.Element {
@@ -54,14 +54,13 @@ export default function LoginState (): React.JSX.Element {
       </Text>
 
       <div className='flex flex-col gap-2'>
-        <input
+        <Input
           type='password'
           placeholder='Enter password'
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          onKeyPress={handleKeyPress}
-          className='p-3 border rounded'
-          autoFocus
+          size='xl'
+          colorScheme='default'
         />
       </div>
 
