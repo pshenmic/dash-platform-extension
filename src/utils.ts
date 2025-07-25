@@ -74,3 +74,14 @@ export const checkWebAssembly = (): boolean => {
     return false
   }
 }
+
+export const getFaviconUrl = (url: string, size: number = 32): string => {
+  try {
+    const domain = new URL(url).hostname
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`
+  } catch (error) {
+    console.warn('Invalid URL provided to getFaviconUrl:', url)
+    return `https://www.google.com/s2/favicons?domain=example.com&sz=${size}`
+  }
+}
+

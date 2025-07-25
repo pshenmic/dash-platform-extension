@@ -1,14 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import NoIdentities from './NoIdentities'
-import { Button } from 'dash-ui/react'
-import ValueCard from '../../components/containers/ValueCard'
-import { Text } from 'dash-ui/react'
-import BigNumber from '../../components/data/BigNumber'
-import { NotActive } from '../../components/data/NotActive'
-import Identifier from '../../components/data/Identifier'
-import StatusIcon from '../../components/icons/StatusIcon'
+import { Button, Text, Select, Identifier, NotActive, ValueCard, DateBlock, BigNumber, TransactionStatusIcon } from 'dash-ui/react'
 import { TransactionTypes } from '../../../enums/TransactionTypes'
-import DateBlock from '../../components/data/DateBlock'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import './home.state.css'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
@@ -96,17 +89,27 @@ function HomeState (): React.JSX.Element {
 
   return (
     <div className='screen-content'>
-      <ValueCard colorScheme='lightBlue'>
-        <div className='flex flex-col gap-1'>
-          <select>
-            {identities?.map((identifier) =>
-              <option
-                key={identifier}
-                value={identifier}
-              >
-                {identifier}
-              </option>)}
-          </select>
+      <ValueCard colorScheme='lightBlue' size='xl'>
+        <div className='flex flex-col gap-4 w-full'>
+          <Select
+            value={identities?.[0]}
+            // onChange={(e) => setCurrentIdentity(e.target.value)}
+            options={identities?.map((identifier) => ({
+              value: identifier,
+              content: (
+                <Identifier
+                  middleEllipsis={true}
+                  edgeChars={6}
+                  avatar={true}
+                >
+                  {identifier}
+                </Identifier>
+              )
+            }))}
+            border={true}
+            showArrow
+            size='md'
+          />
 
           <div className='flex flex-col gap-[0.125rem]'>
             <Text dim>Balance</Text>
@@ -152,7 +155,7 @@ function HomeState (): React.JSX.Element {
               key={transaction.hash} rel='noreferrer'
             >
               <ValueCard clickable className='flex gap-2'>
-                <StatusIcon size={16} status={transaction.status} className='shrink-0' />
+                <TransactionStatusIcon size={16} status={transaction.status} className='shrink-0' />
 
                 <div className='flex flex-col gap-1 justify-between grow'>
                   <Text size='sm'>{TransactionTypes[transaction.type]}</Text>

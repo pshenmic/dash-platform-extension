@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { Button, Text } from 'dash-ui/react'
+import { Button, Text, Input } from 'dash-ui/react'
 
 export default function SetupPasswordState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -50,20 +50,22 @@ export default function SetupPasswordState (): React.JSX.Element {
       </Text>
 
       <div className='flex flex-col gap-2'>
-        <input
+        <Input
           type='password'
           placeholder='Enter password'
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className='p-3 border rounded'
+          size='xl'
+          colorScheme='default'
         />
 
-        <input
+        <Input
           type='password'
           placeholder='Confirm password'
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          className='p-3 border rounded'
+          size='xl'
+          colorScheme='default'
         />
       </div>
 

@@ -12,6 +12,9 @@
 
   --font-main: "Manrope", sans-serif;
   --font-grotesque: "Space Grotesk", sans-serif;
+
+  --color-dash-primary-die-subdued: #0c1c3308;
+  --color-dash-primary-dark-blue: #0C1C33;
 }
 
 @layer components {
@@ -21,6 +24,19 @@
 
   .screen-content {
     @apply flex flex-col gap-4;
+  }
+
+  /* Unified Dash Block System */
+  .dash-block-sm {
+    @apply px-3 py-2 text-sm rounded-[0.625rem];
+  }
+
+  .dash-block-md {
+    @apply px-[1.125rem] py-3 text-base rounded-[0.875rem];
+  }
+
+  .dash-block-xl {
+    @apply px-[1.5625rem] py-[1.25rem] rounded-[1rem];
   }
 }
 
@@ -36,14 +52,4 @@ body {
   max-width: 800px;
   overflow-x: hidden;
   overflow-y: auto;
-}
-
-select {
-  border: 1px solid var(--color-gray-400);
-  border-radius: 0.75rem;
-  margin-top: 4px;
-  width: 100%;
-  min-height: 50px;
-  padding: 0.75rem;
-  background-color: #fff;
 }
