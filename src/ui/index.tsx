@@ -11,16 +11,22 @@ import './styles/app.pcss'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 import AppConnectState from './states/appConnect/AppConnectState'
 import Layout from './components/layout/Layout'
+import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
 
 const App: React.FC = function () {
   const router = createHashRouter([
     {
       element: <Layout />,
       children: [
+        // {
+        //   index: true,
+        //   path: '/',
+        //   element: <StartState />
+        // },
         {
           index: true,
           path: '/',
-          element: <StartState />
+          element: <ImportSeedPhrase />
         },
         {
           path: '/home',
