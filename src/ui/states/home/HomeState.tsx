@@ -3,10 +3,10 @@ import NoIdentities from './NoIdentities'
 import { Button, Text, Select, Identifier, NotActive, ValueCard, DateBlock, BigNumber, TransactionStatusIcon } from 'dash-ui/react'
 import { TransactionTypes } from '../../../enums/TransactionTypes'
 import LoadingScreen from '../../components/layout/LoadingScreen'
-import './home.state.css'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
 import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import './home.state.css'
 
 function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
