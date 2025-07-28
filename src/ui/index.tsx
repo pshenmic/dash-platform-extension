@@ -26,12 +26,23 @@ const App: React.FC = function () {
         {
           index: true,
           path: '/',
-          element: <ImportSeedPhrase />
+          element: <ImportSeedPhrase />,
+          handle: { 
+            headerProps: {
+              imageType: 'coins',
+              containerClasses: 'w-[120%] -mr-[55%]',
+              imgClasses: 'max-w -mt-[52%]'
+            }
+          }
         },
         {
           path: '/home',
           element: <HomeState />,
-          handle: { imageType: 'coins' }
+          handle: {
+            headerProps: {
+              imageType: 'coins'
+            }
+          }
         },
         {
           path: '/setup-password',

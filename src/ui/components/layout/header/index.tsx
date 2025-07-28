@@ -18,6 +18,10 @@ type ImageVariant = keyof typeof IMAGE_VARIANTS
 interface RightImage {
   variant: 'image'
   imageType: ImageVariant
+  customClasses?: {
+    containerClasses?: string
+    imgClasses?: string
+  }
 }
 
 interface RightBack {
@@ -31,7 +35,11 @@ interface Match {
   id: string
   pathname: string
   handle?: {
-    imageType?: string
+    headerProps?: {
+      imageType?: string
+      containerClasses?: string
+      imgClasses?: string
+    }
     [key: string]: any
   }
   params: Record<string, string>
@@ -60,9 +68,16 @@ export default function Header (): React.JSX.Element {
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
 
-  const deepestRoute = [...matches].reverse().find((m): boolean => m.handle?.imageType != null)
-  const right = (deepestRoute?.handle?.imageType != null)
-    ? { variant: 'image' as const, imageType: deepestRoute.handle.imageType as ImageVariant }
+  const deepestRoute = [...matches].reverse().find((m): boolean => m.handle?.headerProps?.imageType != null)
+  const right = (deepestRoute?.handle?.headerProps?.imageType != null)
+    ? {
+        variant: 'image' as const, 
+        imageType: deepestRoute.handle.headerProps.imageType as ImageVariant,
+        customClasses: {
+          containerClasses: deepestRoute.handle.headerProps.containerClasses,
+          imgClasses: deepestRoute.handle.headerProps.imgClasses
+        }
+      }
     : { variant: 'back' as const }
 
   const handleBack = (): void => {
@@ -86,12 +101,15 @@ export default function Header (): React.JSX.Element {
 
       {right.variant === 'image'
         ? ((): React.JSX.Element => {
-            const { src, alt, imgClasses, containerClasses } = IMAGE_VARIANTS[right.imageType]
+            const defaultVariant = IMAGE_VARIANTS[right.imageType]
+            const containerClasses = right.customClasses?.containerClasses ?? defaultVariant.containerClasses
+            const imgClasses = right.customClasses?.imgClasses ?? defaultVariant.imgClasses
+            
             return (
               <div className={containerClasses}>
                 <img
-                  src={useStaticAsset(src)}
-                  alt={alt}
+                  src={useStaticAsset(defaultVariant.src)}
+                  alt={defaultVariant.alt}
                   className={`relative ${imgClasses} max-w-[348px] max-h-[327px]`}
                 />
               </div>
