@@ -82,11 +82,8 @@ function ImportSeedPhrase(): React.JSX.Element {
         <Button
           onClick={handleImport}
           disabled={isImportDisabled}
-          className={`w-full py-4 px-6 rounded-2xl font-medium text-base transition-all duration-200 ${
-            isImportDisabled
-              ? 'bg-blue-100 text-blue-400 cursor-not-allowed opacity-60'
-              : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:shadow-md active:scale-98'
-          }`}
+          colorScheme='brand'
+          className='w-full'
         >
           Import Identity
         </Button>

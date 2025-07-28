@@ -74,7 +74,7 @@ export default function Header (): React.JSX.Element {
             className='w-[2.25rem] h-[1.75rem] object-contain'
           />
         ) : (
-          <Button onClick={handleBack} colorScheme='gray'>
+          <Button onClick={handleBack} colorScheme='lightGray'>
             <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
           </Button>
         )}
