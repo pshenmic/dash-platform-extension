@@ -3,7 +3,7 @@ import { Text, Heading, Button, DashLogo } from 'dash-ui/react'
 import { useNavigate } from 'react-router-dom'
 import { useStaticAsset } from '../../hooks/useStaticAsset'
 
-function WalletSuccesfullyCreated(): React.JSX.Element {
+function WalletSuccessfullyCreated(): React.JSX.Element {
   const navigate = useNavigate()
 
   const handleContinue = () => {
@@ -63,4 +63,4 @@ function WalletSuccesfullyCreated(): React.JSX.Element {
   )
 }
 
-export default WalletSuccesfullyCreated
+export default WalletSuccessfullyCreated
