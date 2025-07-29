@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import { Text, Heading, Button, Input, Switch, ProgressStepBar } from 'dash-ui/react'
+import { useNavigate } from 'react-router-dom'
 // import { withAuthCheck } from '../../components/auth/withAuthCheck'
 
 function ImportSeedPhrase(): React.JSX.Element {
+  const navigate = useNavigate()
   const [seedWords, setSeedWords] = useState<string[]>(Array(12).fill(''))
   const [wordCount, setWordCount] = useState<12 | 24>(12)
 
@@ -31,6 +33,10 @@ function ImportSeedPhrase(): React.JSX.Element {
     // Логика импорта сид-фразы
     const validWords = seedWords.filter(word => word.trim() !== '')
     console.log('Importing seed phrase:', validWords)
+    
+    // TODO: Implement actual seed phrase import logic here
+    // For now, just navigate to success page
+    navigate('/wallet-success')
   }
 
   const isImportDisabled = seedWords.slice(0, wordCount).some(word => word.trim() === '')
@@ -71,7 +77,7 @@ function ImportSeedPhrase(): React.JSX.Element {
               value={seedWords[index] || ''}
               onChange={(e) => handleWordChange(index, e.target.value)}
               prefix={`${index + 1}.`}
-              placeholder=""
+              placeholder=''
             />
           ))}
         </div>
