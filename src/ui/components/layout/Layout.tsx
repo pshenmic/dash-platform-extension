@@ -6,7 +6,7 @@ import { ThemeProvider } from 'dash-ui/react'
 const Layout: FC = () => {
   return (
     <ThemeProvider initialTheme='light'>
-      <div className='p-4'>
+      <div className='p-[0.875rem]'>
         <Header />
         <Outlet />
       </div>
