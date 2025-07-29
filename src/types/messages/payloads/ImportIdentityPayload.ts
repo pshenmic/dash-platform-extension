@@ -1,4 +1,4 @@
-export interface CreateIdentityPayload {
+export interface ImportIdentityPayload {
   identifier: string
   privateKeys?: string[]
 }

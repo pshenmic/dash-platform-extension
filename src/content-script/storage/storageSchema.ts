@@ -22,10 +22,10 @@ export interface IdentitiesStoreSchema {
 
 export interface WalletStoreSchema {
   walletId: string
-  type: string
   network: string
+  walletType: string
   label: string | null
-  currentIdentity: string | null
+  encryptedMnemonic: string | null
 }
 
 export interface StateTransitionsStoreSchema {

@@ -11,7 +11,6 @@ import { EmptyPayload } from './messages/payloads/EmptyPayload'
 import { CheckPasswordResponse } from './messages/response/CheckPasswordResponse'
 import { CheckPasswordPayload } from './messages/payloads/CheckPasswordPayload'
 import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
-import { CreateIdentityPayload } from './messages/payloads/CreateIdentityPayload'
 import { GetStateTransitionPayload } from './messages/payloads/GetStateTransitionPayload'
 import { CreateWalletResponse } from './messages/response/CreateWalletResponse'
 import { SwitchWalletPayload } from './messages/payloads/SwitchWalletPayload'
@@ -27,6 +26,9 @@ import { RejectAppConnectPayload } from './messages/payloads/RejectAppConnectPay
 import { AppConnect } from './AppConnect'
 import { GetIdentitiesResponse } from './messages/response/GetIdentitiesResponse'
 import { Identity } from './Identity'
+import { WalletType } from './WalletType'
+import {ResyncIdentitiesPayload} from "./messages/payloads/ResyncIdentitiesPayload";
+import {ResyncIdentitiesResponse} from "./messages/response/ResyncIdentitiesResponse";
 
 export class PrivateAPIClient {
   constructor () {
@@ -58,8 +60,8 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CHECK_PASSWORD, payload)
   }
 
-  async createWallet (walletType: string): Promise<CreateWalletResponse> {
-    const payload: CreateWalletPayload = { walletType }
+  async createWallet (walletType: WalletType, mnemonic?: string): Promise<CreateWalletResponse> {
+    const payload: CreateWalletPayload = { walletType: WalletType[walletType], mnemonic }
 
     return await this._rpcCall(MessagingMethods.CREATE_WALLET, payload)
   }
@@ -70,13 +72,12 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SWITCH_WALLET, payload)
   }
 
-  async createIdentity (identifier: string, privateKeys?: string[]): Promise<void> {
-    const payload: CreateIdentityPayload = {
-      identifier,
-      privateKeys
-    }
+  async resyncIdentities (password: string): Promise<ResyncIdentitiesResponse> {
+    const payload: ResyncIdentitiesPayload = { password }
 
-    return await this._rpcCall(MessagingMethods.CREATE_IDENTITY, payload)
+    const { identitiesCount }: ResyncIdentitiesResponse = await this._rpcCall(MessagingMethods.RESYNC_IDENTITIES, payload)
+
+    return {identitiesCount}
   }
 
   async getCurrentIdentity (): Promise<string | null> {

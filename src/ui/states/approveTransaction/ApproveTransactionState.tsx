@@ -131,7 +131,7 @@ function ApproveTransactionState (): React.JSX.Element {
       <div className='screen-content'>
         <h1 className='h1-title'>No Wallet Found</h1>
 
-        <ValueCard colorScheme='lightGray' size={'xl'} border={false} className='flex flex-col items-start gap-2'>
+        <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col items-start gap-2'>
           <Text size='md'>
             You need to create a wallet before you can approve transactions.
           </Text>
@@ -280,9 +280,9 @@ function ApproveTransactionState (): React.JSX.Element {
     value: identifier,
     content: (
       <Identifier
-        middleEllipsis={true}
+        middleEllipsis
         edgeChars={6}
-        avatar={true}
+        avatar
       >
         {identifier}
       </Identifier>
@@ -317,14 +317,14 @@ function ApproveTransactionState (): React.JSX.Element {
             {isLoadingTransaction
               ? <Text size='sm'>Loading transaction...</Text>
               : (transactionNotFound
-                ? <Text size='sm' color='red' weight='bold'>Could not find transaction with hash</Text>
-                : (transactionDecodeError != null
-                  ? (
-                    <Text size='sm' color='red' weight='bold'>
-                      Error decoding state transition: {transactionDecodeError}
-                    </Text>
-                  )
-                  : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM}/>)))}
+                  ? <Text size='sm' color='red' weight='bold'>Could not find transaction with hash</Text>
+                  : (transactionDecodeError != null
+                      ? (
+                        <Text size='sm' color='red' weight='bold'>
+                          Error decoding state transition: {transactionDecodeError}
+                        </Text>
+                        )
+                      : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM} />)))}
           </div>
         </div>
 
@@ -377,22 +377,22 @@ function ApproveTransactionState (): React.JSX.Element {
             </div>
             )
           : (stateTransitionWASM != null && (
-              <div className='flex gap-2 w-full'>
-                <Button
-                  onClick={reject}
-                  colorScheme='lightBlue'
-                  className='w-1/2'
-                >
-                  Reject
-                </Button>
-                <Button
-                  onClick={() => { void doSign() }}
-                  colorScheme='brand'
-                  className='w-1/2'
-                >
-                  {isSigningInProgress ? 'Signing...' : 'Sign'}
-                </Button>
-              </div>
+            <div className='flex gap-2 w-full'>
+              <Button
+                onClick={reject}
+                colorScheme='lightBlue'
+                className='w-1/2'
+              >
+                Reject
+              </Button>
+              <Button
+                onClick={() => { void doSign() }}
+                colorScheme='brand'
+                className='w-1/2'
+              >
+                {isSigningInProgress ? 'Signing...' : 'Sign'}
+              </Button>
+            </div>
             ))}
       </div>
     </div>
