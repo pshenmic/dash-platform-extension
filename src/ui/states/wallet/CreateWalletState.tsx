@@ -2,9 +2,10 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, List, Text, ValueCard } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { WalletType } from "../../../types/WalletType";
+import { WalletType } from '../../../types/WalletType'
+import { withAuthCheck } from '../../components/auth/withAuthCheck'
 
-export default function CreateWalletState (): React.JSX.Element {
+function CreateWalletState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [isLoading, setIsLoading] = useState(false)
@@ -18,7 +19,7 @@ export default function CreateWalletState (): React.JSX.Element {
       const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
       await extensionAPI.switchWallet(walletId, 'testnet')
 
-      void navigate('/import')
+      void navigate('/import-keystore')
     } catch (err) {
       setError((err as Error).toString())
     } finally {
@@ -74,3 +75,5 @@ export default function CreateWalletState (): React.JSX.Element {
     </div>
   )
 }
+
+export default withAuthCheck(CreateWalletState)
