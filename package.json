@@ -7,7 +7,7 @@
     "build": "webpack --mode=production",
     "serve": "webpack serve --mode=development",
     "lint": "ts-standard --fix",
-    "test": "echo 'Tests are temporarily disabled'"
+    "test": "jest"
   },
   "author": "",
   "license": "ISC",
@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.23.5",
+    "@babel/plugin-transform-modules-commonjs": "^7.27.1",
     "@babel/preset-env": "^7.23.5",
     "@babel/preset-react": "^7.23.3",
     "@babel/preset-typescript": "^7.27.1",

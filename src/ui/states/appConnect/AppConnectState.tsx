@@ -127,7 +127,7 @@ function AppConnectState (): React.JSX.Element {
         </Heading>
 
         <Text size='sm' className='break-all text-center'>
-           {appConnect.url}
+          {appConnect.url}
         </Text>
       </div>
 

@@ -50,6 +50,29 @@ export class IdentitiesRepository {
     }
   }
 
+  async replaceAll (identities: Identity[]): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `identities_${network}_${walletId}`
+
+    const identitiesSchema: IdentitiesStoreSchema = identities.reduce((acc, value) => {
+      const schema: IdentityStoreSchema = {
+        index: value.index,
+        identifier: value.identifier,
+        label: null
+      }
+
+      return { ...acc, [value.identifier]: schema }
+    }, {})
+
+    await this.storageAdapter.set(storageKey, identitiesSchema)
+  }
+
   async getAll (): Promise<Identity[]> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null

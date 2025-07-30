@@ -1,34 +1,58 @@
 import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
-import { } from 'pshenmic-dpp'
 import { CreateWalletPayload } from '../../../../types/messages/payloads/CreateWalletPayload'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { WalletType } from '../../../../types/WalletType'
 import { CreateWalletResponse } from '../../../../types/messages/response/CreateWalletResponse'
+import { DashPlatformSDK } from 'dash-platform-sdk'
+import { ResyncIdentitiesHandler } from '../identities/resyncIdentities'
 
 export class CreateWalletHandler implements APIHandler {
   walletRepository: WalletRepository
+  sdk: DashPlatformSDK
 
-  constructor (walletRepository: WalletRepository) {
+  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK) {
+    this.sdk = sdk
     this.walletRepository = walletRepository
   }
 
   async handle (event: EventData): Promise<CreateWalletResponse> {
     const payload: CreateWalletPayload = event.payload
 
-    const walletType = WalletType[payload.walletType]
+    switch (payload.walletType) {
+      case WalletType.seedphrase:
+        return await this.createSeedphraseWallet(payload)
+      case WalletType.keystore:
+        return await this.createKeyStoreWallet(payload)
+    }
 
-    const wallet = await this.walletRepository.create(walletType)
+    throw new Error('Unsupported wallet type')
+  }
+
+  async createKeyStoreWallet (payload: CreateWalletPayload): Promise<CreateWalletResponse> {
+    const wallet = await this.walletRepository.create(WalletType.keystore)
+
+    return { walletId: wallet.walletId }
+  }
+
+  async createSeedphraseWallet (payload: CreateWalletPayload): Promise<CreateWalletResponse> {
+    const { mnemonic } = payload
+
+    const wallet = await this.walletRepository.create(WalletType.seedphrase, mnemonic)
 
     return { walletId: wallet.walletId }
   }
 
   validatePayload (payload: CreateWalletPayload): string | null {
-    if (WalletType[payload.walletType] == null) {
+    const walletType = WalletType[payload.walletType]
+
+    if (walletType == null) {
       return `Invalid wallet type: ${payload.walletType}`
     }
 
-    // todo validate password
+    if (walletType == WalletType.seedphrase && (!payload.mnemonic)) {
+      return 'Mnemonic is missing'
+    }
 
     return null
   }
