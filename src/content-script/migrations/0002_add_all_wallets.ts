@@ -8,6 +8,7 @@ export default async function up (storageAdapter: StorageAdapter): Promise<void>
         .entries(await storageAdapter.getAll())
         .map(([key, value]) => key)
         .filter(key => key.startsWith('wallet_'))
+        .map((key) => key.split('_')[1])
 
     await storageAdapter.set('wallets', walletIds)
   }
