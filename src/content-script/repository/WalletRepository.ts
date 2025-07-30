@@ -1,12 +1,11 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import { bytesToHex, fetchIdentitiesBySeed, generateWalletId, utf8ToBytes } from '../../utils'
+import { bytesToHex, generateWalletId, utf8ToBytes } from '../../utils'
 import { Network } from '../../types/enums/Network'
 import { WalletStoreSchema } from '../storage/storageSchema'
 import { WalletType } from '../../types/WalletType'
 import { Wallet } from '../../types/Wallet'
 import { IdentitiesRepository } from './IdentitiesRepository'
 import { encrypt } from 'eciesjs'
-import { DashPlatformSDK } from 'dash-platform-sdk'
 
 export class WalletRepository {
   storageAdapter: StorageAdapter

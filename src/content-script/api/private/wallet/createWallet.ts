@@ -5,7 +5,7 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { WalletType } from '../../../../types/WalletType'
 import { CreateWalletResponse } from '../../../../types/messages/response/CreateWalletResponse'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import {StorageAdapter} from "../../../storage/storageAdapter";
+import { StorageAdapter } from '../../../storage/storageAdapter'
 
 export class CreateWalletHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -26,10 +26,10 @@ export class CreateWalletHandler implements APIHandler {
     switch (payload.walletType) {
       case WalletType.seedphrase:
         (response) = await this.createSeedphraseWallet(payload)
-        break;
+        break
       case WalletType.keystore:
         (response) = await this.createKeyStoreWallet(payload)
-          break;
+        break
       default:
         throw new Error('Unsupported wallet type')
     }
@@ -38,7 +38,7 @@ export class CreateWalletHandler implements APIHandler {
 
     await this.storageAdapter.set('wallets', [...wallets, response.walletId])
 
-    return {walletId: response.walletId}
+    return { walletId: response.walletId }
   }
 
   async createKeyStoreWallet (payload: CreateWalletPayload): Promise<CreateWalletResponse> {
@@ -62,7 +62,7 @@ export class CreateWalletHandler implements APIHandler {
       return `Invalid wallet type: ${payload.walletType}`
     }
 
-    if (walletType == WalletType.seedphrase && (!payload.mnemonic)) {
+    if (walletType === WalletType.seedphrase && payload.mnemonic == null) {
       return 'Mnemonic is missing'
     }
 

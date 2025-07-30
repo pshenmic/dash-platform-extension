@@ -1,12 +1,12 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import {KeyPairsSchema, WalletStoreSchema} from "../storage/storageSchema";
+import { WalletStoreSchema } from '../storage/storageSchema'
 
 export default async function addEncryptedMnemonic (storageAdapter: StorageAdapter): Promise<void> {
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
-  if (schemaVersion == 4) {
+  if (schemaVersion === 4) {
     const walletIds = await storageAdapter.get('wallets') as string[]
-    const network = await storageAdapter.get('network')
+    const network = await storageAdapter.get('network') as string
 
     for (const walletId of walletIds) {
       const wallet = await storageAdapter.get(`wallet_${walletId}_${network}`) as WalletStoreSchema

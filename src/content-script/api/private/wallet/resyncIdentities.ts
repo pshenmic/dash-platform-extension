@@ -1,14 +1,7 @@
-
-// if keystore - get all private keys and get identities
-// if seedphrase - derive private keys
-
-// approve - ask password, derive key and sign
-// approve - show all private keys and sign with specific
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
-import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ResyncIdentitiesPayload } from '../../../../types/messages/payloads/ResyncIdentitiesPayload'
 import { ResyncIdentitiesResponse } from '../../../../types/messages/response/ResyncIdentitiesResponse'
@@ -68,7 +61,7 @@ export class ResyncIdentitiesHandler implements APIHandler {
   }
 
   validatePayload (payload: ResyncIdentitiesPayload): string | null {
-    if (payload.password === null || payload.password == '') {
+    if (payload.password == null || payload.password === '') {
       return 'Password not provided'
     }
 

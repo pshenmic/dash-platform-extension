@@ -29,7 +29,7 @@ import { Identity } from './Identity'
 import { WalletType } from './WalletType'
 import { ResyncIdentitiesPayload } from './messages/payloads/ResyncIdentitiesPayload'
 import { ResyncIdentitiesResponse } from './messages/response/ResyncIdentitiesResponse'
-import {ImportIdentityPayload} from "./messages/payloads/ImportIdentityPayload";
+import { ImportIdentityPayload } from './messages/payloads/ImportIdentityPayload'
 
 export class PrivateAPIClient {
   constructor () {
