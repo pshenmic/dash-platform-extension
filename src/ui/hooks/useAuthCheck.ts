@@ -33,7 +33,7 @@ export function useAuthCheck (): AuthCheckState {
 
         if (status.currentWalletId == null || status.currentWalletId === '') {
           // Password set but wallet not created - go to login
-          void navigate('/login')
+          void navigate('/no-wallet')
           setState({ isLoading: false, isAuthenticated: false, error: null })
           return
         }
