@@ -17,7 +17,6 @@ function ChooseImportType(): React.JSX.Element {
     {
       id: 'keystore',
       title: 'Import Using Key Store',
-      disabled: true
     },
     {
       id: 'seedphrase',
@@ -42,7 +41,7 @@ function ChooseImportType(): React.JSX.Element {
         navigate('/import-seed-phrase')
         break
       case 'keystore':
-        // TODO: Navigate to keystore import when implemented
+        navigate('/import')
         break
       case 'phoneapp':
         // TODO: Navigate to phone app import when implemented
