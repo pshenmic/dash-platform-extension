@@ -9,7 +9,7 @@ export default async function up (storageAdapter: StorageAdapter): Promise<void>
     const wallets = await storageAdapter.get('wallets') as string[]
 
     for (const walletId of wallets) {
-      const walletIdentities = await storageAdapter.get(`identities_${network}_${walletId}`) as IdentitiesStoreSchema
+      const walletIdentities = await storageAdapter.get(`identities_${walletId}_${network}`) as IdentitiesStoreSchema
 
       if (walletIdentities != null) {
         const identityId = Object.keys(walletIdentities)[0]
