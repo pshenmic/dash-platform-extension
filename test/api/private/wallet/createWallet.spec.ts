@@ -43,7 +43,7 @@ describe('create wallet', () => {
     const expectedWallet: WalletStoreSchema = {
       walletId,
       network: 'testnet',
-      walletType: 'seedphrase',
+      type: 'seedphrase',
       label: null,
       encryptedMnemonic: null
     }
@@ -54,7 +54,7 @@ describe('create wallet', () => {
 
     expect(walletStoreSchema.walletId).toEqual(expectedWallet.walletId)
     expect(walletStoreSchema.network).toEqual(expectedWallet.network)
-    expect(walletStoreSchema.walletType).toEqual(expectedWallet.walletType)
+    expect(walletStoreSchema.type).toEqual(expectedWallet.type)
     expect(walletStoreSchema.label).toEqual(expectedWallet.label)
 
     expect(bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(walletStoreSchema.encryptedMnemonic!)))).toEqual(mnemonic)
@@ -66,7 +66,7 @@ describe('create wallet', () => {
     const expectedWallet: WalletStoreSchema = {
       walletId,
       network: 'testnet',
-      walletType: 'keystore',
+      type: 'keystore',
       label: null,
       encryptedMnemonic: null
     }
