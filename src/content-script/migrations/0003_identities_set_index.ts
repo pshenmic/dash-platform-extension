@@ -15,7 +15,7 @@ export default async function up (storageAdapter: StorageAdapter): Promise<void>
         const identityId = Object.keys(walletIdentities)[0]
         const migratedIdentity = {...walletIdentities[identityId], index: 0}
 
-        await storageAdapter.set(`identities_${network}_${walletId}`, migratedIdentity)
+        await storageAdapter.set(`identities_${walletId}_${network}`, {[identityId]: migratedIdentity})
       }
     }
   }
