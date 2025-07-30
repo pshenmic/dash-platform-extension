@@ -1,3 +1,3 @@
 export interface ResyncIdentitiesPayload {
-    password: string
+  password: string
 }

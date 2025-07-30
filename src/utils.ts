@@ -1,6 +1,6 @@
 import { base58 } from '@scure/base'
-import {IdentityWASM, PrivateKeyWASM} from "pshenmic-dpp";
-import {DashPlatformSDK} from "dash-platform-sdk";
+import { IdentityWASM, PrivateKeyWASM } from 'pshenmic-dpp'
+import { DashPlatformSDK } from 'dash-platform-sdk'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -38,10 +38,10 @@ export const validateIdentifier = (str: string): boolean => {
 }
 
 export const utf8ToBytes = (str: string) => {
-  return new TextEncoder().encode(str);
+  return new TextEncoder().encode(str)
 }
 export const bytesToUtf8 = (bytes: Uint8Array) => {
-return new TextDecoder().decode(bytes);
+  return new TextDecoder().decode(bytes)
 }
 
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK): Promise<IdentityWASM[]> => {

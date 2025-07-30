@@ -4,7 +4,7 @@ const config = {
   ],
   transformIgnorePatterns: [
     '/node_modules/(?!pshenmic-dpp|wasm-drive-verify)'
-  ],
+  ]
 }
 
 module.exports = config

@@ -5,7 +5,7 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { WalletType } from '../../../../types/WalletType'
 import { CreateWalletResponse } from '../../../../types/messages/response/CreateWalletResponse'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import {ResyncIdentitiesHandler} from "../identities/resyncIdentities";
+import { ResyncIdentitiesHandler } from '../identities/resyncIdentities'
 
 export class CreateWalletHandler implements APIHandler {
   walletRepository: WalletRepository

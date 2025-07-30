@@ -7,7 +7,7 @@ import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { validateHex } from '../../../../utils'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import {ImportIdentityPayload} from "../../../../types/messages/payloads/ImportIdentityPayload";
+import { ImportIdentityPayload } from '../../../../types/messages/payloads/ImportIdentityPayload'
 
 export class ImportIdentityHandler implements APIHandler {
   keypairRepository: KeypairRepository

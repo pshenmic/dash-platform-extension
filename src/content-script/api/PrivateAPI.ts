@@ -22,7 +22,7 @@ import { GetAppConnectHandler } from './private/appConnect/getAppConnect'
 import { ApproveAppConnectHandler } from './private/appConnect/approveAppConnect'
 import { RejectAppConnectHandler } from './private/appConnect/rejectAppConnect'
 import { GetIdentitiesHandler } from './private/identities/getIdentities'
-import {ResyncIdentitiesHandler} from "./private/wallet/resyncIdentities";
+import { ResyncIdentitiesHandler } from './private/wallet/resyncIdentities'
 
 /**
  * Handlers for a messages within extension context

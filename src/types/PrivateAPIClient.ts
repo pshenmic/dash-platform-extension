@@ -27,8 +27,8 @@ import { AppConnect } from './AppConnect'
 import { GetIdentitiesResponse } from './messages/response/GetIdentitiesResponse'
 import { Identity } from './Identity'
 import { WalletType } from './WalletType'
-import {ResyncIdentitiesPayload} from "./messages/payloads/ResyncIdentitiesPayload";
-import {ResyncIdentitiesResponse} from "./messages/response/ResyncIdentitiesResponse";
+import { ResyncIdentitiesPayload } from './messages/payloads/ResyncIdentitiesPayload'
+import { ResyncIdentitiesResponse } from './messages/response/ResyncIdentitiesResponse'
 
 export class PrivateAPIClient {
   constructor () {
@@ -77,7 +77,7 @@ export class PrivateAPIClient {
 
     const { identitiesCount }: ResyncIdentitiesResponse = await this._rpcCall(MessagingMethods.RESYNC_IDENTITIES, payload)
 
-    return {identitiesCount}
+    return { identitiesCount }
   }
 
   async getCurrentIdentity (): Promise<string | null> {

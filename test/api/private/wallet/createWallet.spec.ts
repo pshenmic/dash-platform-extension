@@ -1,13 +1,13 @@
-import {DashPlatformSDK} from 'dash-platform-sdk'
-import {PrivateAPIClient} from '../../../../src/types/PrivateAPIClient'
-import {PrivateAPI} from '../../../../src/content-script/api/PrivateAPI'
-import {StorageAdapter} from "../../../../src/content-script/storage/storageAdapter";
-import {MemoryStorageAdapter} from "../../../../src/content-script/storage/memoryStorageAdapter";
-import {WalletStoreSchema} from "../../../../src/content-script/storage/storageSchema";
-import {WalletType} from "../../../../src/types/WalletType";
-import hash from "hash.js";
-import {decrypt, PrivateKey} from "eciesjs";
-import {bytesToHex, bytesToUtf8, hexToBytes, utf8ToBytes} from "../../../../src/utils";
+import { DashPlatformSDK } from 'dash-platform-sdk'
+import { PrivateAPIClient } from '../../../../src/types/PrivateAPIClient'
+import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
+import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
+import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
+import { WalletStoreSchema } from '../../../../src/content-script/storage/storageSchema'
+import { WalletType } from '../../../../src/types/WalletType'
+import hash from 'hash.js'
+import { decrypt, PrivateKey } from 'eciesjs'
+import { bytesToHex, bytesToUtf8, hexToBytes, utf8ToBytes } from '../../../../src/utils'
 
 describe('create wallet', () => {
   let privateAPI: PrivateAPI
@@ -38,14 +38,14 @@ describe('create wallet', () => {
   test('should create a seedphrase wallet', async () => {
     const mnemonic = 'frequent situate velvet inform help family salad park torch zero chapter right'
 
-    const {walletId} = await privateAPIClient.createWallet(WalletType.seedphrase, mnemonic)
+    const { walletId } = await privateAPIClient.createWallet(WalletType.seedphrase, mnemonic)
 
     const expectedWallet: WalletStoreSchema = {
-        walletId,
-        network: 'testnet',
-        walletType: 'seedphrase',
-        label: null,
-        encryptedMnemonic: null
+      walletId,
+      network: 'testnet',
+      walletType: 'seedphrase',
+      label: null,
+      encryptedMnemonic: null
     }
 
     const storageKey = `wallet_testnet_${walletId}`
@@ -61,14 +61,14 @@ describe('create wallet', () => {
   })
 
   test('should create a keystore wallet', async () => {
-    const {walletId} = await privateAPIClient.createWallet(WalletType.keystore)
+    const { walletId } = await privateAPIClient.createWallet(WalletType.keystore)
 
     const expectedWallet: WalletStoreSchema = {
-        walletId,
-        network: 'testnet',
-        walletType: 'keystore',
-        label: null,
-        encryptedMnemonic: null
+      walletId,
+      network: 'testnet',
+      walletType: 'keystore',
+      label: null,
+      encryptedMnemonic: null
     }
 
     const storageKey = `wallet_testnet_${walletId}`
