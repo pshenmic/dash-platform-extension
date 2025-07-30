@@ -27,6 +27,8 @@ import { RejectAppConnectPayload } from './messages/payloads/RejectAppConnectPay
 import { AppConnect } from './AppConnect'
 import { GetIdentitiesResponse } from './messages/response/GetIdentitiesResponse'
 import { Identity } from './Identity'
+import {FetchIdentityByPublicKeyHashPayload} from "./messages/payloads/FetchIdentityByPublicKeyHash";
+import {FetchIdentityByPublicKeyHashResponse} from "./messages/response/FetchIdentityByPublicKeyHashResponse";
 
 export class PrivateAPIClient {
   constructor () {
@@ -101,6 +103,16 @@ export class PrivateAPIClient {
     const response: GetIdentitiesResponse = await this._rpcCall(MessagingMethods.GET_IDENTITIES, payload)
 
     return response.identities
+  }
+
+  async fetchIdentityByPublicKeyHash (publicKeyHash: string): Promise<Identity| null> {
+    const payload: FetchIdentityByPublicKeyHashPayload = {
+      publicKeyHash
+    }
+
+    const response: FetchIdentityByPublicKeyHashResponse = await this._rpcCall(MessagingMethods.FETCH_IDENTITY_BY_PUBLIC_KEY_HASH, payload)
+
+    return response.identity
   }
 
   async approveStateTransition (hash: string, identity: string, password: string): Promise<ApproveStateTransitionResponse> {

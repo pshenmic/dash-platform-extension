@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from 'react'
-import { useSdk } from '../../hooks/useSdk'
 import { useNavigate } from 'react-router-dom'
-import { Button, Text, NotActive, Identifier, ValueCard, BigNumber, Textarea } from 'dash-ui/react'
+import { Button, Text, Identifier, ValueCard, BigNumber, Textarea } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { withAuthCheck } from '../../components/auth/withAuthCheck'
 import LoadingScreen from '../../components/layout/LoadingScreen'
+import {Identity} from "../../../types/Identity";
+import {hexToBytes, normalizePrivateKey} from "../../../utils";
+import * as secp from '@noble/secp256k1';
+import hash from "hash.js";
 
 function ImportIdentityState (): React.JSX.Element {
   const navigate = useNavigate()
-  const sdk = useSdk()
 
   const extensionAPI = useExtensionAPI()
   const [privateKey, setPrivateKey] = useState('')
-  const [privateKeyWASM, setPrivateKeyWASM] = useState<PrivateKeyWASM | null>(null)
-  const [identity, setIdentity] = useState<IdentityWASM | null>(null)
-  const [balance, setBalance] = useState<string | null>(null)
+  const [identity, setIdentity] = useState<Identity | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isCheckingWallet, setIsCheckingWallet] = useState(true)
@@ -43,81 +42,25 @@ function ImportIdentityState (): React.JSX.Element {
     setError(null)
     setIsLoading(true)
 
-    try {
-      let pkeyWASM: PrivateKeyWASM | null = null
+    const privateKeyHex = normalizePrivateKey(privateKey)
 
-      if (privateKey.length === 52) {
-      // wif
-        try {
-          pkeyWASM = PrivateKeyWASM.fromWIF(privateKey)
-          setPrivateKeyWASM(pkeyWASM)
-        } catch (e) {
-          console.log(e)
-          return setError('Could not decode private key from WIF')
-        }
-      } else if (privateKey.length === 64) {
-      // hex
-        try {
-          pkeyWASM = PrivateKeyWASM.fromHex(privateKey, 'testnet')
-          setPrivateKeyWASM(pkeyWASM)
-        } catch (e) {
-          console.log(e)
-          return setError('Could not decode private key from hex')
-        }
-      } else {
-        return setError('Unrecognized private key format')
-      }
 
-      if (pkeyWASM == null) {
-        setIsLoading(false)
-        return setError('Failed to process private key')
-      }
-
-      let uniqueIdentity
-
-      try {
-        uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
-      } catch (e) {
-      }
-
-      let nonUniqueIdentity
-
-      try {
-        nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkeyWASM.getPublicKeyHash())
-      } catch (e) {
-      }
-
-      const [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e != null)
-
-      if (identity == null) {
-        return setError('Could not find identity belonging to this private key')
-      }
-
-      const [identityPublicKey] = identity.getPublicKeys()
-        .filter((publicKey: IdentityPublicKeyWASM) =>
-          publicKey.getPublicKeyHash() === pkeyWASM?.getPublicKeyHash() &&
-            publicKey.purpose === 'AUTHENTICATION' &&
-            publicKey.securityLevel === 'HIGH')
-
-      if (identityPublicKey == null) {
-        return setError('Please use a key with purpose AUTHENTICATION and security level HIGH')
-      }
-
-      // Get identifier as base58 string directly from IdentifierWASM
-      const identifierString = identity.id.base58()
-      const balance = await sdk.identities.getIdentityBalance(identifierString)
-
-      setIdentity(identity)
-      setBalance(balance.toString())
-    } catch (e) {
-      if (typeof e === 'string') {
-        return setError(e)
-      }
-
-      setError(e?.toString() ?? 'Unknown error')
-    } finally {
+    if (privateKeyHex == null) {
       setIsLoading(false)
+
+      return setError('Private key is not valid')
     }
+
+    const pubKey = secp.getPublicKey(hexToBytes(privateKeyHex));
+    const pubKeyHash = hash.sha256().update(pubKey).digest('hex')
+
+    const identity = await extensionAPI.fetchIdentityByPublicKeyHash(pubKeyHash)
+
+    if( identity == null) {
+      throw new Error('Could not find identity belonging to that private key')
+    }
+
+    setIdentity(identity)
   }
 
   useEffect(() => {
@@ -133,17 +76,13 @@ function ImportIdentityState (): React.JSX.Element {
         return setError('Could not load identity')
       }
 
-      if (privateKeyWASM == null) {
+      if (privateKey == null) {
         return setError('Could not load private key')
       }
 
-      const identifier = identity.id.base58()
+      const privateKeys = [normalizePrivateKey(privateKey)!]
 
-      const privateKeyHex = privateKey.length === 64 ? privateKey : privateKeyWASM.hex()
-
-      const privateKeys = [privateKeyHex]
-
-      await extensionAPI.createIdentity(identifier, privateKeys)
+      await extensionAPI.createIdentity(identity.identifier, privateKeys)
 
       void navigate('/')
     }
@@ -232,7 +171,7 @@ function ImportIdentityState (): React.JSX.Element {
                     ellipsis={false}
                     linesAdjustment={false}
                   >
-                    {identity.id.base58()}
+                    {identity.identifier}
                   </Identifier>
                 </ValueCard>
               </div>
@@ -240,15 +179,13 @@ function ImportIdentityState (): React.JSX.Element {
                 <Text dim>Balance</Text>
 
                 <span>
-                  {balance != null
-                    ? (
+                  {(
                       <Text size='xl' weight='bold' monospace>
                         <BigNumber>
-                          {balance}
+                          {identity.balance}
                         </BigNumber>
                       </Text>
-                      )
-                    : <NotActive>N/A</NotActive>}
+                      )}
                   <Text
                     size='lg'
                     className='ml-2'

@@ -5,16 +5,14 @@ import { TransactionTypes } from '../../../enums/TransactionTypes'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import './home.state.css'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { useSdk } from '../../hooks/useSdk'
 import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import {Identity} from "../../../types/Identity";
 
 function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
-  const sdk = useSdk()
 
   const [identities, setIdentities] = useState<string[]>([])
-  const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
-  const [balance, setBalance] = useState<bigint>(0n)
+  const [currentIdentity, setCurrentIdentity] = useState<Identity | null>(null)
   const [transactionsLoadError, setTransactionsLoadError] = useState<boolean>(false)
   const [transactions, setTransactions] = useState<any[] | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -29,32 +27,18 @@ function HomeState (): React.JSX.Element {
 
         const current = await extensionAPI.getCurrentIdentity()
 
-        setIdentities(availableIdentities ?? [])
-        setCurrentIdentity(current)
+        if (currentIdentity == null && availableIdentities.length > 0) {
+          await extensionAPI.switchIdentity(availableIdentities[0])
 
-        console.log('availableIdentities', availableIdentities)
-        console.log('current', current)
-
-        // Auto-set first identity as current if no current identity is set
-        if ((current == null || current === '') && (availableIdentities?.length ?? 0) > 0) {
-          console.log('Setting first identity as current:', availableIdentities[0])
-          try {
-            await extensionAPI.switchIdentity(availableIdentities[0])
-            setCurrentIdentity(availableIdentities[0])
-          } catch (error) {
-            console.error('Failed to set current identity:', error)
-          }
+          setCurrentIdentity(currentIdentity)
         }
 
-        // Load transactions for current identity (use updated currentIdentity)
-        const activeIdentity = (currentIdentity != null && currentIdentity !== '') ? currentIdentity : current
-        if (activeIdentity != null && activeIdentity !== '') {
-          const balance = await sdk.identities.getIdentityBalance(activeIdentity)
+        setIdentities(availableIdentities)
 
-          setBalance(balance)
-
+        // Load transactions for current identity
+        if (currentIdentity != null) {
           try {
-            const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${activeIdentity}/transactions?order=desc`)
+            const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${currentIdentity.identifier}/transactions?order=desc`)
             if (response.status === 200) {
               const data = await response.json()
               if (data.error == null) {
@@ -83,7 +67,7 @@ function HomeState (): React.JSX.Element {
     return <LoadingScreen message='Loading wallet data...' />
   }
 
-  if (identities.length === 0) {
+  if (currentIdentity == null || identities.length === 0) {
     return <NoIdentities />
   }
 
@@ -114,15 +98,13 @@ function HomeState (): React.JSX.Element {
           <div className='flex flex-col gap-[0.125rem]'>
             <Text dim>Balance</Text>
             <span>
-              {!Number.isNaN(Number(balance))
-                ? (
+                (
                   <Text size='xl' weight='bold' monospace>
                     <BigNumber>
-                      {balance.toString()}
+                      {currentIdentity.balance.toString()}
                     </BigNumber>
                   </Text>
                   )
-                : <NotActive>N/A</NotActive>}
               <Text
                 size='lg'
                 className='ml-2'

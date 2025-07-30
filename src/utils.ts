@@ -1,4 +1,5 @@
-import { base58 } from '@scure/base'
+import {base58, base64} from '@scure/base'
+import * as wif from "wif"
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -46,6 +47,33 @@ export const popupWindow = (url: string, windowName: string, win: Window, w: num
 
   win.open(url, windowName, `popup, width=${w}, height=${h}, top=${y}, left=${x}`)
 }
+
+/**
+ * Turns WIF / Hex format to the hex string
+ * @param privateKey {string}
+ */
+export const normalizePrivateKey = (privateKey: string): string | null => {
+  if (privateKey.length === 52) {
+    // wif
+    try {
+      var obj = wif.decode(privateKey)
+
+      return bytesToHex(obj.privateKey)
+    } catch (e) {
+      console.log('Could not decode private key from WIF', e)
+      return null
+    }
+  } else if (privateKey.length === 64) {
+    // hex
+    if (validateHex(privateKey)) {
+      return privateKey
+    }
+  }
+
+  console.log('Unrecognized private key format')
+  return null
+}
+
 
 export const injectScript = (document: Document, src: string): void => {
   if (document.getElementById(src) != null) {

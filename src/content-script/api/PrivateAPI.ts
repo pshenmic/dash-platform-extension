@@ -23,6 +23,7 @@ import { GetAppConnectHandler } from './private/appConnect/getAppConnect'
 import { ApproveAppConnectHandler } from './private/appConnect/approveAppConnect'
 import { RejectAppConnectHandler } from './private/appConnect/rejectAppConnect'
 import { GetIdentitiesHandler } from './private/identities/getIdentities'
+import {FetchIdentityByPublicKeyHashHandler} from "./private/identities/fetchIdentityByPublicKeyHash";
 
 /**
  * Handlers for a messages within extension context
@@ -80,7 +81,8 @@ export class PrivateAPI {
       [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository),
       [MessagingMethods.GET_APP_CONNECT]: new GetAppConnectHandler(appConnectRepository),
       [MessagingMethods.APPROVE_APP_CONNECT]: new ApproveAppConnectHandler(appConnectRepository, this.storageAdapter),
-      [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter)
+      [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter),
+      [MessagingMethods.FETCH_IDENTITY_BY_PUBLIC_KEY_HASH]: new FetchIdentityByPublicKeyHashHandler(identitiesRepository, this.sdk)
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {

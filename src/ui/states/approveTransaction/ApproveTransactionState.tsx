@@ -5,9 +5,9 @@ import TransactionDetails from './TransactionDetails'
 import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAuthCheck } from '../../components/auth/withAuthCheck'
 import LoadingScreen from '../../components/layout/LoadingScreen'
+import {StateTransition} from "../../../types/StateTransition";
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -29,7 +29,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const [isCheckingWallet, setIsCheckingWallet] = useState<boolean>(true)
   const [hasWallet, setHasWallet] = useState<boolean>(false)
 
-  const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
+  const [stateTransition, setStateTransition] = useState<StateTransition | null>(null)
 
   useEffect(() => {
     const checkWallet = async (): Promise<void> => {
@@ -104,7 +104,7 @@ function ApproveTransactionState (): React.JSX.Element {
         .getStateTransition(transactionHash)
         .then((stateTransitionResponse: GetStateTransitionResponse) => {
           try {
-            setStateTransitionWASM(StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)))
+            setStateTransition(stateTransitionResponse.stateTransition)
           } catch (e) {
             console.error('Error decoding state transition:', e)
             setTransactionDecodeError(String(e))
@@ -192,15 +192,15 @@ function ApproveTransactionState (): React.JSX.Element {
   }
 
   const reject = (): void => {
-    if (stateTransitionWASM == null) {
-      throw new Error('stateTransitionWASM is null')
+    if (stateTransition == null) {
+      throw new Error('State transition is null')
     }
 
-    extensionAPI.rejectStateTransition(stateTransitionWASM.hash(true)).then(() => window.close).catch(console.error)
+    extensionAPI.rejectStateTransition(stateTransition.hash).then(() => window.close).catch(console.error)
   }
 
   const doSign = async (): Promise<void> => {
-    if (stateTransitionWASM == null) {
+    if (stateTransition == null) {
       throw new Error('stateTransitionWASM is null')
     }
 
@@ -217,10 +217,6 @@ function ApproveTransactionState (): React.JSX.Element {
     setPasswordError(null)
 
     try {
-      if (stateTransitionWASM == null) {
-        throw new Error('stateTransitionWASM is null')
-      }
-
       const passwordCheck = await extensionAPI.checkPassword(password)
       if (!passwordCheck.success) {
         setPasswordError('Invalid password')
@@ -228,7 +224,7 @@ function ApproveTransactionState (): React.JSX.Element {
         return
       }
 
-      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, password)
+      const response = await extensionAPI.approveStateTransition(stateTransition.hash, currentIdentity, password)
 
       setTxHash(response.txHash)
     } catch (error) {
@@ -324,12 +320,12 @@ function ApproveTransactionState (): React.JSX.Element {
                       Error decoding state transition: {transactionDecodeError}
                     </Text>
                   )
-                  : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM}/>)))}
+                  : (stateTransition != null && <TransactionDetails stateTransition={stateTransition}/>)))}
           </div>
         </div>
 
         {/* Choose Identity */}
-        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
+        {!isLoadingTransaction && !transactionNotFound && stateTransition != null && (
           <div className='flex flex-col gap-2.5'>
             <Text size='md' opacity='50'>Choose Identity</Text>
             <Select
@@ -343,7 +339,7 @@ function ApproveTransactionState (): React.JSX.Element {
         )}
 
         {/* Password */}
-        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
+        {!isLoadingTransaction && !transactionNotFound && stateTransition != null && (
           <div className='flex flex-col gap-2.5'>
             <Text size='md' opacity='50'>Password</Text>
             <Input
@@ -364,7 +360,7 @@ function ApproveTransactionState (): React.JSX.Element {
         )}
 
         {/* Buttons */}
-        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM == null
+        {!isLoadingTransaction && !transactionNotFound && stateTransition == null
           ? (
             <div className='w-full'>
               <Button
@@ -376,7 +372,7 @@ function ApproveTransactionState (): React.JSX.Element {
               </Button>
             </div>
             )
-          : (stateTransitionWASM != null && (
+          : (stateTransition != null && (
               <div className='flex gap-2 w-full'>
                 <Button
                   onClick={reject}

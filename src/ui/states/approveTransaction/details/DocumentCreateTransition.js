@@ -1,10 +1,7 @@
 import React from 'react'
 import './documents.batch.details.css'
-import { useSdk } from '../../../hooks/useSdk'
 
 export default function DocumentCreateTransition ({ transition, createTransition }) {
-  const sdk = useSdk()
-  const { uint8ArrayToBase58 } = sdk.utils
   return (
     <div className='DocumentsBatchDetails__Details'>
       <div>Type: DocumentsBatch</div>

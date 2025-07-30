@@ -45,6 +45,7 @@ export class IdentitiesRepository {
 
     return {
       identifier: identityStoreSchema.identifier,
+      balance: (await this.sdk.identities.getIdentityBalance(identityStoreSchema.identifier)).toString(),
       index: identityStoreSchema.index,
       label: identityStoreSchema.label
     }
@@ -66,6 +67,7 @@ export class IdentitiesRepository {
       .map(async ([identifier, entry]) =>
         ({
           identifier,
+          balance: (await this.sdk.identities.getIdentityBalance(identifier)).toString(),
           index: entry.index,
           label: entry.label
         })
@@ -93,6 +95,7 @@ export class IdentitiesRepository {
     return {
       index: identity.index,
       identifier: identity.identifier,
+      balance: (await this.sdk.identities.getIdentityBalance(identifier)).toString(),
       label: identity.label
     }
   }

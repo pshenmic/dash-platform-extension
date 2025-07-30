@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import  React, { useEffect, useState } from 'react'
 import './documents.batch.details.css'
 import DocumentCreateTransition from './DocumentCreateTransition'
-import { BatchTransitionWASM } from 'pshenmic-dpp'
 
 export default function DocumentsBatchDetails ({ stateTransition }) {
   const [transitions, setTransitions] = useState(false)

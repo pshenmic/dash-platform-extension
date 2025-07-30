@@ -108,7 +108,7 @@ export class StateTransitionsRepository {
 
     return {
       ...stateTransition,
-      status: StateTransitionStatus[stateTransition.status]
+      status: StateTransitionStatus[stateTransition.status],
     }
   }
 }
