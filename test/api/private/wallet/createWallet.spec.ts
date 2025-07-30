@@ -7,7 +7,7 @@ import { WalletStoreSchema } from '../../../../src/content-script/storage/storag
 import { WalletType } from '../../../../src/types/WalletType'
 import hash from 'hash.js'
 import { decrypt, PrivateKey } from 'eciesjs'
-import { bytesToHex, bytesToUtf8, hexToBytes, utf8ToBytes } from '../../../../src/utils'
+import { bytesToUtf8, hexToBytes } from '../../../../src/utils'
 
 describe('create wallet', () => {
   let privateAPI: PrivateAPI
@@ -57,7 +57,7 @@ describe('create wallet', () => {
     expect(walletStoreSchema.type).toEqual(expectedWallet.type)
     expect(walletStoreSchema.label).toEqual(expectedWallet.label)
 
-    expect(bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(walletStoreSchema.encryptedMnemonic!)))).toEqual(mnemonic)
+    expect(bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(walletStoreSchema.encryptedMnemonic as string)))).toEqual(mnemonic)
   })
 
   test('should create a keystore wallet', async () => {

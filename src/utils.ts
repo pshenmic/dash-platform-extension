@@ -37,10 +37,10 @@ export const validateIdentifier = (str: string): boolean => {
   }
 }
 
-export const utf8ToBytes = (str: string) => {
+export const utf8ToBytes = (str: string): Uint8Array => {
   return new TextEncoder().encode(str)
 }
-export const bytesToUtf8 = (bytes: Uint8Array) => {
+export const bytesToUtf8 = (bytes: Uint8Array): string => {
   return new TextDecoder().decode(bytes)
 }
 
@@ -73,12 +73,12 @@ export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformS
 
     [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e != null)
 
-    if (identity) {
+    if (identity != null) {
       identities.push(identity)
     }
 
     identityIndex = identityIndex + 1
-  } while (identity)
+  } while (identity != null)
 
   return identities
 }

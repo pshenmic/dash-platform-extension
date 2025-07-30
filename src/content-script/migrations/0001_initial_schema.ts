@@ -1,6 +1,6 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 
-export default async function up (storageAdapter: StorageAdapter): Promise<void> {
+export default async function initialSchemaMigration (storageAdapter: StorageAdapter): Promise<void> {
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
   if (schemaVersion == null) {
