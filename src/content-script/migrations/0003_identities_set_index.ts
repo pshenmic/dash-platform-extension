@@ -4,7 +4,7 @@ import {IdentitiesStoreSchema} from "../storage/storageSchema";
 export default async function up (storageAdapter: StorageAdapter): Promise<void> {
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
-  if (schemaVersion == 3) {
+  if (schemaVersion == 2) {
     const network = await storageAdapter.get('network') as string
     const wallets = await storageAdapter.get('wallets') as string[]
 
@@ -20,7 +20,7 @@ export default async function up (storageAdapter: StorageAdapter): Promise<void>
     }
   }
 
-  await storageAdapter.set('schema_version', 4)
+  await storageAdapter.set('schema_version', 3)
 }
 
 // set identityIndex to 0
