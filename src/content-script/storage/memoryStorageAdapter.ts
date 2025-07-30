@@ -3,6 +3,9 @@ import { StorageAdapter } from './storageAdapter'
 const cache = {}
 
 export class MemoryStorageAdapter implements StorageAdapter {
+  getAll = async (): Promise<object> => {
+    return cache
+  }
   get = async (key: string): Promise<object | number | string | null> => {
     const item = cache[key]
 
