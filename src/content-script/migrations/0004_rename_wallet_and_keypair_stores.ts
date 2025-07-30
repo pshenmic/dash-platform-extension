@@ -1,9 +1,11 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 
-export default async function up (storageAdapter: StorageAdapter): Promise<void> {
+export default async function renameWalletAndKeyPairsMigration (storageAdapter: StorageAdapter): Promise<void> {
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
   if (schemaVersion == 3) {
+    console.log('Running renameWalletAndKeyPairsMigration migration')
+
     const walletIds = await storageAdapter.get('wallets') as string[]
     const network = await storageAdapter.get('network')
 
@@ -15,7 +17,7 @@ export default async function up (storageAdapter: StorageAdapter): Promise<void>
     }
 
     for (const walletId of walletIds) {
-      const wallet = await storageAdapter.get(`wallet_${walletId}_${network}`)
+      const wallet = await storageAdapter.get(`keyPairs_${walletId}_${network}`)
 
       await storageAdapter.set(`keyPairs_${network}_${walletId}`, wallet)
       await storageAdapter.remove(`keyPairs_${walletId}_${network}`)

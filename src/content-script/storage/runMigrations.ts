@@ -5,9 +5,15 @@ import renameWalletAndKeyPairsMigration from '../migrations/0004_rename_wallet_a
 
 import { StorageAdapter } from './storageAdapter'
 
+const migrations = [
+  initialSchemaMigration,
+  addAllWalletsMigrations,
+  addIndexToIdentitiesMigration,
+  renameWalletAndKeyPairsMigration
+]
+
 export default async function runMigrations (storageAdapter: StorageAdapter): Promise<void> {
-  await initialSchemaMigration(storageAdapter)
-  await addAllWalletsMigrations(storageAdapter)
-  await addIndexToIdentitiesMigration(storageAdapter)
-  await renameWalletAndKeyPairsMigration(storageAdapter)
+  for (const migrate of migrations) {
+    await migrate(storageAdapter)
+  }
 }

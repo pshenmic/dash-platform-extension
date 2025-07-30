@@ -1,9 +1,10 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 
-export default async function up (storageAdapter: StorageAdapter): Promise<void> {
+export default async function addAllWalletsMigrations (storageAdapter: StorageAdapter): Promise<void> {
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
   if (schemaVersion == 1) {
+    console.log('Running addAllWalletsMigrations')
     const walletIds = Object
         .entries(await storageAdapter.getAll())
         .map(([key, value]) => key)
@@ -12,7 +13,6 @@ export default async function up (storageAdapter: StorageAdapter): Promise<void>
 
     await storageAdapter.set('wallets', walletIds)
   }
-
 
   await storageAdapter.set('schema_version', 2)
 }
