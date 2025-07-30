@@ -24,6 +24,7 @@ interface Match {
       containerClasses?: string
       imgClasses?: string
       showLogo?: boolean
+      hideLeftSection?: boolean
     }
     [key: string]: any
   }
@@ -31,7 +32,7 @@ interface Match {
 }
 
 const headerStyles = cva(
-  'relative flex justify-between items-center',
+  'relative flex justify-between items-start',
   {
     variants: {
       rightType: {
@@ -55,6 +56,7 @@ export default function Header (): React.JSX.Element {
   
   const headerProps = deepestRoute?.handle?.headerProps
   const showLogo = headerProps?.showLogo ?? false
+  const hideLeftSection = headerProps?.hideLeftSection ?? false
   const imageType = headerProps?.imageType as ImageVariant | undefined
 
   const handleBack = (): void => {
@@ -62,23 +64,26 @@ export default function Header (): React.JSX.Element {
   }
 
   return (
-    <header className={headerStyles({
-      rightType: imageType ? 'image' : 'none'
-    })}
+    <header
+      className={headerStyles({
+        rightType: imageType ? 'image' : 'none'
+      })}
     >
-      <div>
-        {showLogo ? (
-          <img
-            src={useStaticAsset('dash_logo.svg')}
-            alt='Platform Explorer'
-            className='w-[2.25rem] h-[1.75rem] object-contain'
-          />
-        ) : (
-          <Button onClick={handleBack} colorScheme='lightGray'>
-            <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
-          </Button>
-        )}
-      </div>
+      {!hideLeftSection && (
+        <div>
+          {showLogo ? (
+            <img
+              src={useStaticAsset('dash_logo.svg')}
+              alt='Platform Explorer'
+              className='w-[2.25rem] h-[1.75rem] object-contain'
+            />
+          ) : (
+            <Button onClick={handleBack} colorScheme='lightGray'>
+              <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
+            </Button>
+          )}
+        </div>
+      )}
 
       {imageType && ((): React.JSX.Element => {
         const defaultVariant = IMAGE_VARIANTS[imageType]
@@ -90,7 +95,7 @@ export default function Header (): React.JSX.Element {
             <img
               src={useStaticAsset(defaultVariant.src)}
               alt={defaultVariant.alt}
-              className={`relative ${imgClasses} transition-all duration-100 max-w-[348px] max-h-[327px]`}
+              className={`relative w-[348px] h-auto max-w-none ${imgClasses}`}
             />
           </div>
         )
