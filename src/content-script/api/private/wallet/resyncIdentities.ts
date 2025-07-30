@@ -39,7 +39,7 @@ export class ResyncIdentitiesHandler implements APIHandler {
       throw new Error('Wallet is not chosen')
     }
 
-    if (wallet.walletType === WalletType.keystore) {
+    if (wallet.type === WalletType.keystore) {
       throw new Error('Resync identities is not available for keystore wallets')
     }
 

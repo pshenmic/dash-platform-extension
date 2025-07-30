@@ -55,7 +55,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
     const stateTransitionWASM = StateTransitionWASM.fromBytes(base64.decode(stateTransition.unsigned))
 
-    if (wallet.walletType === WalletType.keystore) {
+    if (wallet.type === WalletType.keystore) {
       const keyPairs = await this.keyPairRepository.getAllByIdentity(payload.identity)
       const [keyPair] = keyPairs
         .filter(keyPair => keyPair.identityPublicKey.securityLevel === 'HIGH' && keyPair.identityPublicKey.purpose === 'AUTHENTICATION')
@@ -95,7 +95,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       return {
         txHash: stateTransition.hash
       }
-    } else if (wallet.walletType === WalletType.seedphrase) {
+    } else if (wallet.type === WalletType.seedphrase) {
       throw new Error('Seedphrases are not supported yet')
     } else {
       throw new Error('Unsupported key wallet')

@@ -49,14 +49,14 @@ export class WalletRepository {
     const walletSchema: WalletStoreSchema = {
       label: null,
       network: Network[currentNetwork],
-      walletType,
+      type: walletType,
       walletId,
       encryptedMnemonic
     }
 
     await this.storageAdapter.set(storageKey, walletSchema)
 
-    return { ...walletSchema, walletType: WalletType[walletType] }
+    return { ...walletSchema, type: WalletType[walletType] }
   }
 
   async getCurrent (): Promise<Wallet | null> {
@@ -77,7 +77,7 @@ export class WalletRepository {
 
     return {
       walletId: wallet.walletId,
-      walletType: WalletType[wallet.walletType],
+      type: WalletType[wallet.type],
       network: Network[network],
       label: wallet.label,
       encryptedMnemonic: wallet.encryptedMnemonic
