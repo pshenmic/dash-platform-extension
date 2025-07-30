@@ -6,12 +6,13 @@ function NoWalletState(): React.JSX.Element {
   const navigate = useNavigate()
 
   const handleImportWallet = () => {
-    navigate('/')
+    navigate('/choose-wallet-import-type')
   }
 
   const handleCreateWallet = () => {
     // TODO: Implement create wallet functionality
     console.log('Create wallet clicked')
+    navigate('/create-wallet')
   }
 
   return (

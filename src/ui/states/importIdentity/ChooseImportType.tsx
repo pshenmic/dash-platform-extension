@@ -41,7 +41,7 @@ function ChooseImportType(): React.JSX.Element {
         navigate('/import-seed-phrase')
         break
       case 'keystore':
-        navigate('/import')
+        navigate('/import-keystore')
         break
       case 'phoneapp':
         // TODO: Navigate to phone app import when implemented
