@@ -16,6 +16,3 @@ export default async function addAllWalletsMigrations (storageAdapter: StorageAd
 
   await storageAdapter.set('schema_version', 2)
 }
-
-// set identityIndex to 0
-// rename keypairs and wallets

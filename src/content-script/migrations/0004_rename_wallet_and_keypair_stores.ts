@@ -5,8 +5,6 @@ export default async function renameWalletAndKeyPairsMigration (storageAdapter: 
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
   if (schemaVersion == 3) {
-    console.log('Running renameWalletAndKeyPairsMigration migration')
-
     const walletIds = await storageAdapter.get('wallets') as string[]
     const network = await storageAdapter.get('network')
 
@@ -27,6 +25,3 @@ export default async function renameWalletAndKeyPairsMigration (storageAdapter: 
 
   await storageAdapter.set('schema_version', 4)
 }
-
-// set identityIndex to 0
-// rename keypairs and wallets
