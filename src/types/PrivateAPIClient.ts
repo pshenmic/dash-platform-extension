@@ -29,6 +29,7 @@ import { Identity } from './Identity'
 import { WalletType } from './WalletType'
 import { ResyncIdentitiesPayload } from './messages/payloads/ResyncIdentitiesPayload'
 import { ResyncIdentitiesResponse } from './messages/response/ResyncIdentitiesResponse'
+import {ImportIdentityPayload} from "./messages/payloads/ImportIdentityPayload";
 
 export class PrivateAPIClient {
   constructor () {
@@ -70,6 +71,12 @@ export class PrivateAPIClient {
     const payload: SwitchWalletPayload = { walletId, network }
 
     return await this._rpcCall(MessagingMethods.SWITCH_WALLET, payload)
+  }
+
+  async importIdentity (identifier, privateKeys: string[]): Promise<void> {
+    const payload: ImportIdentityPayload = { identifier, privateKeys }
+
+    return await this._rpcCall(MessagingMethods.IMPORT_IDENTITY, payload)
   }
 
   async resyncIdentities (password: string): Promise<ResyncIdentitiesResponse> {
