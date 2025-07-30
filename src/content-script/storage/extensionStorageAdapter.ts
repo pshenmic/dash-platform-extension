@@ -1,6 +1,9 @@
 import { StorageAdapter } from './storageAdapter'
 
 export class ExtensionStorageAdapter implements StorageAdapter {
+  getAll = (): Promise<object> => {
+    return chrome.storage.local.get()
+  }
   get = async (key: string): Promise<object | string | number | null> => {
     const retrieved = await chrome.storage.local.get([key])
 
