@@ -1,4 +1,5 @@
 import { StorageAdapter } from '../storage/storageAdapter'
+import {KeyPairsSchema} from "../storage/storageSchema";
 
 export default async function renameWalletAndKeyPairsMigration (storageAdapter: StorageAdapter): Promise<void> {
   const schemaVersion = await storageAdapter.get('schema_version') as number
@@ -17,9 +18,9 @@ export default async function renameWalletAndKeyPairsMigration (storageAdapter: 
     }
 
     for (const walletId of walletIds) {
-      const wallet = await storageAdapter.get(`keyPairs_${walletId}_${network}`)
+      const keyPairs = await storageAdapter.get(`keyPairs_${walletId}_${network}`) as KeyPairsSchema
 
-      await storageAdapter.set(`keyPairs_${network}_${walletId}`, wallet)
+      await storageAdapter.set(`keyPairs_${network}_${walletId}`, keyPairs)
       await storageAdapter.remove(`keyPairs_${walletId}_${network}`)
     }
   }
