@@ -1,12 +1,17 @@
 import React, { useState } from 'react'
 import { Text, Heading, Button, Input, Switch, ProgressStepBar } from 'dash-ui/react'
 import { useNavigate } from 'react-router-dom'
-// import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { WalletType } from '../../../types/WalletType'
+import { withAuthCheck } from '../../components/auth/withAuthCheck'
 
 function ImportSeedPhrase(): React.JSX.Element {
   const navigate = useNavigate()
+  const extensionAPI = useExtensionAPI()
   const [seedWords, setSeedWords] = useState<string[]>(Array(12).fill(''))
   const [wordCount, setWordCount] = useState<12 | 24>(12)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const wordCountOptions = [
     { label: '12 Word', value: 12 },
@@ -89,17 +94,51 @@ function ImportSeedPhrase(): React.JSX.Element {
       })
       setSeedWords(newWords)
     } catch (error) {
-      console.error('Error pasting from clipboard:', error)
+      console.warn('Error pasting from clipboard:', error)
     }
   }
 
-  const handleImport = () => {
-    const validWords = seedWords.filter(word => word.trim() !== '')
-    console.log('Importing seed phrase:', validWords)
-    
-    // TODO: Implement actual seed phrase import logic here
-    // For now, just navigate to success page
-    navigate('/wallet-success')
+  const handleImport = async (): Promise<void> => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const validWords = seedWords.slice(0, wordCount).filter(word => word.trim() !== '')
+      const mnemonic = validWords.join(' ')
+      
+      console.log('Importing seed phrase:', mnemonic)
+
+      // Create wallet with seed phrase
+      const { walletId } = await extensionAPI.createWallet(WalletType.seedphrase, mnemonic)
+      console.log('Created wallet with ID:', walletId)
+
+      // Switch to the new wallet
+      await extensionAPI.switchWallet(walletId, 'testnet')
+      console.log('Switched to wallet:', walletId)
+
+      // Get wallet information
+      try {
+        const identities = await extensionAPI.getIdentities()
+        console.log('Available identities:', identities)
+
+        const currentIdentity = await extensionAPI.getCurrentIdentity()
+        console.log('Current identity:', currentIdentity)
+
+        // TODO: Get balance and other wallet information when available
+        console.log('Wallet imported successfully!')
+      } catch (infoError) {
+        console.warn('Could not load wallet information:', infoError)
+        // Continue to success screen even if we can't load info immediately
+      }
+
+      // Navigate to success screen
+      navigate('/wallet-created')
+    } catch (err) {
+      console.warn('Import failed:', err)
+      setError((err as Error).message || 'Failed to import seed phrase')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const isImportDisabled = seedWords.slice(0, wordCount).some(word => word.trim() === '')
@@ -147,15 +186,24 @@ function ImportSeedPhrase(): React.JSX.Element {
         </div>
       </div>
 
+      {/* Error Display */}
+      {error != null && (
+        <div className='mb-4'>
+          <Text color='red' size='sm'>
+            {error}
+          </Text>
+        </div>
+      )}
+
       {/* Import Button */}
       <div className='mb-6'>
         <Button
-          onClick={handleImport}
-          disabled={isImportDisabled}
+          onClick={() => void handleImport()}
+          disabled={isImportDisabled || isLoading}
           colorScheme='brand'
           className='w-full'
         >
-          Import Identity
+          {isLoading ? 'Importing...' : 'Import Identity'}
         </Button>
       </div>
 
@@ -167,5 +215,4 @@ function ImportSeedPhrase(): React.JSX.Element {
   )
 }
 
-// export default withAuthCheck(ImportSeedPhrase)
-export default ImportSeedPhrase
+export default withAuthCheck(ImportSeedPhrase)
