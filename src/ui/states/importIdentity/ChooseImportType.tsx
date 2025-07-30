@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Text, Heading, ValueCard, ProgressStepBar } from 'dash-ui/react'
+import { Text, Heading, ValueCard, ProgressStepBar, DashLogo } from 'dash-ui/react'
 import { useNavigate } from 'react-router-dom'
 
 interface ImportOption {
@@ -50,12 +50,14 @@ function ChooseImportType(): React.JSX.Element {
   }
 
   return (
-    <div className='flex flex-col h-full bg-white pb-12'>
+    <div className='flex flex-col h-full bg-white -mt-5 pb-12'>
       <div className='mb-8'>
         <div className='flex items-start gap-3'>
-          <div className='flex-1'>
-            <Heading level={1} className='text-3xl font-extrabold text-gray-900 mb-2 leading-tight'>
-              Choose Import Type
+          <div className='flex flex-col gap-2.5 flex-1'>
+            <DashLogo containerSize='3rem'/>
+
+            <Heading level={1} className='text-3xl font-extrabold text-gray-900 leading-tight'>
+              Choose Wallet Type
             </Heading>
             <div className='!leading-tight'>
               <Text size='sm' dim>
@@ -73,11 +75,9 @@ function ChooseImportType(): React.JSX.Element {
             key={option.id}
             onClick={() => handleOptionSelect(option.id)}
             disabled={option.disabled}
-            className={`w-full p-4 cursor-pointer transition-all ${
-              option.disabled 
-                ? 'opacity-50 cursor-not-allowed' 
-                : 'hover:bg-gray-50'
-            }`}
+            colorScheme='lightGray'
+            border={false}
+            clickable={!option.disabled}
           >
             <div className='flex items-center gap-4'>
               {/* Check icon placeholder */}
