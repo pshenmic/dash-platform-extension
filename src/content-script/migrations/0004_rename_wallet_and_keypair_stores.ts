@@ -14,15 +14,8 @@ export default async function up (storageAdapter: StorageAdapter): Promise<void>
       await storageAdapter.remove(`wallet_${walletId}_${network}`)
     }
 
-    const keyPairKeys = Object
-        .entries(await storageAdapter.getAll())
-        .map(([key, value]) => key)
-        .filter(key => key.startsWith('keyPairs_'))
-
-    for (const keyPairKey of keyPairKeys) {
-      const wallet = await storageAdapter.get(keyPairKey)
-
-      const [, walletId, network] = keyPairKey.split('_')
+    for (const walletId of walletIds) {
+      const wallet = await storageAdapter.get(`wallet_${walletId}_${network}`)
 
       await storageAdapter.set(`keyPairs_${network}_${walletId}`, wallet)
       await storageAdapter.remove(`keyPairs_${walletId}_${network}`)
