@@ -90,7 +90,7 @@ export default function Header (): React.JSX.Element {
             <img
               src={useStaticAsset(defaultVariant.src)}
               alt={defaultVariant.alt}
-              className={`relative ${imgClasses} max-w-[348px] max-h-[327px]`}
+              className={`relative ${imgClasses} transition-all duration-100 max-w-[348px] max-h-[327px]`}
             />
           </div>
         )
