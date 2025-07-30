@@ -21,7 +21,7 @@ function ImportSeedPhrase(): React.JSX.Element {
 
   const handleWordCountChange = (count: 12 | 24) => {
     setWordCount(count)
-    // Расширяем или сокращаем массив слов
+
     if (count === 24 && seedWords.length === 12) {
       setSeedWords([...seedWords, ...Array(12).fill('')])
     } else if (count === 12 && seedWords.length === 24) {
@@ -29,8 +29,71 @@ function ImportSeedPhrase(): React.JSX.Element {
     }
   }
 
+  const extractWords = (text: string): string[] => {
+    return text
+      .trim()
+      .split(/[\s,\n\t]+/)
+      .filter(word => word.length > 0)
+      .map(word => word.toLowerCase().trim())
+  }
+
+  const fillWordsToLength = (words: string[], targetLength: number): string[] => {
+    return [...words, ...Array(Math.max(0, targetLength - words.length)).fill('')]
+  }
+
+  const shouldAutoSwitchWordCount = (
+    words: string[], 
+    startIndex: number, 
+    currentWordCount: 12 | 24,
+    currentSeedWords: string[]
+  ): boolean => {
+    if (startIndex !== 0) return false
+    
+    const wordLength = words.length
+    if (wordLength === 24 && currentWordCount === 12) {
+      return true
+    }
+
+    if (wordLength === 12 && currentWordCount === 24) {
+      return currentSeedWords.slice(12, 24).every(word => !word.trim())
+    }
+    
+    return false
+  }
+
+  const handlePaste = (startIndex: number) => async (event: React.ClipboardEvent) => {
+    event.preventDefault()
+    
+    try {
+      const clipboardText = event.clipboardData.getData('text')
+      if (!clipboardText.trim()) return
+
+      const words = extractWords(clipboardText)
+      if (words.length === 0) return
+
+      // Check if we need to auto-switch word count
+      if (shouldAutoSwitchWordCount(words, startIndex, wordCount, seedWords)) {
+        const newWordCount = wordCount === 12 ? 24 : 12
+        setWordCount(newWordCount)
+        setSeedWords(fillWordsToLength(words, newWordCount))
+        return
+      }
+
+      // Fill the existing array starting from the selected index
+      const newWords = [...seedWords]
+      words.forEach((word, index) => {
+        const targetIndex = startIndex + index
+        if (targetIndex < wordCount) {
+          newWords[targetIndex] = word
+        }
+      })
+      setSeedWords(newWords)
+    } catch (error) {
+      console.error('Error pasting from clipboard:', error)
+    }
+  }
+
   const handleImport = () => {
-    // Логика импорта сид-фразы
     const validWords = seedWords.filter(word => word.trim() !== '')
     console.log('Importing seed phrase:', validWords)
     
@@ -76,6 +139,7 @@ function ImportSeedPhrase(): React.JSX.Element {
               key={index}
               value={seedWords[index] || ''}
               onChange={(e) => handleWordChange(index, e.target.value)}
+              onPaste={handlePaste(index)}
               prefix={`${index + 1}.`}
               placeholder=''
             />
