@@ -42,7 +42,7 @@ function HomeState (): React.JSX.Element {
             await extensionAPI.switchIdentity(availableIdentities[0])
             setCurrentIdentity(availableIdentities[0])
           } catch (error) {
-            console.error('Failed to set current identity:', error)
+            console.warn('Failed to set current identity:', error)
           }
         }
 
@@ -70,7 +70,7 @@ function HomeState (): React.JSX.Element {
           }
         }
       } catch (error) {
-        console.error('Failed to load data:', error)
+        console.warn('Failed to load data:', error)
       } finally {
         setIsLoading(false)
       }

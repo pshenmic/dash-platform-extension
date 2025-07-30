@@ -51,7 +51,7 @@ function AppConnectState (): React.JSX.Element {
       await extensionAPI.approveAppConnect(params.id)
       window.close()
     } catch (error) {
-      console.error('Error during approval:', error)
+      console.warn('Error during approval:', error)
       setError('Failed to approve connection')
       setProcessingStatus(null)
     }
@@ -65,7 +65,7 @@ function AppConnectState (): React.JSX.Element {
       await extensionAPI.rejectAppConnect(params.id)
       window.close()
     } catch (error) {
-      console.error('Error during rejection:', error)
+      console.warn('Error during rejection:', error)
       setError('Failed to reject connection')
       setProcessingStatus(null)
     }

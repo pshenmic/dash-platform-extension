@@ -27,7 +27,7 @@ export default function StartState (): React.JSX.Element {
         }
       } catch (err) {
         setError('Failed to check status: ' + String(err))
-        console.error(err)
+        console.warn(err)
       } finally {
         setIsLoading(false)
       }

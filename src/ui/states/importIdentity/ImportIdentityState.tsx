@@ -31,7 +31,7 @@ function ImportIdentityState (): React.JSX.Element {
         }
         setIsCheckingWallet(false)
       } catch (error) {
-        console.error('Failed to check wallet status:', error)
+        console.warn('Failed to check wallet status:', error)
         void navigate('/create-wallet')
       }
     }
@@ -153,7 +153,7 @@ function ImportIdentityState (): React.JSX.Element {
 
     run()
       .catch(e => {
-        console.error(e)
+        console.warn(e)
 
         // Check if it's a wallet not found error
         if ((e)?.message?.includes('Wallet not found') === true) {
@@ -168,7 +168,7 @@ function ImportIdentityState (): React.JSX.Element {
   }
 
   const handleCheckClick = (): void => {
-    checkPrivateKey().catch(console.error)
+    checkPrivateKey().catch(console.warn)
   }
 
   // Show loading screen while checking wallet
