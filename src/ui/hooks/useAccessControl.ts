@@ -50,7 +50,6 @@ export function useAccessControl (config: Partial<AccessControlConfig> = {}): Ac
           return
         }
 
-        // All required checks passed
         setState({ isLoading: false, isAuthenticated: true, error: null })
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Authentication check failed'
