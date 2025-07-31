@@ -24,7 +24,12 @@ const App: React.FC = function () {
         {
           index: true,
           path: '/',
-          element: <StartState />
+          element: <StartState />,
+          handle: {
+            headerProps: {
+              hideLeftSection: true
+            }
+          }
         },
         {
           path: '/choose-wallet-import-type',
