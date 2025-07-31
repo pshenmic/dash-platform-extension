@@ -2,6 +2,7 @@ import React from 'react'
 import { Text, Heading, Button, DashLogo } from 'dash-ui/react'
 import { useNavigate } from 'react-router-dom'
 import { useStaticAsset } from '../../hooks/useStaticAsset'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 
 function WalletSuccessfullyCreated(): React.JSX.Element {
   const navigate = useNavigate()
@@ -11,25 +12,23 @@ function WalletSuccessfullyCreated(): React.JSX.Element {
   }
 
   return (
-    <div className='relative flex flex-col h-full'>
-      <div className='absolute inset-0 pointer-events-none'>
+    <div className='flex flex-col h-full'>
+      <div className='absolute top-0 left-0 w-full h-full overflow-hidden inset-0 pointer-events-none'>
         <img
           src={useStaticAsset('spiral-of-squares.png')}
           alt='Dashboard App'
-          // className='absolute w-[900px] h-[214px] max-w-none -left-[69px] -bottom-[580px] transform rotate-8'
           className='absolute w-[900px] -left-[65%] max-w-none -top-[709px]'
         />
 
         <img
           src={useStaticAsset('spiral-of-squares.png')}
           alt='Dashboard App'
-          // className='absolute w-[900px] left-[50%] top-[194px] rotate-8 opacity-90'
           className='absolute w-[900px] -left-[50%] max-w-none -bottom-[580px] rotate-8'
         />
       </div>
 
       {/* Main Content */}
-      <div className='relative z-10 flex flex-col h-full pt-24 pb-36'>
+      <div className='z-10 flex flex-col h-full pt-16 pb-36'>
         <div className='flex flex-col items-center text-center gap-2.5 mb-8'>
           <div className='flex items-center justify-center w-12 h-12'>
             <DashLogo/>
@@ -63,4 +62,5 @@ function WalletSuccessfullyCreated(): React.JSX.Element {
   )
 }
 
-export default WalletSuccessfullyCreated
+export default withAccessControl(WalletSuccessfullyCreated)
+
