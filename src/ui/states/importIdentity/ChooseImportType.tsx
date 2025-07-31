@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Text, Heading, ValueCard, ProgressStepBar, DashLogo } from 'dash-ui/react'
 import { useNavigate } from 'react-router-dom'
 
@@ -11,7 +11,6 @@ interface ImportOption {
 
 function ChooseImportType(): React.JSX.Element {
   const navigate = useNavigate()
-  const [selectedOption, setSelectedOption] = useState<string>('')
 
   const importOptions: ImportOption[] = [
     {
@@ -32,9 +31,7 @@ function ChooseImportType(): React.JSX.Element {
   const handleOptionSelect = (optionId: string) => {
     const option = importOptions.find(opt => opt.id === optionId)
     if (option?.disabled) return
-    
-    setSelectedOption(optionId)
-    
+
     // Navigate based on selected option
     switch (optionId) {
       case 'seedphrase':
@@ -44,7 +41,6 @@ function ChooseImportType(): React.JSX.Element {
         navigate('/import-keystore')
         break
       case 'phoneapp':
-        // TODO: Navigate to phone app import when implemented
         break
     }
   }
@@ -82,29 +78,29 @@ function ChooseImportType(): React.JSX.Element {
             <div className='flex items-center gap-4'>
               {/* Check icon placeholder */}
               <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                option.disabled 
-                  ? 'border-gray-300 bg-gray-100' 
+                option.disabled
+                  ? 'border-gray-300 bg-gray-100'
                   : 'border-blue-500 bg-blue-50'
               }`}>
                 {!option.disabled && (
-                  <svg 
-                    width="14" 
-                    height="14" 
-                    viewBox="0 0 14 14" 
-                    fill="none"
+                  <svg
+                    width='14'
+                    height='14'
+                    viewBox='0 0 14 14'
+                    fill='none'
                     className='text-blue-500'
                   >
-                    <path 
-                      d="M11.6667 3.5L5.25 9.91667L2.33334 7" 
-                      stroke="currentColor" 
-                      strokeWidth="1.5" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
+                    <path
+                      d='M11.6667 3.5L5.25 9.91667L2.33334 7'
+                      stroke='currentColor'
+                      strokeWidth='1.5'
+                      strokeLinecap='round' 
+                      strokeLinejoin='round'
                     />
                   </svg>
                 )}
               </div>
-              
+
               <Text className={`font-bold text-base ${
                 option.disabled ? 'text-gray-400' : 'text-gray-900'
               }`}>
