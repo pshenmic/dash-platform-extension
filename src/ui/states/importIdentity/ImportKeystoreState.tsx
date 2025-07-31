@@ -19,7 +19,7 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType } from '../../../types/WalletType'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 
-function ImportIdentityState (): React.JSX.Element {
+function ImportKeystoreState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
 
@@ -292,6 +292,6 @@ function ImportIdentityState (): React.JSX.Element {
   )
 }
 
-export default withAccessControl(ImportIdentityState, {
+export default withAccessControl(ImportKeystoreState, {
   requireWallet: false
 })
