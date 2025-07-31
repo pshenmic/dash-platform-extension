@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import HomeState from './states/home/HomeState'
-import ImportIdentityState from './states/importIdentity/ImportIdentityState'
+import ImportKeystoreState from './states/importIdentity/ImportKeystoreState'
 import StartState from './states/start/StartState'
 import SetupPasswordState from './states/setup/SetupPasswordState'
 import LoginState from './states/login/LoginState'
@@ -99,7 +99,7 @@ const App: React.FC = function () {
         },
         {
           path: '/import-keystore',
-          element: <ImportIdentityState />,
+          element: <ImportKeystoreState />,
           handle: {
             headerProps: {
               imageType: 'coins',
