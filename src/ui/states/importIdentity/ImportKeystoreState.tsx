@@ -120,7 +120,6 @@ function ImportKeystoreState (): React.JSX.Element {
 
   const importIdentity = (): void => {
     const run = async (): Promise<void> => {
-      // Prepare data for CREATE_IDENTITY
       if (identity == null) {
         return setError('Could not load identity')
       }
@@ -133,9 +132,7 @@ function ImportKeystoreState (): React.JSX.Element {
       await extensionAPI.switchWallet(walletId, 'testnet')
 
       const identifier = identity.id.base58()
-
       const privateKeyHex = privateKey.length === 64 ? privateKey : privateKeyWASM.hex()
-
       const privateKeys = [privateKeyHex]
 
       await extensionAPI.importIdentity(identifier, privateKeys)
