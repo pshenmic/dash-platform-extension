@@ -55,7 +55,7 @@ const App: React.FC = function () {
             headerProps: {
               imageType: 'coins',
               containerClasses: '',
-              imgClasses: '!w-[109%] -mt-[70%] right-[4.5%]',
+              imgClasses: '!w-[109%] -mt-[67%] right-[7%]',
               hideLeftSection: true
             }
           }
@@ -83,7 +83,15 @@ const App: React.FC = function () {
         },
         {
           path: '/login',
-          element: <LoginState />
+          element: <LoginState />,
+          handle: {
+            headerProps: {
+              imageType: 'coins',
+              containerClasses: '',
+              imgClasses: '!w-[109%] -mt-[67%] right-[7%]',
+              hideLeftSection: true
+            }
+          }
         },
         {
           path: '/create-wallet',
