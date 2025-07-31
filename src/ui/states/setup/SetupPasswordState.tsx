@@ -40,16 +40,18 @@ export default function SetupPasswordState (): React.JSX.Element {
   }
 
   return (
-    <div className='flex flex-col gap-4 -mt-5'>
-      <DashLogo containerSize='3rem'/>
+    <div className='flex flex-col gap-2.5 -mt-5'>
+      <div className='flex flex-col gap-2.5 mb-6'>
+        <DashLogo containerSize='3rem'/>
 
-      <Heading level={1} size='2xl'>
-        Create Password
-      </Heading>
+        <Heading level={1} size='2xl'>
+          Create Password
+        </Heading>
 
-      <Text dim className='leading-tight' size='sm'>
-        You will use this password to unlock your wallet. Do not share your password with others
-      </Text>
+        <Text dim className='leading-tight' size='sm'>
+          You will use this password to unlock your wallet. Do not share your password with others
+        </Text>
+      </div>
 
       <div className='flex flex-col gap-2'>
         <Text dim>
