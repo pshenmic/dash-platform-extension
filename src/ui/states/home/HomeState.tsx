@@ -32,9 +32,6 @@ function HomeState (): React.JSX.Element {
         setIdentities(availableIdentities ?? [])
         setCurrentIdentity(current)
 
-        console.log('availableIdentities', availableIdentities)
-        console.log('current', current)
-
         // Auto-set first identity as current if no current identity is set
         if ((current == null || current === '') && (availableIdentities?.length ?? 0) > 0) {
           console.log('Setting first identity as current:', availableIdentities[0])
