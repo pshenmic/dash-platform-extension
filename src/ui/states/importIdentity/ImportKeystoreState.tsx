@@ -145,8 +145,6 @@ function ImportKeystoreState (): React.JSX.Element {
 
     run()
       .catch(e => {
-        console.warn(e)
-
         setError((e)?.message ?? e?.toString() ?? 'Unknown error')
       })
       .finally(() => setIsLoading(false))
