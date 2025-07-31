@@ -3,7 +3,7 @@ import { Text, Heading, Button, Input, Switch, ProgressStepBar } from 'dash-ui/r
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { WalletType } from '../../../types/WalletType'
-import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 
 function ImportSeedPhrase(): React.JSX.Element {
   const navigate = useNavigate()
@@ -215,4 +215,7 @@ function ImportSeedPhrase(): React.JSX.Element {
   )
 }
 
-export default withAuthCheck(ImportSeedPhrase)
+export default withAccessControl(ImportSeedPhrase, { 
+  requirePassword: true, 
+  requireWallet: false 
+})

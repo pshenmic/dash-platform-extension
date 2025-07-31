@@ -5,7 +5,7 @@ import { TransactionTypes } from '../../../enums/TransactionTypes'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
-import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 import './home.state.css'
 
 function HomeState (): React.JSX.Element {
@@ -180,4 +180,4 @@ function HomeState (): React.JSX.Element {
   )
 }
 
-export default withAuthCheck(HomeState)
+export default withAccessControl(HomeState)

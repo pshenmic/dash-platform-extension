@@ -6,7 +6,7 @@ import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui/reac
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { StateTransitionWASM } from 'pshenmic-dpp'
-import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 
 function ApproveTransactionState (): React.JSX.Element {
@@ -399,4 +399,4 @@ function ApproveTransactionState (): React.JSX.Element {
   )
 }
 
-export default withAuthCheck(ApproveTransactionState)
+export default withAccessControl(ApproveTransactionState)

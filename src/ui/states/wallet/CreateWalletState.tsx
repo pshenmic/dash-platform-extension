@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button, List, Text, ValueCard } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { WalletType } from '../../../types/WalletType'
-import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 
 function CreateWalletState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -76,4 +76,7 @@ function CreateWalletState (): React.JSX.Element {
   )
 }
 
-export default withAuthCheck(CreateWalletState)
+export default withAccessControl(CreateWalletState, {
+  requirePassword: true,
+  requireWallet: false
+})
