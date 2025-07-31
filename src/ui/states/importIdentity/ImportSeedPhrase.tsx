@@ -173,14 +173,14 @@ function ImportSeedPhrase(): React.JSX.Element {
       {/* Password Input */}
       <div className='mb-8'>
         <Text size='sm' dim>
-          Enter your wallet password to complete the import:
+          Enter your password to complete the import:
         </Text>
         <Input
           type='password'
           size='xl'
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder='Wallet password'
+          placeholder='Extension password'
           className='w-full'
         />
       </div>
