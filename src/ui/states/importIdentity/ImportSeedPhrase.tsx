@@ -216,6 +216,5 @@ function ImportSeedPhrase(): React.JSX.Element {
 }
 
 export default withAccessControl(ImportSeedPhrase, { 
-  requirePassword: true, 
   requireWallet: false 
 })

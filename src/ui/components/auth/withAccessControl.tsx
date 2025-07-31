@@ -5,7 +5,7 @@ import { Text } from 'dash-ui/react'
 
 export function withAccessControl<T extends object> (
   Component: React.ComponentType<T>,
-  config?: AccessControlConfig
+  config?: Partial<AccessControlConfig>
 ) {
   return function AccessControlledComponent (props: T) {
     const { isLoading, isAuthenticated, error } = useAccessControl(config)

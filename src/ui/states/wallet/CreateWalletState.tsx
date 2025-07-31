@@ -77,6 +77,5 @@ function CreateWalletState (): React.JSX.Element {
 }
 
 export default withAccessControl(CreateWalletState, {
-  requirePassword: true,
   requireWallet: false
 })
