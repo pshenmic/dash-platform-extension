@@ -10,6 +10,7 @@ function ImportSeedPhrase(): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const [seedWords, setSeedWords] = useState<string[]>(Array(12).fill(''))
   const [wordCount, setWordCount] = useState<12 | 24>(12)
+  const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -105,34 +106,17 @@ function ImportSeedPhrase(): React.JSX.Element {
     try {
       const validWords = seedWords.slice(0, wordCount).filter(word => word.trim() !== '')
       const mnemonic = validWords.join(' ')
-      
-      console.log('Importing seed phrase:', mnemonic)
 
-      // Create wallet with seed phrase
       const { walletId } = await extensionAPI.createWallet(WalletType.seedphrase, mnemonic)
-      console.log('Created wallet with ID:', walletId)
-
-      // Switch to the new wallet
       await extensionAPI.switchWallet(walletId, 'testnet')
-      console.log('Switched to wallet:', walletId)
+      await extensionAPI.resyncIdentities(password)
+      const identities = await extensionAPI.getIdentities()
 
-      // Get wallet information
-      try {
-        const identities = await extensionAPI.getIdentities()
-        console.log('Available identities:', identities)
-
-        const currentIdentity = await extensionAPI.getCurrentIdentity()
-        console.log('Current identity:', currentIdentity)
-
-        // TODO: Get balance and other wallet information when available
-        console.log('Wallet imported successfully!')
-      } catch (infoError) {
-        console.warn('Could not load wallet information:', infoError)
-        // Continue to success screen even if we can't load info immediately
+      if (identities.length > 0) {
+        navigate('/wallet-created')
+      } else {
+        setError('No identities found for this seed phrase. The wallet was created but contains no identities.')
       }
-
-      // Navigate to success screen
-      navigate('/wallet-created')
     } catch (err) {
       console.warn('Import failed:', err)
       setError((err as Error).message || 'Failed to import seed phrase')
@@ -141,10 +125,10 @@ function ImportSeedPhrase(): React.JSX.Element {
     }
   }
 
-  const isImportDisabled = seedWords.slice(0, wordCount).some(word => word.trim() === '')
+  const isImportDisabled = seedWords.slice(0, wordCount).some(word => word.trim() === '') || password.trim() === ''
 
   return (
-    <div className='flex flex-col h-full bg-white pb-12'>
+    <div className='flex flex-col min-h-full shrink-0 bg-white pb-12'>
       <div className='mb-6'>
         <div className='flex items-start gap-3'>
           <div className='flex-1'>
@@ -170,7 +154,7 @@ function ImportSeedPhrase(): React.JSX.Element {
       </div>
 
       {/* Seed Words Grid */}
-      <div className='mb-8'>
+      <div className='mb-6'>
         <div className='grid grid-cols-3 gap-2.5'>
           {Array.from({ length: wordCount }, (_, index) => (
             <Input
@@ -184,6 +168,21 @@ function ImportSeedPhrase(): React.JSX.Element {
             />
           ))}
         </div>
+      </div>
+
+      {/* Password Input */}
+      <div className='mb-8'>
+        <Text size='sm' dim>
+          Enter your wallet password to complete the import:
+        </Text>
+        <Input
+          type='password'
+          size='xl'
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder='Wallet password'
+          className='w-full'
+        />
       </div>
 
       {/* Error Display */}
