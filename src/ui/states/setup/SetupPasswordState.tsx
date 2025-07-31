@@ -42,7 +42,7 @@ export default function SetupPasswordState (): React.JSX.Element {
   return (
     <div className='flex flex-col gap-2.5 -mt-5'>
       <div className='flex flex-col gap-2.5 mb-6'>
-        <DashLogo containerSize='3rem'/>
+        <DashLogo containerSize='3rem' />
 
         <Heading level={1} size='2xl'>
           Create Password

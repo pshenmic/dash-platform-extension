@@ -4,11 +4,11 @@ import { useNavigate } from 'react-router-dom'
 import { useStaticAsset } from '../../hooks/useStaticAsset'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 
-function WalletSuccessfullyCreated(): React.JSX.Element {
+function WalletSuccessfullyCreated (): React.JSX.Element {
   const navigate = useNavigate()
 
-  const handleContinue = () => {
-    navigate('/home')
+  const handleContinue = (): void => {
+    void navigate('/home')
   }
 
   return (
@@ -31,13 +31,13 @@ function WalletSuccessfullyCreated(): React.JSX.Element {
       <div className='z-10 flex flex-col h-full pt-16 pb-36'>
         <div className='flex flex-col items-center text-center gap-2.5 mb-8'>
           <div className='flex items-center justify-center w-12 h-12'>
-            <DashLogo/>
+            <DashLogo />
           </div>
 
           <Heading level={1}>
-            Your Wallet Was<br/><span className='text-dash-brand'>Successfully Created</span>
+            Your Wallet Was<br /><span className='text-dash-brand'>Successfully Created</span>
           </Heading>
-          
+
           <Text size='sm' dim className='text-center max-w-xs'>
             Enjoy the best Dash Platform experience in browser!
           </Text>
@@ -63,4 +63,3 @@ function WalletSuccessfullyCreated(): React.JSX.Element {
 }
 
 export default withAccessControl(WalletSuccessfullyCreated)
-

@@ -18,7 +18,7 @@ interface ImportOption {
   disabled?: boolean
 }
 
-function ChooseImportType(): React.JSX.Element {
+function ChooseImportType (): React.JSX.Element {
   const navigate = useNavigate()
 
   const importOptions: ImportOption[] = [
@@ -40,17 +40,17 @@ function ChooseImportType(): React.JSX.Element {
     }
   ]
 
-  const handleOptionSelect = (optionId: string) => {
+  const handleOptionSelect = (optionId: string): void => {
     const option = importOptions.find(opt => opt.id === optionId)
-    if (option?.disabled) return
+    if (option?.disabled === true) return
 
     // Navigate based on selected option
     switch (optionId) {
       case 'seedphrase':
-        navigate('/import-seed-phrase')
+        void navigate('/import-seed-phrase')
         break
       case 'keystore':
-        navigate('/import-keystore')
+        void navigate('/import-keystore')
         break
       case 'phoneapp':
         break
@@ -62,7 +62,7 @@ function ChooseImportType(): React.JSX.Element {
       <div className='mb-8'>
         <div className='flex items-start gap-3'>
           <div className='flex flex-col gap-2.5 flex-1'>
-            <DashLogo containerSize='3rem'/>
+            <DashLogo containerSize='3rem' />
 
             <Heading level={1} className='text-3xl font-extrabold text-gray-900 leading-tight'>
               Choose Wallet Type
@@ -85,21 +85,23 @@ function ChooseImportType(): React.JSX.Element {
             disabled={option.disabled}
             colorScheme='lightGray'
             border={false}
-            clickable={!option.disabled}
+            clickable={option.disabled !== true}
           >
             <div className='flex items-center gap-4'>
               {/* Option icon */}
               <div className={`w-8 h-8 flex items-center justify-center bg-dash-brand/15 rounded-full ${
-                option.disabled
+                option.disabled === true
                   ? 'text-gray-400'
                   : 'text-blue-500'
-              }`}>
+              }`}
+              >
                 {option.icon}
               </div>
 
               <Text className={`font-bold text-base ${
-                option.disabled ? 'text-gray-400' : 'text-gray-900'
-              }`}>
+                option.disabled === true ? 'text-gray-400' : 'text-gray-900'
+              }`}
+              >
                 {option.title}
               </Text>
             </div>

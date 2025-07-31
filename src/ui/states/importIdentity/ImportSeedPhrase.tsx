@@ -5,7 +5,7 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { WalletType } from '../../../types/WalletType'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 
-function ImportSeedPhrase(): React.JSX.Element {
+function ImportSeedPhrase (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [seedWords, setSeedWords] = useState<string[]>(Array(12).fill(''))
@@ -19,13 +19,13 @@ function ImportSeedPhrase(): React.JSX.Element {
     { label: '24 Word', value: 24 }
   ]
 
-  const handleWordChange = (index: number, value: string) => {
+  const handleWordChange = (index: number, value: string): void => {
     const newWords = [...seedWords]
     newWords[index] = value
     setSeedWords(newWords)
   }
 
-  const handleWordCountChange = (count: 12 | 24) => {
+  const handleWordCountChange = (count: 12 | 24): void => {
     setWordCount(count)
 
     if (count === 24 && seedWords.length === 12) {
@@ -48,31 +48,31 @@ function ImportSeedPhrase(): React.JSX.Element {
   }
 
   const shouldAutoSwitchWordCount = (
-    words: string[], 
-    startIndex: number, 
+    words: string[],
+    startIndex: number,
     currentWordCount: 12 | 24,
     currentSeedWords: string[]
   ): boolean => {
     if (startIndex !== 0) return false
-    
+
     const wordLength = words.length
     if (wordLength === 24 && currentWordCount === 12) {
       return true
     }
 
     if (wordLength === 12 && currentWordCount === 24) {
-      return currentSeedWords.slice(12, 24).every(word => !word.trim())
+      return currentSeedWords.slice(12, 24).every(word => word.trim().length === 0)
     }
-    
+
     return false
   }
 
   const handlePaste = (startIndex: number) => async (event: React.ClipboardEvent) => {
     event.preventDefault()
-    
+
     try {
       const clipboardText = event.clipboardData.getData('text')
-      if (!clipboardText.trim()) return
+      if (clipboardText.trim().length === 0) return
 
       const words = extractWords(clipboardText)
       if (words.length === 0) return
@@ -113,19 +113,19 @@ function ImportSeedPhrase(): React.JSX.Element {
       const identities = await extensionAPI.getIdentities()
 
       if (identities.length > 0) {
-        navigate('/wallet-created')
+        void navigate('/wallet-created')
       } else {
         setError('No identities found for this seed phrase. The wallet was created but contains no identities.')
       }
     } catch (err) {
       console.warn('Import failed:', err)
-      setError((err as Error).message || 'Failed to import seed phrase')
+      setError((err as Error).message.length > 0 ? (err as Error).message : 'Failed to import seed phrase')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const isImportDisabled = seedWords.slice(0, wordCount).some(word => word.trim() === '') || password.trim() === ''
+  const isImportDisabled = seedWords.slice(0, wordCount).some(word => word.trim().length === 0) || password.trim().length === 0
 
   return (
     <div className='flex flex-col min-h-full shrink-0 bg-white -mt-5 pb-12'>
@@ -160,7 +160,7 @@ function ImportSeedPhrase(): React.JSX.Element {
             <Input
               size='md'
               key={index}
-              value={seedWords[index] || ''}
+              value={seedWords[index] ?? ''}
               onChange={(e) => handleWordChange(index, e.target.value)}
               onPaste={handlePaste(index)}
               prefix={`${index + 1}.`}
@@ -197,7 +197,7 @@ function ImportSeedPhrase(): React.JSX.Element {
       {/* Import Button */}
       <div className='mb-6'>
         <Button
-          onClick={() => void handleImport()}
+          onClick={() => { handleImport().catch(console.error); return undefined }}
           disabled={isImportDisabled || isLoading}
           colorScheme='brand'
           className='w-full'
@@ -214,6 +214,6 @@ function ImportSeedPhrase(): React.JSX.Element {
   )
 }
 
-export default withAccessControl(ImportSeedPhrase, { 
-  requireWallet: false 
+export default withAccessControl(ImportSeedPhrase, {
+  requireWallet: false
 })

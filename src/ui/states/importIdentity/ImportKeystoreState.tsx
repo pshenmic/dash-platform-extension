@@ -17,7 +17,6 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType } from '../../../types/WalletType'
-import LoadingScreen from '../../components/layout/LoadingScreen'
 
 function ImportKeystoreState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -157,7 +156,7 @@ function ImportKeystoreState (): React.JSX.Element {
   return (
     <div className='flex flex-col gap-2 -mt-5'>
       <div className='flex flex-col gap-2.5 flex-1 mb-6'>
-        <DashLogo containerSize='3rem'/>
+        <DashLogo containerSize='3rem' />
 
         <Heading level={1} size='2xl'>Import your identity</Heading>
         <div className='!leading-tight'>

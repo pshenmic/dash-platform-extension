@@ -37,14 +37,14 @@ export function useAccessControl (config: Partial<AccessControlConfig> = {}): Ac
         const status = await extensionAPI.getStatus()
 
         // Check password requirement
-        if (finalConfig.requirePassword && !status.passwordSet) {
+        if (finalConfig.requirePassword === true && !status.passwordSet) {
           void navigate('/setup-password')
           setState({ isLoading: false, isAuthenticated: false, error: null })
           return
         }
 
         // Check wallet requirement
-        if (finalConfig.requireWallet && (status.currentWalletId == null || status.currentWalletId === '')) {
+        if (finalConfig.requireWallet === true && (status.currentWalletId == null || status.currentWalletId === '')) {
           void navigate('/no-wallet')
           setState({ isLoading: false, isAuthenticated: false, error: null })
           return

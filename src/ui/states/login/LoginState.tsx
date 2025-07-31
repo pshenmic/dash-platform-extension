@@ -37,16 +37,10 @@ export default function LoginState (): React.JSX.Element {
     void handleLogin()
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key === 'Enter') {
-      void handleLogin()
-    }
-  }
-
   return (
     <div className='flex flex-col'>
       <div className='flex items-center flex-col w-full gap-2.5 mb-6'>
-        <DashLogo containerSize='3rem'/>
+        <DashLogo containerSize='3rem' />
 
         <Heading level={1} size='2xl'>
           Welcome Back

@@ -2,24 +2,24 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Heading, Text, Button, ProgressStepBar, DashLogo } from 'dash-ui/react'
 
-function NoWalletState(): React.JSX.Element {
+function NoWalletState (): React.JSX.Element {
   const navigate = useNavigate()
 
-  const handleImportWallet = () => {
-    navigate('/choose-wallet-import-type')
+  const handleImportWallet = (): void => {
+    void navigate('/choose-wallet-import-type')
   }
 
-  const handleCreateWallet = () => {
-    navigate('/create-wallet')
+  const handleCreateWallet = (): void => {
+    void navigate('/create-wallet')
   }
 
   return (
     <div className='flex flex-col h-full bg-white pb-12 pt-8'>
       <div className='flex flex-col items-center text-center mb-3'>
         <div className='flex items-center justify-center w-12 h-12'>
-          <DashLogo/>
+          <DashLogo />
         </div>
-        
+
         <div className='mb-8'>
           <Heading level={1} className='text-3xl font-extrabold text-gray-900 mb-2 leading-tight'>
             <span className='!font-normal'>Welcome to</span> <span>Dash Platform Extension</span>
@@ -36,12 +36,12 @@ function NoWalletState(): React.JSX.Element {
             colorScheme='brand'
             size='xl'
             onClick={handleCreateWallet}
-            disabled={true}
+            disabled
             className='w-full'
           >
             Create Wallet
           </Button>
-          
+
           <Button
             colorScheme='brand'
             size='xl'

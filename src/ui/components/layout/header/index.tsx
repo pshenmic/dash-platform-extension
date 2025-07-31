@@ -50,42 +50,44 @@ export default function Header (): React.JSX.Element {
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
 
-  const deepestRoute = [...matches].reverse().find((m): boolean => 
+  const deepestRoute = [...matches].reverse().find((m): boolean =>
     m.handle?.headerProps != null
   )
-  
+
   const headerProps = deepestRoute?.handle?.headerProps
   const showLogo = headerProps?.showLogo ?? false
   const hideLeftSection = headerProps?.hideLeftSection ?? false
   const imageType = headerProps?.imageType as ImageVariant | undefined
 
   const handleBack = (): void => {
-    navigate(-1)
+    void navigate(-1)
   }
 
   return (
     <header
       className={headerStyles({
-        rightType: imageType ? 'image' : 'none'
+        rightType: imageType != null ? 'image' : 'none'
       })}
     >
       {!hideLeftSection && (
         <div>
-          {showLogo ? (
-            <img
-              src={useStaticAsset('dash_logo.svg')}
-              alt='Platform Explorer'
-              className='w-[2.25rem] h-[1.75rem] object-contain'
-            />
-          ) : (
-            <Button onClick={handleBack} colorScheme='lightGray'>
-              <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
-            </Button>
-          )}
+          {showLogo
+            ? (
+              <img
+                src={useStaticAsset('dash_logo.svg')}
+                alt='Platform Explorer'
+                className='w-[2.25rem] h-[1.75rem] object-contain'
+              />
+              )
+            : (
+              <Button onClick={handleBack} colorScheme='lightGray'>
+                <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
+              </Button>
+              )}
         </div>
       )}
 
-      {imageType && ((): React.JSX.Element => {
+      {imageType != null && ((): React.JSX.Element => {
         const defaultVariant = IMAGE_VARIANTS[imageType]
         const containerClasses = headerProps?.containerClasses ?? defaultVariant.containerClasses
         const imgClasses = headerProps?.imgClasses ?? defaultVariant.imgClasses
