@@ -1,10 +1,22 @@
 import React, { useEffect, useState } from 'react'
 import { useSdk } from '../../hooks/useSdk'
 import { useNavigate } from 'react-router-dom'
-import { Button, Text, NotActive, Identifier, ValueCard, BigNumber, Textarea } from 'dash-ui/react'
+import {
+  Button,
+  Text,
+  NotActive,
+  Identifier,
+  ValueCard,
+  BigNumber,
+  Textarea,
+  Heading,
+  DashLogo,
+  ProgressStepBar
+} from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
+import { WalletType } from '../../../types/WalletType'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 
 function ImportIdentityState (): React.JSX.Element {
@@ -137,6 +149,9 @@ function ImportIdentityState (): React.JSX.Element {
         return setError('Could not load private key')
       }
 
+      const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
+      await extensionAPI.switchWallet(walletId, 'testnet')
+
       const identifier = identity.id.base58()
 
       const privateKeyHex = privateKey.length === 64 ? privateKey : privateKeyWASM.hex()
@@ -155,13 +170,6 @@ function ImportIdentityState (): React.JSX.Element {
       .catch(e => {
         console.warn(e)
 
-        // Check if it's a wallet not found error
-        if ((e)?.message?.includes('Wallet not found') === true) {
-          // Redirect to wallet creation
-          void navigate('/create-wallet')
-          return
-        }
-
         setError((e)?.message ?? e?.toString() ?? 'Unknown error')
       })
       .finally(() => setIsLoading(false))
@@ -177,26 +185,32 @@ function ImportIdentityState (): React.JSX.Element {
   }
 
   return (
-    <div className='flex flex-col gap-2'>
-      <span className='h1-title'>Import your identity</span>
+    <div className='flex flex-col gap-2 -mt-5'>
+      <div className='flex flex-col gap-2.5 flex-1 mb-6'>
+        <DashLogo containerSize='3rem'/>
+
+        <Heading level={1} size='2xl'>Import your identity</Heading>
+        <div className='!leading-tight'>
+          <Text size='sm' dim>
+            Paste your identity Private Key.
+          </Text>
+        </div>
+      </div>
 
       {identity == null &&
         <div className='flex flex-col gap-[0.875rem]'>
-          <div className='flex flex-col gap-2'>
-            <Text color='blue' size='lg'>
-              Paste your identity <Text size='lg'>Private Key</Text> in <Text size='lg'>HEX format</Text>
+          <div className='mb-6'>
+            <Text dim>
+              Private Key
             </Text>
-            <Text color='blue' size='lg'>
-              You can export it from the Dash Evonode Tool application
-            </Text>
-          </div>
 
-          <Textarea
-            rows={3}
-            placeholder='your private key...'
-            onChange={setPrivateKey}
-            size='xl'
-          />
+            <Textarea
+              rows={3}
+              placeholder='Paste your Key'
+              onChange={setPrivateKey}
+              size='xl'
+            />
+          </div>
 
           {error != null &&
             <div className='py-1'>
@@ -213,10 +227,16 @@ function ImportIdentityState (): React.JSX.Element {
               {isLoading ? 'Checking...' : 'Check'}
             </Button>
           </div>
+
+          {/* Progress Steps */}
+          <div className='mt-auto'>
+            <ProgressStepBar currentStep={3} totalSteps={4} />
+          </div>
         </div>}
 
+      {/* Identity Preview */}
       {identity != null &&
-        <div className='flex flex-col gap-[0.875rem]'>
+        <div className='flex flex-col gap-[0.875rem] mb-6'>
           <Text size='lg' color='blue'>
             We found an identity associated with the given private key
           </Text>
@@ -272,4 +292,6 @@ function ImportIdentityState (): React.JSX.Element {
   )
 }
 
-export default withAccessControl(ImportIdentityState)
+export default withAccessControl(ImportIdentityState, {
+  requireWallet: false
+})
