@@ -1,11 +1,20 @@
 import React from 'react'
-import { Text, Heading, ValueCard, ProgressStepBar, DashLogo } from 'dash-ui/react'
+import {
+  Text,
+  Heading,
+  ValueCard,
+  ProgressStepBar,
+  DashLogo,
+  KeyIcon,
+  ProtectedMessageIcon,
+  SmartphoneIcon
+} from 'dash-ui/react'
 import { useNavigate } from 'react-router-dom'
 
 interface ImportOption {
   id: string
   title: string
-  icon?: string
+  icon?: React.ReactNode
   disabled?: boolean
 }
 
@@ -16,15 +25,18 @@ function ChooseImportType(): React.JSX.Element {
     {
       id: 'keystore',
       title: 'Import Using Key Store',
+      icon: <KeyIcon />
     },
     {
       id: 'seedphrase',
-      title: 'Import Using Seed Phrase'
+      title: 'Import Using Seed Phrase',
+      icon: <ProtectedMessageIcon />
     },
     {
       id: 'phoneapp',
       title: 'Import Using Phone App',
-      disabled: true
+      disabled: true,
+      icon: <SmartphoneIcon />
     }
   ]
 
@@ -76,29 +88,13 @@ function ChooseImportType(): React.JSX.Element {
             clickable={!option.disabled}
           >
             <div className='flex items-center gap-4'>
-              {/* Check icon placeholder */}
-              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+              {/* Option icon */}
+              <div className={`w-8 h-8 flex items-center justify-center bg-dash-brand/15 rounded-full ${
                 option.disabled
-                  ? 'border-gray-300 bg-gray-100'
-                  : 'border-blue-500 bg-blue-50'
+                  ? 'text-gray-400'
+                  : 'text-blue-500'
               }`}>
-                {!option.disabled && (
-                  <svg
-                    width='14'
-                    height='14'
-                    viewBox='0 0 14 14'
-                    fill='none'
-                    className='text-blue-500'
-                  >
-                    <path
-                      d='M11.6667 3.5L5.25 9.91667L2.33334 7'
-                      stroke='currentColor'
-                      strokeWidth='1.5'
-                      strokeLinecap='round' 
-                      strokeLinejoin='round'
-                    />
-                  </svg>
-                )}
+                {option.icon}
               </div>
 
               <Text className={`font-bold text-base ${
