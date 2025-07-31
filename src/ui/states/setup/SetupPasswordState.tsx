@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { Button, Text, Input } from 'dash-ui/react'
+import { Button, Text, Input, Heading, DashLogo } from 'dash-ui/react'
 
 export default function SetupPasswordState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -40,16 +40,21 @@ export default function SetupPasswordState (): React.JSX.Element {
   }
 
   return (
-    <div className='flex flex-col gap-4'>
-      <Text size='xl' weight='bold'>
-        Setup Password
-      </Text>
+    <div className='flex flex-col gap-4 -mt-5'>
+      <DashLogo containerSize='3rem'/>
 
-      <Text color='blue'>
-        Create a password to secure your wallet
+      <Heading level={1} size='2xl'>
+        Create Password
+      </Heading>
+
+      <Text dim className='leading-tight' size='sm'>
+        You will use this password to unlock your wallet. Do not share your password with others
       </Text>
 
       <div className='flex flex-col gap-2'>
+        <Text dim>
+          Password
+        </Text>
         <Input
           type='password'
           placeholder='Enter password'
@@ -59,6 +64,9 @@ export default function SetupPasswordState (): React.JSX.Element {
           colorScheme='default'
         />
 
+        <Text dim>
+          Confirm Password
+        </Text>
         <Input
           type='password'
           placeholder='Confirm password'
@@ -77,8 +85,9 @@ export default function SetupPasswordState (): React.JSX.Element {
 
       <Button
         colorScheme='brand'
+        size='xl'
         onClick={handleSetupClick}
-        disabled={password === '' || confirmPassword === '' || isLoading}
+        disabled={password === '' || confirmPassword === '' || password.length !== confirmPassword.length || isLoading}
         className='w-full'
       >
         {isLoading ? 'Setting up...' : 'Setup Password'}
