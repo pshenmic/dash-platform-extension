@@ -99,7 +99,14 @@ const App: React.FC = function () {
         },
         {
           path: '/import-keystore',
-          element: <ImportIdentityState />
+          element: <ImportIdentityState />,
+          handle: {
+            headerProps: {
+              imageType: 'coins',
+              containerClasses: 'w-[120%] -mr-[55%]',
+              imgClasses: '-mt-[52%]'
+            }
+          }
         },
         {
           path: '/approve/:txhash',
