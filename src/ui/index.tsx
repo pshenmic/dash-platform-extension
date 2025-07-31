@@ -118,7 +118,12 @@ const App: React.FC = function () {
         },
         {
           path: '/wallet-created',
-          element: <WalletSuccessfullyCreated />
+          element: <WalletSuccessfullyCreated />,
+          handle: {
+            headerProps: {
+              hideLeftSection: true
+            }
+          }
         }
       ]
     }
