@@ -140,7 +140,7 @@ function ImportKeystoreState (): React.JSX.Element {
 
       await extensionAPI.importIdentity(identifier, privateKeys)
 
-      void navigate('/')
+      void navigate('/wallet-created')
     }
 
     setIsLoading(true)
