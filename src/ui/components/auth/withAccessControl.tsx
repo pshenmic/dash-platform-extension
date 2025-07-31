@@ -1,11 +1,14 @@
 import React from 'react'
-import { useAuthCheck } from '../../hooks/useAuthCheck'
+import { useAccessControl, type AccessControlConfig } from '../../hooks/useAccessControl'
 import LoadingScreen from '../layout/LoadingScreen'
 import { Text } from 'dash-ui/react'
 
-export function withAuthCheck<T extends object> (Component: React.ComponentType<T>) {
-  return function AuthenticatedComponent (props: T) {
-    const { isLoading, isAuthenticated, error } = useAuthCheck()
+export function withAccessControl<T extends object> (
+  Component: React.ComponentType<T>,
+  config?: AccessControlConfig
+) {
+  return function AccessControlledComponent (props: T) {
+    const { isLoading, isAuthenticated, error } = useAccessControl(config)
 
     if (isLoading) {
       return <LoadingScreen message='Checking authentication...' />
