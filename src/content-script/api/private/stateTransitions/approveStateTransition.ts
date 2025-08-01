@@ -95,7 +95,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       return {
         txHash: stateTransition.hash
       }
-    } else if (wallet.type === WalletType.seed) {
+    } else if (wallet.type === WalletType.seedphrase) {
       throw new Error('Seedphrases are not supported yet')
     } else {
       throw new Error('Unsupported key wallet')

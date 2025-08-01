@@ -143,7 +143,7 @@ function ImportIdentityState (): React.JSX.Element {
 
       const privateKeys = [privateKeyHex]
 
-      await extensionAPI.createIdentity(identifier, privateKeys)
+      await extensionAPI.importIdentity(identifier, privateKeys)
 
       void navigate('/')
     }

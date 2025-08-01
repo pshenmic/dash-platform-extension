@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Text, ValueCard, List } from 'dash-ui/react'
+import { Button, List, Text, ValueCard } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { WalletType } from '../../../types/WalletType'
 
 export default function CreateWalletState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -14,7 +15,7 @@ export default function CreateWalletState (): React.JSX.Element {
     setError(null)
 
     try {
-      const { walletId } = await extensionAPI.createWallet('keystore')
+      const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
       await extensionAPI.switchWallet(walletId, 'testnet')
 
       void navigate('/import')

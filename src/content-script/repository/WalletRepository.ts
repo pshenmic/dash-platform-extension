@@ -1,10 +1,12 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import { generateWalletId } from '../../utils'
+import { bytesToHex, generateWalletId, utf8ToBytes } from '../../utils'
 import { Network } from '../../types/enums/Network'
 import { WalletStoreSchema } from '../storage/storageSchema'
 import { WalletType } from '../../types/WalletType'
 import { Wallet } from '../../types/Wallet'
 import { IdentitiesRepository } from './IdentitiesRepository'
+import { encrypt } from 'eciesjs'
+import hash from 'hash.js'
 
 export class WalletRepository {
   storageAdapter: StorageAdapter
@@ -15,7 +17,10 @@ export class WalletRepository {
     this.identitiesRepository = identitiesRepository
   }
 
-  async create (type: WalletType): Promise<Wallet> {
+  async create (walletType: WalletType, mnemonic?: string): Promise<Wallet> {
+    let encryptedMnemonic: string | null = null
+    let seedHash: string | null = null
+
     const currentNetwork = await this.storageAdapter.get('network') as string
 
     const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
@@ -26,7 +31,7 @@ export class WalletRepository {
 
     const walletId = generateWalletId()
 
-    const storageKey = `wallet_${walletId}_${currentNetwork}`
+    const storageKey = `wallet_${currentNetwork}_${walletId}`
 
     const wallet = await this.storageAdapter.get(storageKey) as WalletStoreSchema
 
@@ -34,17 +39,27 @@ export class WalletRepository {
       throw new Error('Wallet with such id already exists')
     }
 
+    if (walletType === WalletType.seedphrase) {
+      if (mnemonic == null) {
+        throw new Error('Mnemonic is missing')
+      }
+
+      encryptedMnemonic = bytesToHex(encrypt(passwordPublicKey, utf8ToBytes(mnemonic)))
+      seedHash = hash.sha256().update(mnemonic).digest('hex')
+    }
+
     const walletSchema: WalletStoreSchema = {
-      currentIdentity: null,
       label: null,
       network: Network[currentNetwork],
-      type,
-      walletId
+      type: walletType,
+      walletId,
+      encryptedMnemonic,
+      seedHash
     }
 
     await this.storageAdapter.set(storageKey, walletSchema)
 
-    return { ...walletSchema, type: WalletType[walletSchema.type] }
+    return { ...walletSchema, type: WalletType[walletType] }
   }
 
   async getCurrent (): Promise<Wallet | null> {
@@ -55,7 +70,7 @@ export class WalletRepository {
       return null
     }
 
-    const storageKey = `wallet_${currentWalletId}_${network}`
+    const storageKey = `wallet_${network}_${currentWalletId}`
 
     const wallet = await this.storageAdapter.get(storageKey) as WalletStoreSchema
 
@@ -68,7 +83,8 @@ export class WalletRepository {
       type: WalletType[wallet.type],
       network: Network[network],
       label: wallet.label,
-      currentIdentity: wallet.currentIdentity
+      encryptedMnemonic: wallet.encryptedMnemonic,
+      seedHash: wallet.seedHash
     }
   }
 

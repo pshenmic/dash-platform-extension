@@ -98,15 +98,15 @@ function HomeState (): React.JSX.Element {
               value: identifier,
               content: (
                 <Identifier
-                  middleEllipsis={true}
+                  middleEllipsis
                   edgeChars={6}
-                  avatar={true}
+                  avatar
                 >
                   {identifier}
                 </Identifier>
               )
             }))}
-            border={true}
+            border
             showArrow
             size='md'
           />
