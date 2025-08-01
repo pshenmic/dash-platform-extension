@@ -37,11 +37,11 @@ export default function LoginState (): React.JSX.Element {
     void handleLogin()
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key === 'Enter') {
-      void handleLogin()
-    }
-  }
+  // const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+  //   if (e.key === 'Enter') {
+  //     void handleLogin()
+  //   }
+  // }
 
   return (
     <div className='flex flex-col gap-4'>
