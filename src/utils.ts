@@ -1,6 +1,7 @@
 import { base58 } from '@scure/base'
 import { IdentityWASM, PrivateKeyWASM } from 'pshenmic-dpp'
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { Network } from './types/enums/Network'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -44,7 +45,7 @@ export const bytesToUtf8 = (bytes: Uint8Array): string => {
   return new TextDecoder().decode(bytes)
 }
 
-export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK): Promise<IdentityWASM[]> => {
+export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {
   const hdWallet = await sdk.keyPair.seedToWallet(seed)
 
   const identities = []
@@ -53,9 +54,9 @@ export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformS
   let identityIndex = 0
 
   do {
-    const hdKey = await sdk.keyPair.walletToIdentityKey(hdWallet, identityIndex, 0, { network: 'testnet' })
+    const hdKey = await sdk.keyPair.walletToIdentityKey(hdWallet, identityIndex, 0, { network })
     const privateKey = hdKey.privateKey
-    const pkh = PrivateKeyWASM.fromBytes(privateKey, 'testnet').getPublicKeyHash()
+    const pkh = PrivateKeyWASM.fromBytes(privateKey, network).getPublicKeyHash()
 
     let uniqueIdentity
 

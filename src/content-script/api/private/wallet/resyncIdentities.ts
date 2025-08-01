@@ -10,6 +10,7 @@ import { decrypt, PrivateKey } from 'eciesjs'
 import { bytesToUtf8, fetchIdentitiesBySeed, hexToBytes } from '../../../../utils'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import hash from 'hash.js'
+import { Network } from '../../../../types/enums/Network'
 
 export class ResyncIdentitiesHandler implements APIHandler {
   identitiesRepository: IdentitiesRepository
@@ -27,6 +28,7 @@ export class ResyncIdentitiesHandler implements APIHandler {
   async handle (event: EventData): Promise<ResyncIdentitiesResponse> {
     const payload: ResyncIdentitiesPayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
+    const network = await this.storageAdapter.get('network') as string
 
     if (wallet == null) {
       throw new Error('Wallet is not chosen')
@@ -53,7 +55,7 @@ export class ResyncIdentitiesHandler implements APIHandler {
 
     const seed = await this.sdk.keyPair.mnemonicToSeed(mnemonic, undefined, true)
 
-    const identities = await fetchIdentitiesBySeed(seed, this.sdk)
+    const identities = await fetchIdentitiesBySeed(seed, this.sdk, Network[network])
 
     await this.identitiesRepository.replaceAll(identities.map((identity, index) => ({ identifier: identity.id.base58(), index, label: null })))
 
