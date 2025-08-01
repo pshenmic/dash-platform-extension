@@ -159,17 +159,20 @@ function ImportKeystoreState (): React.JSX.Element {
         <DashLogo containerSize='3rem' />
 
         <Heading level={1} size='2xl'>Import your identity</Heading>
-        <div className='!leading-tight'>
-          <Text size='sm' dim>
-            Paste your identity Private Key.
-          </Text>
-        </div>
+
+        {identity == null &&
+          <div className='!leading-tight'>
+            <Text size='sm' dim>
+              Paste your identity Private Key.
+            </Text>
+          </div>
+        }
       </div>
 
       {identity == null &&
         <div className='flex flex-col gap-[0.875rem]'>
           <div className='mb-6'>
-            <Text dim>
+          <Text dim>
               Private Key
             </Text>
 
@@ -197,16 +200,16 @@ function ImportKeystoreState (): React.JSX.Element {
             </Button>
           </div>
 
-          {/* Progress Steps */}
-          <div className='mt-auto'>
-            <ProgressStepBar currentStep={3} totalSteps={4} />
-          </div>
+          {/*/!* Progress Steps *!/*/}
+          {/*<div className='mt-auto'>*/}
+          {/*  <ProgressStepBar currentStep={3} totalSteps={4} />*/}
+          {/*</div>*/}
         </div>}
 
       {/* Identity Preview */}
       {identity != null &&
-        <div className='flex flex-col gap-[0.875rem] mb-6'>
-          <Text size='lg' color='blue'>
+        <div className='flex flex-col gap-[0.875rem] mb-2.5'>
+          <Text dim>
             We found an identity associated with the given private key
           </Text>
 
@@ -257,6 +260,11 @@ function ImportKeystoreState (): React.JSX.Element {
             {isLoading ? 'Importing...' : 'Import'}
           </Button>
         </div>}
+
+        {/* Progress Steps */}
+        <div className='mt-auto'>
+          <ProgressStepBar currentStep={identity == null ? 3 : 4} totalSteps={4} />
+        </div>
     </div>
   )
 }
