@@ -19,6 +19,7 @@ export class WalletRepository {
 
   async create (walletType: WalletType, mnemonic?: string): Promise<Wallet> {
     let encryptedMnemonic: string | null = null
+    let seedHash: string | null = null
 
     const currentNetwork = await this.storageAdapter.get('network') as string
 
@@ -44,6 +45,7 @@ export class WalletRepository {
       }
 
       encryptedMnemonic = bytesToHex(encrypt(passwordPublicKey, utf8ToBytes(mnemonic)))
+      seedHash = hash.sha256().update(mnemonic).digest('hex')
     }
 
     const walletSchema: WalletStoreSchema = {
@@ -52,7 +54,7 @@ export class WalletRepository {
       type: walletType,
       walletId,
       encryptedMnemonic,
-      seedHash: hash.sha256().update(mnemonic).digest('hex')
+      seedHash
     }
 
     await this.storageAdapter.set(storageKey, walletSchema)
