@@ -6,6 +6,7 @@ import { WalletType } from '../../types/WalletType'
 import { Wallet } from '../../types/Wallet'
 import { IdentitiesRepository } from './IdentitiesRepository'
 import { encrypt } from 'eciesjs'
+import hash from 'hash.js'
 
 export class WalletRepository {
   storageAdapter: StorageAdapter
@@ -50,7 +51,8 @@ export class WalletRepository {
       network: Network[currentNetwork],
       type: walletType,
       walletId,
-      encryptedMnemonic
+      encryptedMnemonic,
+      seedHash: hash.sha256().update(mnemonic).digest('hex')
     }
 
     await this.storageAdapter.set(storageKey, walletSchema)
@@ -79,7 +81,8 @@ export class WalletRepository {
       type: WalletType[wallet.type],
       network: Network[network],
       label: wallet.label,
-      encryptedMnemonic: wallet.encryptedMnemonic
+      encryptedMnemonic: wallet.encryptedMnemonic,
+      seedHash: wallet.seedHash
     }
   }
 

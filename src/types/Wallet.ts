@@ -6,4 +6,5 @@ export interface Wallet {
   network: string
   label: string | null
   encryptedMnemonic: string | null
+  seedHash: string | null
 }

@@ -79,8 +79,8 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.IMPORT_IDENTITY, payload)
   }
 
-  async resyncIdentities (password: string): Promise<ResyncIdentitiesResponse> {
-    const payload: ResyncIdentitiesPayload = { password }
+  async resyncIdentities (password?: string, mnemonic?: string): Promise<ResyncIdentitiesResponse> {
+    const payload: ResyncIdentitiesPayload = { password, mnemonic }
 
     const { identitiesCount }: ResyncIdentitiesResponse = await this._rpcCall(MessagingMethods.RESYNC_IDENTITIES, payload)
 

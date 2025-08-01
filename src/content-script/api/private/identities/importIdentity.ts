@@ -40,7 +40,7 @@ export class ImportIdentityHandler implements APIHandler {
     const identityPublicKeysWASM = await this.sdk.identities.getIdentityPublicKeys(payload.identifier)
 
     // check if all private keys belongs to identity public keys
-    if ((privateKeys)
+    if (!privateKeys
       .every(privateKey => identityPublicKeysWASM
         .some((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
                 PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash()))) {
