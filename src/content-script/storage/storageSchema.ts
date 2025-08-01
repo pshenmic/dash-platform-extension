@@ -26,6 +26,7 @@ export interface WalletStoreSchema {
   type: string
   label: string | null
   encryptedMnemonic: string | null
+  seedHash: string | null
 }
 
 export interface StateTransitionsStoreSchema {

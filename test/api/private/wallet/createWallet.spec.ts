@@ -45,7 +45,8 @@ describe('create wallet', () => {
       network: 'testnet',
       type: 'seedphrase',
       label: null,
-      encryptedMnemonic: null
+      encryptedMnemonic: null,
+      seedHash: null
     }
 
     const storageKey = `wallet_testnet_${walletId}`
@@ -68,7 +69,8 @@ describe('create wallet', () => {
       network: 'testnet',
       type: 'keystore',
       label: null,
-      encryptedMnemonic: null
+      encryptedMnemonic: null,
+      seedHash: null
     }
 
     const storageKey = `wallet_testnet_${walletId}`

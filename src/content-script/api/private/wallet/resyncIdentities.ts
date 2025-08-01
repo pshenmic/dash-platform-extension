@@ -11,6 +11,8 @@ import { bytesToUtf8, fetchIdentitiesBySeed, hexToBytes } from '../../../../util
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import hash from 'hash.js'
 import { Network } from '../../../../types/enums/Network'
+import * as bip39 from '@scure/bip39'
+import { wordlist } from '@scure/bip39/wordlists/english'
 
 export class ResyncIdentitiesHandler implements APIHandler {
   identitiesRepository: IdentitiesRepository
@@ -42,18 +44,30 @@ export class ResyncIdentitiesHandler implements APIHandler {
       throw new Error('Encrypted mnemonic not set for seedphrase wallet')
     }
 
-    const passwordHash = hash.sha256().update(payload.password).digest('hex')
-    const secretKey = PrivateKey.fromHex(passwordHash)
-
-    let mnemonic
-
-    try {
-      mnemonic = bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(wallet.encryptedMnemonic)))
-    } catch (e) {
-      throw new Error('Failed to decrypt')
+    if (payload.mnemonic != null && hash.sha256().update(payload.mnemonic).digest('hex') !== wallet.seedHash) {
+      throw new Error('Mnemonic provided does not belong to this wallet')
     }
 
-    const seed = await this.sdk.keyPair.mnemonicToSeed(mnemonic, undefined, true)
+    let seed
+
+    if (payload.mnemonic != null) {
+      seed = await this.sdk.keyPair.mnemonicToSeed(payload.mnemonic, undefined, true)
+    }
+
+    if (payload.password != null) {
+      const passwordHash = hash.sha256().update(payload.password).digest('hex')
+      const secretKey = PrivateKey.fromHex(passwordHash)
+
+      let mnemonic
+
+      try {
+        mnemonic = bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(wallet.encryptedMnemonic)))
+      } catch (e) {
+        throw new Error('Failed to decrypt')
+      }
+
+      seed = await this.sdk.keyPair.mnemonicToSeed(mnemonic, undefined, true)
+    }
 
     const identities = await fetchIdentitiesBySeed(seed, this.sdk, Network[network])
 
@@ -63,8 +77,13 @@ export class ResyncIdentitiesHandler implements APIHandler {
   }
 
   validatePayload (payload: ResyncIdentitiesPayload): string | null {
-    if (payload.password == null || payload.password === '') {
-      return 'Password not provided'
+    if ((payload.password == null && payload.mnemonic) == null ||
+        (payload.password != null && payload.mnemonic != null)) {
+      return 'Either password or mnemonic must be provided'
+    }
+
+    if (payload.mnemonic != null && !bip39.validateMnemonic(payload.mnemonic, wordlist)) {
+      return 'Mnemonic seed phrase is not valid'
     }
 
     return null
