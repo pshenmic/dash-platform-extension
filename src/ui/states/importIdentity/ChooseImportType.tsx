@@ -6,8 +6,7 @@ import {
   ProgressStepBar,
   DashLogo,
   KeyIcon,
-  ProtectedMessageIcon,
-  SmartphoneIcon
+  ProtectedMessageIcon
 } from 'dash-ui/react'
 import { useNavigate } from 'react-router-dom'
 
@@ -31,12 +30,6 @@ function ChooseImportType (): React.JSX.Element {
       id: 'seedphrase',
       title: 'Import Using Seed Phrase',
       icon: <ProtectedMessageIcon />
-    },
-    {
-      id: 'phoneapp',
-      title: 'Import Using Phone App',
-      disabled: true,
-      icon: <SmartphoneIcon />
     }
   ]
 
@@ -51,8 +44,6 @@ function ChooseImportType (): React.JSX.Element {
         break
       case 'keystore':
         void navigate('/import-keystore')
-        break
-      case 'phoneapp':
         break
     }
   }
@@ -86,6 +77,7 @@ function ChooseImportType (): React.JSX.Element {
             colorScheme='lightGray'
             border={false}
             clickable={option.disabled !== true}
+            className={option.disabled ? 'opacity-40' : ''}
           >
             <div className='flex items-center gap-4'>
               {/* Option icon */}
