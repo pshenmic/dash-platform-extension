@@ -165,14 +165,13 @@ function ImportKeystoreState (): React.JSX.Element {
             <Text size='sm' dim>
               Paste your identity Private Key.
             </Text>
-          </div>
-        }
+          </div>}
       </div>
 
       {identity == null &&
         <div className='flex flex-col gap-[0.875rem]'>
           <div className='mb-6'>
-          <Text dim>
+            <Text dim>
               Private Key
             </Text>
 
@@ -200,10 +199,10 @@ function ImportKeystoreState (): React.JSX.Element {
             </Button>
           </div>
 
-          {/*/!* Progress Steps *!/*/}
-          {/*<div className='mt-auto'>*/}
-          {/*  <ProgressStepBar currentStep={3} totalSteps={4} />*/}
-          {/*</div>*/}
+          {/* /!* Progress Steps *!/ */}
+          {/* <div className='mt-auto'> */}
+          {/*  <ProgressStepBar currentStep={3} totalSteps={4} /> */}
+          {/* </div> */}
         </div>}
 
       {/* Identity Preview */}
@@ -261,10 +260,10 @@ function ImportKeystoreState (): React.JSX.Element {
           </Button>
         </div>}
 
-        {/* Progress Steps */}
-        <div className='mt-auto'>
-          <ProgressStepBar currentStep={identity == null ? 3 : 4} totalSteps={4} />
-        </div>
+      {/* Progress Steps */}
+      <div className='mt-auto'>
+        <ProgressStepBar currentStep={identity == null ? 3 : 4} totalSteps={4} />
+      </div>
     </div>
   )
 }
