@@ -3,6 +3,9 @@ import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import { ArrowIcon, Button } from 'dash-ui/react'
+import { NetworkSelector } from './NetworkSelector'
+import { WalletSelector } from './WalletSelector'
+import { SettingsMenuButton } from '../../settings'
 
 const IMAGE_VARIANTS = {
   coins: {
@@ -25,6 +28,9 @@ interface Match {
       imgClasses?: string
       showLogo?: boolean
       hideLeftSection?: boolean
+      showNetworkSelector?: boolean
+      showWalletSelector?: boolean
+      showBurgerMenu?: boolean
     }
     [key: string]: any
   }
@@ -37,6 +43,7 @@ const headerStyles = cva(
     variants: {
       rightType: {
         image: '',
+        burger: 'items-center',
         none: ''
       }
     },
@@ -57,16 +64,25 @@ export default function Header (): React.JSX.Element {
   const headerProps = deepestRoute?.handle?.headerProps
   const showLogo = headerProps?.showLogo ?? false
   const hideLeftSection = headerProps?.hideLeftSection ?? false
+  const showNetworkSelector = headerProps?.showNetworkSelector ?? false
+  const showWalletSelector = headerProps?.showWalletSelector ?? false
+  const showBurgerMenu = headerProps?.showBurgerMenu ?? false
   const imageType = headerProps?.imageType as ImageVariant | undefined
 
   const handleBack = (): void => {
     void navigate(-1)
   }
 
+  const getRightSectionType = (): 'image' | 'burger' | 'none' => {
+    if (showBurgerMenu) return 'burger'
+    if (imageType != null) return 'image'
+    return 'none'
+  }
+
   return (
     <header
       className={headerStyles({
-        rightType: imageType != null ? 'image' : 'none'
+        rightType: getRightSectionType()
       })}
     >
       {!hideLeftSection && (
@@ -84,6 +100,21 @@ export default function Header (): React.JSX.Element {
                 <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
               </Button>
               )}
+        </div>
+      )}
+
+      {/* Network & Wallet Selectors in left side */}
+      {hideLeftSection && (showNetworkSelector || showWalletSelector) && (
+        <div className='flex items-center gap-2'>
+          {showNetworkSelector && <NetworkSelector />}
+          {showWalletSelector && <WalletSelector />}
+        </div>
+      )}
+
+      {/* Burger Menu in right side */}
+      {showBurgerMenu && (
+        <div className='flex items-center'>
+          <SettingsMenuButton />
         </div>
       )}
 
