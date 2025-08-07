@@ -70,7 +70,10 @@ const App: React.FC = function () {
           element: <HomeState />,
           handle: {
             headerProps: {
-              imageType: 'coins'
+              showNetworkSelector: true,
+              showWalletSelector: true,
+              showBurgerMenu: true,
+              hideLeftSection: true
             }
           }
         },
