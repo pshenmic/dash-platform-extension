@@ -77,11 +77,11 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className='fixed z-50 top-0 left-0 ml-auto w-full max-w-full h-full bg-white shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out' style={{background: 'linear-gradient(180deg, #F8F9FA 0%, #FFFFFF 100%)'}}>
+    <div className='fixed z-50 top-0 left-0 ml-auto w-full max-w-full h-full bg-white shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out' style={{ background: 'linear-gradient(180deg, #F8F9FA 0%, #FFFFFF 100%)' }}>
       {/* Header */}
       <div className='flex items-center justify-between p-4'>
         <div className='flex items-center gap-3 flex-1'>
-          {showBackButton && onBack && (
+          {showBackButton && (onBack != null) && (
             <Button
               onClick={onBack}
               colorScheme='lightGray'
