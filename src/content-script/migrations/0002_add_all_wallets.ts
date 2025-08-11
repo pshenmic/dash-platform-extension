@@ -4,6 +4,8 @@ export default async function addAllWalletsMigrations (storageAdapter: StorageAd
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
   if (schemaVersion === 1) {
+    console.log('addAllWalletsMigrations', schemaVersion)
+
     const walletIds = Object
       .entries(await storageAdapter.getAll())
       .map(([key, value]) => key)
@@ -11,7 +13,7 @@ export default async function addAllWalletsMigrations (storageAdapter: StorageAd
       .map((key) => key.split('_')[1])
 
     await storageAdapter.set('wallets', walletIds)
+    await storageAdapter.set('schema_version', 2)
   }
 
-  await storageAdapter.set('schema_version', 2)
 }

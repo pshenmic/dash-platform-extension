@@ -5,6 +5,8 @@ export default async function moveCurrentIdentityToWallet (storageAdapter: Stora
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
   if (schemaVersion === 5) {
+    console.log('moveCurrentIdentityToWallet', schemaVersion)
+
     const currentIdentity = await storageAdapter.get('wallets') as string | null
     const network = await storageAdapter.get('network') as string
     const walletIds = await storageAdapter.get('wallets') as string[]
@@ -20,7 +22,7 @@ export default async function moveCurrentIdentityToWallet (storageAdapter: Stora
       await storageAdapter.set(`wallet_${walletId}_${network}`, wallet)
       await storageAdapter.remove('currentIdentity')
     }
-  }
 
-  await storageAdapter.set('schema_version', 6)
+    await storageAdapter.set('schema_version', 6)
+  }
 }
