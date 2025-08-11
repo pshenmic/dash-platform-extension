@@ -6,8 +6,7 @@ import { MemoryStorageAdapter } from '../../../../src/content-script/storage/mem
 import { WalletStoreSchema } from '../../../../src/content-script/storage/storageSchema'
 import { WalletType } from '../../../../src/types/WalletType'
 import hash from 'hash.js'
-import { decrypt, PrivateKey } from 'eciesjs'
-import { bytesToUtf8, hexToBytes } from '../../../../src/utils'
+import { PrivateKey } from 'eciesjs'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
 
 describe('create wallet', () => {
@@ -39,8 +38,6 @@ describe('create wallet', () => {
   })
 
   test('should switch current wallet', async () => {
-    const mnemonic = 'frequent situate velvet inform help family salad park torch zero chapter right'
-
     const { walletId: firstWalletId } = await privateAPIClient.createWallet(WalletType.keystore)
     const { walletId: secondWalletId } = await privateAPIClient.createWallet(WalletType.keystore)
 
@@ -55,8 +52,6 @@ describe('create wallet', () => {
       seedHash: null,
       currentIdentity: null
     }
-
-    const storageKey = `wallet_testnet_${firstWalletId}`
 
     let walletStoreSchema = await storage.get(`wallet_testnet_${firstWalletId}`) as WalletStoreSchema
 
@@ -79,5 +74,4 @@ describe('create wallet', () => {
     expect(walletStoreSchema).toStrictEqual(expectedWallet)
     expect(await storage.get('currentWalletId')).toEqual(secondWalletId)
   })
-
 })

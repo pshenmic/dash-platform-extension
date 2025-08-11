@@ -8,7 +8,7 @@ import { APIHandler } from './APIHandler'
 import { ConnectAppHandler } from './public/connectApp'
 import { RequestStateTransitionApprovalHandler } from './public/requestStateTransitionApproval'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
-import {WalletRepository} from "../repository/WalletRepository";
+import { WalletRepository } from '../repository/WalletRepository'
 
 /**
  * Handlers for a messages from a webpage to extension (potentially insecure)

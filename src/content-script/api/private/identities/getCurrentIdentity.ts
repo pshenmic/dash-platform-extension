@@ -1,7 +1,7 @@
 import { GetCurrentIdentityResponse } from '../../../../types/messages/response/GetCurrentIdentityResponse'
 import { APIHandler } from '../../APIHandler'
 import { EmptyPayload } from '../../../../types/messages/payloads/EmptyPayload'
-import {WalletRepository} from "../../../repository/WalletRepository";
+import { WalletRepository } from '../../../repository/WalletRepository'
 
 export class GetCurrentIdentityHandler implements APIHandler {
   walletRepository: WalletRepository

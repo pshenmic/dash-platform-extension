@@ -4,7 +4,7 @@ import { EventData } from '../../../types/EventData'
 import { APIHandler } from '../APIHandler'
 import hash from 'hash.js'
 import { IdentitiesRepository } from '../../repository/IdentitiesRepository'
-import {WalletRepository} from "../../repository/WalletRepository";
+import { WalletRepository } from '../../repository/WalletRepository'
 
 interface AppConnectRequestPayload {
   url: string
@@ -28,7 +28,7 @@ export class ConnectAppHandler implements APIHandler {
 
     const wallet = await this.walletRepository.getCurrent()
 
-    if(wallet == null) {
+    if (wallet == null) {
       throw new Error('No wallet loaded in the extension')
     }
 
