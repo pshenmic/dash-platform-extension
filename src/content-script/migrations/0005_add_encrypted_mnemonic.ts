@@ -5,6 +5,8 @@ export default async function addEncryptedMnemonic (storageAdapter: StorageAdapt
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
   if (schemaVersion === 4) {
+    console.log('addEncryptedMnemonic', schemaVersion)
+
     const walletIds = await storageAdapter.get('wallets') as string[]
     const network = await storageAdapter.get('network') as string
 
@@ -15,7 +17,8 @@ export default async function addEncryptedMnemonic (storageAdapter: StorageAdapt
 
       await storageAdapter.set(`wallet_${walletId}_${network}`, wallet)
     }
+
+    await storageAdapter.set('schema_version', 5)
   }
 
-  await storageAdapter.set('schema_version', 5)
 }
