@@ -10,6 +10,3 @@ export default async function initialSchemaMigration (storageAdapter: StorageAda
     await storageAdapter.set('passwordPublicKey', null)
   }
 }
-
-// set identityIndex to 0
-//

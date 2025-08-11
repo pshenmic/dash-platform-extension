@@ -18,7 +18,8 @@ export default async function addIndexToIdentitiesMigration (storageAdapter: Sto
         await storageAdapter.set(`identities_${network}_${walletId}`, { [identityId]: migratedIdentity })
       }
     }
+
+    await storageAdapter.set('schema_version', 3)
   }
 
-  await storageAdapter.set('schema_version', 3)
 }

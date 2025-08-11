@@ -15,7 +15,8 @@ export default async function addEncryptedMnemonic (storageAdapter: StorageAdapt
 
       await storageAdapter.set(`wallet_${walletId}_${network}`, wallet)
     }
+
+    await storageAdapter.set('schema_version', 5)
   }
 
-  await storageAdapter.set('schema_version', 5)
 }

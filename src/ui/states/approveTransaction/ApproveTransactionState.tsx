@@ -196,7 +196,7 @@ function ApproveTransactionState (): React.JSX.Element {
       throw new Error('stateTransitionWASM is null')
     }
 
-    extensionAPI.rejectStateTransition(stateTransitionWASM.hash(true)).then(() => window.close).catch(console.warn)
+    extensionAPI.rejectStateTransition(stateTransitionWASM.hash(true)).then(window.close).catch(console.warn)
   }
 
   const doSign = async (): Promise<void> => {
