@@ -44,12 +44,14 @@ body {
   @apply m-0 flex font-normal font-main text-lg text-brand-dark;
   font-optical-sizing: auto;
   background-color: #e9e9e9;
+  overflow: hidden;
 }
 
 .main_container {
+  @apply flex flex-col relative;
   background-color: #fff;
-  width: 420px;
-  max-width: 800px;
+  width: 26.25rem;
+  height: 37.5rem;
   overflow-x: hidden;
   overflow-y: auto;
 }

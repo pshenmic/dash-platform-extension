@@ -21,7 +21,8 @@ export default async function renameWalletAndKeyPairsMigration (storageAdapter: 
       await storageAdapter.set(`keyPairs_${network}_${walletId}`, keyPairs)
       await storageAdapter.remove(`keyPairs_${walletId}_${network}`)
     }
+
+    await storageAdapter.set('schema_version', 4)
   }
 
-  await storageAdapter.set('schema_version', 4)
 }
