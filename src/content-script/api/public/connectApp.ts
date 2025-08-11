@@ -4,6 +4,7 @@ import { EventData } from '../../../types/EventData'
 import { APIHandler } from '../APIHandler'
 import hash from 'hash.js'
 import { IdentitiesRepository } from '../../repository/IdentitiesRepository'
+import { WalletRepository } from '../../repository/WalletRepository'
 
 interface AppConnectRequestPayload {
   url: string
@@ -12,16 +13,24 @@ interface AppConnectRequestPayload {
 export class ConnectAppHandler implements APIHandler {
   appConnectRepository: AppConnectRepository
   identitiesRepository: IdentitiesRepository
+  walletRepository: WalletRepository
 
-  constructor (appConnectRepository: AppConnectRepository, identitiesRepository: IdentitiesRepository) {
+  constructor (appConnectRepository: AppConnectRepository, identitiesRepository: IdentitiesRepository, walletRepository: WalletRepository) {
     this.appConnectRepository = appConnectRepository
     this.identitiesRepository = identitiesRepository
+    this.walletRepository = walletRepository
   }
 
   async handle (event: EventData): Promise<ConnectAppResponse> {
     const payload: AppConnectRequestPayload = event.payload
 
     const id = hash.sha256().update(payload.url).digest('hex').substring(0, 6)
+
+    const wallet = await this.walletRepository.getCurrent()
+
+    if (wallet == null) {
+      throw new Error('No wallet loaded in the extension')
+    }
 
     let appConnect = await this.appConnectRepository.getById(id)
 
@@ -30,13 +39,12 @@ export class ConnectAppHandler implements APIHandler {
     }
 
     const identities = await this.identitiesRepository.getAll()
-    const currentIdentity = await this.identitiesRepository.getCurrent()
 
     return {
       redirectUrl: chrome.runtime.getURL(`index.html#/connect/${appConnect.id}`),
       status: appConnect.status,
       identities: identities.map(identity => identity.identifier),
-      currentIdentity: (currentIdentity != null) ? currentIdentity.identifier : null
+      currentIdentity: wallet.currentIdentity
     }
   }
 

@@ -6,11 +6,10 @@ import { MemoryStorageAdapter } from '../../../../src/content-script/storage/mem
 import { WalletStoreSchema } from '../../../../src/content-script/storage/storageSchema'
 import { WalletType } from '../../../../src/types/WalletType'
 import hash from 'hash.js'
-import { decrypt, PrivateKey } from 'eciesjs'
-import { bytesToUtf8, hexToBytes } from '../../../../src/utils'
+import { PrivateKey } from 'eciesjs'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
 
-describe('create wallet', () => {
+describe('switch identity', () => {
   let privateAPI: PrivateAPI
   let privateAPIClient: PrivateAPIClient
   let storage: StorageAdapter
@@ -38,39 +37,14 @@ describe('create wallet', () => {
     await storage.set('passwordPublicKey', passwordPublicKey)
   })
 
-  test('should create a seedphrase wallet', async () => {
-    const mnemonic = 'frequent situate velvet inform help family salad park torch zero chapter right'
+  test('should switch identity', async () => {
+    const { walletId: firstWalletId } = await privateAPIClient.createWallet(WalletType.keystore)
+    const { walletId: secondWalletId } = await privateAPIClient.createWallet(WalletType.keystore)
 
-    const { walletId } = await privateAPIClient.createWallet(WalletType.seedphrase, mnemonic)
+    await storage.set('currentWalletId', firstWalletId)
 
-    const expectedWallet: WalletStoreSchema = {
-      walletId,
-      network: 'testnet',
-      type: 'seedphrase',
-      label: null,
-      encryptedMnemonic: null,
-      seedHash: null,
-      currentIdentity: null
-    }
-
-    const storageKey = `wallet_testnet_${walletId}`
-
-    const walletStoreSchema = await storage.get(storageKey) as WalletStoreSchema
-
-    expect(walletStoreSchema.walletId).toEqual(expectedWallet.walletId)
-    expect(walletStoreSchema.network).toEqual(expectedWallet.network)
-    expect(walletStoreSchema.type).toEqual(expectedWallet.type)
-    expect(walletStoreSchema.label).toEqual(expectedWallet.label)
-
-    expect(bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(walletStoreSchema.encryptedMnemonic as string)))).toEqual(mnemonic)
-    expect(hash.sha256().update(mnemonic).digest('hex')).toEqual(walletStoreSchema.seedHash)
-  })
-
-  test('should create a keystore wallet', async () => {
-    const { walletId } = await privateAPIClient.createWallet(WalletType.keystore)
-
-    const expectedWallet: WalletStoreSchema = {
-      walletId,
+    let expectedWallet: WalletStoreSchema = {
+      walletId: firstWalletId,
       network: 'testnet',
       type: 'keystore',
       label: null,
@@ -79,10 +53,25 @@ describe('create wallet', () => {
       currentIdentity: null
     }
 
-    const storageKey = `wallet_testnet_${walletId}`
-
-    const walletStoreSchema = await storage.get(storageKey) as WalletStoreSchema
+    let walletStoreSchema = await storage.get(`wallet_testnet_${firstWalletId}`) as WalletStoreSchema
 
     expect(walletStoreSchema).toStrictEqual(expectedWallet)
+
+    await privateAPIClient.switchWallet(secondWalletId, 'testnet')
+
+    walletStoreSchema = await storage.get(`wallet_testnet_${secondWalletId}`) as WalletStoreSchema
+
+    expectedWallet = {
+      walletId: secondWalletId,
+      network: 'testnet',
+      type: 'keystore',
+      label: null,
+      encryptedMnemonic: null,
+      seedHash: null,
+      currentIdentity: null
+    }
+
+    expect(walletStoreSchema).toStrictEqual(expectedWallet)
+    expect(await storage.get('currentWalletId')).toEqual(secondWalletId)
   })
 })

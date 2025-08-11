@@ -119,20 +119,21 @@ export class IdentitiesRepository {
       label: identity.label
     }
   }
-
-  async getCurrent (): Promise<Identity | null> {
-    const currentIdentity = await this.storageAdapter.get('currentIdentity') as string | null
-
-    if (currentIdentity == null) {
-      return null
-    }
-
-    const identity = await this.getByIdentifier(currentIdentity)
-
-    if (identity == null) {
-      throw new Error(`Could not find current identity ${currentIdentity}`)
-    }
-
-    return identity
-  }
+  //
+  // async getCurrent (): Promise<Identity | null> {
+  //   const currentIdentity = await this.storageAdapter.get('currentIdentity') as string | null
+  //   const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+  //
+  //   if (currentIdentity == null) {
+  //     return null
+  //   }
+  //
+  //   const identity = await this.getByIdentifier(currentIdentity)
+  //
+  //   if (identity == null) {
+  //     throw new Error(`Could not find current identity ${currentIdentity}`)
+  //   }
+  //
+  //   return identity
+  // }
 }
