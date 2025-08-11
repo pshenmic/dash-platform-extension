@@ -5,7 +5,6 @@ export default async function addIndexToIdentitiesMigration (storageAdapter: Sto
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
   if (schemaVersion === 2) {
-    console.log('addIndexToIdentitiesMigration', schemaVersion)
     const network = await storageAdapter.get('network') as string
     const wallets = await storageAdapter.get('wallets') as string[]
 
