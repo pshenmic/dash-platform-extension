@@ -90,6 +90,25 @@ export class WalletRepository {
     }
   }
 
+  async getAll (): Promise<Wallet[]> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletIds = await this.storageAdapter.get('wallets') as string[]
+
+    const wallets = await Promise.all(walletIds.map(async walletId => (await this.storageAdapter.get(`wallet_${network}_${walletId}`)) as WalletStoreSchema))
+
+    return wallets.map(walletStoreSchema => (
+      {
+        walletId: walletStoreSchema.walletId,
+        type: WalletType[walletStoreSchema.type],
+        network: Network[walletStoreSchema.network],
+        label: walletStoreSchema.label,
+        encryptedMnemonic: walletStoreSchema.encryptedMnemonic,
+        seedHash: walletStoreSchema.seedHash,
+        currentIdentity: walletStoreSchema.currentIdentity
+      }
+    ))
+  }
+
   async switchIdentity (identifier: string): Promise<void> {
     const currentWallet = await this.getCurrent()
     const network = await this.storageAdapter.get('network') as string

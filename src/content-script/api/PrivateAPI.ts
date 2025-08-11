@@ -24,6 +24,7 @@ import { RejectAppConnectHandler } from './private/appConnect/rejectAppConnect'
 import { GetIdentitiesHandler } from './private/identities/getIdentities'
 import { ResyncIdentitiesHandler } from './private/wallet/resyncIdentities'
 import { ImportIdentityHandler } from './private/identities/importIdentity'
+import { GetAllWalletsHandler } from './private/wallet/getAllWallets'
 
 /**
  * Handlers for a messages within extension context
@@ -71,6 +72,7 @@ export class PrivateAPI {
       [MessagingMethods.SETUP_PASSWORD]: new SetupPasswordHandler(this.storageAdapter),
       [MessagingMethods.CHECK_PASSWORD]: new CheckPasswordHandler(this.storageAdapter),
       [MessagingMethods.SWITCH_IDENTITY]: new SwitchIdentityHandler(identitiesRepository, walletRepository),
+      [MessagingMethods.GET_ALL_WALLETS]: new GetAllWalletsHandler(walletRepository, this.sdk, this.storageAdapter),
       [MessagingMethods.IMPORT_IDENTITY]: new ImportIdentityHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.GET_IDENTITIES]: new GetIdentitiesHandler(identitiesRepository),
       [MessagingMethods.GET_CURRENT_IDENTITY]: new GetCurrentIdentityHandler(walletRepository),
