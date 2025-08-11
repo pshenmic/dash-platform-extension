@@ -75,10 +75,6 @@ export class WalletRepository {
 
     const wallet = await this.storageAdapter.get(storageKey) as WalletStoreSchema
 
-    if (wallet == null) {
-      throw new Error('Could not find current wallet')
-    }
-
     return {
       walletId: wallet.walletId,
       type: WalletType[wallet.type],
