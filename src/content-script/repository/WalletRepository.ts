@@ -54,7 +54,8 @@ export class WalletRepository {
       type: walletType,
       walletId,
       encryptedMnemonic,
-      seedHash
+      seedHash,
+      currentIdentity: null
     }
 
     await this.storageAdapter.set(storageKey, walletSchema)
@@ -74,18 +75,34 @@ export class WalletRepository {
 
     const wallet = await this.storageAdapter.get(storageKey) as WalletStoreSchema
 
-    if (wallet == null) {
-      throw new Error('Could not find current wallet')
-    }
-
     return {
       walletId: wallet.walletId,
       type: WalletType[wallet.type],
       network: Network[network],
       label: wallet.label,
       encryptedMnemonic: wallet.encryptedMnemonic,
-      seedHash: wallet.seedHash
+      seedHash: wallet.seedHash,
+      currentIdentity: wallet.currentIdentity
     }
+  }
+
+  async getAll (): Promise<Wallet[]> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletIds = await this.storageAdapter.get('wallets') as string[]
+
+    const wallets = await Promise.all(walletIds.map(async walletId => (await this.storageAdapter.get(`wallet_${network}_${walletId}`)) as WalletStoreSchema))
+
+    return wallets.map(walletStoreSchema => (
+      {
+        walletId: walletStoreSchema.walletId,
+        type: WalletType[walletStoreSchema.type],
+        network: Network[walletStoreSchema.network],
+        label: walletStoreSchema.label,
+        encryptedMnemonic: walletStoreSchema.encryptedMnemonic,
+        seedHash: walletStoreSchema.seedHash,
+        currentIdentity: walletStoreSchema.currentIdentity
+      }
+    ))
   }
 
   async switchIdentity (identifier: string): Promise<void> {
@@ -96,7 +113,7 @@ export class WalletRepository {
       throw new Error('Wallet is not chosen')
     }
 
-    const storageKey = `wallet_${currentWallet.walletId}_${network}`
+    const storageKey = `wallet_${network}_${currentWallet.walletId}`
 
     const walletStoreSchema = await this.storageAdapter.get(storageKey) as WalletStoreSchema
 
