@@ -54,7 +54,8 @@ export class WalletRepository {
       type: walletType,
       walletId,
       encryptedMnemonic,
-      seedHash
+      seedHash,
+      currentIdentity: null
     }
 
     await this.storageAdapter.set(storageKey, walletSchema)
@@ -84,7 +85,8 @@ export class WalletRepository {
       network: Network[network],
       label: wallet.label,
       encryptedMnemonic: wallet.encryptedMnemonic,
-      seedHash: wallet.seedHash
+      seedHash: wallet.seedHash,
+      currentIdentity: wallet.currentIdentity
     }
   }
 
@@ -96,7 +98,7 @@ export class WalletRepository {
       throw new Error('Wallet is not chosen')
     }
 
-    const storageKey = `wallet_${currentWallet.walletId}_${network}`
+    const storageKey = `wallet__${network}_${currentWallet.walletId}`
 
     const walletStoreSchema = await this.storageAdapter.get(storageKey) as WalletStoreSchema
 

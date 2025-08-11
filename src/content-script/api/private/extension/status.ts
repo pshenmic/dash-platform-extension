@@ -13,10 +13,9 @@ export class GetStatusHandler implements APIHandler {
   async handle (): Promise<GetStatusResponse> {
     const network = await this.storageAdapter.get('network') as string
     const currentWalletId = (await this.storageAdapter.get('currentWalletId')) as (string | null)
-    const currentIdentity = (await this.storageAdapter.get('currentIdentity')) as (string | null)
     const passwordPublicKey = (await this.storageAdapter.get('passwordPublicKey')) as (string | null)
 
-    return { passwordSet: passwordPublicKey != null, network, currentWalletId, currentIdentity }
+    return { passwordSet: passwordPublicKey != null, network, currentWalletId }
   }
 
   validatePayload (payload: EmptyPayload): string | null {

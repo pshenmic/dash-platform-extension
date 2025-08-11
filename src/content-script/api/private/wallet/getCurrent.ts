@@ -1,3 +1,4 @@
+import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { GetCurrentIdentityResponse } from '../../../../types/messages/response/GetCurrentIdentityResponse'
 import { APIHandler } from '../../APIHandler'
 import { EmptyPayload } from '../../../../types/messages/payloads/EmptyPayload'

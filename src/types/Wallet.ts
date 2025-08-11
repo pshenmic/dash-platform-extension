@@ -7,4 +7,5 @@ export interface Wallet {
   label: string | null
   encryptedMnemonic: string | null
   seedHash: string | null
+  currentIdentity: string | null
 }
