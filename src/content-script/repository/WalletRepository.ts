@@ -113,7 +113,7 @@ export class WalletRepository {
       throw new Error('Wallet is not chosen')
     }
 
-    const storageKey = `wallet__${network}_${currentWallet.walletId}`
+    const storageKey = `wallet_${network}_${currentWallet.walletId}`
 
     const walletStoreSchema = await this.storageAdapter.get(storageKey) as WalletStoreSchema
 
