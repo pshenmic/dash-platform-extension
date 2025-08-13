@@ -52,7 +52,7 @@ export const NetworkSelector: React.FC = () => {
       value={currentNetwork}
       onChange={handleNetworkChange}
       options={networkOptions}
-      size='sm'
+      size='md'
       showArrow
       border
     />
