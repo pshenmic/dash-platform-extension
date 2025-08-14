@@ -1,5 +1,4 @@
 export { SettingsMenu } from './SettingsMenu'
-export { SettingsMenuButton } from './SettingsMenuButton'
 export { OverlayMenu } from './OverlayMenu'
 export { MenuItem } from './MenuItem'
 export { MenuSection } from './MenuSection'
