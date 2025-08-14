@@ -51,7 +51,7 @@ export default function SetupPasswordState (): React.JSX.Element {
   }
 
   return (
-    <div className='flex flex-col gap-2.5 -mt-5'>
+    <div className='flex flex-col gap-2.5 -mt-16'>
       <div className='flex flex-col gap-2.5 mb-6'>
         <DashLogo containerSize='3rem' />
 

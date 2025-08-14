@@ -49,7 +49,7 @@ function ChooseImportType (): React.JSX.Element {
   }
 
   return (
-    <div className='flex flex-col h-full bg-white -mt-5 pb-12'>
+    <div className='flex flex-col h-full bg-white -mt-16 pb-2'>
       <div className='mb-8'>
         <div className='flex items-start gap-3'>
           <div className='flex flex-col gap-2.5 flex-1'>

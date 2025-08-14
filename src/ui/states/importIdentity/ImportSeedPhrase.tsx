@@ -128,7 +128,7 @@ function ImportSeedPhrase (): React.JSX.Element {
   const isImportDisabled = seedWords.slice(0, wordCount).some(word => word.trim().length === 0) || password.trim().length === 0
 
   return (
-    <div className='flex flex-col min-h-full shrink-0 bg-white -mt-5 pb-12'>
+    <div className='flex flex-col min-h-full shrink-0 bg-white -mt-16 pb-2'>
       <div className='mb-6'>
         <div className='flex items-start gap-3'>
           <div className='flex-1'>

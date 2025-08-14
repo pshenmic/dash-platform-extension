@@ -14,7 +14,7 @@ function NoWalletState (): React.JSX.Element {
   }
 
   return (
-    <div className='flex flex-col h-full bg-white pb-12 pt-8'>
+    <div className='flex flex-col h-full bg-white pb-2'>
       <div className='flex flex-col items-center text-center mb-3'>
         <div className='flex items-center justify-center w-12 h-12'>
           <DashLogo />
