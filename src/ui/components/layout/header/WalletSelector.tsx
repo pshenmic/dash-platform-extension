@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { OverlayMenu, KebabMenuIcon } from 'dash-ui/react'
+import { OverlayMenu, KebabMenuIcon, PlusIcon, WalletIcon } from 'dash-ui/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'
@@ -19,15 +19,12 @@ export const WalletSelector: React.FC = () => {
           extensionAPI.getStatus(),
           extensionAPI.getAllWallets()
         ])
-
-        console.log('status', status)
-        console.log('all wallets', wallets)
         
         setCurrentWalletId(status.currentWalletId)
         setCurrentNetwork(status.network)
         setAllWallets(wallets)
       } catch (error) {
-        console.error('Failed to load wallet data:', error)
+        console.warn('Failed to load wallet data:', error)
       } finally {
         setLoading(false)
       }
@@ -40,6 +37,7 @@ export const WalletSelector: React.FC = () => {
     try {
       await extensionAPI.switchWallet(walletId, currentNetwork)
       setCurrentWalletId(walletId)
+      window.location.reload()
     } catch (error) {
       console.error('Failed to switch wallet:', error)
     }
@@ -81,9 +79,7 @@ export const WalletSelector: React.FC = () => {
       return (
         <div className='flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50'>
           <div className='w-4 h-4 flex items-center justify-center'>
-            <svg fill='none' stroke='currentColor' viewBox='0 0 24 24' className='w-full h-full text-gray-900'>
-              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 4v16m8-8H4' />
-            </svg>
+            <PlusIcon className='w-full h-full text-gray-900' />
           </div>
           <span className='text-sm font-light text-gray-900'>Add wallet</span>
         </div>
@@ -112,9 +108,7 @@ export const WalletSelector: React.FC = () => {
           <div className='flex items-center gap-2'>
             {/* Wallet icon */}
             <div className='w-4 h-4 flex items-center justify-center'>
-              <svg fill='currentColor' viewBox='0 0 24 24' className='w-full h-full'>
-                <path d='M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/>
-              </svg>
+              <WalletIcon className='w-full h-full' />
             </div>
             <span className='text-sm'>
               {wallet.label ?? `Wallet_${index + 1}`}
@@ -138,9 +132,7 @@ export const WalletSelector: React.FC = () => {
       content: (
         <div className='flex items-center justify-center gap-2'>
           <div className='w-4 h-4 flex items-center justify-center'>
-            <svg fill='none' stroke='currentColor' viewBox='0 0 24 24' className='w-full h-full'>
-              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 4v16m8-8H4' />
-            </svg>
+            <PlusIcon color='currentColor' className='w-full h-full' />
           </div>
           <span className='text-sm'>Add wallet</span>
         </div>
