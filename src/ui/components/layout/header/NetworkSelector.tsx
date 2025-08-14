@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Select } from 'dash-ui/react'
+import { OverlayMenu, WebIcon } from 'dash-ui/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { Network } from '../../../../types/enums/Network'
 
@@ -42,19 +42,33 @@ export const NetworkSelector: React.FC = () => {
     )
   }
 
-  const networkOptions = Object.values(Network).map(network => ({
-    value: network,
-    content: network.charAt(0).toUpperCase() + network.slice(1)
+  const triggerContent = (
+    <div className="flex items-center gap-1">
+      <WebIcon size={16} />
+      <span className="text-sm font-medium">
+        {currentNetwork.charAt(0).toUpperCase() + currentNetwork.slice(1)}
+      </span>
+    </div>
+  )
+
+  const items = Object.values(Network).map(network => ({
+    id: network,
+    content: (
+      <div className="flex items-center gap-1">
+        <span>{network.charAt(0).toUpperCase() + network.slice(1)}</span>
+      </div>
+    ),
+    onClick: () => handleNetworkChange(network)
   }))
 
   return (
-    <Select
-      value={currentNetwork}
-      onChange={handleNetworkChange}
-      options={networkOptions}
+    <OverlayMenu
+      triggerContent={triggerContent}
+      items={items}
       size='md'
-      showArrow
-      border
+      border={true}
+      showArrow={true}
+      className='min-w-32 h-12'
     />
   )
 }
