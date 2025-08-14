@@ -19,7 +19,7 @@ export const WalletSelector: React.FC = () => {
           extensionAPI.getStatus(),
           extensionAPI.getAllWallets()
         ])
-        
+
         setCurrentWalletId(status.currentWalletId)
         setCurrentNetwork(status.network)
         setAllWallets(wallets)
