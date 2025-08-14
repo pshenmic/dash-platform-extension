@@ -1,11 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
-import { ArrowIcon, Button } from 'dash-ui/react'
+import { ArrowIcon, Button, BurgerMenuIcon } from 'dash-ui/react'
 import { NetworkSelector } from './NetworkSelector'
 import { WalletSelector } from './WalletSelector'
-import { SettingsMenuButton } from '../../settings'
+import { SettingsMenu } from '../../settings/SettingsMenu'
 
 const IMAGE_VARIANTS = {
   coins: {
@@ -53,9 +53,10 @@ const headerStyles = cva(
   }
 )
 
-export default function Header (): React.JSX.Element {
+export default function Header ({ onWalletChange }): React.JSX.Element {
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const deepestRoute = [...matches].reverse().find((m): boolean =>
     m.handle?.headerProps != null
@@ -71,6 +72,14 @@ export default function Header (): React.JSX.Element {
 
   const handleBack = (): void => {
     void navigate(-1)
+  }
+
+  const toggleMenu = (): void => {
+    setIsMenuOpen(!isMenuOpen)
+  }
+
+  const closeMenu = (): void => {
+    setIsMenuOpen(false)
   }
 
   const getRightSectionType = (): 'image' | 'burger' | 'none' => {
@@ -105,7 +114,7 @@ export default function Header (): React.JSX.Element {
 
       {/* Network & Wallet Selectors in left side */}
       {hideLeftSection && (showNetworkSelector || showWalletSelector) && (
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-2.5'>
           {showNetworkSelector && <NetworkSelector />}
           {showWalletSelector && <WalletSelector />}
         </div>
@@ -113,9 +122,14 @@ export default function Header (): React.JSX.Element {
 
       {/* Burger Menu in right side */}
       {showBurgerMenu && (
-        <div className='flex items-center'>
-          <SettingsMenuButton />
-        </div>
+        <Button
+          onClick={toggleMenu}
+          colorScheme='brand'
+          size='xl'
+          className='w-12 h-12 p-0'
+        >
+          <BurgerMenuIcon color='white'/>
+        </Button>
       )}
 
       {imageType != null && ((): React.JSX.Element => {
@@ -133,6 +147,11 @@ export default function Header (): React.JSX.Element {
           </div>
         )
       })()}
+
+      <SettingsMenu
+        isOpen={isMenuOpen}
+        onClose={closeMenu}
+      />
     </header>
   )
 }
