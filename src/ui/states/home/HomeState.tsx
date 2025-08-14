@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import NoIdentities from './NoIdentities'
-import { Button, Text, Select, Identifier, NotActive, ValueCard, DateBlock, BigNumber, TransactionStatusIcon } from 'dash-ui/react'
+import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
+import { Button, Text, Identifier, NotActive, ValueCard, DateBlock, BigNumber, TransactionStatusIcon } from 'dash-ui/react'
 import { TransactionTypes } from '../../../enums/TransactionTypes'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
@@ -31,7 +32,7 @@ function HomeState (): React.JSX.Element {
 
         const currentIdentityFromApi = await extensionAPI.getCurrentIdentity()
 
-        if (currentIdentityFromApi != null && currentIdentityFromApi === '') {
+        if (currentIdentityFromApi != null && currentIdentityFromApi !== '') {
           setCurrentIdentity(currentIdentityFromApi)
         } else if ((availableIdentities?.length ?? 0) > 0) {
           setCurrentIdentity(availableIdentities[0])
@@ -97,56 +98,86 @@ function HomeState (): React.JSX.Element {
     return <NoIdentities />
   }
 
+  console.log('currentIdentity', currentIdentity)
+  console.log('identities', identities)
+  console.log('identities.length', identities.length)
+
   return (
     <div className='screen-content'>
-      <ValueCard colorScheme='lightBlue' size='xl'>
-        <div className='flex flex-col gap-4 w-full'>
-          <Select
-            value={identities?.[0]}
-            // onChange={(e) => setCurrentIdentity(e.target.value)}
-            options={identities?.map((identifier) => ({
-              value: identifier,
-              content: (
-                <Identifier
-                  middleEllipsis
-                  edgeChars={6}
-                  avatar
-                >
-                  {identifier}
-                </Identifier>
-              )
-            }))}
-            border
-            showArrow
-            size='md'
-          />
-
-          <div className='flex flex-col gap-[0.125rem]'>
-            <Text dim>Balance</Text>
-            <span>
-              {!Number.isNaN(Number(balance))
-                ? (
-                  <Text size='xl' weight='bold' monospace>
-                    <BigNumber>
-                      {balance.toString()}
-                    </BigNumber>
-                  </Text>
-                  )
-                : <NotActive>N/A</NotActive>}
-              <Text
-                size='lg'
-                className='ml-2'
+      {currentIdentity && (
+        <SelectIdentityDialog
+          identities={identities}
+          currentIdentity={currentIdentity}
+          onSelectIdentity={async (identity) => {
+            setCurrentIdentity(identity)
+            try {
+              await extensionAPI.switchIdentity(identity)
+            } catch (error) {
+              console.warn('Failed to switch identity:', error)
+            }
+          }}
+        >
+          <div className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+            <Identifier avatar>
+              {currentIdentity}
+            </Identifier>
+            
+            <div className="flex items-center gap-2">
+              <Identifier
+                middleEllipsis
+                edgeChars={6}
+                className="text-sm font-medium"
               >
-                Credits
-              </Text>
-            </span>
+                {currentIdentity}
+              </Identifier>
+              
+              <svg width="12" height="12" viewBox="0 0 12 12" className="text-gray-400">
+                <path
+                  d="M2 4l4 4 4-4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            
+            <div className="h-4 w-px bg-gray-300 mx-1" />
+            
+            <Text size="sm" className="text-gray-500">
+              Main_account
+            </Text>
           </div>
-        </div>
-      </ValueCard>
+        </SelectIdentityDialog>
+      )}
 
-      <div className='flex gap-5'>
+      <div className='flex flex-col gap-4 w-full'>
+        <div className='flex flex-col gap-[0.125rem]'>
+          <Text dim>Balance</Text>
+          <span>
+            {!Number.isNaN(Number(balance))
+              ? (
+                <Text size='xl' weight='bold' monospace>
+                  <BigNumber>
+                    {balance.toString()}
+                  </BigNumber>
+                </Text>
+                )
+              : <NotActive>N/A</NotActive>}
+            <Text
+              size='lg'
+              className='ml-2'
+            >
+              Credits
+            </Text>
+          </span>
+        </div>
+      </div>
+
+      <div className='flex gap-2'>
         <Button className='w-1/2' disabled>Send</Button>
-        <Button colorScheme='gray' variant='outline' className='w-1/2' disabled>Withdraw</Button>
+        <Button className='w-1/2' disabled>Withdraw</Button>
       </div>
 
       <div>
@@ -157,6 +188,12 @@ function HomeState (): React.JSX.Element {
             Error during loading transactions, please try again later
           </div>}
 
+        {transactions == null &&
+          <div>
+            No transactions found
+          </div>}
+
+        {/* Transactions list */}
         <div className='flex flex-col gap-3 mt-3'>
           {(transactions != null && transactions.length > 0) && transactions.map((transaction) =>
             <a
