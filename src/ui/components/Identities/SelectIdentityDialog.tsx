@@ -1,5 +1,7 @@
 import React from 'react'
-import { Dialog, Button, Identifier, Text, BigNumber } from 'dash-ui/react'
+import { Dialog, Button, Identifier, Text, BigNumber, Avatar } from 'dash-ui/react'
+import { usePlatformExplorerClient, type IdentityApiData, type NetworkType } from '../../hooks/usePlatformExplorerApi'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 interface SelectIdentityDialogProps {
   identities: string[]
@@ -10,6 +12,44 @@ interface SelectIdentityDialogProps {
 
 function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, children }: SelectIdentityDialogProps): React.JSX.Element {
   const [open, setOpen] = React.useState(false)
+  const platformClient = usePlatformExplorerClient()
+  const extensionAPI = useExtensionAPI()
+
+  // Local state for multiple identities data
+  const [identitiesData, setIdentitiesData] = React.useState<Record<string, IdentityApiData>>({})
+  const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const [currentNetwork, setCurrentNetwork] = React.useState<NetworkType>('testnet')
+
+  React.useEffect(() => {
+    if (open && identities.length > 0) {
+      const fetchIdentitiesData = async () => {
+        setLoading(true)
+        setError(null)
+        
+        try {
+          // Get current network first
+          const status = await extensionAPI.getStatus()
+          const network = status.network as NetworkType
+          setCurrentNetwork(network)
+          
+          // Then fetch identities data
+          const data = await platformClient.fetchMultipleIdentities(identities, network)
+
+          console.log('data', data)
+          setIdentitiesData(data)
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+          setError(errorMessage)
+          setIdentitiesData({})
+        } finally {
+          setLoading(false)
+        }
+      }
+      
+      void fetchIdentitiesData()
+    }
+  }, [open, identities, platformClient, extensionAPI])
 
   const handleSelectIdentity = (identity: string): void => {
     onSelectIdentity(identity)
@@ -17,7 +57,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
   }
 
   return (
-    <div>
+    <>
       <div onClick={() => setOpen(true)}>
         {children}
       </div>
@@ -25,7 +65,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
       <Dialog
         open={open}
         onOpenChange={setOpen}
-        className='w-[390px] max-w-[390px] max-h-[500px] overflow-y-auto'
+        className='w-[390px] max-w-[390px] max-h-[500px]'
         title='Your identity'
         size='xl'
         showCloseButton={true}
@@ -42,9 +82,9 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                   handleSelectIdentity(identity)
                 }}
               >
-                <Identifier avatar size='lg'>
-                  {identity}
-                </Identifier>
+                <div className='w-10 h-10'>
+                  <Avatar username={identity} />
+                </div>
                 
                 <div className='flex flex-col flex-1 gap-1'>
                   <div className='flex items-center gap-2'>
@@ -52,24 +92,27 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                       middleEllipsis
                       edgeChars={6}
                       className='text-sm font-light'
+                      copyButton={true}
                     >
                       {identity}
                     </Identifier>
-                    <button className='text-gray-400 hover:text-gray-600'>
-                      <svg width='10' height='10' viewBox='0 0 10 10' fill='none'>
-                        <path d='M2 2h6v6H2V2z' stroke='currentColor' strokeWidth='0.75'/>
-                        <path d='M6 0H0v6h2V2h4V0z' fill='currentColor'/>
-                      </svg>
-                    </button>
                   </div>
                   <Text size='sm' className='text-gray-500'>
                     Main_account
                   </Text>
                 </div>
-                
+
                 <div className='flex flex-col items-end gap-1'>
                   <Text weight='semibold' size='sm'>
-                    <BigNumber>0</BigNumber> Credits
+                    {loading ? (
+                      'Loading...'
+                    ) : error ? (
+                      'Error'
+                    ) : (
+                      <>
+                        <BigNumber>{identitiesData[identity]?.balance || '0'}</BigNumber> Credits
+                      </>
+                    )}
                   </Text>
                   <Text size='xs' className='text-gray-500'>
                     ~ $0.00
@@ -84,7 +127,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
           </Button>
         </div>
       </Dialog>
-    </div>
+    </>
   )
 }
 
