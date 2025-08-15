@@ -1,5 +1,11 @@
 export type NetworkType = 'testnet' | 'mainnet'
 
+export interface ApiState<T> {
+  data: T | null
+  loading: boolean
+  error: string | null
+}
+
 export interface TransactionData {
   batchType: string | null
   blockHash: string | null

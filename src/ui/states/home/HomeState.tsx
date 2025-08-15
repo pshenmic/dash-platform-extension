@@ -1,33 +1,49 @@
 import React, { useEffect, useState } from 'react'
 import NoIdentities from './NoIdentities'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
-import { Button, Text, Identifier, NotActive, ValueCard, DateBlock, BigNumber, TransactionStatusIcon } from 'dash-ui/react'
+import { Button, Text, Identifier, NotActive, ValueCard, DateBlock, BigNumber, TransactionStatusIcon, ChevronIcon } from 'dash-ui/react'
 import { TransactionTypes } from '../../../enums/TransactionTypes'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
 import { withAccessControl } from '../../components/auth/withAccessControl'
+import { usePlatformExplorerClient, type TransactionData, type NetworkType, type ApiState } from '../../hooks/usePlatformExplorerApi'
 import './home.state.css'
 
 function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
+  const platformClient = usePlatformExplorerClient()
 
   const [identities, setIdentities] = useState<string[]>([])
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
+  const [currentNetwork, setCurrentNetwork] = useState<NetworkType>('testnet')
   const [balance, setBalance] = useState<bigint>(0n)
-  const [transactionsLoadError, setTransactionsLoadError] = useState<boolean>(false)
-  const [transactions, setTransactions] = useState<any[] | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
+  
+  // Unified state for transactions
+  const [transactionsState, setTransactionsState] = useState<ApiState<TransactionData[]>>({
+    data: null,
+    loading: false,
+    error: null
+  })
 
   useEffect(() => {
     const loadData = async (): Promise<void> => {
       try {
         setIsLoading(true)
 
-        const availableIdentities = (await extensionAPI.getIdentities())
-          .map(identity => identity.identifier)
+        // Load network and identities in parallel
+        const [status, identitiesData] = await Promise.all([
+          extensionAPI.getStatus(),
+          extensionAPI.getIdentities()
+        ])
 
+        // Set network
+        setCurrentNetwork(status.network as NetworkType)
+
+        // Set identities
+        const availableIdentities = identitiesData.map(identity => identity.identifier)
         setIdentities(availableIdentities ?? [])
 
         const currentIdentityFromApi = await extensionAPI.getCurrentIdentity()
@@ -59,26 +75,6 @@ function HomeState (): React.JSX.Element {
     console.log('currentIdentity', currentIdentity)
     if (currentIdentity == null || currentIdentity === '') return
 
-    const loadTransactions = async (): Promise<void> => {
-      try {
-        const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${currentIdentity}/transactions?order=desc`)
-        console.log('Fetch response status:', response.status)
-        if (response.status === 200) {
-          const data = await response.json()
-          if (data.error == null) {
-            setTransactions(data.resultSet)
-          } else {
-            setTransactionsLoadError(true)
-          }
-        } else {
-          setTransactionsLoadError(true)
-        }
-      } catch (fetchError) {
-        console.warn('Error fetching transactions:', fetchError)
-        setTransactionsLoadError(true)
-      }
-    }
-
     const loadBalance = async (): Promise<void> => {
       console.log('About to get balance...')
       const balance = await sdk.identities.getIdentityBalance(currentIdentity)
@@ -86,9 +82,17 @@ function HomeState (): React.JSX.Element {
       setBalance(balance)
     }
 
-    void loadTransactions()
+    const loadTransactions = async (): Promise<void> => {
+      setTransactionsState({ data: null, loading: true, error: null })
+      
+      const result = await platformClient.fetchTransactions(currentIdentity, currentNetwork, 'desc')
+      console.log('transactionsData', result)
+      setTransactionsState(result)
+    }
+
     void loadBalance()
-  }, [currentIdentity])
+    void loadTransactions()
+  }, [currentIdentity, currentNetwork, platformClient, sdk])
 
   if (isLoading) {
     return <LoadingScreen message='Loading wallet data...' />
@@ -105,51 +109,36 @@ function HomeState (): React.JSX.Element {
   return (
     <div className='screen-content'>
       {currentIdentity && (
-        <SelectIdentityDialog
-          identities={identities}
-          currentIdentity={currentIdentity}
-          onSelectIdentity={async (identity) => {
-            setCurrentIdentity(identity)
-            try {
-              await extensionAPI.switchIdentity(identity)
-            } catch (error) {
-              console.warn('Failed to switch identity:', error)
-            }
-          }}
-        >
-          <div className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-            <Identifier avatar>
-              {currentIdentity}
-            </Identifier>
-            
-            <div className="flex items-center gap-2">
-              <Identifier
-                middleEllipsis
-                edgeChars={6}
-                className="text-sm font-medium"
-              >
+        <div className='flex items-center gap-3'>
+          <SelectIdentityDialog
+            identities={identities}
+            currentIdentity={currentIdentity}
+            onSelectIdentity={async (identity) => {
+              setCurrentIdentity(identity)
+              try {
+                await extensionAPI.switchIdentity(identity)
+              } catch (error) {
+                console.warn('Failed to switch identity:', error)
+              }
+            }}
+          >
+            <div className='flex items-center gap-2 cursor-pointer'>
+              <Identifier avatar edgeChars={4} middleEllipsis>
                 {currentIdentity}
               </Identifier>
-              
-              <svg width="12" height="12" viewBox="0 0 12 12" className="text-gray-400">
-                <path
-                  d="M2 4l4 4 4-4"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+
+              <div className='flex items-center gap-2'>
+                <ChevronIcon direction='down' size={12} className='text-gray-400' />
+              </div>
             </div>
-            
-            <div className="h-4 w-px bg-gray-300 mx-1" />
-            
-            <Text size="sm" className="text-gray-500">
-              Main_account
-            </Text>
-          </div>
-        </SelectIdentityDialog>
+          </SelectIdentityDialog>
+
+          <div className='h-4 w-px bg-gray-300 mx-1' />
+
+          <Text size='sm' className='text-gray-500'>
+            Main_account
+          </Text>
+        </div>
       )}
 
       <div className='flex flex-col gap-4 w-full'>
@@ -183,44 +172,57 @@ function HomeState (): React.JSX.Element {
       <div>
         <Text size='lg' weight='bold'>Transactions:</Text>
 
-        {transactionsLoadError &&
+        {transactionsState.loading &&
           <div>
-            Error during loading transactions, please try again later
+            Loading transactions...
           </div>}
 
-        {transactions == null &&
+        {transactionsState.error &&
+          <div>
+            Error during loading transactions: {transactionsState.error}
+          </div>}
+
+        {!transactionsState.loading && !transactionsState.error && (!transactionsState.data || transactionsState.data.length === 0) &&
           <div>
             No transactions found
           </div>}
 
         {/* Transactions list */}
         <div className='flex flex-col gap-3 mt-3'>
-          {(transactions != null && transactions.length > 0) && transactions.map((transaction) =>
-            <a
-              target='_blank'
-              href={`https://testnet.platform-explorer.com/transaction/${String(transaction.hash)}`}
-              key={transaction.hash} rel='noreferrer'
-            >
-              <ValueCard clickable className='flex gap-2'>
-                <TransactionStatusIcon size={16} status={transaction.status} className='shrink-0' />
+          {transactionsState.data && transactionsState.data.length > 0 && transactionsState.data.map((transaction: TransactionData) => {
+            // Handle nullable fields safely
+            const hash = transaction.hash ?? 'unknown'
+            const status = transaction.status ?? 'unknown'
+            const type = transaction.type ?? 'unknown'
+            const timestamp = transaction.timestamp ? parseInt(transaction.timestamp, 10) : Date.now() / 1000
 
-                <div className='flex flex-col gap-1 justify-between grow'>
-                  <Text size='sm'>{TransactionTypes[transaction.type]}</Text>
-                  <DateBlock timestamp={transaction.timestamp} format='dateOnly' />
-                </div>
+            return (
+              <a
+                target='_blank'
+                href={platformClient.getTransactionExplorerUrl(hash, currentNetwork)}
+                key={hash} rel='noreferrer'
+              >
+                <ValueCard clickable className='flex gap-2'>
+                  <TransactionStatusIcon size={16} status={status} className='shrink-0' />
 
-                <div className='flex flex-col gap-1 overflow-hidden max-w-full'>
-                  <Identifier
-                    highlight='dim'
-                    maxLines={2}
-                    className='overflow-hidden max-w-full w-[8rem]'
-                  >
-                    {transaction.hash}
-                  </Identifier>
-                </div>
-              </ValueCard>
-            </a>
-          )}
+                  <div className='flex flex-col gap-1 justify-between grow'>
+                    <Text size='sm'>{TransactionTypes[type as keyof typeof TransactionTypes] ?? type}</Text>
+                    <DateBlock timestamp={timestamp} format='dateOnly' />
+                  </div>
+
+                  <div className='flex flex-col gap-1 overflow-hidden max-w-full'>
+                    <Identifier
+                      highlight='dim'
+                      maxLines={2}
+                      className='overflow-hidden max-w-full w-[8rem]'
+                    >
+                      {hash}
+                    </Identifier>
+                  </div>
+                </ValueCard>
+              </a>
+            )
+          })}
         </div>
       </div>
     </div>
