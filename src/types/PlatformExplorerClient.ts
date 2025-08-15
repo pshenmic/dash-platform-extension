@@ -1,0 +1,127 @@
+import { 
+  NetworkType, 
+  TransactionData, 
+  IdentityApiData, 
+  TransactionsResponse,
+  ApiState 
+} from './PlatformExplorer'
+
+// Re-export types for convenience
+export { 
+  NetworkType, 
+  TransactionData, 
+  IdentityApiData, 
+  TransactionsResponse,
+  ApiState 
+} from './PlatformExplorer'
+
+const getBaseUrl = (network: NetworkType = 'testnet'): string => {
+  const baseUrls: Record<NetworkType, string> = {
+    testnet: 'https://testnet.platform-explorer.pshenmic.dev',
+    mainnet: 'https://platform-explorer.pshenmic.dev'
+  }
+  return baseUrls[network]
+}
+
+const getExplorerUrl = (network: NetworkType = 'testnet'): string => {
+  const explorerUrls: Record<NetworkType, string> = {
+    testnet: 'https://testnet.platform-explorer.com',
+    mainnet: 'https://platform-explorer.com'
+  }
+  return explorerUrls[network]
+}
+
+// No utility functions needed - all fields are explicitly typed
+
+export class PlatformExplorerClient {
+  async fetchIdentity(identityId: string, network: NetworkType = 'testnet'): Promise<ApiState<IdentityApiData>> {
+    try {
+      const baseUrl = getBaseUrl(network)
+      const response = await fetch(`${baseUrl}/identity/${identityId}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      return { data, loading: false, error: null }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      return { data: null, loading: false, error: errorMessage }
+    }
+  }
+
+    async fetchMultipleIdentities(identityIds: string[], network: NetworkType = 'testnet'): Promise<ApiState<Record<string, IdentityApiData>>> {
+    try {
+      if (identityIds.length === 0) {
+        return { data: {}, loading: false, error: null }
+      }
+
+      const baseUrl = getBaseUrl(network)
+      
+      // Create parallel requests for all identities
+      const promises = identityIds.map(async (identityId) => {
+        const response = await fetch(`${baseUrl}/identity/${identityId}`)
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error for identity ${identityId}! status: ${response.status}`)
+        }
+
+        const data: IdentityApiData = await response.json()
+        return { identityId, data }
+      })
+
+      const results = await Promise.allSettled(promises)
+
+      // Process results and separate successful from failed
+      const successfulResults: Record<string, IdentityApiData> = {}
+      const errors: string[] = []
+      
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          const { identityId, data } = result.value
+          successfulResults[identityId] = data
+        } else {
+          errors.push(`Failed to fetch ${identityIds[index]}: ${result.reason}`)
+        }
+      })
+      
+      if (errors.length > 0) {
+        return { data: successfulResults, loading: false, error: errors.join('; ') }
+      }
+      
+      return { data: successfulResults, loading: false, error: null }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      return { data: null, loading: false, error: errorMessage }
+    }
+  }
+
+    async fetchTransactions(identityId: string, network: NetworkType = 'testnet', order: 'desc' | 'asc' = 'desc'): Promise<ApiState<TransactionData[]>> {
+    try {
+      const baseUrl = getBaseUrl(network)
+      const response = await fetch(`${baseUrl}/identity/${identityId}/transactions?order=${order}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: TransactionsResponse = await response.json()
+      
+      if (data.error != null) {
+        throw new Error(data.error)
+      }
+      
+      return { data: data.resultSet, loading: false, error: null }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      return { data: null, loading: false, error: errorMessage }
+    }
+  }
+
+  getTransactionExplorerUrl(transactionHash: string, network: NetworkType = 'testnet'): string {
+    const explorerUrl = getExplorerUrl(network)
+    return `${explorerUrl}/transaction/${transactionHash}`
+  }
+}
+

@@ -30,6 +30,8 @@ import { WalletType } from './WalletType'
 import { ResyncIdentitiesPayload } from './messages/payloads/ResyncIdentitiesPayload'
 import { ResyncIdentitiesResponse } from './messages/response/ResyncIdentitiesResponse'
 import { ImportIdentityPayload } from './messages/payloads/ImportIdentityPayload'
+import { GetAllWalletsResponse, WalletAccountInfo } from './messages/response/GetAllWalletsResponse'
+import { Network } from './enums/Network'
 
 export class PrivateAPIClient {
   constructor () {
@@ -65,6 +67,19 @@ export class PrivateAPIClient {
     const payload: CreateWalletPayload = { walletType: WalletType[walletType], mnemonic }
 
     return await this._rpcCall(MessagingMethods.CREATE_WALLET, payload)
+  }
+
+  async getAllWallets (): Promise<WalletAccountInfo[]> {
+    const payload: EmptyPayload = {}
+
+    const response: GetAllWalletsResponse = await this._rpcCall(MessagingMethods.GET_ALL_WALLETS, payload)
+
+    return response.wallets.map((wallet) => ({
+      walletId: wallet.walletId,
+      type: WalletType[wallet.type],
+      network: Network[wallet.network],
+      label: wallet.label
+    }))
   }
 
   async switchWallet (walletId: string, network: string): Promise<void> {
