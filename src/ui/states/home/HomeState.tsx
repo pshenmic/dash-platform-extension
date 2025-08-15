@@ -52,18 +52,13 @@ function HomeState (): React.JSX.Element {
           setCurrentIdentity(currentIdentityFromApi)
         } else if ((availableIdentities?.length ?? 0) > 0) {
           setCurrentIdentity(availableIdentities[0])
-
-          try {
-            console.log('try to extensionAPI.switchIdentity', availableIdentities[0])
-            await extensionAPI.switchIdentity(availableIdentities[0])
-          } catch (error) {
+          await extensionAPI.switchIdentity(availableIdentities[0]).catch(error => {
             console.warn('Failed to set current identity:', error)
-          }
+          })
         }
       } catch (error) {
         console.warn('Failed to load data:', error)
       } finally {
-        console.log('finaly set isLoading false')
         setIsLoading(false)
       }
     }
@@ -72,22 +67,32 @@ function HomeState (): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    console.log('currentIdentity', currentIdentity)
     if (currentIdentity == null || currentIdentity === '') return
 
     const loadBalance = async (): Promise<void> => {
-      console.log('About to get balance...')
-      const balance = await sdk.identities.getIdentityBalance(currentIdentity)
-      console.log('Got balance:', balance)
-      setBalance(balance)
+      try {
+        const balance = await sdk.identities.getIdentityBalance(currentIdentity)
+        setBalance(balance)
+      } catch (error) {
+        console.warn('Failed to load balance:', error)
+        setBalance(0n) // Set default value on error
+      }
     }
 
     const loadTransactions = async (): Promise<void> => {
       setTransactionsState({ data: null, loading: true, error: null })
       
-      const result = await platformClient.fetchTransactions(currentIdentity, currentNetwork, 'desc')
-      console.log('transactionsData', result)
-      setTransactionsState(result)
+      try {
+        const result = await platformClient.fetchTransactions(currentIdentity, currentNetwork, 'desc')
+        setTransactionsState(result)
+      } catch (error) {
+        console.warn('Failed to load transactions:', error)
+        setTransactionsState({ 
+          data: null, 
+          loading: false, 
+          error: error instanceof Error ? error.message : 'Failed to load transactions' 
+        })
+      }
     }
 
     void loadBalance()
@@ -102,10 +107,6 @@ function HomeState (): React.JSX.Element {
     return <NoIdentities />
   }
 
-  console.log('currentIdentity', currentIdentity)
-  console.log('identities', identities)
-  console.log('identities.length', identities.length)
-
   return (
     <div className='screen-content'>
       {currentIdentity && (
@@ -115,11 +116,9 @@ function HomeState (): React.JSX.Element {
             currentIdentity={currentIdentity}
             onSelectIdentity={async (identity) => {
               setCurrentIdentity(identity)
-              try {
-                await extensionAPI.switchIdentity(identity)
-              } catch (error) {
+              await extensionAPI.switchIdentity(identity).catch(error => {
                 console.warn('Failed to switch identity:', error)
-              }
+              })
             }}
           >
             <div className='flex items-center gap-2 cursor-pointer'>
