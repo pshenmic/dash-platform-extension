@@ -1,6 +1,6 @@
 import React from 'react'
 import { Dialog, Button, Identifier, Text, BigNumber, Avatar } from 'dash-ui/react'
-import { usePlatformExplorerClient, type IdentityApiData, type NetworkType } from '../../hooks/usePlatformExplorerApi'
+import { usePlatformExplorerClient, type IdentityApiData, type NetworkType, type ApiState } from '../../hooks/usePlatformExplorerApi'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 interface SelectIdentityDialogProps {
@@ -15,17 +15,18 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
   const platformClient = usePlatformExplorerClient()
   const extensionAPI = useExtensionAPI()
 
-  // Local state for multiple identities data
-  const [identitiesData, setIdentitiesData] = React.useState<Record<string, IdentityApiData>>({})
-  const [loading, setLoading] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
+  // Unified state for multiple identities data
+  const [identitiesState, setIdentitiesState] = React.useState<ApiState<Record<string, IdentityApiData>>>({
+    data: null,
+    loading: false,
+    error: null
+  })
   const [currentNetwork, setCurrentNetwork] = React.useState<NetworkType>('testnet')
 
   React.useEffect(() => {
     if (open && identities.length > 0) {
       const fetchIdentitiesData = async () => {
-        setLoading(true)
-        setError(null)
+        setIdentitiesState({ data: null, loading: true, error: null })
         
         try {
           // Get current network first
@@ -34,16 +35,13 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
           setCurrentNetwork(network)
           
           // Then fetch identities data
-          const data = await platformClient.fetchMultipleIdentities(identities, network)
+          const result = await platformClient.fetchMultipleIdentities(identities, network)
 
-          console.log('data', data)
-          setIdentitiesData(data)
+          console.log('data', result)
+          setIdentitiesState(result)
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-          setError(errorMessage)
-          setIdentitiesData({})
-        } finally {
-          setLoading(false)
+          setIdentitiesState({ data: null, loading: false, error: errorMessage })
         }
       }
       
@@ -104,13 +102,13 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
 
                 <div className='flex flex-col items-end gap-1'>
                   <Text weight='semibold' size='sm'>
-                    {loading ? (
+                    {identitiesState.loading ? (
                       'Loading...'
-                    ) : error ? (
+                    ) : identitiesState.error ? (
                       'Error'
                     ) : (
                       <>
-                        <BigNumber>{identitiesData[identity]?.balance || '0'}</BigNumber> Credits
+                        <BigNumber>{identitiesState.data?.[identity]?.balance || '0'}</BigNumber> Credits
                       </>
                     )}
                   </Text>
