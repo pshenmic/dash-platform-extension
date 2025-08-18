@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Text, Heading, Button, Input, Switch, ProgressStepBar } from 'dash-ui/react'
+import { Text, Heading, Button, Input, Switch, ProgressStepBar, DashLogo } from 'dash-ui/react'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { WalletType } from '../../../types/WalletType'
@@ -132,6 +132,9 @@ function ImportSeedPhrase (): React.JSX.Element {
       <div className='mb-6'>
         <div className='flex items-start gap-3'>
           <div className='flex-1'>
+            <DashLogo containerSize='3rem' />
+
+
             <Heading level={1} className='text-3xl font-extrabold text-gray-900 mb-2 leading-tight'>
               Import your Seed Phrase
             </Heading>
