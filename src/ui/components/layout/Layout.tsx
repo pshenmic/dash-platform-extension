@@ -12,6 +12,7 @@ const Layout: FC = () => {
       <div className='main_container'>
         <Header 
           onNetworkChange={setSelectedNetwork}
+          currentNetwork={selectedNetwork}
           onWalletChange={setSelectedWallet}
         />
         <Outlet context={{ selectedNetwork, selectedWallet }}/>

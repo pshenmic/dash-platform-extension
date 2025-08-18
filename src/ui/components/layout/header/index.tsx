@@ -56,9 +56,10 @@ const headerStyles = cva(
 interface HeaderProps {
   onWalletChange?: (walletId: string | null) => void
   onNetworkChange?: (network: string) => void
+  currentNetwork?: string | null
 }
 
-export default function Header ({ onWalletChange, onNetworkChange }: HeaderProps): React.JSX.Element {
+export default function Header ({ onWalletChange, onNetworkChange, currentNetwork }: HeaderProps): React.JSX.Element {
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -121,7 +122,7 @@ export default function Header ({ onWalletChange, onNetworkChange }: HeaderProps
       {hideLeftSection && (showNetworkSelector || showWalletSelector) && (
         <div className='flex items-center gap-2.5'>
           {showNetworkSelector && <NetworkSelector onSelect={onNetworkChange} />}
-          {showWalletSelector && <WalletSelector onSelect={onWalletChange} />}
+          {showWalletSelector && <WalletSelector onSelect={onWalletChange} currentNetwork={currentNetwork}/>}
         </div>
       )}
 

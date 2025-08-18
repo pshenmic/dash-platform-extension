@@ -40,6 +40,9 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) =>
       console.error('Failed to switch network:', error)
     }
   }
+  useEffect(() => {
+    if (typeof onSelect === 'function') onSelect(currentNetwork)
+  }, [currentNetwork, onSelect]);
 
   if (loading) {
     return (

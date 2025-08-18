@@ -5,14 +5,14 @@ import { WalletAccountInfo } from '../../../../types/messages/response/GetAllWal
 import { useNavigate } from 'react-router-dom'
 
 interface WalletSelectorProps {
-  onSelect?: (walletId: string) => void
+  onSelect?: (walletId: string | null) => void
+  currentNetwork?: string | null
 }
 
-export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect }) => {
+export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, currentNetwork }) => {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [currentWalletId, setCurrentWalletId] = useState<string | null>(null)
-  const [currentNetwork, setCurrentNetwork] = useState<string>('testnet')
   const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -25,7 +25,6 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect }) => {
         ])
 
         setCurrentWalletId(status.currentWalletId)
-        setCurrentNetwork(status.network)
         setAllWallets(wallets)
       } catch (error) {
         console.warn('Failed to load wallet data:', error)
@@ -35,14 +34,19 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect }) => {
     }
 
     void loadWalletData()
-  }, [extensionAPI])
+  }, [extensionAPI, currentNetwork])
+
+  useEffect(() => {
+    if (typeof onSelect === 'function') onSelect(currentWalletId)
+  }, [currentWalletId, onSelect]);
 
   const handleWalletChange = async (walletId: string): Promise<void> => {
     try {
-      await extensionAPI.switchWallet(walletId, currentNetwork)
-      setCurrentWalletId(walletId)
-      onSelect?.(walletId)
-      window.location.reload()
+      if (typeof currentNetwork === 'string') {
+        await extensionAPI.switchWallet(walletId, currentNetwork)
+        setCurrentWalletId(walletId)
+        onSelect?.(walletId)
+      }
     } catch (error) {
       console.error('Failed to switch wallet:', error)
     }
@@ -143,7 +147,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect }) => {
         </div>
       ),
       onClick: () => {
-        void navigate('/create-wallet')
+        void navigate('/choose-wallet-import-type')
       }
     }
   ]
