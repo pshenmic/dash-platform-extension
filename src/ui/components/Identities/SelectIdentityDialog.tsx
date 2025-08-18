@@ -33,7 +33,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
           const status = await extensionAPI.getStatus()
           const network = status.network as NetworkType
           setCurrentNetwork(network)
-          
+
           // Then fetch identities data
           const result = await platformClient.fetchMultipleIdentities(identities, network)
 
@@ -73,7 +73,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
             {identities.map((identity) => (
               <div
                 key={identity}
-                className={`flex flex-1 items-center gap-3 p-3 border-dash-brand cursor-pointer hover:bg-gray-50 ${
+                className={`flex items-center gap-3 p-3 border-dash-brand cursor-pointer hover:bg-gray-50 ${
                   identity === currentIdentity ? 'bg-gray-100 border-l-2' : ''
                 }`}
                 onClick={() => {
@@ -84,10 +84,11 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                   <Avatar username={identity} />
                 </div>
                 
-                <div className='flex items-center gap-2'>
+                <div className='flex flex-1 items-center gap-2'>
                   <Identifier
                     middleEllipsis
                     edgeChars={4}
+                    linesAdjustment={false}
                     className='text-sm font-light'
                     copyButton={true}
                   >
