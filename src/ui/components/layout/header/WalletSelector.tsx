@@ -4,7 +4,11 @@ import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'
 
-export const WalletSelector: React.FC = () => {
+interface WalletSelectorProps {
+  onSelect?: (walletId: string) => void
+}
+
+export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect }) => {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [currentWalletId, setCurrentWalletId] = useState<string | null>(null)
@@ -37,6 +41,7 @@ export const WalletSelector: React.FC = () => {
     try {
       await extensionAPI.switchWallet(walletId, currentNetwork)
       setCurrentWalletId(walletId)
+      onSelect?.(walletId)
       window.location.reload()
     } catch (error) {
       console.error('Failed to switch wallet:', error)
@@ -73,7 +78,7 @@ export const WalletSelector: React.FC = () => {
       noAvailableWallets: availableWallets.length === 0,
       noCurrentWallet: !currentWallet
     })
-    
+
     // Show "Add wallet" button if no wallets available
     if (availableWallets.length === 0) {
       return (

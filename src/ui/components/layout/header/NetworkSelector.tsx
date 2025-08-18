@@ -3,7 +3,11 @@ import { OverlayMenu, WebIcon } from 'dash-ui/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { Network } from '../../../../types/enums/Network'
 
-export const NetworkSelector: React.FC = () => {
+interface NetworkSelectorProps {
+  onSelect?: (network: string) => void
+}
+
+export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) => {
   const extensionAPI = useExtensionAPI()
   const [currentNetwork, setCurrentNetwork] = useState<string>('testnet')
   const [loading, setLoading] = useState(true)
@@ -30,6 +34,7 @@ export const NetworkSelector: React.FC = () => {
       if (status.currentWalletId != null) {
         await extensionAPI.switchWallet(status.currentWalletId, network)
         setCurrentNetwork(network)
+        onSelect?.(network)
       }
     } catch (error) {
       console.error('Failed to switch network:', error)
