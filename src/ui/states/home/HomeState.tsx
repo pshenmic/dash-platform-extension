@@ -123,12 +123,17 @@ function HomeState (): React.JSX.Element {
             }}
           >
             <div className='flex items-center gap-2 cursor-pointer'>
-              <Identifier highlight='both' avatar ellipsis={true}>
+              <Identifier
+                middleEllipsis
+                edgeChars={6}
+                avatar
+                ellipsis={true}
+              >
                 {currentIdentity}
               </Identifier>
 
               <div className='flex items-center gap-2'>
-                <ChevronIcon direction='down' size={12} className='text-gray-400'/>
+                <ChevronIcon direction='down' size={12} className='text-gray-800'/>
               </div>
             </div>
           </SelectIdentityDialog>
