@@ -56,25 +56,25 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
 
   return (
     <>
-      <div onClick={() => setOpen(true)}>
+      <div className={'w-full'} onClick={() => setOpen(true)}>
         {children}
       </div>
       
       <Dialog
         open={open}
         onOpenChange={setOpen}
-        className='w-[390px] max-w-[390px] max-h-[500px]'
+        className='w-[390px] max-w-[390px] max-h-[500px] border-0'
         title='Your identity'
         size='xl'
         showCloseButton={true}
       >
-        <div className='flex flex-col gap-4'>
+        <div className='flex flex-col gap-4 -mx-6'>
           <div className='flex flex-col gap-2'>
             {identities.map((identity) => (
               <div
                 key={identity}
-                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
-                  identity === currentIdentity ? 'border-blue-500 border-l-2' : 'border-gray-200'
+                className={`flex flex-1 items-center gap-3 p-3 border-dash-brand cursor-pointer hover:bg-gray-50 ${
+                  identity === currentIdentity ? 'bg-gray-100 border-l-2' : ''
                 }`}
                 onClick={() => {
                   handleSelectIdentity(identity)
@@ -84,23 +84,18 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                   <Avatar username={identity} />
                 </div>
                 
-                <div className='flex flex-col flex-1 gap-1'>
-                  <div className='flex items-center gap-2'>
-                    <Identifier
-                      middleEllipsis
-                      edgeChars={6}
-                      className='text-sm font-light'
-                      copyButton={true}
-                    >
-                      {identity}
-                    </Identifier>
-                  </div>
-                  <Text size='sm' className='text-gray-500'>
-                    Main_account
-                  </Text>
+                <div className='flex items-center gap-2'>
+                  <Identifier
+                    middleEllipsis
+                    edgeChars={4}
+                    className='text-sm font-light'
+                    copyButton={true}
+                  >
+                    {identity}
+                  </Identifier>
                 </div>
 
-                <div className='flex flex-col items-end gap-1'>
+                <div className='flex flex-col items-end gap-1 text-right'>
                   <Text weight='semibold' size='sm'>
                     {identitiesState.loading ? (
                       'Loading...'
@@ -119,10 +114,6 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
               </div>
             ))}
           </div>
-          
-          <Button variant='outline' className='w-full'>
-            + Create an identity
-          </Button>
         </div>
       </Dialog>
     </>
