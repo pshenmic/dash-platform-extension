@@ -1,6 +1,6 @@
 import React from 'react'
 import { MenuSection } from '../MenuSection'
-import type { SettingsScreenProps } from '../types'
+import type { SettingsScreenProps, ScreenConfig } from '../types'
 
 const CurrencyIcon: React.FC = () => (
   <svg width='20' height='20' viewBox='0 0 20 20' fill='none'>
@@ -23,13 +23,13 @@ const NotificationIcon: React.FC = () => (
   </svg>
 )
 
-export const PreferencesScreen: React.FC<SettingsScreenProps> = () => {
-  const handleItemClick = (itemId: string): void => {
-    console.log(`Preferences action: ${itemId}`)
-    // TODO: Implement actions for each preference item
-  }
-
-  const sections = [
+// Конфигурация экрана Preferences
+export const preferencesScreenConfig: ScreenConfig = {
+  id: 'preferences',
+  title: 'Preferences',
+  category: 'wallet',
+  order: 1,
+  content: [
     {
       id: 'display',
       title: 'Display',
@@ -61,10 +61,17 @@ export const PreferencesScreen: React.FC<SettingsScreenProps> = () => {
       ]
     }
   ]
+}
+
+export const PreferencesScreen: React.FC<SettingsScreenProps> = () => {
+  const handleItemClick = (itemId: string): void => {
+    console.log(`Preferences action: ${itemId}`)
+    // TODO: Implement actions for each preference item
+  }
 
   return (
     <div className='space-y-6'>
-      {sections.map((section) => (
+      {preferencesScreenConfig.content.map((section) => (
         <MenuSection
           key={section.id}
           section={section}

@@ -7,41 +7,38 @@ import { PreferencesScreen } from './screens/PreferencesScreen'
 import { ConnectedDappsScreen } from './screens/ConnectedDappsScreen'
 import { HelpSupportScreen } from './screens/HelpSupportScreen'
 import { AboutScreen } from './screens/AboutScreen'
+import { PrivateKeysScreen } from './screens/PrivateKeysScreen'
+import { screenConfigs } from './screens/configs'
 
-type ScreenType = 'main' | 'current-wallet' | 'preferences' | 'connected-dapps' | 'security-privacy' | 'help-support' | 'about-dash'
+type ScreenType = 'main' | 'current-wallet' | 'preferences' | 'connected-dapps' | 'private-keys' | 'security-privacy' | 'help-support' | 'about-dash'
 
-interface ScreenConfig {
-  title: string
+interface ScreenComponentConfig {
   component: React.ComponentType<any>
 }
 
-const SCREENS: Record<ScreenType, ScreenConfig> = {
+const SCREEN_COMPONENTS: Record<ScreenType, ScreenComponentConfig> = {
   main: {
-    title: 'Settings',
     component: MainSettingsScreen
   },
   'current-wallet': {
-    title: 'Wallet Settings',
     component: WalletSettingsScreen
   },
   preferences: {
-    title: 'Preferences',
     component: PreferencesScreen
   },
   'connected-dapps': {
-    title: 'Connected dapps',
     component: ConnectedDappsScreen
   },
+  'private-keys': {
+    component: PrivateKeysScreen
+  },
   'security-privacy': {
-    title: 'Security & Privacy',
     component: SecuritySettingsScreen
   },
   'help-support': {
-    title: 'Help and Support',
     component: HelpSupportScreen
   },
   'about-dash': {
-    title: 'About Dash Extension',
     component: AboutScreen
   }
 }
@@ -51,10 +48,7 @@ interface SettingsMenuProps {
   onClose: () => void
 }
 
-export const SettingsMenu: React.FC<SettingsMenuProps> = ({
-  isOpen,
-  onClose
-}) => {
+export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose }) => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('main')
   const [screenHistory, setScreenHistory] = useState<ScreenType[]>(['main'])
 
@@ -66,7 +60,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
     }
 
     const screenType = screenId as ScreenType
-    if (SCREENS[screenType]) {
+    if (SCREEN_COMPONENTS[screenType] && screenConfigs[screenType]) {
       setCurrentScreen(screenType)
       setScreenHistory(prev => [...prev, screenType])
     }
@@ -93,8 +87,8 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
     handleClose()
   }
 
-  const currentScreenConfig = SCREENS[currentScreen]
-  const CurrentScreenComponent = currentScreenConfig.component
+  const currentScreenConfig = screenConfigs[currentScreen]
+  const CurrentScreenComponent = SCREEN_COMPONENTS[currentScreen].component
 
   const screenProps = {
     onBack: navigateBack,
@@ -106,7 +100,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
     <OverlayMenu
       isOpen={isOpen}
       onClose={handleClose}
-      title={currentScreenConfig.title}
+      title={currentScreenConfig?.title || 'Settings'}
       showBackButton={currentScreen !== 'main'}
       onBack={currentScreen !== 'main' ? navigateBack : undefined}
     >

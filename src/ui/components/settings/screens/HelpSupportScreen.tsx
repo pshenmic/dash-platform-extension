@@ -1,6 +1,6 @@
 import React from 'react'
 import { MenuSection } from '../MenuSection'
-import type { SettingsScreenProps } from '../types'
+import type { SettingsScreenProps, ScreenConfig } from '../types'
 
 const DocumentIcon: React.FC = () => (
   <svg width='20' height='20' viewBox='0 0 20 20' fill='none'>
@@ -28,29 +28,13 @@ const DiscordIcon: React.FC = () => (
   </svg>
 )
 
-export const HelpSupportScreen: React.FC<SettingsScreenProps> = () => {
-  const handleItemClick = (itemId: string): void => {
-    console.log(`Help & Support action: ${itemId}`)
-
-    switch (itemId) {
-      case 'user-guide':
-        window.open('https://docs.dash.org/', '_blank')
-        break
-      case 'contact-support':
-        window.open('mailto:support@dash.org', '_blank')
-        break
-      case 'report-bug':
-        window.open('https://github.com/dashpay/dash-platform-extension/issues', '_blank')
-        break
-      case 'discord':
-        window.open('https://discord.gg/dash', '_blank')
-        break
-      default:
-        console.log(`Unknown action: ${itemId}`)
-    }
-  }
-
-  const sections = [
+// Конфигурация экрана Help & Support
+export const helpSupportScreenConfig: ScreenConfig = {
+  id: 'help-support',
+  title: 'Help and Support',
+  category: 'other',
+  order: 1,
+  content: [
     {
       id: 'help-resources',
       title: 'Help Resources',
@@ -94,10 +78,33 @@ export const HelpSupportScreen: React.FC<SettingsScreenProps> = () => {
       ]
     }
   ]
+}
+
+export const HelpSupportScreen: React.FC<SettingsScreenProps> = () => {
+  const handleItemClick = (itemId: string): void => {
+    console.log(`Help & Support action: ${itemId}`)
+
+    switch (itemId) {
+      case 'user-guide':
+        window.open('https://docs.dash.org/', '_blank')
+        break
+      case 'contact-support':
+        window.open('mailto:support@dash.org', '_blank')
+        break
+      case 'report-bug':
+        window.open('https://github.com/dashpay/dash-platform-extension/issues', '_blank')
+        break
+      case 'discord':
+        window.open('https://discord.gg/dash', '_blank')
+        break
+      default:
+        console.log(`Unknown action: ${itemId}`)
+    }
+  }
 
   return (
     <div className='space-y-6'>
-      {sections.map((section) => (
+      {helpSupportScreenConfig.content.map((section) => (
         <MenuSection
           key={section.id}
           section={section}

@@ -17,4 +17,15 @@ export interface MenuSection {
 export interface SettingsScreenProps {
   onBack: () => void
   onClose: () => void
+  onItemSelect?: (itemId: string) => void
+}
+
+export interface ScreenConfig {
+  id: string
+  title: string
+  icon?: React.ReactNode
+  description?: string
+  category?: 'account' | 'wallet' | 'other'
+  order?: number
+  content: MenuSection[]
 }
