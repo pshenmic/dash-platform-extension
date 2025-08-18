@@ -110,12 +110,6 @@ function HomeState (): React.JSX.Element {
 
   return (
     <div className='screen-content'>
-      <code>
-        debug<br/>
-        network: {selectedNetwork}<br/>
-        wallet: {selectedWallet}
-      </code>
-
       {currentIdentity && (
         <div className='flex items-center gap-3'>
           <SelectIdentityDialog
@@ -129,12 +123,7 @@ function HomeState (): React.JSX.Element {
             }}
           >
             <div className='flex items-center gap-2 cursor-pointer'>
-              <Identifier
-                avatar
-                // edgeChars={4}
-                // middleEllipsis
-                ellipsis={true}
-              >
+              <Identifier highlight='both' avatar ellipsis={true}>
                 {currentIdentity}
               </Identifier>
 
