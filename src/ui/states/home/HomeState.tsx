@@ -8,19 +8,24 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { usePlatformExplorerClient, type TransactionData, type NetworkType, type ApiState } from '../../hooks/usePlatformExplorerApi'
+import { useOutletContext } from 'react-router-dom'
 import './home.state.css'
+
+interface OutletContext {
+  selectedNetwork: string | null
+  selectedWallet: string | null
+}
 
 function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformClient = usePlatformExplorerClient()
-
+  const { selectedNetwork, selectedWallet } = useOutletContext<OutletContext>()
   const [identities, setIdentities] = useState<string[]>([])
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
-  const [currentNetwork, setCurrentNetwork] = useState<NetworkType>('testnet')
   const [balance, setBalance] = useState<bigint>(0n)
   const [isLoading, setIsLoading] = useState<boolean>(true)
-  
+
   // Unified state for transactions
   const [transactionsState, setTransactionsState] = useState<ApiState<TransactionData[]>>({
     data: null,
@@ -28,26 +33,21 @@ function HomeState (): React.JSX.Element {
     error: null
   })
 
+  // load identities
   useEffect(() => {
-    const loadData = async (): Promise<void> => {
+    const loadIdentities = async (): Promise<void> => {
       try {
         setIsLoading(true)
 
-        // Load network and identities in parallel
-        const [status, identitiesData] = await Promise.all([
-          extensionAPI.getStatus(),
-          extensionAPI.getIdentities()
-        ])
-
-        // Set network
-        setCurrentNetwork(status.network as NetworkType)
+        // Load identities
+        const identitiesData = await extensionAPI.getIdentities()
+        const currentIdentityFromApi = await extensionAPI.getCurrentIdentity()
 
         // Set identities
         const availableIdentities = identitiesData.map(identity => identity.identifier)
         setIdentities(availableIdentities ?? [])
 
-        const currentIdentityFromApi = await extensionAPI.getCurrentIdentity()
-
+        // sett current Identity if it doesnt set
         if (currentIdentityFromApi != null && currentIdentityFromApi !== '') {
           setCurrentIdentity(currentIdentityFromApi)
         } else if ((availableIdentities?.length ?? 0) > 0) {
@@ -63,9 +63,10 @@ function HomeState (): React.JSX.Element {
       }
     }
 
-    void loadData()
-  }, [])
+    void loadIdentities()
+  }, [selectedWallet])
 
+  // Load Balance and Transactions by Identity
   useEffect(() => {
     if (currentIdentity == null || currentIdentity === '') return
 
@@ -81,23 +82,23 @@ function HomeState (): React.JSX.Element {
 
     const loadTransactions = async (): Promise<void> => {
       setTransactionsState({ data: null, loading: true, error: null })
-      
+
       try {
-        const result = await platformClient.fetchTransactions(currentIdentity, currentNetwork, 'desc')
+        const result = await platformClient.fetchTransactions(currentIdentity, selectedNetwork as NetworkType, 'desc')
         setTransactionsState(result)
       } catch (error) {
         console.warn('Failed to load transactions:', error)
-        setTransactionsState({ 
-          data: null, 
-          loading: false, 
-          error: error instanceof Error ? error.message : 'Failed to load transactions' 
+        setTransactionsState({
+          data: null,
+          loading: false,
+          error: error instanceof Error ? error.message : 'Failed to load transactions'
         })
       }
     }
 
     void loadBalance()
     void loadTransactions()
-  }, [currentIdentity, currentNetwork, platformClient, sdk])
+  }, [currentIdentity, selectedNetwork, selectedWallet, platformClient, sdk])
 
   if (isLoading) {
     return <LoadingScreen message='Loading wallet data...' />
@@ -109,6 +110,12 @@ function HomeState (): React.JSX.Element {
 
   return (
     <div className='screen-content'>
+      <code>
+        debug<br/>
+        network: {selectedNetwork}<br/>
+        wallet: {selectedWallet}
+      </code>
+
       {currentIdentity && (
         <div className='flex items-center gap-3'>
           <SelectIdentityDialog
@@ -122,21 +129,20 @@ function HomeState (): React.JSX.Element {
             }}
           >
             <div className='flex items-center gap-2 cursor-pointer'>
-              <Identifier avatar edgeChars={4} middleEllipsis>
+              <Identifier
+                avatar
+                // edgeChars={4}
+                // middleEllipsis
+                ellipsis={true}
+              >
                 {currentIdentity}
               </Identifier>
 
               <div className='flex items-center gap-2'>
-                <ChevronIcon direction='down' size={12} className='text-gray-400' />
+                <ChevronIcon direction='down' size={12} className='text-gray-400'/>
               </div>
             </div>
           </SelectIdentityDialog>
-
-          <div className='h-4 w-px bg-gray-300 mx-1' />
-
-          <Text size='sm' className='text-gray-500'>
-            Main_account
-          </Text>
         </div>
       )}
 
@@ -151,7 +157,7 @@ function HomeState (): React.JSX.Element {
                     {balance.toString()}
                   </BigNumber>
                 </Text>
-                )
+              )
               : <NotActive>N/A</NotActive>}
             <Text
               size='lg'
@@ -198,15 +204,15 @@ function HomeState (): React.JSX.Element {
             return (
               <a
                 target='_blank'
-                href={platformClient.getTransactionExplorerUrl(hash, currentNetwork)}
+                href={platformClient.getTransactionExplorerUrl(hash, selectedNetwork as NetworkType)}
                 key={hash} rel='noreferrer'
               >
                 <ValueCard clickable className='flex gap-2'>
-                  <TransactionStatusIcon size={16} status={status} className='shrink-0' />
+                  <TransactionStatusIcon size={16} status={status} className='shrink-0'/>
 
                   <div className='flex flex-col gap-1 justify-between grow'>
                     <Text size='sm'>{TransactionTypes[type as keyof typeof TransactionTypes] ?? type}</Text>
-                    <DateBlock timestamp={timestamp} format='dateOnly' />
+                    <DateBlock timestamp={timestamp} format='dateOnly'/>
                   </div>
 
                   <div className='flex flex-col gap-1 overflow-hidden max-w-full'>
