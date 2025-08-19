@@ -11,10 +11,7 @@ import {
   Identifier,
   Avatar
 } from 'dash-ui/react'
-
 import type { SettingsScreenProps, ScreenConfig, MenuSection as MenuSectionType } from '../types'
-
-
 
 // Export configurations for other screens
 export const walletSettingsConfig: ScreenConfig = {
