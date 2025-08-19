@@ -18,6 +18,7 @@ export interface SettingsScreenProps {
   onBack: () => void
   onClose: () => void
   onItemSelect?: (itemId: string) => void
+  currentIdentity?: string | null
 }
 
 export interface ScreenConfig {
