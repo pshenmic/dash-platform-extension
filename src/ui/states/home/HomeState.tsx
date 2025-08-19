@@ -14,15 +14,16 @@ import './home.state.css'
 interface OutletContext {
   selectedNetwork: string | null
   selectedWallet: string | null
+  currentIdentity: string | null
+  setCurrentIdentity: (identity: string | null) => void
 }
 
 function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformClient = usePlatformExplorerClient()
-  const { selectedNetwork, selectedWallet } = useOutletContext<OutletContext>()
+  const { selectedNetwork, selectedWallet, currentIdentity, setCurrentIdentity } = useOutletContext<OutletContext>()
   const [identities, setIdentities] = useState<string[]>([])
-  const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [balance, setBalance] = useState<bigint>(0n)
   const [isLoading, setIsLoading] = useState<boolean>(true)
 
@@ -41,21 +42,10 @@ function HomeState (): React.JSX.Element {
 
         // Load identities
         const identitiesData = await extensionAPI.getIdentities()
-        const currentIdentityFromApi = await extensionAPI.getCurrentIdentity()
 
         // Set identities
         const availableIdentities = identitiesData.map(identity => identity.identifier)
         setIdentities(availableIdentities ?? [])
-
-        // sett current Identity if it doesnt set
-        if (currentIdentityFromApi != null && currentIdentityFromApi !== '') {
-          setCurrentIdentity(currentIdentityFromApi)
-        } else if ((availableIdentities?.length ?? 0) > 0) {
-          setCurrentIdentity(availableIdentities[0])
-          await extensionAPI.switchIdentity(availableIdentities[0]).catch(error => {
-            console.warn('Failed to set current identity:', error)
-          })
-        }
       } catch (error) {
         console.warn('Failed to load data:', error)
       } finally {
@@ -64,7 +54,7 @@ function HomeState (): React.JSX.Element {
     }
 
     void loadIdentities()
-  }, [selectedWallet])
+  }, [selectedWallet, extensionAPI])
 
   // Load Balance and Transactions by Identity
   useEffect(() => {
