@@ -46,9 +46,10 @@ const SCREEN_COMPONENTS: Record<ScreenType, ScreenComponentConfig> = {
 interface SettingsMenuProps {
   isOpen: boolean
   onClose: () => void
+  currentIdentity?: string | null
 }
 
-export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose }) => {
+export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, currentIdentity }) => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('main')
   const [screenHistory, setScreenHistory] = useState<ScreenType[]>(['main'])
 
@@ -93,6 +94,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose }) =
   const screenProps = {
     onBack: navigateBack,
     onClose: handleClose,
+    currentIdentity,
     ...(currentScreen === 'main' && { onItemSelect: navigateToScreen })
   }
 
