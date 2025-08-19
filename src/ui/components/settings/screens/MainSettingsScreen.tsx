@@ -7,10 +7,14 @@ import {
   ChainSmallIcon,
   SettingsIcon,
   DashLogo,
-  QuestionMessageIcon
+  QuestionMessageIcon,
+  Identifier,
+  Avatar
 } from 'dash-ui/react'
 
-import type { SettingsScreenProps, ScreenConfig } from '../types'
+import type { SettingsScreenProps, ScreenConfig, MenuSection as MenuSectionType } from '../types'
+
+
 
 // Export configurations for other screens
 export const walletSettingsConfig: ScreenConfig = {
@@ -18,8 +22,7 @@ export const walletSettingsConfig: ScreenConfig = {
   title: 'Wallet Settings',
   icon: <WalletIcon className='text-dash-primary-dark-blue'/>,
   category: 'account',
-  order: 1,
-  content: [] // WalletSettingsScreen will export its own content
+  content: []
 }
 
 export const preferencesConfig: ScreenConfig = {
@@ -27,8 +30,7 @@ export const preferencesConfig: ScreenConfig = {
   title: 'Preferences',
   icon: <SettingsIcon className='text-dash-primary-dark-blue'/>,
   category: 'wallet',
-  order: 1,
-  content: [] // Content will be imported from PreferencesScreen
+  content: []
 }
 
 export const connectedDappsConfig: ScreenConfig = {
@@ -36,8 +38,7 @@ export const connectedDappsConfig: ScreenConfig = {
   title: 'Connected dapps',
   icon: <ChainSmallIcon className='text-dash-primary-dark-blue'/>,
   category: 'wallet',
-  order: 2,
-  content: [] // ConnectedDappsScreen will export its own content
+  content: []
 }
 
 export const privateKeysConfig: ScreenConfig = {
@@ -45,8 +46,7 @@ export const privateKeysConfig: ScreenConfig = {
   title: 'Private Keys',
   icon: <KeyIcon className='text-dash-primary-dark-blue' />,
   category: 'wallet',
-  order: 3,
-  content: [] // A separate screen will be created or added to existing
+  content: []
 }
 
 export const securityPrivacyConfig: ScreenConfig = {
@@ -54,8 +54,7 @@ export const securityPrivacyConfig: ScreenConfig = {
   title: 'Security & Privacy',
   icon: <ShieldSmallIcon className='text-dash-primary-dark-blue' />,
   category: 'wallet',
-  order: 4,
-  content: [] // SecuritySettingsScreen will export its own content
+  content: []
 }
 
 export const helpSupportConfig: ScreenConfig = {
@@ -63,17 +62,15 @@ export const helpSupportConfig: ScreenConfig = {
   title: 'Help and Support',
   icon: <QuestionMessageIcon className='text-dash-primary-dark-blue' />,
   category: 'other',
-  order: 1,
-  content: [] // HelpSupportScreen will export its own content
+  content: []
 }
 
 export const aboutDashConfig: ScreenConfig = {
   id: 'about-dash',
   title: 'About Dash Extension',
-  icon: <DashLogo className='text-dash-primary-dark-blue' />,
+  icon: <DashLogo className='text-dash-primary-dark-blue w-4 h-4' />,
   category: 'other',
-  order: 2,
-  content: [] // AboutScreen will export its own content
+  content: []
 }
 
 // Main screen configuration
@@ -81,48 +78,41 @@ export const mainScreenConfig: ScreenConfig = {
   id: 'main',
   title: 'Settings',
   category: 'account',
-  order: 0,
   content: [
-    {
-      id: 'account',
-      title: 'Account Settings',
-      items: [
-        {
-          id: walletSettingsConfig.id,
-          title: '6Eb4...p24c',
-          description: 'Main_account',
-          icon: walletSettingsConfig.icon,
-          hasSubMenu: true
-        }
-      ]
-    },
     {
       id: 'wallet-settings',
       title: 'Wallet Settings',
       items: [
         {
-          id: preferencesConfig.id,
+          id: 'preferences-item',
           title: preferencesConfig.title,
           icon: preferencesConfig.icon,
-          hasSubMenu: true
+          screenId: preferencesConfig.id,
+          hasSubMenu: true,
+          disabled: true
         },
         {
-          id: connectedDappsConfig.id,
+          id: 'connected-dapps-item',
           title: connectedDappsConfig.title,
           icon: connectedDappsConfig.icon,
-          hasSubMenu: true
+          screenId: connectedDappsConfig.id,
+          hasSubMenu: true,
+          disabled: true
         },
         {
-          id: privateKeysConfig.id,
+          id: 'private-keys-item',
           title: privateKeysConfig.title,
           icon: privateKeysConfig.icon,
-          hasSubMenu: true
+          screenId: privateKeysConfig.id,
+          hasSubMenu: true,
         },
         {
-          id: securityPrivacyConfig.id,
+          id: 'security-privacy-item',
           title: securityPrivacyConfig.title,
           icon: securityPrivacyConfig.icon,
-          hasSubMenu: true
+          screenId: securityPrivacyConfig.id,
+          hasSubMenu: true,
+          disabled: true
         }
       ]
     },
@@ -131,16 +121,39 @@ export const mainScreenConfig: ScreenConfig = {
       title: 'Other',
       items: [
         {
-          id: helpSupportConfig.id,
+          id: 'help-support-item',
           title: helpSupportConfig.title,
           icon: helpSupportConfig.icon,
-          hasSubMenu: true
+          screenId: helpSupportConfig.id,
+          hasSubMenu: true,
+          disabled: true
         },
         {
-          id: aboutDashConfig.id,
+          id: 'about-dash-item',
           title: aboutDashConfig.title,
           icon: aboutDashConfig.icon,
-          hasSubMenu: true
+          screenId: aboutDashConfig.id,
+          hasSubMenu: true,
+          disabled: true
+        },
+        {
+          id: 'logout-item',
+          title: 'Logout',
+          icon: <QuestionMessageIcon className='text-red-600' />,
+          onAction: () => {
+            console.log('Logout action triggered')
+            // TODO: Implement logout logic
+          },
+          disabled: true
+        },
+        {
+          id: 'example-disabled-item',
+          title: 'Disabled Item',
+          icon: <QuestionMessageIcon className='text-gray-400' />,
+          onAction: () => {
+            console.log('This should not be triggered')
+          },
+          disabled: true
         }
       ]
     }
@@ -155,13 +168,6 @@ export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
   onItemSelect,
   currentIdentity
 }) => {
-  // Format currentIdentity for display (first 4 and last 4 characters)
-  const formatIdentifier = (identifier: string | null): string => {
-    if (!identifier) return 'No Identity'
-    if (identifier.length <= 8) return identifier
-    return `${identifier.slice(0, 4)}...${identifier.slice(-4)}`
-  }
-
   // Generate dynamic configuration with real currentIdentity
   const dynamicMainScreenConfig: ScreenConfig = {
     ...mainScreenConfig,
@@ -171,21 +177,30 @@ export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
         title: 'Account Settings',
         items: [
           {
-            id: walletSettingsConfig.id,
-            title: formatIdentifier(currentIdentity ?? null),
-            description: 'Main_account',
-            icon: walletSettingsConfig.icon,
+            id: 'current-wallet-item',
+            title: currentIdentity ? (
+              <Identifier 
+                middleEllipsis 
+                edgeChars={4} 
+              >
+                {currentIdentity}
+              </Identifier>
+            ) : 'No Identity',
+            icon: currentIdentity ? (
+              <Avatar size='sm' username={currentIdentity} />
+            ) : walletSettingsConfig.icon,
+            screenId: walletSettingsConfig.id,
             hasSubMenu: true
           }
         ]
       },
-      ...mainScreenConfig.content.slice(1) // Keep the rest of the sections unchanged
+      ...(mainScreenConfig.content as MenuSectionType[]) // Keep the rest of the sections unchanged
     ]
   }
 
   return (
     <div className='space-y-6'>
-      {dynamicMainScreenConfig.content.map((section, index) => (
+      {(dynamicMainScreenConfig.content as MenuSectionType[]).map((section, index) => (
         <MenuSection
           key={section.id}
           section={section}

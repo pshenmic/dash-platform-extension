@@ -35,13 +35,23 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
           <MenuItem
             key={item.id}
             title={item.title}
-            description={item.description}
             icon={item.icon}
             hasSubMenu={item.hasSubMenu}
-            danger={item.danger}
+            disabled={item.disabled}
             isAccount={isAccount}
-
-            onClick={() => onItemClick(item.id)}
+            onClick={() => {
+              // Don't execute anything if disabled
+              if (item.disabled) {
+                return
+              }
+              
+              // Priority: onAction over navigation
+              if (item.onAction) {
+                item.onAction()
+              } else {
+                onItemClick(item.id)
+              }
+            }}
           />
         ))}
       </div>

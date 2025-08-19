@@ -33,7 +33,6 @@ export const helpSupportScreenConfig: ScreenConfig = {
   id: 'help-support',
   title: 'Help and Support',
   category: 'other',
-  order: 1,
   content: [
     {
       id: 'help-resources',
@@ -42,13 +41,11 @@ export const helpSupportScreenConfig: ScreenConfig = {
         {
           id: 'user-guide',
           title: 'User Guide',
-          description: 'Learn how to use Dash Extension',
           icon: <DocumentIcon />
         },
         {
           id: 'contact-support',
           title: 'Contact Support',
-          description: 'Get help from our team',
           icon: <MessageIcon />
         }
       ]
@@ -60,7 +57,6 @@ export const helpSupportScreenConfig: ScreenConfig = {
         {
           id: 'report-bug',
           title: 'Report a Bug',
-          description: 'Help us improve the extension',
           icon: <BugIcon />
         }
       ]
@@ -72,7 +68,6 @@ export const helpSupportScreenConfig: ScreenConfig = {
         {
           id: 'discord',
           title: 'Join Discord',
-          description: 'Connect with the Dash community',
           icon: <DiscordIcon />
         }
       ]

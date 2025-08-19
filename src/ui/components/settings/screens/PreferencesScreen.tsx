@@ -28,7 +28,6 @@ export const preferencesScreenConfig: ScreenConfig = {
   id: 'preferences',
   title: 'Preferences',
   category: 'wallet',
-  order: 1,
   content: [
     {
       id: 'display',
@@ -37,13 +36,11 @@ export const preferencesScreenConfig: ScreenConfig = {
         {
           id: 'currency',
           title: 'Primary Currency',
-          description: 'USD',
           icon: <CurrencyIcon />
         },
         {
           id: 'language',
           title: 'Language',
-          description: 'English',
           icon: <LanguageIcon />
         }
       ]
@@ -55,7 +52,6 @@ export const preferencesScreenConfig: ScreenConfig = {
         {
           id: 'push-notifications',
           title: 'Push Notifications',
-          description: 'Get notified about transactions',
           icon: <NotificationIcon />
         }
       ]

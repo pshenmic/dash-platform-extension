@@ -1,11 +1,11 @@
 export interface MenuItem {
   id: string
-  title: string
-  description?: string
+  title: string | React.ReactNode
   icon?: React.ReactNode
-  action?: () => void
+  screenId?: string
+  onAction?: () => void
   hasSubMenu?: boolean
-  danger?: boolean
+  disabled?: boolean
 }
 
 export interface MenuSection {
@@ -27,6 +27,5 @@ export interface ScreenConfig {
   icon?: React.ReactNode
   description?: string
   category?: 'account' | 'wallet' | 'other'
-  order?: number
   content: MenuSection[]
 }

@@ -46,13 +46,11 @@ export const SecuritySettingsScreen: React.FC<SettingsScreenProps> = ({
         {
           id: 'change-password',
           title: 'Change Password',
-          description: 'Change app master password',
           icon: <KeyIcon />
         },
         {
           id: 'biometric-auth',
           title: 'Biometric Authentication',
-          description: 'Touch ID / Face ID for quick access',
           icon: <FingerprintIcon />
         }
       ]
@@ -64,13 +62,11 @@ export const SecuritySettingsScreen: React.FC<SettingsScreenProps> = ({
         {
           id: 'auto-lock-settings',
           title: 'Auto-Lock Settings',
-          description: 'Time until automatic lock',
           icon: <TimeIcon />
         },
         {
           id: 'lock-on-background',
           title: 'Lock on Background',
-          description: 'Lock when app goes to background',
           icon: <LockIcon />
         }
       ]
@@ -82,7 +78,6 @@ export const SecuritySettingsScreen: React.FC<SettingsScreenProps> = ({
         {
           id: 'hide-balances',
           title: 'Hide Balances',
-          description: 'Don\'t show amounts on screens',
           icon: <LockIcon />
         }
       ]

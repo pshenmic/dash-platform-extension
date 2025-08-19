@@ -38,13 +38,11 @@ export const WalletSettingsScreen: React.FC<SettingsScreenProps> = ({
         {
           id: 'view-seed',
           title: 'Show Seed Phrase',
-          description: 'View mnemonic phrase (requires password)',
           icon: <ViewIcon />
         },
         {
           id: 'view-private-keys',
           title: 'Private Keys',
-          description: 'Export identity private keys',
           icon: <ViewIcon />
         }
       ]
@@ -56,7 +54,6 @@ export const WalletSettingsScreen: React.FC<SettingsScreenProps> = ({
         {
           id: 'rename-wallet',
           title: 'Rename Wallet',
-          description: 'Change wallet display name',
           icon: <EditIcon />
         }
       ]
@@ -68,9 +65,8 @@ export const WalletSettingsScreen: React.FC<SettingsScreenProps> = ({
         {
           id: 'delete-wallet',
           title: 'Delete Wallet',
-          description: 'Permanently remove wallet from app',
           icon: <DeleteIcon />,
-          danger: true
+          disabled: false
         }
       ]
     }

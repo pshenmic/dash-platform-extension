@@ -140,7 +140,6 @@ export const privateKeysScreenConfig: ScreenConfig = {
   id: 'private-keys',
   title: 'Private Keys',
   category: 'wallet',
-  order: 3,
   content: [] // Content will be generated dynamically
 }
 
