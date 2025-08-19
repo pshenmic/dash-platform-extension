@@ -57,9 +57,10 @@ interface HeaderProps {
   onWalletChange?: (walletId: string | null) => void
   onNetworkChange?: (network: string) => void
   currentNetwork?: string | null
+  currentIdentity?: string | null
 }
 
-export default function Header ({ onWalletChange, onNetworkChange, currentNetwork }: HeaderProps): React.JSX.Element {
+export default function Header ({ onWalletChange, onNetworkChange, currentNetwork, currentIdentity }: HeaderProps): React.JSX.Element {
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -157,6 +158,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
       <SettingsMenu
         isOpen={isMenuOpen}
         onClose={closeMenu}
+        currentIdentity={currentIdentity}
       />
     </header>
   )
