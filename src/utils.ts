@@ -133,3 +133,8 @@ export const getFaviconUrl = (url: string, size: number = 32): string => {
     return `https://www.google.com/s2/favicons?domain=example.com&sz=${size}`
   }
 }
+
+export const creditsToDash = (credits: number | bigint): number => {
+  const numericCredits = typeof credits === 'bigint' ? Number(credits) : credits
+  return numericCredits / 10e10
+}
