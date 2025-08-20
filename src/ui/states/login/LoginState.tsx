@@ -22,7 +22,13 @@ export default function LoginState (): React.JSX.Element {
     try {
       const result = await extensionAPI.checkPassword(password)
       if (result.success) {
-        void navigate('/no-wallet')
+        const status = await extensionAPI.getStatus()
+        
+        if (status.currentWalletId != null && status.currentWalletId !== '') {
+          void navigate('/home')
+        } else {
+          void navigate('/no-wallet')
+        }
       } else {
         setError('Invalid password')
       }
