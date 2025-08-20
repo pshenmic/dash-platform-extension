@@ -1,6 +1,7 @@
 export {
   NetworkType, 
   TransactionData, 
+  TokenData,
   IdentityApiData, 
   PlatformExplorerClient,
   ApiState 
