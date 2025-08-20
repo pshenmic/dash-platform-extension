@@ -1,17 +1,26 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useOutletContext } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import TransactionDetails from './TransactionDetails'
 import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import LoadingScreen from '../../components/layout/LoadingScreen'
+import { useSdk } from '../../hooks/useSdk'
+
+interface OutletContext {
+  selectedNetwork: string | null
+  selectedWallet: string | null
+  currentIdentity: string | null
+  setCurrentIdentity: (identity: string | null) => void
+}
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
+  const sdk = useSdk()
+  const { selectedNetwork, selectedWallet, currentIdentity, setCurrentIdentity } = useOutletContext<OutletContext>()
 
   const params = useParams()
 
@@ -21,7 +30,6 @@ function ApproveTransactionState (): React.JSX.Element {
   const [transactionNotFound, setTransactionNotFound] = useState<boolean>(false)
 
   const [identities, setIdentities] = useState<string[]>([])
-  const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [password, setPassword] = useState<string>('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [isSigningInProgress, setIsSigningInProgress] = useState<boolean>(false)
@@ -30,6 +38,8 @@ function ApproveTransactionState (): React.JSX.Element {
   const [hasWallet, setHasWallet] = useState<boolean>(false)
 
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
+  const [signingKeyOptions, setSigningKeyOptions] = useState<Array<{ value: string, content: React.ReactNode }>>([])
+  const [selectedSigningKey, setSelectedSigningKey] = useState<string>('')
 
   useEffect(() => {
     const checkWallet = async (): Promise<void> => {
@@ -64,23 +74,8 @@ function ApproveTransactionState (): React.JSX.Element {
         const availableIdentities = (await extensionAPI.getIdentities())
           .map(identity => identity.identifier)
 
-        const current = await extensionAPI.getCurrentIdentity()
-
         setIdentities(availableIdentities ?? [])
-        setCurrentIdentity(current)
-
         console.log('availableIdentities', availableIdentities)
-        console.log('current', current)
-
-        // Auto-set first identity as current if no current identity is set
-        if ((current == null || current === '') && (availableIdentities?.length ?? 0) > 0) {
-          try {
-            await extensionAPI.switchIdentity(availableIdentities[0])
-            setCurrentIdentity(availableIdentities[0])
-          } catch (error) {
-            console.warn('Failed to set current identity:', error)
-          }
-        }
       } catch (error) {
         console.warn('Failed to load identities:', error)
       } finally {
@@ -89,7 +84,62 @@ function ApproveTransactionState (): React.JSX.Element {
     }
 
     void loadData()
-  }, [isCheckingWallet, hasWallet])
+  }, [isCheckingWallet, hasWallet, selectedWallet])
+
+  // Load signing keys when wallet/identity/network changes (seedphrase wallets only)
+  useEffect(() => {
+    const loadSigningKeys = async (): Promise<void> => {
+      try {
+        setSigningKeyOptions([])
+        setSelectedSigningKey('')
+
+        if (selectedWallet == null || selectedNetwork == null || currentIdentity == null || currentIdentity === '') return
+
+        const allWallets = await extensionAPI.getAllWallets()
+        const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
+        if (wallet == null) return
+
+        if (wallet.type === 'seedphrase') {
+          const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
+
+          const options = identityPublicKeys.map((key: any, index: number) => {
+            const purpose = String(key?.purpose ?? 'UNKNOWN')
+            const security = String(key?.securityLevel ?? 'UNKNOWN')
+            let hash = ''
+            try {
+              hash = typeof key?.getPublicKeyHash === 'function' ? key.getPublicKeyHash() : ''
+            } catch {}
+
+            const label = `${purpose}/${security}`
+            const value = hash || `key-${index + 1}`
+
+            return {
+              value,
+              content: (
+                <div className='flex items-center justify-between w-full'>
+                  <span className='text-sm'>{label}</span>
+                  {hash && (
+                    <Identifier middleEllipsis edgeChars={4} className='text-xs opacity-70'>
+                      {hash}
+                    </Identifier>
+                  )}
+                </div>
+              )
+            }
+          })
+
+          setSigningKeyOptions(options)
+          if (options.length > 0) setSelectedSigningKey(options[0].value)
+        }
+      } catch (error) {
+        console.warn('Failed to load signing keys:', error)
+        setSigningKeyOptions([])
+        setSelectedSigningKey('')
+      }
+    }
+
+    void loadSigningKeys()
+  }, [selectedWallet, selectedNetwork, currentIdentity, extensionAPI, sdk])
 
   useEffect(() => {
     const transactionHash = params.hash ?? params.txhash
@@ -175,7 +225,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
         <div className='flex flex-col gap-2 w-full'>
           <Button
-            onClick={async () => await navigate('/import-keystore')}
+            onClick={async () => await navigate('/import-keystore')} // Todo: redirect link
             colorScheme='brand'
           >
             Import Identity
@@ -312,30 +362,41 @@ function ApproveTransactionState (): React.JSX.Element {
               {transactionHash}
             </Identifier>
           </ValueCard>
-
-          <div>
-            {isLoadingTransaction
-              ? <Text size='sm'>Loading transaction...</Text>
-              : (transactionNotFound
-                  ? <Text size='sm' color='red' weight='bold'>Could not find transaction with hash</Text>
-                  : (transactionDecodeError != null
-                      ? (
-                        <Text size='sm' color='red' weight='bold'>
-                          Error decoding state transition: {transactionDecodeError}
-                        </Text>
-                        )
-                      : (stateTransitionWASM != null && <TransactionDetails stateTransition={stateTransitionWASM} />)))}
-          </div>
+          {isLoadingTransaction && <Text size='sm'>Loading transaction...</Text>}
+          {transactionNotFound && <Text size='sm' color='red' weight='bold'>Could not find transaction with hash</Text>}
+          {transactionDecodeError != null && (
+            <Text size='sm' color='red' weight='bold'>
+              Error decoding state transition: {transactionDecodeError}
+            </Text>
+          )}
         </div>
 
-        {/* Choose Identity */}
+        {/* Choose Identity (wired to outlet context) */}
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <div className='flex flex-col gap-2.5'>
             <Text size='md' opacity='50'>Choose Identity</Text>
             <Select
               value={currentIdentity ?? ''}
-              onChange={(e) => setCurrentIdentity(e.target.value)}
+              onValueChange={async (e: string) => {
+                const identity = e
+                setCurrentIdentity(identity)
+                await extensionAPI.switchIdentity(identity).catch(err => console.warn('Failed to switch identity', err))
+              }}
               options={identityOptions}
+              showArrow
+              size='xl'
+            />
+          </div>
+        )}
+
+        {/* Choose Signing Key (sdk-loaded for seedphrase wallets) */}
+        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && signingKeyOptions.length > 0 && (
+          <div className='flex flex-col gap-2.5'>
+            <Text size='md' opacity='50'>Choose Signing Key</Text>
+            <Select
+              value={selectedSigningKey}
+              onValueChange={setSelectedSigningKey}
+              options={signingKeyOptions}
               showArrow
               size='xl'
             />
@@ -349,7 +410,7 @@ function ApproveTransactionState (): React.JSX.Element {
             <Input
               type='password'
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: { target: { value: React.SetStateAction<string> } }) => setPassword(e.target.value)}
               placeholder='Your Password'
               size='xl'
               variant='outlined'
