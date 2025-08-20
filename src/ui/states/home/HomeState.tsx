@@ -9,6 +9,7 @@ import { useSdk } from '../../hooks/useSdk'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { usePlatformExplorerClient, type TransactionData, type NetworkType, type ApiState } from '../../hooks/usePlatformExplorerApi'
 import { useOutletContext } from 'react-router-dom'
+import { creditsToDash } from '../../../utils'
 import './home.state.css'
 
 interface OutletContext {
@@ -29,6 +30,12 @@ function HomeState (): React.JSX.Element {
 
   // Unified state for transactions
   const [transactionsState, setTransactionsState] = useState<ApiState<TransactionData[]>>({
+    data: null,
+    loading: false,
+    error: null
+  })
+
+  const [rateState, setRateState] = useState<ApiState<number>>({
     data: null,
     loading: false,
     error: null
@@ -90,6 +97,25 @@ function HomeState (): React.JSX.Element {
     void loadTransactions()
   }, [currentIdentity, selectedNetwork, selectedWallet, platformClient, sdk])
 
+  useEffect(() => {
+    const loadRate = async (): Promise<void> => {
+      setRateState({ data: null, loading: true, error: null })
+      try {
+        const result = await platformClient.fetchRate(selectedNetwork as NetworkType)
+        console.log('result', result)
+        setRateState(result)
+      } catch (error) {
+        setRateState({
+          data: null,
+          loading: false,
+          error: error instanceof Error ? error.message : 'Failed to load rate'
+        })
+      }
+    }
+
+    void loadRate()
+  }, [selectedNetwork, platformClient])
+
   if (isLoading) {
     return <LoadingScreen message='Loading wallet data...' />
   }
@@ -131,25 +157,48 @@ function HomeState (): React.JSX.Element {
       )}
 
       <div className='flex flex-col gap-4 w-full'>
-        <div className='flex flex-col gap-[0.125rem]'>
-          <Text dim>Balance</Text>
-          <span>
-            {!Number.isNaN(Number(balance))
-              ? (
-                <Text size='xl' weight='bold' monospace>
-                  <BigNumber>
-                    {balance.toString()}
-                  </BigNumber>
-                </Text>
-              )
-              : <NotActive>N/A</NotActive>}
-            <Text
-              size='lg'
-              className='ml-2'
-            >
-              Credits
+        <div className='flex flex-col gap-[0.625rem]'>
+          <div className='flex flex-col'>
+            <Text className='!text-[2.25rem] text-dash-primary-dark-blue !leading-[100%]'>
+              Balance:
             </Text>
-          </span>
+            <span>
+              {!Number.isNaN(Number(balance))
+                ? (
+                  <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
+                    <BigNumber className='!text-dash-brand gap-2'>
+                      {balance.toString()}
+                    </BigNumber>
+                  </Text>
+                )
+                : <NotActive>N/A</NotActive>}
+            </span>
+          </div>
+
+          {!Number.isNaN(Number(balance)) && (
+            <div className='flex items-center gap-2.5 bg-[rgba(76,126,255,0.1)] rounded-[5px] px-2 py-1.5 w-fit'>
+              <Text className='!text-dash-brand font-medium text-sm'>
+                {rateState.loading && '~ ... USD'}
+                {!rateState.loading && rateState.error && '~ - USD'}
+                {!rateState.loading && !rateState.error && rateState.data == null && '~ - USD'}
+                {!rateState.loading && !rateState.error && rateState.data != null && rateState.data > 0 && (() => {
+                  const dashAmount = creditsToDash(balance)
+                  const usdAmount = dashAmount * rateState.data
+                  return `~ $${usdAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
+                })()}
+                {!rateState.loading && !rateState.error && rateState.data != null && rateState.data <= 0 && '~ - USD'}
+              </Text>
+              
+              <div className='w-px h-4 bg-[rgba(76,126,255,0.25)]'></div>
+              
+              <Text className='!text-dash-brand  font-medium text-sm'>
+                {(() => {
+                  const dashAmount = creditsToDash(balance)
+                  return `${dashAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Dash`
+                })()}
+              </Text>
+            </div>
+          )}
         </div>
       </div>
 
