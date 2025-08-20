@@ -21,5 +21,4 @@ export default async function addIndexToIdentitiesMigration (storageAdapter: Sto
 
     await storageAdapter.set('schema_version', 3)
   }
-
 }

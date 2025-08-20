@@ -10,7 +10,7 @@ export default async function moveCurrentIdentityToWallet (storageAdapter: Stora
     const walletIds = await storageAdapter.get('wallets') as string[]
     const [walletId] = walletIds
 
-    if (walletId) {
+    if (walletId != null) {
       const wallet = await storageAdapter.get(`wallet_${walletId}_${network}`) as WalletStoreSchema
 
       if (currentIdentity !== null) {
