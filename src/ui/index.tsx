@@ -118,7 +118,14 @@ const App: React.FC = function () {
         },
         {
           path: '/approve/:txhash',
-          element: <ApproveTransactionState />
+          element: <ApproveTransactionState />,
+          handle: {
+            headerProps: {
+              hideLeftSection: false,
+              showWalletSelector: true,
+              showNetworkRightReadOnly: true
+            }
+          }
         },
         {
           path: '/connect/:id',
