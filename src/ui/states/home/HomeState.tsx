@@ -7,10 +7,12 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { usePlatformExplorerClient, type TransactionData, type NetworkType } from '../../hooks/usePlatformExplorerApi'
+import { type TokenData } from '../../../types/PlatformExplorerClient'
 import { useAsyncState } from '../../hooks/useAsyncState'
 import { useOutletContext } from 'react-router-dom'
 import { creditsToDash } from '../../../utils'
 import { TransactionsList } from '../../components/transactions'
+import { TokensList } from '../../components/tokens'
 import './home.state.css'
 
 interface OutletContext {
@@ -28,6 +30,7 @@ function HomeState (): React.JSX.Element {
   const [identities, setIdentities] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [transactionsState, loadTransactions] = useAsyncState<TransactionData[]>()
+  const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
   const [balanceState, loadBalance] = useAsyncState<bigint>()
   const [rateState, loadRate] = useAsyncState<number>()
 
@@ -69,7 +72,16 @@ function HomeState (): React.JSX.Element {
       }
       throw new Error(result.error || 'Failed to load transactions')
     })
-  }, [currentIdentity, selectedNetwork, selectedWallet, platformClient, sdk, loadBalance, loadTransactions])
+
+    void loadTokens(async () => {
+      // const result = await platformClient.fetchTokens(currentIdentity, selectedNetwork as NetworkType, 100, 1)
+      const result = await platformClient.fetchTokens('HT3pUBM1Uv2mKgdPEN1gxa7A4PdsvNY89aJbdSKQb5wR', selectedNetwork as NetworkType, 100, 1)
+      if (result.data) {
+        return result.data
+      }
+      throw new Error(result.error || 'Failed to load tokens')
+    })
+  }, [currentIdentity, selectedNetwork, selectedWallet, platformClient, sdk, loadBalance, loadTransactions, loadTokens])
 
   useEffect(() => {
     void loadRate(async () => {
@@ -190,7 +202,25 @@ function HomeState (): React.JSX.Element {
         <Button className='w-1/2' disabled>Withdraw</Button>
       </div>
 
-      <ValueCard className='-mx-[0.875rem] -mb-[0.875rem] !rounded-b-none'>
+      <ValueCard className='flex flex-col gap-6 -mx-[0.875rem] -mb-[0.875rem] !rounded-b-none p-4'>
+        <div className='w-full relative'>
+          <div className='flex items-center justify-between'>
+            <div className='flex'>
+              <div className='flex items-center gap-2 px-4 pb-2 border-b border-dash-brand'>
+                <Text size='lg' weight='medium' className='text-dash-primary-dark-blue'>
+                  Transactions
+                </Text>
+              </div>
+              <div className='flex items-center gap-2 px-4 pb-2'>
+                <Text size='lg' weight='light' className='text-gray-400'>
+                  Tokens
+                </Text>
+              </div>
+            </div>
+          </div>
+          
+          <div className='absolute bottom-0 left-0 right-0 h-px bg-gray-200'></div>
+        </div>
         <TransactionsList
           transactions={transactionsState.data || []}
           loading={transactionsState.loading}
@@ -198,6 +228,14 @@ function HomeState (): React.JSX.Element {
           rate={rateState.data}
           selectedNetwork={selectedNetwork as NetworkType}
           getTransactionExplorerUrl={platformClient.getTransactionExplorerUrl}
+        />
+
+        Tokens:
+        <TokensList
+          tokens={tokensState.data || []}
+          loading={tokensState.loading}
+          error={tokensState.error}
+          selectedNetwork={selectedNetwork as NetworkType}
         />
       </ValueCard>
     </div>
