@@ -36,6 +36,19 @@ const Layout: FC = () => {
     void loadCurrentIdentity()
   }, [selectedWallet, extensionAPI])
 
+  useEffect(() => {
+    const loadCurrentNetwork = async (): Promise<void> => {
+      try {
+        const status = await extensionAPI.getStatus()
+        setSelectedNetwork(status.network)
+      } catch (error) {
+        console.warn('Failed to load current network:', error)
+      }
+    }
+
+    void loadCurrentNetwork()
+  }, [selectedWallet, extensionAPI])
+
   return (
     <ThemeProvider initialTheme='light'>
       <div className='main_container'>
