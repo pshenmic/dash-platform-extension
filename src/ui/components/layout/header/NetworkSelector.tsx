@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { OverlayMenu, WebIcon } from 'dash-ui/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
+import { useSdk } from '../../../hooks/useSdk'
 import { Network } from '../../../../types/enums/Network'
 
 interface NetworkSelectorProps {
@@ -9,6 +10,7 @@ interface NetworkSelectorProps {
 
 export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) => {
   const extensionAPI = useExtensionAPI()
+  const sdk = useSdk()
   const [currentNetwork, setCurrentNetwork] = useState<string>('testnet')
   const [loading, setLoading] = useState(true)
 
@@ -29,6 +31,8 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) =>
 
   const handleNetworkChange = async (network: string): Promise<void> => {
     try {
+      sdk.setNetwork(network as 'testnet' | 'mainnet')
+      
       // Мок для переключения сети - в будущем будет реальный API вызов
       const status = await extensionAPI.getStatus()
       if (status.currentWalletId != null) {
@@ -51,9 +55,9 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) =>
   }
 
   const triggerContent = (
-    <div className="flex items-center gap-1">
+    <div className='flex items-center gap-1'>
       <WebIcon size={16} />
-      <span className="text-sm font-medium">
+      <span className='text-sm font-medium'>
         {currentNetwork.charAt(0).toUpperCase() + currentNetwork.slice(1)}
       </span>
     </div>
@@ -62,7 +66,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) =>
   const items = Object.values(Network).map(network => ({
     id: network,
     content: (
-      <div className="flex items-center gap-1">
+      <div className='flex items-center gap-1'>
         <span>{network.charAt(0).toUpperCase() + network.slice(1)}</span>
       </div>
     ),
