@@ -3,6 +3,8 @@ import {
   TransactionData, 
   IdentityApiData, 
   TransactionsResponse,
+  TokenData,
+  TokensResponse,
   ApiState 
 } from './PlatformExplorer'
 
@@ -12,6 +14,8 @@ export {
   TransactionData, 
   IdentityApiData, 
   TransactionsResponse,
+  TokenData,
+  TokensResponse,
   ApiState 
 } from './PlatformExplorer'
 
@@ -142,6 +146,28 @@ export class PlatformExplorerClient {
       }
 
       const data: TransactionsResponse = await response.json()
+      
+      if (data.error != null) {
+        throw new Error(data.error)
+      }
+      
+      return { data: data.resultSet, loading: false, error: null }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      return { data: null, loading: false, error: errorMessage }
+    }
+  }
+
+  async fetchTokens(identityId: string, network: NetworkType = 'testnet', limit: number = 10, page: number = 1): Promise<ApiState<TokenData[]>> {
+    try {
+      const baseUrl = getBaseUrl(network)
+      const response = await fetch(`${baseUrl}/identity/${identityId}/tokens?limit=${limit}&page=${page}&order=desc`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: TokensResponse = await response.json()
       
       if (data.error != null) {
         throw new Error(data.error)
