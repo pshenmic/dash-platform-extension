@@ -31,6 +31,7 @@ interface Match {
       showNetworkSelector?: boolean
       showWalletSelector?: boolean
       showBurgerMenu?: boolean
+      showNetworkRightReadOnly?: boolean
     }
     [key: string]: any
   }
@@ -75,6 +76,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
   const showNetworkSelector = headerProps?.showNetworkSelector ?? false
   const showWalletSelector = headerProps?.showWalletSelector ?? false
   const showBurgerMenu = headerProps?.showBurgerMenu ?? false
+  const showNetworkRightReadOnly = headerProps?.showNetworkRightReadOnly ?? false
   const imageType = headerProps?.imageType as ImageVariant | undefined
 
   const handleBack = (): void => {
@@ -102,20 +104,20 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
       })}
     >
       {!hideLeftSection && (
-        <div>
-          {showLogo
-            ? (
-              <img
-                src={useStaticAsset('dash_logo.svg')}
-                alt='Platform Explorer'
-                className='w-[2.25rem] h-[1.75rem] object-contain'
-              />
-              )
-            : (
-              <Button onClick={handleBack} colorScheme='lightGray'>
-                <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
-              </Button>
-              )}
+        <div className='flex items-center gap-2.5'>
+          {showLogo ? (
+            <img
+              src={useStaticAsset('dash_logo.svg')}
+              alt='Platform Explorer'
+              className='w-[2.25rem] h-[1.75rem] object-contain'
+            />
+          ) : (
+            <Button onClick={handleBack} colorScheme='lightGray'>
+              <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
+            </Button>
+          )}
+
+          {showWalletSelector && <WalletSelector onSelect={onWalletChange} currentNetwork={currentNetwork}/>}
         </div>
       )}
 
@@ -127,7 +129,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
         </div>
       )}
 
-      {/* Burger Menu in right side */}
+      {/* Right side: either image, burger, or read-only network name */}
       {showBurgerMenu && (
         <Button
           onClick={toggleMenu}
@@ -137,6 +139,14 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
         >
           <BurgerMenuIcon color='white'/>
         </Button>
+      )}
+
+      {showNetworkRightReadOnly && (
+        <span className='text-sm font-medium'>
+          {(currentNetwork ?? '')
+            .toString()
+            .replace(/^(.)/, (m) => m.toUpperCase())}
+        </span>
       )}
 
       {imageType != null && ((): React.JSX.Element => {
