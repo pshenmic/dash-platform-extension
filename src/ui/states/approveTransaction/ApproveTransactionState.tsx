@@ -225,7 +225,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
         <div className='flex flex-col gap-2 w-full'>
           <Button
-            onClick={async () => await navigate('/import-keystore')} // Todo: redirect link
+            onClick={async () => await navigate('/choose-wallet-import-type')}
             colorScheme='brand'
           >
             Import Identity
