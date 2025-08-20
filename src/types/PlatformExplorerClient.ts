@@ -51,6 +51,41 @@ export class PlatformExplorerClient {
     }
   }
 
+  async fetchRate(network: NetworkType = 'testnet'): Promise<ApiState<number>> {
+    try {
+      const baseUrl = getBaseUrl(network)
+      const response = await fetch(`${baseUrl}/rate`)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json() as any
+
+      let rate: number | null = null
+      if (typeof data === 'number') {
+        rate = data
+      } else if (typeof data?.usd === 'number') {
+        rate = data.usd
+      } else if (typeof data?.rate === 'number') {
+        rate = data.rate
+      } else if (data?.usd != null) {
+        rate = Number(data.usd)
+      } else if (data?.rate != null) {
+        rate = Number(data.rate)
+      }
+
+      if (rate == null || Number.isNaN(rate)) {
+        throw new Error('Invalid rate value received')
+      }
+
+      return { data: rate, loading: false, error: null }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      return { data: null, loading: false, error: errorMessage }
+    }
+  }
+
     async fetchMultipleIdentities(identityIds: string[], network: NetworkType = 'testnet'): Promise<ApiState<Record<string, IdentityApiData>>> {
     try {
       if (identityIds.length === 0) {
