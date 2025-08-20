@@ -65,7 +65,7 @@ export const helpSupportConfig: ScreenConfig = {
 export const aboutDashConfig: ScreenConfig = {
   id: 'about-dash',
   title: 'About Dash Extension',
-  icon: <DashLogo className='text-dash-primary-dark-blue w-4 h-4' />,
+  icon: <DashLogo className='!text-dash-primary-dark-blue w-4 h-4' />,
   category: 'other',
   content: []
 }
