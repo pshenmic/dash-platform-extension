@@ -18,5 +18,4 @@ export default async function addEncryptedMnemonic (storageAdapter: StorageAdapt
 
     await storageAdapter.set('schema_version', 5)
   }
-
 }
