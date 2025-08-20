@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import NoIdentities from './NoIdentities'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
-import { Button, Text, Identifier, NotActive, BigNumber, ChevronIcon } from 'dash-ui/react'
+import { Button, Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard } from 'dash-ui/react'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
@@ -190,14 +190,16 @@ function HomeState (): React.JSX.Element {
         <Button className='w-1/2' disabled>Withdraw</Button>
       </div>
 
-      <TransactionsList
-        transactions={transactionsState.data || []}
-        loading={transactionsState.loading}
-        error={transactionsState.error}
-        rate={rateState.data}
-        selectedNetwork={selectedNetwork as NetworkType}
-        getTransactionExplorerUrl={platformClient.getTransactionExplorerUrl}
-      />
+      <ValueCard className='-mx-[0.875rem] -mb-[0.875rem] !rounded-b-none'>
+        <TransactionsList
+          transactions={transactionsState.data || []}
+          loading={transactionsState.loading}
+          error={transactionsState.error}
+          rate={rateState.data}
+          selectedNetwork={selectedNetwork as NetworkType}
+          getTransactionExplorerUrl={platformClient.getTransactionExplorerUrl}
+        />
+      </ValueCard>
     </div>
   )
 }
