@@ -30,8 +30,22 @@ function TransactionsList({
     const groups: Record<string, TransactionData[]> = {}
     
     transactions.forEach(transaction => {
-      const timestamp = transaction.timestamp ? parseInt(transaction.timestamp, 10) : Date.now() / 1000
-      const date = new Date(timestamp * 1000)
+      let date: Date
+      if (transaction.timestamp) {
+        // Check if timestamp is ISO string or numeric
+        if (typeof transaction.timestamp === 'string' && transaction.timestamp.includes('T')) {
+          // ISO string format like "2025-08-20T12:16:03.544Z"
+          date = new Date(transaction.timestamp)
+        } else {
+          // Numeric timestamp (seconds or milliseconds)
+          const numericTimestamp = parseInt(transaction.timestamp, 10)
+          // If less than a certain threshold, assume it's in seconds, otherwise milliseconds
+          date = new Date(numericTimestamp < 1e12 ? numericTimestamp * 1000 : numericTimestamp)
+        }
+      } else {
+        date = new Date()
+      }
+      
       const dateKey = date.toLocaleDateString('en-GB', { 
         day: 'numeric', 
         month: 'long', 
@@ -47,7 +61,7 @@ function TransactionsList({
     return Object.entries(groups).map(([date, transactions]) => ({
       date,
       transactions
-    }))
+        }))
   }
 
   const getTransactionTypeDisplay = (transaction: TransactionData): string => {
