@@ -1,7 +1,7 @@
 import React from 'react'
 import { Text, TransactionStatusIcon, Identifier, Button } from 'dash-ui/react'
 import { TransactionData, NetworkType } from '../../hooks/usePlatformExplorerApi'
-import { TransactionTypes } from '../../../enums/TransactionTypes'
+import { TransactionTypesInfo, BatchActions } from '../../../enums'
 import { creditsToDash } from '../../../utils'
 
 interface TransactionsListProps {
@@ -26,8 +26,6 @@ function TransactionsList({
   selectedNetwork, 
   getTransactionExplorerUrl 
 }: TransactionsListProps): React.JSX.Element {
-  
-  // Group transactions by date
   const groupTransactionsByDate = (transactions: TransactionData[]): GroupedTransaction[] => {
     const groups: Record<string, TransactionData[]> = {}
     
@@ -52,28 +50,23 @@ function TransactionsList({
     }))
   }
 
-  const getTransactionTypeDisplay = (type: string | null): string => {
-    if (!type) return 'Unknown'
-    const numericType = parseInt(type, 10)
-
-    switch (numericType) {
-      case TransactionTypes.IDENTITY_CREDIT_TRANSFER:
-        return 'Send'
-      case TransactionTypes.IDENTITY_TOP_UP:
-        return 'Receive'
-      case TransactionTypes.DOCUMENTS_BATCH:
-        return 'Documents Batch'
-      case TransactionTypes.DATA_CONTRACT_CREATE:
-        return 'Data Contract Create'
-      case TransactionTypes.IDENTITY_CREATE:
-        return 'Identity Create'
-      case TransactionTypes.IDENTITY_UPDATE:
-        return 'Identity Update'
-      case TransactionTypes.IDENTITY_CREDIT_WITHDRAWAL:
-        return 'Withdraw'
-      default:
-        return Object.keys(TransactionTypes).find(key => TransactionTypes[key as keyof typeof TransactionTypes] === numericType) || type
+  const getTransactionTypeDisplay = (transaction: TransactionData): string => {
+    const { type, batchType } = transaction
+    
+    // If batchType exists, use it instead of type
+    if (batchType) {
+      if (batchType in BatchActions) {
+        return BatchActions[batchType as keyof typeof BatchActions].title
+      }
+      return batchType // fallback to raw batchType if not found in BatchActions
     }
+    
+    // If no batchType, use regular type
+    if (type && type in TransactionTypesInfo) {
+      return TransactionTypesInfo[type as keyof typeof TransactionTypesInfo].title
+    }
+    
+    return type || 'Unknown Transaction'
   }
 
   const getTransactionSubtext = (transaction: TransactionData): string => {
@@ -81,7 +74,7 @@ function TransactionsList({
     
     // For transfers, we would need additional data to show From/To
     // For now, showing hash as fallback
-    if (transaction.type === TransactionTypes.IDENTITY_CREDIT_TRANSFER.toString()) {
+    if (transaction.type === 'IDENTITY_CREDIT_TRANSFER') {
       return `Hash: ${hash.substring(0, 5)}...${hash.substring(hash.length - 4)}`
     }
     
@@ -91,9 +84,9 @@ function TransactionsList({
   const formatAmount = (transaction: TransactionData): { display: string; usd: string; isPositive: boolean } => {
     // This would need actual amount data from the transaction
     // For now, using placeholder logic
-    const isTopUp = transaction.type === TransactionTypes.IDENTITY_TOP_UP.toString()
-    const isWithdrawal = transaction.type === TransactionTypes.IDENTITY_CREDIT_WITHDRAWAL.toString() || 
-                        transaction.type === TransactionTypes.IDENTITY_CREDIT_TRANSFER.toString()
+    const isTopUp = transaction.type === 'IDENTITY_TOP_UP'
+    const isWithdrawal = transaction.type === 'IDENTITY_CREDIT_WITHDRAWAL' || 
+                        transaction.type === 'IDENTITY_CREDIT_TRANSFER'
     
     // Placeholder amounts - in a real app, this would come from transaction data
     const creditsAmount = 204278360 // This should come from transaction.data or similar
@@ -187,7 +180,7 @@ function TransactionsList({
                   {group.transactions.map((transaction) => {
                     const hash = transaction.hash ?? 'unknown'
                     const status = transaction.status ?? 'unknown'
-                    const typeDisplay = getTransactionTypeDisplay(transaction.type)
+                    const typeDisplay = getTransactionTypeDisplay(transaction)
                     const subtext = getTransactionSubtext(transaction)
                     const amount = formatAmount(transaction)
 
