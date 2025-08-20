@@ -56,7 +56,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) =>
 
   const triggerContent = (
     <div className='flex items-center gap-1'>
-      <WebIcon size={16} />
+      <WebIcon className='!text-dash-primary-dark-blue' size={16} />
       <span className='text-sm font-medium'>
         {currentNetwork.charAt(0).toUpperCase() + currentNetwork.slice(1)}
       </span>
