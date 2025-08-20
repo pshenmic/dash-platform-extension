@@ -132,25 +132,6 @@ export const mainScreenConfig: ScreenConfig = {
           screenId: aboutDashConfig.id,
           hasSubMenu: true,
           disabled: true
-        },
-        {
-          id: 'logout-item',
-          title: 'Logout',
-          icon: <QuestionMessageIcon className='text-red-600' />,
-          onAction: () => {
-            console.log('Logout action triggered')
-            // TODO: Implement logout logic
-          },
-          disabled: true
-        },
-        {
-          id: 'example-disabled-item',
-          title: 'Disabled Item',
-          icon: <QuestionMessageIcon className='text-gray-400' />,
-          onAction: () => {
-            console.log('This should not be triggered')
-          },
-          disabled: true
         }
       ]
     }
@@ -187,7 +168,8 @@ export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
               <Avatar size='sm' username={currentIdentity} />
             ) : walletSettingsConfig.icon,
             screenId: walletSettingsConfig.id,
-            hasSubMenu: true
+            hasSubMenu: true,
+            disabled: true
           }
         ]
       },
