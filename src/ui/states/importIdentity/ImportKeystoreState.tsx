@@ -4,11 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import {
   Button,
   Text,
-  NotActive,
   Identifier,
   ValueCard,
   BigNumber,
-  Textarea,
   Input,
   Heading,
   DashLogo,
@@ -233,6 +231,11 @@ function ImportKeystoreState (): React.JSX.Element {
                       type={input.isVisible ? 'text' : 'password'}
                       size='xl'
                       showPasswordToggle={false}
+                      style={{
+                        paddingRight: input.value ? 
+                          (privateKeyInputs.length > 1 ? '4.5rem' : '2.5rem') : 
+                          undefined
+                      }}
                     />
                     {input.value && (
                       <div className='absolute right-3 top-1/2 transform -translate-y-1/2 flex gap-1'>
@@ -261,7 +264,12 @@ function ImportKeystoreState (): React.JSX.Element {
                   {index === privateKeyInputs.length - 1 && (
                     <button
                       onClick={addPrivateKeyInput}
-                      className='flex items-center justify-center w-14 h-14 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-200'
+                      disabled={!input.value?.trim()}
+                      className={`flex items-center justify-center w-14 h-14 rounded-2xl border border-gray-200 ${
+                        input.value?.trim() 
+                          ? 'bg-gray-50 hover:bg-gray-100 cursor-pointer' 
+                          : 'bg-gray-25 cursor-not-allowed opacity-50'
+                      }`}
                       type='button'
                     >
                       <Text size='xl' weight='medium'>+</Text>
@@ -296,7 +304,8 @@ function ImportKeystoreState (): React.JSX.Element {
             We found {identities.length} identit{identities.length === 1 ? 'y' : 'ies'} associated with the given private key{identities.length === 1 ? '' : 's'}
           </Text>
 
-          {identities.map((item, index) => (
+          {identities.map((item, index) => {
+            return (
             <ValueCard key={index} colorScheme='lightBlue'>
               <div className='flex flex-col gap-[0.875rem]'>
                 <div className='flex flex-col gap-[0.125rem]'>
@@ -331,7 +340,8 @@ function ImportKeystoreState (): React.JSX.Element {
                 </div>
               </div>
             </ValueCard>
-          ))}
+          )}
+          )}
           
           <Button
             colorScheme='brand'
