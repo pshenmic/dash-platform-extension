@@ -32,6 +32,9 @@ import { ResyncIdentitiesResponse } from './messages/response/ResyncIdentitiesRe
 import { ImportIdentityPayload } from './messages/payloads/ImportIdentityPayload'
 import { GetAllWalletsResponse, WalletAccountInfo } from './messages/response/GetAllWalletsResponse'
 import { Network } from './enums/Network'
+import { AddIdentityPrivateKeyPayload } from './messages/payloads/AddIdentityPrivateKeyPayload'
+import { GetAvailableKeyPairsResponse } from './messages/response/GetAvailableKeyPairsResponse'
+import { GetAvailableKeyPairsPayload } from './messages/payloads/GetAvailableKeyPairsPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -88,10 +91,16 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SWITCH_WALLET, payload)
   }
 
-  async importIdentity (identifier, privateKeys: string[]): Promise<void> {
-    const payload: ImportIdentityPayload = { identifier, privateKeys }
+  async importIdentity (identity: string, privateKeys: string[]): Promise<void> {
+    const payload: ImportIdentityPayload = { identity, privateKeys }
 
     return await this._rpcCall(MessagingMethods.IMPORT_IDENTITY, payload)
+  }
+
+  async addIdentityPrivateKey (identity: string, privateKey: string): Promise<void> {
+    const payload: AddIdentityPrivateKeyPayload = { identity, privateKey }
+
+    return await this._rpcCall(MessagingMethods.ADD_IDENTITY_PRIVATE_KEY, payload)
   }
 
   async resyncIdentities (password?: string, mnemonic?: string): Promise<ResyncIdentitiesResponse> {
@@ -110,12 +119,20 @@ export class PrivateAPIClient {
     return currentIdentity
   }
 
-  async switchIdentity (identifier: string): Promise<VoidResponse> {
+  async switchIdentity (identity: string): Promise<VoidResponse> {
     const payload: SwitchIdentityPayload = {
-      identity: identifier
+      identity
     }
 
     return await this._rpcCall(MessagingMethods.SWITCH_IDENTITY, payload)
+  }
+
+  async getAvailableKeyPairs (identity: string): Promise<number[]> {
+    const payload: GetAvailableKeyPairsPayload = { identity }
+
+    const response: GetAvailableKeyPairsResponse = await this._rpcCall(MessagingMethods.GET_AVAILABLE_KEY_PAIRS, payload)
+
+    return response.keyIds
   }
 
   async getIdentities (): Promise<Identity[]> {
@@ -126,11 +143,12 @@ export class PrivateAPIClient {
     return response.identities
   }
 
-  async approveStateTransition (hash: string, identity: string, password: string): Promise<ApproveStateTransitionResponse> {
+  async approveStateTransition (hash: string, identity: string, keyId: number, password: string): Promise<ApproveStateTransitionResponse> {
     const payload: ApproveStateTransitionPayload = {
       hash,
       identity,
-      password
+      password,
+      keyId
     }
 
     const response: ApproveStateTransitionResponse = await this._rpcCall(MessagingMethods.APPROVE_STATE_TRANSITION, payload)

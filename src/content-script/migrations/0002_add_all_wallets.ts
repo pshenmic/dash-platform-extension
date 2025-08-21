@@ -13,5 +13,4 @@ export default async function addAllWalletsMigrations (storageAdapter: StorageAd
     await storageAdapter.set('wallets', walletIds)
     await storageAdapter.set('schema_version', 2)
   }
-
 }

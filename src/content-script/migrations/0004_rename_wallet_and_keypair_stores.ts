@@ -24,5 +24,4 @@ export default async function renameWalletAndKeyPairsMigration (storageAdapter: 
 
     await storageAdapter.set('schema_version', 4)
   }
-
 }

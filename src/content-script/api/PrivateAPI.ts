@@ -25,6 +25,8 @@ import { GetIdentitiesHandler } from './private/identities/getIdentities'
 import { ResyncIdentitiesHandler } from './private/wallet/resyncIdentities'
 import { ImportIdentityHandler } from './private/identities/importIdentity'
 import { GetAllWalletsHandler } from './private/wallet/getAllWallets'
+import { AddIdentityPrivateKey } from './private/identities/addPrivateKey'
+import { GetAvailableKeyPairs } from './private/identities/getAvailableKeyPairs'
 
 /**
  * Handlers for a messages within extension context
@@ -74,6 +76,8 @@ export class PrivateAPI {
       [MessagingMethods.SWITCH_IDENTITY]: new SwitchIdentityHandler(identitiesRepository, walletRepository),
       [MessagingMethods.GET_ALL_WALLETS]: new GetAllWalletsHandler(walletRepository, this.sdk, this.storageAdapter),
       [MessagingMethods.IMPORT_IDENTITY]: new ImportIdentityHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
+      [MessagingMethods.ADD_IDENTITY_PRIVATE_KEY]: new AddIdentityPrivateKey(identitiesRepository, walletRepository, keypairRepository, this.sdk),
+      [MessagingMethods.GET_AVAILABLE_KEY_PAIRS]: new GetAvailableKeyPairs(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.GET_IDENTITIES]: new GetIdentitiesHandler(identitiesRepository),
       [MessagingMethods.GET_CURRENT_IDENTITY]: new GetCurrentIdentityHandler(walletRepository),
       [MessagingMethods.APPROVE_STATE_TRANSITION]: new ApproveStateTransitionHandler(stateTransitionsRepository, identitiesRepository, walletRepository, keypairRepository, this.sdk),

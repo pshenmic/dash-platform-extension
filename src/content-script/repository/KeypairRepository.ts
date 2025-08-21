@@ -1,5 +1,5 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import { IdentityPublicKeyWASM } from 'pshenmic-dpp'
+import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'pshenmic-dpp'
 import { KeyPair } from '../../types/KeyPair'
 import { base64 } from '@scure/base'
 import { KeyPairSchema, KeyPairsSchema } from '../storage/storageSchema'
@@ -21,13 +21,17 @@ export class KeypairRepository {
       throw new Error('Wallet is not chosen')
     }
 
+    if (PrivateKeyWASM.fromHex(privateKey, network).getPublicKeyHash() !== identityPublicKey.getPublicKeyHash()) {
+      throw new Error('Private key does not match Identity Public Key')
+    }
+
     const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
 
     if (passwordPublicKey == null) {
       throw new Error('Password is not set for an extension')
     }
 
-    const storageKey = `keyPairs_${walletId}_${network}`
+    const storageKey = `keyPairs_${network}_${walletId}`
 
     const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
 
@@ -57,7 +61,7 @@ export class KeypairRepository {
       throw new Error('Wallet is not chosen')
     }
 
-    const storageKey = `keyPairs_${walletId}_${network}`
+    const storageKey = `keyPairs_${network}_${walletId}`
 
     const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
 
@@ -89,7 +93,7 @@ export class KeypairRepository {
       throw new Error('Wallet is not chosen')
     }
 
-    const storageKey = `keyPairs_${walletId}_${network}`
+    const storageKey = `keyPairs_${network}_${walletId}`
 
     const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
 
