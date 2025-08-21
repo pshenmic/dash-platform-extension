@@ -7,6 +7,7 @@ import {
   TokensResponse,
   ApiState 
 } from './PlatformExplorer'
+import { PLATFORM_EXPLORER_URLS } from '../constants'
 
 // Re-export types for convenience
 export { 
@@ -20,19 +21,11 @@ export {
 } from './PlatformExplorer'
 
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
-  const baseUrls: Record<NetworkType, string> = {
-    testnet: 'https://testnet.platform-explorer.pshenmic.dev',
-    mainnet: 'https://platform-explorer.pshenmic.dev'
-  }
-  return baseUrls[network]
+  return PLATFORM_EXPLORER_URLS[network].api
 }
 
 const getExplorerUrl = (network: NetworkType = 'testnet'): string => {
-  const explorerUrls: Record<NetworkType, string> = {
-    testnet: 'https://testnet.platform-explorer.com',
-    mainnet: 'https://platform-explorer.com'
-  }
-  return explorerUrls[network]
+  return PLATFORM_EXPLORER_URLS[network].explorer
 }
 
 // No utility functions needed - all fields are explicitly typed
