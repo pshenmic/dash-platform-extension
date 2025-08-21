@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import NoIdentities from './NoIdentities'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
-import { Button, Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard } from 'dash-ui/react'
+import { Button, Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs } from 'dash-ui/react'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
@@ -33,6 +33,8 @@ function HomeState (): React.JSX.Element {
   const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
   const [balanceState, loadBalance] = useAsyncState<bigint>()
   const [rateState, loadRate] = useAsyncState<number>()
+
+  console.log('Tabs', Tabs)
 
   // load identities
   useEffect(() => {
@@ -202,40 +204,37 @@ function HomeState (): React.JSX.Element {
         <Button className='w-1/2' disabled>Withdraw</Button>
       </div>
 
-      <ValueCard className='flex flex-col gap-6 -mx-[0.875rem] -mb-[0.875rem] !rounded-b-none p-4'>
-        <div className='w-full relative'>
-          <div className='flex items-center justify-between'>
-            <div className='flex'>
-              <div className='flex items-center gap-2 px-4 pb-2 border-b border-dash-brand'>
-                <Text size='lg' weight='medium' className='text-dash-primary-dark-blue'>
-                  Transactions
-                </Text>
-              </div>
-              <div className='flex items-center gap-2 px-4 pb-2'>
-                <Text size='lg' weight='light' className='text-gray-400'>
-                  Tokens
-                </Text>
-              </div>
-            </div>
-          </div>
-          
-          <div className='absolute bottom-0 left-0 right-0 h-px bg-gray-200'></div>
-        </div>
-        <TransactionsList
-          transactions={transactionsState.data || []}
-          loading={transactionsState.loading}
-          error={transactionsState.error}
-          rate={rateState.data}
-          selectedNetwork={selectedNetwork as NetworkType}
-          getTransactionExplorerUrl={platformClient.getTransactionExplorerUrl}
-        />
-
-        Tokens:
-        <TokensList
-          tokens={tokensState.data || []}
-          loading={tokensState.loading}
-          error={tokensState.error}
-          selectedNetwork={selectedNetwork as NetworkType}
+      <ValueCard className='flex flex-col flex-grow gap-6 -mx-[0.875rem] -mb-[0.875rem] !rounded-b-none p-4'>
+        <Tabs
+          defaultValue='transactions'
+          items={[
+            {
+              value: 'transactions',
+              label: 'Transactions',
+              content: (
+                <TransactionsList
+                  transactions={transactionsState.data || []}
+                  loading={transactionsState.loading}
+                  error={transactionsState.error}
+                  rate={rateState.data}
+                  selectedNetwork={selectedNetwork as NetworkType}
+                  getTransactionExplorerUrl={platformClient.getTransactionExplorerUrl}
+                />
+              )
+            },
+            {
+              value: 'tokens',
+              label: 'Tokens',
+              content: (
+                <TokensList
+                  tokens={tokensState.data || []}
+                  loading={tokensState.loading}
+                  error={tokensState.error}
+                  selectedNetwork={selectedNetwork as NetworkType}
+                />
+              )
+            }
+          ]}
         />
       </ValueCard>
     </div>
