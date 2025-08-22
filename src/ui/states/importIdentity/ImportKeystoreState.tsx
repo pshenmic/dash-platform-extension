@@ -50,13 +50,13 @@ function ImportKeystoreState (): React.JSX.Element {
   }
 
   const updatePrivateKeyInput = (id: string, value: string): void => {
-    setPrivateKeyInputs(prev => 
+    setPrivateKeyInputs(prev =>
       prev.map(input => input.id === id ? { ...input, value } : input)
     )
   }
 
   const togglePrivateKeyVisibility = (id: string): void => {
-    setPrivateKeyInputs(prev => 
+    setPrivateKeyInputs(prev =>
       prev.map(input => input.id === id ? { ...input, isVisible: !input.isVisible } : input)
     )
   }
@@ -67,10 +67,10 @@ function ImportKeystoreState (): React.JSX.Element {
 
     try {
       const validIdentities: Array<{ key: PrivateKeyWASM, identity: IdentityWASM, balance: string }> = []
-      
+
       // Filter out empty private key inputs
       const nonEmptyInputs = privateKeyInputs.filter(input => input.value?.trim() !== '')
-      
+
       if (nonEmptyInputs.length === 0) {
         return setError('Please enter at least one private key')
       }
@@ -96,7 +96,7 @@ function ImportKeystoreState (): React.JSX.Element {
             return setError(`Could not decode private key from hex: ${privateKey}`)
           }
         } else {
-          return setError(`Unrecognized private key format: ${privateKey}`)
+          return setError('Unrecognized private key format')
         }
 
         if (pkeyWASM == null) {
@@ -173,7 +173,7 @@ function ImportKeystoreState (): React.JSX.Element {
 
       // Get all private keys as hex
       const privateKeys = identities.map(({ key }) => key.hex())
-      
+
       // Use the first identity's identifier for the import
       const identifier = identities[0].identity.id.base58()
 
@@ -232,9 +232,9 @@ function ImportKeystoreState (): React.JSX.Element {
                       size='xl'
                       showPasswordToggle={false}
                       style={{
-                        paddingRight: input.value ? 
-                          (privateKeyInputs.length > 1 ? '4.5rem' : '2.5rem') : 
-                          undefined
+                        paddingRight: input.value
+                          ? (privateKeyInputs.length > 1 ? '4.5rem' : '2.5rem')
+                          : undefined
                       }}
                     />
                     {input.value && (
@@ -244,10 +244,9 @@ function ImportKeystoreState (): React.JSX.Element {
                           className='p-1 hover:bg-gray-100 rounded'
                           type='button'
                         >
-                          {input.isVisible ?
-                            <EyeClosedIcon className='text-dash-primary-dark-blue' /> :
-                            <EyeOpenIcon className='text-dash-primary-dark-blue' />
-                          }
+                          {input.isVisible
+                            ? <EyeClosedIcon className='text-dash-primary-dark-blue' />
+                            : <EyeOpenIcon className='text-dash-primary-dark-blue' />}
                         </button>
                         {privateKeyInputs.length > 1 && (
                           <button
@@ -266,8 +265,8 @@ function ImportKeystoreState (): React.JSX.Element {
                       onClick={addPrivateKeyInput}
                       disabled={!input.value?.trim()}
                       className={`flex items-center justify-center w-14 h-14 rounded-2xl border border-gray-200 ${
-                        input.value?.trim() 
-                          ? 'bg-gray-50 hover:bg-gray-100 cursor-pointer' 
+                        input.value?.trim()
+                          ? 'bg-gray-50 hover:bg-gray-100 cursor-pointer'
                           : 'bg-gray-25 cursor-not-allowed opacity-50'
                       }`}
                       type='button'
@@ -281,9 +280,9 @@ function ImportKeystoreState (): React.JSX.Element {
           </div>
 
           {error != null &&
-            <div className='py-1'>
+            <ValueCard colorScheme='yellow' className='break-all'>
               <Text color='red'>{error}</Text>
-            </div>}
+            </ValueCard>}
 
           <div>
             <Button
@@ -306,43 +305,44 @@ function ImportKeystoreState (): React.JSX.Element {
 
           {identities.map((item, index) => {
             return (
-            <ValueCard key={index} colorScheme='lightBlue'>
-              <div className='flex flex-col gap-[0.875rem]'>
-                <div className='flex flex-col gap-[0.125rem]'>
-                  <Text size='md' dim>Identifier</Text>
-                  <ValueCard colorScheme='white'>
-                    <Identifier
-                      highlight='both'
-                      copyButton
-                      ellipsis={false}
-                      linesAdjustment={false}
-                    >
-                      {item.identity.id.base58()}
-                    </Identifier>
-                  </ValueCard>
-                </div>
-                <div className='flex flex-col gap-[0.125rem]'>
-                  <Text dim>Balance</Text>
+              <ValueCard key={index} colorScheme='lightBlue'>
+                <div className='flex flex-col gap-[0.875rem]'>
+                  <div className='flex flex-col gap-[0.125rem]'>
+                    <Text size='md' dim>Identifier</Text>
+                    <ValueCard colorScheme='white'>
+                      <Identifier
+                        highlight='both'
+                        copyButton
+                        ellipsis={false}
+                        linesAdjustment={false}
+                      >
+                        {item.identity.id.base58()}
+                      </Identifier>
+                    </ValueCard>
+                  </div>
+                  <div className='flex flex-col gap-[0.125rem]'>
+                    <Text dim>Balance</Text>
 
-                  <span>
-                    <Text size='xl' weight='bold' monospace>
-                      <BigNumber>
-                        {item.balance}
-                      </BigNumber>
-                    </Text>
-                    <Text
-                      size='lg'
-                      className='ml-2'
-                    >
-                      Credits
-                    </Text>
-                  </span>
+                    <span>
+                      <Text size='xl' weight='bold' monospace>
+                        <BigNumber>
+                          {item.balance}
+                        </BigNumber>
+                      </Text>
+                      <Text
+                        size='lg'
+                        className='ml-2'
+                      >
+                        Credits
+                      </Text>
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </ValueCard>
+              </ValueCard>
+            )
+          }
           )}
-          )}
-          
+
           <Button
             colorScheme='brand'
             disabled={isLoading}

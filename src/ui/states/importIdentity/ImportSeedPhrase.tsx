@@ -134,7 +134,6 @@ function ImportSeedPhrase (): React.JSX.Element {
           <div className='flex-1'>
             <DashLogo containerSize='3rem' />
 
-
             <Heading level={1} className='text-3xl font-extrabold text-gray-900 mb-2 leading-tight'>
               Import your Seed Phrase
             </Heading>
