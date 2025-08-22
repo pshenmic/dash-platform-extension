@@ -13,37 +13,24 @@ interface PublicKey {
   hash: string
 }
 
-// Component for rendering security level badge
-const SecurityBadge: React.FC<{ level: string }> = ({ level }) => (
+// Component for rendering badge
+const Badge: React.FC<{ text: string }> = ({ text }) => (
   <ValueCard
     colorScheme='lightGray'
     size='sm'
     className='p-2'
   >
     <Text size='sm' weight='medium'>
-      {level}
-    </Text>
-  </ValueCard>
-)
-
-// Component for rendering key type badge
-const KeyTypeBadge: React.FC<{ type: string }> = ({ type }) => (
-  <ValueCard 
-    colorScheme='lightGray' 
-    size='sm'
-    className='p-2'
-  >
-    <Text size='sm' weight='medium'>
-      {type}
+      {text}
     </Text>
   </ValueCard>
 )
 
 // Component for key action buttons
-const KeyActions: React.FC<{ keyId: number; onView: () => void; onDelete: () => void }> = ({ 
-  keyId, 
-  onView, 
-  onDelete 
+const KeyActions: React.FC<{ keyId: number, onView: () => void, onDelete: () => void }> = ({
+  keyId,
+  onView,
+  onDelete
 }) => (
   <div className='flex items-center gap-1'>
     <button
@@ -58,17 +45,17 @@ const KeyActions: React.FC<{ keyId: number; onView: () => void; onDelete: () => 
       className='flex items-center justify-center w-5 h-5 rounded bg-gray-100 hover:bg-gray-200 transition-colors'
       aria-label={`Delete key ${keyId}`}
     >
-        <DeleteIcon className='text-dash-primary-dark-blue' />
+      <DeleteIcon className='text-dash-primary-dark-blue' />
     </button>
   </div>
 )
 
 // Main public key item component
-const PublicKeyItem: React.FC<{ 
-  publicKey: PublicKey; 
-  onView: (id: number) => void; 
-  onDelete: (id: number) => void;
-  showSeparator?: boolean;
+const PublicKeyItem: React.FC<{
+  publicKey: PublicKey
+  onView: (id: number) => void
+  onDelete: (id: number) => void
+  showSeparator?: boolean
 }> = ({ publicKey, onView, onDelete, showSeparator = true }) => (
   <div className='bg-gray-100 rounded-2xl p-3'>
     <div className='flex items-center justify-between'>
@@ -77,19 +64,19 @@ const PublicKeyItem: React.FC<{
         <div className='flex items-center justify-center w-5 h-5 bg-gray-100 rounded-full'>
           <KeyIcon size={10} className='text-gray-700' />
         </div>
-        
+
         {/* Key ID */}
         <Text size='sm' weight='medium' className='text-gray-900'>
           Key ID: {publicKey.keyId}
         </Text>
-        
+
         {/* Badges */}
         <div className='flex items-center gap-2'>
-          <SecurityBadge level={publicKey.securityLevel} />
-          <KeyTypeBadge type={publicKey.purpose} />
+          <Badge text={publicKey.securityLevel} />
+          <Badge text={publicKey.purpose} />
         </div>
       </div>
-      <KeyActions 
+      <KeyActions
         keyId={publicKey.keyId}
         onView={() => onView(publicKey.keyId)}
         onDelete={() => onDelete(publicKey.keyId)}
@@ -106,10 +93,10 @@ export const privateKeysScreenConfig: ScreenConfig = {
   content: [] // Content will be generated dynamically
 }
 
-export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity }) => {
+export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, onItemSelect }) => {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
-  
+
   const [publicKeys, setPublicKeys] = useState<PublicKey[]>([])
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null)
@@ -137,7 +124,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     void loadKeys(async () => {
       const allWallets = await extensionAPI.getAllWallets()
       const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
-      if (!wallet) throw new Error('Wallet not found')
+      if (wallet == null) throw new Error('Wallet not found')
 
       const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
       const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity)
@@ -175,7 +162,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
   // Update local state when keys are loaded
   useEffect(() => {
-    if (keysState.data) {
+    if (keysState.data != null) {
       setPublicKeys(keysState.data)
     } else {
       setPublicKeys([])
@@ -193,8 +180,8 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   }
 
   const handleImportPrivateKeys = (): void => {
-    console.log('Import private keys')
-    // TODO: Navigate to import private keys screen
+    // Navigate to the import private keys settings screen
+    onItemSelect?.('import-private-keys-settings')
   }
 
   return (

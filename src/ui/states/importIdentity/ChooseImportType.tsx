@@ -8,7 +8,8 @@ import {
   KeyIcon,
   ProtectedMessageIcon
 } from 'dash-ui/react'
-import { useNavigate } from 'react-router-dom'
+import { NetworkSelector } from '../../components/controls/NetworkSelector'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 
 interface ImportOption {
   id: string
@@ -17,8 +18,17 @@ interface ImportOption {
   disabled?: boolean
 }
 
+interface OutletContext {
+  selectedNetwork: string | null
+  setSelectedNetwork: (network: string | null) => void
+  selectedWallet: string | null
+  currentIdentity: string | null
+  setCurrentIdentity: (identity: string | null) => void
+}
+
 function ChooseImportType (): React.JSX.Element {
   const navigate = useNavigate()
+  const { selectedNetwork, setSelectedNetwork } = useOutletContext<OutletContext>()
 
   const importOptions: ImportOption[] = [
     {
@@ -69,6 +79,8 @@ function ChooseImportType (): React.JSX.Element {
 
       {/* Import Options */}
       <div className='mb-8 space-y-2'>
+        <NetworkSelector size='md' className='h-14' onSelect={setSelectedNetwork} />
+
         {importOptions.map((option) => (
           <ValueCard
             key={option.id}
