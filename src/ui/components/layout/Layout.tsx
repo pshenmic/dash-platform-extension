@@ -8,6 +8,7 @@ const Layout: FC = () => {
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null)
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
+  const [currentWalletId, setCurrentWalletId] = useState<string | null>(null)
   const extensionAPI = useExtensionAPI()
 
   // Load identities and set current identity
@@ -34,20 +35,22 @@ const Layout: FC = () => {
     }
 
     void loadCurrentIdentity()
-  }, [selectedWallet, extensionAPI])
+  }, [extensionAPI])
 
   useEffect(() => {
     const loadCurrentNetwork = async (): Promise<void> => {
       try {
         const status = await extensionAPI.getStatus()
         setSelectedNetwork(status.network)
+        setCurrentWalletId(status.currentWalletId)
+        setSelectedWallet(status.currentWalletId)
       } catch (error) {
         console.warn('Failed to load current network:', error)
       }
     }
 
     void loadCurrentNetwork()
-  }, [selectedWallet, extensionAPI])
+  }, [extensionAPI])
 
   return (
     <ThemeProvider initialTheme='light'>
@@ -57,6 +60,7 @@ const Layout: FC = () => {
           currentNetwork={selectedNetwork}
           onWalletChange={setSelectedWallet}
           currentIdentity={currentIdentity}
+          currentWalletId={currentWalletId}
         />
         <Outlet context={{ selectedNetwork, selectedWallet, currentIdentity, setCurrentIdentity }}/>
       </div>
