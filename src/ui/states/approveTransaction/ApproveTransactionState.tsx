@@ -4,10 +4,12 @@ import { base64 as base64Decoder } from '@scure/base'
 import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { useSdk } from '../../hooks/useSdk'
+import { useAsyncState } from '../../hooks/useAsyncState'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import LoadingScreen from '../../components/layout/LoadingScreen'
-import { useSdk } from '../../hooks/useSdk'
+import { PublicKeySelect, PublicKeyInfo } from '../../components/keys/PublicKeySelect'
 
 interface OutletContext {
   selectedNetwork: string | null
@@ -38,8 +40,9 @@ function ApproveTransactionState (): React.JSX.Element {
   const [hasWallet, setHasWallet] = useState<boolean>(false)
 
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
-  const [signingKeyOptions, setSigningKeyOptions] = useState<Array<{ value: string, content: React.ReactNode }>>([])
   const [selectedSigningKey, setSelectedSigningKey] = useState<string>('')
+  const [signingKeys, setSigningKeys] = useState<PublicKeyInfo[]>([])
+  const [signingKeysState, loadSigningKeys] = useAsyncState<PublicKeyInfo[]>()
 
   useEffect(() => {
     const checkWallet = async (): Promise<void> => {
@@ -86,60 +89,65 @@ function ApproveTransactionState (): React.JSX.Element {
     void loadData()
   }, [isCheckingWallet, hasWallet, selectedWallet])
 
-  // Load signing keys when wallet/identity/network changes (seedphrase wallets only)
+  // Load signing keys when wallet/identity/network changes
   useEffect(() => {
-    const loadSigningKeys = async (): Promise<void> => {
-      try {
-        setSigningKeyOptions([])
-        setSelectedSigningKey('')
+    if (selectedWallet == null || selectedNetwork == null || currentIdentity == null || currentIdentity === '') {
+      setSigningKeys([])
+      setSelectedSigningKey('')
+      return
+    }
 
-        if (selectedWallet == null || selectedNetwork == null || currentIdentity == null || currentIdentity === '') return
+    void loadSigningKeys(async () => {
+      const allWallets = await extensionAPI.getAllWallets()
+      const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
+      if (wallet == null) throw new Error('Wallet not found')
 
-        const allWallets = await extensionAPI.getAllWallets()
-        const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
-        if (wallet == null) return
+      const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
+      const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity)
 
-        if (wallet.type === 'seedphrase') {
-          const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
+      // Filter identity public keys to only show those that are available
+      const availablePublicKeys = identityPublicKeys.filter((key: any) => {
+        const keyId = key?.keyId ?? key?.getId?.() ?? null
+        return keyId != null && availableKeyIds.includes(keyId)
+      })
 
-          const options = identityPublicKeys.map((key: any, index: number) => {
-            const purpose = String(key?.purpose ?? 'UNKNOWN')
-            const security = String(key?.securityLevel ?? 'UNKNOWN')
-            let hash = ''
-            try {
-              hash = typeof key?.getPublicKeyHash === 'function' ? key.getPublicKeyHash() : ''
-            } catch {}
+      const keys: PublicKeyInfo[] = availablePublicKeys.map((key: any) => {
+        const keyId = key?.keyId ?? key?.getId?.() ?? null
+        const purpose = String(key?.purpose ?? 'UNKNOWN')
+        const security = String(key?.securityLevel ?? 'UNKNOWN')
+        let hash = ''
+        try {
+          hash = typeof key?.getPublicKeyHash === 'function' ? key.getPublicKeyHash() : ''
+        } catch {}
 
-            const label = `${purpose}/${security}`
-            const value = hash || `key-${index + 1}`
-
-            return {
-              value,
-              content: (
-                <div className='flex items-center justify-between w-full'>
-                  <span className='text-sm'>{label}</span>
-                  {hash && (
-                    <Identifier middleEllipsis edgeChars={4} className='text-xs opacity-70'>
-                      {hash}
-                    </Identifier>
-                  )}
-                </div>
-              )
-            }
-          })
-
-          setSigningKeyOptions(options)
-          if (options.length > 0) setSelectedSigningKey(options[0].value)
+        return {
+          keyId: keyId || 0,
+          securityLevel: security,
+          purpose,
+          hash
         }
-      } catch (error) {
-        console.warn('Failed to load signing keys:', error)
-        setSigningKeyOptions([])
+      })
+
+      return keys
+    })
+  }, [selectedWallet, selectedNetwork, currentIdentity])
+
+  // Update local state when signing keys are loaded
+  useEffect(() => {
+    if (signingKeysState.data != null) {
+      setSigningKeys(signingKeysState.data)
+      if (signingKeysState.data.length > 0 && selectedSigningKey === '') {
+        const firstKey = signingKeysState.data[0]
+        const keyValue = firstKey.keyId?.toString() || firstKey.hash || 'key-0'
+        setSelectedSigningKey(keyValue)
+      }
+    } else {
+      setSigningKeys([])
+      if (selectedSigningKey !== '') {
         setSelectedSigningKey('')
       }
     }
-
-    void loadSigningKeys()
-  }, [selectedWallet, selectedNetwork, currentIdentity, extensionAPI, sdk])
+  }, [signingKeysState.data, selectedSigningKey])
 
   useEffect(() => {
     const transactionHash = params.hash ?? params.txhash
@@ -278,7 +286,9 @@ function ApproveTransactionState (): React.JSX.Element {
         return
       }
 
-      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, password)
+      // Use selected signing key or default to 1 for backward compatibility
+      const keyId = selectedSigningKey !== '' ? parseInt(selectedSigningKey, 10) : 1
+      const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, keyId, password)
 
       setTxHash(response.txHash)
     } catch (error) {
@@ -345,7 +355,7 @@ function ApproveTransactionState (): React.JSX.Element {
         {/* Header */}
         <div className='flex flex-col gap-2.5'>
           <h1 className='h1-title'>
-            Transaction{'\n'}Approval
+            Transaction<br />Approval
           </h1>
           <Text size='sm' opacity='50'>
             Carefully check the transaction details before signing
@@ -377,7 +387,7 @@ function ApproveTransactionState (): React.JSX.Element {
             <Text size='md' opacity='50'>Choose Identity</Text>
             <Select
               value={currentIdentity ?? ''}
-              onValueChange={async (e: string) => {
+              onChange={async (e: string) => {
                 const identity = e
                 setCurrentIdentity(identity)
                 await extensionAPI.switchIdentity(identity).catch(err => console.warn('Failed to switch identity', err))
@@ -389,18 +399,15 @@ function ApproveTransactionState (): React.JSX.Element {
           </div>
         )}
 
-        {/* Choose Signing Key (sdk-loaded for seedphrase wallets) */}
-        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && signingKeyOptions.length > 0 && (
-          <div className='flex flex-col gap-2.5'>
-            <Text size='md' opacity='50'>Choose Signing Key</Text>
-            <Select
-              value={selectedSigningKey}
-              onValueChange={setSelectedSigningKey}
-              options={signingKeyOptions}
-              showArrow
-              size='xl'
-            />
-          </div>
+        {/* Choose Signing Key */}
+        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
+          <PublicKeySelect
+            keys={signingKeys}
+            value={selectedSigningKey}
+            onChange={setSelectedSigningKey}
+            loading={signingKeysState.loading}
+            error={signingKeysState.error}
+          />
         )}
 
         {/* Password */}
@@ -450,6 +457,7 @@ function ApproveTransactionState (): React.JSX.Element {
                 onClick={() => { void doSign() }}
                 colorScheme='brand'
                 className='w-1/2'
+                disabled={isSigningInProgress || selectedSigningKey === ''}
               >
                 {isSigningInProgress ? 'Signing...' : 'Sign'}
               </Button>
