@@ -1,29 +1,42 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
-import { KeyIcon, EyeOpenIcon, EyeClosedIcon, DeleteIcon } from 'dash-ui/react'
+import { KeyIcon, EyeOpenIcon, EyeClosedIcon, DeleteIcon, Text, ValueCard } from 'dash-ui/react'
+import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
+import { useSdk } from '../../../hooks/useSdk'
+import { useAsyncState } from '../../../hooks/useAsyncState'
+import { getPurposeLabel, getSecurityLabel } from '../../../../enums'
 
-interface PrivateKey {
-  id: number
-  securityLevel: 'High' | 'Master' | 'Critical'
-  keyType: 'Authentication' | 'Transfer'
+interface PublicKey {
+  keyId: number
+  securityLevel: string
+  purpose: string
+  hash: string
 }
 
 // Component for rendering security level badge
-const SecurityBadge: React.FC<{ level: PrivateKey['securityLevel'] }> = ({ level }) => (
-  <div className='inline-flex items-center px-2 py-1 rounded-lg bg-gray-100'>
-    <span className='text-xs font-medium text-gray-700'>
+const SecurityBadge: React.FC<{ level: string }> = ({ level }) => (
+  <ValueCard
+    colorScheme='lightGray'
+    size='sm'
+    className='p-2'
+  >
+    <Text size='sm' weight='medium'>
       {level}
-    </span>
-  </div>
+    </Text>
+  </ValueCard>
 )
 
 // Component for rendering key type badge
-const KeyTypeBadge: React.FC<{ type: PrivateKey['keyType'] }> = ({ type }) => (
-  <div className='inline-flex items-center px-2 py-1 rounded-lg bg-gray-100'>
-    <span className='text-xs font-medium text-gray-700'>
+const KeyTypeBadge: React.FC<{ type: string }> = ({ type }) => (
+  <ValueCard 
+    colorScheme='lightGray' 
+    size='sm'
+    className='p-2'
+  >
+    <Text size='sm' weight='medium'>
       {type}
-    </span>
-  </div>
+    </Text>
+  </ValueCard>
 )
 
 // Component for key action buttons
@@ -50,57 +63,132 @@ const KeyActions: React.FC<{ keyId: number; onView: () => void; onDelete: () => 
   </div>
 )
 
-// Main private key item component
-const PrivateKeyItem: React.FC<{ 
-  privateKey: PrivateKey; 
+// Main public key item component
+const PublicKeyItem: React.FC<{ 
+  publicKey: PublicKey; 
   onView: (id: number) => void; 
   onDelete: (id: number) => void;
   showSeparator?: boolean;
-}> = ({ privateKey, onView, onDelete, showSeparator = true }) => (
+}> = ({ publicKey, onView, onDelete, showSeparator = true }) => (
   <div className='bg-gray-100 rounded-2xl p-3'>
     <div className='flex items-center justify-between'>
-      <div className='flex items-center flex-wrap gap-2 flex-1'>
-        <div className='flex items-center justify-center w-5 h-5 rounded-full bg-blue-50'>
-          <KeyIcon />
+      <div className='flex items-center flex-wrap gap-2 flex-1 w-full'>
+        {/* Key Icon */}
+        <div className='flex items-center justify-center w-5 h-5 bg-gray-100 rounded-full'>
+          <KeyIcon size={10} className='text-gray-700' />
         </div>
-        <span className='text-sm font-medium text-gray-900'>
-          Key ID: {privateKey.id}
-        </span>
-        <SecurityBadge level={privateKey.securityLevel} />
-        <KeyTypeBadge type={privateKey.keyType} />
+        
+        {/* Key ID */}
+        <Text size='sm' weight='medium' className='text-gray-900'>
+          Key ID: {publicKey.keyId}
+        </Text>
+        
+        {/* Badges */}
+        <div className='flex items-center gap-2'>
+          <SecurityBadge level={publicKey.securityLevel} />
+          <KeyTypeBadge type={publicKey.purpose} />
+        </div>
       </div>
       <KeyActions 
-        keyId={privateKey.id}
-        onView={() => onView(privateKey.id)}
-        onDelete={() => onDelete(privateKey.id)}
+        keyId={publicKey.keyId}
+        onView={() => onView(publicKey.keyId)}
+        onDelete={() => onDelete(publicKey.keyId)}
       />
     </div>
   </div>
 )
 
-// Private Keys screen configuration
+// Public Keys screen configuration
 export const privateKeysScreenConfig: ScreenConfig = {
   id: 'private-keys',
-  title: 'Private Keys',
+  title: 'Public Keys',
   category: 'wallet',
   content: [] // Content will be generated dynamically
 }
 
-export const PrivateKeysScreen: React.FC<SettingsScreenProps> = () => {
-  const [privateKeys] = useState<PrivateKey[]>([
-    { id: 0, securityLevel: 'High', keyType: 'Authentication' },
-    { id: 1, securityLevel: 'Master', keyType: 'Authentication' },
-    { id: 2, securityLevel: 'Critical', keyType: 'Transfer' },
-    { id: 3, securityLevel: 'High', keyType: 'Authentication' }
-  ])
+export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity }) => {
+  const extensionAPI = useExtensionAPI()
+  const sdk = useSdk()
+  
+  const [publicKeys, setPublicKeys] = useState<PublicKey[]>([])
+  const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
+  const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null)
+  const [keysState, loadKeys] = useAsyncState<PublicKey[]>()
+
+  // Load wallet and network info
+  useEffect(() => {
+    const loadWalletInfo = async (): Promise<void> => {
+      try {
+        const status = await extensionAPI.getStatus()
+        setSelectedWallet(status.currentWalletId)
+        setSelectedNetwork(status.network)
+      } catch (error) {
+        console.warn('Failed to load wallet info:', error)
+      }
+    }
+
+    void loadWalletInfo()
+  }, [extensionAPI])
+
+  // Load public keys
+  useEffect(() => {
+    if (!selectedWallet || !selectedNetwork || !currentIdentity) return
+
+    void loadKeys(async () => {
+      const allWallets = await extensionAPI.getAllWallets()
+      const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
+      if (!wallet) throw new Error('Wallet not found')
+
+      const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
+      const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity)
+
+      // Filter identity public keys to only show those that are available
+      const availablePublicKeys = identityPublicKeys.filter((key: any) => {
+        const keyId = key?.keyId ?? key?.getId?.() ?? null
+        return keyId != null && availableKeyIds.includes(keyId)
+      })
+
+      const keys: PublicKey[] = availablePublicKeys.map((key: any) => {
+        const keyId = key?.keyId ?? key?.getId?.() ?? null
+        const purpose = String(key?.purpose ?? 'UNKNOWN')
+        const security = String(key?.securityLevel ?? 'UNKNOWN')
+        let hash = ''
+        try {
+          hash = typeof key?.getPublicKeyHash === 'function' ? key.getPublicKeyHash() : ''
+        } catch {}
+
+        // Get labels using helper functions
+        const purposeLabel = getPurposeLabel(purpose)
+        const securityLabel = getSecurityLabel(security)
+
+        return {
+          keyId: keyId || 0,
+          securityLevel: securityLabel,
+          purpose: purposeLabel,
+          hash
+        }
+      })
+
+      return keys
+    })
+  }, [selectedWallet, selectedNetwork, currentIdentity, extensionAPI, sdk, loadKeys])
+
+  // Update local state when keys are loaded
+  useEffect(() => {
+    if (keysState.data) {
+      setPublicKeys(keysState.data)
+    } else {
+      setPublicKeys([])
+    }
+  }, [keysState.data])
 
   const handleViewKey = (keyId: number): void => {
-    console.log(`View private key: ${keyId}`)
-    // TODO: Implement view key functionality (show private key in modal)
+    console.log(`View public key: ${keyId}`)
+    // TODO: Implement view key functionality (show public key details in modal)
   }
 
   const handleDeleteKey = (keyId: number): void => {
-    console.log(`Delete private key: ${keyId}`)
+    console.log(`Delete public key: ${keyId}`)
     // TODO: Implement delete key functionality with confirmation
   }
 
@@ -114,22 +202,60 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = () => {
       {/* Description */}
       <div className='px-4 mb-6'>
         <p className='text-sm font-medium text-gray-600'>
-          Manage identities you have added to the extension.
+          Manage public keys available for the current identity.
         </p>
       </div>
 
-      {/* Private Keys List */}
-      <div className='flex-1 px-4 space-y-2.5'>
-        {privateKeys.map((privateKey, index) => (
-          <PrivateKeyItem
-            key={privateKey.id}
-            privateKey={privateKey}
-            onView={handleViewKey}
-            onDelete={handleDeleteKey}
-            showSeparator={index < privateKeys.length - 1}
-          />
-        ))}
-      </div>
+      {/* Loading State */}
+      {keysState.loading && (
+        <div className='px-4 mb-4'>
+          <ValueCard colorScheme='lightGray' size='xl'>
+            <Text size='md' opacity='50'>Loading public keys...</Text>
+          </ValueCard>
+        </div>
+      )}
+
+      {/* Error State */}
+      {keysState.error && (
+        <div className='px-4 mb-4'>
+          <ValueCard colorScheme='red' size='xl'>
+            <Text size='md' color='red'>Error loading public keys: {keysState.error}</Text>
+          </ValueCard>
+        </div>
+      )}
+
+      {/* No Identity State */}
+      {!currentIdentity && !keysState.loading && (
+        <div className='px-4 mb-4'>
+          <ValueCard colorScheme='lightGray' size='xl'>
+            <Text size='md' opacity='50'>No identity selected</Text>
+          </ValueCard>
+        </div>
+      )}
+
+      {/* No Keys State */}
+      {!keysState.loading && !keysState.error && currentIdentity && publicKeys.length === 0 && (
+        <div className='px-4 mb-4'>
+          <ValueCard colorScheme='lightGray' size='xl'>
+            <Text size='md' opacity='50'>No public keys available for this identity</Text>
+          </ValueCard>
+        </div>
+      )}
+
+      {/* Public Keys List */}
+      {!keysState.loading && !keysState.error && publicKeys.length > 0 && (
+        <div className='flex-1 px-4 space-y-2.5'>
+          {publicKeys.map((publicKey, index) => (
+            <PublicKeyItem
+              key={`${publicKey.keyId}-${publicKey.hash}`}
+              publicKey={publicKey}
+              onView={handleViewKey}
+              onDelete={handleDeleteKey}
+              showSeparator={index < publicKeys.length - 1}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Import Button */}
       <div className='p-4 mt-auto'>
