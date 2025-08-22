@@ -13,10 +13,12 @@ import { useOutletContext } from 'react-router-dom'
 import { creditsToDash } from '../../../utils'
 import { TransactionsList } from '../../components/transactions'
 import { TokensList } from '../../components/tokens'
+import { BalanceInfo } from '../../components/data'
 import './home.state.css'
 
 interface OutletContext {
   selectedNetwork: string | null
+  setSelectedNetwork: (network: string | null) => void
   selectedWallet: string | null
   currentIdentity: string | null
   setCurrentIdentity: (identity: string | null) => void
@@ -66,7 +68,7 @@ function HomeState (): React.JSX.Element {
 
     void loadTransactions(async () => {
       const result = await platformClient.fetchTransactions(currentIdentity, selectedNetwork as NetworkType, 'desc')
-      if (result.data) {
+      if (result.data != null) {
         return result.data
       }
       throw new Error(result.error || 'Failed to load transactions')
@@ -74,7 +76,7 @@ function HomeState (): React.JSX.Element {
 
     void loadTokens(async () => {
       const result = await platformClient.fetchTokens(currentIdentity, selectedNetwork as NetworkType, 100, 1)
-      if (result.data) {
+      if (result.data != null) {
         return result.data
       }
       throw new Error(result.error || 'Failed to load tokens')
@@ -116,13 +118,13 @@ function HomeState (): React.JSX.Element {
             <div className='flex items-center gap-2 cursor-pointer'>
               <Identifier
                 avatar
-                ellipsis={true}
+                ellipsis
               >
                 {currentIdentity}
               </Identifier>
 
               <div className='flex items-center gap-2'>
-                <ChevronIcon direction='down' size={12} className='text-gray-800'/>
+                <ChevronIcon direction='down' size={12} className='text-gray-800' />
               </div>
             </div>
           </SelectIdentityDialog>
@@ -139,57 +141,28 @@ function HomeState (): React.JSX.Element {
               {balanceState.loading
                 ? (
                   <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                    <span className='text-gray-500'>Loading...</span>
+                    <span className='text-gray-500'>...</span>
                   </Text>
-                )
+                  )
                 : balanceState.error
-                ? (
-                  <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                    <span className='text-red-500'>Error</span>
-                  </Text>
-                )
-                : balanceState.data != null && !Number.isNaN(Number(balanceState.data))
-                ? (
-                  <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                    <BigNumber className='!text-dash-brand gap-2'>
-                      {balanceState.data.toString()}
-                    </BigNumber>
-                  </Text>
-                )
-                : <NotActive>N/A</NotActive>}
+                  ? (
+                    <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
+                      <span className='text-red-500'>Error</span>
+                    </Text>
+                    )
+                  : balanceState.data != null && !Number.isNaN(Number(balanceState.data))
+                    ? (
+                      <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
+                        <BigNumber className='!text-dash-brand gap-2'>
+                          {balanceState.data.toString()}
+                        </BigNumber>
+                      </Text>
+                      )
+                    : <NotActive>N/A</NotActive>}
             </span>
           </div>
 
-          {(balanceState.loading || (balanceState.data != null && !Number.isNaN(Number(balanceState.data)))) && (
-            <div className='flex items-center gap-2.5 bg-[rgba(76,126,255,0.1)] rounded-[5px] px-2 py-1.5 w-fit'>
-              <Text className='!text-dash-brand font-medium text-sm'>
-                {balanceState.loading && '~ Loading...'}
-                {!balanceState.loading && balanceState.error && '~ Error'}
-                {!balanceState.loading && !balanceState.error && rateState.loading && '~ ... USD'}
-                {!balanceState.loading && !balanceState.error && !rateState.loading && rateState.error && '~ - USD'}
-                {!balanceState.loading && !balanceState.error && !rateState.loading && !rateState.error && rateState.data == null && '~ - USD'}
-                {!balanceState.loading && !balanceState.error && !rateState.loading && !rateState.error && rateState.data != null && rateState.data > 0 && balanceState.data != null && (() => {
-                  const dashAmount = creditsToDash(balanceState.data)
-                  const usdAmount = dashAmount * rateState.data
-                  return `~ $${usdAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
-                })()}
-                {!balanceState.loading && !balanceState.error && !rateState.loading && !rateState.error && rateState.data != null && rateState.data <= 0 && '~ - USD'}
-              </Text>
-              
-              <div className='w-px h-4 bg-[rgba(76,126,255,0.25)]'></div>
-              
-              <Text className='!text-dash-brand  font-medium text-sm'>
-                {balanceState.loading 
-                  ? 'Loading...'
-                  : balanceState.error
-                  ? 'Error'
-                  : balanceState.data != null && (() => {
-                    const dashAmount = creditsToDash(balanceState.data)
-                    return `${dashAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Dash`
-                  })()}
-              </Text>
-            </div>
-          )}
+          <BalanceInfo balanceState={balanceState} rateState={rateState} />
         </div>
       </div>
 
@@ -207,7 +180,7 @@ function HomeState (): React.JSX.Element {
               label: 'Transactions',
               content: (
                 <TransactionsList
-                  transactions={transactionsState.data || []}
+                  transactions={transactionsState.data ?? []}
                   loading={transactionsState.loading}
                   error={transactionsState.error}
                   rate={rateState.data}
@@ -221,7 +194,7 @@ function HomeState (): React.JSX.Element {
               label: 'Tokens',
               content: (
                 <TokensList
-                  tokens={tokensState.data || []}
+                  tokens={tokensState.data ?? []}
                   loading={tokensState.loading}
                   error={tokensState.error}
                   selectedNetwork={selectedNetwork as NetworkType}
