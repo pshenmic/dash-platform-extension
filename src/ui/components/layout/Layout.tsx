@@ -55,14 +55,14 @@ const Layout: FC = () => {
   return (
     <ThemeProvider initialTheme='light'>
       <div className='main_container'>
-        <Header 
+        <Header
           onNetworkChange={setSelectedNetwork}
           currentNetwork={selectedNetwork}
           onWalletChange={setSelectedWallet}
           currentIdentity={currentIdentity}
           currentWalletId={currentWalletId}
         />
-        <Outlet context={{ selectedNetwork, selectedWallet, currentIdentity, setCurrentIdentity }}/>
+        <Outlet context={{ selectedNetwork, setSelectedNetwork, selectedWallet, currentIdentity, setCurrentIdentity }} />
       </div>
     </ThemeProvider>
   )
