@@ -27,7 +27,7 @@ const App: React.FC = function () {
           element: <StartState />,
           handle: {
             headerProps: {
-              hideLeftSection: true
+              variant: 'minimal'
             }
           }
         },
@@ -36,9 +36,7 @@ const App: React.FC = function () {
           element: <ChooseImportType />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: '',
-              imgClasses: '-mt-[68%] !w-[426px] ml-[5%]'
+              variant: 'onboarding'
             }
           }
         },
@@ -47,9 +45,7 @@ const App: React.FC = function () {
           element: <ImportSeedPhrase />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: 'w-[120%] -mr-[55%]',
-              imgClasses: '-mt-[52%]'
+              variant: 'seedImport'
             }
           }
         },
@@ -58,10 +54,7 @@ const App: React.FC = function () {
           element: <NoWalletState />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: '',
-              imgClasses: '!w-[109%] -mt-[67%] right-[7%]',
-              hideLeftSection: true
+              variant: 'landing'
             }
           }
         },
@@ -70,10 +63,7 @@ const App: React.FC = function () {
           element: <HomeState />,
           handle: {
             headerProps: {
-              showNetworkSelector: true,
-              showWalletSelector: true,
-              showBurgerMenu: true,
-              hideLeftSection: true
+              variant: 'main'
             }
           }
         },
@@ -82,10 +72,7 @@ const App: React.FC = function () {
           element: <SetupPasswordState />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: '',
-              imgClasses: '-mt-[68%] !w-[426px] ml-[5%]',
-              hideLeftSection: true
+              variant: 'onboarding'
             }
           }
         },
@@ -94,25 +81,25 @@ const App: React.FC = function () {
           element: <LoginState />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: '',
-              imgClasses: '!w-[109%] -mt-[67%] right-[7%]',
-              hideLeftSection: true
+              variant: 'landing'
             }
           }
         },
         {
           path: '/create-wallet',
-          element: <CreateWalletState />
+          element: <CreateWalletState />,
+          handle: {
+            headerProps: {
+              variant: 'simple'
+            }
+          }
         },
         {
           path: '/import-keystore',
           element: <ImportKeystoreState />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: 'w-[120%] -mr-[55%]',
-              imgClasses: '-mt-[52%]'
+              variant: 'seedImport'
             }
           }
         },
@@ -121,22 +108,25 @@ const App: React.FC = function () {
           element: <ApproveTransactionState />,
           handle: {
             headerProps: {
-              hideLeftSection: false,
-              showWalletSelector: true,
-              showNetworkRightReadOnly: true
+              variant: 'transaction'
             }
           }
         },
         {
           path: '/connect/:id',
-          element: <AppConnectState />
+          element: <AppConnectState />,
+          handle: {
+            headerProps: {
+              variant: 'simple'
+            }
+          }
         },
         {
           path: '/wallet-created',
           element: <WalletSuccessfullyCreated />,
           handle: {
             headerProps: {
-              hideLeftSection: true
+              variant: 'minimal'
             }
           }
         }
