@@ -9,7 +9,7 @@ export const PLATFORM_EXPLORER_URLS = {
     explorer: 'https://testnet.platform-explorer.com'
   },
   mainnet: {
-    api: 'https://platform-explorer.pshenmic.dev', 
+    api: 'https://platform-explorer.pshenmic.dev',
     explorer: 'https://platform-explorer.com'
   }
 } as const
