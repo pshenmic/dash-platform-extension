@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { OverlayMenu, WebIcon } from 'dash-ui/react'
-import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
-import { useSdk } from '../../../hooks/useSdk'
-import { Network } from '../../../../types/enums/Network'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { useSdk } from '../../hooks/useSdk'
+import { Network } from '../../../types/enums/Network'
 
 interface NetworkSelectorProps {
   onSelect?: (network: string) => void
+  [key: string]: any
 }
 
-export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) => {
+export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, ...props }) => {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const [currentNetwork, setCurrentNetwork] = useState<string>('testnet')
@@ -32,7 +33,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) =>
   const handleNetworkChange = async (network: string): Promise<void> => {
     try {
       sdk.setNetwork(network as 'testnet' | 'mainnet')
-      
+
       // Мок для переключения сети - в будущем будет реальный API вызов
       const status = await extensionAPI.getStatus()
       if (status.currentWalletId != null) {
@@ -46,7 +47,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) =>
   }
   useEffect(() => {
     if (typeof onSelect === 'function') onSelect(currentNetwork)
-  }, [currentNetwork, onSelect]);
+  }, [currentNetwork, onSelect])
 
   if (loading) {
     return (
@@ -70,7 +71,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) =>
         <span>{network.charAt(0).toUpperCase() + network.slice(1)}</span>
       </div>
     ),
-    onClick: () => handleNetworkChange(network)
+    onClick: async () => await handleNetworkChange(network)
   }))
 
   return (
@@ -78,9 +79,10 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect }) =>
       triggerContent={triggerContent}
       items={items}
       size='md'
-      border={true}
-      showArrow={true}
+      border
+      showArrow
       className='min-w-32 h-12'
+      {...props}
     />
   )
 }

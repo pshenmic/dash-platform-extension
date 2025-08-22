@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { OverlayMenu, KebabMenuIcon, PlusIcon, WalletIcon } from 'dash-ui/react'
-import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
-import { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
+import { OverlayMenu, KebabMenuIcon, PlusIcon, WalletIcon, ValueCard } from 'dash-ui/react'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'
 
 interface WalletSelectorProps {
@@ -38,7 +38,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, curren
 
   useEffect(() => {
     if (typeof onSelect === 'function') onSelect(currentWalletId)
-  }, [currentWalletId, onSelect]);
+  }, [currentWalletId, onSelect])
 
   const handleWalletChange = async (walletId: string): Promise<void> => {
     try {
@@ -76,30 +76,36 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, curren
     availableWallets
   })
 
-  if (currentWalletId == null || availableWallets.length === 0 || !currentWallet) {
+  if (currentWalletId == null || availableWallets.length === 0 || (currentWallet == null)) {
     console.log('WalletSelector returning null because:', {
       currentWalletIdIsNull: currentWalletId == null,
       noAvailableWallets: availableWallets.length === 0,
-      noCurrentWallet: !currentWallet
+      noCurrentWallet: currentWallet == null
     })
 
     // Show "Add wallet" button if no wallets available
     if (availableWallets.length === 0) {
       return (
-        <div className='flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50'>
+        <ValueCard
+          size='md'
+          className='flex gap-1 h-12'
+          clickable='true'
+          onClick={() =>
+            void navigate('/choose-wallet-import-type')}
+        >
           <div className='w-4 h-4 flex items-center justify-center'>
             <PlusIcon className='w-full h-full text-gray-900' />
           </div>
           <span className='text-sm font-light text-gray-900'>Add wallet</span>
-        </div>
+        </ValueCard>
       )
     }
-    
+
     return null
   }
 
   const currentWalletIndex = availableWallets.findIndex(wallet => wallet.walletId === currentWalletId)
-  
+
   const triggerContent = (
     <div className='flex items-center gap-2'>
       <WalletIcon className='!text-dash-primary-dark-blue' size={16} />
@@ -134,7 +140,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, curren
           </button>
         </div>
       ),
-      onClick: () => handleWalletChange(wallet.walletId)
+      onClick: async () => await handleWalletChange(wallet.walletId)
     })),
     // Add wallet item
     {
@@ -159,9 +165,9 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, curren
       triggerContent={triggerContent}
       items={items}
       size='md'
-      border={true}
-      showArrow={true}
-      showItemBorders={true}
+      border
+      showArrow
+      showItemBorders
       className='!w-44 h-12'
     />
   )
