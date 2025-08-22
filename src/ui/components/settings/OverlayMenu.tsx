@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Button, Text } from 'dash-ui/react'
+import { Button, Text, ChevronIcon, CrossIcon } from 'dash-ui/react'
 
 interface OverlayMenuProps {
   isOpen: boolean
@@ -9,42 +9,6 @@ interface OverlayMenuProps {
   showBackButton?: boolean
   onBack?: () => void
 }
-
-const CloseIcon: React.FC = () => (
-  <svg
-    width='20'
-    height='20'
-    viewBox='0 0 20 20'
-    fill='none'
-    xmlns='http://www.w3.org/2000/svg'
-  >
-    <path
-      d='M15 5L5 15M5 5L15 15'
-      stroke='currentColor'
-      strokeWidth='1.5'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-  </svg>
-)
-
-const BackIcon: React.FC = () => (
-  <svg
-    width='20'
-    height='20'
-    viewBox='0 0 20 20'
-    fill='none'
-    xmlns='http://www.w3.org/2000/svg'
-  >
-    <path
-      d='M12.5 15L7.5 10L12.5 5'
-      stroke='currentColor'
-      strokeWidth='1.5'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-  </svg>
-)
 
 export const OverlayMenu: React.FC<OverlayMenuProps> = ({
   isOpen,
@@ -64,7 +28,6 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
 
     if (isOpen) {
       document.addEventListener('keydown', handleEscape)
-      // Block background scroll
       document.body.style.overflow = 'hidden'
     }
 
@@ -86,9 +49,9 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
               onClick={onBack}
               colorScheme='lightGray'
               size='sm'
-              className='p-1'
+              className='p-1 w-12 h-12'
             >
-              <BackIcon />
+              <ChevronIcon className='rotate-90' />
             </Button>
           )}
           <Text size='xl' weight='500' className='text-[#0C1C33]'>
@@ -100,9 +63,9 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
           onClick={onClose}
           colorScheme='lightGray'
           size='sm'
-          className='p-3 bg-white/[0.03] rounded-[15px]'
+          className='p-3 bg-white/[0.03] rounded-[15px] w-12 h-12'
         >
-          <CloseIcon />
+          <CrossIcon />
         </Button>
       </div>
 
