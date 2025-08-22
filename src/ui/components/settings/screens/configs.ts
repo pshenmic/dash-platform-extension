@@ -1,17 +1,18 @@
 import type { ScreenConfig } from '../types'
-import { 
+import {
   mainScreenConfig,
-  walletSettingsConfig, 
-  preferencesConfig, 
-  connectedDappsConfig, 
-  privateKeysConfig, 
-  securityPrivacyConfig, 
-  helpSupportConfig, 
-  aboutDashConfig 
+  walletSettingsConfig,
+  preferencesConfig,
+  connectedDappsConfig,
+  privateKeysConfig,
+  securityPrivacyConfig,
+  helpSupportConfig,
+  aboutDashConfig
 } from './MainSettingsScreen'
 import { helpSupportScreenConfig } from './HelpSupportScreen'
 import { preferencesScreenConfig } from './PreferencesScreen'
 import { privateKeysScreenConfig } from './PrivateKeysScreen'
+import { importPrivateKeysScreenConfig } from './ImportPrivateKeysScreen'
 
 // Collect all screen configurations
 export const screenConfigs: Record<string, ScreenConfig> = {
@@ -20,6 +21,7 @@ export const screenConfigs: Record<string, ScreenConfig> = {
   preferences: preferencesScreenConfig, // Use the full configuration with content
   'connected-dapps': connectedDappsConfig,
   'private-keys': privateKeysScreenConfig, // Use the full configuration with content
+  'import-private-keys-settings': importPrivateKeysScreenConfig, // Import private keys screen
   'security-privacy': securityPrivacyConfig,
   'help-support': helpSupportScreenConfig, // Use the full configuration with content
   'about-dash': aboutDashConfig
