@@ -4,7 +4,7 @@ export const PurposeLabelsInfo = {
     description: 'Key used for authentication purposes'
   },
   ENCRYPTION: {
-    label: 'Encryption', 
+    label: 'Encryption',
     description: 'Key used for encryption purposes'
   },
   DECRYPTION: {
@@ -24,7 +24,7 @@ export const SecurityLabelsInfo = {
     colorScheme: 'red'
   },
   CRITICAL: {
-    label: 'Critical', 
+    label: 'Critical',
     description: 'Critical security level for sensitive operations',
     colorScheme: 'orange'
   },
