@@ -1,23 +1,23 @@
-import { 
-  NetworkType, 
-  TransactionData, 
-  IdentityApiData, 
+import {
+  NetworkType,
+  TransactionData,
+  IdentityApiData,
   TransactionsResponse,
   TokenData,
   TokensResponse,
-  ApiState 
+  ApiState
 } from './PlatformExplorer'
 import { PLATFORM_EXPLORER_URLS } from '../constants'
 
 // Re-export types for convenience
-export { 
-  NetworkType, 
-  TransactionData, 
-  IdentityApiData, 
+export {
+  NetworkType,
+  TransactionData,
+  IdentityApiData,
   TransactionsResponse,
   TokenData,
   TokensResponse,
-  ApiState 
+  ApiState
 } from './PlatformExplorer'
 
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
@@ -31,15 +31,15 @@ const getExplorerUrl = (network: NetworkType = 'testnet'): string => {
 // No utility functions needed - all fields are explicitly typed
 
 export class PlatformExplorerClient {
-  async fetchIdentity(identityId: string, network: NetworkType = 'testnet'): Promise<ApiState<IdentityApiData>> {
+  async fetchIdentity (identityId: string, network: NetworkType = 'testnet'): Promise<ApiState<IdentityApiData>> {
     try {
       const baseUrl = getBaseUrl(network)
       const response = await fetch(`${baseUrl}/identity/${identityId}`)
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
+
       const data = await response.json()
       return { data, loading: false, error: null }
     } catch (error) {
@@ -48,7 +48,7 @@ export class PlatformExplorerClient {
     }
   }
 
-  async fetchRate(network: NetworkType = 'testnet'): Promise<ApiState<number>> {
+  async fetchRate (network: NetworkType = 'testnet'): Promise<ApiState<number>> {
     try {
       const baseUrl = getBaseUrl(network)
       const response = await fetch(`${baseUrl}/rate`)
@@ -57,7 +57,7 @@ export class PlatformExplorerClient {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data = await response.json() as any
+      const data = await response.json()
 
       let rate: number | null = null
       if (typeof data === 'number') {
@@ -83,18 +83,18 @@ export class PlatformExplorerClient {
     }
   }
 
-    async fetchMultipleIdentities(identityIds: string[], network: NetworkType = 'testnet'): Promise<ApiState<Record<string, IdentityApiData>>> {
+  async fetchMultipleIdentities (identityIds: string[], network: NetworkType = 'testnet'): Promise<ApiState<Record<string, IdentityApiData>>> {
     try {
       if (identityIds.length === 0) {
         return { data: {}, loading: false, error: null }
       }
 
       const baseUrl = getBaseUrl(network)
-      
+
       // Create parallel requests for all identities
       const promises = identityIds.map(async (identityId) => {
         const response = await fetch(`${baseUrl}/identity/${identityId}`)
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error for identity ${identityId}! status: ${response.status}`)
         }
@@ -108,7 +108,7 @@ export class PlatformExplorerClient {
       // Process results and separate successful from failed
       const successfulResults: Record<string, IdentityApiData> = {}
       const errors: string[] = []
-      
+
       results.forEach((result, index) => {
         if (result.status === 'fulfilled') {
           const { identityId, data } = result.value
@@ -117,11 +117,11 @@ export class PlatformExplorerClient {
           errors.push(`Failed to fetch ${identityIds[index]}: ${result.reason}`)
         }
       })
-      
+
       if (errors.length > 0) {
         return { data: successfulResults, loading: false, error: errors.join('; ') }
       }
-      
+
       return { data: successfulResults, loading: false, error: null }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -129,21 +129,21 @@ export class PlatformExplorerClient {
     }
   }
 
-    async fetchTransactions(identityId: string, network: NetworkType = 'testnet', order: 'desc' | 'asc' = 'desc'): Promise<ApiState<TransactionData[]>> {
+  async fetchTransactions (identityId: string, network: NetworkType = 'testnet', order: 'desc' | 'asc' = 'desc'): Promise<ApiState<TransactionData[]>> {
     try {
       const baseUrl = getBaseUrl(network)
       const response = await fetch(`${baseUrl}/identity/${identityId}/transactions?order=${order}`)
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
       const data: TransactionsResponse = await response.json()
-      
+
       if (data.error != null) {
         throw new Error(data.error)
       }
-      
+
       return { data: data.resultSet, loading: false, error: null }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -151,21 +151,21 @@ export class PlatformExplorerClient {
     }
   }
 
-  async fetchTokens(identityId: string, network: NetworkType = 'testnet', limit: number = 10, page: number = 1): Promise<ApiState<TokenData[]>> {
+  async fetchTokens (identityId: string, network: NetworkType = 'testnet', limit: number = 10, page: number = 1): Promise<ApiState<TokenData[]>> {
     try {
       const baseUrl = getBaseUrl(network)
       const response = await fetch(`${baseUrl}/identity/${identityId}/tokens?limit=${limit}&page=${page}&order=desc`)
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
       const data: TokensResponse = await response.json()
-      
+
       if (data.error != null) {
         throw new Error(data.error)
       }
-      
+
       return { data: data.resultSet, loading: false, error: null }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -173,9 +173,8 @@ export class PlatformExplorerClient {
     }
   }
 
-  getTransactionExplorerUrl(transactionHash: string, network: NetworkType = 'testnet'): string {
+  getTransactionExplorerUrl (transactionHash: string, network: NetworkType = 'testnet'): string {
     const explorerUrl = getExplorerUrl(network)
     return `${explorerUrl}/transaction/${transactionHash}`
   }
 }
-

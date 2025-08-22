@@ -1,10 +1,10 @@
 export {
-  NetworkType, 
-  TransactionData, 
+  NetworkType,
+  TransactionData,
   TokenData,
-  IdentityApiData, 
+  IdentityApiData,
   PlatformExplorerClient,
-  ApiState 
+  ApiState
 } from '../../types/PlatformExplorerClient'
 
 export { usePlatformExplorerClient } from './usePlatformExplorerClient'

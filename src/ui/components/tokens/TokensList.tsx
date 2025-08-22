@@ -13,11 +13,11 @@ interface TokensListProps {
   selectedNetwork: NetworkType
 }
 
-function TokensList({ 
-  tokens, 
-  loading, 
-  error, 
-  selectedNetwork 
+function TokensList ({
+  tokens,
+  loading,
+  error,
+  selectedNetwork
 }: TokensListProps): React.JSX.Element {
   console.log('tokens', tokens)
 
@@ -27,12 +27,12 @@ function TokensList({
     if (singularName) {
       return singularName.substring(0, 2).toUpperCase()
     }
-    
+
     // Fallback to description
     if (token.description) {
       return token.description.substring(0, 2).toUpperCase()
     }
-    
+
     // Last fallback to identifier
     return token.identifier.substring(0, 2).toUpperCase()
   }
@@ -67,8 +67,8 @@ function TokensList({
             <div className='flex items-center gap-3'>
               {/* Token Avatar */}
               <div className='flex items-center justify-center w-[39px] h-[39px] bg-[rgba(12,28,51,0.03)] rounded-full'>
-                <Text 
-                  weight='medium' 
+                <Text
+                  weight='medium'
                   size='base'
                   className='text-[#0C1C33] text-center'
                   style={{ fontSize: '16px', lineHeight: '1.366em' }}
@@ -80,9 +80,9 @@ function TokensList({
               {/* Token Info */}
               <div className='flex items-center gap-2 w-[121px]'>
                 <div className='flex flex-col'>
-                  <Text 
-                    weight='medium' 
-                    size='sm' 
+                  <Text
+                    weight='medium'
+                    size='sm'
                     className='text-[#0C1C33]'
                     style={{ fontSize: '14px', lineHeight: '1.366em' }}
                   >

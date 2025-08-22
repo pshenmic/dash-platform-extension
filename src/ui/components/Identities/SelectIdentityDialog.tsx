@@ -27,7 +27,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
     if (open && identities.length > 0) {
       const fetchIdentitiesData = async () => {
         setIdentitiesState({ data: null, loading: true, error: null })
-        
+
         try {
           // Get current network first
           const status = await extensionAPI.getStatus()
@@ -44,7 +44,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
           setIdentitiesState({ data: null, loading: false, error: errorMessage })
         }
       }
-      
+
       void fetchIdentitiesData()
     }
   }, [open, identities, platformClient, extensionAPI])
@@ -56,17 +56,17 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
 
   return (
     <>
-      <div className={'w-full'} onClick={() => setOpen(true)}>
+      <div className='w-full' onClick={() => setOpen(true)}>
         {children}
       </div>
-      
+
       <Dialog
         open={open}
         onOpenChange={setOpen}
         className='w-[390px] max-w-[390px] max-h-[500px] border-0'
         title='Your identity'
         size='xl'
-        showCloseButton={true}
+        showCloseButton
       >
         <div className='flex flex-col gap-4 -mx-6'>
           <div className='flex flex-col gap-2'>
@@ -83,12 +83,12 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                 <div className='w-10 h-10'>
                   <Avatar username={identity} />
                 </div>
-                
+
                 <div className='flex flex-1 items-center gap-2'>
                   <Identifier
                     highlight='both'
                     className='text-sm font-light'
-                    copyButton={true}
+                    copyButton
                   >
                     {identity}
                   </Identifier>
@@ -96,15 +96,19 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
 
                 <div className='flex flex-col items-end gap-1 text-right shrink-0'>
                   <Text weight='semibold' size='sm'>
-                    {identitiesState.loading ? (
-                      'Loading...'
-                    ) : identitiesState.error ? (
-                      'Error'
-                    ) : (
-                      <>
-                        <BigNumber>{identitiesState.data?.[identity]?.balance || '0'}</BigNumber> Credits
-                      </>
-                    )}
+                    {identitiesState.loading
+                      ? (
+                          'Loading...'
+                        )
+                      : identitiesState.error
+                        ? (
+                            'Error'
+                          )
+                        : (
+                          <>
+                            <BigNumber>{identitiesState.data?.[identity]?.balance || '0'}</BigNumber> Credits
+                          </>
+                          )}
                   </Text>
                   <Text size='xs' className='text-gray-500'>
                     ~ $0.00

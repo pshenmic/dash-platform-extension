@@ -20,17 +20,17 @@ interface GroupedTransaction {
   transactions: TransactionData[]
 }
 
-function TransactionsList({ 
-  transactions, 
-  loading, 
-  error, 
-  rate, 
-  selectedNetwork, 
-  getTransactionExplorerUrl 
+function TransactionsList ({
+  transactions,
+  loading,
+  error,
+  rate,
+  selectedNetwork,
+  getTransactionExplorerUrl
 }: TransactionsListProps): React.JSX.Element {
   const groupTransactionsByDate = (transactions: TransactionData[]): GroupedTransaction[] => {
     const groups: Record<string, TransactionData[]> = {}
-    
+
     transactions.forEach(transaction => {
       let date: Date
       if (transaction.timestamp) {
@@ -46,28 +46,28 @@ function TransactionsList({
       } else {
         date = new Date()
       }
-      
-      const dateKey = date.toLocaleDateString('en-GB', { 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
+
+      const dateKey = date.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
       })
-      
+
       if (!groups[dateKey]) {
         groups[dateKey] = []
       }
       groups[dateKey].push(transaction)
     })
-    
+
     return Object.entries(groups).map(([date, transactions]) => ({
       date,
       transactions
-        }))
+    }))
   }
 
   const getTransactionTypeDisplay = (transaction: TransactionData): string => {
     const { type, batchType } = transaction
-    
+
     // If batchType exists, use it instead of type
     if (batchType) {
       if (batchType in BatchActions) {
@@ -75,43 +75,43 @@ function TransactionsList({
       }
       return batchType // fallback to raw batchType if not found in BatchActions
     }
-    
+
     // If no batchType, use regular type
     if (type && type in TransactionTypesInfo) {
       return TransactionTypesInfo[type as keyof typeof TransactionTypesInfo].title
     }
-    
+
     return type || 'Unknown Transaction'
   }
 
   const getTransactionSubtext = (transaction: TransactionData): string => {
     const hash = transaction.hash ?? 'unknown'
-    
+
     // For transfers, we would need additional data to show From/To
     // For now, showing hash as fallback
     if (transaction.type === 'IDENTITY_CREDIT_TRANSFER') {
       return `Hash: ${hash.substring(0, 5)}...${hash.substring(hash.length - 4)}`
     }
-    
+
     return `Hash: ${hash.substring(0, 5)}...${hash.substring(hash.length - 4)}`
   }
 
-  const formatAmount = (transaction: TransactionData): { display: string; usd: string; isPositive: boolean } => {
+  const formatAmount = (transaction: TransactionData): { display: string, usd: string, isPositive: boolean } => {
     // This would need actual amount data from the transaction
     // For now, using placeholder logic
     const isTopUp = transaction.type === 'IDENTITY_TOP_UP'
-    const isWithdrawal = transaction.type === 'IDENTITY_CREDIT_WITHDRAWAL' || 
+    const isWithdrawal = transaction.type === 'IDENTITY_CREDIT_WITHDRAWAL' ||
                         transaction.type === 'IDENTITY_CREDIT_TRANSFER'
-    
+
     // Placeholder amounts - in a real app, this would come from transaction data
     const creditsAmount = 204278360 // This should come from transaction.data or similar
     const dashAmount = creditsToDash(creditsAmount)
     const usdAmount = rate ? dashAmount * rate : 0
-    
+
     const sign = isTopUp ? '+' : isWithdrawal ? '-' : ''
     const display = `${sign} ${creditsAmount.toLocaleString()} Credits`
     const usd = `~ $${usdAmount.toFixed(3)}`
-    
+
     return {
       display,
       usd,
@@ -174,9 +174,9 @@ function TransactionsList({
 
                   {/* Right side - Amount */}
                   <div className='flex flex-col items-end gap-1'>
-                    <Text 
-                      weight='medium' 
-                      size='sm' 
+                    <Text
+                      weight='medium'
+                      size='sm'
                       className={`text-dash-primary-dark-blue ${amount.isPositive ? 'text-green-600' : 'text-dash-primary-dark-blue'}`}
                     >
                       {amount.display}

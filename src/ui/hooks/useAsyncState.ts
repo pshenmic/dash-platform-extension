@@ -6,7 +6,7 @@ export interface AsyncState<T> {
   error: string | null
 }
 
-export function useAsyncState<T>(initialData: T | null = null): [
+export function useAsyncState<T> (initialData: T | null = null): [
   AsyncState<T>,
   (asyncFn: () => Promise<T>) => Promise<void>,
   (data: T) => void,
@@ -20,7 +20,7 @@ export function useAsyncState<T>(initialData: T | null = null): [
 
   const execute = useCallback(async (asyncFn: () => Promise<T>) => {
     setState({ data: null, loading: true, error: null })
-    
+
     try {
       const result = await asyncFn()
       setState({ data: result, loading: false, error: null })
