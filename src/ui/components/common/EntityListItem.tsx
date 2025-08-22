@@ -7,7 +7,7 @@ interface EntityListItemProps {
   className?: string
 }
 
-function EntityListItem({
+function EntityListItem ({
   children,
   href,
   onClick,
@@ -28,7 +28,7 @@ function EntityListItem({
     )
   }
 
-  if (onClick) {
+  if (typeof onClick === 'function') {
     return (
       <div
         className={baseClasses}

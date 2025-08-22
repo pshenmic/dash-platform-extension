@@ -12,7 +12,7 @@ interface EntityListProps {
   emptyText?: string
 }
 
-function EntityList({
+function EntityList ({
   children,
   loading,
   error,
