@@ -86,9 +86,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                 
                 <div className='flex flex-1 items-center gap-2'>
                   <Identifier
-                    middleEllipsis
-                    edgeChars={4}
-                    linesAdjustment={false}
+                    highlight='both'
                     className='text-sm font-light'
                     copyButton={true}
                   >
@@ -96,7 +94,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                   </Identifier>
                 </div>
 
-                <div className='flex flex-col items-end gap-1 text-right'>
+                <div className='flex flex-col items-end gap-1 text-right shrink-0'>
                   <Text weight='semibold' size='sm'>
                     {identitiesState.loading ? (
                       'Loading...'
