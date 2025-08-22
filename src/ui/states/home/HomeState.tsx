@@ -34,9 +34,6 @@ function HomeState (): React.JSX.Element {
   const [balanceState, loadBalance] = useAsyncState<bigint>()
   const [rateState, loadRate] = useAsyncState<number>()
 
-  console.log('Tabs', Tabs)
-
-  // load identities
   useEffect(() => {
     const loadIdentities = async (): Promise<void> => {
       try {
@@ -76,8 +73,7 @@ function HomeState (): React.JSX.Element {
     })
 
     void loadTokens(async () => {
-      // const result = await platformClient.fetchTokens(currentIdentity, selectedNetwork as NetworkType, 100, 1)
-      const result = await platformClient.fetchTokens('HT3pUBM1Uv2mKgdPEN1gxa7A4PdsvNY89aJbdSKQb5wR', selectedNetwork as NetworkType, 100, 1)
+      const result = await platformClient.fetchTokens(currentIdentity, selectedNetwork as NetworkType, 100, 1)
       if (result.data) {
         return result.data
       }
@@ -119,8 +115,6 @@ function HomeState (): React.JSX.Element {
           >
             <div className='flex items-center gap-2 cursor-pointer'>
               <Identifier
-                middleEllipsis
-                edgeChars={6}
                 avatar
                 ellipsis={true}
               >
