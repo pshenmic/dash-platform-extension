@@ -102,7 +102,8 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, curren
   
   const triggerContent = (
     <div className='flex items-center gap-2'>
-      <span className='text-xs'>
+      <WalletIcon className='!text-dash-primary-dark-blue' size={16} />
+      <span className='text-sm font-medium'>
         {currentWallet.label ?? `Wallet_${currentWalletIndex + 1}`}
       </span>
     </div>
