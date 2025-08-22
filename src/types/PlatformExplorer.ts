@@ -22,7 +22,7 @@ export interface TransactionData {
 }
 
 export interface IdentityApiData {
-  aliases: Array<object> | null
+  aliases: object[] | null
   averageGasSpent: number | string | null
   balance: string | null
   fundingCoreTx: string | null
@@ -31,7 +31,7 @@ export interface IdentityApiData {
   lastWithdrawalHash: string | null
   lastWithdrawalTimestamp: string | null
   owner: string | null
-  publicKeys: Array<object> | null
+  publicKeys: object[] | null
   revision: number | null
   timestamp: string | null
   totalDataContracts: number | null

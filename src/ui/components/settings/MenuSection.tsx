@@ -18,9 +18,9 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
   return (
     <div className='menu-section mb-6'>
       {section.title && (
-        <Text size='sm' weight='500' className={`mb-3 px-1 ${
-          theme === 'dark' ? 'text-white/50' : 'text-[#0C1C33]/50'
-        }`}>
+        <Text
+          size='sm' weight='500' className={`mb-3 px-1 ${ theme === 'dark' ? 'text-white/50' : 'text-[#0C1C33]/50' }`}
+        >
           {section.title}
         </Text>
       )}
@@ -44,9 +44,9 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
               if (item.disabled) {
                 return
               }
-              
+
               // Priority: onAction over navigation
-              if (item.onAction) {
+              if (item.onAction != null) {
                 item.onAction()
               } else {
                 onItemClick(item.id)

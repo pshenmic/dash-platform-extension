@@ -23,7 +23,7 @@ export default function LoginState (): React.JSX.Element {
       const result = await extensionAPI.checkPassword(password)
       if (result.success) {
         const status = await extensionAPI.getStatus()
-        
+
         if (status.currentWalletId != null && status.currentWalletId !== '') {
           void navigate('/home')
         } else {

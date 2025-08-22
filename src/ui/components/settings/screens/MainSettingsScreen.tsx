@@ -17,7 +17,7 @@ import type { SettingsScreenProps, ScreenConfig, MenuSection as MenuSectionType 
 export const walletSettingsConfig: ScreenConfig = {
   id: 'current-wallet',
   title: 'Wallet Settings',
-  icon: <WalletIcon className='text-dash-primary-dark-blue'/>,
+  icon: <WalletIcon className='text-dash-primary-dark-blue' />,
   category: 'account',
   content: []
 }
@@ -25,7 +25,7 @@ export const walletSettingsConfig: ScreenConfig = {
 export const preferencesConfig: ScreenConfig = {
   id: 'preferences',
   title: 'Preferences',
-  icon: <SettingsIcon className='text-dash-primary-dark-blue'/>,
+  icon: <SettingsIcon className='text-dash-primary-dark-blue' />,
   category: 'wallet',
   content: []
 }
@@ -33,7 +33,7 @@ export const preferencesConfig: ScreenConfig = {
 export const connectedDappsConfig: ScreenConfig = {
   id: 'connected-dapps',
   title: 'Connected dapps',
-  icon: <ChainSmallIcon className='text-dash-primary-dark-blue'/>,
+  icon: <ChainSmallIcon className='text-dash-primary-dark-blue' />,
   category: 'wallet',
   content: []
 }
@@ -101,7 +101,7 @@ export const mainScreenConfig: ScreenConfig = {
           title: privateKeysConfig.title,
           icon: privateKeysConfig.icon,
           screenId: privateKeysConfig.id,
-          hasSubMenu: true,
+          hasSubMenu: true
         },
         {
           id: 'security-privacy-item',
@@ -156,30 +156,34 @@ export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
         items: [
           {
             id: 'current-wallet-item',
-            title: currentIdentity ? (
-              <Identifier 
-                middleEllipsis 
-                edgeChars={4} 
-              >
-                {currentIdentity}
-              </Identifier>
-            ) : 'No Identity',
-            icon: currentIdentity ? (
-              <Avatar size='sm' username={currentIdentity} />
-            ) : walletSettingsConfig.icon,
+            title: currentIdentity
+              ? (
+                <Identifier
+                  middleEllipsis
+                  edgeChars={4}
+                >
+                  {currentIdentity}
+                </Identifier>
+                )
+              : 'No Identity',
+            icon: currentIdentity
+              ? (
+                <Avatar size='sm' username={currentIdentity} />
+                )
+              : walletSettingsConfig.icon,
             screenId: walletSettingsConfig.id,
             hasSubMenu: true,
             disabled: true
           }
         ]
       },
-      ...(mainScreenConfig.content as MenuSectionType[]) // Keep the rest of the sections unchanged
+      ...(mainScreenConfig.content) // Keep the rest of the sections unchanged
     ]
   }
 
   return (
     <div className='space-y-6'>
-      {(dynamicMainScreenConfig.content as MenuSectionType[]).map((section, index) => (
+      {(dynamicMainScreenConfig.content).map((section, index) => (
         <MenuSection
           key={section.id}
           section={section}
