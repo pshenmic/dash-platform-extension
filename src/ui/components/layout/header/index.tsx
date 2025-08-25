@@ -243,8 +243,8 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
           {config.showNetworkRightReadOnly && currentNetwork && (
             config.networkDisplayFormat === 'card' 
               ? <NetworkCard network={currentNetwork} />
-              : <Text size='sm' color='gray' weight='medium' dim>
-                  {currentNetwork.charAt(0).toUpperCase() + currentNetwork.slice(1)}
+              : <Text className='capitalize' size='sm' color='gray' weight='medium' dim>
+                  {currentNetwork}
                 </Text>
           )}
         </div>
