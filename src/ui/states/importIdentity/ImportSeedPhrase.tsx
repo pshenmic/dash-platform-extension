@@ -1,13 +1,22 @@
 import React, { useState } from 'react'
 import { Text, Heading, Button, Input, Switch, ProgressStepBar, DashLogo } from 'dash-ui/react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { WalletType } from '../../../types/WalletType'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 
+interface OutletContext {
+  selectedNetwork: string | null
+  setSelectedNetwork: (network: string | null) => void
+  selectedWallet: string | null
+  currentIdentity: string | null
+  setCurrentIdentity: (identity: string | null) => void
+}
+
 function ImportSeedPhrase (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
+  const { selectedNetwork } = useOutletContext<OutletContext>()
   const [seedWords, setSeedWords] = useState<string[]>(Array(12).fill(''))
   const [wordCount, setWordCount] = useState<12 | 24>(12)
   const [password, setPassword] = useState('')
@@ -108,7 +117,7 @@ function ImportSeedPhrase (): React.JSX.Element {
       const mnemonic = validWords.join(' ')
 
       const { walletId } = await extensionAPI.createWallet(WalletType.seedphrase, mnemonic)
-      await extensionAPI.switchWallet(walletId, 'testnet')
+      await extensionAPI.switchWallet(walletId, selectedNetwork ?? 'testnet')
       await extensionAPI.resyncIdentities(password)
       const identities = await extensionAPI.getIdentities()
 
