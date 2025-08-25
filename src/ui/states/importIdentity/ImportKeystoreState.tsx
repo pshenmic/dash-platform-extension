@@ -31,7 +31,7 @@ interface PrivateKeyInput {
 function ImportKeystoreState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
-  const { selectedNetwork } = useOutletContext<OutletContext>()
+  const { selectedNetwork, setSelectedWallet } = useOutletContext<OutletContext>()
 
   const extensionAPI = useExtensionAPI()
   const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInput[]>([
@@ -172,7 +172,8 @@ function ImportKeystoreState (): React.JSX.Element {
       }
 
       const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
-      await extensionAPI.switchWallet(walletId, selectedNetwork ?? 'testnet')
+      // await extensionAPI.switchWallet(walletId)
+      setSelectedWallet(walletId)
 
       // Get all private keys as hex
       const privateKeys = identities.map(({ key }) => key.hex())
