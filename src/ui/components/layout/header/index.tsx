@@ -85,14 +85,14 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
 
 type HeaderVariant = keyof typeof HEADER_VARIANTS
 
-const NetworkDisplayCard: React.FC<{ network: string }> = ({ network }) => {
+const NetworkCard: React.FC<{ network: string }> = ({ network }) => {
   return (
     <div className='backdrop-blur-[15px] bg-[rgba(12,28,51,0.15)] border border-[rgba(255,255,255,0.15)] rounded-[15px] px-4 py-[15px] flex items-center justify-center gap-1 h-12'>
       <div className='w-4 h-4 flex items-center justify-center'>
         <WebIcon size={16} className='text-white' />
       </div>
-      <Text size='sm' weight='medium' className='text-white'>
-        {network.charAt(0).toUpperCase() + network.slice(1)}
+      <Text size='sm' weight='medium' className='text-white capitalize'>
+        {network}
       </Text>
     </div>
   )
@@ -250,7 +250,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
 
           {config.showNetworkRightReadOnly && currentNetwork && (
             config.networkDisplayFormat === 'card' 
-              ? <NetworkDisplayCard network={currentNetwork} />
+              ? <NetworkCard network={currentNetwork} />
               : <Text size='sm' color='gray' weight='medium' dim>
                   {currentNetwork.charAt(0).toUpperCase() + currentNetwork.slice(1)}
                 </Text>
