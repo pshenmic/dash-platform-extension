@@ -5,7 +5,7 @@ import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import { ArrowIcon, Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui/react'
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
-import { SettingsMenu } from '../../settings/SettingsMenu'
+import { SettingsMenu } from '../../settings'
 import { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
 
 const IMAGE_VARIANTS = {
