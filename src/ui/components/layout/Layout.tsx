@@ -17,27 +17,36 @@ const Layout: FC = () => {
 
   // Load status and all wallets
   useEffect(() => {
-    const loadStatusAndWallets = async (): Promise<void> => {
+    const loadStatus = async (): Promise<void> => {
       try {
-        const [status, wallets] = await Promise.all([
-          extensionAPI.getStatus(),
-          extensionAPI.getAllWallets()
-        ])
+        const status = await extensionAPI.getStatus()
 
         setSelectedNetwork(status.network)
         setSelectedWallet(status.currentWalletId)
-        setAllWallets(wallets)
       } catch (error) {
         console.warn('Failed to load current network:', error)
       }
     }
 
-    void loadStatusAndWallets()
+    const loadAllWallets = async (): Promise<void> => {
+      try {
+        const wallets = await extensionAPI.getAllWallets()
+
+        setAllWallets(wallets)
+      } catch (error) {
+        console.warn('Failed to load all wallets:', error)
+      }
+    }
+
+    void loadStatus()
+    void loadAllWallets()
   }, [extensionAPI, selectedNetwork])
 
   // Load identities and set current identity
   useEffect(() => {
     const loadCurrentIdentity = async (): Promise<void> => {
+      if (selectedWallet === null) return
+
       try {
         // Load identities
         const identitiesData = await extensionAPI.getIdentities()
@@ -59,7 +68,7 @@ const Layout: FC = () => {
     }
 
     void loadCurrentIdentity()
-  }, [extensionAPI])
+  }, [selectedWallet, extensionAPI])
 
   // change wallet handler
   useEffect(() => {
@@ -68,21 +77,32 @@ const Layout: FC = () => {
         try {
           await extensionAPI.switchWallet(selectedWallet)
         } catch (e) {
+          // await extensionAPI.switchWallet('')
           console.warn('changeWallet error: ', e)
         }
       }
     }
 
     void changeWallet()
-  }, [selectedWallet, extensionAPI, sdk]);
+  }, [selectedWallet, extensionAPI]);
 
   // change network handler
   useEffect(() => {
     const changeNetwork = async (): Promise<void> => {
       if (selectedNetwork) {
         try {
-          await extensionAPI.switchNetwork(selectedNetwork)
           sdk.setNetwork(selectedNetwork as 'testnet' | 'mainnet')
+          await extensionAPI.switchNetwork(selectedNetwork)
+
+          if (allWallets.length > 0) {
+            const wallet = allWallets.find(wallet => wallet.network === selectedNetwork)
+            if (wallet) {
+              setSelectedWallet(wallet.walletId)
+            } else {
+              setSelectedWallet(null)
+            }
+          }
+
         } catch (e) {
           console.warn('changeNetwork error: ', e)
         }
