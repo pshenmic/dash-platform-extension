@@ -83,7 +83,15 @@ const Layout: FC = () => {
           currentWalletId={selectedWallet}
           wallets={allWallets}
         />
-        <Outlet context={{ selectedNetwork, setSelectedNetwork, selectedWallet, currentIdentity, setCurrentIdentity }} />
+        <Outlet context={{
+          selectedNetwork,
+          setSelectedNetwork,
+          selectedWallet,
+          setSelectedWallet,
+          currentIdentity,
+          setCurrentIdentity
+          }}
+        />
       </div>
     </ThemeProvider>
   )
