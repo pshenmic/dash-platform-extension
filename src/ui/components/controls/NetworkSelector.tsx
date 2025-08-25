@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { OverlayMenu, WebIcon } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { useSdk } from '../../hooks/useSdk'
 import { Network } from '../../../types/enums/Network'
 
 interface NetworkSelectorProps {
@@ -11,7 +10,6 @@ interface NetworkSelectorProps {
 
 export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, ...props }) => {
   const extensionAPI = useExtensionAPI()
-  const sdk = useSdk()
   const [currentNetwork, setCurrentNetwork] = useState<string>('testnet')
   const [loading, setLoading] = useState(true)
 
