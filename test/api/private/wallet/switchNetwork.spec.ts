@@ -3,20 +3,22 @@ import { PrivateAPIClient } from '../../../../src/types/PrivateAPIClient'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
 import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
+import { WalletStoreSchema } from '../../../../src/content-script/storage/storageSchema'
 import { WalletType } from '../../../../src/types/WalletType'
+import hash from 'hash.js'
+import { PrivateKey } from 'eciesjs'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
-import hash from "hash.js";
-import {PrivateKey} from "eciesjs";
 
-describe('get available key pairs', () => {
+describe('create wallet', () => {
   let privateAPI: PrivateAPI
   let privateAPIClient: PrivateAPIClient
-  let secretKey: PrivateKey
+  let sdk: DashPlatformSDK
   let storage: StorageAdapter
+  let secretKey: PrivateKey
 
   beforeEach(async () => {
-    const sdk = new DashPlatformSDK()
     const memoryStorageAdapter = new MemoryStorageAdapter()
+    sdk = new DashPlatformSDK()
 
     storage = memoryStorageAdapter
     await runMigrations(storage)
@@ -36,16 +38,30 @@ describe('get available key pairs', () => {
     await storage.set('passwordPublicKey', passwordPublicKey)
   })
 
-  test('should list available keys for wallet type keystore', async () => {
-    const { walletId } = await privateAPIClient.createWallet(WalletType.keystore)
-    const identity = 'J6toeWxpVqqgL8H21mAsLzcM6Sf8cPbzTqYoX7GsrzRj'
+  test('should switch network', async () => {
+    const { walletId: firstWalletId } = await privateAPIClient.createWallet(WalletType.keystore)
 
-    await storage.set('currentWalletId', walletId)
+    await storage.set('currentWalletId', firstWalletId)
 
-    await privateAPIClient.importIdentity(identity, ['3eb1e386ee623138ac9454d117bf07abb36f54a83c982679f615c4c3ec7e9a78', '7ce07b2720541a558fbabf44014bedc8f294e82d3c80aadc067291e7e44bf0ae'])
+    const expectedWallet: WalletStoreSchema = {
+      walletId: firstWalletId,
+      network: 'testnet',
+      type: 'keystore',
+      label: null,
+      encryptedMnemonic: null,
+      seedHash: null,
+      currentIdentity: null
+    }
 
-    const keyIds = await privateAPIClient.getAvailableKeyPairs(identity)
+    const walletStoreSchema = await storage.get(`wallet_testnet_${firstWalletId}`) as WalletStoreSchema
 
-    expect(keyIds).toStrictEqual([4, 5])
+    expect(walletStoreSchema).toStrictEqual(expectedWallet)
+
+    await privateAPIClient.switchNetwork('mainnet')
+
+    const network = await storage.get('network') as string
+    expect(network).toBe('mainnet')
+    // expect sdk changed network
+    expect(sdk.network).toBe('mainnet')
   })
 })
