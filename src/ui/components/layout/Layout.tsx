@@ -41,17 +41,34 @@ const Layout: FC = () => {
     void loadCurrentIdentity()
   }, [extensionAPI])
 
-  // TODO: Separate to switchNetwork and switchWallet
+  useEffect(() => {
+    const changeWallet = async (): Promise<void> => {
+      if (selectedWallet) {
+        try {
+          await extensionAPI.switchWallet(selectedWallet)
+        } catch (e) {
+          console.warn('changeWallet error: ', e)
+        }
+      }
+    }
+
+    void changeWallet()
+  }, [selectedWallet, extensionAPI, sdk]);
+
   useEffect(() => {
     const changeNetwork = async (): Promise<void> => {
-      if (selectedWallet && selectedNetwork) {
-        await extensionAPI.switchWallet(selectedWallet, selectedNetwork)
-        sdk.setNetwork(selectedNetwork as 'testnet' | 'mainnet')
+      if (selectedNetwork) {
+        try {
+          await extensionAPI.switchNetwork(selectedNetwork)
+          sdk.setNetwork(selectedNetwork as 'testnet' | 'mainnet')
+        } catch (e) {
+          console.warn('changeNetwork error: ', e)
+        }
       }
     }
 
     void changeNetwork()
-  }, [selectedNetwork, selectedWallet, extensionAPI, sdk]);
+  }, [selectedNetwork, extensionAPI, sdk]);
 
   useEffect(() => {
     const loadStatusAndWallets = async (): Promise<void> => {
