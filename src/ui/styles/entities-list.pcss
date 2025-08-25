@@ -1,0 +1,46 @@
+/* Entities List Components */
+@layer components {
+  .entities-list-container {
+    @apply w-full flex flex-col;
+  }
+
+  .entities-list-container-tight {
+    @apply gap-[10px];
+  }
+
+  .entities-list-container-spaced {
+    @apply gap-5;
+  }
+
+  .entities-list-item {
+    @apply flex items-center justify-between gap-4 bg-[rgba(12,28,51,0.03)] rounded-[15px] transition-colors cursor-pointer no-underline p-[10px_15px] w-[390px];
+    list-style: none;
+    display: flex;
+  }
+
+  .entities-list-item::marker,
+  .entities-list-item *::marker {
+    display: none;
+    content: none;
+  }
+
+  .entities-list-item:hover {
+    @apply bg-[rgba(12,28,51,0.06)];
+  }
+
+  .entities-list-state-message {
+    @apply text-center py-4;
+  }
+
+  .entities-list-loading {
+    @apply text-gray-500;
+  }
+
+  .entities-list-error {
+    @apply text-red-500;
+  }
+
+  .entities-list-empty {
+    @apply text-gray-500;
+  }
+}

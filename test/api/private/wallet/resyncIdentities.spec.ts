@@ -43,7 +43,7 @@ describe('resync identities', () => {
   test('should resync identities with mnemonic', async () => {
     const { walletId } = await privateAPIClient.createWallet(WalletType.seedphrase, mnemonic)
 
-    await privateAPIClient.switchWallet(walletId, 'testnet')
+    await privateAPIClient.switchWallet(walletId)
 
     const mockIdentities: IdentityStoreSchema[] = [{ index: 0, identifier: '1', label: null }, { index: 1, identifier: '2', label: null }, { index: 3, identifier: '3', label: null }]
 
@@ -98,7 +98,7 @@ describe('resync identities', () => {
   test('should resync identities with password', async () => {
     const { walletId } = await privateAPIClient.createWallet(WalletType.seedphrase, mnemonic)
 
-    await privateAPIClient.switchWallet(walletId, 'testnet')
+    await privateAPIClient.switchWallet(walletId)
 
     const mockIdentities: IdentityStoreSchema[] = [{ index: 0, identifier: '1', label: null }, { index: 1, identifier: '2', label: null }, { index: 3, identifier: '3', label: null }]
 

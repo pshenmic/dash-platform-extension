@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "dash-ui/theme";
 @import "dash-ui/styles";
+@import "./entities-list.pcss";
 
 @theme {
   --color-brand: #4C7EFF;
@@ -23,7 +24,7 @@
   }
 
   .screen-content {
-    @apply flex flex-col gap-4;
+    @apply flex flex-col gap-4 flex-grow;
   }
 
   /* Unified Dash Block System */
@@ -44,12 +45,23 @@ body {
   @apply m-0 flex font-normal font-main text-lg text-brand-dark;
   font-optical-sizing: auto;
   background-color: #e9e9e9;
+  overflow: hidden;
+  //width: 420px;
+  //height: 600px;
+  width: 26.25rem;
+  height: 37.5rem;
+}
+
+.root {
+  width: 100%;
+  height: 100%;
 }
 
 .main_container {
+  @apply flex flex-col relative p-[0.875rem] gap-10;
   background-color: #fff;
-  width: 420px;
-  max-width: 800px;
+  width: 100%;
+  height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
 }
