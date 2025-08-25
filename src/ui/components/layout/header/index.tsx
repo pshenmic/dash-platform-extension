@@ -214,7 +214,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
       {/* Network & Wallet Selectors in left side */}
       {config.hideLeftSection && (config.showNetworkSelector || config.showWalletSelector) && (
         <div className='flex items-center gap-2.5'>
-          {config.showNetworkSelector && <NetworkSelector onSelect={onNetworkChange} />}
+          {config.showNetworkSelector && <NetworkSelector onSelect={onNetworkChange} wallets={wallets} />}
           {config.showWalletSelector && <WalletSelector onSelect={onWalletChange} currentNetwork={currentNetwork} wallets={wallets} currentWalletId={currentWalletId} />}
         </div>
       )}
