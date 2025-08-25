@@ -31,20 +31,24 @@ export class ImportIdentityHandler implements APIHandler {
       throw new Error('No wallet is chosen')
     }
 
-    const identity = await this.identitiesRepository.getByIdentifier(payload.identifier)
-
-    if (identity != null) {
-      throw new Error(`Identity with identifier ${payload.identifier} already exists`)
+    if (wallet.type !== 'keystore') {
+      throw new Error('Importing identity only possible in keystore wallet mode')
     }
 
-    const identityPublicKeysWASM = await this.sdk.identities.getIdentityPublicKeys(payload.identifier)
+    const identity = await this.identitiesRepository.getByIdentifier(payload.identity)
+
+    if (identity != null) {
+      throw new Error(`Identity with identifier ${payload.identity} already exists`)
+    }
+
+    const identityPublicKeysWASM = await this.sdk.identities.getIdentityPublicKeys(payload.identity)
 
     // check if all private keys belongs to identity public keys
     if (!privateKeys
       .every(privateKey => identityPublicKeysWASM
         .some((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
                 PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash()))) {
-      throw new Error('Private key does not belong to any of identity\'s public keys')
+      throw new Error('One or more private keys does not match to any of known identity\'s public keys')
     }
 
     for (const privateKey of privateKeys) {
@@ -52,10 +56,10 @@ export class ImportIdentityHandler implements APIHandler {
         .filter((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
               PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash())
 
-      await this.keypairRepository.add(payload.identifier, privateKey, identityPublicKey)
+      await this.keypairRepository.add(payload.identity, privateKey, identityPublicKey)
     }
 
-    await this.identitiesRepository.create(payload.identifier)
+    await this.identitiesRepository.create(payload.identity)
 
     return {}
   }
@@ -63,7 +67,7 @@ export class ImportIdentityHandler implements APIHandler {
   validatePayload (payload: ImportIdentityPayload): string | null {
     try {
       // eslint-disable-next-line no-new
-      new IdentifierWASM(payload.identifier)
+      new IdentifierWASM(payload.identity)
     } catch (e) {
       return 'Could not decode identity identifier'
     }
