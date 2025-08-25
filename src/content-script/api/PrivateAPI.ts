@@ -27,6 +27,7 @@ import { ImportIdentityHandler } from './private/identities/importIdentity'
 import { GetAllWalletsHandler } from './private/wallet/getAllWallets'
 import { AddIdentityPrivateKey } from './private/identities/addPrivateKey'
 import { GetAvailableKeyPairs } from './private/identities/getAvailableKeyPairs'
+import { SwitchNetworkHandler } from './private/wallet/switchNetwork'
 
 /**
  * Handlers for a messages within extension context
@@ -84,7 +85,8 @@ export class PrivateAPI {
       [MessagingMethods.GET_STATE_TRANSITION]: new GetStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.REJECT_STATE_TRANSITION]: new RejectStateTransitionHandler(stateTransitionsRepository, walletRepository),
       [MessagingMethods.CREATE_WALLET]: new CreateWalletHandler(walletRepository, this.sdk, this.storageAdapter),
-      [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository),
+      [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository, this.storageAdapter),
+      [MessagingMethods.SWITCH_NETWORK]: new SwitchNetworkHandler(walletRepository, this.storageAdapter, this.sdk),
       [MessagingMethods.RESYNC_IDENTITIES]: new ResyncIdentitiesHandler(identitiesRepository, walletRepository, this.sdk, this.storageAdapter),
       [MessagingMethods.GET_APP_CONNECT]: new GetAppConnectHandler(appConnectRepository),
       [MessagingMethods.APPROVE_APP_CONNECT]: new ApproveAppConnectHandler(appConnectRepository, this.storageAdapter),

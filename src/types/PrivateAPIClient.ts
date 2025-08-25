@@ -35,6 +35,7 @@ import { Network } from './enums/Network'
 import { AddIdentityPrivateKeyPayload } from './messages/payloads/AddIdentityPrivateKeyPayload'
 import { GetAvailableKeyPairsResponse } from './messages/response/GetAvailableKeyPairsResponse'
 import { GetAvailableKeyPairsPayload } from './messages/payloads/GetAvailableKeyPairsPayload'
+import { SwitchNetworkPayload } from './messages/payloads/SwitchNetworkPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -85,8 +86,8 @@ export class PrivateAPIClient {
     }))
   }
 
-  async switchWallet (walletId: string, network: string): Promise<void> {
-    const payload: SwitchWalletPayload = { walletId, network }
+  async switchWallet (walletId: string): Promise<void> {
+    const payload: SwitchWalletPayload = { walletId }
 
     return await this._rpcCall(MessagingMethods.SWITCH_WALLET, payload)
   }
@@ -125,6 +126,14 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.SWITCH_IDENTITY, payload)
+  }
+
+  async switchNetwork (network: string): Promise<VoidResponse> {
+    const payload: SwitchNetworkPayload = {
+      network
+    }
+
+    return await this._rpcCall(MessagingMethods.SWITCH_NETWORK, payload)
   }
 
   async getAvailableKeyPairs (identity: string): Promise<number[]> {
