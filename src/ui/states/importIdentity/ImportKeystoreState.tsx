@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useSdk } from '../../hooks/useSdk'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import {
   Button,
   Text,
@@ -20,6 +20,14 @@ import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dp
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType } from '../../../types/WalletType'
 
+interface OutletContext {
+  selectedNetwork: string | null
+  setSelectedNetwork: (network: string | null) => void
+  selectedWallet: string | null
+  currentIdentity: string | null
+  setCurrentIdentity: (identity: string | null) => void
+}
+
 interface PrivateKeyInput {
   id: string
   value: string
@@ -29,6 +37,7 @@ interface PrivateKeyInput {
 function ImportKeystoreState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
+  const { selectedNetwork } = useOutletContext<OutletContext>()
 
   const extensionAPI = useExtensionAPI()
   const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInput[]>([
@@ -90,7 +99,7 @@ function ImportKeystoreState (): React.JSX.Element {
         } else if (privateKey.length === 64) {
           // hex
           try {
-            pkeyWASM = PrivateKeyWASM.fromHex(privateKey, 'testnet')
+            pkeyWASM = PrivateKeyWASM.fromHex(privateKey, (selectedNetwork ?? 'testnet') as 'testnet' | 'mainnet')
           } catch (e) {
             console.log(e)
             return setError(`Could not decode private key from hex: ${privateKey}`)
@@ -169,7 +178,7 @@ function ImportKeystoreState (): React.JSX.Element {
       }
 
       const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
-      await extensionAPI.switchWallet(walletId, 'testnet')
+      await extensionAPI.switchWallet(walletId, selectedNetwork ?? 'testnet')
 
       // Get all private keys as hex
       const privateKeys = identities.map(({ key }) => key.hex())
@@ -279,11 +288,6 @@ function ImportKeystoreState (): React.JSX.Element {
             </div>
           </div>
 
-          {error != null &&
-            <ValueCard colorScheme='yellow' className='break-all'>
-              <Text color='red'>{error}</Text>
-            </ValueCard>}
-
           <div>
             <Button
               colorScheme='brand'
@@ -352,6 +356,11 @@ function ImportKeystoreState (): React.JSX.Element {
             {isLoading ? 'Importing...' : 'Import'}
           </Button>
         </div>}
+
+        {error != null &&
+          <ValueCard colorScheme='yellow' className='break-all'>
+            <Text color='red'>{error}</Text>
+          </ValueCard>}
 
       {/* Progress Steps */}
       <div className='mt-auto'>
