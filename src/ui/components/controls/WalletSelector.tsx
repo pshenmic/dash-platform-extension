@@ -1,56 +1,18 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { OverlayMenu, KebabMenuIcon, PlusIcon, WalletIcon, ValueCard } from 'dash-ui/react'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'
 
 interface WalletSelectorProps {
   onSelect?: (walletId: string | null) => void
   currentNetwork?: string | null
+  currentWalletId?: string | null
+  wallets?: WalletAccountInfo[]
 }
 
-export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, currentNetwork }) => {
+export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, currentNetwork, currentWalletId, wallets = [] }) => {
   const navigate = useNavigate()
-  const extensionAPI = useExtensionAPI()
-  const [currentWalletId, setCurrentWalletId] = useState<string | null>(null)
-  const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const loadWalletData = async (): Promise<void> => {
-      try {
-        const [status, wallets] = await Promise.all([
-          extensionAPI.getStatus(),
-          extensionAPI.getAllWallets()
-        ])
-
-        setCurrentWalletId(status.currentWalletId)
-        setAllWallets(wallets)
-      } catch (error) {
-        console.warn('Failed to load wallet data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    void loadWalletData()
-  }, [extensionAPI, currentNetwork])
-
-  useEffect(() => {
-    if (typeof onSelect === 'function') onSelect(currentWalletId)
-  }, [currentWalletId, onSelect])
-
-  const handleWalletChange = async (walletId: string): Promise<void> => {
-    try {
-      if (typeof currentNetwork === 'string') {
-        await extensionAPI.switchWallet(walletId, currentNetwork)
-        setCurrentWalletId(walletId)
-        onSelect?.(walletId)
-      }
-    } catch (error) {
-      console.error('Failed to switch wallet:', error)
-    }
-  }
+  const [loading, setLoading] = useState(false)
 
   const handleMenuClick = (event: React.MouseEvent, walletId: string): void => {
     event.stopPropagation()
@@ -63,16 +25,16 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, curren
     )
   }
 
-  const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
+  const availableWallets = wallets.filter(wallet => wallet.network === currentNetwork)
   const currentWallet = availableWallets.find(wallet => wallet.walletId === currentWalletId)
 
   console.log('WalletSelector debug:', {
     currentWalletId,
     currentNetwork,
-    allWalletsCount: allWallets.length,
+    walletsCount: wallets.length,
     availableWalletsCount: availableWallets.length,
     currentWallet,
-    allWallets,
+    wallets,
     availableWallets
   })
 
@@ -140,7 +102,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, curren
           </button>
         </div>
       ),
-      onClick: async () => await handleWalletChange(wallet.walletId)
+      onClick: async () => onSelect?.(wallet.walletId)
     })),
     // Add wallet item
     {

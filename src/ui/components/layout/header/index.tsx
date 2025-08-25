@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
-import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { ArrowIcon, Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui/react'
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
@@ -133,33 +132,13 @@ interface HeaderProps {
   currentNetwork?: string | null
   currentIdentity?: string | null
   currentWalletId?: string | null
+  wallets?: WalletAccountInfo[]
 }
 
-export default function Header ({ onWalletChange, onNetworkChange, currentNetwork, currentIdentity, currentWalletId }: HeaderProps): React.JSX.Element {
+export default function Header ({ onWalletChange, onNetworkChange, currentNetwork, currentIdentity, currentWalletId, wallets = [] }: HeaderProps): React.JSX.Element {
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
-  const extensionAPI = useExtensionAPI()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
-  const [walletsLoaded, setWalletsLoaded] = useState(false)
-
-  // Load wallets for displaying wallet name instead of identity hash
-  useEffect(() => {
-    const loadWallets = async (): Promise<void> => {
-      try {
-        const wallets = await extensionAPI.getAllWallets()
-        setAllWallets(wallets)
-        setWalletsLoaded(true)
-      } catch (error) {
-        console.warn('Failed to load wallets in header:', error)
-        setWalletsLoaded(true)
-      }
-    }
-
-    if (currentWalletId && !walletsLoaded) {
-      void loadWallets()
-    }
-  }, [currentWalletId, walletsLoaded, extensionAPI])
 
   const deepestRoute = [...matches].reverse().find((m): boolean =>
     m.handle?.headerProps != null
@@ -197,9 +176,9 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
 
   // Get wallet display name (same logic as WalletSelector)
   const getWalletDisplayName = (): string => {
-    if (!currentWalletId || !walletsLoaded) return 'Loading...'
+    if (!currentWalletId) return 'Wallet'
 
-    const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
+    const availableWallets = wallets.filter(wallet => wallet.network === currentNetwork)
     const currentWallet = availableWallets.find(wallet => wallet.walletId === currentWalletId)
 
     if (currentWallet == null) return 'Wallet'
@@ -236,7 +215,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
               </Button>
               )}
 
-          {config.showWalletSelector && <WalletSelector onSelect={onWalletChange} currentNetwork={currentNetwork} />}
+          {config.showWalletSelector && <WalletSelector onSelect={onWalletChange} currentNetwork={currentNetwork} wallets={wallets} currentWalletId={currentWalletId} />}
         </div>
       )}
 
@@ -244,7 +223,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
       {config.hideLeftSection && (config.showNetworkSelector || config.showWalletSelector) && (
         <div className='flex items-center gap-2.5'>
           {config.showNetworkSelector && <NetworkSelector onSelect={onNetworkChange} />}
-          {config.showWalletSelector && <WalletSelector onSelect={onWalletChange} currentNetwork={currentNetwork} />}
+          {config.showWalletSelector && <WalletSelector onSelect={onWalletChange} currentNetwork={currentNetwork} wallets={wallets} currentWalletId={currentWalletId} />}
         </div>
       )}
 

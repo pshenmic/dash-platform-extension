@@ -3,13 +3,17 @@ import { Outlet } from 'react-router-dom'
 import Header from './header'
 import { ThemeProvider } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { useSdk } from '../../hooks/useSdk'
+import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 
 const Layout: FC = () => {
+  const extensionAPI = useExtensionAPI()
+  const sdk = useSdk()
+
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null)
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
-  const [currentWalletId, setCurrentWalletId] = useState<string | null>(null)
-  const extensionAPI = useExtensionAPI()
+  const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
 
   // Load identities and set current identity
   useEffect(() => {
@@ -37,20 +41,36 @@ const Layout: FC = () => {
     void loadCurrentIdentity()
   }, [extensionAPI])
 
+  // TODO: Separate to switchNetwork and switchWallet
   useEffect(() => {
-    const loadCurrentNetwork = async (): Promise<void> => {
+    const changeNetwork = async (): Promise<void> => {
+      if (selectedWallet && selectedNetwork) {
+        await extensionAPI.switchWallet(selectedWallet, selectedNetwork)
+        sdk.setNetwork(selectedNetwork as 'testnet' | 'mainnet')
+      }
+    }
+
+    void changeNetwork()
+  }, [selectedNetwork, selectedWallet, extensionAPI, sdk]);
+
+  useEffect(() => {
+    const loadStatusAndWallets = async (): Promise<void> => {
       try {
-        const status = await extensionAPI.getStatus()
+        const [status, wallets] = await Promise.all([
+          extensionAPI.getStatus(),
+          extensionAPI.getAllWallets()
+        ])
+
         setSelectedNetwork(status.network)
-        setCurrentWalletId(status.currentWalletId)
         setSelectedWallet(status.currentWalletId)
+        setAllWallets(wallets)
       } catch (error) {
         console.warn('Failed to load current network:', error)
       }
     }
 
-    void loadCurrentNetwork()
-  }, [extensionAPI])
+    void loadStatusAndWallets()
+  }, [extensionAPI, selectedNetwork])
 
   return (
     <ThemeProvider initialTheme='light'>
@@ -60,7 +80,8 @@ const Layout: FC = () => {
           currentNetwork={selectedNetwork}
           onWalletChange={setSelectedWallet}
           currentIdentity={currentIdentity}
-          currentWalletId={currentWalletId}
+          currentWalletId={selectedWallet}
+          wallets={allWallets}
         />
         <Outlet context={{ selectedNetwork, setSelectedNetwork, selectedWallet, currentIdentity, setCurrentIdentity }} />
       </div>

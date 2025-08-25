@@ -32,15 +32,8 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, ...p
 
   const handleNetworkChange = async (network: string): Promise<void> => {
     try {
-      sdk.setNetwork(network as 'testnet' | 'mainnet')
-
-      // Мок для переключения сети - в будущем будет реальный API вызов
-      const status = await extensionAPI.getStatus()
-      if (status.currentWalletId != null) {
-        await extensionAPI.switchWallet(status.currentWalletId, network)
-        setCurrentNetwork(network)
-        onSelect?.(network)
-      }
+      setCurrentNetwork(network)
+      onSelect?.(network)
     } catch (error) {
       console.error('Failed to switch network:', error)
     }
