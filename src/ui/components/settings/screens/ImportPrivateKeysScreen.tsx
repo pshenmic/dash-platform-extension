@@ -6,6 +6,15 @@ import { processPrivateKey, ProcessedPrivateKey } from '../../../../utils'
 import { Network } from '../../../../types/enums/Network'
 import { useSdk } from '../../../hooks/useSdk'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
+import { useOutletContext } from 'react-router-dom'
+
+interface OutletContext {
+  selectedNetwork: string | null
+  setSelectedNetwork: (network: string | null) => void
+  selectedWallet: string | null
+  currentIdentity: string | null
+  setCurrentIdentity: (identity: string | null) => void
+}
 
 // Конфигурация экрана Import Private Keys
 export const importPrivateKeysScreenConfig: ScreenConfig = {
@@ -18,6 +27,7 @@ export const importPrivateKeysScreenConfig: ScreenConfig = {
 export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, onBack }) => {
   const sdk = useSdk()
   const extensionAPI = useExtensionAPI()
+  const { selectedNetwork } = useOutletContext<OutletContext>()
 
   const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInputData[]>([
     { id: Date.now().toString(), value: '', isVisible: false, hasError: false }
@@ -76,7 +86,8 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
         const privateKeyString = input.value.trim()
         
         try {
-          const processed = await processPrivateKey(privateKeyString, sdk, Network.testnet)
+          const currentNetwork = selectedNetwork as Network || Network.testnet
+          const processed = await processPrivateKey(privateKeyString, sdk, currentNetwork)
           
           // Check if the processed key belongs to the current identity
           const keyIdentityId = processed.identity.id.base58()
