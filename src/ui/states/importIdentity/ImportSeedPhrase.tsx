@@ -5,10 +5,12 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { WalletType } from '../../../types/WalletType'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 
+// TODO: Move interface to separate file
 interface OutletContext {
   selectedNetwork: string | null
   setSelectedNetwork: (network: string | null) => void
   selectedWallet: string | null
+  setSelectedWallet: (wallet: string | null) => void
   currentIdentity: string | null
   setCurrentIdentity: (identity: string | null) => void
 }
@@ -16,7 +18,7 @@ interface OutletContext {
 function ImportSeedPhrase (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
-  const { selectedNetwork } = useOutletContext<OutletContext>()
+  const { selectedNetwork, setSelectedWallet, setCurrentIdentity } = useOutletContext<OutletContext>()
   const [seedWords, setSeedWords] = useState<string[]>(Array(12).fill(''))
   const [wordCount, setWordCount] = useState<12 | 24>(12)
   const [password, setPassword] = useState('')
@@ -120,6 +122,9 @@ function ImportSeedPhrase (): React.JSX.Element {
       await extensionAPI.switchWallet(walletId, selectedNetwork ?? 'testnet')
       await extensionAPI.resyncIdentities(password)
       const identities = await extensionAPI.getIdentities()
+
+      setSelectedWallet(walletId)
+      setCurrentIdentity(identities[0].identifier)
 
       if (identities.length > 0) {
         void navigate('/wallet-created')
