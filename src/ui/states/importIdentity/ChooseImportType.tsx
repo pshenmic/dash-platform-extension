@@ -92,7 +92,6 @@ function ChooseImportType (): React.JSX.Element {
             className={option.disabled === true ? 'opacity-40' : ''}
           >
             <div className='flex items-center gap-4'>
-              {/* Option icon */}
               <div className={`w-8 h-8 flex items-center justify-center bg-dash-brand/15 rounded-full ${
                 option.disabled === true
                   ? 'text-gray-400'
