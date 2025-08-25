@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
