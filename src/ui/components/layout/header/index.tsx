@@ -166,14 +166,6 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
     void navigate(-1)
   }
 
-  const toggleMenu = (): void => {
-    setIsMenuOpen(!isMenuOpen)
-  }
-
-  const closeMenu = (): void => {
-    setIsMenuOpen(false)
-  }
-
   // Get wallet display name (same logic as WalletSelector)
   const getWalletDisplayName = (): string => {
     if (!currentWalletId) return 'Wallet'
@@ -230,7 +222,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
       {/* Right side: either image, burger, or read-only network name */}
       {config.showBurgerMenu && (
         <Button
-          onClick={toggleMenu}
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
           colorScheme='brand'
           size='xl'
           className='w-12 h-12 p-0'
@@ -276,7 +268,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
 
       <SettingsMenu
         isOpen={isMenuOpen}
-        onClose={closeMenu}
+        onClose={() => setIsMenuOpen(false)}
         currentIdentity={currentIdentity}
       />
     </header>
