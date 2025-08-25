@@ -10,20 +10,13 @@ import {
 } from 'dash-ui/react'
 import { NetworkSelector } from '../../components/controls/NetworkSelector'
 import { useNavigate, useOutletContext } from 'react-router-dom'
+import type { OutletContext } from '../../types/OutletContext'
 
 interface ImportOption {
   id: string
   title: string
   icon?: React.ReactNode
   disabled?: boolean
-}
-
-interface OutletContext {
-  selectedNetwork: string | null
-  setSelectedNetwork: (network: string | null) => void
-  selectedWallet: string | null
-  currentIdentity: string | null
-  setCurrentIdentity: (identity: string | null) => void
 }
 
 function ChooseImportType (): React.JSX.Element {

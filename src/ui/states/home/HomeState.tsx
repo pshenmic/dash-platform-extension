@@ -10,19 +10,11 @@ import { usePlatformExplorerClient, type TransactionData, type NetworkType } fro
 import { type TokenData } from '../../../types/PlatformExplorerClient'
 import { useAsyncState } from '../../hooks/useAsyncState'
 import { useOutletContext } from 'react-router-dom'
-import { creditsToDash } from '../../../utils'
+import type { OutletContext } from '../../types/OutletContext'
 import { TransactionsList } from '../../components/transactions'
 import { TokensList } from '../../components/tokens'
 import { BalanceInfo } from '../../components/data'
 import './home.state.css'
-
-interface OutletContext {
-  selectedNetwork: string | null
-  setSelectedNetwork: (network: string | null) => void
-  selectedWallet: string | null
-  currentIdentity: string | null
-  setCurrentIdentity: (identity: string | null) => void
-}
 
 function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()

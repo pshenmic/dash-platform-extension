@@ -2,18 +2,10 @@ import React, { useState } from 'react'
 import { Text, Heading, Button, Input, Switch, ProgressStepBar, DashLogo } from 'dash-ui/react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import type { OutletContext } from '../../types/OutletContext'
 import { WalletType } from '../../../types/WalletType'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 
-// TODO: Move interface to separate file
-interface OutletContext {
-  selectedNetwork: string | null
-  setSelectedNetwork: (network: string | null) => void
-  selectedWallet: string | null
-  setSelectedWallet: (wallet: string | null) => void
-  currentIdentity: string | null
-  setCurrentIdentity: (identity: string | null) => void
-}
 
 function ImportSeedPhrase (): React.JSX.Element {
   const navigate = useNavigate()

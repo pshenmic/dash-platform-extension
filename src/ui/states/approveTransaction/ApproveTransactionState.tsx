@@ -8,15 +8,9 @@ import { useSdk } from '../../hooks/useSdk'
 import { useAsyncState } from '../../hooks/useAsyncState'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
+import type { OutletContext } from '../../types/OutletContext'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, PublicKeyInfo } from '../../components/keys/PublicKeySelect'
-
-interface OutletContext {
-  selectedNetwork: string | null
-  selectedWallet: string | null
-  currentIdentity: string | null
-  setCurrentIdentity: (identity: string | null) => void
-}
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()

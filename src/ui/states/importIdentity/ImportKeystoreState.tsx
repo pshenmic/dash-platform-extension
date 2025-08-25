@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useSdk } from '../../hooks/useSdk'
 import { useNavigate, useOutletContext } from 'react-router-dom'
+import type { OutletContext } from '../../types/OutletContext'
 import {
   Button,
   Text,
@@ -20,13 +21,6 @@ import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dp
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType } from '../../../types/WalletType'
 
-interface OutletContext {
-  selectedNetwork: string | null
-  setSelectedNetwork: (network: string | null) => void
-  selectedWallet: string | null
-  currentIdentity: string | null
-  setCurrentIdentity: (identity: string | null) => void
-}
 
 interface PrivateKeyInput {
   id: string

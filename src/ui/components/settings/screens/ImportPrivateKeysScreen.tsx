@@ -7,16 +7,8 @@ import { Network } from '../../../../types/enums/Network'
 import { useSdk } from '../../../hooks/useSdk'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { useOutletContext } from 'react-router-dom'
+import type { OutletContext } from '../../../types/OutletContext'
 
-interface OutletContext {
-  selectedNetwork: string | null
-  setSelectedNetwork: (network: string | null) => void
-  selectedWallet: string | null
-  currentIdentity: string | null
-  setCurrentIdentity: (identity: string | null) => void
-}
-
-// Конфигурация экрана Import Private Keys
 export const importPrivateKeysScreenConfig: ScreenConfig = {
   id: 'import-private-keys-settings',
   title: 'Import Private Keys',
