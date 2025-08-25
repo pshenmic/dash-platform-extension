@@ -3,7 +3,7 @@ import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
-import { ArrowIcon, Button, BurgerMenuIcon, Text } from 'dash-ui/react'
+import { ArrowIcon, Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui/react'
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
 import { SettingsMenu } from '../../settings/SettingsMenu'
@@ -29,6 +29,7 @@ interface HeaderVariantConfig {
   showBurgerMenu?: boolean
   showNetworkRightReadOnly?: boolean
   showWalletRightReadOnly?: boolean
+  networkDisplayFormat?: 'text' | 'card'
   imageType?: ImageVariant
   imageClasses?: string
   containerClasses?: string
@@ -53,7 +54,9 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
   seedImport: {
     imageType: 'coins',
     imageClasses: '-mt-[52%]',
-    containerClasses: 'w-[120%] -mr-[55%]'
+    containerClasses: 'w-[120%] -mr-[55%]',
+    showNetworkRightReadOnly: true,
+    networkDisplayFormat: 'card'
   },
 
   // Main app screen with full controls
@@ -82,6 +85,19 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
 }
 
 type HeaderVariant = keyof typeof HEADER_VARIANTS
+
+const NetworkDisplayCard: React.FC<{ network: string }> = ({ network }) => {
+  return (
+    <div className="backdrop-blur-[15px] bg-[rgba(12,28,51,0.15)] border border-[rgba(255,255,255,0.15)] rounded-[15px] px-4 py-[15px] flex items-center justify-center gap-1 h-12">
+      <div className="w-4 h-4 flex items-center justify-center">
+        <WebIcon size={16} className="text-white" />
+      </div>
+      <Text size="sm" weight="medium" className="text-white">
+        {network.charAt(0).toUpperCase() + network.slice(1)}
+      </Text>
+    </div>
+  )
+}
 
 interface Match {
   id: string
@@ -161,6 +177,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
     showBurgerMenu: variant.showBurgerMenu ?? false,
     showNetworkRightReadOnly: variant.showNetworkRightReadOnly ?? false,
     showWalletRightReadOnly: variant.showWalletRightReadOnly ?? false,
+    networkDisplayFormat: variant.networkDisplayFormat ?? 'text',
     imageType: variant.imageType,
     imageClasses: variant.imageClasses,
     containerClasses: variant.containerClasses
@@ -245,19 +262,19 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
 
       {/* Right side read-only displays */}
       {(config.showWalletRightReadOnly || config.showNetworkRightReadOnly) && (
-        <div className='flex justify-between items-center gap-2.5 w-full'>
+        <div className={`flex items-center gap-2.5 ${config.imageType != null ? 'absolute top-0 right-0 z-10' : 'w-full justify-between'}`}>
           {config.showWalletRightReadOnly && currentWalletId && (
             <Text size='sm' color='gray' weight='medium' className='text-right' dim>
               {getWalletDisplayName()}
             </Text>
           )}
 
-          {config.showNetworkRightReadOnly && (
-            <Text size='sm' color='gray' weight='medium' dim>
-              {(currentNetwork ?? '')
-                .toString()
-                .replace(/^(.)/, (m) => m.toUpperCase())}
-            </Text>
+          {config.showNetworkRightReadOnly && currentNetwork && (
+            config.networkDisplayFormat === 'card' 
+              ? <NetworkDisplayCard network={currentNetwork} />
+              : <Text size='sm' color='gray' weight='medium' dim>
+                  {currentNetwork.charAt(0).toUpperCase() + currentNetwork.slice(1)}
+                </Text>
           )}
         </div>
       )}
