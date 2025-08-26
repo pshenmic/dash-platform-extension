@@ -32,5 +32,6 @@ global.window = {
       data: message
     }
     eventBus.emit('message', messageEvent)
-  }
+  },
+  crypto: globalThis.crypto
 }
