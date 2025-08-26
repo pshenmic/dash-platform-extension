@@ -29,7 +29,7 @@ interface PrivateKeyInput {
 function ImportKeystoreState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
-  const { selectedNetwork, selectedWallet } = useOutletContext<OutletContext>()
+  const { selectedNetwork, selectedWallet, setCurrentIdentity } = useOutletContext<OutletContext>()
 
   const extensionAPI = useExtensionAPI()
   const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInput[]>([
@@ -206,6 +206,7 @@ function ImportKeystoreState (): React.JSX.Element {
       const identifier = identities[0].identity.id.base58()
 
       await extensionAPI.importIdentity(identifier, privateKeys)
+      setCurrentIdentity(identifier)
 
       void navigate('/home')
     }
