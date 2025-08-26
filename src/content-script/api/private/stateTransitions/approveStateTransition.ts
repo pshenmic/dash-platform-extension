@@ -117,7 +117,8 @@ export class ApproveStateTransitionHandler implements APIHandler {
       }
 
       const seed = await this.sdk.keyPair.mnemonicToSeed(mnemonic, undefined, true)
-      const hdKey = await this.sdk.keyPair.walletToIdentityKey(seed, identity.index, payload.keyId, { network: Network[wallet.network] })
+      const hdWallet = await this.sdk.keyPair.seedToWallet(seed)
+      const hdKey = await this.sdk.keyPair.walletToIdentityKey(hdWallet, identity.index, payload.keyId, { network: Network[wallet.network] })
       const privateKey = hdKey.privateKey
 
       const privateKeyWASM = PrivateKeyWASM.fromBytes(privateKey, wallet.network)
