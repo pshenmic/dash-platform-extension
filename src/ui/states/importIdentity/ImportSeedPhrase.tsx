@@ -6,11 +6,10 @@ import type { OutletContext } from '../../types/OutletContext'
 import { WalletType } from '../../../types/WalletType'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 
-
 function ImportSeedPhrase (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
-  const { selectedNetwork, setSelectedWallet, setCurrentIdentity } = useOutletContext<OutletContext>()
+  const { setSelectedWallet, setCurrentIdentity } = useOutletContext<OutletContext>()
   const [seedWords, setSeedWords] = useState<string[]>(Array(12).fill(''))
   const [wordCount, setWordCount] = useState<12 | 24>(12)
   const [password, setPassword] = useState('')

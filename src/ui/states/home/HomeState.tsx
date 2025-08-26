@@ -51,7 +51,7 @@ function HomeState (): React.JSX.Element {
 
   // Load Balance and Transactions by Identity
   useEffect(() => {
-    if (currentIdentity == null || currentIdentity === '') return
+    if (currentIdentity === null || currentIdentity === '') return
 
     void loadBalance(async () => {
       const balance = await sdk.identities.getIdentityBalance(currentIdentity)
@@ -60,28 +60,28 @@ function HomeState (): React.JSX.Element {
 
     void loadTransactions(async () => {
       const result = await platformClient.fetchTransactions(currentIdentity, selectedNetwork as NetworkType, 'desc')
-      if (result.data != null) {
+      if (result.data !== null && result.data !== undefined) {
         return result.data
       }
-      throw new Error(result.error || 'Failed to load transactions')
+      throw new Error(result.error ?? 'Failed to load transactions')
     })
 
     void loadTokens(async () => {
       const result = await platformClient.fetchTokens(currentIdentity, selectedNetwork as NetworkType, 100, 1)
-      if (result.data != null) {
+      if (result.data !== null && result.data !== undefined) {
         return result.data
       }
-      throw new Error(result.error || 'Failed to load tokens')
+      throw new Error(result.error ?? 'Failed to load tokens')
     })
   }, [currentIdentity, selectedNetwork, selectedWallet, platformClient, sdk, loadBalance, loadTransactions, loadTokens])
 
   useEffect(() => {
     void loadRate(async () => {
       const result = await platformClient.fetchRate(selectedNetwork as NetworkType)
-      if (result.data != null) {
+      if (result.data !== null && result.data !== undefined) {
         return result.data
       }
-      throw new Error(result.error || 'Failed to load rate')
+      throw new Error(result.error ?? 'Failed to load rate')
     })
   }, [selectedNetwork, platformClient, loadRate])
 
@@ -95,14 +95,14 @@ function HomeState (): React.JSX.Element {
 
   return (
     <div className='screen-content'>
-      {currentIdentity && (
+      {currentIdentity !== null && currentIdentity !== '' && (
         <div className='flex items-center gap-3'>
           <SelectIdentityDialog
             identities={identities}
             currentIdentity={currentIdentity}
-            onSelectIdentity={async (identity) => {
+            onSelectIdentity={(identity) => {
               setCurrentIdentity(identity)
-              await extensionAPI.switchIdentity(identity).catch(error => {
+              void extensionAPI.switchIdentity(identity).catch(error => {
                 console.warn('Failed to switch identity:', error)
               })
             }}
@@ -142,7 +142,7 @@ function HomeState (): React.JSX.Element {
                       <span className='text-red-500'>Error</span>
                     </Text>
                     )
-                  : balanceState.data != null && !Number.isNaN(Number(balanceState.data))
+                  : balanceState.data !== null && balanceState.data !== undefined && !Number.isNaN(Number(balanceState.data))
                     ? (
                       <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
                         <BigNumber className='!text-dash-brand gap-2'>

@@ -147,7 +147,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
   const headerProps = deepestRoute?.handle?.headerProps
 
   // Get configuration from variant
-  const variant = headerProps?.variant ? HEADER_VARIANTS[headerProps.variant] : {}
+  const variant = headerProps?.variant !== null && headerProps?.variant !== undefined ? HEADER_VARIANTS[headerProps.variant] : {}
   const config = {
     showLogo: variant.showLogo ?? false,
     hideLeftSection: variant.hideLeftSection ?? false,
@@ -168,7 +168,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
 
   // Get wallet display name (same logic as WalletSelector)
   const getWalletDisplayName = (): string => {
-    if (!currentWalletId) return 'Wallet'
+    if (currentWalletId === null || currentWalletId === '') return 'Wallet'
 
     const availableWallets = wallets.filter(wallet => wallet.network === currentNetwork)
     const currentWallet = availableWallets.find(wallet => wallet.walletId === currentWalletId)
@@ -234,18 +234,18 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
       {/* Right side read-only displays */}
       {(config.showWalletRightReadOnly || config.showNetworkRightReadOnly) && (
         <div className={`flex items-center gap-2.5 ${config.imageType != null ? 'absolute top-0 right-0 z-10' : 'w-full justify-between'}`}>
-          {config.showWalletRightReadOnly && currentWalletId && (
+          {config.showWalletRightReadOnly && currentWalletId !== null && currentWalletId !== '' && (
             <Text size='sm' color='gray' weight='medium' className='text-right' dim>
               {getWalletDisplayName()}
             </Text>
           )}
 
-          {config.showNetworkRightReadOnly && currentNetwork && (
-            config.networkDisplayFormat === 'card' 
-              ? <NetworkCard network={currentNetwork} />
+          {config.showNetworkRightReadOnly && currentNetwork !== null && currentNetwork !== '' && (
+            config.networkDisplayFormat === 'card'
+              ? <NetworkCard network={currentNetwork ?? ''} />
               : <Text className='capitalize' size='sm' color='gray' weight='medium' dim>
-                  {currentNetwork}
-                </Text>
+                {currentNetwork}
+              </Text>
           )}
         </div>
       )}

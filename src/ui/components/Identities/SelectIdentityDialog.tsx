@@ -1,5 +1,5 @@
 import React from 'react'
-import { Dialog, Button, Identifier, Text, BigNumber, Avatar } from 'dash-ui/react'
+import { Dialog, Identifier, Text, BigNumber, Avatar } from 'dash-ui/react'
 import { usePlatformExplorerClient, type IdentityApiData, type NetworkType, type ApiState } from '../../hooks/usePlatformExplorerApi'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
@@ -21,18 +21,16 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
     loading: false,
     error: null
   })
-  const [currentNetwork, setCurrentNetwork] = React.useState<NetworkType>('testnet')
 
   React.useEffect(() => {
     if (open && identities.length > 0) {
-      const fetchIdentitiesData = async () => {
+      const fetchIdentitiesData = async (): Promise<void> => {
         setIdentitiesState({ data: null, loading: true, error: null })
 
         try {
           // Get current network first
           const status = await extensionAPI.getStatus()
           const network = status.network as NetworkType
-          setCurrentNetwork(network)
 
           // Then fetch identities data
           const result = await platformClient.fetchMultipleIdentities(identities, network)
@@ -100,13 +98,13 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                       ? (
                           'Loading...'
                         )
-                      : identitiesState.error
+                      : identitiesState.error !== null && identitiesState.error !== ''
                         ? (
                             'Error'
                           )
                         : (
                           <>
-                            <BigNumber>{identitiesState.data?.[identity]?.balance || '0'}</BigNumber> Credits
+                            <BigNumber>{identitiesState.data?.[identity]?.balance ?? '0'}</BigNumber> Credits
                           </>
                           )}
                   </Text>

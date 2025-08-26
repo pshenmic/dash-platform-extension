@@ -37,7 +37,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }>
 }) => {
   const screenConfig = screenConfigs[screenType]
 
-  if (!screenConfig) {
+  if (screenConfig === null || screenConfig === undefined) {
     return <div>Screen not found</div>
   }
 
@@ -48,14 +48,14 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }>
         onBack={onBack}
         onClose={onClose}
         currentIdentity={currentIdentity}
-        onItemSelect={onItemSelect!}
+        onItemSelect={onItemSelect ?? (() => {})}
       />
     )
   }
 
   // Try to find a dedicated screen component
   const ScreenComponent = SCREEN_COMPONENTS[screenType]
-  if (ScreenComponent) {
+  if (ScreenComponent !== null && ScreenComponent !== undefined) {
     return (
       <ScreenComponent
         onBack={onBack}
@@ -104,7 +104,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
     }
 
     // Check if this is a direct screen ID
-    if (screenConfigs[itemIdOrScreenId as ScreenType]) {
+    if (screenConfigs[itemIdOrScreenId as ScreenType] !== null && screenConfigs[itemIdOrScreenId as ScreenType] !== undefined) {
       const screenType = itemIdOrScreenId as ScreenType
       setCurrentScreen(screenType)
       setScreenHistory(prev => [...prev, screenType])
@@ -115,7 +115,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
     const findMenuItem = (sections: MenuSectionType[]): string | undefined => {
       for (const section of sections) {
         const item = section.items.find(item => item.id === itemIdOrScreenId)
-        if (item?.screenId) {
+        if (item?.screenId !== null && item?.screenId !== undefined && item?.screenId !== '') {
           return item.screenId
         }
       }
@@ -124,11 +124,11 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
 
     // Look for the item in main screen config
     const mainConfig = screenConfigs.main
-    if (mainConfig) {
+    if (mainConfig !== null && mainConfig !== undefined) {
       const screenId = findMenuItem(mainConfig.content)
-      if (screenId) {
+      if (screenId !== null && screenId !== undefined && screenId !== '') {
         const screenType = screenId as ScreenType
-        if (screenConfigs[screenType]) {
+        if (screenConfigs[screenType] !== null && screenConfigs[screenType] !== undefined) {
           setCurrentScreen(screenType)
           setScreenHistory(prev => [...prev, screenType])
         }
@@ -163,7 +163,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
     <OverlayMenu
       isOpen={isOpen}
       onClose={handleClose}
-      title={currentScreenConfig?.title || 'Settings'}
+      title={currentScreenConfig?.title ?? 'Settings'}
       showBackButton={currentScreen !== 'main'}
       onBack={currentScreen !== 'main' ? navigateBack : undefined}
     >

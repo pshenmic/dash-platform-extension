@@ -15,7 +15,7 @@ function EntityListItem ({
 }: EntityListItemProps): React.JSX.Element {
   const baseClasses = `entities-list-item ${className}`
 
-  if (href) {
+  if (href !== null && href !== undefined) {
     return (
       <a
         href={href}

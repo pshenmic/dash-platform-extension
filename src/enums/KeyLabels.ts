@@ -51,10 +51,10 @@ export type SecurityCode = keyof typeof SecurityLabelsInfo
 // Helper functions to get labels
 export const getPurposeLabel = (purpose: string): string => {
   const purposeKey = purpose as PurposeCode
-  return PurposeLabelsInfo[purposeKey]?.label || 'Master'
+  return (purpose !== '' && PurposeLabelsInfo[purposeKey]?.label !== undefined) ? PurposeLabelsInfo[purposeKey].label : 'Master'
 }
 
 export const getSecurityLabel = (security: string): string => {
   const securityKey = security as SecurityCode
-  return SecurityLabelsInfo[securityKey]?.label || 'Low'
+  return (security !== '' && SecurityLabelsInfo[securityKey]?.label !== undefined) ? SecurityLabelsInfo[securityKey].label : 'Low'
 }

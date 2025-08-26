@@ -56,7 +56,7 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
     setIsLoading(true)
     setSuccessMessage(null)
 
-    if (!currentIdentity) {
+    if (currentIdentity === null || currentIdentity === '') {
       setError('No current identity found. Please select an identity first.')
       setIsLoading(false)
       return
@@ -65,9 +65,9 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
     try {
       const validProcessedKeys: ProcessedPrivateKey[] = []
       const invalidInputIds: string[] = []
-      
+
       // Filter out empty private key inputs
-      const nonEmptyInputs = privateKeyInputs.filter(input => input.value?.trim() !== '')
+      const nonEmptyInputs = privateKeyInputs.filter(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
 
       if (nonEmptyInputs.length === 0) {
         return setError('Please enter at least one private key')
@@ -76,11 +76,11 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
       // Process all keys and collect errors
       for (const input of nonEmptyInputs) {
         const privateKeyString = input.value.trim()
-        
+
         try {
           const currentNetwork = selectedNetwork as Network || Network.testnet
           const processed = await processPrivateKey(privateKeyString, sdk, currentNetwork)
-          
+
           // Check if the processed key belongs to the current identity
           const keyIdentityId = processed.identity.id.base58()
           if (keyIdentityId !== currentIdentity) {
@@ -110,7 +110,6 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
 
       // If we get here, all keys belong to the current identity - import them
       await importPrivateKeys(validProcessedKeys)
-      
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e)
       setError(errorMessage)
@@ -125,49 +124,42 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
         return setError('No private keys to import')
       }
 
-      if (!currentIdentity) {
+      if (currentIdentity === null || currentIdentity === '') {
         return setError('No current identity found')
       }
 
       // Add each private key to the current identity
       for (const { key } of keys) {
-        await extensionAPI.addIdentityPrivateKey(currentIdentity, key.hex())
+        await extensionAPI.addIdentityPrivateKey(currentIdentity!, key.hex())
       }
 
       // Show success message and navigate back to Private Keys screen
       setSuccessMessage(`Successfully imported ${keys.length} private key${keys.length === 1 ? '' : 's'} to the current identity!`)
-      
+
       // Reset form
       setPrivateKeyInputs([{ id: Date.now().toString(), value: '', isVisible: false, hasError: false }])
-      
+
       // Navigate back to Private Keys screen after a short delay
       setTimeout(() => {
         onBack?.()
       }, 2000)
-      
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e)
       setError(errorMessage)
     }
   }
 
-  const resetForm = (): void => {
-    setError(null)
-    setSuccessMessage(null)
-    setPrivateKeyInputs([{ id: Date.now().toString(), value: '', isVisible: false, hasError: false }])
-  }
-
   // Clear error and success message when inputs change
   useEffect(() => {
-    if (error != null) {
+    if (error !== null) {
       setError(null)
     }
-    if (successMessage != null) {
+    if (successMessage !== null) {
       setSuccessMessage(null)
     }
   }, [privateKeyInputs])
 
-  const hasValidKeys = privateKeyInputs.some(input => input.value?.trim() !== '')
+  const hasValidKeys = privateKeyInputs.some(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
 
   return (
     <div className='space-y-4'>
@@ -176,13 +168,13 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
         <Text size='sm' dim>
           Add more Private Keys to your identity:
         </Text>
-        {currentIdentity && (
+        {currentIdentity !== null && currentIdentity !== '' && (
           <Identifier
             key={currentIdentity}
             middleEllipsis
             edgeChars={8}
             highlight='both'
-            avatar={true}
+            avatar
           >
             {currentIdentity}
           </Identifier>
@@ -190,7 +182,7 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
       </div>
 
       {/* Success Message */}
-      {successMessage != null && (
+      {successMessage !== null && (
         <div className='px-4'>
           <ValueCard colorScheme='green' className='break-words whitespace-pre-wrap'>
             <Text color='green'>{successMessage}</Text>
@@ -223,14 +215,16 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
         </div>
 
         {/* Error Display */}
-        {(error != null || privateKeyInputs.some(input => input.hasError)) && (
+        {(error !== null || privateKeyInputs.some(input => input.hasError)) && (
           <ValueCard colorScheme='yellow' className='break-all'>
             <Text color='red'>
-              {privateKeyInputs.some(input => input.hasError) ? (
-                privateKeyInputs.filter(input => input.value?.trim() !== '').length === 1
-                  ? 'Key belongs to another identity'
-                  : 'Some of the keys belong to another identity'
-              ) : error}
+              {privateKeyInputs.some(input => input.hasError)
+                ? (
+                    privateKeyInputs.filter(input => input.value?.trim() !== '' && input.value?.trim() !== undefined).length === 1
+                      ? 'Key belongs to another identity'
+                      : 'Some of the keys belong to another identity'
+                  )
+                : error}
             </Text>
           </ValueCard>
         )}
@@ -238,7 +232,7 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
         {/* Import Button */}
         <Button
           colorScheme='brand'
-          disabled={!hasValidKeys || isLoading || !currentIdentity}
+          disabled={!hasValidKeys || isLoading || currentIdentity === null || currentIdentity === ''}
           className='w-full'
           onClick={validateAndImportKeys}
         >

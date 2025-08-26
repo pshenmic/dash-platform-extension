@@ -2,11 +2,8 @@ import type { ScreenConfig } from '../types'
 import {
   mainScreenConfig,
   walletSettingsConfig,
-  preferencesConfig,
   connectedDappsConfig,
-  privateKeysConfig,
   securityPrivacyConfig,
-  helpSupportConfig,
   aboutDashConfig
 } from './MainSettingsScreen'
 import { helpSupportScreenConfig } from './HelpSupportScreen'

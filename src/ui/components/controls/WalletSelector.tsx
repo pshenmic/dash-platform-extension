@@ -12,17 +12,10 @@ interface WalletSelectorProps {
 
 export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, currentNetwork, currentWalletId, wallets = [] }) => {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
 
   const handleMenuClick = (event: React.MouseEvent, walletId: string): void => {
     event.stopPropagation()
     console.log('Menu clicked for wallet:', walletId)
-  }
-
-  if (loading) {
-    return (
-      <div className='w-[120px] h-[32px] bg-gray-100 rounded animate-pulse' />
-    )
   }
 
   const availableWallets = wallets.filter(wallet => wallet.network === currentNetwork)
@@ -52,8 +45,9 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, curren
           size='md'
           className='flex gap-1 h-12'
           clickable='true'
-          onClick={() =>
-            void navigate('/choose-wallet-import-type')}
+          onClick={() => {
+            void navigate('/choose-wallet-import-type')
+          }}
         >
           <div className='w-4 h-4 flex items-center justify-center'>
             <PlusIcon className='w-full h-full text-gray-900' />

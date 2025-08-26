@@ -11,7 +11,7 @@ import {
   Identifier,
   Avatar
 } from 'dash-ui/react'
-import type { SettingsScreenProps, ScreenConfig, MenuSection as MenuSectionType } from '../types'
+import type { SettingsScreenProps, ScreenConfig } from '../types'
 
 // Export configurations for other screens
 export const walletSettingsConfig: ScreenConfig = {
@@ -156,7 +156,7 @@ export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
         items: [
           {
             id: 'current-wallet-item',
-            title: currentIdentity
+            title: currentIdentity !== null && currentIdentity !== ''
               ? (
                 <Identifier
                   middleEllipsis
@@ -166,7 +166,7 @@ export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
                 </Identifier>
                 )
               : 'No Identity',
-            icon: currentIdentity
+            icon: currentIdentity !== null && currentIdentity !== ''
               ? (
                 <Avatar size='sm' username={currentIdentity} />
                 )

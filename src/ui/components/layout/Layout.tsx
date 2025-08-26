@@ -73,7 +73,7 @@ const Layout: FC = () => {
   // change wallet handler
   useEffect(() => {
     const changeWallet = async (): Promise<void> => {
-      if (selectedWallet) {
+      if (selectedWallet !== null && selectedWallet !== '') {
         try {
           await extensionAPI.switchWallet(selectedWallet)
         } catch (e) {
@@ -84,25 +84,24 @@ const Layout: FC = () => {
     }
 
     void changeWallet()
-  }, [selectedWallet, extensionAPI]);
+  }, [selectedWallet, extensionAPI])
 
   // change network handler
   useEffect(() => {
     const changeNetwork = async (): Promise<void> => {
-      if (selectedNetwork) {
+      if (selectedNetwork !== null && selectedNetwork !== '') {
         try {
           sdk.setNetwork(selectedNetwork as 'testnet' | 'mainnet')
           await extensionAPI.switchNetwork(selectedNetwork)
 
           if (allWallets.length > 0) {
             const wallet = allWallets.find(wallet => wallet.network === selectedNetwork)
-            if (wallet) {
+            if (wallet != null) {
               setSelectedWallet(wallet.walletId)
             } else {
               setSelectedWallet(null)
             }
           }
-
         } catch (e) {
           console.warn('changeNetwork error: ', e)
         }
@@ -110,7 +109,7 @@ const Layout: FC = () => {
     }
 
     void changeNetwork()
-  }, [selectedNetwork, extensionAPI, sdk]);
+  }, [selectedNetwork, extensionAPI, sdk])
 
   return (
     <ThemeProvider initialTheme='light'>
@@ -130,8 +129,7 @@ const Layout: FC = () => {
           setSelectedWallet,
           currentIdentity,
           setCurrentIdentity
-          }}
-        />
+        }} />
       </div>
     </ThemeProvider>
   )

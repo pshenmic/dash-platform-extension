@@ -34,21 +34,21 @@ function EntityList ({
         </div>
       )}
 
-      {error && (
+      {error !== null && (
         <div className='entities-list-state-message'>
           <Text className='entities-list-error'>
-            {errorText || `Error: ${error}`}
+            {errorText ?? `Error: ${error}`}
           </Text>
         </div>
       )}
 
-      {!loading && !error && isEmpty && (
+      {!loading && error === null && isEmpty && (
         <div className='entities-list-state-message'>
           <Text className='entities-list-empty'>{emptyText}</Text>
         </div>
       )}
 
-      {!loading && !error && !isEmpty && children}
+      {!loading && error === null && !isEmpty && children}
     </div>
   )
 }

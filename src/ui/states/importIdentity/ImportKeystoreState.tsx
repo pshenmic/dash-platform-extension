@@ -21,7 +21,6 @@ import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dp
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType } from '../../../types/WalletType'
 
-
 interface PrivateKeyInput {
   id: string
   value: string
@@ -72,14 +71,14 @@ function ImportKeystoreState (): React.JSX.Element {
       const validIdentities: Array<{ key: PrivateKeyWASM, identity: IdentityWASM, balance: string }> = []
 
       // Filter out empty private key inputs
-      const nonEmptyInputs = privateKeyInputs.filter(input => input.value?.trim() !== '')
+      const nonEmptyInputs = privateKeyInputs.filter(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
 
       if (nonEmptyInputs.length === 0) {
         return setError('Please enter at least one private key')
       }
 
       for (const input of nonEmptyInputs) {
-        const privateKey = input.value?.trim() || ''
+        const privateKey = input.value?.trim() ?? ''
         let pkeyWASM: PrivateKeyWASM | null = null
 
         if (privateKey.length === 52) {
@@ -120,7 +119,7 @@ function ImportKeystoreState (): React.JSX.Element {
           // Continue
         }
 
-        const [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e != null)
+        const [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e !== null && e !== undefined)
 
         if (identity == null) {
           return setError(`Could not find identity belonging to private key: ${privateKey}`)
@@ -132,7 +131,7 @@ function ImportKeystoreState (): React.JSX.Element {
               publicKey.purpose === 'AUTHENTICATION' &&
               publicKey.securityLevel === 'HIGH')
 
-        if (identityPublicKey == null) {
+        if (identityPublicKey === null || identityPublicKey === undefined) {
           return setError(`Please use a key with purpose AUTHENTICATION and security level HIGH: ${privateKey}`)
         }
 
@@ -160,7 +159,7 @@ function ImportKeystoreState (): React.JSX.Element {
   }
 
   useEffect(() => {
-    if (error != null) {
+    if (error !== null) {
       setError(null)
     }
   }, [privateKeyInputs])
@@ -200,7 +199,7 @@ function ImportKeystoreState (): React.JSX.Element {
     checkPrivateKeys().catch(console.warn)
   }
 
-  const hasValidKeys = privateKeyInputs.some(input => input.value?.trim() !== '')
+  const hasValidKeys = privateKeyInputs.some(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
 
   return (
     <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
@@ -236,12 +235,12 @@ function ImportKeystoreState (): React.JSX.Element {
                       size='xl'
                       showPasswordToggle={false}
                       style={{
-                        paddingRight: input.value
+                        paddingRight: input.value !== '' && input.value !== undefined
                           ? (privateKeyInputs.length > 1 ? '4.5rem' : '2.5rem')
                           : undefined
                       }}
                     />
-                    {input.value && (
+                    {input.value !== '' && input.value !== undefined && (
                       <div className='absolute right-3 top-1/2 transform -translate-y-1/2 flex gap-1'>
                         <button
                           onClick={() => togglePrivateKeyVisibility(input.id)}
@@ -267,9 +266,9 @@ function ImportKeystoreState (): React.JSX.Element {
                   {index === privateKeyInputs.length - 1 && (
                     <button
                       onClick={addPrivateKeyInput}
-                      disabled={!input.value?.trim()}
+                      disabled={input.value?.trim() === '' || input.value?.trim() === undefined}
                       className={`flex items-center justify-center w-14 h-14 rounded-2xl border border-gray-200 ${
-                        input.value?.trim()
+                        input.value?.trim() !== '' && input.value?.trim() !== undefined
                           ? 'bg-gray-50 hover:bg-gray-100 cursor-pointer'
                           : 'bg-gray-25 cursor-not-allowed opacity-50'
                       }`}
@@ -352,10 +351,10 @@ function ImportKeystoreState (): React.JSX.Element {
           </Button>
         </div>}
 
-        {error != null &&
-          <ValueCard colorScheme='yellow' className='break-all'>
-            <Text color='red'>{error}</Text>
-          </ValueCard>}
+      {error !== null &&
+        <ValueCard colorScheme='yellow' className='break-all'>
+          <Text color='red'>{error}</Text>
+        </ValueCard>}
 
       {/* Progress Steps */}
       <div className='mt-auto'>

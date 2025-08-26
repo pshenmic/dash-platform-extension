@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, TransactionStatusIcon, Identifier, Button } from 'dash-ui/react'
+import { Text, TransactionStatusIcon } from 'dash-ui/react'
 import { TransactionData, NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { TransactionTypesInfo, BatchActions } from '../../../enums'
 import { creditsToDash } from '../../../utils'
@@ -33,7 +33,7 @@ function TransactionsList ({
 
     transactions.forEach(transaction => {
       let date: Date
-      if (transaction.timestamp) {
+      if (transaction.timestamp !== null && transaction.timestamp !== undefined && transaction.timestamp !== '') {
         // Check if timestamp is ISO string or numeric
         if (typeof transaction.timestamp === 'string' && transaction.timestamp.includes('T')) {
           date = new Date(transaction.timestamp)
@@ -53,7 +53,7 @@ function TransactionsList ({
         year: 'numeric'
       })
 
-      if (!groups[dateKey]) {
+      if (groups[dateKey] === null || groups[dateKey] === undefined) {
         groups[dateKey] = []
       }
       groups[dateKey].push(transaction)
@@ -69,7 +69,7 @@ function TransactionsList ({
     const { type, batchType } = transaction
 
     // If batchType exists, use it instead of type
-    if (batchType) {
+    if (batchType !== null && batchType !== undefined && batchType !== '') {
       if (batchType in BatchActions) {
         return BatchActions[batchType as keyof typeof BatchActions].title
       }
@@ -77,11 +77,11 @@ function TransactionsList ({
     }
 
     // If no batchType, use regular type
-    if (type && type in TransactionTypesInfo) {
+    if (type !== null && type !== undefined && type !== '' && type in TransactionTypesInfo) {
       return TransactionTypesInfo[type as keyof typeof TransactionTypesInfo].title
     }
 
-    return type || 'Unknown Transaction'
+    return type ?? 'Unknown Transaction'
   }
 
   const getTransactionSubtext = (transaction: TransactionData): string => {
@@ -106,7 +106,7 @@ function TransactionsList ({
     // Placeholder amounts - in a real app, this would come from transaction data
     const creditsAmount = 204278360 // This should come from transaction.data or similar
     const dashAmount = creditsToDash(creditsAmount)
-    const usdAmount = rate ? dashAmount * rate : 0
+    const usdAmount = rate !== null && rate !== undefined ? dashAmount * rate : 0
 
     const sign = isTopUp ? '+' : isWithdrawal ? '-' : ''
     const display = `${sign} ${creditsAmount.toLocaleString()} Credits`
@@ -125,10 +125,10 @@ function TransactionsList ({
     <EntityList
       loading={loading}
       error={error}
-      isEmpty={!transactions || transactions.length === 0}
+      isEmpty={transactions === null || transactions === undefined || transactions.length === 0}
       variant='spaced'
       loadingText='Loading transactions...'
-      errorText={error ? `Error loading transactions: ${error}` : undefined}
+      errorText={error !== null && error !== '' ? `Error loading transactions: ${error}` : undefined}
       emptyText='No transactions found'
     >
       {groupedTransactions.map((group) => (

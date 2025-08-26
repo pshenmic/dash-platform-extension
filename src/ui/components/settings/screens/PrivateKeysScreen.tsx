@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
-import { KeyIcon, EyeOpenIcon, EyeClosedIcon, DeleteIcon, Text, ValueCard } from 'dash-ui/react'
+import { KeyIcon, EyeOpenIcon, DeleteIcon, Text, ValueCard } from 'dash-ui/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { useSdk } from '../../../hooks/useSdk'
 import { useAsyncState } from '../../../hooks/useAsyncState'
@@ -119,20 +119,20 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
   // Load public keys
   useEffect(() => {
-    if (!selectedWallet || !selectedNetwork || !currentIdentity) return
+    if (selectedWallet === null || selectedWallet === '' || selectedNetwork === null || selectedNetwork === '' || currentIdentity === null || currentIdentity === '') return
 
     void loadKeys(async () => {
       const allWallets = await extensionAPI.getAllWallets()
       const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
       if (wallet == null) throw new Error('Wallet not found')
 
-      const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
-      const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity)
+      const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity!)
+      const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity!)
 
       // Filter identity public keys to only show those that are available
       const availablePublicKeys = identityPublicKeys.filter((key: any) => {
         const keyId = key?.keyId ?? key?.getId?.() ?? null
-        return keyId != null && availableKeyIds.includes(keyId)
+        return keyId !== null && keyId !== undefined && availableKeyIds.includes(keyId)
       })
 
       const keys: PublicKey[] = availablePublicKeys.map((key: any) => {
@@ -149,7 +149,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         const securityLabel = getSecurityLabel(security)
 
         return {
-          keyId: keyId || 0,
+          keyId: keyId ?? 0,
           securityLevel: securityLabel,
           purpose: purposeLabel,
           hash
@@ -203,7 +203,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* Error State */}
-      {keysState.error && (
+      {keysState.error !== null && keysState.error !== '' && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='red' size='xl'>
             <Text size='md' color='red'>Error loading public keys: {keysState.error}</Text>
@@ -212,7 +212,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* No Identity State */}
-      {!currentIdentity && !keysState.loading && (
+      {(currentIdentity === null || currentIdentity === '') && !keysState.loading && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='lightGray' size='xl'>
             <Text size='md' opacity='50'>No identity selected</Text>
@@ -221,7 +221,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* No Keys State */}
-      {!keysState.loading && !keysState.error && currentIdentity && publicKeys.length === 0 && (
+      {!keysState.loading && (keysState.error === null || keysState.error === '') && currentIdentity !== null && currentIdentity !== '' && publicKeys.length === 0 && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='lightGray' size='xl'>
             <Text size='md' opacity='50'>No public keys available for this identity</Text>
@@ -230,7 +230,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* Public Keys List */}
-      {!keysState.loading && !keysState.error && publicKeys.length > 0 && (
+      {!keysState.loading && (keysState.error === null || keysState.error === '') && publicKeys.length > 0 && (
         <div className='flex-1 px-4 space-y-2.5'>
           {publicKeys.map((publicKey, index) => (
             <PublicKeyItem

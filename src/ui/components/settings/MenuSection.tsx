@@ -17,9 +17,9 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
   const { theme } = useTheme()
   return (
     <div className='menu-section mb-6'>
-      {section.title && (
+      {section.title !== '' && (
         <Text
-          size='sm' weight='500' className={`mb-3 px-1 ${ theme === 'dark' ? 'text-white/50' : 'text-[#0C1C33]/50' }`}
+          size='sm' weight='500' className={`mb-3 px-1 ${theme === 'dark' ? 'text-white/50' : 'text-dash-primary-dark-blue/50'}`}
         >
           {section.title}
         </Text>
@@ -41,7 +41,7 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
             isAccount={isAccount}
             onClick={() => {
               // Don't execute anything if disabled
-              if (item.disabled) {
+              if (item.disabled === true) {
                 return
               }
 
