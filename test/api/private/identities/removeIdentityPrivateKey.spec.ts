@@ -55,7 +55,7 @@ describe('remove identity private key', () => {
 
     expect(keyIds).toStrictEqual([4, 5])
 
-    await privateAPIClient.removeIdentityPublicKey(identity, 5)
+    await privateAPIClient.removeIdentityPrivateKey(identity, 5)
 
     keyIds = await privateAPIClient.getAvailableKeyPairs(identity)
 
