@@ -107,6 +107,10 @@ const Layout: FC = () => {
       if (wallets.length > 0) {
         setSelectedWallet(status.currentWalletId)
       }
+
+      if (selectedNetwork === null) {
+        setSelectedNetwork(status.network)
+      }
     } catch (e) {
       console.warn('status currentWalletId error: ', e)
     }
