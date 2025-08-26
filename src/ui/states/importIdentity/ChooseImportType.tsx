@@ -3,7 +3,6 @@ import {
   Text,
   Heading,
   ValueCard,
-  ProgressStepBar,
   DashLogo,
   KeyIcon,
   ProtectedMessageIcon
@@ -26,12 +25,12 @@ function ChooseImportType (): React.JSX.Element {
   const importOptions: ImportOption[] = [
     {
       id: 'keystore',
-      title: 'Import Using Key Store',
+      title: 'Key Store',
       icon: <KeyIcon />
     },
     {
       id: 'seedphrase',
-      title: 'Import Using Seed Phrase',
+      title: 'Seed Phrase',
       icon: <ProtectedMessageIcon />
     }
   ]
@@ -103,11 +102,6 @@ function ChooseImportType (): React.JSX.Element {
             </div>
           </ValueCard>
         ))}
-      </div>
-
-      {/* Progress Steps */}
-      <div className='mt-auto'>
-        <ProgressStepBar currentStep={2} totalSteps={4} />
       </div>
     </div>
   )
