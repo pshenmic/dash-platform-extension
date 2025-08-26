@@ -7,7 +7,7 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { usePlatformExplorerClient, type TransactionData, type NetworkType } from '../../hooks/usePlatformExplorerApi'
-import { type TokenData } from '../../../types/PlatformExplorerClient'
+import { type TokenData } from '../../../types'
 import { useAsyncState } from '../../hooks/useAsyncState'
 import { useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
@@ -106,7 +106,8 @@ function HomeState (): React.JSX.Element {
             <div className='flex items-center gap-2 cursor-pointer'>
               <Identifier
                 avatar
-                ellipsis
+                ellipsis={false}
+                highlight='both'
               >
                 {currentIdentity}
               </Identifier>
