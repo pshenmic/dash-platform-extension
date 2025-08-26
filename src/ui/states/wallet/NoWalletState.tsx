@@ -49,30 +49,14 @@ function NoWalletState (): React.JSX.Element {
           </div>
         </div>
 
-        <div className='w-full max-w-sm space-y-3'>
-          <Button
-            colorScheme='brand'
-            size='xl'
-            onClick={handleCreateWallet}
-            disabled
-            className='w-full'
-          >
-            Create Wallet
-          </Button>
-
-          <Button
-            colorScheme='brand'
-            size='xl'
-            onClick={handleImportWallet}
-            className='w-full'
-          >
-            Import Wallet
-          </Button>
-        </div>
-      </div>
-
-      <div className='mt-auto'>
-        <ProgressStepBar currentStep={1} totalSteps={4} />
+        <Button
+          colorScheme='brand'
+          size='xl'
+          onClick={handleImportWallet}
+          className='w-full'
+        >
+          Create Wallet
+        </Button>
       </div>
     </div>
   )
