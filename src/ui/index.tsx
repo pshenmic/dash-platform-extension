@@ -12,7 +12,7 @@ import ApproveTransactionState from './states/approveTransaction/ApproveTransact
 import AppConnectState from './states/appConnect/AppConnectState'
 import Layout from './components/layout/Layout'
 import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
-import ChooseImportType from './states/importIdentity/ChooseImportType'
+import ChooseWalletType from './states/wallet/ChooseWalletType'
 import WalletSuccessfullyCreated from './states/importIdentity/WalletSuccessfullyCreated'
 import './styles/app.pcss'
 
@@ -33,7 +33,7 @@ const App: React.FC = function () {
         },
         {
           path: '/choose-wallet-import-type',
-          element: <ChooseImportType />,
+          element: <ChooseWalletType />,
           handle: {
             headerProps: {
               variant: 'onboarding'

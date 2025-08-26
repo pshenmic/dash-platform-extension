@@ -18,7 +18,7 @@ interface ImportOption {
   disabled?: boolean
 }
 
-function ChooseImportType (): React.JSX.Element {
+function ChooseWalletType (): React.JSX.Element {
   const navigate = useNavigate()
   const { selectedNetwork, setSelectedNetwork } = useOutletContext<OutletContext>()
 
@@ -107,4 +107,4 @@ function ChooseImportType (): React.JSX.Element {
   )
 }
 
-export default ChooseImportType
+export default ChooseWalletType
