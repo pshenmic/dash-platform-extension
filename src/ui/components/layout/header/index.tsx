@@ -44,9 +44,9 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
 
   // Import/setup screens with centered image
   onboarding: {
-    hideLeftSection: true,
+    hideLeftSection: false,
     imageType: 'coins',
-    imageClasses: '-mt-[68%] !w-[426px] ml-[5%]'
+    imageClasses: '-mt-[62%] !w-[426px] -ml-[15%]'
   },
 
   // Seed phrase import with specific positioning
