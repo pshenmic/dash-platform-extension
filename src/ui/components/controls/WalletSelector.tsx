@@ -46,7 +46,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, curren
           className='flex gap-1 h-12'
           clickable='true'
           onClick={() => {
-            void navigate('/choose-wallet-import-type')
+            void navigate('/choose-wallet-type')
           }}
         >
           <div className='w-4 h-4 flex items-center justify-center'>
@@ -110,7 +110,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, curren
         </div>
       ),
       onClick: () => {
-        void navigate('/choose-wallet-import-type')
+        void navigate('/choose-wallet-type')
       }
     }
   ]

@@ -24,7 +24,7 @@ function NoWalletState (): React.JSX.Element {
   }, [extensionAPI, navigate])
 
   const handleImportWallet = (): void => {
-    void navigate('/choose-wallet-import-type')
+    void navigate('/choose-wallet-type')
   }
 
   const handleCreateWallet = (): void => {

@@ -32,7 +32,7 @@ const App: React.FC = function () {
           }
         },
         {
-          path: '/choose-wallet-import-type',
+          path: '/choose-wallet-type',
           element: <ChooseWalletType />,
           handle: {
             headerProps: {
