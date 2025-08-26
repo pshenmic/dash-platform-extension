@@ -29,7 +29,7 @@ interface PrivateKeyInput {
 function ImportKeystoreState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
-  const { selectedNetwork, setSelectedWallet } = useOutletContext<OutletContext>()
+  const { selectedNetwork, selectedWallet } = useOutletContext<OutletContext>()
 
   const extensionAPI = useExtensionAPI()
   const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInput[]>([
@@ -38,6 +38,31 @@ function ImportKeystoreState (): React.JSX.Element {
   const [identities, setIdentities] = useState<Array<{ key: PrivateKeyWASM, identity: IdentityWASM, balance: string }>>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
+  // Check if selected wallet is keystore type
+  useEffect(() => {
+    const checkWalletType = async (): Promise<void> => {
+      if (selectedWallet === null) {
+        navigate('/choose-wallet-type')
+        return
+      }
+
+      try {
+        const wallets = await extensionAPI.getAllWallets()
+        const currentWallet = wallets.find(wallet => wallet.walletId === selectedWallet)
+        
+        if (currentWallet === null || currentWallet === undefined || currentWallet?.type !== WalletType.keystore) {
+          navigate('/choose-wallet-type')
+          return
+        }
+      } catch (error) {
+        console.warn('Failed to check wallet type:', error)
+        navigate('/choose-wallet-type')
+      }
+    }
+
+    void checkWalletType()
+  }, [selectedWallet, extensionAPI, navigate])
 
   const addPrivateKeyInput = (): void => {
     const newId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -170,9 +195,9 @@ function ImportKeystoreState (): React.JSX.Element {
         return setError('No identities found to import')
       }
 
-      const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
-      // await extensionAPI.switchWallet(walletId)
-      setSelectedWallet(walletId)
+      if (selectedWallet === null) {
+        return setError('No wallet selected')
+      }
 
       // Get all private keys as hex
       const privateKeys = identities.map(({ key }) => key.hex())
@@ -182,7 +207,7 @@ function ImportKeystoreState (): React.JSX.Element {
 
       await extensionAPI.importIdentity(identifier, privateKeys)
 
-      void navigate('/wallet-created')
+      void navigate('/home')
     }
 
     setIsLoading(true)
