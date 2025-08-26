@@ -145,7 +145,8 @@ const Layout: FC = () => {
           setSelectedWallet: walletChangeHandler,
           currentIdentity,
           setCurrentIdentity: identityChangeHandler
-        }} />
+        }}
+        />
       </div>
     </ThemeProvider>
   )
