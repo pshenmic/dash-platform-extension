@@ -15,7 +15,7 @@ const Layout: FC = () => {
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
 
-  // Load status and all wallets
+  // Load status and all wallets on mount
   useEffect(() => {
     const loadStatus = async (): Promise<void> => {
       try {
@@ -40,7 +40,7 @@ const Layout: FC = () => {
 
     void loadStatus()
     void loadAllWallets()
-  }, [extensionAPI, selectedNetwork])
+  }, [extensionAPI])
 
   // Load identities and set current identity
   useEffect(() => {
