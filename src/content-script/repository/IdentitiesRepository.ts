@@ -28,9 +28,9 @@ export class IdentitiesRepository {
       throw new Error(`Identity with identifier ${identifier} already exists`)
     }
 
-    const allIdentityIds = Object.entries(identities)
+    const index = Object.entries(identities)
       .map(([, entry]) => (entry.index))
-    const index = Math.max(...allIdentityIds) + 1
+      .reduce((acc, index) => Math.max(acc, index + 1), 0)
 
     const identityStoreSchema: IdentityStoreSchema = {
       index,

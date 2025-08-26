@@ -99,18 +99,18 @@ export class WalletRepository {
     const wallets = await Promise.all(walletIds.map(async walletId => (await this.storageAdapter.get(`wallet_${network}_${walletId}`)) as WalletStoreSchema))
 
     return wallets
-        .filter(wallet => wallet !=null)
-        .map(walletStoreSchema => (
-      {
-        walletId: walletStoreSchema.walletId,
-        type: WalletType[walletStoreSchema.type],
-        network: Network[walletStoreSchema.network],
-        label: walletStoreSchema.label,
-        encryptedMnemonic: walletStoreSchema.encryptedMnemonic,
-        seedHash: walletStoreSchema.seedHash,
-        currentIdentity: walletStoreSchema.currentIdentity
-      }
-    ))
+      .filter(wallet => wallet != null)
+      .map(walletStoreSchema => (
+        {
+          walletId: walletStoreSchema.walletId,
+          type: WalletType[walletStoreSchema.type],
+          network: Network[walletStoreSchema.network],
+          label: walletStoreSchema.label,
+          encryptedMnemonic: walletStoreSchema.encryptedMnemonic,
+          seedHash: walletStoreSchema.seedHash,
+          currentIdentity: walletStoreSchema.currentIdentity
+        }
+      ))
   }
 
   async getById (walletId: string): Promise<Wallet | null> {
