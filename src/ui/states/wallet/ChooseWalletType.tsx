@@ -10,45 +10,48 @@ import {
 import { NetworkSelector } from '../../components/controls/NetworkSelector'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
+import { WalletType } from '../../../types'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 interface ImportOption {
   id: string
   title: string
   icon?: React.ReactNode
-  disabled?: boolean
+  disabled?: boolean,
+  onClick: () => Promise<void>
 }
 
 function ChooseWalletType (): React.JSX.Element {
   const navigate = useNavigate()
-  const { selectedNetwork, setSelectedNetwork } = useOutletContext<OutletContext>()
+  const { setSelectedNetwork, setSelectedWallet } = useOutletContext<OutletContext>()
+
+  const extensionAPI = useExtensionAPI()
+
+  const createKeystoreWallet = async () => {
+    const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
+    await extensionAPI.switchWallet(walletId)
+    setSelectedWallet(walletId)
+    void navigate('/wallet-created')
+  }
+
+  const createSeedPhraseWallet = async (): Promise<void> => {
+    void navigate('/import-seed-phrase')
+  }
 
   const importOptions: ImportOption[] = [
     {
       id: 'keystore',
       title: 'Key Store',
-      icon: <KeyIcon />
+      icon: <KeyIcon />,
+      onClick: createKeystoreWallet
     },
     {
       id: 'seedphrase',
       title: 'Seed Phrase',
-      icon: <ProtectedMessageIcon />
+      icon: <ProtectedMessageIcon />,
+      onClick: createSeedPhraseWallet
     }
   ]
-
-  const handleOptionSelect = (optionId: string): void => {
-    const option = importOptions.find(opt => opt.id === optionId)
-    if (option?.disabled === true) return
-
-    // Navigate based on selected option
-    switch (optionId) {
-      case 'seedphrase':
-        void navigate('/import-seed-phrase')
-        break
-      case 'keystore':
-        void navigate('/import-keystore')
-        break
-    }
-  }
 
   return (
     <div className='flex flex-col h-full bg-white -mt-16 pb-2'>
@@ -76,7 +79,7 @@ function ChooseWalletType (): React.JSX.Element {
         {importOptions.map((option) => (
           <ValueCard
             key={option.id}
-            onClick={() => handleOptionSelect(option.id)}
+            onClick={option.onClick}
             disabled={option.disabled}
             colorScheme='lightGray'
             border={false}
