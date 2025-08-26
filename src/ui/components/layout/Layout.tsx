@@ -1,10 +1,11 @@
-import React, { FC, useState, useEffect } from 'react'
+import React, { FC, useState, useEffect, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
 import Header from './header'
 import { ThemeProvider } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
+import { Identity } from '../../../types'
 
 const Layout: FC = () => {
   const extensionAPI = useExtensionAPI()
@@ -14,6 +15,7 @@ const Layout: FC = () => {
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
+  const [availableIdentities, setAvailableIdentities] = useState<Identity[]>([])
 
   // Load status and all wallets on mount
   useEffect(() => {
@@ -28,18 +30,7 @@ const Layout: FC = () => {
       }
     }
 
-    const loadAllWallets = async (): Promise<void> => {
-      try {
-        const wallets = await extensionAPI.getAllWallets()
-
-        setAllWallets(wallets)
-      } catch (error) {
-        console.warn('Failed to load all wallets:', error)
-      }
-    }
-
     void loadStatus()
-    void loadAllWallets()
   }, [extensionAPI])
 
   // Load identities and set current identity
@@ -54,10 +45,10 @@ const Layout: FC = () => {
 
         // Set current Identity if it doesn't exist
         if (currentIdentityFromApi != null && currentIdentityFromApi !== '') {
-          setCurrentIdentity(currentIdentityFromApi)
+          identityChangeHandler(currentIdentityFromApi)
         } else if ((identitiesData?.length ?? 0) > 0) {
           const firstIdentity = identitiesData[0].identifier
-          setCurrentIdentity(firstIdentity)
+          identityChangeHandler(firstIdentity)
           await extensionAPI.switchIdentity(firstIdentity).catch(error => {
             console.warn('Failed to set current identity:', error)
           })
@@ -70,65 +61,90 @@ const Layout: FC = () => {
     void loadCurrentIdentity()
   }, [selectedWallet, extensionAPI])
 
-  // change wallet handler
+  // change all identities
   useEffect(() => {
-    const changeWallet = async (): Promise<void> => {
-      if (selectedWallet !== null && selectedWallet !== '') {
-        try {
-          await extensionAPI.switchWallet(selectedWallet)
-        } catch (e) {
-          // await extensionAPI.switchWallet('')
-          console.warn('changeWallet error: ', e)
-        }
-      }
-    }
-
-    void changeWallet()
-  }, [selectedWallet, extensionAPI])
-
-  // change network handler
-  useEffect(() => {
-    const changeNetwork = async (): Promise<void> => {
+    const getIdentities = async (): Promise<void> => {
       if (selectedNetwork !== null && selectedNetwork !== '') {
         try {
-          sdk.setNetwork(selectedNetwork as 'testnet' | 'mainnet')
-          await extensionAPI.switchNetwork(selectedNetwork)
+          const identitiesData = await extensionAPI.getIdentities()
 
-          if (allWallets.length > 0) {
-            const wallet = allWallets.find(wallet => wallet.network === selectedNetwork)
-            if (wallet != null) {
-              setSelectedWallet(wallet.walletId)
-            } else {
-              setSelectedWallet(null)
-            }
-          }
+          setAvailableIdentities(identitiesData)
         } catch (e) {
           console.warn('changeNetwork error: ', e)
         }
       }
     }
 
-    void changeNetwork()
-  }, [selectedNetwork, extensionAPI, sdk])
+    void getIdentities()
+  }, [selectedNetwork, selectedWallet])
+
+  const loadWallets = useCallback(async (): Promise<void> => {
+    try {
+      const wallets = await extensionAPI.getAllWallets()
+      setAllWallets(wallets)
+    } catch (error) {
+      console.warn('Failed to load all wallets:', error)
+    }
+  }, [extensionAPI])
+
+  const networkChangeHandler = useCallback(async (network) => {
+    try {
+      sdk.setNetwork(network as 'testnet' | 'mainnet')
+      await extensionAPI.switchNetwork(network)
+      const status = await extensionAPI.getStatus()
+      await loadWallets()
+
+      setSelectedNetwork(network)
+      setSelectedWallet(status.currentWalletId)
+    } catch (e) {
+      console.warn('changeNetwork error: ', e)
+    }
+  }, [sdk, extensionAPI, loadWallets])
+
+  const walletChangeHandler = useCallback(async (wallet) => {
+    if (wallet !== null && wallet !== '') {
+      try {
+        await extensionAPI.switchWallet(wallet)
+        setSelectedWallet(wallet)
+      } catch (e) {
+        console.warn('changeWallet error: ', e)
+      }
+    }
+  }, [extensionAPI])
+
+  const identityChangeHandler = useCallback(async (identity) => {
+    try {
+      await extensionAPI.switchIdentity(identity)
+      setCurrentIdentity(identity)
+    } catch (e) {
+      console.warn('Failed to switch identity:', e)
+    }
+  }, [extensionAPI])
+
+  console.log('layout data:', {
+    selectedNetwork,
+    selectedWallet,
+    currentIdentity
+  })
 
   return (
     <ThemeProvider initialTheme='light'>
       <div className='main_container'>
         <Header
-          onNetworkChange={setSelectedNetwork}
+          onNetworkChange={networkChangeHandler}
           currentNetwork={selectedNetwork}
-          onWalletChange={setSelectedWallet}
+          onWalletChange={walletChangeHandler}
           currentIdentity={currentIdentity}
           currentWalletId={selectedWallet}
           wallets={allWallets}
         />
         <Outlet context={{
           selectedNetwork,
-          setSelectedNetwork,
+          setSelectedNetwork: networkChangeHandler,
           selectedWallet,
-          setSelectedWallet,
+          setSelectedWallet: walletChangeHandler,
           currentIdentity,
-          setCurrentIdentity
+          setCurrentIdentity: identityChangeHandler
         }} />
       </div>
     </ThemeProvider>

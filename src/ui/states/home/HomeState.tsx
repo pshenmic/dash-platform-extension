@@ -47,7 +47,7 @@ function HomeState (): React.JSX.Element {
     }
 
     void loadIdentities()
-  }, [selectedWallet, extensionAPI])
+  }, [selectedNetwork, selectedWallet, extensionAPI])
 
   // Load Balance and Transactions by Identity
   useEffect(() => {
@@ -75,6 +75,7 @@ function HomeState (): React.JSX.Element {
     })
   }, [currentIdentity, selectedNetwork, selectedWallet, platformClient, sdk, loadBalance, loadTransactions, loadTokens])
 
+  // load rate
   useEffect(() => {
     void loadRate(async () => {
       const result = await platformClient.fetchRate(selectedNetwork as NetworkType)
@@ -100,12 +101,7 @@ function HomeState (): React.JSX.Element {
           <SelectIdentityDialog
             identities={identities}
             currentIdentity={currentIdentity}
-            onSelectIdentity={(identity) => {
-              setCurrentIdentity(identity)
-              void extensionAPI.switchIdentity(identity).catch(error => {
-                console.warn('Failed to switch identity:', error)
-              })
-            }}
+            onSelectIdentity={setCurrentIdentity}
           >
             <div className='flex items-center gap-2 cursor-pointer'>
               <Identifier
