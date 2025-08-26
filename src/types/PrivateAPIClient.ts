@@ -105,7 +105,7 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.ADD_IDENTITY_PRIVATE_KEY, payload)
   }
 
-  async removeIdentityPublicKey (identity: string, keyId: number): Promise<void> {
+  async removeIdentityPrivateKey (identity: string, keyId: number): Promise<void> {
     const payload: RemoveIdentityPrivateKeyPayload = { identity, keyId }
 
     return await this._rpcCall(MessagingMethods.REMOVE_IDENTITY_PRIVATE_KEY, payload)
