@@ -11,7 +11,6 @@ import {
   Input,
   Heading,
   DashLogo,
-  ProgressStepBar,
   EyeClosedIcon,
   EyeOpenIcon,
   DeleteIcon
@@ -19,7 +18,7 @@ import {
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { WalletType } from '../../../types/WalletType'
+import { WalletType } from '../../../types'
 
 interface PrivateKeyInput {
   id: string
@@ -125,6 +124,7 @@ function ImportKeystoreState (): React.JSX.Element {
           return setError(`Could not find identity belonging to private key: ${privateKey}`)
         }
 
+        // TODO: remove condition of purpose and securityLevel
         const [identityPublicKey] = identity.getPublicKeys()
           .filter((publicKey: IdentityPublicKeyWASM) =>
             publicKey.getPublicKeyHash() === pkeyWASM?.getPublicKeyHash() &&
@@ -355,11 +355,6 @@ function ImportKeystoreState (): React.JSX.Element {
         <ValueCard colorScheme='yellow' className='break-all'>
           <Text color='red'>{error}</Text>
         </ValueCard>}
-
-      {/* Progress Steps */}
-      <div className='mt-auto'>
-        <ProgressStepBar currentStep={identities.length === 0 ? 3 : 4} totalSteps={4} />
-      </div>
     </div>
   )
 }
