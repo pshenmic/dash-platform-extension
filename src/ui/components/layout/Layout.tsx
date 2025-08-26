@@ -64,13 +64,12 @@ const Layout: FC = () => {
   // change all identities
   useEffect(() => {
     const getIdentities = async (): Promise<void> => {
-      if (selectedNetwork !== null && selectedNetwork !== '') {
+      if (selectedNetwork != null && selectedNetwork !== '' && selectedWallet != null && selectedWallet !== '') {
         try {
           const identitiesData = await extensionAPI.getIdentities()
-
           setAvailableIdentities(identitiesData)
         } catch (e) {
-          console.warn('changeNetwork error: ', e)
+          console.warn('getIdentities error: ', e)
         }
       }
     }
@@ -78,12 +77,14 @@ const Layout: FC = () => {
     void getIdentities()
   }, [selectedNetwork, selectedWallet])
 
-  const loadWallets = useCallback(async (): Promise<void> => {
+  const loadWallets = useCallback(async (): Promise<WalletAccountInfo[]> => {
     try {
       const wallets = await extensionAPI.getAllWallets()
       setAllWallets(wallets)
+      return wallets
     } catch (error) {
       console.warn('Failed to load all wallets:', error)
+      return []
     }
   }, [extensionAPI])
 
@@ -92,10 +93,13 @@ const Layout: FC = () => {
       sdk.setNetwork(network as 'testnet' | 'mainnet')
       await extensionAPI.switchNetwork(network)
       const status = await extensionAPI.getStatus()
-      await loadWallets()
+      const wallets = await loadWallets()
 
       setSelectedNetwork(network)
-      setSelectedWallet(status.currentWalletId)
+
+      if (wallets.length > 0) {
+        setSelectedWallet(status.currentWalletId)
+      }
     } catch (e) {
       console.warn('changeNetwork error: ', e)
     }
