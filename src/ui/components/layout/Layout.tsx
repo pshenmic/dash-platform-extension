@@ -80,6 +80,7 @@ const Layout: FC = () => {
   const loadWallets = useCallback(async (): Promise<WalletAccountInfo[]> => {
     try {
       const wallets = await extensionAPI.getAllWallets()
+      console.log('loadWallets wallets', wallets)
       setAllWallets(wallets)
       return wallets
     } catch (error) {
@@ -88,20 +89,26 @@ const Layout: FC = () => {
     }
   }, [extensionAPI])
 
+  useEffect(() => void loadWallets(), [])
+
   const networkChangeHandler = useCallback(async (network) => {
     try {
       sdk.setNetwork(network as 'testnet' | 'mainnet')
       await extensionAPI.switchNetwork(network)
+      setSelectedNetwork(network)
+    } catch (e) {
+      console.warn('changeNetwork error: ', e)
+    }
+
+    try {
       const status = await extensionAPI.getStatus()
       const wallets = await loadWallets()
-
-      setSelectedNetwork(network)
 
       if (wallets.length > 0) {
         setSelectedWallet(status.currentWalletId)
       }
     } catch (e) {
-      console.warn('changeNetwork error: ', e)
+      console.warn('status currentWalletId error: ', e)
     }
   }, [sdk, extensionAPI, loadWallets])
 
@@ -124,6 +131,7 @@ const Layout: FC = () => {
       console.warn('Failed to switch identity:', e)
     }
   }, [extensionAPI])
+
 
   console.log('layout data:', {
     selectedNetwork,
