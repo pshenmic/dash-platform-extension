@@ -13,9 +13,7 @@ export function EmptyState({ title, buttonText, onButtonClick, className = '' }:
   return (
     <div className={`relative flex flex-col h-full ${className}`}>
       <div className='relative top-0 left-0 w-full h-[300px] pointer-events-none'>
-        <div
-          className='absolute w-full top-[24px]'
-        >
+        <div className='absolute w-full top-[24px]'>
           <img
             src={useStaticAsset('empty-state-background-762ec2.png')}
             alt='Background pattern'
@@ -29,7 +27,6 @@ export function EmptyState({ title, buttonText, onButtonClick, className = '' }:
           <Heading
             weight='medium'
             className='!text-[36px] !leading-[1em] !tracking-[-0.04em] text-dash-primary-dark-blue'
-            // className=' font-medium !leading-[1em] tracking-[-0.03em] text-dash-primary-dark-blue font-main'
           >
             {title}
           </Heading>
