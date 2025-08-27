@@ -27,6 +27,7 @@ interface HeaderVariantConfig {
   showWalletSelector?: boolean
   showBurgerMenu?: boolean
   showNetworkRightReadOnly?: boolean
+  showNetworkRightSelector?: boolean
   showWalletRightReadOnly?: boolean
   networkDisplayFormat?: 'text' | 'card'
   imageType?: ImageVariant
@@ -47,6 +48,15 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
     hideLeftSection: false,
     imageType: 'coins',
     imageClasses: '-mt-[62%] !w-[426px] -ml-[15%]'
+  },
+
+  // Choose wallet type with network selector in top-right
+  chooseWalletType: {
+    hideLeftSection: false,
+    imageType: 'coins',
+    imageClasses: '-mt-[62%] !w-[426px] -ml-[15%]',
+    showNetworkRightSelector: true,
+    networkDisplayFormat: 'card'
   },
 
   // Seed phrase import with specific positioning
@@ -155,6 +165,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
     showWalletSelector: variant.showWalletSelector ?? false,
     showBurgerMenu: variant.showBurgerMenu ?? false,
     showNetworkRightReadOnly: variant.showNetworkRightReadOnly ?? false,
+    showNetworkRightSelector: variant.showNetworkRightSelector ?? false,
     showWalletRightReadOnly: variant.showWalletRightReadOnly ?? false,
     networkDisplayFormat: variant.networkDisplayFormat ?? 'text',
     imageType: variant.imageType,
@@ -231,8 +242,8 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
         </Button>
       )}
 
-      {/* Right side read-only displays */}
-      {(config.showWalletRightReadOnly || config.showNetworkRightReadOnly) && (
+      {/* Right side read-only displays and selectors */}
+      {(config.showWalletRightReadOnly || config.showNetworkRightReadOnly || config.showNetworkRightSelector) && (
         <div className={`flex items-center gap-2.5 ${config.imageType != null ? 'absolute top-0 right-0 z-10' : 'w-full justify-between'}`}>
           {config.showWalletRightReadOnly && currentWalletId !== null && currentWalletId !== '' && (
             <Text size='sm' color='gray' weight='medium' className='text-right' dim>
@@ -246,6 +257,18 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
               : <Text className='capitalize' size='sm' color='gray' weight='medium' dim>
                 {currentNetwork}
               </Text>
+          )}
+
+          {config.showNetworkRightSelector && (
+            config.networkDisplayFormat === 'card'
+              ? <NetworkSelector
+                  onSelect={onNetworkChange}
+                  wallets={wallets}
+                  variant='card'
+                  border
+                  className='!backdrop-blur-[15px] !bg-[rgba(12,28,51,0.15)] text-white !outline-white/15'
+                />
+              : <NetworkSelector onSelect={onNetworkChange} wallets={wallets} />
           )}
         </div>
       )}
