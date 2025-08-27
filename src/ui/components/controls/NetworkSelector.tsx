@@ -5,10 +5,11 @@ import { Network } from '../../../types/enums/Network'
 
 interface NetworkSelectorProps {
   onSelect?: (network: string) => void
+  variant?: 'default' | 'card'
   [key: string]: any
 }
 
-export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, ...props }) => {
+export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, variant = 'default', ...props }) => {
   const extensionAPI = useExtensionAPI()
   const [currentNetwork, setCurrentNetwork] = useState<string>('testnet')
   const [loading, setLoading] = useState(true)
@@ -46,14 +47,23 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, ...p
     )
   }
 
-  const triggerContent = (
-    <div className='flex items-center gap-1'>
-      <WebIcon className='!text-dash-primary-dark-blue' size={16} />
-      <span className='text-sm font-medium capitalize'>
-        {currentNetwork}
-      </span>
-    </div>
-  )
+  const triggerContent = variant === 'card' 
+    ? (
+        <div className='flex items-center gap-1'>
+          <WebIcon size={16} className='text-white' />
+          <span className='text-sm font-medium text-white capitalize'>
+            {currentNetwork}
+          </span>
+        </div>
+      )
+    : (
+        <div className='flex items-center gap-1'>
+          <WebIcon className='!text-dash-primary-dark-blue' size={16} />
+          <span className='text-sm font-medium capitalize'>
+            {currentNetwork}
+          </span>
+        </div>
+      )
 
   const items = Object.values(Network).map(network => ({
     id: network,
@@ -65,14 +75,18 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, ...p
     onClick: async () => await handleNetworkChange(network)
   }))
 
+  const baseClassName = variant === 'card' 
+    ? 'min-w-32 h-12 !bg-transparent !border-none' 
+    : 'min-w-32 h-12'
+
   return (
     <OverlayMenu
       triggerContent={triggerContent}
       items={items}
       size='md'
-      border
+      border={variant !== 'card'}
       showArrow
-      className='min-w-32 h-12'
+      className={`${baseClassName} ${props.className ?? ''}`}
       {...props}
     />
   )
