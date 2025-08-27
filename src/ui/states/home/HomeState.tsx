@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import NoIdentities from './NoIdentities'
+import NoWallets from './NoWallets'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
 import { Button, Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs } from 'dash-ui/react'
 import LoadingScreen from '../../components/layout/LoadingScreen'
@@ -93,7 +94,17 @@ function HomeState (): React.JSX.Element {
     }
 
     void loadData()
-  }, [currentIdentity, selectedNetwork, selectedWallet, platformClient, sdk, loadBalance, loadTransactions, loadTokens, identities, allWallets])
+  }, [
+    currentIdentity,
+    selectedNetwork,
+    selectedWallet,
+    platformClient,
+    sdk,
+    loadBalance,
+    loadTransactions,loadTokens,
+    identities.length,
+    allWallets.length
+  ])
 
   // load rate
   useEffect(() => {
@@ -108,6 +119,13 @@ function HomeState (): React.JSX.Element {
 
   if (isLoading) {
     return <LoadingScreen message='Loading wallet data...' />
+  }
+
+  // Check if there are wallets available in the selected network
+  const availableWallets = allWallets.filter(wallet => wallet.network === selectedNetwork)
+
+  if (availableWallets.length === 0) {
+    return <NoWallets />
   }
 
   if (identities.length === 0) {
@@ -217,4 +235,4 @@ function HomeState (): React.JSX.Element {
   )
 }
 
-export default withAccessControl(HomeState)
+export default withAccessControl(HomeState, { requireWallet: false })
