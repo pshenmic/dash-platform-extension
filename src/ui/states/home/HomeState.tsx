@@ -15,7 +15,6 @@ import type { OutletContext } from '../../types/OutletContext'
 import { TransactionsList } from '../../components/transactions'
 import { TokensList } from '../../components/tokens'
 import { BalanceInfo } from '../../components/data'
-import './home.state.css'
 
 function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
