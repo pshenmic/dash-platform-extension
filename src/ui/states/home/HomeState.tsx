@@ -20,7 +20,7 @@ function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformClient = usePlatformExplorerClient()
-  const { selectedNetwork, selectedWallet, currentIdentity, setCurrentIdentity } = useOutletContext<OutletContext>()
+  const { selectedNetwork, selectedWallet, currentIdentity, setCurrentIdentity, allWallets } = useOutletContext<OutletContext>()
   const [identities, setIdentities] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [transactionsState, loadTransactions] = useAsyncState<TransactionData[]>()
@@ -51,29 +51,49 @@ function HomeState (): React.JSX.Element {
 
   // Load Balance and Transactions by Identity
   useEffect(() => {
-    if (currentIdentity === null || currentIdentity === '') return
+    const loadData = async (): Promise<void> => {
+      if (currentIdentity === null || currentIdentity === '') return
 
-    void loadBalance(async () => {
-      const balance = await sdk.identities.getIdentityBalance(currentIdentity)
-      return balance
-    })
-
-    void loadTransactions(async () => {
-      const result = await platformClient.fetchTransactions(currentIdentity, selectedNetwork as NetworkType, 'desc')
-      if (result.data !== null && result.data !== undefined) {
-        return result.data
+      const sdkNetwork = sdk.getNetwork()
+      if (selectedNetwork !== sdkNetwork) {
+        return
       }
-      throw new Error(result.error ?? 'Failed to load transactions')
-    })
 
-    void loadTokens(async () => {
-      const result = await platformClient.fetchTokens(currentIdentity, selectedNetwork as NetworkType, 100, 1)
-      if (result.data !== null && result.data !== undefined) {
-        return result.data
+      const currentWallet = allWallets.find(wallet => wallet.walletId === selectedWallet)
+      if (currentWallet && currentWallet.network !== selectedNetwork) {
+        return
       }
-      throw new Error(result.error ?? 'Failed to load tokens')
-    })
-  }, [currentIdentity, selectedNetwork, selectedWallet, platformClient, sdk, loadBalance, loadTransactions, loadTokens])
+
+      const storageIdentities = await extensionAPI.getIdentities()
+      const currentIdentityExists = storageIdentities.some(identity => identity.identifier === currentIdentity)
+      if (!currentIdentityExists) {
+        return
+      }
+
+      void loadBalance(async () => {
+        const balance = await sdk.identities.getIdentityBalance(currentIdentity)
+        return balance
+      })
+
+      void loadTransactions(async () => {
+        const result = await platformClient.fetchTransactions(currentIdentity, selectedNetwork as NetworkType, 'desc')
+        if (result.data !== null && result.data !== undefined) {
+          return result.data
+        }
+        throw new Error(result.error ?? 'Failed to load transactions')
+      })
+
+      void loadTokens(async () => {
+        const result = await platformClient.fetchTokens(currentIdentity, selectedNetwork as NetworkType, 100, 1)
+        if (result.data !== null && result.data !== undefined) {
+          return result.data
+        }
+        throw new Error(result.error ?? 'Failed to load tokens')
+      })
+    }
+
+    void loadData()
+  }, [currentIdentity, selectedNetwork, selectedWallet, platformClient, sdk, loadBalance, loadTransactions, loadTokens, identities, allWallets])
 
   // load rate
   useEffect(() => {
