@@ -36,7 +36,7 @@ const App: React.FC = function () {
           element: <ChooseWalletType />,
           handle: {
             headerProps: {
-              variant: 'onboarding'
+              variant: 'chooseWalletType'
             }
           }
         },

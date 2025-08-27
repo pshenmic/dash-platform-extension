@@ -7,7 +7,6 @@ import {
   KeyIcon,
   ProtectedMessageIcon
 } from 'dash-ui/react'
-import { NetworkSelector } from '../../components/controls/NetworkSelector'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
 import { WalletType } from '../../../types'
@@ -23,7 +22,7 @@ interface ImportOption {
 
 function ChooseWalletType (): React.JSX.Element {
   const navigate = useNavigate()
-  const { setSelectedNetwork, setSelectedWallet, createWallet } = useOutletContext<OutletContext>()
+  const { setSelectedWallet, createWallet } = useOutletContext<OutletContext>()
 
   const extensionAPI = useExtensionAPI()
 
@@ -65,7 +64,7 @@ function ChooseWalletType (): React.JSX.Element {
             </Heading>
             <div className='!leading-tight'>
               <Text size='sm' dim>
-                You can import your identity using these options, more options will come in future updates.
+                You can create your wallet using these options, more options will come in future updates.
               </Text>
             </div>
           </div>
@@ -74,8 +73,6 @@ function ChooseWalletType (): React.JSX.Element {
 
       {/* Import Options */}
       <div className='mb-8 space-y-2'>
-        <NetworkSelector size='md' className='h-14' onSelect={setSelectedNetwork} />
-
         {importOptions.map((option) => (
           <ValueCard
             key={option.id}
