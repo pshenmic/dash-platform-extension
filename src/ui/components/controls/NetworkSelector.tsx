@@ -49,8 +49,8 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, ...p
   const triggerContent = (
     <div className='flex items-center gap-1'>
       <WebIcon className='!text-dash-primary-dark-blue' size={16} />
-      <span className='text-sm font-medium'>
-        {currentNetwork.charAt(0).toUpperCase() + currentNetwork.slice(1)}
+      <span className='text-sm font-medium capitalize'>
+        {currentNetwork}
       </span>
     </div>
   )
@@ -58,8 +58,8 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, ...p
   const items = Object.values(Network).map(network => ({
     id: network,
     content: (
-      <div className='flex items-center gap-1'>
-        <span>{network.charAt(0).toUpperCase() + network.slice(1)}</span>
+      <div className='flex items-center gap-1 capitalize'>
+        <span>{network}</span>
       </div>
     ),
     onClick: async () => await handleNetworkChange(network)
