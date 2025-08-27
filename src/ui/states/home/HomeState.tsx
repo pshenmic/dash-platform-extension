@@ -139,6 +139,7 @@ function HomeState (): React.JSX.Element {
             identities={identities}
             currentIdentity={currentIdentity}
             onSelectIdentity={setCurrentIdentity}
+            currentWalletType={allWallets.find(wallet => wallet.walletId === selectedWallet)?.type ?? null}
           >
             <div className='flex items-center gap-2 cursor-pointer'>
               <Identifier

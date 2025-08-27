@@ -1,19 +1,23 @@
 import React from 'react'
-import { Dialog, Identifier, Text, BigNumber, Avatar } from 'dash-ui/react'
+import { Dialog, Identifier, Text, BigNumber, Avatar, Button, PlusIcon } from 'dash-ui/react'
 import { usePlatformExplorerClient, type IdentityApiData, type NetworkType, type ApiState } from '../../hooks/usePlatformExplorerApi'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { useNavigate } from 'react-router-dom'
+import { WalletType } from '../../../types'
 
 interface SelectIdentityDialogProps {
   identities: string[]
   currentIdentity: string | null
   onSelectIdentity: (identity: string) => void
+  currentWalletType?: string | null
   children: React.ReactNode
 }
 
-function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, children }: SelectIdentityDialogProps): React.JSX.Element {
+function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, currentWalletType, children }: SelectIdentityDialogProps): React.JSX.Element {
   const [open, setOpen] = React.useState(false)
   const platformClient = usePlatformExplorerClient()
   const extensionAPI = useExtensionAPI()
+  const navigate = useNavigate()
 
   // Unified state for multiple identities data
   const [identitiesState, setIdentitiesState] = React.useState<ApiState<Record<string, IdentityApiData>>>({
@@ -115,6 +119,23 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
               </div>
             ))}
           </div>
+          
+          {currentWalletType === WalletType.keystore && (
+            <div className='px-6 pb-2'>
+              <Button
+                variant='outline'
+                size='md'
+                className='w-full h-[58px] gap-4'
+                onClick={() => {
+                  setOpen(false)
+                  void navigate('/import-keystore')
+                }}
+              >
+                <PlusIcon/>
+                <div>Add an identity</div>
+              </Button>
+            </div>
+          )}
         </div>
       </Dialog>
     </>
