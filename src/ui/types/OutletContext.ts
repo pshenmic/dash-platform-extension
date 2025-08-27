@@ -1,5 +1,6 @@
 import { WalletAccountInfo } from '../../types/messages/response/GetAllWalletsResponse'
 import { Identity } from '../../types'
+import { WalletType } from '../../types/WalletType'
 
 export interface OutletContext {
   selectedNetwork: string | null
@@ -10,4 +11,5 @@ export interface OutletContext {
   setCurrentIdentity: (identity: string | null) => void
   allWallets: WalletAccountInfo[],
   availableIdentities: Identity[]
+  createWallet: (walletType: WalletType, data: string) => Promise<{ walletId: string }>
 }

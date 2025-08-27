@@ -17,21 +17,19 @@ const Layout: FC = () => {
   const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
   const [availableIdentities, setAvailableIdentities] = useState<Identity[]>([])
 
-  // Load status and all wallets on mount
-  useEffect(() => {
-    const loadStatus = async (): Promise<void> => {
-      try {
-        const status = await extensionAPI.getStatus()
+  const loadStatus = async (): Promise<void> => {
+    try {
+      const status = await extensionAPI.getStatus()
 
-        setSelectedNetwork(status.network)
-        setSelectedWallet(status.currentWalletId)
-      } catch (error) {
-        console.warn('Failed to load current network:', error)
-      }
+      setSelectedNetwork(status.network)
+      setSelectedWallet(status.currentWalletId)
+    } catch (error) {
+      console.warn('Failed to load current network:', error)
     }
+  }
 
-    void loadStatus()
-  }, [extensionAPI])
+  // Load status and all wallets on mount
+  useEffect(() => void loadStatus(), [extensionAPI])
 
   // Load identities and set current identity
   useEffect(() => {
@@ -128,6 +126,18 @@ const Layout: FC = () => {
     }
   }, [extensionAPI])
 
+  const createWallet = useCallback(async (walletType, data) => {
+    try {
+      const result = await extensionAPI.createWallet(walletType, data)
+      await loadWallets()
+      await loadStatus()  
+      return result
+    } catch (error) {
+      console.warn('Failed to create wallet:', error)
+      throw error
+    }
+  }, [extensionAPI, loadWallets])
+
 
   console.log('layout data:', {
     selectedNetwork,
@@ -154,7 +164,8 @@ const Layout: FC = () => {
           currentIdentity,
           setCurrentIdentity: identityChangeHandler,
           allWallets,
-          availableIdentities
+          availableIdentities,
+          createWallet
         }}
         />
       </div>
