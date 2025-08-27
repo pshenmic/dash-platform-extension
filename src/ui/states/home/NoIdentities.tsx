@@ -14,7 +14,7 @@ export default function NoIdentities (): React.JSX.Element {
     <div className='screen-content'>
       <EmptyState
         title={<>You <Text weight='bold' color='blue' className='!text-[size:inherit] !leading-[inherit]'>Don't Have any Identities</Text> imported yet</>}
-        buttonText="Add an identity"
+        buttonText='Add an identity'
         onButtonClick={handleImportClick}
       />
     </div>
