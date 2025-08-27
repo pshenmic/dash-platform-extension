@@ -95,24 +95,16 @@ const Layout: FC = () => {
     try {
       sdk.setNetwork(network as 'testnet' | 'mainnet')
       await extensionAPI.switchNetwork(network)
-      setSelectedNetwork(network)
-    } catch (e) {
-      console.warn('changeNetwork error: ', e)
-    }
-
-    try {
       const status = await extensionAPI.getStatus()
       const wallets = await loadWallets()
+
+      setSelectedNetwork(status.network)
 
       if (wallets.length > 0) {
         setSelectedWallet(status.currentWalletId)
       }
-
-      if (selectedNetwork === null) {
-        setSelectedNetwork(status.network)
-      }
     } catch (e) {
-      console.warn('status currentWalletId error: ', e)
+      console.warn('changeNetwork error: ', e)
     }
   }, [sdk, extensionAPI, loadWallets])
 
@@ -160,7 +152,9 @@ const Layout: FC = () => {
           selectedWallet,
           setSelectedWallet: walletChangeHandler,
           currentIdentity,
-          setCurrentIdentity: identityChangeHandler
+          setCurrentIdentity: identityChangeHandler,
+          allWallets,
+          availableIdentities
         }}
         />
       </div>
