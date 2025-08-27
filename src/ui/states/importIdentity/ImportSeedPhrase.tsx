@@ -9,7 +9,7 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 function ImportSeedPhrase (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
-  const { setSelectedWallet, setCurrentIdentity } = useOutletContext<OutletContext>()
+  const { setSelectedWallet, setCurrentIdentity, createWallet } = useOutletContext<OutletContext>()
   const [seedWords, setSeedWords] = useState<string[]>(Array(12).fill(''))
   const [wordCount, setWordCount] = useState<12 | 24>(12)
   const [password, setPassword] = useState('')
@@ -109,7 +109,7 @@ function ImportSeedPhrase (): React.JSX.Element {
       const validWords = seedWords.slice(0, wordCount).filter(word => word.trim() !== '')
       const mnemonic = validWords.join(' ')
 
-      const { walletId } = await extensionAPI.createWallet(WalletType.seedphrase, mnemonic)
+      const { walletId } = await createWallet(WalletType.seedphrase, mnemonic)
       await extensionAPI.switchWallet(walletId)
       await extensionAPI.resyncIdentities(password)
       const identities = await extensionAPI.getIdentities()
@@ -211,11 +211,6 @@ function ImportSeedPhrase (): React.JSX.Element {
         >
           {isLoading ? 'Importing...' : 'Import Identity'}
         </Button>
-      </div>
-
-      {/* Progress Steps */}
-      <div className='mt-auto'>
-        <ProgressStepBar currentStep={3} totalSteps={4} />
       </div>
     </div>
   )
