@@ -11,5 +11,5 @@ export interface OutletContext {
   setCurrentIdentity: (identity: string | null) => void
   allWallets: WalletAccountInfo[],
   availableIdentities: Identity[]
-  createWallet: (walletType: WalletType, data: string) => Promise<{ walletId: string }>
+  createWallet: (walletType: WalletType, mnemonic?: string) => Promise<{ walletId: string }>
 }

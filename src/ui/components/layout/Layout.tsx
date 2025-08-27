@@ -126,9 +126,9 @@ const Layout: FC = () => {
     }
   }, [extensionAPI])
 
-  const createWallet = useCallback(async (walletType, data) => {
+  const createWallet = useCallback(async (walletType, mnemonic?) => {
     try {
-      const result = await extensionAPI.createWallet(walletType, data)
+      const result = await extensionAPI.createWallet(walletType, mnemonic)
       await loadWallets()
       await loadStatus()  
       return result
