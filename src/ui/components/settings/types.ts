@@ -19,6 +19,7 @@ export interface SettingsScreenProps {
   onClose: () => void
   onItemSelect?: (itemId: string) => void
   currentIdentity?: string | null
+  selectedNetwork?: string | null
 }
 
 export interface ScreenConfig {

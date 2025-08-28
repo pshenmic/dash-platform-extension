@@ -28,11 +28,12 @@ const SCREEN_COMPONENTS: Record<string, React.ComponentType<SettingsScreenProps>
 }
 
 // Universal screen renderer based on ScreenConfig content
-const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }> = ({
+const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType; selectedNetwork?: string | null }> = ({
   screenType,
   onBack,
   onClose,
   currentIdentity,
+  selectedNetwork,
   onItemSelect
 }) => {
   const screenConfig = screenConfigs[screenType]
@@ -48,6 +49,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }>
         onBack={onBack}
         onClose={onClose}
         currentIdentity={currentIdentity}
+        selectedNetwork={selectedNetwork}
         onItemSelect={onItemSelect ?? (() => {})}
       />
     )
@@ -61,6 +63,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }>
         onBack={onBack}
         onClose={onClose}
         currentIdentity={currentIdentity}
+        selectedNetwork={selectedNetwork}
         onItemSelect={onItemSelect}
       />
     )
@@ -90,9 +93,10 @@ interface SettingsMenuProps {
   isOpen: boolean
   onClose: () => void
   currentIdentity?: string | null
+  selectedNetwork?: string | null
 }
 
-export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, currentIdentity }) => {
+export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, currentIdentity, selectedNetwork }) => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('main')
   const [screenHistory, setScreenHistory] = useState<ScreenType[]>(['main'])
 
@@ -172,6 +176,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
         onBack={navigateBack}
         onClose={handleClose}
         currentIdentity={currentIdentity}
+        selectedNetwork={selectedNetwork}
         onItemSelect={navigateToScreen}
       />
     </OverlayMenu>

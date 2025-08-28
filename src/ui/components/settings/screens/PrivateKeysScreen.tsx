@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
-import { KeyIcon, EyeOpenIcon, DeleteIcon, Text, ValueCard } from 'dash-ui/react'
+import { KeyIcon, Button, DeleteIcon, Text, ValueCard } from 'dash-ui/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { useSdk } from '../../../hooks/useSdk'
 import { useAsyncState } from '../../../hooks/useAsyncState'
@@ -33,20 +33,15 @@ const KeyActions: React.FC<{ keyId: number, onView: () => void, onDelete: () => 
   onDelete
 }) => (
   <div className='flex items-center gap-1'>
-    <button
-      onClick={onView}
-      className='flex items-center justify-center w-5 h-5 rounded bg-gray-100 hover:bg-gray-200 transition-colors'
-      aria-label={`View key ${keyId}`}
-    >
-      <EyeOpenIcon className='text-dash-primary-dark-blue' />
-    </button>
-    <button
+    <Button
       onClick={onDelete}
-      className='flex items-center justify-center w-5 h-5 rounded bg-gray-100 hover:bg-gray-200 transition-colors'
+      size='sm'
+      colorScheme='lightGray'
+      className='!min-h-0 flex items-center justify-center p-1 rounded'
       aria-label={`Delete key ${keyId}`}
     >
-      <DeleteIcon className='text-dash-primary-dark-blue' />
-    </button>
+      <DeleteIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
+    </Button>
   </div>
 )
 
@@ -93,22 +88,20 @@ export const privateKeysScreenConfig: ScreenConfig = {
   content: [] // Content will be generated dynamically
 }
 
-export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, onItemSelect }) => {
+export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, selectedNetwork, onItemSelect }) => {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
 
   const [publicKeys, setPublicKeys] = useState<PublicKey[]>([])
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
-  const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null)
   const [keysState, loadKeys] = useAsyncState<PublicKey[]>()
 
-  // Load wallet and network info
+  // Load wallet info
   useEffect(() => {
     const loadWalletInfo = async (): Promise<void> => {
       try {
         const status = await extensionAPI.getStatus()
         setSelectedWallet(status.currentWalletId)
-        setSelectedNetwork(status.network)
       } catch (error) {
         console.warn('Failed to load wallet info:', error)
       }

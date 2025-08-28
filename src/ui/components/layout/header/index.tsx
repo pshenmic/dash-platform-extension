@@ -293,6 +293,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}
         currentIdentity={currentIdentity}
+        selectedNetwork={currentNetwork}
       />
     </header>
   )
