@@ -23,7 +23,7 @@ export const AboutScreen: React.FC<SettingsScreenProps> = () => {
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='menu-sections-container'>
       {/* Logo and App Info */}
       <div className='text-center py-6'>
         <div className='flex justify-center mb-4'>

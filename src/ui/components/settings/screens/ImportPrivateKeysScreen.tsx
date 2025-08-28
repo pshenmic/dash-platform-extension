@@ -160,7 +160,6 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
 
   return (
     <div className='space-y-4'>
-      {/* Description */}
       <div className='px-4'>
         <Text size='sm' dim>
           Add more Private Keys to your identity:

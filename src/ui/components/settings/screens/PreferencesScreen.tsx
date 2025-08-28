@@ -66,7 +66,7 @@ export const PreferencesScreen: React.FC<SettingsScreenProps> = () => {
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='menu-sections-container'>
       {preferencesScreenConfig.content.map((section) => (
         <MenuSection
           key={section.id}

@@ -11,7 +11,7 @@ interface MenuItemProps {
 }
 
 const menuItemStyles = cva(
-  'w-full flex items-center justify-between text-left transition-colors last:border-b-0 px-[15px] py-[10px]',
+  'w-full flex items-center justify-between text-left transition-colors last:border-b-0 px-4 py-[0.625rem]',
   {
     variants: {
       variant: {
@@ -74,19 +74,19 @@ export const MenuItem: React.FC<MenuItemProps> = ({
         theme
       })}
     >
-      <div className='flex items-center gap-3'>
+      <div className='flex items-center gap-4'>
         {icon && (
-          <div className={`flex-shrink-0 rounded-full flex items-center justify-center w-[35px] h-[35px] bg-white`}>
+          <div className='flex-shrink-0 rounded-full flex items-center justify-center w-[35px] h-[35px] bg-white'>
             <div className='w-4 h-4'>
               {icon}
             </div>
           </div>
         )}
-        <div className='flex-1 text-left ml-[15px]'>
+        <div className='flex-1 text-left'>
           <Text
             size='sm'
             weight='medium'
-            className={theme === 'dark' ? 'text-white' : 'text-[#0C1C33]'}
+            className='text-dash-primary-dark-blue'
           >
             {title}
           </Text>

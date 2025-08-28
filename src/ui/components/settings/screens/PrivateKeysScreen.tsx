@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
-import { KeyIcon, Button, DeleteIcon, Text, ValueCard } from 'dash-ui/react'
+import { KeyIcon, Button, DeleteIcon, Text, ValueCard, Identifier } from 'dash-ui/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { useSdk } from '../../../hooks/useSdk'
 import { useAsyncState } from '../../../hooks/useAsyncState'
@@ -253,9 +253,23 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     <div className='flex flex-col h-full'>
       {/* Description */}
       <div className='px-4 mb-6'>
-        <p className='text-sm font-medium text-gray-600'>
-          Manage public keys available for the current identity.
-        </p>
+        {/*<p className='text-sm font-medium text-gray-600'>*/}
+        {/*  Manage public keys available for the current identity.*/}
+        {/*</p>*/}
+        <Text size='sm' dim>
+          Manage public keys available for the current identity:
+        </Text>
+        {currentIdentity !== null && currentIdentity !== '' && (
+          <Identifier
+            key={currentIdentity}
+            middleEllipsis
+            edgeChars={8}
+            highlight='both'
+            avatar
+          >
+            {currentIdentity}
+          </Identifier>
+        )}
       </div>
 
       {/* Loading State */}

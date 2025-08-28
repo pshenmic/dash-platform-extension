@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, useTheme } from 'dash-ui/react'
+import { Text } from 'dash-ui/react'
 import { MenuItem } from './MenuItem'
 import type { MenuSection as MenuSectionType } from './types'
 
@@ -12,19 +12,20 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
   section,
   onItemClick
 }) => {
-  const { theme } = useTheme()
   return (
-    <div className='menu-section mb-6'>
+    <div className='flex flex-col gap-3'>
       {section.title !== '' && (
         <Text
-          size='sm' weight='500' className={`mb-3 px-1 ${theme === 'dark' ? 'text-white/50' : 'text-dash-primary-dark-blue/50'}`}
+          dim
+          size='sm'
+          weight='500'
+          className='text-dash-primary-dark-blue/50'
         >
           {section.title}
         </Text>
       )}
 
-      <div className={`rounded-[1rem] overflow-hidden`}
-      >
+      <div className='rounded-[1rem] overflow-hidden'>
         {section.items.map((item) => (
           <MenuItem
             key={item.id}

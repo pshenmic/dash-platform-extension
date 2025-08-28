@@ -81,7 +81,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType; s
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='menu-sections-container'>
       {sections.map((section) => (
         <MenuSection
           key={section.id}

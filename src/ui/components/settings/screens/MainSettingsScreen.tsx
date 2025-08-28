@@ -150,7 +150,7 @@ interface MainSettingsScreenProps extends SettingsScreenProps {
 
 export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({ onItemSelect }) => {
   return (
-    <div className='space-y-6'>
+    <div className='menu-sections-container'>
       {(mainScreenConfig.content).map((section, index) => (
         <MenuSection
           key={section.id}

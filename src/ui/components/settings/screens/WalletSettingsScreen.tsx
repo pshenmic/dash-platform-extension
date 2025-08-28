@@ -73,7 +73,7 @@ export const WalletSettingsScreen: React.FC<SettingsScreenProps> = ({
   ]
 
   return (
-    <div className='space-y-6'>
+    <div className='menu-sections-container'>
       {sections.map((section) => (
         <MenuSection
           key={section.id}

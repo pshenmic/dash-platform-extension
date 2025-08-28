@@ -98,7 +98,7 @@ export const HelpSupportScreen: React.FC<SettingsScreenProps> = () => {
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='menu-sections-container'>
       {helpSupportScreenConfig.content.map((section) => (
         <MenuSection
           key={section.id}
