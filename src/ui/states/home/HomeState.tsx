@@ -198,7 +198,10 @@ function HomeState (): React.JSX.Element {
         <Button className='w-1/2' disabled>Withdraw</Button>
       </div>
 
-      <ValueCard className='flex flex-col flex-grow gap-6 -mx-[0.875rem] -mb-[0.875rem] !rounded-b-none p-4'>
+      <ValueCard
+        border={false}
+        className='relative z-5  flex flex-col flex-grow gap-6 -mx-[0.875rem] -mb-[0.875rem] !rounded-b-none p-4 dash-shadow-lg'
+      >
         <Tabs
           defaultValue='transactions'
           items={[
