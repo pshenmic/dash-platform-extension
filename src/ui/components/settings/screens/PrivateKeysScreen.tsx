@@ -13,7 +13,6 @@ interface PublicKey {
   hash: string
 }
 
-// Component for rendering badge
 const Badge: React.FC<{ text: string }> = ({ text }) => (
   <ValueCard
     colorScheme='lightGray'
@@ -26,7 +25,6 @@ const Badge: React.FC<{ text: string }> = ({ text }) => (
   </ValueCard>
 )
 
-// Component for key action buttons
 const KeyActions: React.FC<{ keyId: number, onDelete: () => Promise<void> }> = ({
   keyId,
   onDelete
@@ -44,7 +42,6 @@ const KeyActions: React.FC<{ keyId: number, onDelete: () => Promise<void> }> = (
   </div>
 )
 
-// Main public key item component
 const PublicKeyItem: React.FC<{
   publicKey: PublicKey
   onDelete: (id: number) => Promise<void>
