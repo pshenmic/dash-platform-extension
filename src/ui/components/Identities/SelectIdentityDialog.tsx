@@ -4,16 +4,17 @@ import { usePlatformExplorerClient, type IdentityApiData, type NetworkType, type
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useNavigate } from 'react-router-dom'
 import { WalletType } from '../../../types'
+import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 
 interface SelectIdentityDialogProps {
   identities: string[]
   currentIdentity: string | null
   onSelectIdentity: (identity: string) => void
-  currentWalletType?: string | null
+  currentWallet?: WalletAccountInfo | null
   children: React.ReactNode
 }
 
-function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, currentWalletType, children }: SelectIdentityDialogProps): React.JSX.Element {
+function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, currentWallet, children }: SelectIdentityDialogProps): React.JSX.Element {
   const [open, setOpen] = React.useState(false)
   const platformClient = usePlatformExplorerClient()
   const extensionAPI = useExtensionAPI()
@@ -120,7 +121,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
             ))}
           </div>
           
-          {currentWalletType === WalletType.keystore && (
+          {currentWallet?.type === WalletType.keystore && (
             <div className='px-6 pb-2'>
               <Button
                 variant='outline'

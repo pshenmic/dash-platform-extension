@@ -12,6 +12,7 @@ import { AboutScreen } from './screens/AboutScreen'
 import { MenuSection } from './MenuSection'
 import { screenConfigs } from './screens/configs'
 import type { MenuSection as MenuSectionType, SettingsScreenProps } from './types'
+import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 
 type ScreenType = 'main' | 'current-wallet' | 'preferences' | 'connected-dapps' | 'private-keys' | 'import-private-keys-settings' | 'security-privacy' | 'help-support' | 'about-dash'
 
@@ -34,6 +35,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType; s
   onClose,
   currentIdentity,
   selectedNetwork,
+  currentWallet,
   onItemSelect
 }) => {
   const screenConfig = screenConfigs[screenType]
@@ -50,6 +52,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType; s
         onClose={onClose}
         currentIdentity={currentIdentity}
         selectedNetwork={selectedNetwork}
+        currentWallet={currentWallet}
         onItemSelect={onItemSelect ?? (() => {})}
       />
     )
@@ -64,6 +67,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType; s
         onClose={onClose}
         currentIdentity={currentIdentity}
         selectedNetwork={selectedNetwork}
+        currentWallet={currentWallet}
         onItemSelect={onItemSelect}
       />
     )
@@ -94,9 +98,10 @@ interface SettingsMenuProps {
   onClose: () => void
   currentIdentity?: string | null
   selectedNetwork?: string | null
+  currentWallet?: WalletAccountInfo | null
 }
 
-export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, currentIdentity, selectedNetwork }) => {
+export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, currentIdentity, selectedNetwork, currentWallet }) => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('main')
   const [screenHistory, setScreenHistory] = useState<ScreenType[]>(['main'])
 
@@ -177,6 +182,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
         onClose={handleClose}
         currentIdentity={currentIdentity}
         selectedNetwork={selectedNetwork}
+        currentWallet={currentWallet}
         onItemSelect={navigateToScreen}
       />
     </OverlayMenu>

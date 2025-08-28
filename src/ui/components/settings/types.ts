@@ -14,12 +14,15 @@ export interface MenuSection {
   items: MenuItem[]
 }
 
+import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
+
 export interface SettingsScreenProps {
   onBack: () => void
   onClose: () => void
   onItemSelect?: (itemId: string) => void
   currentIdentity?: string | null
   selectedNetwork?: string | null
+  currentWallet?: WalletAccountInfo | null
 }
 
 export interface ScreenConfig {

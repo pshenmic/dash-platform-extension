@@ -77,17 +77,22 @@ export const mainScreenConfig: ScreenConfig = {
   category: 'account',
   content: [
     {
+      id: 'identity-settings',
+      title: 'Identity Settings',
+      items: [
+        {
+          id: 'private-keys-item',
+          title: privateKeysConfig.title,
+          icon: privateKeysConfig.icon,
+          screenId: privateKeysConfig.id,
+          hasSubMenu: true
+        }
+      ]
+    },
+    {
       id: 'wallet-settings',
       title: 'Wallet Settings',
       items: [
-        {
-          id: 'preferences-item',
-          title: preferencesConfig.title,
-          icon: preferencesConfig.icon,
-          screenId: preferencesConfig.id,
-          hasSubMenu: true,
-          disabled: true
-        },
         {
           id: 'connected-dapps-item',
           title: connectedDappsConfig.title,
@@ -95,13 +100,6 @@ export const mainScreenConfig: ScreenConfig = {
           screenId: connectedDappsConfig.id,
           hasSubMenu: true,
           disabled: true
-        },
-        {
-          id: 'private-keys-item',
-          title: privateKeysConfig.title,
-          icon: privateKeysConfig.icon,
-          screenId: privateKeysConfig.id,
-          hasSubMenu: true
         },
         {
           id: 'security-privacy-item',
@@ -117,6 +115,14 @@ export const mainScreenConfig: ScreenConfig = {
       id: 'other',
       title: 'Other',
       items: [
+        {
+          id: 'preferences-item',
+          title: preferencesConfig.title,
+          icon: preferencesConfig.icon,
+          screenId: preferencesConfig.id,
+          hasSubMenu: true,
+          disabled: true
+        },
         {
           id: 'help-support-item',
           title: helpSupportConfig.title,
@@ -142,53 +148,14 @@ interface MainSettingsScreenProps extends SettingsScreenProps {
   onItemSelect: (itemId: string) => void
 }
 
-export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
-  onItemSelect,
-  currentIdentity
-}) => {
-  // Generate dynamic configuration with real currentIdentity
-  const dynamicMainScreenConfig: ScreenConfig = {
-    ...mainScreenConfig,
-    content: [
-      {
-        id: 'account',
-        title: 'Account Settings',
-        items: [
-          {
-            id: 'current-wallet-item',
-            title: currentIdentity !== null && currentIdentity !== ''
-              ? (
-                <Identifier
-                  middleEllipsis
-                  edgeChars={4}
-                >
-                  {currentIdentity}
-                </Identifier>
-                )
-              : 'No Identity',
-            icon: currentIdentity !== null && currentIdentity !== ''
-              ? (
-                <Avatar size='sm' username={currentIdentity} />
-                )
-              : walletSettingsConfig.icon,
-            screenId: walletSettingsConfig.id,
-            hasSubMenu: true,
-            disabled: true
-          }
-        ]
-      },
-      ...(mainScreenConfig.content) // Keep the rest of the sections unchanged
-    ]
-  }
-
+export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({ onItemSelect }) => {
   return (
     <div className='space-y-6'>
-      {(dynamicMainScreenConfig.content).map((section, index) => (
+      {(mainScreenConfig.content).map((section, index) => (
         <MenuSection
           key={section.id}
           section={section}
           onItemClick={onItemSelect}
-          isAccount={index === 0}
         />
       ))}
     </div>

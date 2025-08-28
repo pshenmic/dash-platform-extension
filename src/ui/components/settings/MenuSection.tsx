@@ -6,13 +6,11 @@ import type { MenuSection as MenuSectionType } from './types'
 interface MenuSectionProps {
   section: MenuSectionType
   onItemClick: (itemId: string) => void
-  isAccount?: boolean
 }
 
 export const MenuSection: React.FC<MenuSectionProps> = ({
   section,
-  onItemClick,
-  isAccount = false
+  onItemClick
 }) => {
   const { theme } = useTheme()
   return (
@@ -25,11 +23,7 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
         </Text>
       )}
 
-      <div className={`rounded-[1rem] overflow-hidden ${
-        isAccount ? 'mb-4' : ''
-      } ${
-        theme === 'dark' && !isAccount ? 'border border-[rgba(255,255,255,0.15)]' : ''
-      }`}
+      <div className={`rounded-[1rem] overflow-hidden`}
       >
         {section.items.map((item) => (
           <MenuItem
@@ -38,7 +32,6 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
             icon={item.icon}
             hasSubMenu={item.hasSubMenu}
             disabled={item.disabled}
-            isAccount={isAccount}
             onClick={() => {
               // Don't execute anything if disabled
               if (item.disabled === true) {

@@ -11,7 +11,7 @@ export const importPrivateKeysScreenConfig: ScreenConfig = {
   id: 'import-private-keys-settings',
   title: 'Import Private Keys',
   category: 'wallet',
-  content: [] // Content will be generated dynamically
+  content: []
 }
 
 export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, selectedNetwork, onBack }) => {

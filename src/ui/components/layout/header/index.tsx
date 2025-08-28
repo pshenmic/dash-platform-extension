@@ -294,6 +294,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
         onClose={() => setIsMenuOpen(false)}
         currentIdentity={currentIdentity}
         selectedNetwork={currentNetwork}
+        currentWallet={wallets.find(wallet => wallet.walletId === currentWalletId) ?? null}
       />
     </header>
   )

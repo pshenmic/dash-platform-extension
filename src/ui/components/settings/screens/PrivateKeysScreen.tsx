@@ -5,6 +5,8 @@ import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { useSdk } from '../../../hooks/useSdk'
 import { useAsyncState } from '../../../hooks/useAsyncState'
 import { getPurposeLabel, getSecurityLabel } from '../../../../enums'
+import { WalletType } from '../../../../types'
+import { ConfirmDialog } from '../../controls'
 
 interface PublicKey {
   keyId: number
@@ -25,41 +27,42 @@ const Badge: React.FC<{ text: string }> = ({ text }) => (
   </ValueCard>
 )
 
-const KeyActions: React.FC<{ keyId: number, onDelete: () => Promise<void> }> = ({
+const KeyActions: React.FC<{ keyId: number, onDelete: () => void, showDelete: boolean }> = ({
   keyId,
-  onDelete
+  onDelete,
+  showDelete
 }) => (
   <div className='flex items-center gap-1'>
-    <Button
-      onClick={() => void onDelete()}
-      size='sm'
-      colorScheme='lightGray'
-      className='!min-h-0 flex items-center justify-center p-1 rounded'
-      aria-label={`Delete key ${keyId}`}
-    >
-      <DeleteIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
-    </Button>
+    {showDelete && (
+      <Button
+        onClick={onDelete}
+        size='sm'
+        colorScheme='lightGray'
+        className='!min-h-0 flex items-center justify-center p-1 rounded'
+        aria-label={`Delete key ${keyId}`}
+      >
+        <DeleteIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
+      </Button>
+    )}
   </div>
 )
 
 const PublicKeyItem: React.FC<{
   publicKey: PublicKey
-  onDelete: (id: number) => Promise<void>
-}> = ({ publicKey, onDelete }) => (
+  onDelete: (id: number) => void
+  showDelete: boolean
+}> = ({ publicKey, onDelete, showDelete }) => (
   <div className='bg-gray-100 rounded-2xl p-3'>
     <div className='flex items-center justify-between'>
       <div className='flex items-center flex-wrap gap-2 flex-1 w-full'>
-        {/* Key Icon */}
         <div className='flex items-center justify-center w-5 h-5 bg-gray-100 rounded-full'>
           <KeyIcon size={10} className='text-gray-700' />
         </div>
 
-        {/* Key ID */}
         <Text size='sm' weight='medium' className='text-gray-900'>
           Key ID: {publicKey.keyId}
         </Text>
 
-        {/* Badges */}
         <div className='flex items-center gap-2'>
           <Badge text={publicKey.securityLevel} />
           <Badge text={publicKey.purpose} />
@@ -68,6 +71,7 @@ const PublicKeyItem: React.FC<{
       <KeyActions
         keyId={publicKey.keyId}
         onDelete={() => onDelete(publicKey.keyId)}
+        showDelete={showDelete}
       />
     </div>
   </div>
@@ -81,13 +85,16 @@ export const privateKeysScreenConfig: ScreenConfig = {
   content: []
 }
 
-export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, selectedNetwork, onItemSelect }) => {
+export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, selectedNetwork, currentWallet, onItemSelect }) => {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
 
   const [publicKeys, setPublicKeys] = useState<PublicKey[]>([])
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
   const [keysState, loadKeys] = useAsyncState<PublicKey[]>()
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [keyToDelete, setKeyToDelete] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // Load wallet info
   useEffect(() => {
@@ -151,23 +158,39 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     }
   }, [keysState.data])
 
-  const handleDeleteKey = async (keyId: number): Promise<void> => {
+  useEffect(() => {
+    if (error !== null && error !== '') {
+      const timer = setTimeout(() => {
+        setError(null)
+      }, 5000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [error])
+
+  const handleDeleteKey = (keyId: number): void => {
     if (currentIdentity === null || currentIdentity === '') {
       console.warn('No identity selected for key deletion')
       return
     }
 
-    // Show confirmation dialog
-    const confirmed = window.confirm(
-      `Are you sure you want to delete private key with ID ${keyId}? This action cannot be undone.`
-    )
-    
-    if (!confirmed) {
+    setKeyToDelete(keyId)
+    setConfirmDialogOpen(true)
+  }
+
+  const deleteKey = async (keyToDelete): Promise<void> => {
+    if (keyToDelete === null || currentIdentity === null || currentIdentity === '') {
+      return
+    }
+  }
+
+  const confirmDeleteKey = async (): Promise<void> => {
+    if (keyToDelete === null || currentIdentity === null || currentIdentity === '') {
       return
     }
 
     try {
-      await extensionAPI.removeIdentityPrivateKey(currentIdentity!, keyId)
+      await extensionAPI.removeIdentityPrivateKey(currentIdentity!, keyToDelete)
       
       // Refresh the keys list after successful deletion
       void loadKeys(async () => {
@@ -210,16 +233,21 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     } catch (error) {
       console.error('Failed to delete private key:', error)
       
-      // Show error message to user
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      alert(`Failed to delete private key: ${errorMessage}`)
+      setError(`Failed to delete private key: ${errorMessage}`)
     }
   }
 
+  const cancelDeleteKey = (): void => {
+    setKeyToDelete(null)
+  }
+
   const handleImportPrivateKeys = (): void => {
-    // Navigate to the import private keys settings screen
     onItemSelect?.('import-private-keys-settings')
   }
+
+  const isKeystoreWallet = currentWallet?.type === WalletType.keystore
+  const shouldShowDelete = isKeystoreWallet && publicKeys.length > 1
 
   return (
     <div className='flex flex-col h-full'>
@@ -274,22 +302,46 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
               key={`${publicKey.keyId}-${publicKey.hash}`}
               publicKey={publicKey}
               onDelete={handleDeleteKey}
+              showDelete={shouldShowDelete}
             />
           ))}
         </div>
       )}
 
-      {/* Import Button */}
-      <div className='p-4 mt-auto'>
-        <button
-          onClick={handleImportPrivateKeys}
-          className='w-full bg-blue-50 hover:bg-blue-100 transition-colors rounded-2xl px-6 py-3'
-        >
-          <span className='text-base font-medium text-blue-600'>
-            Import Private Keys
-          </span>
-        </button>
-      </div>
+      {/* Delete Error State */}
+      {error !== null && error !== '' && (
+        <div className='px-4 mb-4'>
+          <ValueCard colorScheme='red' size='xl'>
+            <Text size='md' color='red'>{error}</Text>
+          </ValueCard>
+        </div>
+      )}
+
+      {/* Import Button - Only show for keystore wallets */}
+      {isKeystoreWallet && (
+        <div className='p-4 mt-auto'>
+          <button
+            onClick={handleImportPrivateKeys}
+            className='w-full bg-blue-50 hover:bg-blue-100 transition-colors rounded-2xl px-6 py-3'
+          >
+            <span className='text-base font-medium text-blue-600'>
+              Import Private Keys
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        title='Delete Private Key'
+        message={`Are you sure you want to delete private key with ID ${keyToDelete}? This action cannot be undone.`}
+        confirmText='Delete'
+        cancelText='Cancel'
+        onConfirm={confirmDeleteKey}
+        onCancel={cancelDeleteKey}
+      />
     </div>
   )
 }

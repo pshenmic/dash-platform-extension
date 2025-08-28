@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, useTheme } from 'dash-ui/react'
+import { Text, useTheme, ChevronIcon } from 'dash-ui/react'
 import { cva } from 'class-variance-authority'
 
 interface MenuItemProps {
@@ -8,7 +8,6 @@ interface MenuItemProps {
   onClick?: () => void
   hasSubMenu?: boolean
   disabled?: boolean
-  isAccount?: boolean
 }
 
 const menuItemStyles = cva(
@@ -54,36 +53,16 @@ const menuItemStyles = cva(
   }
 )
 
-const ChevronRightIcon: React.FC<{ theme?: 'light' | 'dark' }> = ({ theme = 'light' }) => (
-  <svg
-    width='16'
-    height='16'
-    viewBox='0 0 16 16'
-    fill='none'
-    xmlns='http://www.w3.org/2000/svg'
-  >
-    <path
-      d='M6 12L10 8L6 4'
-      stroke={theme === 'dark' ? '#FFFFFF' : '#0C1C33'}
-      strokeWidth='1.5'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    />
-  </svg>
-)
-
 export const MenuItem: React.FC<MenuItemProps> = ({
   title,
   icon,
   onClick,
   hasSubMenu = false,
-  disabled = false,
-  isAccount = false
+  disabled = false
 }) => {
   const { theme } = useTheme()
   const getVariant = () => {
     if (disabled) return 'disabled'
-    if (isAccount) return 'account'
     return 'default'
   }
   return (
@@ -97,21 +76,16 @@ export const MenuItem: React.FC<MenuItemProps> = ({
     >
       <div className='flex items-center gap-3'>
         {icon && (
-          <div className={`flex-shrink-0 rounded-full flex items-center justify-center ${
-            isAccount ? 'w-[50px] h-[50px]' : 'w-[35px] h-[35px]'
-          } ${
-            theme === 'dark' ? 'bg-[rgba(255,255,255,0.05)]' : 'bg-white'
-          }`}
-          >
-            <div className={isAccount ? 'w-6 h-6' : 'w-4 h-4'}>
+          <div className={`flex-shrink-0 rounded-full flex items-center justify-center w-[35px] h-[35px] bg-white`}>
+            <div className='w-4 h-4'>
               {icon}
             </div>
           </div>
         )}
         <div className='flex-1 text-left ml-[15px]'>
           <Text
-            size={isAccount ? 'base' : 'sm'}
-            weight={isAccount ? '500' : 'medium'}
+            size='sm'
+            weight='medium'
             className={theme === 'dark' ? 'text-white' : 'text-[#0C1C33]'}
           >
             {title}
@@ -121,7 +95,7 @@ export const MenuItem: React.FC<MenuItemProps> = ({
 
       {hasSubMenu && (
         <div className='flex-shrink-0'>
-          <ChevronRightIcon theme={theme} />
+          <ChevronIcon className='-rotate-90 w-4 h-4' />
         </div>
       )}
     </button>
