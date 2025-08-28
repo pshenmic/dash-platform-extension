@@ -12,6 +12,7 @@ import {
   Avatar
 } from 'dash-ui/react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
+import type { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
 
 // Export configurations for other screens
 export const walletSettingsConfig: ScreenConfig = {
@@ -77,19 +78,6 @@ export const mainScreenConfig: ScreenConfig = {
   category: 'account',
   content: [
     {
-      id: 'identity-settings',
-      title: 'Identity Settings',
-      items: [
-        {
-          id: 'private-keys-item',
-          title: privateKeysConfig.title,
-          icon: privateKeysConfig.icon,
-          screenId: privateKeysConfig.id,
-          hasSubMenu: true
-        }
-      ]
-    },
-    {
       id: 'wallet-settings',
       title: 'Wallet Settings',
       items: [
@@ -148,10 +136,45 @@ interface MainSettingsScreenProps extends SettingsScreenProps {
   onItemSelect: (itemId: string) => void
 }
 
-export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({ onItemSelect }) => {
+// Function to create dynamic main screen configuration based on current state
+const createDynamicMainScreenConfig = (
+  currentWallet?: WalletAccountInfo | null,
+  currentIdentity?: string | null
+): ScreenConfig => {
+  const isPrivateKeysDisabled = !currentWallet || !currentIdentity
+
+  return {
+    ...mainScreenConfig,
+    content: [
+      {
+        id: 'identity-settings',
+        title: 'Identity Settings',
+        items: [
+          {
+            id: 'private-keys-item',
+            title: privateKeysConfig.title,
+            icon: privateKeysConfig.icon,
+            screenId: privateKeysConfig.id,
+            hasSubMenu: true,
+            disabled: isPrivateKeysDisabled
+          }
+        ]
+      },
+      ...mainScreenConfig.content
+    ]
+  }
+}
+
+export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({ 
+  onItemSelect, 
+  currentWallet, 
+  currentIdentity 
+}) => {
+  const dynamicConfig = createDynamicMainScreenConfig(currentWallet, currentIdentity)
+
   return (
     <div className='menu-sections-container'>
-      {(mainScreenConfig.content).map((section, index) => (
+      {dynamicConfig.content.map((section, index) => (
         <MenuSection
           key={section.id}
           section={section}
