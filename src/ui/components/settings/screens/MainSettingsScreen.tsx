@@ -151,7 +151,7 @@ const createDynamicMainScreenConfig = (
         title: 'Identity Settings',
         items: [
           {
-            id: 'private-keys-item',
+            id: 'private-keys',
             title: privateKeysConfig.title,
             icon: privateKeysConfig.icon,
             screenId: privateKeysConfig.id,
