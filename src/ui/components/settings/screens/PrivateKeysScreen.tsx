@@ -92,7 +92,6 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   const [publicKeys, setPublicKeys] = useState<PublicKey[]>([])
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
   const [keysState, loadKeys] = useAsyncState<PublicKey[]>()
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [keyToDelete, setKeyToDelete] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -110,43 +109,45 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     void loadWalletInfo()
   }, [extensionAPI])
 
+  // Helper to fetch available public keys for current identity/wallet
+  const fetchAvailablePublicKeys = async (): Promise<PublicKey[]> => {
+    const allWallets = await extensionAPI.getAllWallets()
+    const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
+    if (wallet == null) throw new Error('Wallet not found')
+
+    const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity!)
+    const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity!)
+
+    // Filter identity public keys to only show those that are available
+    const availablePublicKeys = identityPublicKeys.filter((key: any) => {
+      const keyId = key?.keyId ?? key?.getId?.() ?? null
+      return keyId !== null && keyId !== undefined && availableKeyIds.includes(keyId)
+    })
+
+    const keys: PublicKey[] = availablePublicKeys.map((key: any) => {
+      const keyId = key?.keyId ?? key?.getId?.() ?? null
+      const purpose = String(key?.purpose ?? 'UNKNOWN')
+      const security = String(key?.securityLevel ?? 'UNKNOWN')
+      let hash = ''
+      try {
+        hash = typeof key?.getPublicKeyHash === 'function' ? key.getPublicKeyHash() : ''
+      } catch {}
+
+      return {
+        keyId: keyId ?? 0,
+        securityLevel: getSecurityLabel(security),
+        purpose: getPurposeLabel(purpose),
+        hash
+      }
+    })
+
+    return keys
+  }
+
   // Load public keys
   useEffect(() => {
     if (selectedWallet === null || selectedWallet === '' || selectedNetwork === null || selectedNetwork === '' || currentIdentity === null || currentIdentity === '') return
-
-    void loadKeys(async () => {
-      const allWallets = await extensionAPI.getAllWallets()
-      const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
-      if (wallet == null) throw new Error('Wallet not found')
-
-      const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity!)
-      const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity!)
-
-      // Filter identity public keys to only show those that are available
-      const availablePublicKeys = identityPublicKeys.filter((key: any) => {
-        const keyId = key?.keyId ?? key?.getId?.() ?? null
-        return keyId !== null && keyId !== undefined && availableKeyIds.includes(keyId)
-      })
-
-      const keys: PublicKey[] = availablePublicKeys.map((key: any) => {
-        const keyId = key?.keyId ?? key?.getId?.() ?? null
-        const purpose = String(key?.purpose ?? 'UNKNOWN')
-        const security = String(key?.securityLevel ?? 'UNKNOWN')
-        let hash = ''
-        try {
-          hash = typeof key?.getPublicKeyHash === 'function' ? key.getPublicKeyHash() : ''
-        } catch {}
-
-        return {
-          keyId: keyId ?? 0,
-          securityLevel: getSecurityLabel(security),
-          purpose: getPurposeLabel(purpose),
-          hash
-        }
-      })
-
-      return keys
-    })
+    void loadKeys(fetchAvailablePublicKeys)
   }, [selectedWallet, selectedNetwork, currentIdentity, extensionAPI, sdk, loadKeys])
 
   // Update local state when keys are loaded
@@ -175,13 +176,6 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     }
 
     setKeyToDelete(keyId)
-    setConfirmDialogOpen(true)
-  }
-
-  const deleteKey = async (keyToDelete): Promise<void> => {
-    if (keyToDelete === null || currentIdentity === null || currentIdentity === '') {
-      return
-    }
   }
 
   const confirmDeleteKey = async (): Promise<void> => {
@@ -193,53 +187,13 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       await extensionAPI.removeIdentityPrivateKey(currentIdentity!, keyToDelete)
       
       // Refresh the keys list after successful deletion
-      void loadKeys(async () => {
-        const allWallets = await extensionAPI.getAllWallets()
-        const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
-        if (wallet == null) throw new Error('Wallet not found')
-
-        const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity!)
-        const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity!)
-
-        // Filter identity public keys to only show those that are available
-        const availablePublicKeys = identityPublicKeys.filter((key: any) => {
-          const keyId = key?.keyId ?? key?.getId?.() ?? null
-          return keyId !== null && keyId !== undefined && availableKeyIds.includes(keyId)
-        })
-
-        const keys: PublicKey[] = availablePublicKeys.map((key: any) => {
-          const keyId = key?.keyId ?? key?.getId?.() ?? null
-          const purpose = String(key?.purpose ?? 'UNKNOWN')
-          const security = String(key?.securityLevel ?? 'UNKNOWN')
-          let hash = ''
-          try {
-            hash = typeof key?.getPublicKeyHash === 'function' ? key.getPublicKeyHash() : ''
-          } catch {}
-
-          // Get labels using helper functions
-          const purposeLabel = getPurposeLabel(purpose)
-          const securityLabel = getSecurityLabel(security)
-
-          return {
-            keyId: keyId ?? 0,
-            securityLevel: securityLabel,
-            purpose: purposeLabel,
-            hash
-          }
-        })
-
-        return keys
-      })
+      void loadKeys(fetchAvailablePublicKeys)
     } catch (error) {
       console.error('Failed to delete private key:', error)
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       setError(`Failed to delete private key: ${errorMessage}`)
     }
-  }
-
-  const cancelDeleteKey = (): void => {
-    setKeyToDelete(null)
   }
 
   const handleImportPrivateKeys = (): void => {
@@ -347,14 +301,13 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
       {/* Confirm Delete Dialog */}
       <ConfirmDialog
-        open={confirmDialogOpen}
-        onOpenChange={setConfirmDialogOpen}
+        open={keyToDelete !== null}
+        onOpenChange={(open) => { if (!open) setKeyToDelete(null) }}
         title='Delete Private Key'
         message={`Are you sure you want to delete private key with ID ${keyToDelete}? This action cannot be undone.`}
         confirmText='Delete'
         cancelText='Cancel'
         onConfirm={confirmDeleteKey}
-        onCancel={cancelDeleteKey}
       />
     </div>
   )
