@@ -1,9 +1,8 @@
 import React from 'react'
-import { Text, useTheme, WebIcon } from 'dash-ui/react'
+import { Text, WebIcon } from 'dash-ui/react'
 import type { SettingsScreenProps } from '../types'
 
 export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
-  const { theme } = useTheme()
   const connectedDapps = [
     {
       id: 'dashcentral',
@@ -29,17 +28,17 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
 
   const renderIcon = (): React.JSX.Element => (
     <div className='w-[50px] h-[50px] bg-white rounded-full flex items-center justify-center'>
-      <WebIcon theme={theme} />
+      <WebIcon />
     </div>
   )
 
   if (connectedDapps.length === 0) {
     return (
       <div className='flex flex-col items-center justify-center min-h-[200px] text-center'>
-        <Text size='lg' weight='medium' className={theme === 'dark' ? 'text-white/60' : 'text-gray-600'}>
+        <Text size='lg' weight='medium' className='text-gray-600'>
           No Connected DApps
         </Text>
-        <Text size='sm' className={theme === 'dark' ? 'text-white/50' : 'text-gray-500'}>
+        <Text size='sm' className='text-gray-500'>
           When you connect to DApps, they will appear here
         </Text>
       </div>
@@ -49,9 +48,9 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   return (
     <div className='space-y-4'>
       <Text
-        size='sm' weight='500' className={`mb-6 opacity-50 ${
-        theme === 'dark' ? 'text-white' : 'text-[#0C1C33]'
-      }`}
+        size='sm'
+        weight='500'
+        className='mb-6 opacity-50 text-dash-primary-dark-blue'
       >
         Manage dapps you have connected to.
       </Text>
