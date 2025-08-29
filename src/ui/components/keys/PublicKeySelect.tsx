@@ -33,6 +33,7 @@ export function PublicKeySelect ({
 
     return {
       value: keyValue,
+      disabled: key.purpose !== 'AUTHENTICATION' || key.securityLevel !== 'HIGH',
       content: (
         <div className='flex items-center flex-wrap gap-2 w-full'>
           <div className='flex items-center justify-center w-5 h-5 bg-gray-100 rounded-full'>

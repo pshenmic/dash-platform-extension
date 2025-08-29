@@ -156,7 +156,8 @@ function ApproveTransactionState (): React.JSX.Element {
         .getStateTransition(transactionHash)
         .then((stateTransitionResponse: GetStateTransitionResponse) => {
           try {
-            setStateTransitionWASM(StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)))
+            const receivedStateTransitionWASM = StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned))
+            setStateTransitionWASM(receivedStateTransitionWASM)
           } catch (e) {
             console.warn('Error decoding state transition:', e)
             setTransactionDecodeError(String(e))
@@ -447,7 +448,7 @@ function ApproveTransactionState (): React.JSX.Element {
                 Reject
               </Button>
               <Button
-                onClick={() => { void doSign() }}
+                onClick={() => { doSign().catch(e => console.warn('doSign', e)) }}
                 colorScheme='brand'
                 className='w-1/2'
                 disabled={isSigningInProgress || selectedSigningKey === null}
