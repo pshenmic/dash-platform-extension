@@ -29,7 +29,7 @@ interface PrivateKeyInput {
 function ImportKeystoreState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
-  const { selectedNetwork, selectedWallet, setCurrentIdentity } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentWallet, setCurrentIdentity } = useOutletContext<OutletContext>()
 
   const extensionAPI = useExtensionAPI()
   const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInput[]>([
@@ -42,16 +42,16 @@ function ImportKeystoreState (): React.JSX.Element {
   // Check if selected wallet is keystore type
   useEffect(() => {
     const checkWalletType = async (): Promise<void> => {
-      if (selectedWallet === null) {
+      if (currentWallet === null) {
         void navigate('/choose-wallet-type')
         return
       }
 
       try {
         const wallets = await extensionAPI.getAllWallets()
-        const currentWallet = wallets.find(wallet => wallet.walletId === selectedWallet)
+        const currentWalletInfo = wallets.find(wallet => wallet.walletId === currentWallet)
 
-        if (currentWallet === null || currentWallet === undefined || currentWallet?.type !== WalletType.keystore) {
+        if (currentWalletInfo === null || currentWalletInfo === undefined || currentWalletInfo?.type !== WalletType.keystore) {
           void navigate('/choose-wallet-type')
         }
       } catch (error) {
@@ -63,7 +63,7 @@ function ImportKeystoreState (): React.JSX.Element {
     void checkWalletType().catch(error => {
       console.warn('Failed to check wallet type in effect:', error)
     })
-  }, [selectedWallet, extensionAPI, navigate])
+  }, [currentWallet, extensionAPI, navigate])
 
   const addPrivateKeyInput = (): void => {
     const newId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -117,7 +117,7 @@ function ImportKeystoreState (): React.JSX.Element {
         } else if (privateKey.length === 64) {
           // hex
           try {
-            pkeyWASM = PrivateKeyWASM.fromHex(privateKey, (selectedNetwork ?? 'testnet') as 'testnet' | 'mainnet')
+            pkeyWASM = PrivateKeyWASM.fromHex(privateKey, (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet')
           } catch (e) {
             console.log(e)
             return setError(`Could not decode private key from hex: ${privateKey}`)
@@ -196,7 +196,7 @@ function ImportKeystoreState (): React.JSX.Element {
         return setError('No identities found to import')
       }
 
-      if (selectedWallet === null) {
+      if (currentWallet === null) {
         return setError('No wallet selected')
       }
 

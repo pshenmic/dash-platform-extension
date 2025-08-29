@@ -85,12 +85,12 @@ export const privateKeysScreenConfig: ScreenConfig = {
   content: []
 }
 
-export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, selectedNetwork, currentWallet, onItemSelect }) => {
+export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, currentNetwork, currentWallet, onItemSelect }) => {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
 
   const [publicKeys, setPublicKeys] = useState<PublicKey[]>([])
-  const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
+  const [currentWalletId, setCurrentWalletId] = useState<string | null>(null)
   const [keysState, loadKeys] = useAsyncState<PublicKey[]>()
   const [keyToDelete, setKeyToDelete] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -100,7 +100,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     const loadWalletInfo = async (): Promise<void> => {
       try {
         const status = await extensionAPI.getStatus()
-        setSelectedWallet(status.currentWalletId)
+        setCurrentWalletId(status.currentWalletId)
       } catch (error) {
         console.warn('Failed to load wallet info:', error)
       }
@@ -114,7 +114,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   // Helper to fetch available public keys for current identity/wallet
   const fetchAvailablePublicKeys = async (): Promise<PublicKey[]> => {
     const allWallets = await extensionAPI.getAllWallets()
-    const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
+    const wallet = allWallets.find(w => w.walletId === currentWalletId && w.network === currentNetwork)
     if (wallet == null) throw new Error('Wallet not found')
 
     if (currentIdentity == null) throw new Error('No current identity')
@@ -150,11 +150,11 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
   // Load public keys
   useEffect(() => {
-    if (selectedWallet === null || selectedWallet === '' || selectedNetwork === null || selectedNetwork === '' || currentIdentity === null || currentIdentity === '') return
+    if (currentWalletId === null || currentWalletId === '' || currentNetwork === null || currentNetwork === '' || currentIdentity === null || currentIdentity === '') return
     void loadKeys(fetchAvailablePublicKeys).catch(error => {
       console.warn('Failed to load public keys:', error)
     })
-  }, [selectedWallet, selectedNetwork, currentIdentity, extensionAPI, sdk, loadKeys])
+  }, [currentWalletId, currentNetwork, currentIdentity, extensionAPI, sdk, loadKeys])
 
   // Update local state when keys are loaded
   useEffect(() => {

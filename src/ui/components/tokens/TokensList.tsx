@@ -10,14 +10,14 @@ interface TokensListProps {
   tokens: TokenData[]
   loading: boolean
   error: string | null
-  selectedNetwork: NetworkType
+  currentNetwork: NetworkType
 }
 
 function TokensList ({
   tokens,
   loading,
   error,
-  selectedNetwork
+  currentNetwork
 }: TokensListProps): React.JSX.Element {
   console.log('tokens', tokens)
 
@@ -38,7 +38,7 @@ function TokensList ({
   }
 
   const getTokenExplorerUrl = (tokenIdentifier: string): string => {
-    const explorerBaseUrl = PLATFORM_EXPLORER_URLS[selectedNetwork].explorer
+    const explorerBaseUrl = PLATFORM_EXPLORER_URLS[currentNetwork].explorer
     return `${explorerBaseUrl}/token/${tokenIdentifier}`
   }
 

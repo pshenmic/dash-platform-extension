@@ -11,7 +11,7 @@ interface TransactionsListProps {
   loading: boolean
   error: string | null
   rate: number | null
-  selectedNetwork: NetworkType
+  currentNetwork: NetworkType
   getTransactionExplorerUrl: (hash: string, network: NetworkType) => string
 }
 
@@ -25,7 +25,7 @@ function TransactionsList ({
   loading,
   error,
   rate,
-  selectedNetwork,
+  currentNetwork,
   getTransactionExplorerUrl
 }: TransactionsListProps): React.JSX.Element {
   const groupTransactionsByDate = (transactions: TransactionData[]): GroupedTransaction[] => {
@@ -152,7 +152,7 @@ function TransactionsList ({
               return (
                 <EntityListItem
                   key={hash}
-                  href={getTransactionExplorerUrl(hash, selectedNetwork)}
+                  href={getTransactionExplorerUrl(hash, currentNetwork)}
                 >
                   {/* Left side */}
                   <div className='flex items-center gap-4'>

@@ -14,7 +14,7 @@ export const importPrivateKeysScreenConfig: ScreenConfig = {
   content: []
 }
 
-export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, selectedNetwork, onBack }) => {
+export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, currentNetwork, onBack }) => {
   const sdk = useSdk()
   const extensionAPI = useExtensionAPI()
 
@@ -75,8 +75,8 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
         const privateKeyString = input.value.trim()
 
         try {
-          const currentNetwork = (selectedNetwork as Network) ?? Network.testnet
-          const processed = await processPrivateKey(privateKeyString, sdk, currentNetwork)
+          const network = (currentNetwork as Network) ?? Network.testnet
+          const processed = await processPrivateKey(privateKeyString, sdk, network)
 
           // Check if the processed key belongs to the current identity
           const keyIdentityId = processed.identity.id.base58()

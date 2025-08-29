@@ -9,7 +9,7 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 function ImportSeedPhrase (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
-  const { setSelectedWallet, setCurrentIdentity, createWallet } = useOutletContext<OutletContext>()
+  const { setCurrentWallet, setCurrentIdentity, createWallet } = useOutletContext<OutletContext>()
   const [seedWords, setSeedWords] = useState<string[]>(Array(12).fill(''))
   const [wordCount, setWordCount] = useState<12 | 24>(12)
   const [password, setPassword] = useState('')
@@ -114,7 +114,7 @@ function ImportSeedPhrase (): React.JSX.Element {
       await extensionAPI.resyncIdentities(password)
       const identities = await extensionAPI.getIdentities()
 
-      setSelectedWallet(walletId)
+      setCurrentWallet(walletId)
       setCurrentIdentity(identities[0].identifier)
 
       if (identities.length > 0) {

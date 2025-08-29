@@ -22,14 +22,14 @@ interface ImportOption {
 
 function ChooseWalletType (): React.JSX.Element {
   const navigate = useNavigate()
-  const { setSelectedWallet, createWallet } = useOutletContext<OutletContext>()
+  const { setCurrentWallet, createWallet } = useOutletContext<OutletContext>()
 
   const extensionAPI = useExtensionAPI()
 
   const createKeystoreWallet = async (): Promise<void> => {
     const { walletId } = await createWallet(WalletType.keystore)
     await extensionAPI.switchWallet(walletId)
-    setSelectedWallet(walletId)
+    setCurrentWallet(walletId)
     void navigate('/wallet-created')
   }
 

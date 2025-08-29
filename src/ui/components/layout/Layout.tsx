@@ -11,8 +11,8 @@ const Layout: FC = () => {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
 
-  const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null)
-  const [selectedWallet, setSelectedWallet] = useState<string | null>(null)
+  const [currentNetwork, setCurrentNetwork] = useState<string | null>(null)
+  const [currentWallet, setCurrentWallet] = useState<string | null>(null)
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
   const [availableIdentities, setAvailableIdentities] = useState<Identity[]>([])
@@ -21,8 +21,8 @@ const Layout: FC = () => {
     try {
       const status = await extensionAPI.getStatus()
 
-      setSelectedNetwork(status.network)
-      setSelectedWallet(status.currentWalletId)
+      setCurrentNetwork(status.network)
+      setCurrentWallet(status.currentWalletId)
     } catch (error) {
       console.warn('Failed to load current network:', error)
     }
@@ -38,7 +38,7 @@ const Layout: FC = () => {
   // Load identities and set current identity
   useEffect(() => {
     const loadCurrentIdentity = async (): Promise<void> => {
-      if (selectedWallet === null) return
+      if (currentWallet === null) return
 
       try {
         // Load identities
@@ -67,12 +67,12 @@ const Layout: FC = () => {
     void loadCurrentIdentity().catch(error => {
       console.warn('Failed to load current identity in effect:', error)
     })
-  }, [selectedWallet, extensionAPI])
+  }, [currentWallet, extensionAPI])
 
   // change all identities
   useEffect(() => {
     const getIdentities = async (): Promise<void> => {
-      if (selectedNetwork != null && selectedNetwork !== '' && selectedWallet != null && selectedWallet !== '') {
+      if (currentNetwork != null && currentNetwork !== '' && currentWallet != null && currentWallet !== '') {
         try {
           const identitiesData = await extensionAPI.getIdentities()
           setAvailableIdentities(identitiesData)
@@ -85,7 +85,7 @@ const Layout: FC = () => {
     void getIdentities().catch(error => {
       console.warn('Failed to get identities in effect:', error)
     })
-  }, [selectedNetwork, selectedWallet])
+  }, [currentNetwork, currentWallet])
 
   const loadWallets = useCallback(async (): Promise<WalletAccountInfo[]> => {
     try {
@@ -112,10 +112,10 @@ const Layout: FC = () => {
       const status = await extensionAPI.getStatus()
       const wallets = await loadWallets()
 
-      setSelectedNetwork(status.network)
+      setCurrentNetwork(status.network)
 
       if (wallets.length > 0) {
-        setSelectedWallet(status.currentWalletId)
+        setCurrentWallet(status.currentWalletId)
       }
     } catch (e) {
       console.warn('changeNetwork error: ', e)
@@ -126,7 +126,7 @@ const Layout: FC = () => {
     if (wallet !== null && wallet !== '') {
       try {
         await extensionAPI.switchWallet(wallet)
-        setSelectedWallet(wallet)
+        setCurrentWallet(wallet)
       } catch (e) {
         console.warn('changeWallet error: ', e)
       }
@@ -155,8 +155,8 @@ const Layout: FC = () => {
   }, [extensionAPI, loadWallets])
 
   console.log('layout data:', {
-    selectedNetwork,
-    selectedWallet,
+    currentNetwork,
+    currentWallet,
     currentIdentity
   })
 
@@ -165,17 +165,17 @@ const Layout: FC = () => {
       <div className='main_container'>
         <Header
           onNetworkChange={(network) => { void networkChangeHandler(network).catch(error => console.warn('Network change error:', error)) }}
-          currentNetwork={selectedNetwork}
+          currentNetwork={currentNetwork}
           onWalletChange={(wallet) => { void walletChangeHandler(wallet).catch(error => console.warn('Wallet change error:', error)) }}
           currentIdentity={currentIdentity}
-          currentWalletId={selectedWallet}
+          currentWalletId={currentWallet}
           wallets={allWallets}
         />
         <Outlet context={{
-          selectedNetwork,
-          setSelectedNetwork: networkChangeHandler,
-          selectedWallet,
-          setSelectedWallet: walletChangeHandler,
+          currentNetwork,
+          setCurrentNetwork: networkChangeHandler,
+          currentWallet,
+          setCurrentWallet: walletChangeHandler,
           currentIdentity,
           setCurrentIdentity: identityChangeHandler,
           allWallets,

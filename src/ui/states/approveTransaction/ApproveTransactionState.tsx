@@ -16,7 +16,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
-  const { selectedNetwork, selectedWallet, currentIdentity, setCurrentIdentity } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentWallet, currentIdentity, setCurrentIdentity } = useOutletContext<OutletContext>()
 
   const params = useParams()
 
@@ -81,11 +81,11 @@ function ApproveTransactionState (): React.JSX.Element {
     }
 
     void loadData()
-  }, [isCheckingWallet, hasWallet, selectedWallet])
+  }, [isCheckingWallet, hasWallet, currentWallet])
 
   // Load signing keys when wallet/identity/network changes
   useEffect(() => {
-    if (selectedWallet == null || selectedNetwork == null || currentIdentity == null || currentIdentity === '') {
+    if (currentWallet == null || currentNetwork == null || currentIdentity == null || currentIdentity === '') {
       setSigningKeys([])
       setSelectedSigningKey('')
       return
@@ -93,7 +93,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
     void loadSigningKeys(async () => {
       const allWallets = await extensionAPI.getAllWallets()
-      const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
+      const wallet = allWallets.find(w => w.walletId === currentWallet && w.network === currentNetwork)
       if (wallet == null) throw new Error('Wallet not found')
 
       const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
@@ -124,7 +124,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
       return keys
     })
-  }, [selectedWallet, selectedNetwork, currentIdentity])
+  }, [currentWallet, currentNetwork, currentIdentity])
 
   // Update local state when signing keys are loaded
   useEffect(() => {

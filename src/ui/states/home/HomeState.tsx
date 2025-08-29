@@ -20,7 +20,7 @@ function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformClient = usePlatformExplorerClient()
-  const { selectedNetwork, selectedWallet, currentIdentity, setCurrentIdentity, allWallets } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentWallet, currentIdentity, setCurrentIdentity, allWallets } = useOutletContext<OutletContext>()
   const [identities, setIdentities] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [transactionsState, loadTransactions] = useAsyncState<TransactionData[]>()
@@ -47,7 +47,7 @@ function HomeState (): React.JSX.Element {
     }
 
     void loadIdentities()
-  }, [selectedNetwork, selectedWallet, extensionAPI])
+  }, [currentNetwork, currentWallet, extensionAPI])
 
   // Load Balance and Transactions by Identity
   useEffect(() => {
@@ -55,12 +55,12 @@ function HomeState (): React.JSX.Element {
       if (currentIdentity === null || currentIdentity === '') return
 
       const sdkNetwork = sdk.getNetwork()
-      if (selectedNetwork !== sdkNetwork) {
+      if (currentNetwork !== sdkNetwork) {
         return
       }
 
-      const currentWallet = allWallets.find(wallet => wallet.walletId === selectedWallet)
-      if ((currentWallet != null) && currentWallet.network !== selectedNetwork) {
+      const currentWalletInfo = allWallets.find(wallet => wallet.walletId === currentWallet)
+      if ((currentWalletInfo != null) && currentWalletInfo.network !== currentNetwork) {
         return
       }
 
@@ -76,7 +76,7 @@ function HomeState (): React.JSX.Element {
       })
 
       void loadTransactions(async () => {
-        const result = await platformClient.fetchTransactions(currentIdentity, selectedNetwork as NetworkType, 'desc')
+        const result = await platformClient.fetchTransactions(currentIdentity, currentNetwork as NetworkType, 'desc')
         if (result.data !== null && result.data !== undefined) {
           return result.data
         }
@@ -84,7 +84,7 @@ function HomeState (): React.JSX.Element {
       })
 
       void loadTokens(async () => {
-        const result = await platformClient.fetchTokens(currentIdentity, selectedNetwork as NetworkType, 100, 1)
+        const result = await platformClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
         if (result.data !== null && result.data !== undefined) {
           return result.data
         }
@@ -95,8 +95,8 @@ function HomeState (): React.JSX.Element {
     void loadData()
   }, [
     currentIdentity,
-    selectedNetwork,
-    selectedWallet,
+    currentNetwork,
+    currentWallet,
     platformClient,
     sdk,
     loadBalance,
@@ -109,20 +109,20 @@ function HomeState (): React.JSX.Element {
   // load rate
   useEffect(() => {
     void loadRate(async () => {
-      const result = await platformClient.fetchRate(selectedNetwork as NetworkType)
+      const result = await platformClient.fetchRate(currentNetwork as NetworkType)
       if (result.data !== null && result.data !== undefined) {
         return result.data
       }
       throw new Error(result.error ?? 'Failed to load rate')
     })
-  }, [selectedNetwork, platformClient, loadRate])
+  }, [currentNetwork, platformClient, loadRate])
 
   if (isLoading) {
     return <LoadingScreen message='Loading wallet data...' />
   }
 
-  // Check if there are wallets available in the selected network
-  const availableWallets = allWallets.filter(wallet => wallet.network === selectedNetwork)
+  // Check if there are wallets available in the current network
+  const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
 
   if (availableWallets.length === 0) {
     return <NoWallets />
@@ -140,7 +140,7 @@ function HomeState (): React.JSX.Element {
             identities={identities}
             currentIdentity={currentIdentity}
             onSelectIdentity={setCurrentIdentity}
-            currentWallet={allWallets.find(wallet => wallet.walletId === selectedWallet) ?? null}
+            currentWallet={allWallets.find(wallet => wallet.walletId === currentWallet) ?? null}
           >
             <div className='flex items-center gap-2 cursor-pointer'>
               <Identifier
@@ -215,7 +215,7 @@ function HomeState (): React.JSX.Element {
                   loading={transactionsState.loading}
                   error={transactionsState.error}
                   rate={rateState.data}
-                  selectedNetwork={selectedNetwork as NetworkType}
+                  currentNetwork={currentNetwork as NetworkType}
                   getTransactionExplorerUrl={platformClient.getTransactionExplorerUrl}
                 />
               )
@@ -228,7 +228,7 @@ function HomeState (): React.JSX.Element {
                   tokens={tokensState.data ?? []}
                   loading={tokensState.loading}
                   error={tokensState.error}
-                  selectedNetwork={selectedNetwork as NetworkType}
+                  currentNetwork={currentNetwork as NetworkType}
                 />
               )
             }

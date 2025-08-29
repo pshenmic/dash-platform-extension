@@ -29,12 +29,12 @@ const SCREEN_COMPONENTS: Record<string, React.ComponentType<SettingsScreenProps>
 }
 
 // Universal screen renderer based on ScreenConfig content
-const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, selectedNetwork?: string | null }> = ({
+const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, currentNetwork?: string | null }> = ({
   screenType,
   onBack,
   onClose,
   currentIdentity,
-  selectedNetwork,
+  currentNetwork,
   currentWallet,
   onItemSelect
 }) => {
@@ -51,7 +51,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, s
         onBack={onBack}
         onClose={onClose}
         currentIdentity={currentIdentity}
-        selectedNetwork={selectedNetwork}
+        currentNetwork={currentNetwork}
         currentWallet={currentWallet}
         onItemSelect={onItemSelect ?? (() => {})}
       />
@@ -66,7 +66,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, s
         onBack={onBack}
         onClose={onClose}
         currentIdentity={currentIdentity}
-        selectedNetwork={selectedNetwork}
+        currentNetwork={currentNetwork}
         currentWallet={currentWallet}
         onItemSelect={onItemSelect}
       />
@@ -97,21 +97,15 @@ interface SettingsMenuProps {
   isOpen: boolean
   onClose: () => void
   currentIdentity?: string | null
-  selectedNetwork?: string | null
+  currentNetwork?: string | null
   currentWallet?: WalletAccountInfo | null
 }
 
-export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, currentIdentity, selectedNetwork, currentWallet }) => {
+export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, currentIdentity, currentNetwork, currentWallet }) => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('main')
   const [screenHistory, setScreenHistory] = useState<ScreenType[]>(['main'])
 
   const navigateToScreen = (itemIdOrScreenId: string): void => {
-    if (itemIdOrScreenId === 'logout') {
-      // Special case for logout
-      handleLogout()
-      return
-    }
-
     // Check if this is a direct screen ID
     if (screenConfigs[itemIdOrScreenId as ScreenType] !== null && screenConfigs[itemIdOrScreenId as ScreenType] !== undefined) {
       const screenType = itemIdOrScreenId as ScreenType
@@ -154,16 +148,9 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
   }
 
   const handleClose = (): void => {
-    // Reset state on close
     setCurrentScreen('main')
     setScreenHistory(['main'])
     onClose()
-  }
-
-  const handleLogout = (): void => {
-    // TODO: Implement logout logic
-    console.log('Logout requested')
-    handleClose()
   }
 
   const currentScreenConfig = screenConfigs[currentScreen]
@@ -181,7 +168,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
         onBack={navigateBack}
         onClose={handleClose}
         currentIdentity={currentIdentity}
-        selectedNetwork={selectedNetwork}
+        currentNetwork={currentNetwork}
         currentWallet={currentWallet}
         onItemSelect={navigateToScreen}
       />

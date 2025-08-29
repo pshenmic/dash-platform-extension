@@ -21,7 +21,7 @@ export interface SettingsScreenProps {
   onClose: () => void
   onItemSelect?: (itemId: string) => void
   currentIdentity?: string | null
-  selectedNetwork?: string | null
+  currentNetwork?: string | null
   currentWallet?: WalletAccountInfo | null
 }
 
