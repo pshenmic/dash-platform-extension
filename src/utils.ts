@@ -207,7 +207,7 @@ export const validateIdentityPublicKey = (
     publicKey.getPublicKeyHash() === targetHash
   )
 
-  return (matchingKey != null) || null
+  return matchingKey ?? null
 }
 
 export const processPrivateKey = async (
