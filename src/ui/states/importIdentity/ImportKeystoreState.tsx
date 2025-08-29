@@ -133,16 +133,12 @@ function ImportKeystoreState (): React.JSX.Element {
         let uniqueIdentity
         try {
           uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
-        } catch (e) {
-          // Continue to check non-unique
-        }
+        } catch (e) {}
 
         let nonUniqueIdentity
         try {
           nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkeyWASM.getPublicKeyHash())
-        } catch (e) {
-          // Continue
-        }
+        } catch (e) {}
 
         const [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e !== null && e !== undefined)
 
