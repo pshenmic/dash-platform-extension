@@ -1,22 +1,6 @@
 import React from 'react'
-import { Text, useTheme } from 'dash-ui/react'
+import { Text, useTheme, WebIcon } from 'dash-ui/react'
 import type { SettingsScreenProps } from '../types'
-
-// Icons for different DApps
-const WebIcon: React.FC<{ theme?: 'light' | 'dark' }> = ({ theme = 'light' }) => (
-  <svg width='13.33' height='13.33' viewBox='0 0 14 14' fill='none'>
-    <path d='M7 0.5C3.41 0.5 0.5 3.41 0.5 7C0.5 10.59 3.41 13.5 7 13.5C10.59 13.5 13.5 10.59 13.5 7C13.5 3.41 10.59 0.5 7 0.5ZM7 12.5C3.96 12.5 1.5 10.04 1.5 7C1.5 3.96 3.96 1.5 7 1.5C10.04 1.5 12.5 3.96 12.5 7C12.5 10.04 10.04 12.5 7 12.5Z' fill={theme === 'dark' ? '#FFFFFF' : '#0C1C33'} />
-    <path d='M7 2.5C8.93 2.5 10.5 5.02 10.5 7C10.5 8.98 8.93 11.5 7 11.5C5.07 11.5 3.5 8.98 3.5 7C3.5 5.02 5.07 2.5 7 2.5Z' fill={theme === 'dark' ? '#FFFFFF' : '#0C1C33'} />
-    <path d='M1.5 7H12.5' stroke={theme === 'dark' ? '#FFFFFF' : '#0C1C33'} strokeWidth='1' />
-  </svg>
-)
-
-const PlatformExplorerIcon: React.FC<{ theme?: 'light' | 'dark' }> = ({ theme = 'light' }) => (
-  <svg width='35' height='34' viewBox='0 0 35 34' fill='none'>
-    <rect width='35' height='34' rx='8' fill={theme === 'dark' ? '#FFFFFF' : '#4C7EFF'} />
-    <path d='M10 17L15 22L25 12' stroke='white' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' />
-  </svg>
-)
 
 export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   const { theme } = useTheme()
@@ -24,20 +8,17 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
     {
       id: 'dashcentral',
       name: 'dashcentral.org',
-      url: 'dashcentral.org',
-      icon: 'web'
+      url: 'dashcentral.org'
     },
     {
       id: 'platform-explorer',
       name: 'Platform Explorer',
-      url: 'platform-explorer.com',
-      icon: 'platform'
+      url: 'platform-explorer.com'
     },
     {
       id: 'dash-org',
       name: 'dash.org',
-      url: 'dash.org',
-      icon: 'web'
+      url: 'dash.org'
     }
   ]
 
@@ -46,19 +27,12 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
     // TODO: Implement disconnect logic
   }
 
-  const renderIcon = (iconType: string, dappName: string): React.JSX.Element => {
-    const iconBgClass = iconType === 'platform' ? 'bg-[#4C7EFF]' : (theme === 'dark' ? 'bg-[rgba(255,255,255,0.05)]' : 'bg-white')
-    const iconSize = iconType === 'platform' ? 'w-[50px] h-[50px]' : 'w-[50px] h-[50px]'
+  const renderIcon = (): React.JSX.Element => {
+    const iconBgClass = theme === 'dark' ? 'bg-[rgba(255,255,255,0.05)]' : 'bg-white'
 
     return (
-      <div className={`${iconSize} ${iconBgClass} rounded-full flex items-center justify-center`}>
-        {iconType === 'platform'
-          ? (
-            <PlatformExplorerIcon theme={theme} />
-            )
-          : (
-            <WebIcon theme={theme} />
-            )}
+      <div className={`w-[50px] h-[50px] ${iconBgClass} rounded-full flex items-center justify-center`}>
+        <WebIcon theme={theme} />
       </div>
     )
   }
@@ -107,7 +81,7 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
             }`}
           >
             <div className='flex items-center gap-[15px]'>
-              {renderIcon(dapp.icon, dapp.name)}
+              {renderIcon()}
 
               <div className='flex flex-col gap-[5px]'>
                 <Text size='base' weight='500' className={theme === 'dark' ? 'text-white' : 'text-[#0C1C33]'}>

@@ -28,7 +28,6 @@ const DiscordIcon: React.FC = () => (
   </svg>
 )
 
-// Конфигурация экрана Help & Support
 export const helpSupportScreenConfig: ScreenConfig = {
   id: 'help-support',
   title: 'Help and Support',
