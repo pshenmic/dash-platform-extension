@@ -154,12 +154,6 @@ const Layout: FC = () => {
     }
   }, [extensionAPI, loadWallets])
 
-  console.log('layout data:', {
-    currentNetwork,
-    currentWallet,
-    currentIdentity
-  })
-
   return (
     <ThemeProvider initialTheme='light'>
       <div className='main_container'>
