@@ -3677,9 +3677,9 @@ dash-platform-sdk@1.1.7:
     rfc4648 "^1.5.4"
     wasm-drive-verify "github:owl352/wasm-drive-verify#9c572d86992d205d994cd7e0630a4bd14d284f8a"
 
-dash-ui@AlexeyTripleA/dash-ui-kit#feat/new-components:
+dash-ui@AlexeyTripleA/dash-ui-kit:
   version "0.1.0"
-  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/3894754e9c7a6dc26b6762eb0a28230c8f0eb93e"
+  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/49baeb322d581dc704ccc1eccd3a7ecbef32b1ba"
   dependencies:
     "@radix-ui/react-accordion" "^1.2.12"
     "@radix-ui/react-dialog" "^1.1.14"
