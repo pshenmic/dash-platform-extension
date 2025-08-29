@@ -70,7 +70,6 @@ function ChooseWalletType (): React.JSX.Element {
         </div>
       </div>
 
-      {/* Import Options */}
       <div className='mb-8 space-y-2'>
         {importOptions.map((option) => (
           <ValueCard

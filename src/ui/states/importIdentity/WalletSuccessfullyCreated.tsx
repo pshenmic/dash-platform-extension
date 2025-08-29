@@ -27,7 +27,6 @@ function WalletSuccessfullyCreated (): React.JSX.Element {
         />
       </div>
 
-      {/* Main Content */}
       <div className='z-10 flex flex-col h-full pt-16 pb-36'>
         <div className='flex flex-col items-center text-center gap-2.5 mb-8'>
           <div className='flex items-center justify-center w-12 h-12'>
@@ -43,10 +42,6 @@ function WalletSuccessfullyCreated (): React.JSX.Element {
           </Text>
         </div>
 
-        {/* Spacer */}
-        <div className='flex-1' />
-
-        {/* Continue Button */}
         <div className='w-full'>
           <Button
             onClick={handleContinue}
