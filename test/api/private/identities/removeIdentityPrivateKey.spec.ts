@@ -1,5 +1,4 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { PrivateAPIClient, WalletType } from '../../../../src/types'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
 import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
@@ -7,6 +6,8 @@ import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
 import { KeyPairsSchema } from '../../../../src/content-script/storage/storageSchema'
+import { PrivateAPIClient } from '../../../../src/types/PrivateAPIClient'
+import { WalletType } from '../../../../src/types/WalletType'
 
 describe('remove identity private key', () => {
   let privateAPI: PrivateAPI
