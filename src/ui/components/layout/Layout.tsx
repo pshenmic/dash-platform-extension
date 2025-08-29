@@ -29,7 +29,11 @@ const Layout: FC = () => {
   }
 
   // Load status and all wallets on mount
-  useEffect(() => void loadStatus(), [extensionAPI])
+  useEffect(() => {
+    void loadStatus().catch(error => {
+      console.warn('Failed to load status on mount:', error)
+    })
+  }, [extensionAPI])
 
   // Load identities and set current identity
   useEffect(() => {
@@ -43,10 +47,14 @@ const Layout: FC = () => {
 
         // Set current Identity if it doesn't exist
         if (currentIdentityFromApi != null && currentIdentityFromApi !== '') {
-          identityChangeHandler(currentIdentityFromApi)
+          void identityChangeHandler(currentIdentityFromApi).catch(error => {
+            console.warn('Failed to change identity handler:', error)
+          })
         } else if ((identitiesData?.length ?? 0) > 0) {
           const firstIdentity = identitiesData[0].identifier
-          identityChangeHandler(firstIdentity)
+          void identityChangeHandler(firstIdentity).catch(error => {
+            console.warn('Failed to change identity handler:', error)
+          })
           await extensionAPI.switchIdentity(firstIdentity).catch(error => {
             console.warn('Failed to set current identity:', error)
           })
@@ -56,7 +64,9 @@ const Layout: FC = () => {
       }
     }
 
-    void loadCurrentIdentity()
+    void loadCurrentIdentity().catch(error => {
+      console.warn('Failed to load current identity in effect:', error)
+    })
   }, [selectedWallet, extensionAPI])
 
   // change all identities
@@ -72,7 +82,9 @@ const Layout: FC = () => {
       }
     }
 
-    void getIdentities()
+    void getIdentities().catch(error => {
+      console.warn('Failed to get identities in effect:', error)
+    })
   }, [selectedNetwork, selectedWallet])
 
   const loadWallets = useCallback(async (): Promise<WalletAccountInfo[]> => {
@@ -87,9 +99,13 @@ const Layout: FC = () => {
     }
   }, [extensionAPI])
 
-  useEffect(() => void loadWallets(), [])
+  useEffect(() => {
+    void loadWallets().catch(error => {
+      console.warn('Failed to load wallets on mount:', error)
+    })
+  }, [])
 
-  const networkChangeHandler = useCallback(async (network) => {
+  const networkChangeHandler = useCallback(async (network): Promise<void> => {
     try {
       sdk.setNetwork(network as 'testnet' | 'mainnet')
       await extensionAPI.switchNetwork(network)
@@ -106,7 +122,7 @@ const Layout: FC = () => {
     }
   }, [sdk, extensionAPI, loadWallets])
 
-  const walletChangeHandler = useCallback(async (wallet) => {
+  const walletChangeHandler = useCallback(async (wallet): Promise<void> => {
     if (wallet !== null && wallet !== '') {
       try {
         await extensionAPI.switchWallet(wallet)
@@ -117,7 +133,7 @@ const Layout: FC = () => {
     }
   }, [extensionAPI])
 
-  const identityChangeHandler = useCallback(async (identity) => {
+  const identityChangeHandler = useCallback(async (identity): Promise<void> => {
     try {
       await extensionAPI.switchIdentity(identity)
       setCurrentIdentity(identity)
@@ -130,14 +146,13 @@ const Layout: FC = () => {
     try {
       const result = await extensionAPI.createWallet(walletType, mnemonic)
       await loadWallets()
-      await loadStatus()  
+      await loadStatus()
       return result
     } catch (error) {
       console.warn('Failed to create wallet:', error)
       throw error
     }
   }, [extensionAPI, loadWallets])
-
 
   console.log('layout data:', {
     selectedNetwork,
@@ -149,9 +164,9 @@ const Layout: FC = () => {
     <ThemeProvider initialTheme='light'>
       <div className='main_container'>
         <Header
-          onNetworkChange={networkChangeHandler}
+          onNetworkChange={(network) => { void networkChangeHandler(network).catch(error => console.warn('Network change error:', error)) }}
           currentNetwork={selectedNetwork}
-          onWalletChange={walletChangeHandler}
+          onWalletChange={(wallet) => { void walletChangeHandler(wallet).catch(error => console.warn('Wallet change error:', error)) }}
           currentIdentity={currentIdentity}
           currentWalletId={selectedWallet}
           wallets={allWallets}

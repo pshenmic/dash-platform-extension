@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { OverlayMenu, KebabMenuIcon, PlusIcon, WalletIcon, ValueCard } from 'dash-ui/react'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'

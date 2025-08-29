@@ -115,7 +115,7 @@ function ApproveTransactionState (): React.JSX.Element {
         } catch {}
 
         return {
-          keyId: keyId || 0,
+          keyId: keyId ?? 0,
           securityLevel: security,
           purpose,
           hash
@@ -132,7 +132,7 @@ function ApproveTransactionState (): React.JSX.Element {
       setSigningKeys(signingKeysState.data)
       if (signingKeysState.data.length > 0 && selectedSigningKey === '') {
         const firstKey = signingKeysState.data[0]
-        const keyValue = firstKey.keyId?.toString() || firstKey.hash || 'key-0'
+        const keyValue = firstKey.keyId?.toString() ?? (firstKey.hash !== '' ? firstKey.hash : 'key-0')
         setSelectedSigningKey(keyValue)
       }
     } else {

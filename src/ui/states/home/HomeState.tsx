@@ -60,7 +60,7 @@ function HomeState (): React.JSX.Element {
       }
 
       const currentWallet = allWallets.find(wallet => wallet.walletId === selectedWallet)
-      if (currentWallet && currentWallet.network !== selectedNetwork) {
+      if ((currentWallet != null) && currentWallet.network !== selectedNetwork) {
         return
       }
 
@@ -100,7 +100,8 @@ function HomeState (): React.JSX.Element {
     platformClient,
     sdk,
     loadBalance,
-    loadTransactions,loadTokens,
+    loadTransactions,
+    loadTokens,
     identities.length,
     allWallets.length
   ])
@@ -171,21 +172,21 @@ function HomeState (): React.JSX.Element {
                     <span className='text-gray-500'>...</span>
                   </Text>
                   )
-                : balanceState.error
-                  ? (
-                    <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                      <span className='text-red-500'>Error</span>
-                    </Text>
-                    )
-                  : balanceState.data !== null && balanceState.data !== undefined && !Number.isNaN(Number(balanceState.data))
+                : (balanceState.error != null && balanceState.error !== '')
                     ? (
                       <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                        <BigNumber className='!text-dash-brand gap-2'>
-                          {balanceState.data.toString()}
-                        </BigNumber>
+                        <span className='text-red-500'>Error</span>
                       </Text>
                       )
-                    : <NotActive>N/A</NotActive>}
+                    : balanceState.data !== null && balanceState.data !== undefined && !Number.isNaN(Number(balanceState.data))
+                      ? (
+                        <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
+                          <BigNumber className='!text-dash-brand gap-2'>
+                            {balanceState.data.toString()}
+                          </BigNumber>
+                        </Text>
+                        )
+                      : <NotActive>N/A</NotActive>}
             </span>
           </div>
 

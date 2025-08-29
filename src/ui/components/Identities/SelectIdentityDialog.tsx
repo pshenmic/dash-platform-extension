@@ -120,7 +120,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
               </div>
             ))}
           </div>
-          
+
           {currentWallet?.type === WalletType.keystore && (
             <div className='px-6 pb-2'>
               <Button
@@ -132,7 +132,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                   void navigate('/import-keystore')
                 }}
               >
-                <PlusIcon/>
+                <PlusIcon />
                 <div>Add an identity</div>
               </Button>
             </div>

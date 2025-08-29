@@ -9,7 +9,7 @@ interface EmptyStateProps {
   className?: string
 }
 
-export function EmptyState({ title, buttonText, onButtonClick, className = '' }: EmptyStateProps): React.JSX.Element {
+export function EmptyState ({ title, buttonText, onButtonClick, className = '' }: EmptyStateProps): React.JSX.Element {
   return (
     <div className={`relative flex flex-col h-full ${className}`}>
       <div className='relative top-0 left-0 w-full h-[300px] pointer-events-none'>
@@ -40,7 +40,7 @@ export function EmptyState({ title, buttonText, onButtonClick, className = '' }:
             size='xl'
             className='w-full h-[58px] gap-4'
           >
-            <PlusIcon/>
+            <PlusIcon />
             <span className='text-sm font-normal'>
               {buttonText}
             </span>

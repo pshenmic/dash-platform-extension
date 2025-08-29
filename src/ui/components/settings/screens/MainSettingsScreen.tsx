@@ -7,9 +7,7 @@ import {
   ChainSmallIcon,
   SettingsIcon,
   DashLogo,
-  QuestionMessageIcon,
-  Identifier,
-  Avatar
+  QuestionMessageIcon
 } from 'dash-ui/react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import type { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
@@ -141,7 +139,7 @@ const createDynamicMainScreenConfig = (
   currentWallet?: WalletAccountInfo | null,
   currentIdentity?: string | null
 ): ScreenConfig => {
-  const isPrivateKeysDisabled = !currentWallet || !currentIdentity
+  const isPrivateKeysDisabled = (currentWallet == null) || (currentIdentity == null || currentIdentity === '')
 
   return {
     ...mainScreenConfig,
@@ -165,10 +163,10 @@ const createDynamicMainScreenConfig = (
   }
 }
 
-export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({ 
-  onItemSelect, 
-  currentWallet, 
-  currentIdentity 
+export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
+  onItemSelect,
+  currentWallet,
+  currentIdentity
 }) => {
   const dynamicConfig = createDynamicMainScreenConfig(currentWallet, currentIdentity)
 

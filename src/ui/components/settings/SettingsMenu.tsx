@@ -29,7 +29,7 @@ const SCREEN_COMPONENTS: Record<string, React.ComponentType<SettingsScreenProps>
 }
 
 // Universal screen renderer based on ScreenConfig content
-const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType; selectedNetwork?: string | null }> = ({
+const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, selectedNetwork?: string | null }> = ({
   screenType,
   onBack,
   onClose,

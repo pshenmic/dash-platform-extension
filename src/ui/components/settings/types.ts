@@ -1,3 +1,5 @@
+import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
+
 export interface MenuItem {
   id: string
   title: string | React.ReactNode
@@ -13,8 +15,6 @@ export interface MenuSection {
   title: string
   items: MenuItem[]
 }
-
-import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 
 export interface SettingsScreenProps {
   onBack: () => void

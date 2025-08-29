@@ -140,8 +140,8 @@ export const creditsToDash = (credits: number | bigint): number => {
 }
 
 export const getTokenName = (localizations: any, form: 'singularForm' | 'pluralForm' = 'singularForm'): string => {
-  return localizations?.en?.[form] ||
-    Object.values(localizations || {})[0]?.[form] ||
+  return localizations?.en?.[form] ??
+    Object.values(localizations ?? {})[0]?.[form] ??
     ''
 }
 
@@ -159,7 +159,7 @@ export const validatePrivateKeyFormat = (privateKey: string): boolean => {
 
 export const parsePrivateKey = (privateKey: string, network: Network = Network.testnet): PrivateKeyWASM => {
   const trimmed = privateKey.trim()
-  
+
   if (trimmed.length === 52) {
     // WIF format
     return PrivateKeyWASM.fromWIF(trimmed)
@@ -176,11 +176,11 @@ export const findIdentityForPrivateKey = async (
   sdk: DashPlatformSDK
 ): Promise<IdentityWASM | null> => {
   const publicKeyHash = privateKey.getPublicKeyHash()
-  
+
   // Try unique identity first
   try {
     const uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(publicKeyHash)
-    if (uniqueIdentity) return uniqueIdentity
+    if (uniqueIdentity != null) return uniqueIdentity
   } catch (e) {
     console.log('Continue to check non-unique', e)
   }
@@ -188,7 +188,7 @@ export const findIdentityForPrivateKey = async (
   // Try non-unique identity
   try {
     const nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(publicKeyHash)
-    if (nonUniqueIdentity) return nonUniqueIdentity
+    if (nonUniqueIdentity != null) return nonUniqueIdentity
   } catch (e) {
     console.warn('No identity found', e)
   }
@@ -202,12 +202,12 @@ export const validateIdentityPublicKey = (
 ): IdentityPublicKeyWASM | null => {
   const publicKeys = identity.getPublicKeys()
   const targetHash = privateKey.getPublicKeyHash()
-  
+
   const matchingKey = publicKeys.find((publicKey: IdentityPublicKeyWASM) =>
     publicKey.getPublicKeyHash() === targetHash
   )
-  
-  return matchingKey || null
+
+  return (matchingKey != null) || null
 }
 
 export const processPrivateKey = async (
@@ -230,13 +230,13 @@ export const processPrivateKey = async (
 
   // Find associated identity
   const identity = await findIdentityForPrivateKey(privateKey, sdk)
-  if (!identity) {
+  if (identity == null) {
     throw new Error(`Could not find identity belonging to private key: ${privateKeyString}`)
   }
 
   // Validate that there's at least one matching public key
   const identityPublicKey = validateIdentityPublicKey(identity, privateKey)
-  if (!identityPublicKey) {
+  if (identityPublicKey == null) {
     throw new Error(`No matching public key found for this private key: ${privateKeyString}`)
   }
 

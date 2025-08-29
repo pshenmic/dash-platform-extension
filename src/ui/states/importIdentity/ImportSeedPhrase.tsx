@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Text, Heading, Button, Input, Switch, ProgressStepBar, DashLogo } from 'dash-ui/react'
+import { Text, Heading, Button, Input, Switch, DashLogo } from 'dash-ui/react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import type { OutletContext } from '../../types/OutletContext'

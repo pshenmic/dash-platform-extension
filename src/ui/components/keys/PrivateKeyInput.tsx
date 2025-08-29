@@ -40,7 +40,7 @@ export const PrivateKeyInput: React.FC<PrivateKeyInputProps> = ({
           value={input.value}
           onChange={(e) => onValueChange(input.id, e.target.value)}
           type={input.isVisible ? 'text' : 'password'}
-          colorScheme={input.hasError ? 'error' : 'default'}
+          colorScheme={(input.hasError === true) ? 'error' : 'default'}
           size='xl'
           showPasswordToggle={false}
           style={{

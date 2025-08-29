@@ -20,7 +20,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   onConfirm,
-  onCancel,
+  onCancel
 }) => {
   const handleConfirm = (): void => {
     onConfirm()
@@ -47,7 +47,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             {message}
           </Text>
         </div>
-        
+
         <div className='flex gap-3 px-6 pb-2'>
           <Button
             size='md'

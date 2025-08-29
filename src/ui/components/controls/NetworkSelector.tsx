@@ -6,7 +6,9 @@ import { Network } from '../../../types/enums/Network'
 interface NetworkSelectorProps {
   onSelect?: (network: string) => void
   variant?: 'default' | 'card'
-  [key: string]: any
+  className?: string
+  border?: boolean
+  wallets?: any[]
 }
 
 export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, variant = 'default', ...props }) => {
@@ -47,23 +49,17 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, vari
     )
   }
 
-  const triggerContent = variant === 'card' 
-    ? (
-        <div className='flex items-center gap-1'>
-          <WebIcon size={16} className='text-white' />
-          <span className='text-sm font-medium text-white capitalize'>
-            {currentNetwork}
-          </span>
-        </div>
-      )
-    : (
-        <div className='flex items-center gap-1'>
-          <WebIcon className='!text-dash-primary-dark-blue' size={16} />
-          <span className='text-sm font-medium capitalize'>
-            {currentNetwork}
-          </span>
-        </div>
-      )
+  const triggerContent = (
+    <div className='flex items-center gap-1'>
+      <WebIcon
+        size={16}
+        className={variant === 'card' ? 'text-white' : '!text-dash-primary-dark-blue'}
+      />
+      <span className={`text-sm font-medium capitalize ${variant === 'card' ? 'text-white' : ''}`}>
+        {currentNetwork}
+      </span>
+    </div>
+  )
 
   const items = Object.values(Network).map(network => ({
     id: network,
@@ -75,8 +71,8 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, vari
     onClick: async () => await handleNetworkChange(network)
   }))
 
-  const baseClassName = variant === 'card' 
-    ? 'min-w-32 h-12 !bg-transparent !border-none' 
+  const baseClassName = variant === 'card'
+    ? 'min-w-32 h-12 !bg-transparent !border-none'
     : 'min-w-32 h-12'
 
   return (

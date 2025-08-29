@@ -75,7 +75,7 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
         const privateKeyString = input.value.trim()
 
         try {
-          const currentNetwork = (selectedNetwork as Network) || Network.testnet
+          const currentNetwork = (selectedNetwork as Network) ?? Network.testnet
           const processed = await processPrivateKey(privateKeyString, sdk, currentNetwork)
 
           // Check if the processed key belongs to the current identity
@@ -127,7 +127,9 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
 
       // Add each private key to the current identity
       for (const { key } of keys) {
-        await extensionAPI.addIdentityPrivateKey(currentIdentity!, key.hex())
+        if (currentIdentity != null) {
+          await extensionAPI.addIdentityPrivateKey(currentIdentity, key.hex())
+        }
       }
 
       // Show success message and navigate back to Private Keys screen

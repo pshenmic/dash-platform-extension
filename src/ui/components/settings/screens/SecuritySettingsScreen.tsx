@@ -37,7 +37,7 @@ export const SecuritySettingsScreen: React.FC<SettingsScreenProps> = () => {
           icon: <FingerprintIcon />
         }
       ]
-    },
+    }
   ]
 
   return (

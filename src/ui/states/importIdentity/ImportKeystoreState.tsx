@@ -43,25 +43,26 @@ function ImportKeystoreState (): React.JSX.Element {
   useEffect(() => {
     const checkWalletType = async (): Promise<void> => {
       if (selectedWallet === null) {
-        navigate('/choose-wallet-type')
+        void navigate('/choose-wallet-type')
         return
       }
 
       try {
         const wallets = await extensionAPI.getAllWallets()
         const currentWallet = wallets.find(wallet => wallet.walletId === selectedWallet)
-        
+
         if (currentWallet === null || currentWallet === undefined || currentWallet?.type !== WalletType.keystore) {
-          navigate('/choose-wallet-type')
-          return
+          void navigate('/choose-wallet-type')
         }
       } catch (error) {
         console.warn('Failed to check wallet type:', error)
-        navigate('/choose-wallet-type')
+        void navigate('/choose-wallet-type')
       }
     }
 
-    void checkWalletType()
+    void checkWalletType().catch(error => {
+      console.warn('Failed to check wallet type in effect:', error)
+    })
   }, [selectedWallet, extensionAPI, navigate])
 
   const addPrivateKeyInput = (): void => {

@@ -28,7 +28,7 @@ export function PublicKeySelect ({
 }: PublicKeySelectProps): React.JSX.Element {
   // Convert keys to select options
   const signingKeyOptions = keys.map((key, index) => {
-    const keyValue = key.keyId?.toString() || key.hash || `key-${index}`
+    const keyValue = key.keyId?.toString() ?? (key.hash !== '' ? key.hash : `key-${index}`)
     const purposeLabel = getPurposeLabel(key.purpose)
     const securityLabel = getSecurityLabel(key.securityLevel)
 
@@ -82,28 +82,28 @@ export function PublicKeySelect ({
             <Text size='md' opacity='50'>Loading signing keys...</Text>
           </ValueCard>
           )
-        : error
-          ? (
-            <ValueCard colorScheme='red' size='xl'>
-              <Text size='md' color='red'>Error loading signing keys: {error}</Text>
-            </ValueCard>
-            )
-          : signingKeyOptions.length > 0
+        : (error != null && error !== '')
             ? (
-              <Select
-                value={value}
-                onChange={onChange}
-                options={signingKeyOptions}
-                showArrow
-                size='xl'
-                disabled={disabled}
-              />
-              )
-            : (
-              <ValueCard colorScheme='lightGray' size='xl'>
-                <Text size='md' opacity='50'>No signing keys available</Text>
+              <ValueCard colorScheme='red' size='xl'>
+                <Text size='md' color='red'>Error loading signing keys: {error}</Text>
               </ValueCard>
-              )}
+              )
+            : signingKeyOptions.length > 0
+              ? (
+                <Select
+                  value={value}
+                  onChange={onChange}
+                  options={signingKeyOptions}
+                  showArrow
+                  size='xl'
+                  disabled={disabled}
+                />
+                )
+              : (
+                <ValueCard colorScheme='lightGray' size='xl'>
+                  <Text size='md' opacity='50'>No signing keys available</Text>
+                </ValueCard>
+                )}
     </div>
   )
 }

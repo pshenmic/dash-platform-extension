@@ -9,7 +9,7 @@ export interface OutletContext {
   setSelectedWallet: (wallet: string | null) => void
   currentIdentity: string | null
   setCurrentIdentity: (identity: string | null) => void
-  allWallets: WalletAccountInfo[],
+  allWallets: WalletAccountInfo[]
   availableIdentities: Identity[]
   createWallet: (walletType: WalletType, mnemonic?: string) => Promise<{ walletId: string }>
 }

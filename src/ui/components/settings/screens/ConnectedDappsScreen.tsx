@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, Button, useTheme } from 'dash-ui/react'
+import { Text, useTheme } from 'dash-ui/react'
 import type { SettingsScreenProps } from '../types'
 
 // Icons for different DApps
@@ -46,7 +46,7 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
     // TODO: Implement disconnect logic
   }
 
-  const renderIcon = (iconType: string, dappName: string) => {
+  const renderIcon = (iconType: string, dappName: string): React.JSX.Element => {
     const iconBgClass = iconType === 'platform' ? 'bg-[#4C7EFF]' : (theme === 'dark' ? 'bg-[rgba(255,255,255,0.05)]' : 'bg-white')
     const iconSize = iconType === 'platform' ? 'w-[50px] h-[50px]' : 'w-[50px] h-[50px]'
 

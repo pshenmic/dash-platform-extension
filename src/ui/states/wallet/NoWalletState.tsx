@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heading, Text, Button, ProgressStepBar, DashLogo } from 'dash-ui/react'
+import { Heading, Text, Button, DashLogo } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 function NoWalletState (): React.JSX.Element {
@@ -20,15 +20,13 @@ function NoWalletState (): React.JSX.Element {
       }
     }
 
-    void checkWalletExists()
+    void checkWalletExists().catch(error => {
+      console.warn('Failed to check wallet exists in effect:', error)
+    })
   }, [extensionAPI, navigate])
 
   const handleImportWallet = (): void => {
     void navigate('/choose-wallet-type')
-  }
-
-  const handleCreateWallet = (): void => {
-    void navigate('/create-wallet')
   }
 
   return (

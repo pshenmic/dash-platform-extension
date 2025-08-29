@@ -24,12 +24,12 @@ function TokensList ({
   const getTokenInitials = (token: TokenData): string => {
     // Get singular form name and use first 2 characters
     const singularName = getTokenName(token.localizations, 'singularForm')
-    if (singularName) {
+    if (singularName !== '' && singularName != null) {
       return singularName.substring(0, 2).toUpperCase()
     }
 
     // Fallback to description
-    if (token.description) {
+    if (token.description !== '' && token.description != null) {
       return token.description.substring(0, 2).toUpperCase()
     }
 
@@ -46,16 +46,16 @@ function TokensList ({
     <EntityList
       loading={loading}
       error={error}
-      isEmpty={!tokens || tokens.length === 0}
+      isEmpty={(tokens == null) || tokens.length === 0}
       variant='tight'
       loadingText='Loading tokens...'
-      errorText={error ? `Error loading tokens: ${error}` : undefined}
+      errorText={(error != null && error !== '') ? `Error loading tokens: ${error}` : undefined}
       emptyText='No tokens found'
     >
       {tokens.map((token) => {
         const initials = getTokenInitials(token)
-        const singularName = getTokenName(token.localizations, 'singularForm') || token.description || 'Unknown Token'
-        const pluralName = getTokenName(token.localizations, 'pluralForm') || singularName
+        const singularName = getTokenName(token.localizations, 'singularForm') ?? (token.description !== '' ? token.description : 'Unknown Token')
+        const pluralName = getTokenName(token.localizations, 'pluralForm') ?? singularName
         const balance = token.totalSupply
 
         return (
