@@ -1,5 +1,5 @@
 import { base58 } from '@scure/base'
-import { IdentityWASM, PrivateKeyWASM } from 'pshenmic-dpp'
+import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from './types/enums/Network'
 
@@ -131,5 +131,120 @@ export const getFaviconUrl = (url: string, size: number = 32): string => {
   } catch (error) {
     console.warn('Invalid URL provided to getFaviconUrl:', url)
     return `https://www.google.com/s2/favicons?domain=example.com&sz=${size}`
+  }
+}
+
+export const creditsToDash = (credits: number | bigint): number => {
+  const numericCredits = typeof credits === 'bigint' ? Number(credits) : credits
+  return numericCredits / 10e10
+}
+
+export const getTokenName = (localizations: any, form: 'singularForm' | 'pluralForm' = 'singularForm'): string => {
+  return localizations?.en?.[form] ??
+    Object.values(localizations ?? {})[0]?.[form] ??
+    ''
+}
+
+export interface ProcessedPrivateKey {
+  key: PrivateKeyWASM
+  identity: IdentityWASM
+  balance: string
+}
+
+export const validatePrivateKeyFormat = (privateKey: string): boolean => {
+  const trimmed = privateKey.trim()
+  return trimmed.length === 52 || trimmed.length === 64
+}
+
+export const parsePrivateKey = (privateKey: string, network: Network = Network.testnet): PrivateKeyWASM => {
+  const trimmed = privateKey.trim()
+
+  if (trimmed.length === 52) {
+    // WIF format
+    return PrivateKeyWASM.fromWIF(trimmed)
+  } else if (trimmed.length === 64) {
+    // Hex format
+    return PrivateKeyWASM.fromHex(trimmed, network)
+  } else {
+    throw new Error('Unrecognized private key format. Expected 52 characters (WIF) or 64 characters (hex)')
+  }
+}
+
+export const findIdentityForPrivateKey = async (
+  privateKey: PrivateKeyWASM,
+  sdk: DashPlatformSDK
+): Promise<IdentityWASM | null> => {
+  const publicKeyHash = privateKey.getPublicKeyHash()
+
+  // Try unique identity first
+  try {
+    const uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(publicKeyHash)
+    if (uniqueIdentity != null) return uniqueIdentity
+  } catch (e) {
+    console.log('Continue to check non-unique', e)
+  }
+
+  // Try non-unique identity
+  try {
+    const nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(publicKeyHash)
+    if (nonUniqueIdentity != null) return nonUniqueIdentity
+  } catch (e) {
+    console.warn('No identity found', e)
+  }
+
+  return null
+}
+
+export const validateIdentityPublicKey = (
+  identity: IdentityWASM,
+  privateKey: PrivateKeyWASM
+): IdentityPublicKeyWASM | null => {
+  const publicKeys = identity.getPublicKeys()
+  const targetHash = privateKey.getPublicKeyHash()
+
+  const matchingKey = publicKeys.find((publicKey: IdentityPublicKeyWASM) =>
+    publicKey.getPublicKeyHash() === targetHash
+  )
+
+  return matchingKey ?? null
+}
+
+export const processPrivateKey = async (
+  privateKeyString: string,
+  sdk: DashPlatformSDK,
+  network: Network = Network.testnet
+): Promise<ProcessedPrivateKey> => {
+  if (!validatePrivateKeyFormat(privateKeyString)) {
+    throw new Error('Invalid private key format. Expected 52 characters (WIF) or 64 characters (hex)')
+  }
+
+  // Parse private key
+  let privateKey: PrivateKeyWASM
+  try {
+    privateKey = parsePrivateKey(privateKeyString, network)
+  } catch (e) {
+    throw new Error(`Could not decode private key: ${e instanceof Error ? e.message : String(e)}`)
+  }
+
+  // Find associated identity
+  const identity = await findIdentityForPrivateKey(privateKey, sdk)
+  if (identity == null) {
+    throw new Error(`Could not find identity belonging to private key: ${privateKeyString}`)
+  }
+
+  // Validate that there's at least one matching public key
+  const identityPublicKey = validateIdentityPublicKey(identity, privateKey)
+  if (identityPublicKey == null) {
+    throw new Error(`No matching public key found for this private key: ${privateKeyString}`)
+  }
+
+  // Get balance
+  const identifierString = identity.id.base58()
+  const balance = await sdk.identities.getIdentityBalance(identifierString)
+
+  return {
+    key: privateKey,
+    identity,
+    balance: balance.toString()
   }
 }

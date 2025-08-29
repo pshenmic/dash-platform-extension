@@ -22,7 +22,13 @@ export default function LoginState (): React.JSX.Element {
     try {
       const result = await extensionAPI.checkPassword(password)
       if (result.success) {
-        void navigate('/no-wallet')
+        const status = await extensionAPI.getStatus()
+
+        if (status.currentWalletId != null) {
+          void navigate('/home')
+        } else {
+          void navigate('/no-wallet')
+        }
       } else {
         setError('Invalid password')
       }
@@ -31,10 +37,6 @@ export default function LoginState (): React.JSX.Element {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleLoginClick = (): void => {
-    void handleLogin()
   }
 
   return (
@@ -76,7 +78,7 @@ export default function LoginState (): React.JSX.Element {
         <Button
           size='xl'
           colorScheme='brand'
-          onClick={handleLoginClick}
+          onClick={async () => await handleLogin().catch(e => console.warn('handleLogin error: ', e))}
           disabled={password === '' || isLoading}
           className='w-full'
         >

@@ -1,20 +1,36 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heading, Text, Button, ProgressStepBar, DashLogo } from 'dash-ui/react'
+import { Heading, Text, Button, DashLogo } from 'dash-ui/react'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 function NoWalletState (): React.JSX.Element {
   const navigate = useNavigate()
+  const extensionAPI = useExtensionAPI()
+
+  useEffect(() => {
+    const checkWalletExists = async (): Promise<void> => {
+      try {
+        const status = await extensionAPI.getStatus()
+
+        if (status.currentWalletId != null && status.currentWalletId !== '') {
+          void navigate('/home')
+        }
+      } catch (error) {
+        console.warn('Failed to check wallet status:', error)
+      }
+    }
+
+    void checkWalletExists().catch(error => {
+      console.warn('Failed to check wallet exists in effect:', error)
+    })
+  }, [extensionAPI, navigate])
 
   const handleImportWallet = (): void => {
-    void navigate('/choose-wallet-import-type')
-  }
-
-  const handleCreateWallet = (): void => {
-    void navigate('/create-wallet')
+    void navigate('/choose-wallet-type')
   }
 
   return (
-    <div className='flex flex-col h-full bg-white pb-12 pt-8'>
+    <div className='flex flex-col h-full bg-white pb-2'>
       <div className='flex flex-col items-center text-center mb-3'>
         <div className='flex items-center justify-center w-12 h-12'>
           <DashLogo />
@@ -31,30 +47,14 @@ function NoWalletState (): React.JSX.Element {
           </div>
         </div>
 
-        <div className='w-full max-w-sm space-y-3'>
-          <Button
-            colorScheme='brand'
-            size='xl'
-            onClick={handleCreateWallet}
-            disabled
-            className='w-full'
-          >
-            Create Wallet
-          </Button>
-
-          <Button
-            colorScheme='brand'
-            size='xl'
-            onClick={handleImportWallet}
-            className='w-full'
-          >
-            Import Wallet
-          </Button>
-        </div>
-      </div>
-
-      <div className='mt-auto'>
-        <ProgressStepBar currentStep={1} totalSteps={4} />
+        <Button
+          colorScheme='brand'
+          size='xl'
+          onClick={handleImportWallet}
+          className='w-full'
+        >
+          Create Wallet
+        </Button>
       </div>
     </div>
   )

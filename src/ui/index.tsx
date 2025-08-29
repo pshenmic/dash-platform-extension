@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import HomeState from './states/home/HomeState'
@@ -12,7 +12,7 @@ import ApproveTransactionState from './states/approveTransaction/ApproveTransact
 import AppConnectState from './states/appConnect/AppConnectState'
 import Layout from './components/layout/Layout'
 import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
-import ChooseImportType from './states/importIdentity/ChooseImportType'
+import ChooseWalletType from './states/wallet/ChooseWalletType'
 import WalletSuccessfullyCreated from './states/importIdentity/WalletSuccessfullyCreated'
 import './styles/app.pcss'
 
@@ -27,18 +27,16 @@ const App: React.FC = function () {
           element: <StartState />,
           handle: {
             headerProps: {
-              hideLeftSection: true
+              variant: 'minimal'
             }
           }
         },
         {
-          path: '/choose-wallet-import-type',
-          element: <ChooseImportType />,
+          path: '/choose-wallet-type',
+          element: <ChooseWalletType />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: '',
-              imgClasses: '-mt-[68%] !w-[426px] ml-[5%]'
+              variant: 'chooseWalletType'
             }
           }
         },
@@ -47,9 +45,7 @@ const App: React.FC = function () {
           element: <ImportSeedPhrase />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: 'w-[120%] -mr-[55%]',
-              imgClasses: '-mt-[52%]'
+              variant: 'seedImport'
             }
           }
         },
@@ -58,10 +54,7 @@ const App: React.FC = function () {
           element: <NoWalletState />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: '',
-              imgClasses: '!w-[109%] -mt-[67%] right-[7%]',
-              hideLeftSection: true
+              variant: 'landing'
             }
           }
         },
@@ -70,7 +63,7 @@ const App: React.FC = function () {
           element: <HomeState />,
           handle: {
             headerProps: {
-              imageType: 'coins'
+              variant: 'main'
             }
           }
         },
@@ -79,10 +72,7 @@ const App: React.FC = function () {
           element: <SetupPasswordState />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: '',
-              imgClasses: '-mt-[68%] !w-[426px] ml-[5%]',
-              hideLeftSection: true
+              variant: 'onboarding'
             }
           }
         },
@@ -91,63 +81,58 @@ const App: React.FC = function () {
           element: <LoginState />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: '',
-              imgClasses: '!w-[109%] -mt-[67%] right-[7%]',
-              hideLeftSection: true
+              variant: 'landing'
             }
           }
         },
         {
           path: '/create-wallet',
-          element: <CreateWalletState />
+          element: <CreateWalletState />,
+          handle: {
+            headerProps: {
+              variant: 'simple'
+            }
+          }
         },
         {
           path: '/import-keystore',
           element: <ImportKeystoreState />,
           handle: {
             headerProps: {
-              imageType: 'coins',
-              containerClasses: 'w-[120%] -mr-[55%]',
-              imgClasses: '-mt-[52%]'
+              variant: 'seedImport'
             }
           }
         },
         {
           path: '/approve/:txhash',
-          element: <ApproveTransactionState />
+          element: <ApproveTransactionState />,
+          handle: {
+            headerProps: {
+              variant: 'transaction'
+            }
+          }
         },
         {
           path: '/connect/:id',
-          element: <AppConnectState />
+          element: <AppConnectState />,
+          handle: {
+            headerProps: {
+              variant: 'simple'
+            }
+          }
         },
         {
           path: '/wallet-created',
           element: <WalletSuccessfullyCreated />,
           handle: {
             headerProps: {
-              hideLeftSection: true
+              variant: 'minimal'
             }
           }
         }
       ]
     }
   ] as RouteObject[])
-  const populateBalances = async (): Promise<void> => {
-    // const balances = await Promise.all(identities.map(async identity => ({
-    //   identifier: identity.identifier,
-    //   balance: (await sdk.identities.getBalance(identity.identifier)).toString()
-    // })))
-
-    // for (const { identifier, balance } of balances) {
-    //   setIdentityBalance(0n)
-    // }
-  }
-
-  useEffect(() => {
-    populateBalances()
-      .catch(err => console.warn('Failed to populate balances', err))
-  }, [])
 
   return (
     <RouterProvider router={router} />

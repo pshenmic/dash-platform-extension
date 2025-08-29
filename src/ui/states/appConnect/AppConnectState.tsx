@@ -40,7 +40,8 @@ function AppConnectState (): React.JSX.Element {
       }
     }
 
-    void loadAppConnect()
+    loadAppConnect()
+      .catch(e => console.warn('loadAppConnect error: ', e))
   }, [params.id, extensionAPI])
 
   const handleApprove = async (): Promise<void> => {
@@ -133,7 +134,7 @@ function AppConnectState (): React.JSX.Element {
 
       <div className='flex gap-2 w-full'>
         <Button
-          onClick={() => { void handleReject() }}
+          onClick={() => { handleReject().catch(e => console.warn('handleReject error: ', e)) }}
           colorScheme='lightBlue'
           className='w-1/2'
           disabled={processingStatus != null}
@@ -141,7 +142,7 @@ function AppConnectState (): React.JSX.Element {
           {processingStatus === 'rejecting' ? 'Rejecting...' : 'Reject'}
         </Button>
         <Button
-          onClick={() => { void handleApprove() }}
+          onClick={() => { handleApprove().catch(e => console.warn('handleApprove error: ', e)) }}
           colorScheme='brand'
           className='w-1/2'
           disabled={processingStatus != null}

@@ -1,105 +1,171 @@
 import React, { useEffect, useState } from 'react'
 import { useSdk } from '../../hooks/useSdk'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
+import type { OutletContext } from '../../types/OutletContext'
 import {
   Button,
   Text,
-  NotActive,
   Identifier,
   ValueCard,
   BigNumber,
-  Textarea,
+  Input,
   Heading,
   DashLogo,
-  ProgressStepBar
+  EyeClosedIcon,
+  EyeOpenIcon,
+  DeleteIcon
 } from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { WalletType } from '../../../types/WalletType'
+import { WalletType } from '../../../types'
+
+interface PrivateKeyInput {
+  id: string
+  value: string
+  isVisible: boolean
+}
 
 function ImportKeystoreState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
+  const { currentNetwork, currentWallet, setCurrentIdentity } = useOutletContext<OutletContext>()
 
   const extensionAPI = useExtensionAPI()
-  const [privateKey, setPrivateKey] = useState('')
-  const [privateKeyWASM, setPrivateKeyWASM] = useState<PrivateKeyWASM | null>(null)
-  const [identity, setIdentity] = useState<IdentityWASM | null>(null)
-  const [balance, setBalance] = useState<string | null>(null)
+  const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInput[]>([
+    { id: Date.now().toString(), value: '', isVisible: false }
+  ])
+  const [identities, setIdentities] = useState<Array<{ key: PrivateKeyWASM, identity: IdentityWASM, balance: string }>>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const checkPrivateKey = async (): Promise<void> => {
+  // Check if selected wallet is keystore type
+  useEffect(() => {
+    const checkWalletType = async (): Promise<void> => {
+      if (currentWallet === null) {
+        void navigate('/choose-wallet-type')
+        return
+      }
+
+      try {
+        const wallets = await extensionAPI.getAllWallets()
+        const currentWalletInfo = wallets.find(wallet => wallet.walletId === currentWallet)
+
+        if (currentWalletInfo === null || currentWalletInfo === undefined || currentWalletInfo?.type !== WalletType.keystore) {
+          void navigate('/choose-wallet-type')
+        }
+      } catch (error) {
+        console.warn('Failed to check wallet type:', error)
+        void navigate('/choose-wallet-type')
+      }
+    }
+
+    void checkWalletType().catch(error => {
+      console.warn('Failed to check wallet type in effect:', error)
+    })
+  }, [currentWallet, extensionAPI, navigate])
+
+  const addPrivateKeyInput = (): void => {
+    const newId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    setPrivateKeyInputs(prev => [...prev, { id: newId, value: '', isVisible: false }])
+  }
+
+  const removePrivateKeyInput = (id: string): void => {
+    if (privateKeyInputs.length > 1) {
+      setPrivateKeyInputs(prev => prev.filter(input => input.id !== id))
+    }
+  }
+
+  const updatePrivateKeyInput = (id: string, value: string): void => {
+    setPrivateKeyInputs(prev =>
+      prev.map(input => input.id === id ? { ...input, value } : input)
+    )
+  }
+
+  const togglePrivateKeyVisibility = (id: string): void => {
+    setPrivateKeyInputs(prev =>
+      prev.map(input => input.id === id ? { ...input, isVisible: !input.isVisible } : input)
+    )
+  }
+
+  const checkPrivateKeys = async (): Promise<void> => {
     setError(null)
     setIsLoading(true)
 
     try {
-      let pkeyWASM: PrivateKeyWASM | null = null
+      const validIdentities: Array<{ key: PrivateKeyWASM, identity: IdentityWASM, balance: string }> = []
 
-      if (privateKey.length === 52) {
-      // wif
-        try {
-          pkeyWASM = PrivateKeyWASM.fromWIF(privateKey)
-          setPrivateKeyWASM(pkeyWASM)
-        } catch (e) {
-          console.log(e)
-          return setError('Could not decode private key from WIF')
+      // Filter out empty private key inputs
+      const nonEmptyInputs = privateKeyInputs.filter(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
+
+      if (nonEmptyInputs.length === 0) {
+        return setError('Please enter at least one private key')
+      }
+
+      for (const input of nonEmptyInputs) {
+        const privateKey = input.value?.trim() ?? ''
+        let pkeyWASM: PrivateKeyWASM | null = null
+
+        if (privateKey.length === 52) {
+          // wif
+          try {
+            pkeyWASM = PrivateKeyWASM.fromWIF(privateKey)
+          } catch (e) {
+            console.log(e)
+            return setError(`Could not decode private key from WIF: ${privateKey}`)
+          }
+        } else if (privateKey.length === 64) {
+          // hex
+          try {
+            pkeyWASM = PrivateKeyWASM.fromHex(privateKey, (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet')
+          } catch (e) {
+            console.log(e)
+            return setError(`Could not decode private key from hex: ${privateKey}`)
+          }
+        } else {
+          return setError('Unrecognized private key format')
         }
-      } else if (privateKey.length === 64) {
-      // hex
-        try {
-          pkeyWASM = PrivateKeyWASM.fromHex(privateKey, 'testnet')
-          setPrivateKeyWASM(pkeyWASM)
-        } catch (e) {
-          console.log(e)
-          return setError('Could not decode private key from hex')
+
+        if (pkeyWASM == null) {
+          return setError(`Failed to process private key: ${privateKey}`)
         }
-      } else {
-        return setError('Unrecognized private key format')
+
+        let uniqueIdentity
+        try {
+          uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
+        } catch (e) {}
+
+        let nonUniqueIdentity
+        try {
+          nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkeyWASM.getPublicKeyHash())
+        } catch (e) {}
+
+        const [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e !== null && e !== undefined)
+
+        if (identity == null) {
+          return setError(`Could not find identity belonging to private key: ${privateKey}`)
+        }
+
+        const [identityPublicKey] = identity.getPublicKeys()
+          .filter((publicKey: IdentityPublicKeyWASM) =>
+            publicKey.getPublicKeyHash() === pkeyWASM?.getPublicKeyHash())
+
+        if (identityPublicKey === null || identityPublicKey === undefined) {
+          return setError(`Please use a key with purpose AUTHENTICATION and security level HIGH: ${privateKey}`)
+        }
+
+        // Get identifier as base58 string directly from IdentifierWASM
+        const identifierString = identity.id.base58()
+        const balance = await sdk.identities.getIdentityBalance(identifierString)
+
+        validIdentities.push({
+          key: pkeyWASM,
+          identity,
+          balance: balance.toString()
+        })
       }
 
-      if (pkeyWASM == null) {
-        setIsLoading(false)
-        return setError('Failed to process private key')
-      }
-
-      let uniqueIdentity
-
-      try {
-        uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
-      } catch (e) {
-      }
-
-      let nonUniqueIdentity
-
-      try {
-        nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkeyWASM.getPublicKeyHash())
-      } catch (e) {
-      }
-
-      const [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e != null)
-
-      if (identity == null) {
-        return setError('Could not find identity belonging to this private key')
-      }
-
-      const [identityPublicKey] = identity.getPublicKeys()
-        .filter((publicKey: IdentityPublicKeyWASM) =>
-          publicKey.getPublicKeyHash() === pkeyWASM?.getPublicKeyHash() &&
-            publicKey.purpose === 'AUTHENTICATION' &&
-            publicKey.securityLevel === 'HIGH')
-
-      if (identityPublicKey == null) {
-        return setError('Please use a key with purpose AUTHENTICATION and security level HIGH')
-      }
-
-      // Get identifier as base58 string directly from IdentifierWASM
-      const identifierString = identity.id.base58()
-      const balance = await sdk.identities.getIdentityBalance(identifierString)
-
-      setIdentity(identity)
-      setBalance(balance.toString())
+      setIdentities(validIdentities)
     } catch (e) {
       if (typeof e === 'string') {
         return setError(e)
@@ -111,32 +177,28 @@ function ImportKeystoreState (): React.JSX.Element {
     }
   }
 
-  useEffect(() => {
-    if (error != null) {
-      setError(null)
-    }
-  }, [privateKey])
+  useEffect(() => setError(null), [privateKeyInputs])
 
-  const importIdentity = (): void => {
+  const importIdentities = (): void => {
     const run = async (): Promise<void> => {
-      if (identity == null) {
-        return setError('Could not load identity')
+      if (identities.length === 0) {
+        return setError('No identities found to import')
       }
 
-      if (privateKeyWASM == null) {
-        return setError('Could not load private key')
+      if (currentWallet === null) {
+        return setError('No wallet selected')
       }
 
-      const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
-      await extensionAPI.switchWallet(walletId)
+      // Get all private keys as hex
+      const privateKeys = identities.map(({ key }) => key.hex())
 
-      const identifier = identity.id.base58()
-      const privateKeyHex = privateKey.length === 64 ? privateKey : privateKeyWASM.hex()
-      const privateKeys = [privateKeyHex]
+      // Use the first identity's identifier for the import
+      const identifier = identities[0].identity.id.base58()
 
       await extensionAPI.importIdentity(identifier, privateKeys)
+      setCurrentIdentity(identifier)
 
-      void navigate('/wallet-created')
+      void navigate('/home')
     }
 
     setIsLoading(true)
@@ -150,120 +212,165 @@ function ImportKeystoreState (): React.JSX.Element {
   }
 
   const handleCheckClick = (): void => {
-    checkPrivateKey().catch(console.warn)
+    checkPrivateKeys().catch(console.warn)
   }
 
+  const hasValidKeys = privateKeyInputs.some(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
+
   return (
-    <div className='flex flex-col gap-2 -mt-5'>
-      <div className='flex flex-col gap-2.5 flex-1 mb-6'>
+    <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
+      <div className='flex flex-col gap-2.5 mb-6'>
         <DashLogo containerSize='3rem' />
 
-        <Heading level={1} size='2xl'>Import your identity</Heading>
+        <Heading level={1} size='2xl'>Import Private Keys</Heading>
 
-        {identity == null &&
+        {identities.length === 0 &&
           <div className='!leading-tight'>
             <Text size='sm' dim>
-              Paste your identity Private Key.
+              Add more Private Keys to your wallet.
             </Text>
           </div>}
       </div>
 
-      {identity == null &&
+      {identities.length === 0 &&
         <div className='flex flex-col gap-[0.875rem]'>
           <div className='mb-6'>
             <Text dim>
               Private Key
             </Text>
 
-            <Textarea
-              rows={3}
-              placeholder='Paste your Key'
-              onChange={setPrivateKey}
-              size='xl'
-            />
+            <div className='flex flex-col gap-2.5'>
+              {privateKeyInputs.map((input, index) => (
+                <div key={input.id} className='flex gap-2.5'>
+                  <div className='flex-1 relative'>
+                    <Input
+                      placeholder='Paste your Key'
+                      value={input.value}
+                      onChange={(e) => updatePrivateKeyInput(input.id, e.target.value)}
+                      type={input.isVisible ? 'text' : 'password'}
+                      size='xl'
+                      showPasswordToggle={false}
+                      style={{
+                        paddingRight: input.value !== '' && input.value !== undefined
+                          ? (privateKeyInputs.length > 1 ? '4.5rem' : '2.5rem')
+                          : undefined
+                      }}
+                    />
+                    {input.value !== '' && input.value !== undefined && (
+                      <div className='absolute right-3 top-1/2 transform -translate-y-1/2 flex gap-1'>
+                        <button
+                          onClick={() => togglePrivateKeyVisibility(input.id)}
+                          className='p-1 hover:bg-gray-100 rounded'
+                          type='button'
+                        >
+                          {input.isVisible
+                            ? <EyeClosedIcon className='text-dash-primary-dark-blue' />
+                            : <EyeOpenIcon className='text-dash-primary-dark-blue' />}
+                        </button>
+                        {privateKeyInputs.length > 1 && (
+                          <button
+                            onClick={() => removePrivateKeyInput(input.id)}
+                            className='p-1 hover:bg-gray-100 rounded'
+                            type='button'
+                          >
+                            <DeleteIcon />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {index === privateKeyInputs.length - 1 && (
+                    <button
+                      onClick={addPrivateKeyInput}
+                      disabled={input.value?.trim() === '' || input.value?.trim() === undefined}
+                      className={`flex items-center justify-center w-14 h-14 rounded-2xl border border-gray-200 ${
+                        input.value?.trim() !== '' && input.value?.trim() !== undefined
+                          ? 'bg-gray-50 hover:bg-gray-100 cursor-pointer'
+                          : 'bg-gray-25 cursor-not-allowed opacity-50'
+                      }`}
+                      type='button'
+                    >
+                      <Text size='xl' weight='medium'>+</Text>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-
-          {error != null &&
-            <div className='py-1'>
-              <span>{error}</span>
-            </div>}
 
           <div>
             <Button
               colorScheme='brand'
-              disabled={privateKey === '' || isLoading}
+              disabled={!hasValidKeys || isLoading}
               className='w-full'
               onClick={handleCheckClick}
             >
               {isLoading ? 'Checking...' : 'Check'}
             </Button>
           </div>
-
-          {/* /!* Progress Steps *!/ */}
-          {/* <div className='mt-auto'> */}
-          {/*  <ProgressStepBar currentStep={3} totalSteps={4} /> */}
-          {/* </div> */}
         </div>}
 
-      {/* Identity Preview */}
-      {identity != null &&
+      {/* Identities Preview */}
+      {identities.length > 0 &&
         <div className='flex flex-col gap-[0.875rem] mb-2.5'>
           <Text dim>
-            We found an identity associated with the given private key
+            We found {identities.length} identit{identities.length === 1 ? 'y' : 'ies'} associated with the given private key{identities.length === 1 ? '' : 's'}
           </Text>
 
-          <ValueCard colorScheme='lightBlue'>
-            <div className='flex flex-col gap-[0.875rem]'>
-              <div className='flex flex-col gap-[0.125rem]'>
-                <Text size='md' dim>Identifier</Text>
-                <ValueCard colorScheme='white'>
-                  <Identifier
-                    highlight='both'
-                    copyButton
-                    ellipsis={false}
-                    linesAdjustment={false}
-                  >
-                    {identity.id.base58()}
-                  </Identifier>
-                </ValueCard>
-              </div>
-              <div className='flex flex-col gap-[0.125rem]'>
-                <Text dim>Balance</Text>
+          {identities.map((item, index) => {
+            return (
+              <ValueCard key={index} colorScheme='lightBlue'>
+                <div className='flex flex-col gap-[0.875rem]'>
+                  <div className='flex flex-col gap-[0.125rem]'>
+                    <Text size='md' dim>Identifier</Text>
+                    <ValueCard colorScheme='white'>
+                      <Identifier
+                        highlight='both'
+                        copyButton
+                        ellipsis={false}
+                        linesAdjustment={false}
+                      >
+                        {item.identity.id.base58()}
+                      </Identifier>
+                    </ValueCard>
+                  </div>
+                  <div className='flex flex-col gap-[0.125rem]'>
+                    <Text dim>Balance</Text>
 
-                <span>
-                  {balance != null
-                    ? (
+                    <span>
                       <Text size='xl' weight='bold' monospace>
                         <BigNumber>
-                          {balance}
+                          {item.balance}
                         </BigNumber>
                       </Text>
-                      )
-                    : <NotActive>N/A</NotActive>}
-                  <Text
-                    size='lg'
-                    className='ml-2'
-                  >
-                    Credits
-                  </Text>
-                </span>
-              </div>
-            </div>
-          </ValueCard>
+                      <Text
+                        size='lg'
+                        className='ml-2'
+                      >
+                        Credits
+                      </Text>
+                    </span>
+                  </div>
+                </div>
+              </ValueCard>
+            )
+          }
+          )}
+
           <Button
             colorScheme='brand'
-            disabled={privateKey === '' || isLoading}
+            disabled={isLoading}
             className='w-full'
-            onClick={() => importIdentity()}
+            onClick={() => importIdentities()}
           >
             {isLoading ? 'Importing...' : 'Import'}
           </Button>
         </div>}
 
-      {/* Progress Steps */}
-      <div className='mt-auto'>
-        <ProgressStepBar currentStep={identity == null ? 3 : 4} totalSteps={4} />
-      </div>
+      {error !== null &&
+        <ValueCard colorScheme='yellow' className='break-all'>
+          <Text color='red'>{error}</Text>
+        </ValueCard>}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { Button, Text, Input, Heading, DashLogo } from 'dash-ui/react'
@@ -35,12 +35,20 @@ export default function SetupPasswordState (): React.JSX.Element {
     }
   }
 
-  const handleSetupClick = (): void => {
-    void handleSetupPassword()
-  }
+  useEffect(() => {
+    const checkPassword = async (): Promise<void> => {
+      const status = await extensionAPI.getStatus()
+      const isPasswordSet = status.passwordSet
+      if (isPasswordSet) {
+        void navigate('/login')
+      }
+    }
+    checkPassword()
+      .catch(e => console.warn('checkPassword error: ', e))
+  }, [extensionAPI, navigate])
 
   return (
-    <div className='flex flex-col gap-2.5 -mt-5'>
+    <div className='flex flex-col gap-2.5 -mt-16'>
       <div className='flex flex-col gap-2.5 mb-6'>
         <DashLogo containerSize='3rem' />
 
@@ -88,7 +96,7 @@ export default function SetupPasswordState (): React.JSX.Element {
       <Button
         colorScheme='brand'
         size='xl'
-        onClick={handleSetupClick}
+        onClick={async () => await handleSetupPassword().catch(e => console.warn('handleSetupPassword error: ', e))}
         disabled={password === '' || confirmPassword === '' || password.length !== confirmPassword.length || isLoading}
         className='w-full'
       >

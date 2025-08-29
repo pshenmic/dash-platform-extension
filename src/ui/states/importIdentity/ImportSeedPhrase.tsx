@@ -1,13 +1,15 @@
 import React, { useState } from 'react'
-import { Text, Heading, Button, Input, Switch, ProgressStepBar } from 'dash-ui/react'
-import { useNavigate } from 'react-router-dom'
+import { Text, Heading, Button, Input, Switch, DashLogo } from 'dash-ui/react'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import type { OutletContext } from '../../types/OutletContext'
 import { WalletType } from '../../../types/WalletType'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 
 function ImportSeedPhrase (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
+  const { setCurrentWallet, setCurrentIdentity, createWallet } = useOutletContext<OutletContext>()
   const [seedWords, setSeedWords] = useState<string[]>(Array(12).fill(''))
   const [wordCount, setWordCount] = useState<12 | 24>(12)
   const [password, setPassword] = useState('')
@@ -107,10 +109,13 @@ function ImportSeedPhrase (): React.JSX.Element {
       const validWords = seedWords.slice(0, wordCount).filter(word => word.trim() !== '')
       const mnemonic = validWords.join(' ')
 
-      const { walletId } = await extensionAPI.createWallet(WalletType.seedphrase, mnemonic)
+      const { walletId } = await createWallet(WalletType.seedphrase, mnemonic)
       await extensionAPI.switchWallet(walletId)
       await extensionAPI.resyncIdentities(password)
       const identities = await extensionAPI.getIdentities()
+
+      setCurrentWallet(walletId)
+      setCurrentIdentity(identities[0].identifier)
 
       if (identities.length > 0) {
         void navigate('/wallet-created')
@@ -128,10 +133,12 @@ function ImportSeedPhrase (): React.JSX.Element {
   const isImportDisabled = seedWords.slice(0, wordCount).some(word => word.trim().length === 0) || password.trim().length === 0
 
   return (
-    <div className='flex flex-col min-h-full shrink-0 bg-white -mt-5 pb-12'>
+    <div className='flex flex-col min-h-full shrink-0 bg-white -mt-16 pb-2'>
       <div className='mb-6'>
         <div className='flex items-start gap-3'>
           <div className='flex-1'>
+            <DashLogo containerSize='3rem' />
+
             <Heading level={1} className='text-3xl font-extrabold text-gray-900 mb-2 leading-tight'>
               Import your Seed Phrase
             </Heading>
@@ -204,11 +211,6 @@ function ImportSeedPhrase (): React.JSX.Element {
         >
           {isLoading ? 'Importing...' : 'Import Identity'}
         </Button>
-      </div>
-
-      {/* Progress Steps */}
-      <div className='mt-auto'>
-        <ProgressStepBar currentStep={3} totalSteps={4} />
       </div>
     </div>
   )
