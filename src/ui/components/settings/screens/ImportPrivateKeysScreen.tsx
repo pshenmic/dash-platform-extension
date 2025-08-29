@@ -62,15 +62,12 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
     try {
       const validProcessedKeys: ProcessedPrivateKey[] = []
       const invalidInputIds: string[] = []
-
-      // Filter out empty private key inputs
       const nonEmptyInputs = privateKeyInputs.filter(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
 
       if (nonEmptyInputs.length === 0) {
         return setError('Please enter at least one private key')
       }
 
-      // Process all keys and collect errors
       for (const input of nonEmptyInputs) {
         const privateKeyString = input.value.trim()
 
@@ -99,13 +96,10 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
           }))
         )
 
-        // Don't set general error when we have field-specific errors
-        // The error message will be displayed based on hasError flags
         setIsLoading(false)
         return
       }
 
-      // If we get here, all keys belong to the current identity - import them
       await importPrivateKeys(validProcessedKeys)
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e)
@@ -125,23 +119,14 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
         return setError('No current identity found')
       }
 
-      // Add each private key to the current identity
       for (const { key } of keys) {
         if (currentIdentity != null) {
           await extensionAPI.addIdentityPrivateKey(currentIdentity, key.hex())
         }
       }
-
-      // Show success message and navigate back to Private Keys screen
       setSuccessMessage(`Successfully imported ${keys.length} private key${keys.length === 1 ? '' : 's'} to the current identity!`)
-
-      // Reset form
       setPrivateKeyInputs([{ id: Date.now().toString(), value: '', isVisible: false, hasError: false }])
-
-      // Navigate back to Private Keys screen after a short delay
-      setTimeout(() => {
-        onBack?.()
-      }, 2000)
+      onBack?.()
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e)
       setError(errorMessage)

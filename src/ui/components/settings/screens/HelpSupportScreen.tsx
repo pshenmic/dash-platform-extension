@@ -46,8 +46,6 @@ export const helpSupportScreenConfig: ScreenConfig = {
 
 export const HelpSupportScreen: React.FC<SettingsScreenProps> = () => {
   const handleItemClick = (itemId: string): void => {
-    console.log(`Help & Support action: ${itemId}`)
-
     switch (itemId) {
       case 'user-guide':
         window.open('https://docs.dash.org/', '_blank')
