@@ -36,6 +36,7 @@ import { AddIdentityPrivateKeyPayload } from './messages/payloads/AddIdentityPri
 import { GetAvailableKeyPairsResponse } from './messages/response/GetAvailableKeyPairsResponse'
 import { GetAvailableKeyPairsPayload } from './messages/payloads/GetAvailableKeyPairsPayload'
 import { SwitchNetworkPayload } from './messages/payloads/SwitchNetworkPayload'
+import { RemoveIdentityPrivateKeyPayload } from './messages/payloads/RemoveIdentityPrivateKeyPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -102,6 +103,12 @@ export class PrivateAPIClient {
     const payload: AddIdentityPrivateKeyPayload = { identity, privateKey }
 
     return await this._rpcCall(MessagingMethods.ADD_IDENTITY_PRIVATE_KEY, payload)
+  }
+
+  async removeIdentityPrivateKey (identity: string, keyId: number): Promise<void> {
+    const payload: RemoveIdentityPrivateKeyPayload = { identity, keyId }
+
+    return await this._rpcCall(MessagingMethods.REMOVE_IDENTITY_PRIVATE_KEY, payload)
   }
 
   async resyncIdentities (password?: string, mnemonic?: string): Promise<ResyncIdentitiesResponse> {

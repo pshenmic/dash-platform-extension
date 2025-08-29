@@ -53,6 +53,31 @@ export class KeypairRepository {
     await this.storageAdapter.set(storageKey, keyPairsSchema)
   }
 
+  async remove (identity: string, keyId: number): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `keyPairs_${network}_${walletId}`
+
+    const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
+
+    let keyPairs: KeyPairSchema[] = keyPairsSchema[identity]
+
+    if (keyPairs == null || keyPairs.length === 0) {
+      keyPairs = []
+    }
+
+    keyPairs = keyPairs.filter((keyPair) => IdentityPublicKeyWASM.fromBase64(keyPair.identityPublicKey).keyId !== keyId)
+
+    keyPairsSchema[identity] = keyPairs
+
+    await this.storageAdapter.set(storageKey, keyPairsSchema)
+  }
+
   async getByIdentityPublicKey (identifier: string, identityPublicKey: IdentityPublicKeyWASM): Promise<KeyPair | null> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null

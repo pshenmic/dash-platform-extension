@@ -57,7 +57,7 @@ describe('create wallet', () => {
 
     expect(walletStoreSchema).toStrictEqual(expectedWallet)
 
-    await privateAPIClient.switchWallet(secondWalletId, 'testnet')
+    await privateAPIClient.switchWallet(secondWalletId)
 
     walletStoreSchema = await storage.get(`wallet_testnet_${secondWalletId}`) as WalletStoreSchema
 

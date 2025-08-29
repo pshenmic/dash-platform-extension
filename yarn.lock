@@ -6088,6 +6088,11 @@ pshenmic-dpp@1.0.19:
   resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-1.0.19.tgz#c996b69faaaee6e305ff996252f9cc0790a7adbb"
   integrity sha512-oE24VzE52GYwHPUdjk2q4/leTrXnUPHC8wtpyuLJUQ47ElznF9Ig0ewSPT4VkbDpccReZC9xIRIE/6rsZd470A==
 
+pshenmic-dpp@^1.0.22:
+  version "1.0.22"
+  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-1.0.22.tgz#0e98d77fd4a0a923823c635fee80937ab01d5fc6"
+  integrity sha512-fwW0LU1rIT0fuJs1TbEv6JqdkU2PPZzQ/e8Id+pMUJOYJhh/QKi5kVe9F0tiXqJOzrC6ev8dSTp1DVvGFX4nyA==
+
 punycode@^2.1.0:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/punycode/-/punycode-2.3.1.tgz#027422e2faec0b25e1549c3e1bd8309b9133b6e5"
