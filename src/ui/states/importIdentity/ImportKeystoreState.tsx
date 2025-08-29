@@ -128,7 +128,7 @@ function ImportKeystoreState (): React.JSX.Element {
       }
 
       const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
-      await extensionAPI.switchWallet(walletId, 'testnet')
+      await extensionAPI.switchWallet(walletId)
 
       const identifier = identity.id.base58()
       const privateKeyHex = privateKey.length === 64 ? privateKey : privateKeyWASM.hex()
