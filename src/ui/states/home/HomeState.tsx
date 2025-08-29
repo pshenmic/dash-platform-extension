@@ -46,7 +46,8 @@ function HomeState (): React.JSX.Element {
       }
     }
 
-    void loadIdentities()
+    loadIdentities()
+      .catch(e => console.warn('loadIdentities error', e))
   }, [currentNetwork, currentWallet, extensionAPI])
 
   // Load Balance and Transactions by Identity
@@ -70,29 +71,29 @@ function HomeState (): React.JSX.Element {
         return
       }
 
-      void loadBalance(async () => {
+      loadBalance(async () => {
         const balance = await sdk.identities.getIdentityBalance(currentIdentity)
         return balance
-      })
+      }).catch(e => console.warn('loadBalance error', e))
 
-      void loadTransactions(async () => {
+      loadTransactions(async () => {
         const result = await platformClient.fetchTransactions(currentIdentity, currentNetwork as NetworkType, 'desc')
         if (result.data !== null && result.data !== undefined) {
           return result.data
         }
         throw new Error(result.error ?? 'Failed to load transactions')
-      })
+      }).catch(e => console.warn('loadTransactions error', e))
 
-      void loadTokens(async () => {
+      loadTokens(async () => {
         const result = await platformClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
         if (result.data !== null && result.data !== undefined) {
           return result.data
         }
         throw new Error(result.error ?? 'Failed to load tokens')
-      })
+      }).catch(e => console.warn('loadTokens error:', e))
     }
 
-    void loadData()
+    loadData().catch(e => console.warn('loadData error:', e))
   }, [
     currentIdentity,
     currentNetwork,
@@ -108,13 +109,13 @@ function HomeState (): React.JSX.Element {
 
   // load rate
   useEffect(() => {
-    void loadRate(async () => {
+    loadRate(async () => {
       const result = await platformClient.fetchRate(currentNetwork as NetworkType)
       if (result.data !== null && result.data !== undefined) {
         return result.data
       }
       throw new Error(result.error ?? 'Failed to load rate')
-    })
+    }).catch(e => console.warn('loadRate error:', e))
   }, [currentNetwork, platformClient, loadRate])
 
   if (isLoading) {

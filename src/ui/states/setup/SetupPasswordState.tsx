@@ -43,12 +43,9 @@ export default function SetupPasswordState (): React.JSX.Element {
         void navigate('/login')
       }
     }
-    void checkPassword()
+    checkPassword()
+      .catch(e => console.warn('checkPassword error: ', e))
   }, [extensionAPI, navigate])
-
-  const handleSetupClick = (): void => {
-    void handleSetupPassword()
-  }
 
   return (
     <div className='flex flex-col gap-2.5 -mt-16'>
@@ -99,7 +96,7 @@ export default function SetupPasswordState (): React.JSX.Element {
       <Button
         colorScheme='brand'
         size='xl'
-        onClick={handleSetupClick}
+        onClick={async () => await handleSetupPassword().catch(e => console.warn('handleSetupPassword error: ', e))}
         disabled={password === '' || confirmPassword === '' || password.length !== confirmPassword.length || isLoading}
         className='w-full'
       >

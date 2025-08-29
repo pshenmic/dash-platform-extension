@@ -39,10 +39,6 @@ export default function LoginState (): React.JSX.Element {
     }
   }
 
-  const handleLoginClick = (): void => {
-    void handleLogin()
-  }
-
   return (
     <div className='flex flex-col'>
       <div className='flex items-center flex-col w-full gap-2.5 mb-6'>
@@ -82,7 +78,7 @@ export default function LoginState (): React.JSX.Element {
         <Button
           size='xl'
           colorScheme='brand'
-          onClick={handleLoginClick}
+          onClick={async () => await handleLogin().catch(e => console.warn('handleLogin error: ', e))}
           disabled={password === '' || isLoading}
           className='w-full'
         >

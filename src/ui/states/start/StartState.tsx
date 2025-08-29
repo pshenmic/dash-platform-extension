@@ -18,13 +18,16 @@ export default function StartState (): React.JSX.Element {
         if (!status.passwordSet) {
           // Password not set - go to password setup
           void navigate('/setup-password')
-        } else if (status.currentWalletId == null || status.currentWalletId === '') {
+          return
+        }
+
+        if (status.currentWalletId == null) {
           // Password set but wallet not created - go to login
           void navigate('/login')
-        } else {
-          // Everything is set up - go to main screen
-          void navigate('/home')
+          return
         }
+
+        void navigate('/home')
       } catch (err) {
         setError('Failed to check status: ' + String(err))
         console.warn(err)
@@ -33,7 +36,8 @@ export default function StartState (): React.JSX.Element {
       }
     }
 
-    void checkStatus()
+    checkStatus()
+      .catch(e => console.warn('checkStatus error:', e))
   }, [navigate, extensionAPI])
 
   return error == null

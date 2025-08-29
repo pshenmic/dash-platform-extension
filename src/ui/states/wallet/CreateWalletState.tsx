@@ -27,10 +27,6 @@ function CreateWalletState (): React.JSX.Element {
     }
   }
 
-  const handleCreateClick = (): void => {
-    void handleCreateWallet()
-  }
-
   return (
     <div className='flex flex-col gap-4'>
       <Text size='xl' weight='bold'>
@@ -66,7 +62,7 @@ function CreateWalletState (): React.JSX.Element {
 
       <Button
         colorScheme='brand'
-        onClick={handleCreateClick}
+        onClick={async () => await handleCreateWallet().catch(e => console.warn('handleCreateWallet error: ', e))}
         disabled={isLoading}
         className='w-full'
       >

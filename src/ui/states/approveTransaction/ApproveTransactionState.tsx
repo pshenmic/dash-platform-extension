@@ -55,7 +55,8 @@ function ApproveTransactionState (): React.JSX.Element {
       }
     }
 
-    void checkWallet()
+    checkWallet()
+      .catch(e => console.warn('checkWallet error', e))
   }, [extensionAPI])
 
   useEffect(() => {
@@ -79,7 +80,8 @@ function ApproveTransactionState (): React.JSX.Element {
       }
     }
 
-    void loadData()
+    loadData()
+      .catch(e => console.warn('loadData error', e))
   }, [isCheckingWallet, hasWallet, currentWallet])
 
   // Load signing keys when wallet/identity/network changes
@@ -90,7 +92,7 @@ function ApproveTransactionState (): React.JSX.Element {
       return
     }
 
-    void loadSigningKeys(async () => {
+    loadSigningKeys(async () => {
       const allWallets = await extensionAPI.getAllWallets()
       const wallet = allWallets.find(w => w.walletId === currentWallet && w.network === currentNetwork)
       if (wallet == null) throw new Error('Wallet not found')
@@ -123,6 +125,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
       return keys
     })
+      .catch(e => console.warn('loadSigningKeys error', e))
   }, [currentWallet, currentNetwork, currentIdentity])
 
   // Update local state when signing keys are loaded
