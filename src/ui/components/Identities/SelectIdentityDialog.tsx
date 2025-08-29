@@ -20,7 +20,6 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
   const extensionAPI = useExtensionAPI()
   const navigate = useNavigate()
 
-  // Unified state for multiple identities data
   const [identitiesState, setIdentitiesState] = React.useState<ApiState<Record<string, IdentityApiData>>>({
     data: null,
     loading: false,

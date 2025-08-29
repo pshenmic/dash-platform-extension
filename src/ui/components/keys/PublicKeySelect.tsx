@@ -26,7 +26,6 @@ export function PublicKeySelect ({
   loading = false,
   error = null
 }: PublicKeySelectProps): React.JSX.Element {
-  // Convert keys to select options
   const signingKeyOptions = keys.map((key, index) => {
     const keyValue = key.keyId?.toString() ?? (key.hash !== '' ? key.hash : `key-${index}`)
     const purposeLabel = getPurposeLabel(key.purpose)
@@ -36,17 +35,14 @@ export function PublicKeySelect ({
       value: keyValue,
       content: (
         <div className='flex items-center flex-wrap gap-2 w-full'>
-          {/* Key Icon */}
           <div className='flex items-center justify-center w-5 h-5 bg-gray-100 rounded-full'>
             <KeyIcon size={10} className='text-gray-700' />
           </div>
 
-          {/* Key ID */}
           <Text size='sm' weight='medium' className='text-gray-900'>
             Key ID: {key.keyId}
           </Text>
 
-          {/* Badges */}
           <div className='flex items-center gap-2'>
             <ValueCard
               colorScheme='lightGray'

@@ -19,7 +19,6 @@ const IMAGE_VARIANTS = {
 
 type ImageVariant = keyof typeof IMAGE_VARIANTS
 
-// Predefined header variants with semantic names
 interface HeaderVariantConfig {
   showLogo?: boolean
   hideLeftSection?: boolean
@@ -149,14 +148,10 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-
   const deepestRoute = [...matches].reverse().find((m): boolean =>
     m.handle?.headerProps != null
   )
-
   const headerProps = deepestRoute?.handle?.headerProps
-
-  // Get configuration from variant
   const variant = headerProps?.variant !== null && headerProps?.variant !== undefined ? HEADER_VARIANTS[headerProps.variant] : {}
   const config = {
     showLogo: variant.showLogo ?? false,
@@ -177,7 +172,6 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
     void navigate(-1)
   }
 
-  // Get wallet display name (same logic as WalletSelector)
   const getWalletDisplayName = (): string => {
     if (currentWalletId === null || currentWalletId === '') return 'Wallet'
 

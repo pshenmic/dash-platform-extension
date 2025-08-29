@@ -32,7 +32,6 @@ export function EmptyState ({ title, buttonText, onButtonClick, className = '' }
           </Heading>
         </div>
 
-        {/* Button */}
         <div className='w-full'>
           <Button
             onClick={onButtonClick}
