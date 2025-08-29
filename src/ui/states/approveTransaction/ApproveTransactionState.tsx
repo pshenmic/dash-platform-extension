@@ -34,7 +34,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const [hasWallet, setHasWallet] = useState<boolean>(false)
 
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
-  const [selectedSigningKey, setSelectedSigningKey] = useState<string>('')
+  const [selectedSigningKey, setSelectedSigningKey] = useState<string | null>(null)
   const [signingKeys, setSigningKeys] = useState<PublicKeyInfo[]>([])
   const [signingKeysState, loadSigningKeys] = useAsyncState<PublicKeyInfo[]>()
 
@@ -84,7 +84,7 @@ function ApproveTransactionState (): React.JSX.Element {
   useEffect(() => {
     if (currentWallet == null || currentNetwork == null || currentIdentity == null) {
       setSigningKeys([])
-      setSelectedSigningKey('')
+      setSelectedSigningKey(null)
       return
     }
 
@@ -129,7 +129,7 @@ function ApproveTransactionState (): React.JSX.Element {
     if (signingKeysState.data != null) {
       setSigningKeys(signingKeysState.data)
 
-      if (signingKeysState.data.length > 0 && selectedSigningKey === '') {
+      if (signingKeysState.data.length > 0 && selectedSigningKey === null) {
         const firstKey = signingKeysState.data[0]
         const keyValue = firstKey.keyId?.toString() ?? (firstKey.hash !== '' ? firstKey.hash : 'key-0')
         setSelectedSigningKey(keyValue)
@@ -140,8 +140,8 @@ function ApproveTransactionState (): React.JSX.Element {
 
     setSigningKeys([])
 
-    if (selectedSigningKey !== '') {
-      setSelectedSigningKey('')
+    if (selectedSigningKey !== null) {
+      setSelectedSigningKey(null)
     }
   }, [signingKeysState.data, selectedSigningKey])
 
@@ -280,7 +280,10 @@ function ApproveTransactionState (): React.JSX.Element {
         return
       }
 
-      const keyId = selectedSigningKey !== '' ? parseInt(selectedSigningKey, 10) : 1
+      if (selectedSigningKey === null) {
+        throw new Error('No signing key selected')
+      }
+      const keyId = parseInt(selectedSigningKey, 10)
       const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, keyId, password)
 
       setTxHash(response.txHash)
@@ -393,7 +396,7 @@ function ApproveTransactionState (): React.JSX.Element {
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <PublicKeySelect
             keys={signingKeys}
-            value={selectedSigningKey}
+            value={selectedSigningKey ?? ''}
             onChange={setSelectedSigningKey}
             loading={signingKeysState.loading}
             error={signingKeysState.error}
@@ -447,7 +450,7 @@ function ApproveTransactionState (): React.JSX.Element {
                 onClick={() => { void doSign() }}
                 colorScheme='brand'
                 className='w-1/2'
-                disabled={isSigningInProgress || selectedSigningKey === ''}
+                disabled={isSigningInProgress || selectedSigningKey === null}
               >
                 {isSigningInProgress ? 'Signing...' : 'Sign'}
               </Button>
