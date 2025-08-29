@@ -136,7 +136,7 @@ const createDynamicMainScreenConfig = (
   currentWallet?: WalletAccountInfo | null,
   currentIdentity?: string | null
 ): ScreenConfig => {
-  const isPrivateKeysDisabled = (currentWallet == null) || (currentIdentity == null || currentIdentity === '')
+  const isPrivateKeysDisabled = currentWallet == null || currentIdentity == null
 
   return {
     ...mainScreenConfig,

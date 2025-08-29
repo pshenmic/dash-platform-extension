@@ -176,7 +176,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   }, [error])
 
   const handleDeleteKey = (keyId: number): void => {
-    if (currentIdentity === null || currentIdentity === '') {
+    if (currentIdentity === null) {
       console.warn('No identity selected for key deletion')
       return
     }
@@ -185,7 +185,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   }
 
   const confirmDeleteKey = async (): Promise<void> => {
-    if (keyToDelete === null || currentIdentity == null || currentIdentity === '') {
+    if (keyToDelete === null || currentIdentity == null) {
       return
     }
 
@@ -217,7 +217,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         <Text size='sm' dim>
           Manage public keys available for the current identity:
         </Text>
-        {currentIdentity !== null && currentIdentity !== '' && (
+        {currentIdentity !== null && (
           <Identifier
             key={currentIdentity}
             middleEllipsis
