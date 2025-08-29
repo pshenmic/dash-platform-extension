@@ -146,12 +146,9 @@ function ImportKeystoreState (): React.JSX.Element {
           return setError(`Could not find identity belonging to private key: ${privateKey}`)
         }
 
-        // TODO: remove condition of purpose and securityLevel
         const [identityPublicKey] = identity.getPublicKeys()
           .filter((publicKey: IdentityPublicKeyWASM) =>
-            publicKey.getPublicKeyHash() === pkeyWASM?.getPublicKeyHash() &&
-              publicKey.purpose === 'AUTHENTICATION' &&
-              publicKey.securityLevel === 'HIGH')
+            publicKey.getPublicKeyHash() === pkeyWASM?.getPublicKeyHash())
 
         if (identityPublicKey === null || identityPublicKey === undefined) {
           return setError(`Please use a key with purpose AUTHENTICATION and security level HIGH: ${privateKey}`)
