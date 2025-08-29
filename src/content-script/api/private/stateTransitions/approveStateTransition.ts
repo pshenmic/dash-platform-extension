@@ -184,7 +184,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
     }
 
     return {
-      txHash: stateTransition.hash
+      txHash: stateTransitionWASM.hash(true)
     }
   }
 
