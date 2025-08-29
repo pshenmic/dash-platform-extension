@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { Text, Button, Heading, ValueCard } from 'dash-ui/react'
-import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { AppConnect } from '../../../types/AppConnect'
 import { AppConnectStatus } from '../../../types/enums/AppConnectStatus'
@@ -51,7 +51,7 @@ function AppConnectState (): React.JSX.Element {
       await extensionAPI.approveAppConnect(params.id)
       window.close()
     } catch (error) {
-      console.error('Error during approval:', error)
+      console.warn('Error during approval:', error)
       setError('Failed to approve connection')
       setProcessingStatus(null)
     }
@@ -65,7 +65,7 @@ function AppConnectState (): React.JSX.Element {
       await extensionAPI.rejectAppConnect(params.id)
       window.close()
     } catch (error) {
-      console.error('Error during rejection:', error)
+      console.warn('Error during rejection:', error)
       setError('Failed to reject connection')
       setProcessingStatus(null)
     }
@@ -153,4 +153,4 @@ function AppConnectState (): React.JSX.Element {
   )
 }
 
-export default withAuthCheck(AppConnectState)
+export default withAccessControl(AppConnectState)

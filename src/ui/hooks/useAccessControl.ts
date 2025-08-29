@@ -2,20 +2,32 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from './useExtensionAPI'
 
-interface AuthCheckState {
+export interface AccessControlConfig {
+  requirePassword?: boolean
+  requireWallet?: boolean
+}
+
+interface AccessControlState {
   isLoading: boolean
   isAuthenticated: boolean
   error: string | null
 }
 
-export function useAuthCheck (): AuthCheckState {
+const DEFAULT_CONFIG: AccessControlConfig = {
+  requirePassword: true,
+  requireWallet: true
+}
+
+export function useAccessControl (config: Partial<AccessControlConfig> = {}): AccessControlState {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
-  const [state, setState] = useState<AuthCheckState>({
+  const [state, setState] = useState<AccessControlState>({
     isLoading: true,
     isAuthenticated: false,
     error: null
   })
+
+  const finalConfig = { ...DEFAULT_CONFIG, ...config }
 
   useEffect(() => {
     const checkAuth = async (): Promise<void> => {
@@ -24,21 +36,20 @@ export function useAuthCheck (): AuthCheckState {
 
         const status = await extensionAPI.getStatus()
 
-        if (!status.passwordSet) {
-          // Password not set - go to password setup
+        // Check password requirement
+        if (finalConfig.requirePassword === true && !status.passwordSet) {
           void navigate('/setup-password')
           setState({ isLoading: false, isAuthenticated: false, error: null })
           return
         }
 
-        if (status.currentWalletId == null || status.currentWalletId === '') {
-          // Password set but wallet not created - go to login
-          void navigate('/login')
+        // Check wallet requirement
+        if (finalConfig.requireWallet === true && (status.currentWalletId == null || status.currentWalletId === '')) {
+          void navigate('/no-wallet')
           setState({ isLoading: false, isAuthenticated: false, error: null })
           return
         }
 
-        // User is authenticated
         setState({ isLoading: false, isAuthenticated: true, error: null })
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Authentication check failed'
@@ -47,7 +58,7 @@ export function useAuthCheck (): AuthCheckState {
     }
 
     void checkAuth()
-  }, [extensionAPI, navigate])
+  }, [extensionAPI, navigate, finalConfig.requirePassword, finalConfig.requireWallet])
 
   return state
 }

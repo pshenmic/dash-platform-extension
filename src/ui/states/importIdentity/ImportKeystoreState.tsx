@@ -1,13 +1,24 @@
 import React, { useEffect, useState } from 'react'
 import { useSdk } from '../../hooks/useSdk'
 import { useNavigate } from 'react-router-dom'
-import { Button, Text, NotActive, Identifier, ValueCard, BigNumber, Textarea } from 'dash-ui/react'
+import {
+  Button,
+  Text,
+  NotActive,
+  Identifier,
+  ValueCard,
+  BigNumber,
+  Textarea,
+  Heading,
+  DashLogo,
+  ProgressStepBar
+} from 'dash-ui/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
-import { withAuthCheck } from '../../components/auth/withAuthCheck'
-import LoadingScreen from '../../components/layout/LoadingScreen'
+import { withAccessControl } from '../../components/auth/withAccessControl'
+import { WalletType } from '../../../types/WalletType'
 
-function ImportIdentityState (): React.JSX.Element {
+function ImportKeystoreState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
 
@@ -18,26 +29,6 @@ function ImportIdentityState (): React.JSX.Element {
   const [balance, setBalance] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isCheckingWallet, setIsCheckingWallet] = useState(true)
-
-  // Check if wallet exists on component mount
-  useEffect(() => {
-    const checkWallet = async (): Promise<void> => {
-      try {
-        const status = await extensionAPI.getStatus()
-        if (status.currentWalletId == null || status.currentWalletId === '') {
-          void navigate('/create-wallet')
-          return
-        }
-        setIsCheckingWallet(false)
-      } catch (error) {
-        console.error('Failed to check wallet status:', error)
-        void navigate('/create-wallet')
-      }
-    }
-
-    void checkWallet()
-  }, [extensionAPI, navigate])
 
   const checkPrivateKey = async (): Promise<void> => {
     setError(null)
@@ -128,7 +119,6 @@ function ImportIdentityState (): React.JSX.Element {
 
   const importIdentity = (): void => {
     const run = async (): Promise<void> => {
-      // Prepare data for CREATE_IDENTITY
       if (identity == null) {
         return setError('Could not load identity')
       }
@@ -137,15 +127,16 @@ function ImportIdentityState (): React.JSX.Element {
         return setError('Could not load private key')
       }
 
+      const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
+      await extensionAPI.switchWallet(walletId)
+
       const identifier = identity.id.base58()
-
       const privateKeyHex = privateKey.length === 64 ? privateKey : privateKeyWASM.hex()
-
       const privateKeys = [privateKeyHex]
 
       await extensionAPI.importIdentity(identifier, privateKeys)
 
-      void navigate('/')
+      void navigate('/wallet-created')
     }
 
     setIsLoading(true)
@@ -153,50 +144,44 @@ function ImportIdentityState (): React.JSX.Element {
 
     run()
       .catch(e => {
-        console.error(e)
-
-        // Check if it's a wallet not found error
-        if ((e)?.message?.includes('Wallet not found') === true) {
-          // Redirect to wallet creation
-          void navigate('/create-wallet')
-          return
-        }
-
         setError((e)?.message ?? e?.toString() ?? 'Unknown error')
       })
       .finally(() => setIsLoading(false))
   }
 
   const handleCheckClick = (): void => {
-    checkPrivateKey().catch(console.error)
-  }
-
-  // Show loading screen while checking wallet
-  if (isCheckingWallet || isLoading) {
-    return <LoadingScreen message={isCheckingWallet ? 'Checking wallet...' : 'Loading...'} />
+    checkPrivateKey().catch(console.warn)
   }
 
   return (
-    <div className='flex flex-col gap-2'>
-      <span className='h1-title'>Import your identity</span>
+    <div className='flex flex-col gap-2 -mt-5'>
+      <div className='flex flex-col gap-2.5 flex-1 mb-6'>
+        <DashLogo containerSize='3rem' />
+
+        <Heading level={1} size='2xl'>Import your identity</Heading>
+
+        {identity == null &&
+          <div className='!leading-tight'>
+            <Text size='sm' dim>
+              Paste your identity Private Key.
+            </Text>
+          </div>}
+      </div>
 
       {identity == null &&
         <div className='flex flex-col gap-[0.875rem]'>
-          <div className='flex flex-col gap-2'>
-            <Text color='blue' size='lg'>
-              Paste your identity <Text size='lg'>Private Key</Text> in <Text size='lg'>HEX format</Text>
+          <div className='mb-6'>
+            <Text dim>
+              Private Key
             </Text>
-            <Text color='blue' size='lg'>
-              You can export it from the Dash Evonode Tool application
-            </Text>
-          </div>
 
-          <Textarea
-            rows={3}
-            placeholder='your private key...'
-            onChange={setPrivateKey}
-            size='xl'
-          />
+            <Textarea
+              rows={3}
+              placeholder='Paste your Key'
+              onChange={setPrivateKey}
+              size='xl'
+            />
+          </div>
 
           {error != null &&
             <div className='py-1'>
@@ -213,11 +198,17 @@ function ImportIdentityState (): React.JSX.Element {
               {isLoading ? 'Checking...' : 'Check'}
             </Button>
           </div>
+
+          {/* /!* Progress Steps *!/ */}
+          {/* <div className='mt-auto'> */}
+          {/*  <ProgressStepBar currentStep={3} totalSteps={4} /> */}
+          {/* </div> */}
         </div>}
 
+      {/* Identity Preview */}
       {identity != null &&
-        <div className='flex flex-col gap-[0.875rem]'>
-          <Text size='lg' color='blue'>
+        <div className='flex flex-col gap-[0.875rem] mb-2.5'>
+          <Text dim>
             We found an identity associated with the given private key
           </Text>
 
@@ -268,8 +259,15 @@ function ImportIdentityState (): React.JSX.Element {
             {isLoading ? 'Importing...' : 'Import'}
           </Button>
         </div>}
+
+      {/* Progress Steps */}
+      <div className='mt-auto'>
+        <ProgressStepBar currentStep={identity == null ? 3 : 4} totalSteps={4} />
+      </div>
     </div>
   )
 }
 
-export default withAuthCheck(ImportIdentityState)
+export default withAccessControl(ImportKeystoreState, {
+  requireWallet: false
+})

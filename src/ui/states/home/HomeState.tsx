@@ -3,10 +3,10 @@ import NoIdentities from './NoIdentities'
 import { Button, Text, Select, Identifier, NotActive, ValueCard, DateBlock, BigNumber, TransactionStatusIcon } from 'dash-ui/react'
 import { TransactionTypes } from '../../../enums/TransactionTypes'
 import LoadingScreen from '../../components/layout/LoadingScreen'
-import './home.state.css'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
-import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import { withAccessControl } from '../../components/auth/withAccessControl'
+import './home.state.css'
 
 function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
@@ -27,57 +27,67 @@ function HomeState (): React.JSX.Element {
         const availableIdentities = (await extensionAPI.getIdentities())
           .map(identity => identity.identifier)
 
-        const current = await extensionAPI.getCurrentIdentity()
-
         setIdentities(availableIdentities ?? [])
-        setCurrentIdentity(current)
 
-        console.log('availableIdentities', availableIdentities)
-        console.log('current', current)
+        const currentIdentityFromApi = await extensionAPI.getCurrentIdentity()
 
-        // Auto-set first identity as current if no current identity is set
-        if ((current == null || current === '') && (availableIdentities?.length ?? 0) > 0) {
-          console.log('Setting first identity as current:', availableIdentities[0])
+        if (currentIdentityFromApi != null && currentIdentityFromApi === '') {
+          setCurrentIdentity(currentIdentityFromApi)
+        } else if ((availableIdentities?.length ?? 0) > 0) {
+          setCurrentIdentity(availableIdentities[0])
+
           try {
+            console.log('try to extensionAPI.switchIdentity', availableIdentities[0])
             await extensionAPI.switchIdentity(availableIdentities[0])
-            setCurrentIdentity(availableIdentities[0])
           } catch (error) {
-            console.error('Failed to set current identity:', error)
-          }
-        }
-
-        // Load transactions for current identity (use updated currentIdentity)
-        const activeIdentity = (currentIdentity != null && currentIdentity !== '') ? currentIdentity : current
-        if (activeIdentity != null && activeIdentity !== '') {
-          const balance = await sdk.identities.getIdentityBalance(activeIdentity)
-
-          setBalance(balance)
-
-          try {
-            const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${activeIdentity}/transactions?order=desc`)
-            if (response.status === 200) {
-              const data = await response.json()
-              if (data.error == null) {
-                setTransactions(data.resultSet)
-              } else {
-                setTransactionsLoadError(true)
-              }
-            } else {
-              setTransactionsLoadError(true)
-            }
-          } catch {
-            setTransactionsLoadError(true)
+            console.warn('Failed to set current identity:', error)
           }
         }
       } catch (error) {
-        console.error('Failed to load data:', error)
+        console.warn('Failed to load data:', error)
       } finally {
+        console.log('finaly set isLoading false')
         setIsLoading(false)
       }
     }
 
     void loadData()
   }, [])
+
+  useEffect(() => {
+    console.log('currentIdentity', currentIdentity)
+    if (currentIdentity == null || currentIdentity === '') return
+
+    const loadTransactions = async (): Promise<void> => {
+      try {
+        const response = await fetch(`https://testnet.platform-explorer.pshenmic.dev/identity/${currentIdentity}/transactions?order=desc`)
+        console.log('Fetch response status:', response.status)
+        if (response.status === 200) {
+          const data = await response.json()
+          if (data.error == null) {
+            setTransactions(data.resultSet)
+          } else {
+            setTransactionsLoadError(true)
+          }
+        } else {
+          setTransactionsLoadError(true)
+        }
+      } catch (fetchError) {
+        console.warn('Error fetching transactions:', fetchError)
+        setTransactionsLoadError(true)
+      }
+    }
+
+    const loadBalance = async (): Promise<void> => {
+      console.log('About to get balance...')
+      const balance = await sdk.identities.getIdentityBalance(currentIdentity)
+      console.log('Got balance:', balance)
+      setBalance(balance)
+    }
+
+    void loadTransactions()
+    void loadBalance()
+  }, [currentIdentity])
 
   if (isLoading) {
     return <LoadingScreen message='Loading wallet data...' />
@@ -180,4 +190,4 @@ function HomeState (): React.JSX.Element {
   )
 }
 
-export default withAuthCheck(HomeState)
+export default withAccessControl(HomeState)

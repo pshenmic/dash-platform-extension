@@ -16,17 +16,17 @@ export default function StartState (): React.JSX.Element {
 
         if (!status.passwordSet) {
           // Password not set - go to password setup
-          navigate('/setup-password')
+          void navigate('/setup-password')
         } else if (status.currentWalletId == null || status.currentWalletId === '') {
           // Password set but wallet not created - go to login
-          navigate('/login')
+          void navigate('/login')
         } else {
           // Everything is set up - go to main screen
-          navigate('/home')
+          void navigate('/home')
         }
       } catch (err) {
         setError('Failed to check status: ' + String(err))
-        console.error(err)
+        console.warn(err)
       } finally {
         setIsLoading(false)
       }

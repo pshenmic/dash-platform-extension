@@ -7,7 +7,7 @@ export default function NoIdentities (): React.JSX.Element {
   const navigate = useNavigate()
 
   const handleImportClick = (): void => {
-    void navigate('/import')
+    void navigate('/import-keystore')
   }
 
   return (

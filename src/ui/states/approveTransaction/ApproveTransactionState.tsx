@@ -6,7 +6,7 @@ import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui/reac
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { StateTransitionWASM } from 'pshenmic-dpp'
-import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 
 function ApproveTransactionState (): React.JSX.Element {
@@ -41,7 +41,7 @@ function ApproveTransactionState (): React.JSX.Element {
           setHasWallet(true)
         }
       } catch (error) {
-        console.error('Failed to check wallet status:', error)
+        console.warn('Failed to check wallet status:', error)
         setHasWallet(false)
       } finally {
         setIsCheckingWallet(false)
@@ -78,11 +78,11 @@ function ApproveTransactionState (): React.JSX.Element {
             await extensionAPI.switchIdentity(availableIdentities[0])
             setCurrentIdentity(availableIdentities[0])
           } catch (error) {
-            console.error('Failed to set current identity:', error)
+            console.warn('Failed to set current identity:', error)
           }
         }
       } catch (error) {
-        console.error('Failed to load identities:', error)
+        console.warn('Failed to load identities:', error)
       } finally {
         setIsLoadingIdentities(false)
       }
@@ -106,12 +106,12 @@ function ApproveTransactionState (): React.JSX.Element {
           try {
             setStateTransitionWASM(StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)))
           } catch (e) {
-            console.error('Error decoding state transition:', e)
+            console.warn('Error decoding state transition:', e)
             setTransactionDecodeError(String(e))
           }
         })
         .catch((error) => {
-          console.error('Error getting state transition:', error)
+          console.warn('Error getting state transition:', error)
           setTransactionNotFound(true)
         })
         .finally(() => setIsLoadingTransaction(false))
@@ -175,7 +175,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
         <div className='flex flex-col gap-2 w-full'>
           <Button
-            onClick={async () => await navigate('/import')}
+            onClick={async () => await navigate('/import-keystore')}
             colorScheme='brand'
           >
             Import Identity
@@ -196,7 +196,7 @@ function ApproveTransactionState (): React.JSX.Element {
       throw new Error('stateTransitionWASM is null')
     }
 
-    extensionAPI.rejectStateTransition(stateTransitionWASM.hash(true)).then(() => window.close).catch(console.error)
+    extensionAPI.rejectStateTransition(stateTransitionWASM.hash(true)).then(window.close).catch(console.warn)
   }
 
   const doSign = async (): Promise<void> => {
@@ -400,4 +400,4 @@ function ApproveTransactionState (): React.JSX.Element {
   )
 }
 
-export default withAuthCheck(ApproveTransactionState)
+export default withAccessControl(ApproveTransactionState)
