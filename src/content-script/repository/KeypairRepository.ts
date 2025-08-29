@@ -1,5 +1,5 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import { IdentityPublicKeyWASM } from 'pshenmic-dpp'
+import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'pshenmic-dpp'
 import { KeyPair } from '../../types/KeyPair'
 import { base64 } from '@scure/base'
 import { KeyPairSchema, KeyPairsSchema } from '../storage/storageSchema'
@@ -21,13 +21,17 @@ export class KeypairRepository {
       throw new Error('Wallet is not chosen')
     }
 
+    if (PrivateKeyWASM.fromHex(privateKey, network).getPublicKeyHash() !== identityPublicKey.getPublicKeyHash()) {
+      throw new Error('Private key does not match Identity Public Key')
+    }
+
     const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
 
     if (passwordPublicKey == null) {
       throw new Error('Password is not set for an extension')
     }
 
-    const storageKey = `keyPairs_${walletId}_${network}`
+    const storageKey = `keyPairs_${network}_${walletId}`
 
     const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
 
@@ -49,6 +53,31 @@ export class KeypairRepository {
     await this.storageAdapter.set(storageKey, keyPairsSchema)
   }
 
+  async remove (identity: string, keyId: number): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `keyPairs_${network}_${walletId}`
+
+    const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
+
+    let keyPairs: KeyPairSchema[] = keyPairsSchema[identity]
+
+    if (keyPairs == null || keyPairs.length === 0) {
+      keyPairs = []
+    }
+
+    keyPairs = keyPairs.filter((keyPair) => IdentityPublicKeyWASM.fromBase64(keyPair.identityPublicKey).keyId !== keyId)
+
+    keyPairsSchema[identity] = keyPairs
+
+    await this.storageAdapter.set(storageKey, keyPairsSchema)
+  }
+
   async getByIdentityPublicKey (identifier: string, identityPublicKey: IdentityPublicKeyWASM): Promise<KeyPair | null> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
@@ -57,7 +86,7 @@ export class KeypairRepository {
       throw new Error('Wallet is not chosen')
     }
 
-    const storageKey = `keyPairs_${walletId}_${network}`
+    const storageKey = `keyPairs_${network}_${walletId}`
 
     const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
 
@@ -89,7 +118,7 @@ export class KeypairRepository {
       throw new Error('Wallet is not chosen')
     }
 
-    const storageKey = `keyPairs_${walletId}_${network}`
+    const storageKey = `keyPairs_${network}_${walletId}`
 
     const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
 

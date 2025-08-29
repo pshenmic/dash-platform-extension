@@ -228,6 +228,7 @@ function ApproveTransactionState (): React.JSX.Element {
         return
       }
 
+      // @ts-expect-error
       const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, password)
 
       setTxHash(response.txHash)

@@ -28,9 +28,9 @@ export class IdentitiesRepository {
       throw new Error(`Identity with identifier ${identifier} already exists`)
     }
 
-    const allIdentityIds = Object.entries(identities)
+    const index = Object.entries(identities)
       .map(([, entry]) => (entry.index))
-    const index = Math.max(...allIdentityIds) + 1
+      .reduce((acc, index) => Math.max(acc, index + 1), 0)
 
     const identityStoreSchema: IdentityStoreSchema = {
       index,
@@ -41,7 +41,6 @@ export class IdentitiesRepository {
     identities[identifier] = identityStoreSchema
 
     await this.storageAdapter.set(storageKey, identities)
-    await this.storageAdapter.set('currentIdentity', identifier)
 
     return {
       identifier: identityStoreSchema.identifier,
@@ -118,21 +117,5 @@ export class IdentitiesRepository {
       identifier: identity.identifier,
       label: identity.label
     }
-  }
-
-  async getCurrent (): Promise<Identity | null> {
-    const currentIdentity = await this.storageAdapter.get('currentIdentity') as string | null
-
-    if (currentIdentity == null) {
-      return null
-    }
-
-    const identity = await this.getByIdentifier(currentIdentity)
-
-    if (identity == null) {
-      throw new Error(`Could not find current identity ${currentIdentity}`)
-    }
-
-    return identity
   }
 }

@@ -16,6 +16,7 @@ export default function CreateWalletState (): React.JSX.Element {
 
     try {
       const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
+      // @ts-expect-error
       await extensionAPI.switchWallet(walletId, 'testnet')
 
       void navigate('/import')

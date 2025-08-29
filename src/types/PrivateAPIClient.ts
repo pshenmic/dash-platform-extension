@@ -30,6 +30,13 @@ import { WalletType } from './WalletType'
 import { ResyncIdentitiesPayload } from './messages/payloads/ResyncIdentitiesPayload'
 import { ResyncIdentitiesResponse } from './messages/response/ResyncIdentitiesResponse'
 import { ImportIdentityPayload } from './messages/payloads/ImportIdentityPayload'
+import { GetAllWalletsResponse, WalletAccountInfo } from './messages/response/GetAllWalletsResponse'
+import { Network } from './enums/Network'
+import { AddIdentityPrivateKeyPayload } from './messages/payloads/AddIdentityPrivateKeyPayload'
+import { GetAvailableKeyPairsResponse } from './messages/response/GetAvailableKeyPairsResponse'
+import { GetAvailableKeyPairsPayload } from './messages/payloads/GetAvailableKeyPairsPayload'
+import { SwitchNetworkPayload } from './messages/payloads/SwitchNetworkPayload'
+import { RemoveIdentityPrivateKeyPayload } from './messages/payloads/RemoveIdentityPrivateKeyPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -67,16 +74,41 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CREATE_WALLET, payload)
   }
 
-  async switchWallet (walletId: string, network: string): Promise<void> {
-    const payload: SwitchWalletPayload = { walletId, network }
+  async getAllWallets (): Promise<WalletAccountInfo[]> {
+    const payload: EmptyPayload = {}
+
+    const response: GetAllWalletsResponse = await this._rpcCall(MessagingMethods.GET_ALL_WALLETS, payload)
+
+    return response.wallets.map((wallet) => ({
+      walletId: wallet.walletId,
+      type: WalletType[wallet.type],
+      network: Network[wallet.network],
+      label: wallet.label
+    }))
+  }
+
+  async switchWallet (walletId: string): Promise<void> {
+    const payload: SwitchWalletPayload = { walletId }
 
     return await this._rpcCall(MessagingMethods.SWITCH_WALLET, payload)
   }
 
-  async importIdentity (identifier, privateKeys: string[]): Promise<void> {
-    const payload: ImportIdentityPayload = { identifier, privateKeys }
+  async importIdentity (identity: string, privateKeys: string[]): Promise<void> {
+    const payload: ImportIdentityPayload = { identity, privateKeys }
 
     return await this._rpcCall(MessagingMethods.IMPORT_IDENTITY, payload)
+  }
+
+  async addIdentityPrivateKey (identity: string, privateKey: string): Promise<void> {
+    const payload: AddIdentityPrivateKeyPayload = { identity, privateKey }
+
+    return await this._rpcCall(MessagingMethods.ADD_IDENTITY_PRIVATE_KEY, payload)
+  }
+
+  async removeIdentityPrivateKey (identity: string, keyId: number): Promise<void> {
+    const payload: RemoveIdentityPrivateKeyPayload = { identity, keyId }
+
+    return await this._rpcCall(MessagingMethods.REMOVE_IDENTITY_PRIVATE_KEY, payload)
   }
 
   async resyncIdentities (password?: string, mnemonic?: string): Promise<ResyncIdentitiesResponse> {
@@ -95,12 +127,28 @@ export class PrivateAPIClient {
     return currentIdentity
   }
 
-  async switchIdentity (identifier: string): Promise<VoidResponse> {
+  async switchIdentity (identity: string): Promise<VoidResponse> {
     const payload: SwitchIdentityPayload = {
-      identity: identifier
+      identity
     }
 
     return await this._rpcCall(MessagingMethods.SWITCH_IDENTITY, payload)
+  }
+
+  async switchNetwork (network: string): Promise<VoidResponse> {
+    const payload: SwitchNetworkPayload = {
+      network
+    }
+
+    return await this._rpcCall(MessagingMethods.SWITCH_NETWORK, payload)
+  }
+
+  async getAvailableKeyPairs (identity: string): Promise<number[]> {
+    const payload: GetAvailableKeyPairsPayload = { identity }
+
+    const response: GetAvailableKeyPairsResponse = await this._rpcCall(MessagingMethods.GET_AVAILABLE_KEY_PAIRS, payload)
+
+    return response.keyIds
   }
 
   async getIdentities (): Promise<Identity[]> {
@@ -111,11 +159,12 @@ export class PrivateAPIClient {
     return response.identities
   }
 
-  async approveStateTransition (hash: string, identity: string, password: string): Promise<ApproveStateTransitionResponse> {
+  async approveStateTransition (hash: string, identity: string, keyId: number, password: string): Promise<ApproveStateTransitionResponse> {
     const payload: ApproveStateTransitionPayload = {
       hash,
       identity,
-      password
+      password,
+      keyId
     }
 
     const response: ApproveStateTransitionResponse = await this._rpcCall(MessagingMethods.APPROVE_STATE_TRANSITION, payload)
