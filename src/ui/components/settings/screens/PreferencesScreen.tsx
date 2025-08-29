@@ -23,7 +23,6 @@ const NotificationIcon: React.FC = () => (
   </svg>
 )
 
-// Конфигурация экрана Preferences
 export const preferencesScreenConfig: ScreenConfig = {
   id: 'preferences',
   title: 'Preferences',
