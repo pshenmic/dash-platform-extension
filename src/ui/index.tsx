@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import HomeState from './states/home/HomeState'
@@ -133,21 +133,6 @@ const App: React.FC = function () {
       ]
     }
   ] as RouteObject[])
-  const populateBalances = async (): Promise<void> => {
-    // const balances = await Promise.all(identities.map(async identity => ({
-    //   identifier: identity.identifier,
-    //   balance: (await sdk.identities.getBalance(identity.identifier)).toString()
-    // })))
-
-    // for (const { identifier, balance } of balances) {
-    //   setIdentityBalance(0n)
-    // }
-  }
-
-  useEffect(() => {
-    populateBalances()
-      .catch(err => console.warn('Failed to populate balances', err))
-  }, [])
 
   return (
     <RouterProvider router={router} />
