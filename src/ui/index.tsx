@@ -11,6 +11,14 @@ import './styles/app.pcss'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 import AppConnectState from './states/appConnect/AppConnectState'
 import Layout from './components/layout/Layout'
+import { NavigateOptions, To } from 'react-router'
+
+declare module 'react-router' {
+  interface NavigateFunction {
+    (to: To, options?: NavigateOptions): void
+    (delta: number): void
+  }
+}
 
 const App: React.FC = function () {
   const router = createHashRouter([

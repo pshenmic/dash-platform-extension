@@ -6,7 +6,7 @@ import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { RemoveIdentityPrivateKeyPayload } from '../../../../types/messages/payloads/RemoveIdentityPrivateKeyPayload'
-import {EventData} from "../../../../types/EventData";
+import { EventData } from '../../../../types/EventData'
 
 export class RemoveIdentityPrivateKeyHandler implements APIHandler {
   keypairRepository: KeypairRepository

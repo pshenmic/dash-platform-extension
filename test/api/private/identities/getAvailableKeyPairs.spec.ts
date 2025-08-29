@@ -5,8 +5,8 @@ import { MemoryStorageAdapter } from '../../../../src/content-script/storage/mem
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
 import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
-import {PrivateAPIClient} from "../../../../src/types/PrivateAPIClient";
-import {WalletType} from "../../../../src/types/WalletType";
+import { PrivateAPIClient } from '../../../../src/types/PrivateAPIClient'
+import { WalletType } from '../../../../src/types/WalletType'
 
 describe('get available key pairs', () => {
   let privateAPI: PrivateAPI
