@@ -4,18 +4,15 @@ import { BatchTransitionWASM, DataContractUpdateTransitionWASM, PrivateKeyWASM, 
 import { decrypt, PrivateKey } from 'eciesjs'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { EventData } from '../../../../types/EventData'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'
 import { ApproveStateTransitionPayload } from '../../../../types/messages/payloads/ApproveStateTransitionPayload'
 import { bytesToHex, bytesToUtf8, hexToBytes, validateHex, validateIdentifier } from '../../../../utils'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
-import { WalletType } from '../../../../types/WalletType'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionStatus } from '../../../../types/enums/StateTransitionStatus'
 import { Network } from '../../../../types/enums/Network'
-import { Wallet } from '../../../../types/Wallet'
-import { Identity } from '../../../../types/Identity'
+import { Wallet, Identity, WalletType, EventData } from '../../../../types'
 
 export class ApproveStateTransitionHandler implements APIHandler {
   keyPairRepository: KeypairRepository
