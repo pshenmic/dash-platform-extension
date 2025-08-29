@@ -16,8 +16,8 @@ interface ImportOption {
   id: string
   title: string
   icon?: React.ReactNode
-  disabled?: boolean,
-  onClick: () => Promise<void>
+  disabled?: boolean
+  handleClick: () => Promise<void>
 }
 
 function ChooseWalletType (): React.JSX.Element {
@@ -26,7 +26,7 @@ function ChooseWalletType (): React.JSX.Element {
 
   const extensionAPI = useExtensionAPI()
 
-  const createKeystoreWallet = async () => {
+  const createKeystoreWallet = async (): Promise<void> => {
     const { walletId } = await createWallet(WalletType.keystore)
     await extensionAPI.switchWallet(walletId)
     setSelectedWallet(walletId)
@@ -42,13 +42,13 @@ function ChooseWalletType (): React.JSX.Element {
       id: 'keystore',
       title: 'Key Store',
       icon: <KeyIcon />,
-      onClick: createKeystoreWallet
+      handleClick: createKeystoreWallet
     },
     {
       id: 'seedphrase',
       title: 'Seed Phrase',
       icon: <ProtectedMessageIcon />,
-      onClick: createSeedPhraseWallet
+      handleClick: createSeedPhraseWallet
     }
   ]
 
@@ -58,7 +58,6 @@ function ChooseWalletType (): React.JSX.Element {
         <div className='flex items-start gap-3'>
           <div className='flex flex-col gap-2.5 flex-1'>
             <DashLogo containerSize='3rem' />
-
             <Heading level={1} className='text-3xl font-extrabold text-gray-900 leading-tight'>
               Choose Wallet Type
             </Heading>
@@ -76,8 +75,8 @@ function ChooseWalletType (): React.JSX.Element {
         {importOptions.map((option) => (
           <ValueCard
             key={option.id}
-            onClick={option.onClick}
-            disabled={option.disabled}
+            onClick={option.handleClick}
+            disabled={option.disabled === true}
             colorScheme='lightGray'
             border={false}
             clickable={option.disabled !== true}
@@ -85,18 +84,12 @@ function ChooseWalletType (): React.JSX.Element {
           >
             <div className='flex items-center gap-4'>
               <div className={`w-8 h-8 flex items-center justify-center bg-dash-brand/15 rounded-full ${
-                option.disabled === true
-                  ? 'text-gray-400'
-                  : 'text-blue-500'
-              }`}
+                option.disabled === true ? 'text-gray-400' : 'text-blue-500'}`}
               >
                 {option.icon}
               </div>
 
-              <Text className={`font-bold text-base ${
-                option.disabled === true ? 'text-gray-400' : 'text-gray-900'
-              }`}
-              >
+              <Text className={`font-bold text-base ${option.disabled === true ? 'text-gray-400' : 'text-gray-900'}`}>
                 {option.title}
               </Text>
             </div>
