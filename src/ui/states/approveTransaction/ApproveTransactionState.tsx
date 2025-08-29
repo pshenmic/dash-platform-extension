@@ -277,7 +277,6 @@ function ApproveTransactionState (): React.JSX.Element {
         return
       }
 
-      // Use selected signing key or default to 1 for backward compatibility
       const keyId = selectedSigningKey !== '' ? parseInt(selectedSigningKey, 10) : 1
       const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, keyId, password)
 
@@ -325,7 +324,6 @@ function ApproveTransactionState (): React.JSX.Element {
 
   const transactionHash = params.hash ?? params.txhash
 
-  // Prepare identity options for select
   const identityOptions = identities.map(identifier => ({
     value: identifier,
     content: (
@@ -342,7 +340,6 @@ function ApproveTransactionState (): React.JSX.Element {
   return (
     <div className='screen-content'>
       <div className='flex flex-col gap-6'>
-        {/* Header */}
         <div className='flex flex-col gap-2.5'>
           <h1 className='h1-title'>
             Transaction<br />Approval
@@ -371,7 +368,7 @@ function ApproveTransactionState (): React.JSX.Element {
           )}
         </div>
 
-        {/* Choose Identity (wired to outlet context) */}
+        {/* Choose Identity */}
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <div className='flex flex-col gap-2.5'>
             <Text size='md' opacity='50'>Choose Identity</Text>

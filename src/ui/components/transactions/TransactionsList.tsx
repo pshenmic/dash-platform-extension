@@ -34,13 +34,10 @@ function TransactionsList ({
     transactions.forEach(transaction => {
       let date: Date
       if (transaction.timestamp !== null && transaction.timestamp !== undefined && transaction.timestamp !== '') {
-        // Check if timestamp is ISO string or numeric
         if (typeof transaction.timestamp === 'string' && transaction.timestamp.includes('T')) {
           date = new Date(transaction.timestamp)
         } else {
-          // Numeric timestamp (seconds or milliseconds)
           const numericTimestamp = parseInt(transaction.timestamp, 10)
-          // If less than a certain threshold, assume it's in seconds, otherwise milliseconds
           date = new Date(numericTimestamp < 1e12 ? numericTimestamp * 1000 : numericTimestamp)
         }
       } else {
@@ -68,15 +65,13 @@ function TransactionsList ({
   const getTransactionTypeDisplay = (transaction: TransactionData): string => {
     const { type, batchType } = transaction
 
-    // If batchType exists, use it instead of type
     if (batchType !== null && batchType !== undefined && batchType !== '') {
       if (batchType in BatchActions) {
         return BatchActions[batchType as keyof typeof BatchActions].title
       }
-      return batchType // fallback to raw batchType if not found in BatchActions
+      return batchType
     }
 
-    // If no batchType, use regular type
     if (type !== null && type !== undefined && type !== '' && type in TransactionTypesInfo) {
       return TransactionTypesInfo[type as keyof typeof TransactionTypesInfo].title
     }
@@ -87,8 +82,6 @@ function TransactionsList ({
   const getTransactionSubtext = (transaction: TransactionData): string => {
     const hash = transaction.hash ?? 'unknown'
 
-    // For transfers, we would need additional data to show From/To
-    // For now, showing hash as fallback
     if (transaction.type === 'IDENTITY_CREDIT_TRANSFER') {
       return `Hash: ${hash.substring(0, 5)}...${hash.substring(hash.length - 4)}`
     }
