@@ -27,15 +27,11 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
     // TODO: Implement disconnect logic
   }
 
-  const renderIcon = (): React.JSX.Element => {
-    const iconBgClass = theme === 'dark' ? 'bg-[rgba(255,255,255,0.05)]' : 'bg-white'
-
-    return (
-      <div className={`w-[50px] h-[50px] ${iconBgClass} rounded-full flex items-center justify-center`}>
-        <WebIcon theme={theme} />
-      </div>
-    )
-  }
+  const renderIcon = (): React.JSX.Element => (
+    <div className='w-[50px] h-[50px] bg-white rounded-full flex items-center justify-center'>
+      <WebIcon theme={theme} />
+    </div>
+  )
 
   if (connectedDapps.length === 0) {
     return (
@@ -64,24 +60,20 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
         {connectedDapps.map((dapp) => (
           <div
             key={dapp.id}
-            className={`rounded-[15px] px-[15px] py-[10px] flex items-center justify-between ${
-              theme === 'dark'
-                ? 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.15)] backdrop-blur-[250px]'
-                : 'bg-[rgba(12,28,51,0.03)]'
-            }`}
+            className='rounded-[15px] px-[15px] py-[10px] flex items-center justify-between bg-[rgba(12,28,51,0.03)]'
           >
             <div className='flex items-center gap-[15px]'>
               {renderIcon()}
 
               <div className='flex flex-col gap-[5px]'>
-                <Text size='base' weight='500' className={theme === 'dark' ? 'text-white' : 'text-[#0C1C33]'}>
+                <Text size='base' weight='500' className='text-dash-primary-dark-blue'>
                   {dapp.name}
                 </Text>
                 {dapp.url !== dapp.name && (
                   <Text
-                    size='xs' weight='300' className={`${
-                    theme === 'dark' ? 'text-white/50' : 'text-[rgba(12,28,51,0.5)]'
-                  }`} style={{ fontFamily: 'Space Grotesk' }}
+                    size='xs'
+                    weight='300'
+                    className='text-[rgba(12,28,51,0.5)] font-grotesque'
                   >
                     {dapp.url}
                   </Text>
@@ -101,11 +93,7 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
 
       <div className='mt-6'>
         <button
-          className={`w-full rounded-[15px] px-[24px] py-[12px] text-base font-medium hover:cursor-pointer transition-colors ${
-            theme === 'dark'
-              ? 'bg-[rgba(76,126,255,0.15)] text-[#4C7EFF] hover:bg-[rgba(76,126,255,0.25)]'
-              : 'bg-[rgba(76,126,255,0.15)] text-[#4C7EFF] hover:bg-[rgba(76,126,255,0.25)]'
-          }`}
+          className='w-full rounded-[15px] px-[24px] py-[12px] text-base font-medium hover:cursor-pointer transition-colors bg-[rgba(76,126,255,0.15)] text-[#4C7EFF] hover:bg-[rgba(76,126,255,0.25)]'
           onClick={() => {
             connectedDapps.forEach(dapp => handleDisconnect(dapp.id))
           }}
