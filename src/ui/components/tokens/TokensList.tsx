@@ -19,21 +19,16 @@ function TokensList ({
   error,
   currentNetwork
 }: TokensListProps): React.JSX.Element {
-  console.log('tokens', tokens)
-
   const getTokenInitials = (token: TokenData): string => {
-    // Get singular form name and use first 2 characters
     const singularName = getTokenName(token.localizations, 'singularForm')
     if (singularName !== '' && singularName != null) {
       return singularName.substring(0, 2).toUpperCase()
     }
 
-    // Fallback to description
     if (token.description !== '' && token.description != null) {
       return token.description.substring(0, 2).toUpperCase()
     }
 
-    // Last fallback to identifier
     return token.identifier.substring(0, 2).toUpperCase()
   }
 
@@ -63,9 +58,7 @@ function TokensList ({
             key={token.identifier}
             href={getTokenExplorerUrl(token.identifier)}
           >
-            {/* Left side */}
             <div className='flex items-center gap-3'>
-              {/* Token Avatar */}
               <div className='flex items-center justify-center w-[39px] h-[39px] bg-[rgba(12,28,51,0.03)] rounded-full'>
                 <Text
                   weight='medium'
@@ -77,7 +70,6 @@ function TokensList ({
                 </Text>
               </div>
 
-              {/* Token Info */}
               <div className='flex items-center gap-2 w-[121px]'>
                 <div className='flex flex-col'>
                   <Text

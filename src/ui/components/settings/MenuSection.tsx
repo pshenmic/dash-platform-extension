@@ -34,12 +34,10 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
             hasSubMenu={item.hasSubMenu}
             disabled={item.disabled}
             onClick={() => {
-              // Don't execute anything if disabled
               if (item.disabled === true) {
                 return
               }
 
-              // Priority: onAction over navigation
               if (item.onAction != null) {
                 item.onAction()
               } else {

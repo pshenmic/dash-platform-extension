@@ -16,7 +16,6 @@ import { WalletAccountInfo } from '../../../types/messages/response/GetAllWallet
 
 type ScreenType = 'main' | 'current-wallet' | 'preferences' | 'connected-dapps' | 'private-keys' | 'import-private-keys-settings' | 'security-privacy' | 'help-support' | 'about-dash'
 
-// Screen component mappings
 const SCREEN_COMPONENTS: Record<string, React.ComponentType<SettingsScreenProps>> = {
   'current-wallet': WalletSettingsScreen,
   preferences: PreferencesScreen,
@@ -28,7 +27,6 @@ const SCREEN_COMPONENTS: Record<string, React.ComponentType<SettingsScreenProps>
   'about-dash': AboutScreen
 }
 
-// Universal screen renderer based on ScreenConfig content
 const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, currentNetwork?: string | null }> = ({
   screenType,
   onBack,
@@ -44,7 +42,6 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, c
     return <div>Screen not found</div>
   }
 
-  // Special case for main screen - use the existing component
   if (screenType === 'main') {
     return (
       <MainSettingsScreen
@@ -58,7 +55,6 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, c
     )
   }
 
-  // Try to find a dedicated screen component
   const ScreenComponent = SCREEN_COMPONENTS[screenType]
   if (ScreenComponent !== null && ScreenComponent !== undefined) {
     return (
@@ -73,7 +69,6 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, c
     )
   }
 
-  // Fallback: render MenuSection array from config
   const sections = screenConfig.content
 
   return (
@@ -102,7 +97,6 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
   const [screenHistory, setScreenHistory] = useState<ScreenType[]>(['main'])
 
   const navigateToScreen = (itemIdOrScreenId: string): void => {
-    // Check if this is a direct screen ID
     if (screenConfigs[itemIdOrScreenId as ScreenType] !== null && screenConfigs[itemIdOrScreenId as ScreenType] !== undefined) {
       const screenType = itemIdOrScreenId as ScreenType
       setCurrentScreen(screenType)
@@ -110,7 +104,6 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
       return
     }
 
-    // Find the menu item by ID and get its screenId
     const findMenuItem = (sections: MenuSectionType[]): string | undefined => {
       for (const section of sections) {
         const item = section.items.find(item => item.id === itemIdOrScreenId)
@@ -121,7 +114,6 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
       return undefined
     }
 
-    // Look for the item in main screen config
     const mainConfig = screenConfigs.main
     if (mainConfig !== null && mainConfig !== undefined) {
       const screenId = findMenuItem(mainConfig.content)

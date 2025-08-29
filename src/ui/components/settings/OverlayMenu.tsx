@@ -18,7 +18,6 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
   showBackButton = false,
   onBack
 }) => {
-  // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
