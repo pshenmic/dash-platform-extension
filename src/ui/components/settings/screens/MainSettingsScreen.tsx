@@ -12,7 +12,6 @@ import {
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import type { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
 
-// Export configurations for other screens
 export const walletSettingsConfig: ScreenConfig = {
   id: 'current-wallet',
   title: 'Wallet Settings',
@@ -69,7 +68,6 @@ export const aboutDashConfig: ScreenConfig = {
   content: []
 }
 
-// Main screen configuration
 export const mainScreenConfig: ScreenConfig = {
   id: 'main',
   title: 'Settings',
@@ -134,7 +132,6 @@ interface MainSettingsScreenProps extends SettingsScreenProps {
   onItemSelect: (itemId: string) => void
 }
 
-// Function to create dynamic main screen configuration based on current state
 const createDynamicMainScreenConfig = (
   currentWallet?: WalletAccountInfo | null,
   currentIdentity?: string | null
