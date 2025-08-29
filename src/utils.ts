@@ -145,7 +145,6 @@ export const getTokenName = (localizations: any, form: 'singularForm' | 'pluralF
     ''
 }
 
-// Private Key Utilities
 export interface ProcessedPrivateKey {
   key: PrivateKeyWASM
   identity: IdentityWASM
@@ -215,7 +214,6 @@ export const processPrivateKey = async (
   sdk: DashPlatformSDK,
   network: Network = Network.testnet
 ): Promise<ProcessedPrivateKey> => {
-  // Validate format
   if (!validatePrivateKeyFormat(privateKeyString)) {
     throw new Error('Invalid private key format. Expected 52 characters (WIF) or 64 characters (hex)')
   }
