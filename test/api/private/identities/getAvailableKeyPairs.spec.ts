@@ -1,11 +1,12 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { PrivateAPIClient, WalletType } from '../../../../src/types'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
 import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
 import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
+import {PrivateAPIClient} from "../../../../src/types/PrivateAPIClient";
+import {WalletType} from "../../../../src/types/WalletType";
 
 describe('get available key pairs', () => {
   let privateAPI: PrivateAPI
