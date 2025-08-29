@@ -114,7 +114,8 @@ export class PlatformExplorerClient {
           const { identityId, data } = result.value
           successfulResults[identityId] = data
         } else {
-          errors.push(`Failed to fetch ${identityIds[index]}: ${result.reason}`)
+          const errorMessage = result.reason instanceof Error ? result.reason.message : String(result.reason)
+          errors.push(`Failed to fetch ${identityIds[index]}: ${errorMessage}`)
         }
       })
 
