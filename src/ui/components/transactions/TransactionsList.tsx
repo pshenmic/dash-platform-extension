@@ -31,12 +31,8 @@ function TransactionsList ({
     const groups: Record<string, TransactionData[]> = {}
 
     transactions.forEach(transaction => {
-      const date = transaction.timestamp
-        ? (typeof transaction.timestamp === 'string' && transaction.timestamp.includes('T')
-            ? new Date(transaction.timestamp)
-            : new Date(parseInt(transaction.timestamp, 10) < 1e12
-              ? parseInt(transaction.timestamp, 10) * 1000
-              : parseInt(transaction.timestamp, 10)))
+      const date = transaction.timestamp != null && transaction.timestamp !== ''
+        ? new Date(transaction.timestamp)
         : new Date()
 
       const dateKey = date.toLocaleDateString('en-GB', {
@@ -45,7 +41,7 @@ function TransactionsList ({
         year: 'numeric'
       })
 
-      if (!groups[dateKey]) {
+      if (groups[dateKey] === undefined) {
         groups[dateKey] = []
       }
       groups[dateKey].push(transaction)
@@ -63,10 +59,10 @@ function TransactionsList ({
     <EntityList
       loading={loading}
       error={error}
-      isEmpty={!transactions?.length}
+      isEmpty={transactions?.length === 0 || transactions?.length === undefined}
       variant='spaced'
       loadingText='Loading transactions...'
-      errorText={error ? `Error loading transactions: ${error}` : undefined}
+      errorText={error != null && error !== '' ? `Error loading transactions: ${error}` : undefined}
       emptyText='No transactions found'
     >
       {groupedTransactions.map((group) => (
@@ -81,18 +77,17 @@ function TransactionsList ({
             {group.transactions.map((transaction) => {
               const hash = transaction.hash ?? 'unknown'
               const { type, batchType } = transaction
-              
-              const typeDisplay = (batchType && batchType in BatchActions)
+
+              const typeDisplay = (batchType != null && batchType !== '' && batchType in BatchActions)
                 ? BatchActions[batchType as keyof typeof BatchActions].title
-                : batchType
-                  ? batchType
-                  : (type && type in TransactionTypesInfo)
-                    ? TransactionTypesInfo[type as keyof typeof TransactionTypesInfo].title
-                    : type ?? 'Unknown Transaction'
-              
-              const gasAmount = Number(transaction.gasUsed) || 0
+                : batchType ?? ((type != null && type !== '' && type in TransactionTypesInfo)
+                  ? TransactionTypesInfo[type as keyof typeof TransactionTypesInfo].title
+                  : type ?? 'Unknown Transaction')
+
+              const gasUsedNumber = Number(transaction.gasUsed)
+              const gasAmount = Number.isNaN(gasUsedNumber) ? 0 : gasUsedNumber
               const dashAmount = gasAmount > 0 ? creditsToDash(gasAmount) : 0
-              const usdAmount = rate && dashAmount > 0 ? dashAmount * rate : 0
+              const usdAmount = rate != null && dashAmount > 0 ? dashAmount * rate : 0
 
               return (
                 <div
@@ -101,13 +96,13 @@ function TransactionsList ({
                   onClick={() => window.open(getTransactionExplorerUrl(hash, currentNetwork), '_blank')}
                 >
                   <div className='flex items-center gap-3.5'>
-                    <TransactionStatusIcon  className='w-6 h-6 opacity-80' status={transaction.status ?? 'unknown'} />
+                    <TransactionStatusIcon className='w-6 h-6 opacity-80' status={transaction.status ?? 'unknown'} />
 
                     <div className='flex flex-col gap-1'>
                       <Text weight='medium' size='sm' className='text-dash-primary-dark-blue'>
                         {typeDisplay}
                       </Text>
-                      {hash && (
+                      {hash !== '' && hash != null && (
                         <span className='flex items-center gap-1'>
                           <Text size='xs' className='text-gray-500'>Hash:</Text>
                           <Identifier
@@ -133,11 +128,9 @@ function TransactionsList ({
                           Credits
                         </Text>
                       </div>
-                      {usdAmount > 0 && (
-                        <Text size='xs' className='text-[rgba(12,28,51,0.35)] opacity-50 text-right'>
-                          ~ ${usdAmount.toFixed(3)} (Gas)
-                        </Text>
-                      )}
+                      <Text size='xs' className='text-[rgba(12,28,51,0.35)] opacity-50 text-right'>
+                        {usdAmount > 0 && <>~ ${usdAmount.toFixed(3)}</>} (Gas)
+                      </Text>
                     </div>
                   )}
                 </div>
