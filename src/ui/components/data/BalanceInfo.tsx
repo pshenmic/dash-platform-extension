@@ -17,7 +17,6 @@ const BalanceInfo: React.FC<BalanceInfoProps> = ({ balanceState, rateState }) =>
 
   return (
     <div className='flex items-center gap-2.5 bg-[rgba(76,126,255,0.1)] rounded-[5px] px-2 py-1.5 w-fit'>
-      {/* USD Balance - only show if we have valid rate */}
       {hasValidRate && (
         <>
           <Text className='!text-dash-brand font-medium text-sm'>
@@ -31,7 +30,6 @@ const BalanceInfo: React.FC<BalanceInfoProps> = ({ balanceState, rateState }) =>
         </>
       )}
 
-      {/* Dash Balance */}
       <Text className='!text-dash-brand font-medium text-sm'>
         {balanceState.loading
           ? 'Loading...'
