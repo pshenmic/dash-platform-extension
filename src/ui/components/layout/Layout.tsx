@@ -50,7 +50,11 @@ const Layout: FC = () => {
           void identityChangeHandler(currentIdentityFromApi).catch(error => {
             console.warn('Failed to change identity handler:', error)
           })
-        } else if ((identitiesData?.length ?? 0) > 0) {
+
+          return
+        }
+
+        if ((identitiesData?.length ?? 0) > 0) {
           const firstIdentity = identitiesData[0].identifier
           void identityChangeHandler(firstIdentity).catch(error => {
             console.warn('Failed to change identity handler:', error)
@@ -82,7 +86,7 @@ const Layout: FC = () => {
       }
     }
 
-    void getIdentities().catch(error => {
+    getIdentities().catch(error => {
       console.warn('Failed to get identities in effect:', error)
     })
   }, [currentNetwork, currentWallet])
@@ -99,7 +103,7 @@ const Layout: FC = () => {
   }, [extensionAPI])
 
   useEffect(() => {
-    void loadWallets().catch(error => {
+    loadWallets().catch(error => {
       console.warn('Failed to load wallets on mount:', error)
     })
   }, [])
