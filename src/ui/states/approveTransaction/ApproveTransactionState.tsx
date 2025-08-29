@@ -72,7 +72,6 @@ function ApproveTransactionState (): React.JSX.Element {
           .map(identity => identity.identifier)
 
         setIdentities(availableIdentities ?? [])
-        console.log('availableIdentities', availableIdentities)
       } catch (error) {
         console.warn('Failed to load identities:', error)
       } finally {
@@ -149,8 +148,6 @@ function ApproveTransactionState (): React.JSX.Element {
       setIsLoadingTransaction(true)
       setTransactionNotFound(false)
       setTransactionDecodeError(null)
-
-      console.log('Loading transaction with hash:', transactionHash)
 
       extensionAPI
         .getStateTransition(transactionHash)
@@ -286,7 +283,6 @@ function ApproveTransactionState (): React.JSX.Element {
 
       setTxHash(response.txHash)
     } catch (error) {
-      console.log('Signing transition failed', error)
       setPasswordError(`Signing failed: ${error.toString() as string}`)
     } finally {
       setIsSigningInProgress(false)
