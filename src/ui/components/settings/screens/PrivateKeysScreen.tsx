@@ -106,7 +106,9 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       }
     }
 
-    void loadWalletInfo()
+    void loadWalletInfo().catch(error => {
+      console.warn('Failed to load wallet info:', error)
+    })
   }, [extensionAPI])
 
   // Helper to fetch available public keys for current identity/wallet
@@ -115,8 +117,10 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     const wallet = allWallets.find(w => w.walletId === selectedWallet && w.network === selectedNetwork)
     if (wallet == null) throw new Error('Wallet not found')
 
-    const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity!)
-    const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity!)
+    if (currentIdentity == null) throw new Error('No current identity')
+
+    const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
+    const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity)
 
     // Filter identity public keys to only show those that are available
     const availablePublicKeys = identityPublicKeys.filter((key: any) => {
@@ -147,7 +151,9 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   // Load public keys
   useEffect(() => {
     if (selectedWallet === null || selectedWallet === '' || selectedNetwork === null || selectedNetwork === '' || currentIdentity === null || currentIdentity === '') return
-    void loadKeys(fetchAvailablePublicKeys)
+    void loadKeys(fetchAvailablePublicKeys).catch(error => {
+      console.warn('Failed to load public keys:', error)
+    })
   }, [selectedWallet, selectedNetwork, currentIdentity, extensionAPI, sdk, loadKeys])
 
   // Update local state when keys are loaded
@@ -179,18 +185,20 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   }
 
   const confirmDeleteKey = async (): Promise<void> => {
-    if (keyToDelete === null || currentIdentity === null || currentIdentity === '') {
+    if (keyToDelete === null || currentIdentity == null || currentIdentity === '') {
       return
     }
 
     try {
-      await extensionAPI.removeIdentityPrivateKey(currentIdentity!, keyToDelete)
-      
+      await extensionAPI.removeIdentityPrivateKey(currentIdentity, keyToDelete)
+
       // Refresh the keys list after successful deletion
-      void loadKeys(fetchAvailablePublicKeys)
+      void loadKeys(fetchAvailablePublicKeys).catch(error => {
+        console.warn('Failed to reload public keys after deletion:', error)
+      })
     } catch (error) {
       console.error('Failed to delete private key:', error)
-      
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       setError(`Failed to delete private key: ${errorMessage}`)
     }
@@ -205,11 +213,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
   return (
     <div className='flex flex-col h-full'>
-      {/* Description */}
       <div className='px-4 mb-6'>
-        {/*<p className='text-sm font-medium text-gray-600'>*/}
-        {/*  Manage public keys available for the current identity.*/}
-        {/*</p>*/}
         <Text size='sm' dim>
           Manage public keys available for the current identity:
         </Text>
@@ -226,12 +230,9 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         )}
       </div>
 
-      {/* Loading State */}
       {keysState.loading && (
         <div className='px-4 mb-4'>
-          <ValueCard colorScheme='lightGray' size='xl'>
-            <Text size='md' opacity='50'>Loading public keys...</Text>
-          </ValueCard>
+          <Text size='md' opacity='50'>Loading public keys...</Text>
         </div>
       )}
 
@@ -304,10 +305,10 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         open={keyToDelete !== null}
         onOpenChange={(open) => { if (!open) setKeyToDelete(null) }}
         title='Delete Private Key'
-        message={`Are you sure you want to delete private key with ID ${keyToDelete}? This action cannot be undone.`}
+        message={`Are you sure you want to delete private key with ID ${keyToDelete ?? 'unknown'}? This action cannot be undone.`}
         confirmText='Delete'
         cancelText='Cancel'
-        onConfirm={confirmDeleteKey}
+        onConfirm={() => { void confirmDeleteKey().catch(error => console.error('Delete key error:', error)) }}
       />
     </div>
   )
