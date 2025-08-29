@@ -177,11 +177,7 @@ function ImportKeystoreState (): React.JSX.Element {
     }
   }
 
-  useEffect(() => {
-    if (error !== null) {
-      setError(null)
-    }
-  }, [privateKeyInputs])
+  useEffect(() => setError(null), [privateKeyInputs])
 
   const importIdentities = (): void => {
     const run = async (): Promise<void> => {

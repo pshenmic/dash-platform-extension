@@ -34,15 +34,14 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
             hasSubMenu={item.hasSubMenu}
             disabled={item.disabled}
             onClick={() => {
-              if (item.disabled === true) {
-                return
-              }
+              if (item.disabled === true) return
 
               if (item.onAction != null) {
                 item.onAction()
-              } else {
-                onItemClick(item.id)
+                return
               }
+
+              onItemClick(item.id)
             }}
           />
         ))}

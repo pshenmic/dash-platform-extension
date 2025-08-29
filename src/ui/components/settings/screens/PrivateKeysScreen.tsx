@@ -160,9 +160,10 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   useEffect(() => {
     if (keysState.data != null) {
       setPublicKeys(keysState.data)
-    } else {
-      setPublicKeys([])
+      return
     }
+
+    setPublicKeys([])
   }, [keysState.data])
 
   useEffect(() => {
@@ -303,7 +304,9 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       {/* Confirm Delete Dialog */}
       <ConfirmDialog
         open={keyToDelete !== null}
-        onOpenChange={(open) => { if (!open) setKeyToDelete(null) }}
+        onOpenChange={(open) => {
+          if (!open) setKeyToDelete(null)
+        }}
         title='Delete Private Key'
         message={`Are you sure you want to delete private key with ID ${keyToDelete ?? 'unknown'}? This action cannot be undone.`}
         confirmText='Delete'

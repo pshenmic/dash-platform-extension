@@ -128,16 +128,20 @@ function ApproveTransactionState (): React.JSX.Element {
   useEffect(() => {
     if (signingKeysState.data != null) {
       setSigningKeys(signingKeysState.data)
+
       if (signingKeysState.data.length > 0 && selectedSigningKey === '') {
         const firstKey = signingKeysState.data[0]
         const keyValue = firstKey.keyId?.toString() ?? (firstKey.hash !== '' ? firstKey.hash : 'key-0')
         setSelectedSigningKey(keyValue)
       }
-    } else {
-      setSigningKeys([])
-      if (selectedSigningKey !== '') {
-        setSelectedSigningKey('')
-      }
+
+      return
+    }
+
+    setSigningKeys([])
+
+    if (selectedSigningKey !== '') {
+      setSelectedSigningKey('')
     }
   }, [signingKeysState.data, selectedSigningKey])
 

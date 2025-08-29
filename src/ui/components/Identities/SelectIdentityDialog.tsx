@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Dialog, Identifier, Text, BigNumber, Avatar, Button, PlusIcon } from 'dash-ui/react'
 import { usePlatformExplorerClient, type IdentityApiData, type NetworkType, type ApiState } from '../../hooks/usePlatformExplorerApi'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
@@ -15,18 +15,18 @@ interface SelectIdentityDialogProps {
 }
 
 function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, currentWallet, children }: SelectIdentityDialogProps): React.JSX.Element {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = useState(false)
   const platformClient = usePlatformExplorerClient()
   const extensionAPI = useExtensionAPI()
   const navigate = useNavigate()
 
-  const [identitiesState, setIdentitiesState] = React.useState<ApiState<Record<string, IdentityApiData>>>({
+  const [identitiesState, setIdentitiesState] = useState<ApiState<Record<string, IdentityApiData>>>({
     data: null,
     loading: false,
     error: null
   })
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (open && identities.length > 0) {
       const fetchIdentitiesData = async (): Promise<void> => {
         setIdentitiesState({ data: null, loading: true, error: null })

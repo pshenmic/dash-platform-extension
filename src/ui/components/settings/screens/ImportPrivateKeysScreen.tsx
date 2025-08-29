@@ -135,12 +135,8 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
 
   // Clear error and success message when inputs change
   useEffect(() => {
-    if (error !== null) {
-      setError(null)
-    }
-    if (successMessage !== null) {
-      setSuccessMessage(null)
-    }
+    setError(null)
+    setSuccessMessage(null)
   }, [privateKeyInputs])
 
   const hasValidKeys = privateKeyInputs.some(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
