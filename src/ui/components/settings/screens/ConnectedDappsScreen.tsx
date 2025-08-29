@@ -40,14 +40,6 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   if (connectedDapps.length === 0) {
     return (
       <div className='flex flex-col items-center justify-center min-h-[200px] text-center'>
-        <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-          theme === 'dark' ? 'bg-[rgba(255,255,255,0.05)]' : 'bg-gray-100'
-        }`}
-        >
-          <svg width='24' height='24' viewBox='0 0 24 24' fill='none'>
-            <path d='M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z' stroke={theme === 'dark' ? '#FFFFFF' : '#9CA3AF'} strokeWidth='1.5' />
-          </svg>
-        </div>
         <Text size='lg' weight='medium' className={theme === 'dark' ? 'text-white/60' : 'text-gray-600'}>
           No Connected DApps
         </Text>
@@ -60,7 +52,6 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
 
   return (
     <div className='space-y-4'>
-      {/* Description */}
       <Text
         size='sm' weight='500' className={`mb-6 opacity-50 ${
         theme === 'dark' ? 'text-white' : 'text-[#0C1C33]'
@@ -69,7 +60,6 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
         Manage dapps you have connected to.
       </Text>
 
-      {/* DApp List */}
       <div className='space-y-[10px]'>
         {connectedDapps.map((dapp) => (
           <div
@@ -109,7 +99,6 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
         ))}
       </div>
 
-      {/* Disconnect All Button */}
       <div className='mt-6'>
         <button
           className={`w-full rounded-[15px] px-[24px] py-[12px] text-base font-medium hover:cursor-pointer transition-colors ${
