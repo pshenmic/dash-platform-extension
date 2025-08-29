@@ -75,10 +75,6 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, c
 
   // Fallback: render MenuSection array from config
   const sections = screenConfig.content
-  const handleItemClick = (itemId: string): void => {
-    console.log(`Screen ${screenType} action: ${itemId}`)
-    // TODO: Implement actions for each menu item
-  }
 
   return (
     <div className='menu-sections-container'>
@@ -86,7 +82,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, c
         <MenuSection
           key={section.id}
           section={section}
-          onItemClick={handleItemClick}
+          onItemClick={onItemSelect ?? (() => {})}
         />
       ))}
     </div>
