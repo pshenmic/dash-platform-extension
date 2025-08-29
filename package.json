@@ -7,7 +7,7 @@
     "build": "webpack --mode=production",
     "serve": "webpack serve --mode=development",
     "lint": "ts-standard --fix",
-    "watch": "node scripts/dev-extension.js",
+    "watch": "webpack --config webpack.extension.config.cjs --mode=development",
     "test": "jest"
   },
   "author": "",
