@@ -9,7 +9,6 @@ import {
 } from './PlatformExplorer'
 import { PLATFORM_EXPLORER_URLS } from '../constants'
 
-// Re-export types for convenience
 export {
   NetworkType,
   TransactionData,
@@ -27,8 +26,6 @@ const getBaseUrl = (network: NetworkType = 'testnet'): string => {
 const getExplorerUrl = (network: NetworkType = 'testnet'): string => {
   return PLATFORM_EXPLORER_URLS[network].explorer
 }
-
-// No utility functions needed - all fields are explicitly typed
 
 export class PlatformExplorerClient {
   async fetchIdentity (identityId: string, network: NetworkType = 'testnet'): Promise<ApiState<IdentityApiData>> {
@@ -64,12 +61,8 @@ export class PlatformExplorerClient {
         rate = data
       } else if (typeof data?.usd === 'number') {
         rate = data.usd
-      } else if (typeof data?.rate === 'number') {
-        rate = data.rate
       } else if (data?.usd != null) {
         rate = Number(data.usd)
-      } else if (data?.rate != null) {
-        rate = Number(data.rate)
       }
 
       if (rate == null || Number.isNaN(rate)) {
