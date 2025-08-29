@@ -11,20 +11,18 @@ import { preferencesScreenConfig } from './PreferencesScreen'
 import { privateKeysScreenConfig } from './PrivateKeysScreen'
 import { importPrivateKeysScreenConfig } from './ImportPrivateKeysScreen'
 
-// Collect all screen configurations
 export const screenConfigs: Record<string, ScreenConfig> = {
   main: mainScreenConfig,
   'current-wallet': walletSettingsConfig,
-  preferences: preferencesScreenConfig, // Use the full configuration with content
+  preferences: preferencesScreenConfig,
   'connected-dapps': connectedDappsConfig,
-  'private-keys': privateKeysScreenConfig, // Use the full configuration with content
-  'import-private-keys-settings': importPrivateKeysScreenConfig, // Import private keys screen
+  'private-keys': privateKeysScreenConfig,
+  'import-private-keys-settings': importPrivateKeysScreenConfig,
   'security-privacy': securityPrivacyConfig,
-  'help-support': helpSupportScreenConfig, // Use the full configuration with content
+  'help-support': helpSupportScreenConfig,
   'about-dash': aboutDashConfig
 }
 
-// Function to get screen titles
 export const getScreenTitles = (): Record<string, string> => {
   const titles: Record<string, string> = {}
   Object.entries(screenConfigs).forEach(([key, config]) => {
@@ -33,7 +31,6 @@ export const getScreenTitles = (): Record<string, string> => {
   return titles
 }
 
-// Function to get screen configuration
 export const getScreenConfig = (screenId: string): ScreenConfig | undefined => {
   return screenConfigs[screenId]
 }

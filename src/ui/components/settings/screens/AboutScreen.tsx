@@ -1,30 +1,10 @@
 import React from 'react'
-import { Text, Button } from 'dash-ui/react'
+import { Text, Button, DashLogo } from 'dash-ui/react'
 import type { SettingsScreenProps } from '../types'
 
-const DashLogo: React.FC = () => (
-  <svg width='60' height='48' viewBox='0 0 60 48' fill='none'>
-    <path d='M51.1 0H8.9L0 19.4h30.4L40.75 0H51.1Z' fill='#008DE4' />
-    <path d='M8.9 48H51.1L60 28.6H29.6L19.25 48H8.9Z' fill='#008DE4' />
-  </svg>
-)
-
 export const AboutScreen: React.FC<SettingsScreenProps> = () => {
-  const handleOpenWebsite = (): void => {
-    window.open('https://www.dash.org/', '_blank')
-  }
-
-  const handleOpenGitHub = (): void => {
-    window.open('https://github.com/dashpay/dash-platform-extension', '_blank')
-  }
-
-  const handleOpenLicense = (): void => {
-    window.open('https://github.com/dashpay/dash-platform-extension/blob/main/LICENSE', '_blank')
-  }
-
   return (
     <div className='menu-sections-container'>
-      {/* Logo and App Info */}
       <div className='text-center py-6'>
         <div className='flex justify-center mb-4'>
           <DashLogo />
@@ -40,7 +20,6 @@ export const AboutScreen: React.FC<SettingsScreenProps> = () => {
         </Text>
       </div>
 
-      {/* Description */}
       <div className='bg-white/[0.03] rounded-[15px] p-4'>
         <Text size='sm' className='text-gray-700 leading-relaxed'>
           Dash Platform Extension is a browser extension wallet that provides secure
@@ -49,31 +28,34 @@ export const AboutScreen: React.FC<SettingsScreenProps> = () => {
         </Text>
       </div>
 
-      {/* Links */}
       <div className='space-y-3'>
-        <Button
-          variant='outline'
-          className='w-full justify-start'
-          onClick={handleOpenWebsite}
+        <a
+          href='https://dash.org/'
+          target='_blank'
+          rel='noopener noreferrer'
+          className='block'
         >
-          <Text size='sm'>Visit Dash.org</Text>
-        </Button>
+          <Button
+            variant='outline'
+            className='w-full justify-start'
+          >
+            <Text size='sm'>Visit Dash.org</Text>
+          </Button>
+        </a>
 
-        <Button
-          variant='outline'
-          className='w-full justify-start'
-          onClick={handleOpenGitHub}
+        <a
+          href='https://github.com/pshenmic/dash-platform-extension'
+          target='_blank'
+          rel='noopener noreferrer'
+          className='block'
         >
-          <Text size='sm'>View on GitHub</Text>
-        </Button>
-
-        <Button
-          variant='outline'
-          className='w-full justify-start'
-          onClick={handleOpenLicense}
-        >
-          <Text size='sm'>License (MIT)</Text>
-        </Button>
+          <Button
+            variant='outline'
+            className='w-full justify-start'
+          >
+            <Text size='sm'>View on GitHub</Text>
+          </Button>
+        </a>
       </div>
 
       {/* Legal */}
