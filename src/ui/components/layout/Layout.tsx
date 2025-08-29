@@ -90,7 +90,6 @@ const Layout: FC = () => {
   const loadWallets = useCallback(async (): Promise<WalletAccountInfo[]> => {
     try {
       const wallets = await extensionAPI.getAllWallets()
-      console.log('loadWallets wallets', wallets)
       setAllWallets(wallets)
       return wallets
     } catch (error) {
@@ -107,6 +106,8 @@ const Layout: FC = () => {
 
   const networkChangeHandler = useCallback(async (network): Promise<void> => {
     try {
+      if (currentNetwork === network) return
+
       sdk.setNetwork(network as 'testnet' | 'mainnet')
       await extensionAPI.switchNetwork(network)
       const status = await extensionAPI.getStatus()
@@ -120,7 +121,7 @@ const Layout: FC = () => {
     } catch (e) {
       console.warn('changeNetwork error: ', e)
     }
-  }, [sdk, extensionAPI, loadWallets])
+  }, [sdk, extensionAPI, loadWallets, currentNetwork])
 
   const walletChangeHandler = useCallback(async (wallet): Promise<void> => {
     if (wallet !== null && wallet !== '') {
