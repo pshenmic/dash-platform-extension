@@ -116,7 +116,6 @@ export class WalletRepository {
   async getById (walletId: string): Promise<Wallet | null> {
     const network = await this.storageAdapter.get('network') as string
 
-    const all = await this.storageAdapter.getAll()
     const wallet = await this.storageAdapter.get(`wallet_${network}_${walletId}`)
 
     if (wallet == null) {

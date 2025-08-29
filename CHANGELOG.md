@@ -1,4 +1,21 @@
 # CHANGELOG
+## 0.0.9
+Updated Dash Platform SDK dependency to 1.1.4
+
+## What's Changed
+* Bump dash-platform-sdk package dependency by @pshenmic in https://github.com/pshenmic/dash-platform-extension/pull/42
+
+
+**Full Changelog**: https://github.com/pshenmic/dash-platform-extension/compare/0.0.8...0.0.9
+
+## 0.0.8
+
+A small bugfix that resolves "Signing Error" when there is more than one AUTHENTICATION / HIGH public keys in the identity.
+
+## What's Changed
+* Fix signing error when identity has more than one public key of one type by @pshenmic in https://github.com/pshenmic/dash-platform-extension/pull/28
+
+**Full Changelog**: https://github.com/pshenmic/dash-platform-extension/compare/0.0.7...0.0.8
 
 ## 0.0.7
 A small bugfix that resolves "Signing Error" when there is more than one AUTHENTICATION / HIGH public keys in the identity.
