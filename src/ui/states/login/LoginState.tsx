@@ -24,7 +24,7 @@ export default function LoginState (): React.JSX.Element {
       if (result.success) {
         const status = await extensionAPI.getStatus()
 
-        if (status.currentWalletId != null && status.currentWalletId !== '') {
+        if (status.currentWalletId != null) {
           void navigate('/home')
         } else {
           void navigate('/no-wallet')

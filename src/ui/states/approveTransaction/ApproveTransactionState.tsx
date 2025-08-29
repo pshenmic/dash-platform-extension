@@ -10,7 +10,7 @@ import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types/OutletContext'
 import LoadingScreen from '../../components/layout/LoadingScreen'
-import { PublicKeySelect, PublicKeyInfo } from '../../components/keys/PublicKeySelect'
+import { PublicKeySelect, PublicKeyInfo } from '../../components/keys'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -42,11 +42,7 @@ function ApproveTransactionState (): React.JSX.Element {
     const checkWallet = async (): Promise<void> => {
       try {
         const status = await extensionAPI.getStatus()
-        if (status.currentWalletId == null || status.currentWalletId === '') {
-          setHasWallet(false)
-        } else {
-          setHasWallet(true)
-        }
+        setHasWallet(status.currentWalletId != null)
       } catch (error) {
         console.warn('Failed to check wallet status:', error)
         setHasWallet(false)
@@ -86,7 +82,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
   // Load signing keys when wallet/identity/network changes
   useEffect(() => {
-    if (currentWallet == null || currentNetwork == null || currentIdentity == null || currentIdentity === '') {
+    if (currentWallet == null || currentNetwork == null || currentIdentity == null) {
       setSigningKeys([])
       setSelectedSigningKey('')
       return

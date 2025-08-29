@@ -94,13 +94,9 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                 <div className='flex flex-col items-end gap-1 text-right shrink-0'>
                   <Text weight='semibold' size='sm'>
                     {identitiesState.loading
-                      ? (
-                          'Loading...'
-                        )
+                      ? 'Loading...'
                       : identitiesState.error !== null && identitiesState.error !== ''
-                        ? (
-                            'Error'
-                          )
+                        ? 'Error'
                         : (
                           <>
                             <BigNumber>{identitiesState.data?.[identity]?.balance ?? '0'}</BigNumber> Credits

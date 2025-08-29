@@ -173,7 +173,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
   }
 
   const getWalletDisplayName = (): string => {
-    if (currentWalletId === null || currentWalletId === '') return 'Wallet'
+    if (currentWalletId === null) return 'Wallet'
 
     const availableWallets = wallets.filter(wallet => wallet.network === currentNetwork)
     const currentWallet = availableWallets.find(wallet => wallet.walletId === currentWalletId)
@@ -239,13 +239,13 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
       {/* Right side read-only displays and selectors */}
       {(config.showWalletRightReadOnly || config.showNetworkRightReadOnly || config.showNetworkRightSelector) && (
         <div className={`flex items-center gap-2.5 ${config.imageType != null ? 'absolute top-0 right-0 z-10' : 'w-full justify-between'}`}>
-          {config.showWalletRightReadOnly && currentWalletId !== null && currentWalletId !== '' && (
+          {config.showWalletRightReadOnly && currentWalletId !== null && (
             <Text size='sm' color='gray' weight='medium' className='text-right' dim>
               {getWalletDisplayName()}
             </Text>
           )}
 
-          {config.showNetworkRightReadOnly && currentNetwork !== null && currentNetwork !== '' && (
+          {config.showNetworkRightReadOnly && currentNetwork !== null && (
             config.networkDisplayFormat === 'card'
               ? <NetworkCard network={currentNetwork ?? ''} />
               : (

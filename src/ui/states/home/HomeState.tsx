@@ -53,7 +53,7 @@ function HomeState (): React.JSX.Element {
   // Load Balance and Transactions by Identity
   useEffect(() => {
     const loadData = async (): Promise<void> => {
-      if (currentIdentity === null || currentIdentity === '') return
+      if (currentIdentity === null) return
 
       const sdkNetwork = sdk.getNetwork()
       if (currentNetwork !== sdkNetwork) {
@@ -135,7 +135,7 @@ function HomeState (): React.JSX.Element {
 
   return (
     <div className='screen-content'>
-      {currentIdentity !== null && currentIdentity !== '' && (
+      {currentIdentity !== null && (
         <div className='flex items-center gap-3'>
           <SelectIdentityDialog
             identities={identities}

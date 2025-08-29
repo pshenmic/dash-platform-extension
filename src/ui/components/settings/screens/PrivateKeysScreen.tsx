@@ -150,7 +150,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
   // Load public keys
   useEffect(() => {
-    if (currentWalletId === null || currentWalletId === '' || currentNetwork === null || currentNetwork === '' || currentIdentity === null || currentIdentity === '') return
+    if (currentWalletId === null || currentNetwork === null || currentIdentity === null) return
     void loadKeys(fetchAvailablePublicKeys).catch(error => {
       console.warn('Failed to load public keys:', error)
     })

@@ -46,7 +46,7 @@ const Layout: FC = () => {
         const currentIdentityFromApi = await extensionAPI.getCurrentIdentity()
 
         // Set current Identity if it doesn't exist
-        if (currentIdentityFromApi != null && currentIdentityFromApi !== '') {
+        if (currentIdentityFromApi != null) {
           identityChangeHandler(currentIdentityFromApi).catch(error => {
             console.warn('Failed to change identity handler:', error)
           })
@@ -76,7 +76,7 @@ const Layout: FC = () => {
   // change all identities
   useEffect(() => {
     const getIdentities = async (): Promise<void> => {
-      if (currentNetwork != null && currentNetwork !== '' && currentWallet != null && currentWallet !== '') {
+      if (currentNetwork != null && currentWallet != null) {
         try {
           const identitiesData = await extensionAPI.getIdentities()
           setAvailableIdentities(identitiesData)
@@ -128,7 +128,7 @@ const Layout: FC = () => {
   }, [sdk, extensionAPI, loadWallets, currentNetwork])
 
   const walletChangeHandler = useCallback(async (wallet): Promise<void> => {
-    if (wallet !== null && wallet !== '') {
+    if (wallet !== null) {
       try {
         await extensionAPI.switchWallet(wallet)
         setCurrentWallet(wallet)
