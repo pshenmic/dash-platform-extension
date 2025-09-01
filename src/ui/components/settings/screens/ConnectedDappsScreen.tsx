@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, WebIcon } from 'dash-ui/react'
+import { Text, WebIcon, Button } from 'dash-ui/react'
 import type { SettingsScreenProps } from '../types'
 
 export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
@@ -46,33 +46,32 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   }
 
   return (
-    <div className='space-y-4'>
+    <div className='flex flex-col gap-4 h-full'>
       <Text
         size='sm'
-        weight='500'
-        className='mb-6 opacity-50 text-dash-primary-dark-blue'
+        dim
+        className='opacity-50 text-dash-primary-dark-blue'
       >
         Manage dapps you have connected to.
       </Text>
 
-      <div className='space-y-[10px]'>
+      <div className='flex flex-col gap-[0.875rem] h-full grow'>
         {connectedDapps.map((dapp) => (
           <div
             key={dapp.id}
-            className='rounded-[15px] px-[15px] py-[10px] flex items-center justify-between bg-[rgba(12,28,51,0.03)]'
+            className='rounded-[1rem] px-[1rem] py-[0.625rem] flex items-center justify-between bg-[rgba(12,28,51,0.03)]'
           >
-            <div className='flex items-center gap-[15px]'>
+            <div className='flex items-center gap-[1rem] grow-1'>
               {renderIcon()}
 
-              <div className='flex flex-col gap-[5px]'>
-                <Text size='base' weight='500' className='text-dash-primary-dark-blue'>
+              <div className='flex flex-col gap-[0.25rem]'>
+                <Text size='md' className='text-dash-primary-dark-blue leading-[1.2]'>
                   {dapp.name}
                 </Text>
                 {dapp.url !== dapp.name && (
                   <Text
-                    size='xs'
-                    weight='300'
-                    className='text-[rgba(12,28,51,0.5)] font-grotesque'
+                    dim
+                    className='!font-grotesque !text-[0.75rem] leading-[1.2]'
                   >
                     {dapp.url}
                   </Text>
@@ -80,12 +79,13 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
               </div>
             </div>
 
-            <button
-              className='bg-[#4C7EFF] hover:bg-[#3d6bff] text-white px-[12px] py-[7px] rounded-[10px] text-base font-medium hover:cursor-pointer transition-colors'
+            <Button
+              size='sm'
+              className='h-8 !min-h-auto'
               onClick={() => handleDisconnect(dapp.id)}
             >
               Disconnect
-            </button>
+            </Button>
           </div>
         ))}
       </div>
