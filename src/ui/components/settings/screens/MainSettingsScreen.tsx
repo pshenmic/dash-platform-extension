@@ -82,8 +82,7 @@ export const mainScreenConfig: ScreenConfig = {
           title: connectedDappsConfig.title,
           icon: connectedDappsConfig.icon,
           screenId: connectedDappsConfig.id,
-          hasSubMenu: true,
-          disabled: true
+          hasSubMenu: true
         },
         {
           id: 'security-privacy-item',
