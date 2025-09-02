@@ -116,7 +116,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
               <Button
                 variant='outline'
                 size='md'
-                className='w-full h-[58px] gap-4'
+                className='w-full h-[3.625rem] gap-4'
                 onClick={() => {
                   setOpen(false)
                   void navigate('/import-keystore')

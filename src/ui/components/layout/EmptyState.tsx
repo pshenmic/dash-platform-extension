@@ -37,7 +37,7 @@ export function EmptyState ({ title, buttonText, onButtonClick, className = '' }
             onClick={onButtonClick}
             variant='outline'
             size='xl'
-            className='w-full h-[58px] gap-4'
+            className='w-full h-[3.625rem] gap-4'
           >
             <PlusIcon />
             <span className='text-sm font-normal'>
