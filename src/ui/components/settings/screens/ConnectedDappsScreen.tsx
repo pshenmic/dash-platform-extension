@@ -91,14 +91,14 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
       </div>
 
       <div className='mt-6'>
-        <button
-          className='w-full rounded-[15px] px-[24px] py-[12px] text-base font-medium hover:cursor-pointer transition-colors bg-[rgba(76,126,255,0.15)] text-[#4C7EFF] hover:bg-[rgba(76,126,255,0.25)]'
+        <Button
+          className='w-full'
           onClick={() => {
             connectedDapps.forEach(dapp => handleDisconnect(dapp.id))
           }}
         >
           Disconnect All
-        </button>
+        </Button>
       </div>
     </div>
   )
