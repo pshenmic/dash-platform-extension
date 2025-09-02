@@ -19,6 +19,7 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType } from '../../../types'
+import { IdentityPreview } from '../../components/Identities'
 
 interface PrivateKeyInput {
   id: string
@@ -38,6 +39,22 @@ function ImportKeystoreState (): React.JSX.Element {
   const [identities, setIdentities] = useState<Array<{ key: PrivateKeyWASM, identity: IdentityWASM, balance: string }>>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewData, setPreviewData] = useState<{
+    identity: {
+      id: string
+      name?: string
+      balance: string
+      publicKeys: Array<{
+        keyId: number
+        purpose: string
+        securityLevel: string
+        type: string
+        isAvailable: boolean
+      }>
+    }
+    validKeys: Array<{ key: PrivateKeyWASM, identity: IdentityWASM, balance: string }>
+  } | null>(null)
 
   // Check if selected wallet is keystore type
   useEffect(() => {
@@ -165,7 +182,45 @@ function ImportKeystoreState (): React.JSX.Element {
         })
       }
 
-      setIdentities(validIdentities)
+      // Show preview with first identity data
+      if (validIdentities.length > 0) {
+        const firstIdentity = validIdentities[0].identity
+        const identityId = firstIdentity.id.base58()
+        
+        // Get all public keys from identity
+        const allPublicKeys = firstIdentity.getPublicKeys()
+        const availableKeyIds = validIdentities.map(({ key }) => {
+          const publicKey = firstIdentity.getPublicKeys().find((ipk: any) => 
+            ipk.getPublicKeyHash() === key.getPublicKeyHash()
+          )
+          return publicKey ? publicKey.keyId : null
+        }).filter(id => id !== null)
+
+        const publicKeysData = allPublicKeys.map((publicKey: any) => {
+          const keyId = publicKey.keyId
+          const purpose = String(publicKey.purpose ?? 'UNKNOWN')
+          const securityLevel = String(publicKey.securityLevel ?? 'UNKNOWN')
+          const keyType = String(publicKey.type ?? 'UNKNOWN')
+          
+          return {
+            keyId,
+            purpose,
+            securityLevel,
+            type: keyType,
+            isAvailable: availableKeyIds.includes(keyId)
+          }
+        })
+
+        setPreviewData({
+          identity: {
+            id: identityId,
+            balance: validIdentities[0].balance,
+            publicKeys: publicKeysData
+          },
+          validKeys: validIdentities
+        })
+        setShowPreview(true)
+      }
     } catch (e) {
       if (typeof e === 'string') {
         return setError(e)
@@ -177,7 +232,23 @@ function ImportKeystoreState (): React.JSX.Element {
     }
   }
 
-  useEffect(() => setError(null), [privateKeyInputs])
+  useEffect(() => {
+    setError(null)
+    setShowPreview(false)
+    setPreviewData(null)
+  }, [privateKeyInputs])
+
+  const confirmImport = (): void => {
+    if (!previewData) return
+    
+    setIdentities(previewData.validKeys)
+    setShowPreview(false)
+  }
+
+  // const cancelPreview = (): void => {
+  //   setShowPreview(false)
+  //   setPreviewData(null)
+  // }
 
   const importIdentities = (): void => {
     const run = async (): Promise<void> => {
@@ -216,6 +287,43 @@ function ImportKeystoreState (): React.JSX.Element {
   }
 
   const hasValidKeys = privateKeyInputs.some(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
+
+  // Show preview if available
+  if (showPreview && previewData) {
+    return (
+      <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
+        <div className='flex flex-col gap-2.5 mb-6'>
+          <DashLogo containerSize='3rem' />
+
+          <Heading level={1} size='2xl'>Import your Identity</Heading>
+
+          <div className='!leading-tight'>
+            <Text size='sm' dim>
+              Carefully check all the imported private keys and continue.
+            </Text>
+          </div>
+        </div>
+
+        {/* Identity Preview */}
+        <div className='mb-6'>
+          <IdentityPreview identity={previewData.identity} />
+        </div>
+
+        <Button
+          disabled={isLoading}
+          className='w-full h-[3.625rem]'
+          onClick={confirmImport}
+        >
+          Import Identity
+        </Button>
+
+        {error !== null &&
+          <ValueCard colorScheme='yellow' className='break-all'>
+            <Text color='red'>{error}</Text>
+          </ValueCard>}
+      </div>
+    )
+  }
 
   return (
     <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
