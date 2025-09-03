@@ -29,6 +29,8 @@ import { AddIdentityPrivateKey } from './private/identities/addPrivateKey'
 import { GetAvailableKeyPairs } from './private/identities/getAvailableKeyPairs'
 import { SwitchNetworkHandler } from './private/wallet/switchNetwork'
 import { RemoveIdentityPrivateKeyHandler } from './private/identities/removePrivateKey'
+import { GetAllAppConnectsHandler } from './private/appConnect/getAllAppConnects'
+import { RemoveAppConnectHandler } from './private/appConnect/removeAppConnect'
 
 /**
  * Handlers for a messages within extension context
@@ -91,6 +93,8 @@ export class PrivateAPI {
       [MessagingMethods.SWITCH_NETWORK]: new SwitchNetworkHandler(walletRepository, this.storageAdapter, this.sdk),
       [MessagingMethods.RESYNC_IDENTITIES]: new ResyncIdentitiesHandler(identitiesRepository, walletRepository, this.sdk, this.storageAdapter),
       [MessagingMethods.GET_APP_CONNECT]: new GetAppConnectHandler(appConnectRepository),
+      [MessagingMethods.GET_ALL_APP_CONNECTS]: new GetAllAppConnectsHandler(appConnectRepository),
+      [MessagingMethods.REMOVE_APP_CONNECT]: new RemoveAppConnectHandler(appConnectRepository),
       [MessagingMethods.APPROVE_APP_CONNECT]: new ApproveAppConnectHandler(appConnectRepository, this.storageAdapter),
       [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter)
     }

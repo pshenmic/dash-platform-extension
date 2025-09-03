@@ -1,11 +1,10 @@
-import { AppConnect } from '../../types/AppConnect'
+import { AppConnect } from '../../types'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { AppConnectsStorageSchema } from '../storage/storageSchema'
 import { AppConnectStatus } from '../../types/enums/AppConnectStatus'
 import hash from 'hash.js'
 
 export class AppConnectRepository {
-  storageKey: string
   storageAdapter: StorageAdapter
 
   constructor (storageAdapter: StorageAdapter) {
@@ -25,7 +24,7 @@ export class AppConnectRepository {
 
     const appConnectRequest: AppConnect = {
       id,
-      status: 'pending',
+      status: AppConnectStatus.pending,
       url
     }
 
@@ -64,6 +63,52 @@ export class AppConnectRepository {
       ...appConnects[id],
       status: AppConnectStatus[appConnects[id].status]
     }
+  }
+
+  async getAll (): Promise<AppConnect[]> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `appConnects_${network}_${walletId}`
+
+    const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
+
+    return Object.entries(appConnects)
+      .reduce((acc, [id, entry]) =>
+        ([...acc,
+          {
+            id,
+            url: entry.url,
+            status: AppConnectStatus[entry.status]
+          }
+        ]),
+      [])
+  }
+
+  async removeById (id: string): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `appConnects_${network}_${walletId}`
+
+    const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
+
+    if (appConnects[id] == null) {
+      throw new Error(`Could not find AppConnect with id ${id}`)
+    }
+
+    // eslint-disable-next-line
+    delete appConnects[id]
+
+    await this.storageAdapter.set(storageKey, appConnects)
   }
 
   async getById (id: string): Promise<AppConnect | null> {
