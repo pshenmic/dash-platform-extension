@@ -1,5 +1,7 @@
+import { AppConnectStatus } from './enums/AppConnectStatus'
+
 export interface AppConnect {
   id: string
   url: string
-  status: 'pending' | 'approved' | 'rejected' | 'error'
+  status: AppConnectStatus
 }

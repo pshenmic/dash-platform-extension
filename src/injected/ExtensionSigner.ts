@@ -3,7 +3,7 @@ import { StateTransitionWASM } from 'pshenmic-dpp/dist/wasm'
 import { hexToBytes, popupWindow, wait } from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'
-import { PublicAPIClient } from '../types/PublicAPIClient'
+import { PublicAPIClient } from '../types'
 import { base64 } from '@scure/base'
 import {
   RequestStateTransitionApprovalResponse
