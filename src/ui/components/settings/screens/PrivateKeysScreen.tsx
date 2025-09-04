@@ -308,7 +308,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
           if (!open) setKeyToDelete(null)
         }}
         title='Delete Private Key'
-        message={`Are you sure you want to delete private key with ID ${keyToDelete ?? 'unknown'}? This action cannot be undone.`}
+        message={`Are you sure you want to delete private key with ID ${keyToDelete ?? 'unknown'}? This will delete private key from a extension but not disable from the Identity.`}
         confirmText='Delete'
         cancelText='Cancel'
         onConfirm={() => { void confirmDeleteKey().catch(error => console.error('Delete key error:', error)) }}
