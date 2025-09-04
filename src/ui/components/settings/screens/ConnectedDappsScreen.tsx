@@ -38,7 +38,7 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
       open: true,
       type: 'single',
       dappId,
-      dappName: dapp ? new URL(dapp.url).hostname : 'Unknown'
+      dappName: (dapp != null) ? new URL(dapp.url).hostname : 'Unknown'
     })
   }
 
@@ -71,7 +71,7 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
     setDisconnectingIds(new Set(allIds))
 
     try {
-      await allIds.map(id => extensionAPI.removeAppConnectById(id))
+      await Promise.all(allIds.map(async id => await extensionAPI.removeAppConnectById(id)))
       setConnectedDapps([])
     } catch (error) {
       console.warn('Failed to disconnect all dapps:', error)
@@ -83,7 +83,7 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   }
 
   const handleConfirmDisconnect = async (): Promise<void> => {
-    if (confirmDialog.type === 'single' && confirmDialog.dappId) {
+    if (confirmDialog.type === 'single' && confirmDialog.dappId != null && confirmDialog.dappId !== '') {
       await handleDisconnect(confirmDialog.dappId)
     } else if (confirmDialog.type === 'all') {
       await handleDisconnectAll()
@@ -182,9 +182,12 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
             ? `Are you sure you want to disconnect ${confirmDialog.dappName ?? 'this DApp'}? This will revoke its access to your wallet.`
             : `Are you sure you want to disconnect ${connectedDapps.length} connected DApps? This will revoke their access to your wallet.`
         }
-        confirmText="Disconnect"
-        cancelText="Cancel"
-        onConfirm={() => void handleConfirmDisconnect()}
+        confirmText='Disconnect'
+        cancelText='Cancel'
+        onConfirm={() => {
+          handleConfirmDisconnect()
+            .catch(e => console.warn('handleConfirmDisconnect error:', e))
+        }}
       />
     </div>
   )
