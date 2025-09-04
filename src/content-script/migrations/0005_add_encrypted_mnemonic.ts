@@ -9,11 +9,11 @@ export default async function addEncryptedMnemonic (storageAdapter: StorageAdapt
     const network = await storageAdapter.get('network') as string
 
     for (const walletId of walletIds) {
-      const wallet = await storageAdapter.get(`wallet_${walletId}_${network}`) as WalletStoreSchema
+      const wallet = await storageAdapter.get(`wallet_${network}_${walletId}`) as WalletStoreSchema
 
       wallet.encryptedMnemonic = null
 
-      await storageAdapter.set(`wallet_${walletId}_${network}`, wallet)
+      await storageAdapter.set(`wallet_${network}_${walletId}`, wallet)
     }
 
     await storageAdapter.set('schema_version', 5)
