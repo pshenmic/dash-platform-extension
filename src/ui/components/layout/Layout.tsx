@@ -24,14 +24,14 @@ const Layout: FC = () => {
       setCurrentNetwork(status.network)
       setCurrentWallet(status.currentWalletId)
     } catch (error) {
-      console.warn('Failed to load current network:', error)
+      console.log('Failed to load current network:', error)
     }
   }
 
   // Load status and all wallets on mount
   useEffect(() => {
     loadStatus().catch(error => {
-      console.warn('Failed to load status on mount:', error)
+      console.log('Failed to load status on mount:', error)
     })
   }, [extensionAPI])
 
@@ -48,7 +48,7 @@ const Layout: FC = () => {
         // Set current Identity if it doesn't exist
         if (currentIdentityFromApi != null) {
           identityChangeHandler(currentIdentityFromApi).catch(error => {
-            console.warn('Failed to change identity handler:', error)
+            console.log('Failed to change identity handler:', error)
           })
 
           return
@@ -57,19 +57,19 @@ const Layout: FC = () => {
         if ((identitiesData?.length ?? 0) > 0) {
           const firstIdentity = identitiesData[0].identifier
           identityChangeHandler(firstIdentity).catch(error => {
-            console.warn('Failed to change identity handler:', error)
+            console.log('Failed to change identity handler:', error)
           })
           await extensionAPI.switchIdentity(firstIdentity).catch(error => {
-            console.warn('Failed to set current identity:', error)
+            console.log('Failed to set current identity:', error)
           })
         }
       } catch (error) {
-        console.warn('Failed to load current identity:', error)
+        console.log('Failed to load current identity:', error)
       }
     }
 
     loadCurrentIdentity().catch(error => {
-      console.warn('Failed to load current identity in effect:', error)
+      console.log('Failed to load current identity in effect:', error)
     })
   }, [currentWallet, extensionAPI])
 
@@ -81,13 +81,13 @@ const Layout: FC = () => {
           const identitiesData = await extensionAPI.getIdentities()
           setAvailableIdentities(identitiesData)
         } catch (e) {
-          console.warn('getIdentities error: ', e)
+          console.log('getIdentities error: ', e)
         }
       }
     }
 
     getIdentities().catch(error => {
-      console.warn('Failed to get identities in effect:', error)
+      console.log('Failed to get identities in effect:', error)
     })
   }, [currentNetwork, currentWallet])
 
@@ -97,14 +97,14 @@ const Layout: FC = () => {
       setAllWallets(wallets)
       return wallets
     } catch (error) {
-      console.warn('Failed to load all wallets:', error)
+      console.log('Failed to load all wallets:', error)
       return []
     }
   }, [extensionAPI])
 
   useEffect(() => {
     loadWallets().catch(error => {
-      console.warn('Failed to load wallets on mount:', error)
+      console.log('Failed to load wallets on mount:', error)
     })
   }, [])
 
@@ -123,7 +123,7 @@ const Layout: FC = () => {
         setCurrentWallet(status.currentWalletId)
       }
     } catch (e) {
-      console.warn('changeNetwork error: ', e)
+      console.log('changeNetwork error: ', e)
     }
   }, [sdk, extensionAPI, loadWallets, currentNetwork])
 
@@ -143,7 +143,7 @@ const Layout: FC = () => {
       await extensionAPI.switchIdentity(identity)
       setCurrentIdentity(identity)
     } catch (e) {
-      console.warn('Failed to switch identity:', e)
+      console.log('Failed to switch identity:', e)
     }
   }, [extensionAPI])
 
@@ -154,7 +154,7 @@ const Layout: FC = () => {
       await loadStatus()
       return result
     } catch (error) {
-      console.warn('Failed to create wallet:', error)
+      console.log('Failed to create wallet:', error)
       throw error
     }
   }, [extensionAPI, loadWallets])
@@ -163,9 +163,9 @@ const Layout: FC = () => {
     <ThemeProvider initialTheme='light'>
       <div className='main_container'>
         <Header
-          onNetworkChange={(network) => { networkChangeHandler(network).catch(error => console.warn('Network change error:', error)) }}
+          onNetworkChange={(network) => { networkChangeHandler(network).catch(error => console.log('Network change error:', error)) }}
           currentNetwork={currentNetwork}
-          onWalletChange={(wallet) => { walletChangeHandler(wallet).catch(error => console.warn('Wallet change error:', error)) }}
+          onWalletChange={(wallet) => { walletChangeHandler(wallet).catch(error => console.log('Wallet change error:', error)) }}
           currentIdentity={currentIdentity}
           currentWalletId={currentWallet}
           wallets={allWallets}

@@ -40,14 +40,14 @@ function HomeState (): React.JSX.Element {
         const availableIdentities = identitiesData.map(identity => identity.identifier)
         setIdentities(availableIdentities ?? [])
       } catch (error) {
-        console.warn('Failed to load data:', error)
+        console.log('Failed to load data:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
     loadIdentities()
-      .catch(e => console.warn('loadIdentities error', e))
+      .catch(e => console.log('loadIdentities error', e))
   }, [currentNetwork, currentWallet, extensionAPI])
 
   // Load Balance and Transactions by Identity
@@ -74,7 +74,7 @@ function HomeState (): React.JSX.Element {
       loadBalance(async () => {
         const balance = await sdk.identities.getIdentityBalance(currentIdentity)
         return balance
-      }).catch(e => console.warn('loadBalance error', e))
+      }).catch(e => console.log('loadBalance error', e))
 
       loadTransactions(async () => {
         const result = await platformClient.fetchTransactions(currentIdentity, currentNetwork as NetworkType, 'desc')
@@ -82,7 +82,7 @@ function HomeState (): React.JSX.Element {
           return result.data
         }
         throw new Error(result.error ?? 'Failed to load transactions')
-      }).catch(e => console.warn('loadTransactions error', e))
+      }).catch(e => console.log('loadTransactions error', e))
 
       loadTokens(async () => {
         const result = await platformClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
@@ -90,10 +90,10 @@ function HomeState (): React.JSX.Element {
           return result.data
         }
         throw new Error(result.error ?? 'Failed to load tokens')
-      }).catch(e => console.warn('loadTokens error:', e))
+      }).catch(e => console.log('loadTokens error:', e))
     }
 
-    loadData().catch(e => console.warn('loadData error:', e))
+    loadData().catch(e => console.log('loadData error:', e))
   }, [
     currentIdentity,
     currentNetwork,
@@ -115,7 +115,7 @@ function HomeState (): React.JSX.Element {
         return result.data
       }
       throw new Error(result.error ?? 'Failed to load rate')
-    }).catch(e => console.warn('loadRate error:', e))
+    }).catch(e => console.log('loadRate error:', e))
   }, [currentNetwork, platformClient, loadRate])
 
   if (isLoading) {

@@ -44,7 +44,7 @@ export default function SetupPasswordState (): React.JSX.Element {
       }
     }
     checkPassword()
-      .catch(e => console.warn('checkPassword error: ', e))
+      .catch(e => console.log('checkPassword error: ', e))
   }, [extensionAPI, navigate])
 
   return (
@@ -96,7 +96,7 @@ export default function SetupPasswordState (): React.JSX.Element {
       <Button
         colorScheme='brand'
         size='xl'
-        onClick={async () => await handleSetupPassword().catch(e => console.warn('handleSetupPassword error: ', e))}
+        onClick={async () => await handleSetupPassword().catch(e => console.log('handleSetupPassword error: ', e))}
         disabled={password === '' || confirmPassword === '' || password.length !== confirmPassword.length || isLoading}
         className='w-full'
       >

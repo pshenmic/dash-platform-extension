@@ -78,7 +78,7 @@ export default function LoginState (): React.JSX.Element {
         <Button
           size='xl'
           colorScheme='brand'
-          onClick={async () => await handleLogin().catch(e => console.warn('handleLogin error: ', e))}
+          onClick={async () => await handleLogin().catch(e => console.log('handleLogin error: ', e))}
           disabled={password === '' || isLoading}
           className='w-full'
         >

@@ -55,13 +55,13 @@ function ImportKeystoreState (): React.JSX.Element {
           void navigate('/choose-wallet-type')
         }
       } catch (error) {
-        console.warn('Failed to check wallet type:', error)
+        console.log('Failed to check wallet type:', error)
         void navigate('/choose-wallet-type')
       }
     }
 
     void checkWalletType().catch(error => {
-      console.warn('Failed to check wallet type in effect:', error)
+      console.log('Failed to check wallet type in effect:', error)
     })
   }, [currentWallet, extensionAPI, navigate])
 
@@ -212,7 +212,7 @@ function ImportKeystoreState (): React.JSX.Element {
   }
 
   const handleCheckClick = (): void => {
-    checkPrivateKeys().catch(console.warn)
+    checkPrivateKeys().catch(console.log)
   }
 
   const hasValidKeys = privateKeyInputs.some(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)

@@ -16,12 +16,12 @@ function NoWalletState (): React.JSX.Element {
           void navigate('/home')
         }
       } catch (error) {
-        console.warn('Failed to check wallet status:', error)
+        console.log('Failed to check wallet status:', error)
       }
     }
 
     void checkWalletExists().catch(error => {
-      console.warn('Failed to check wallet exists in effect:', error)
+      console.log('Failed to check wallet exists in effect:', error)
     })
   }, [extensionAPI, navigate])
 

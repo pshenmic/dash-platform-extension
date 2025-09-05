@@ -44,7 +44,7 @@ function ApproveTransactionState (): React.JSX.Element {
         const status = await extensionAPI.getStatus()
         setHasWallet(status.currentWalletId != null)
       } catch (error) {
-        console.warn('Failed to check wallet status:', error)
+        console.log('Failed to check wallet status:', error)
         setHasWallet(false)
       } finally {
         setIsCheckingWallet(false)
@@ -52,7 +52,7 @@ function ApproveTransactionState (): React.JSX.Element {
     }
 
     checkWallet()
-      .catch(e => console.warn('checkWallet error', e))
+      .catch(e => console.log('checkWallet error', e))
   }, [extensionAPI])
 
   useEffect(() => {
@@ -70,14 +70,14 @@ function ApproveTransactionState (): React.JSX.Element {
 
         setIdentities(availableIdentities ?? [])
       } catch (error) {
-        console.warn('Failed to load identities:', error)
+        console.log('Failed to load identities:', error)
       } finally {
         setIsLoadingIdentities(false)
       }
     }
 
     loadData()
-      .catch(e => console.warn('loadData error', e))
+      .catch(e => console.log('loadData error', e))
   }, [isCheckingWallet, hasWallet, currentWallet])
 
   // Load signing keys when wallet/identity/network changes
@@ -121,7 +121,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
       return keys
     })
-      .catch(e => console.warn('loadSigningKeys error', e))
+      .catch(e => console.log('loadSigningKeys error', e))
   }, [currentWallet, currentNetwork, currentIdentity])
 
   // Update local state when signing keys are loaded
@@ -159,12 +159,12 @@ function ApproveTransactionState (): React.JSX.Element {
             const receivedStateTransitionWASM = StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned))
             setStateTransitionWASM(receivedStateTransitionWASM)
           } catch (e) {
-            console.warn('Error decoding state transition:', e)
+            console.log('Error decoding state transition:', e)
             setTransactionDecodeError(String(e))
           }
         })
         .catch((error) => {
-          console.warn('Error getting state transition:', error)
+          console.log('Error getting state transition:', error)
           setTransactionNotFound(true)
         })
         .finally(() => setIsLoadingTransaction(false))
@@ -249,7 +249,7 @@ function ApproveTransactionState (): React.JSX.Element {
       throw new Error('stateTransitionWASM is null')
     }
 
-    extensionAPI.rejectStateTransition(stateTransitionWASM.hash(true)).then(window.close).catch(console.warn)
+    extensionAPI.rejectStateTransition(stateTransitionWASM.hash(true)).then(window.close).catch(console.log)
   }
 
   const doSign = async (): Promise<void> => {
@@ -384,7 +384,7 @@ function ApproveTransactionState (): React.JSX.Element {
               onChange={async (e: string) => {
                 const identity = e
                 setCurrentIdentity(identity)
-                await extensionAPI.switchIdentity(identity).catch(err => console.warn('Failed to switch identity', err))
+                await extensionAPI.switchIdentity(identity).catch(err => console.log('Failed to switch identity', err))
               }}
               options={identityOptions}
               showArrow
@@ -448,7 +448,7 @@ function ApproveTransactionState (): React.JSX.Element {
                 Reject
               </Button>
               <Button
-                onClick={() => { doSign().catch(e => console.warn('doSign', e)) }}
+                onClick={() => { doSign().catch(e => console.log('doSign', e)) }}
                 colorScheme='brand'
                 className='w-1/2'
                 disabled={isSigningInProgress || selectedSigningKey === null}

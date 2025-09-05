@@ -129,7 +129,7 @@ export const getFaviconUrl = (url: string, size: number = 32): string => {
     const domain = new URL(url).hostname
     return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`
   } catch (error) {
-    console.warn('Invalid URL provided to getFaviconUrl:', url)
+    console.log('Invalid URL provided to getFaviconUrl:', url)
     return `https://www.google.com/s2/favicons?domain=example.com&sz=${size}`
   }
 }
@@ -189,7 +189,7 @@ export const findIdentityForPrivateKey = async (
     const nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(publicKeyHash)
     if (nonUniqueIdentity != null) return nonUniqueIdentity
   } catch (e) {
-    console.warn('No identity found', e)
+    console.log('No identity found', e)
   }
 
   return null

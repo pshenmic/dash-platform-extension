@@ -97,7 +97,7 @@ function ImportSeedPhrase (): React.JSX.Element {
       })
       setSeedWords(newWords)
     } catch (error) {
-      console.warn('Error pasting from clipboard:', error)
+      console.log('Error pasting from clipboard:', error)
     }
   }
 
