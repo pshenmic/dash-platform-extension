@@ -14,7 +14,7 @@ import {
   EyeClosedIcon,
   EyeOpenIcon,
   DeleteIcon
-} from 'dash-ui/react'
+} from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, TransactionStatusIcon, Identifier, BigNumber } from 'dash-ui/react'
+import { Text, TransactionStatusIcon, Identifier, BigNumber } from 'dash-ui-kit/react'
 import { TransactionData, NetworkType } from '../../../types'
 import { TransactionTypesInfo, BatchActions } from '../../../enums'
 import { creditsToDash } from '../../../utils'

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui/react'
+import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'

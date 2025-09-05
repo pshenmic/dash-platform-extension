@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { Button, Text, Input, Heading, DashLogo } from 'dash-ui/react'
+import { Button, Text, Input, Heading, DashLogo } from 'dash-ui-kit/react'
 
 export default function SetupPasswordState (): React.JSX.Element {
   const navigate = useNavigate()

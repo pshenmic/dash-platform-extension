@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text } from 'dash-ui/react'
+import { Text } from 'dash-ui-kit/react'
 import { MenuItem } from './MenuItem'
 import type { MenuSection as MenuSectionType } from './types'
 

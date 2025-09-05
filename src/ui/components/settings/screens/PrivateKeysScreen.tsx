@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
-import { KeyIcon, Button, DeleteIcon, Text, ValueCard, Identifier } from 'dash-ui/react'
+import { KeyIcon, Button, DeleteIcon, Text, ValueCard, Identifier } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { useSdk } from '../../../hooks/useSdk'
 import { useAsyncState } from '../../../hooks/useAsyncState'

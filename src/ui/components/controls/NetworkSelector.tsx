@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { OverlayMenu, WebIcon } from 'dash-ui/react'
+import { OverlayMenu, WebIcon } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { Network } from '../../../types/enums/Network'
 

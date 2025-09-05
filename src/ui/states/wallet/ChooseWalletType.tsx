@@ -6,7 +6,7 @@ import {
   DashLogo,
   KeyIcon,
   ProtectedMessageIcon
-} from 'dash-ui/react'
+} from 'dash-ui-kit/react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
 import { WalletType } from '../../../types'

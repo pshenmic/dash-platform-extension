@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, WebIcon } from 'dash-ui/react'
+import { Text, WebIcon } from 'dash-ui-kit/react'
 import type { SettingsScreenProps } from '../types'
 
 export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button, Heading, PlusIcon } from 'dash-ui/react'
+import { Button, Heading, PlusIcon } from 'dash-ui-kit/react'
 import { useStaticAsset } from '../../hooks/useStaticAsset'
 
 interface EmptyStateProps {

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heading, Text, Button, DashLogo } from 'dash-ui/react'
+import { Heading, Text, Button, DashLogo } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 function NoWalletState (): React.JSX.Element {

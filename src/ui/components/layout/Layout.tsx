@@ -1,7 +1,7 @@
 import React, { FC, useState, useEffect, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
 import Header from './header'
-import { ThemeProvider } from 'dash-ui/react'
+import { ThemeProvider } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useSdk } from '../../hooks/useSdk'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'

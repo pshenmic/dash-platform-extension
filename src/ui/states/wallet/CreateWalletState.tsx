@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, List, Text, ValueCard } from 'dash-ui/react'
+import { Button, List, Text, ValueCard } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { WalletType } from '../../../types'
 import { withAccessControl } from '../../components/auth/withAccessControl'

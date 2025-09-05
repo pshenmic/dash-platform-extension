@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Text, Button, ValueCard, Identifier } from 'dash-ui/react'
+import { Text, Button, ValueCard, Identifier } from 'dash-ui-kit/react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { PrivateKeyInput, PrivateKeyInputData } from '../../keys'
 import { processPrivateKey, ProcessedPrivateKey } from '../../../../utils'

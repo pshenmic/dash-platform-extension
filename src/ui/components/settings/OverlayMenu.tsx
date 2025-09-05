@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Button, Text, ChevronIcon, CrossIcon } from 'dash-ui/react'
+import { Button, Text, ChevronIcon, CrossIcon } from 'dash-ui-kit/react'
 
 interface OverlayMenuProps {
   isOpen: boolean

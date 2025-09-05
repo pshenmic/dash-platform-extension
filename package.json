@@ -17,7 +17,7 @@
     "@scure/base": "^1.2.4",
     "@scure/bip39": "^1.6.0",
     "dash-platform-sdk": "1.2.0",
-    "dash-ui": "AlexeyTripleA/dash-ui-kit",
+    "dash-ui-kit": "^1.0.2",
     "eciesjs": "^0.4.15",
     "hash.js": "^1.1.7",
     "react": "^19.1.0",
