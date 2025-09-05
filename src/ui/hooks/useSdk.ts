@@ -4,7 +4,7 @@ let sdk: DashPlatformSDK | null = null
 
 export const useSdk = (): DashPlatformSDK => {
   if (sdk == null) {
-    sdk = new DashPlatformSDK()
+    sdk = new DashPlatformSDK({ network: 'mainnet' })
   }
 
   return sdk
