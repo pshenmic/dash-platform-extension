@@ -17,7 +17,7 @@ describe('create wallet', () => {
   let secretKey: PrivateKey
 
   beforeEach(async () => {
-    const sdk = new DashPlatformSDK()
+    const sdk = new DashPlatformSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter
