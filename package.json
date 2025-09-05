@@ -10,6 +10,11 @@
     "watch": "webpack --config webpack.extension.config.cjs --mode=development",
     "test": "jest"
   },
+  "ts-standard": {
+    "ignore": [
+      "dist"
+    ]
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
