@@ -41,28 +41,8 @@ const Layout: FC = () => {
       if (currentWallet === null) return
 
       try {
-        // Load identities
-        const identitiesData = await extensionAPI.getIdentities()
         const currentIdentityFromApi = await extensionAPI.getCurrentIdentity()
-
-        // Set current Identity if it doesn't exist
-        if (currentIdentityFromApi != null) {
-          identityChangeHandler(currentIdentityFromApi).catch(error => {
-            console.log('Failed to change identity handler:', error)
-          })
-
-          return
-        }
-
-        if ((identitiesData?.length ?? 0) > 0) {
-          const firstIdentity = identitiesData[0].identifier
-          identityChangeHandler(firstIdentity).catch(error => {
-            console.log('Failed to change identity handler:', error)
-          })
-          await extensionAPI.switchIdentity(firstIdentity).catch(error => {
-            console.log('Failed to set current identity:', error)
-          })
-        }
+        setCurrentIdentity(currentIdentityFromApi)
       } catch (error) {
         console.log('Failed to load current identity:', error)
       }
