@@ -12,7 +12,7 @@ import { injectScript } from '../utils'
 export async function initApp (): Promise<void> {
   const extensionStorageAdapter = new ExtensionStorageAdapter()
 
-  const sdk = new DashPlatformSDK({ network: 'testnet' })
+  const sdk = new DashPlatformSDK({ network: 'mainnet' })
 
   const privateAPI = new PrivateAPI(sdk, extensionStorageAdapter)
   const publicAPI = new PublicAPI(sdk, extensionStorageAdapter)
