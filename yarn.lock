@@ -3679,7 +3679,7 @@ dash-platform-sdk@1.2.0:
 
 dash-ui@AlexeyTripleA/dash-ui-kit:
   version "0.1.0"
-  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/49baeb322d581dc704ccc1eccd3a7ecbef32b1ba"
+  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/f35aded20eca4b83ec39b4aef126e8c08a308f27"
   dependencies:
     "@radix-ui/react-accordion" "^1.2.12"
     "@radix-ui/react-dialog" "^1.1.14"
