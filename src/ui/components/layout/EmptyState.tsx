@@ -15,7 +15,7 @@ export function EmptyState ({ title, buttonText, onButtonClick, className = '' }
       <div className='relative top-0 left-0 w-full h-[300px] pointer-events-none'>
         <div className='absolute w-full top-[24px]'>
           <img
-            src={useStaticAsset('empty-state-background-762ec2.png')}
+            src={useStaticAsset('spiral-of-squares.png')}
             alt='Background pattern'
             className='relative w-[500px] -left-[10%] max-w-none -top-[150px] rotate-[-145deg]'
           />
