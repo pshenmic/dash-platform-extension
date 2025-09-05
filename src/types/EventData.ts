@@ -5,5 +5,5 @@ export interface EventData {
   method: string
   payload?: any
   error?: any
-  type: 'request' | 'response'
+  type: 'request' | 'response' | 'event'
 }

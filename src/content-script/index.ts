@@ -1,12 +1,10 @@
 // This file only runs in the extension context (content-script)
 import { ExtensionStorageAdapter } from './storage/extensionStorageAdapter'
 import runMigrations from './storage/runMigrations'
+import { EventData } from '../types'
+import { generateRandomHex } from '../utils'
 
 const extensionStorageAdapter = new ExtensionStorageAdapter()
-
-// do migrations
-runMigrations(extensionStorageAdapter)
-  .catch(console.error)
 
 const start = async (): Promise<void> => {
   const wasmSupport = checkWebAssembly()
@@ -21,6 +19,16 @@ const start = async (): Promise<void> => {
   const { initApp } = await import('./initApp')
 
   await initApp()
+
+  const message: EventData = {
+    id: generateRandomHex(8),
+    context: 'dash-platform-extension',
+    type: 'event',
+    method: 'content-script-ready',
+    payload: {}
+  }
+
+  window.postMessage(message)
 }
 
 const checkWebAssembly = (): boolean => {
@@ -34,7 +42,9 @@ const checkWebAssembly = (): boolean => {
   }
 }
 
-start()
+// do migrations
+runMigrations(extensionStorageAdapter)
+  .then(start)
   .then(() => console.log('Dash Platform Extension API loaded (content-script)'))
   .catch((e) => {
     if (e?.message === 'WebAssembly not supported') {

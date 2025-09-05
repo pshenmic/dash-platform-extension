@@ -1,5 +1,6 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { WalletStoreSchema } from '../storage/storageSchema'
+import { SCHEMA_VERSION } from '../../constants'
 
 export default async function moveCurrentIdentityToWallet (storageAdapter: StorageAdapter): Promise<void> {
   const schemaVersion = await storageAdapter.get('schema_version') as number
@@ -19,6 +20,6 @@ export default async function moveCurrentIdentityToWallet (storageAdapter: Stora
       await storageAdapter.remove('currentIdentity')
     }
 
-    await storageAdapter.set('schema_version', 6)
+    await storageAdapter.set('schema_version', SCHEMA_VERSION)
   }
 }
