@@ -1,10 +1,9 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { PrivateAPIClient } from '../../../../src/types/PrivateAPIClient'
+import { PrivateAPIClient, WalletType } from '../../../../src/types'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
 import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
 import { IdentitiesStoreSchema, IdentityStoreSchema } from '../../../../src/content-script/storage/storageSchema'
-import { WalletType } from '../../../../src/types/WalletType'
 import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
@@ -16,7 +15,7 @@ describe('resync identities', () => {
   let secretKey: PrivateKey
   let mnemonic: string
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const sdk = new DashPlatformSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
@@ -38,6 +37,8 @@ describe('resync identities', () => {
     mnemonic = 'frequent situate velvet inform help family salad park torch zero chapter right'
 
     await storage.set('passwordPublicKey', passwordPublicKey)
+
+    await privateAPIClient.switchNetwork('testnet')
   })
 
   test('should resync identities with mnemonic', async () => {
