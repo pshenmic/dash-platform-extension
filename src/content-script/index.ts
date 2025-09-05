@@ -1,7 +1,7 @@
 // This file only runs in the extension context (content-script)
 import { ExtensionStorageAdapter } from './storage/extensionStorageAdapter'
 import runMigrations from './storage/runMigrations'
-import { checkWebAssembly } from '../utils'
+
 const extensionStorageAdapter = new ExtensionStorageAdapter()
 
 // do migrations
@@ -21,6 +21,17 @@ const start = async (): Promise<void> => {
   const { initApp } = await import('./initApp')
 
   await initApp()
+}
+
+const checkWebAssembly = (): boolean => {
+  try {
+    // eslint-disable-next-line
+    new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00))
+
+    return true
+  } catch (e) {
+    return false
+  }
 }
 
 start()
