@@ -7,6 +7,7 @@ import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
 import { SettingsMenu } from '../../settings'
 import { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
+import { NetworkType } from '../../../../types'
 
 const IMAGE_VARIANTS = {
   coins: {
@@ -219,7 +220,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
       {/* Network & Wallet Selectors in left side */}
       {config.hideLeftSection && (config.showNetworkSelector || config.showWalletSelector) && (
         <div className='flex items-center gap-2.5'>
-          {config.showNetworkSelector && <NetworkSelector onSelect={onNetworkChange} wallets={wallets} />}
+          {config.showNetworkSelector && <NetworkSelector onSelect={onNetworkChange} currentNetwork={currentNetwork as NetworkType} wallets={wallets} />}
           {config.showWalletSelector && <WalletSelector onSelect={onWalletChange} currentNetwork={currentNetwork} wallets={wallets} currentWalletId={currentWalletId} />}
         </div>
       )}
