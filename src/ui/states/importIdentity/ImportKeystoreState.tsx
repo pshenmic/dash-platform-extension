@@ -141,7 +141,7 @@ function ImportKeystoreState (): React.JSX.Element {
         )
 
         const hasAnyDecodingErrors = hasDecodingErrors.some(hasError => hasError)
-        
+
         if (hasAnyDecodingErrors) {
           setError('Could not decode private key from hex')
         } else {

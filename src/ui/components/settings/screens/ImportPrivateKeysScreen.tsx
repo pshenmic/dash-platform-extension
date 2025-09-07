@@ -114,7 +114,7 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
         )
 
         const hasAnyDecodingErrors = hasDecodingErrors.some(hasError => hasError)
-        
+
         if (hasAnyDecodingErrors) {
           setError('Could not decode private key from hex')
         } else {
