@@ -209,7 +209,7 @@ function ImportSeedPhrase (): React.JSX.Element {
           colorScheme='brand'
           className='w-full'
         >
-          {isLoading ? 'Importing...' : 'Import Identity'}
+          {isLoading ? '...' : 'Import'}
         </Button>
       </div>
     </div>
