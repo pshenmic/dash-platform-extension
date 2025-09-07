@@ -132,7 +132,7 @@ function ImportKeystoreState (): React.JSX.Element {
             .filter(input => invalidInputIds.includes(input.id))
             .map(async input => {
               try {
-                const network = (currentNetwork ?? 'testnet') === 'testnet' ? Network.testnet : Network.mainnet
+                const network = currentNetwork as NetworkType
                 await processPrivateKey(input.value.trim(), sdk, network)
                 return false // No decoding error
               } catch (e) {
