@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import ValueCard from '../../components/containers/ValueCard'
-import Text from '../../text/Text'
-import Button from '../../components/controls/buttons'
-import { withAuthCheck } from '../../components/auth/withAuthCheck'
+import { Text, Button, Heading, ValueCard } from 'dash-ui-kit/react'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { AppConnect } from '../../../types/AppConnect'
 import { AppConnectStatus } from '../../../types/enums/AppConnectStatus'
+import { getFaviconUrl } from '../../../utils'
 import './appConnect.state.css'
 
 function AppConnectState (): React.JSX.Element {
@@ -41,7 +40,8 @@ function AppConnectState (): React.JSX.Element {
       }
     }
 
-    void loadAppConnect()
+    loadAppConnect()
+      .catch(e => console.log('loadAppConnect error: ', e))
   }, [params.id, extensionAPI])
 
   const handleApprove = async (): Promise<void> => {
@@ -52,7 +52,7 @@ function AppConnectState (): React.JSX.Element {
       await extensionAPI.approveAppConnect(params.id)
       window.close()
     } catch (error) {
-      console.error('Error during approval:', error)
+      console.log('Error during approval:', error)
       setError('Failed to approve connection')
       setProcessingStatus(null)
     }
@@ -66,7 +66,7 @@ function AppConnectState (): React.JSX.Element {
       await extensionAPI.rejectAppConnect(params.id)
       window.close()
     } catch (error) {
-      console.error('Error during rejection:', error)
+      console.log('Error during rejection:', error)
       setError('Failed to reject connection')
       setProcessingStatus(null)
     }
@@ -110,53 +110,40 @@ function AppConnectState (): React.JSX.Element {
   }
 
   return (
-    <div className='screen-content'>
-      <h1 className='h1-title'>Website Connection Request</h1>
+    <div className='screen-content gap-8'>
+      <div className='flex flex-col items-center gap-2'>
+        <div className='w-12 h-12 rounded-lg overflow-hidden shadow-xl mx-auto'>
+          <img
+            src={getFaviconUrl(appConnect.url, 48)}
+            alt='Site favicon'
+            className='w-full h-full object-cover'
+            onError={(e) => {
+              e.currentTarget.src = getFaviconUrl(appConnect.url, 32)
+            }}
+          />
+        </div>
 
-      <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-4'>
-        <Text size='lg' weight='bold'>
-          The website is requesting permission to connect
+        <Heading as='h1' size='xl' className='text-center'>
+          Website Connection Request
+        </Heading>
+
+        <Text size='sm' className='break-all text-center'>
+          {appConnect.url}
         </Text>
+      </div>
 
-        <Text size='md'>
-          The following website wants to access your Dash wallet:
-        </Text>
-
-        <ValueCard colorScheme='white' className='w-full p-4'>
-          <Text size='lg' className='break-all'>
-            {appConnect.url}
-          </Text>
-        </ValueCard>
-
-        <Text size='sm' dim>
-          By allowing the connection, you permit this website to:
-        </Text>
-        <ul className='list-disc list-inside space-y-1'>
-          <li><Text size='sm'>View public information of your wallet</Text></li>
-          <li><Text size='sm'>Request transaction approvals</Text></li>
-          <li><Text size='sm'>Interact with Dash Platform</Text></li>
-        </ul>
-
-        <ValueCard colorScheme='default' className='w-full app-connect-warning'>
-          <Text size='sm' weight='bold'>
-            ⚠️ Warning: Only connect trusted websites!
-          </Text>
-        </ValueCard>
-      </ValueCard>
-
-      <div className='flex gap-5 mt-5 w-full'>
+      <div className='flex gap-2 w-full'>
         <Button
-          onClick={() => { void handleReject() }}
-          colorScheme='red'
-          variant='outline'
+          onClick={() => { handleReject().catch(e => console.log('handleReject error: ', e)) }}
+          colorScheme='lightBlue'
           className='w-1/2'
           disabled={processingStatus != null}
         >
           {processingStatus === 'rejecting' ? 'Rejecting...' : 'Reject'}
         </Button>
         <Button
-          onClick={() => { void handleApprove() }}
-          colorScheme='mint'
+          onClick={() => { handleApprove().catch(e => console.log('handleApprove error: ', e)) }}
+          colorScheme='brand'
           className='w-1/2'
           disabled={processingStatus != null}
         >
@@ -167,4 +154,4 @@ function AppConnectState (): React.JSX.Element {
   )
 }
 
-export default withAuthCheck(AppConnectState)
+export default withAccessControl(AppConnectState)

@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../../components/controls/buttons'
-import Text from '../../text/Text'
+import { Button, Text, Input, Heading, DashLogo } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 export default function LoginState (): React.JSX.Element {
@@ -23,7 +22,13 @@ export default function LoginState (): React.JSX.Element {
     try {
       const result = await extensionAPI.checkPassword(password)
       if (result.success) {
-        void navigate('/create-wallet')
+        const status = await extensionAPI.getStatus()
+
+        if (status.currentWalletId != null) {
+          void navigate('/home')
+        } else {
+          void navigate('/no-wallet')
+        }
       } else {
         setError('Invalid password')
       }
@@ -34,52 +39,52 @@ export default function LoginState (): React.JSX.Element {
     }
   }
 
-  const handleLoginClick = (): void => {
-    void handleLogin()
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key === 'Enter') {
-      void handleLogin()
-    }
-  }
-
   return (
-    <div className='flex flex-col gap-4'>
-      <Text size='xl' weight='bold'>
-        Enter Password
-      </Text>
+    <div className='flex flex-col'>
+      <div className='flex items-center flex-col w-full gap-2.5 mb-6'>
+        <DashLogo containerSize='3rem' />
 
-      <Text color='blue'>
-        Enter your password to unlock the wallet
-      </Text>
+        <Heading level={1} size='2xl'>
+          Welcome Back
+        </Heading>
 
-      <div className='flex flex-col gap-2'>
-        <input
-          type='password'
-          placeholder='Enter password'
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyPress={handleKeyPress}
-          className='p-3 border rounded'
-          autoFocus
-        />
+        <Text dim className='leading-tight' size='sm'>
+          Use the password to unlock your wallet.
+        </Text>
       </div>
 
-      {error != null && (
-        <div className='text-red-500 text-sm'>
-          {error}
+      <div className='flex flex-col gap-4'>
+        <div className='flex flex-col gap-2 w-full'>
+          <Text dim>
+            Password
+          </Text>
+          <Input
+            type='password'
+            placeholder='Enter password'
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            size='xl'
+            colorScheme='default'
+            className='w-full'
+          />
         </div>
-      )}
 
-      <Button
-        colorScheme='brand'
-        onClick={handleLoginClick}
-        disabled={password === '' || isLoading}
-        className='w-full'
-      >
-        {isLoading ? 'Logging in...' : 'Login'}
-      </Button>
+        {error != null && (
+          <div className='text-red-500 text-sm'>
+            {error}
+          </div>
+        )}
+
+        <Button
+          size='xl'
+          colorScheme='brand'
+          onClick={async () => await handleLogin().catch(e => console.log('handleLogin error: ', e))}
+          disabled={password === '' || isLoading}
+          className='w-full'
+        >
+          {isLoading ? 'Logging in...' : 'Unlock'}
+        </Button>
+      </div>
     </div>
   )
 }

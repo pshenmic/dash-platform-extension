@@ -14,7 +14,7 @@ export default function DocumentsBatchDetails ({ stateTransition }) {
       const { transitions } = documentsBatch
       setTransitions(transitions)
     } catch (e) {
-      console.error(e)
+      console.log(e)
       setTransitions(null)
       setError(e)
     }

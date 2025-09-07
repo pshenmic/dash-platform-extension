@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "dash-ui-kit/theme";
+@import "dash-ui-kit/styles";
+@import "./entities-list.pcss";
 
 @theme {
   --color-brand: #4C7EFF;
@@ -10,8 +13,10 @@
 
   --font-main: "Manrope", sans-serif;
   --font-grotesque: "Space Grotesk", sans-serif;
-}
 
+  --color-dash-primary-die-subdued: #0c1c3308;
+  --color-dash-primary-dark-blue: #0C1C33;
+}
 
 @layer components {
   .h1-title {
@@ -19,7 +24,28 @@
   }
 
   .screen-content {
-    @apply flex flex-col gap-4;
+    @apply flex flex-col gap-4 flex-grow;
+  }
+
+  /* Unified Dash Block System */
+  .dash-block-sm {
+    @apply px-3 py-2 text-sm rounded-[0.625rem];
+  }
+
+  .dash-block-md {
+    @apply px-[1.125rem] py-3 text-base rounded-[0.875rem];
+  }
+
+  .dash-block-xl {
+    @apply px-[1.5625rem] py-[1.25rem] rounded-[1rem];
+  }
+
+  .dash-shadow-lg {
+    box-shadow: 0px 0px 24px 0px rgba(0, 0, 0, .1);
+  }
+
+  .menu-sections-container {
+    @apply flex flex-col gap-6;
   }
 }
 
@@ -27,22 +53,21 @@ body {
   @apply m-0 flex font-normal font-main text-lg text-brand-dark;
   font-optical-sizing: auto;
   background-color: #e9e9e9;
+  overflow: hidden;
+  width: 26.25rem;
+  height: 37.5rem;
+}
+
+.root {
+  width: 100%;
+  height: 100%;
 }
 
 .main_container {
+  @apply flex flex-col relative p-[0.875rem] gap-10;
   background-color: #fff;
-  width: 420px;
-  max-width: 800px;
+  width: 100%;
+  height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
-}
-
-select {
-  border: 1px solid var(--color-gray-400);
-  border-radius: 0.75rem;
-  margin-top: 4px;
-  width: 100%;
-  min-height: 50px;
-  padding: 0.75rem;
-  background-color: #fff;
 }

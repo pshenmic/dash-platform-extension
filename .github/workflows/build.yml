@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "develop" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "develop" ]
 
 jobs:
   build:
@@ -26,6 +26,10 @@ jobs:
       run: |
         yarn
 
+    - name: Build
+      run: |
+        yarn build
+
     - name: Lint
       run: |
         yarn lint
@@ -33,7 +37,3 @@ jobs:
     - name: Test
       run: |
         yarn test
-
-    - name: Build
-      run: |
-        yarn build

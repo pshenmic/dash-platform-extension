@@ -22,9 +22,11 @@ export interface IdentitiesStoreSchema {
 
 export interface WalletStoreSchema {
   walletId: string
-  type: string
   network: string
+  type: string
   label: string | null
+  encryptedMnemonic: string | null
+  seedHash: string | null
   currentIdentity: string | null
 }
 

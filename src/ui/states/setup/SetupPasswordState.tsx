@@ -1,8 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../../components/controls/buttons'
-import Text from '../../text/Text'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { Button, Text, Input, Heading, DashLogo } from 'dash-ui-kit/react'
 
 export default function SetupPasswordState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -36,35 +35,55 @@ export default function SetupPasswordState (): React.JSX.Element {
     }
   }
 
-  const handleSetupClick = (): void => {
-    void handleSetupPassword()
-  }
+  useEffect(() => {
+    const checkPassword = async (): Promise<void> => {
+      const status = await extensionAPI.getStatus()
+      const isPasswordSet = status.passwordSet
+      if (isPasswordSet) {
+        void navigate('/login')
+      }
+    }
+    checkPassword()
+      .catch(e => console.log('checkPassword error: ', e))
+  }, [extensionAPI, navigate])
 
   return (
-    <div className='flex flex-col gap-4'>
-      <Text size='xl' weight='bold'>
-        Setup Password
-      </Text>
+    <div className='flex flex-col gap-2.5 -mt-16'>
+      <div className='flex flex-col gap-2.5 mb-6'>
+        <DashLogo containerSize='3rem' />
 
-      <Text color='blue'>
-        Create a password to secure your wallet
-      </Text>
+        <Heading level={1} size='2xl'>
+          Create Password
+        </Heading>
+
+        <Text dim className='leading-tight' size='sm'>
+          You will use this password to unlock your wallet. Do not share your password with others
+        </Text>
+      </div>
 
       <div className='flex flex-col gap-2'>
-        <input
+        <Text dim>
+          Password
+        </Text>
+        <Input
           type='password'
           placeholder='Enter password'
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className='p-3 border rounded'
+          size='xl'
+          colorScheme='default'
         />
 
-        <input
+        <Text dim>
+          Confirm Password
+        </Text>
+        <Input
           type='password'
           placeholder='Confirm password'
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          className='p-3 border rounded'
+          size='xl'
+          colorScheme='default'
         />
       </div>
 
@@ -76,8 +95,9 @@ export default function SetupPasswordState (): React.JSX.Element {
 
       <Button
         colorScheme='brand'
-        onClick={handleSetupClick}
-        disabled={password === '' || confirmPassword === '' || isLoading}
+        size='xl'
+        onClick={async () => await handleSetupPassword().catch(e => console.log('handleSetupPassword error: ', e))}
+        disabled={password === '' || confirmPassword === '' || password.length !== confirmPassword.length || isLoading}
         className='w-full'
       >
         {isLoading ? 'Setting up...' : 'Setup Password'}

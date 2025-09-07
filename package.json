@@ -1,20 +1,28 @@
 {
   "name": "dash-platform-extension",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "homepage": "https://github.com/pshenmic/dash-platform-extension",
   "description": "A browser extension wallet for interacting with Dash Platform, providing secure identity management, wallet functionality, and transaction signing capabilities for DApps.",
   "scripts": {
     "build": "webpack --mode=production",
     "serve": "webpack serve --mode=development",
     "lint": "ts-standard --fix",
-    "test": "echo 'Tests are temporarily disabled'"
+    "watch": "webpack --config webpack.extension.config.cjs --mode=development",
+    "test": "jest"
+  },
+  "ts-standard": {
+    "ignore": [
+      "dist"
+    ]
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@react-hook/resize-observer": "^2.0.2",
     "@scure/base": "^1.2.4",
-    "dash-platform-sdk": "1.1.4",
+    "@scure/bip39": "^1.6.0",
+    "dash-platform-sdk": "1.2.0",
+    "dash-ui-kit": "^1.0.2",
     "eciesjs": "^0.4.15",
     "hash.js": "^1.1.7",
     "react": "^19.1.0",
@@ -25,6 +33,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.23.5",
+    "@babel/plugin-transform-modules-commonjs": "^7.27.1",
     "@babel/preset-env": "^7.23.5",
     "@babel/preset-react": "^7.23.3",
     "@babel/preset-typescript": "^7.27.1",

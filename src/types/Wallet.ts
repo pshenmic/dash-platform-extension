@@ -5,5 +5,7 @@ export interface Wallet {
   type: WalletType
   network: string
   label: string | null
+  encryptedMnemonic: string | null
+  seedHash: string | null
   currentIdentity: string | null
 }

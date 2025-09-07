@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../../components/controls/buttons'
-import Text from '../../text/Text'
+import { Button, List, Text, ValueCard } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { WalletType } from '../../../types'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 
-export default function CreateWalletState (): React.JSX.Element {
+function CreateWalletState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [isLoading, setIsLoading] = useState(false)
@@ -15,19 +16,15 @@ export default function CreateWalletState (): React.JSX.Element {
     setError(null)
 
     try {
-      const { walletId } = await extensionAPI.createWallet('keystore')
-      await extensionAPI.switchWallet(walletId, 'testnet')
+      const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
+      await extensionAPI.switchWallet(walletId)
 
-      void navigate('/import')
+      void navigate('/import-keystore')
     } catch (err) {
       setError((err as Error).toString())
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const handleCreateClick = (): void => {
-    void handleCreateWallet()
   }
 
   return (
@@ -40,32 +37,32 @@ export default function CreateWalletState (): React.JSX.Element {
         Create a new wallet to manage your identities and funds
       </Text>
 
-      <div className='flex flex-col gap-3 p-4 bg-gray-50 rounded'>
+      <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col items-start gap-4'>
         <Text size='md' weight='bold'>
           Wallet Features:
         </Text>
-        <ul className='list-disc list-inside space-y-1'>
-          <li>
-            <Text size='sm'>Secure identity management</Text>
-          </li>
-          <li>
-            <Text size='sm'>Transaction signing</Text>
-          </li>
-          <li>
-            <Text size='sm'>Multiple identity support</Text>
-          </li>
-        </ul>
-      </div>
+        <List
+          items={[
+            { text: 'Secure identity management' },
+            { text: 'Transaction signing' },
+            { text: 'Multiple identity support' }
+          ]}
+          iconType='check'
+          size='sm'
+        />
+      </ValueCard>
 
       {error != null && (
-        <div className='text-red-500 text-sm'>
-          {error}
-        </div>
+        <ValueCard className='text-red-500 text-sm'>
+          <Text color='red'>
+            {error}
+          </Text>
+        </ValueCard>
       )}
 
       <Button
         colorScheme='brand'
-        onClick={handleCreateClick}
+        onClick={async () => await handleCreateWallet().catch(e => console.log('handleCreateWallet error: ', e))}
         disabled={isLoading}
         className='w-full'
       >
@@ -74,3 +71,7 @@ export default function CreateWalletState (): React.JSX.Element {
     </div>
   )
 }
+
+export default withAccessControl(CreateWalletState, {
+  requireWallet: false
+})

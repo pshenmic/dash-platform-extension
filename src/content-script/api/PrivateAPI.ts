@@ -9,7 +9,6 @@ import { GetStateTransitionHandler } from './private/stateTransitions/getStateTr
 import { ApproveStateTransitionHandler } from './private/stateTransitions/approveStateTransition'
 import { RejectStateTransitionHandler } from './private/stateTransitions/rejectStateTransition'
 import { APIHandler } from './APIHandler'
-import { CreateIdentityHandler } from './private/identities/createIdentity'
 import { CreateWalletHandler } from './private/wallet/createWallet'
 import { SwitchWalletHandler } from './private/wallet/switchWallet'
 import { KeypairRepository } from '../repository/KeypairRepository'
@@ -23,6 +22,15 @@ import { GetAppConnectHandler } from './private/appConnect/getAppConnect'
 import { ApproveAppConnectHandler } from './private/appConnect/approveAppConnect'
 import { RejectAppConnectHandler } from './private/appConnect/rejectAppConnect'
 import { GetIdentitiesHandler } from './private/identities/getIdentities'
+import { ResyncIdentitiesHandler } from './private/wallet/resyncIdentities'
+import { ImportIdentityHandler } from './private/identities/importIdentity'
+import { GetAllWalletsHandler } from './private/wallet/getAllWallets'
+import { AddIdentityPrivateKey } from './private/identities/addPrivateKey'
+import { GetAvailableKeyPairs } from './private/identities/getAvailableKeyPairs'
+import { SwitchNetworkHandler } from './private/wallet/switchNetwork'
+import { RemoveIdentityPrivateKeyHandler } from './private/identities/removePrivateKey'
+import { GetAllAppConnectsHandler } from './private/appConnect/getAllAppConnects'
+import { RemoveAppConnectHandler } from './private/appConnect/removeAppConnect'
 
 /**
  * Handlers for a messages within extension context
@@ -69,16 +77,24 @@ export class PrivateAPI {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
       [MessagingMethods.SETUP_PASSWORD]: new SetupPasswordHandler(this.storageAdapter),
       [MessagingMethods.CHECK_PASSWORD]: new CheckPasswordHandler(this.storageAdapter),
-      [MessagingMethods.CREATE_IDENTITY]: new CreateIdentityHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.SWITCH_IDENTITY]: new SwitchIdentityHandler(identitiesRepository, walletRepository),
+      [MessagingMethods.GET_ALL_WALLETS]: new GetAllWalletsHandler(walletRepository, this.sdk, this.storageAdapter),
+      [MessagingMethods.IMPORT_IDENTITY]: new ImportIdentityHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
+      [MessagingMethods.ADD_IDENTITY_PRIVATE_KEY]: new AddIdentityPrivateKey(identitiesRepository, walletRepository, keypairRepository, this.sdk),
+      [MessagingMethods.REMOVE_IDENTITY_PRIVATE_KEY]: new RemoveIdentityPrivateKeyHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
+      [MessagingMethods.GET_AVAILABLE_KEY_PAIRS]: new GetAvailableKeyPairs(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.GET_IDENTITIES]: new GetIdentitiesHandler(identitiesRepository),
-      [MessagingMethods.GET_CURRENT_IDENTITY]: new GetCurrentIdentityHandler(identitiesRepository),
+      [MessagingMethods.GET_CURRENT_IDENTITY]: new GetCurrentIdentityHandler(walletRepository),
       [MessagingMethods.APPROVE_STATE_TRANSITION]: new ApproveStateTransitionHandler(stateTransitionsRepository, identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.GET_STATE_TRANSITION]: new GetStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.REJECT_STATE_TRANSITION]: new RejectStateTransitionHandler(stateTransitionsRepository, walletRepository),
-      [MessagingMethods.CREATE_WALLET]: new CreateWalletHandler(walletRepository),
-      [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository),
+      [MessagingMethods.CREATE_WALLET]: new CreateWalletHandler(walletRepository, this.sdk, this.storageAdapter),
+      [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository, this.storageAdapter),
+      [MessagingMethods.SWITCH_NETWORK]: new SwitchNetworkHandler(walletRepository, this.storageAdapter, this.sdk),
+      [MessagingMethods.RESYNC_IDENTITIES]: new ResyncIdentitiesHandler(identitiesRepository, walletRepository, this.sdk, this.storageAdapter),
       [MessagingMethods.GET_APP_CONNECT]: new GetAppConnectHandler(appConnectRepository),
+      [MessagingMethods.GET_ALL_APP_CONNECTS]: new GetAllAppConnectsHandler(appConnectRepository),
+      [MessagingMethods.REMOVE_APP_CONNECT]: new RemoveAppConnectHandler(appConnectRepository),
       [MessagingMethods.APPROVE_APP_CONNECT]: new ApproveAppConnectHandler(appConnectRepository, this.storageAdapter),
       [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter)
     }
