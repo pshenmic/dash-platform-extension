@@ -16,9 +16,10 @@ import {
   DeleteIcon
 } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
+import { processPrivateKey, ProcessedPrivateKey } from '../../../utils'
+import { Network } from '../../../types/enums/Network'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { WalletType } from '../../../types'
+import { NetworkType, WalletType } from '../../../types'
 
 interface PrivateKeyInput {
   id: string
@@ -36,7 +37,7 @@ function ImportKeystoreState (): React.JSX.Element {
   const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInput[]>([
     { id: Date.now().toString(), value: '', isVisible: false, hasError: false }
   ])
-  const [identities, setIdentities] = useState<Array<{ key: PrivateKeyWASM, identity: IdentityWASM, balance: string }>>([])
+  const [identities, setIdentities] = useState<ProcessedPrivateKey[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -101,7 +102,8 @@ function ImportKeystoreState (): React.JSX.Element {
     setPrivateKeyInputs(prev => prev.map(input => ({ ...input, hasError: false })))
 
     try {
-      const validIdentities: Array<{ key: PrivateKeyWASM, identity: IdentityWASM, balance: string }> = []
+      const validIdentities: ProcessedPrivateKey[] = []
+      const invalidInputIds: string[] = []
 
       // Filter out empty private key inputs
       const nonEmptyInputs = privateKeyInputs.filter(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
@@ -111,72 +113,44 @@ function ImportKeystoreState (): React.JSX.Element {
       }
 
       for (const input of nonEmptyInputs) {
-        const privateKey = input.value?.trim() ?? ''
-        let pkeyWASM: PrivateKeyWASM | null = null
+        const privateKeyString = input.value.trim()
 
-        if (privateKey.length === 52) {
-          // wif
-          try {
-            pkeyWASM = PrivateKeyWASM.fromWIF(privateKey)
-          } catch (e) {
-            console.log(e)
-            setInputError(input.id, true)
-            return setError('Could not decode private key from WIF')
-          }
-        } else if (privateKey.length === 64) {
-          // hex
-          try {
-            pkeyWASM = PrivateKeyWASM.fromHex(privateKey, (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet')
-          } catch (e) {
-            console.log(e)
-            setInputError(input.id, true)
-            return setError('Could not decode private key from hex')
-          }
+        try {
+          const network = currentNetwork as NetworkType
+          const processed = await processPrivateKey(privateKeyString, sdk, network)
+          validIdentities.push(processed)
+        } catch (e) {
+          setInputError(input.id, true)
+          invalidInputIds.push(input.id)
+        }
+      }
+
+      // Set error message if there are invalid inputs
+      if (invalidInputIds.length > 0) {
+        const hasDecodingErrors = await Promise.all(
+          nonEmptyInputs
+            .filter(input => invalidInputIds.includes(input.id))
+            .map(async input => {
+              try {
+                const network = (currentNetwork ?? 'testnet') === 'testnet' ? Network.testnet : Network.mainnet
+                await processPrivateKey(input.value.trim(), sdk, network)
+                return false // No decoding error
+              } catch (e) {
+                return true
+              }
+            })
+        )
+
+        const hasAnyDecodingErrors = hasDecodingErrors.some(hasError => hasError)
+        
+        if (hasAnyDecodingErrors) {
+          setError('Could not decode private key from hex')
         } else {
-          setInputError(input.id, true)
-          return setError('Unrecognized private key format')
+          setError('Could not find identity belonging to private key')
         }
 
-        if (pkeyWASM == null) {
-          setInputError(input.id, true)
-          return setError('Failed to process private key')
-        }
-
-        let uniqueIdentity
-        try {
-          uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
-        } catch (e) {}
-
-        let nonUniqueIdentity
-        try {
-          nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkeyWASM.getPublicKeyHash())
-        } catch (e) {}
-
-        const [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e !== null && e !== undefined)
-
-        if (identity == null) {
-          setInputError(input.id, true)
-          return setError('Could not find identity belonging to private key')
-        }
-
-        const [identityPublicKey] = identity.getPublicKeys()
-          .filter((publicKey: IdentityPublicKeyWASM) =>
-            publicKey.getPublicKeyHash() === pkeyWASM?.getPublicKeyHash())
-
-        if (identityPublicKey === null || identityPublicKey === undefined) {
-          setInputError(input.id, true)
-          return setError('Please use a key with purpose AUTHENTICATION and security level HIGH')
-        }
-
-        // Get identifier as base58 string directly from IdentifierWASM
-        const identifierString = identity.id.base58()
-        const balance = await sdk.identities.getIdentityBalance(identifierString)
-
-        validIdentities.push({
-          key: pkeyWASM,
-          identity,
-          balance: balance.toString()
-        })
+        setIsLoading(false)
+        return
       }
 
       setIdentities(validIdentities)

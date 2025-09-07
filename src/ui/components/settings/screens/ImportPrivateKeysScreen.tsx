@@ -6,6 +6,7 @@ import { processPrivateKey, ProcessedPrivateKey } from '../../../../utils'
 import { Network } from '../../../../types/enums/Network'
 import { useSdk } from '../../../hooks/useSdk'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
+import { NetworkType } from '../../../../types'
 
 export const importPrivateKeysScreenConfig: ScreenConfig = {
   id: 'import-private-keys-settings',
@@ -79,7 +80,7 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
         const privateKeyString = input.value.trim()
 
         try {
-          const network = (currentNetwork as Network) ?? Network.testnet
+          const network = currentNetwork as NetworkType
           const processed = await processPrivateKey(privateKeyString, sdk, network)
 
           // Check if the processed key belongs to the current identity

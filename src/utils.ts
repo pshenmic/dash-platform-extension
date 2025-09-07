@@ -2,6 +2,7 @@ import { base58 } from '@scure/base'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from './types/enums/Network'
+import { NetworkType } from './types'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -156,7 +157,7 @@ export const validatePrivateKeyFormat = (privateKey: string): boolean => {
   return trimmed.length === 52 || trimmed.length === 64
 }
 
-export const parsePrivateKey = (privateKey: string, network: Network = Network.testnet): PrivateKeyWASM => {
+export const parsePrivateKey = (privateKey: string, network: NetworkType): PrivateKeyWASM => {
   const trimmed = privateKey.trim()
 
   if (trimmed.length === 52) {
@@ -212,7 +213,7 @@ export const validateIdentityPublicKey = (
 export const processPrivateKey = async (
   privateKeyString: string,
   sdk: DashPlatformSDK,
-  network: Network = Network.testnet
+  network: NetworkType
 ): Promise<ProcessedPrivateKey> => {
   if (!validatePrivateKeyFormat(privateKeyString)) {
     throw new Error('Invalid private key format. Expected 52 characters (WIF) or 64 characters (hex)')
