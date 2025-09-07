@@ -1,5 +1,5 @@
 import React from 'react'
-import { Input, EyeClosedIcon, EyeOpenIcon, DeleteIcon, Text } from 'dash-ui/react'
+import { Input, EyeClosedIcon, EyeOpenIcon, DeleteIcon, Text } from 'dash-ui-kit/react'
 
 export interface PrivateKeyInputData {
   id: string

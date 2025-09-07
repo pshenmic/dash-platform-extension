@@ -1,5 +1,5 @@
 import React from 'react'
-import { OverlayMenu, PlusIcon, WalletIcon, ValueCard } from 'dash-ui/react'
+import { OverlayMenu, PlusIcon, WalletIcon, ValueCard } from 'dash-ui-kit/react'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'
 

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EmptyState } from '../../components/layout/EmptyState'
-import { Text } from 'dash-ui/react'
+import { Text } from 'dash-ui-kit/react'
 
 export default function NoIdentities (): React.JSX.Element {
   const navigate = useNavigate()

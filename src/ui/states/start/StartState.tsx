@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Text } from 'dash-ui/react'
+import { Text } from 'dash-ui-kit/react'
 
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
@@ -30,14 +30,14 @@ export default function StartState (): React.JSX.Element {
         void navigate('/home')
       } catch (err) {
         setError('Failed to check status: ' + String(err))
-        console.warn(err)
+        console.log(err)
       } finally {
         setIsLoading(false)
       }
     }
 
     checkStatus()
-      .catch(e => console.warn('checkStatus error:', e))
+      .catch(e => console.log('checkStatus error:', e))
   }, [navigate, extensionAPI])
 
   return error == null
