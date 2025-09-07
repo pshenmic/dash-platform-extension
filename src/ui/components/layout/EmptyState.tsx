@@ -17,7 +17,7 @@ export function EmptyState ({ title, buttonText, onButtonClick, className = '' }
           <img
             src={useStaticAsset('spiral-of-squares.png')}
             alt='Background pattern'
-            className='relative w-[500px] -left-[10%] max-w-none -top-[150px] rotate-[-145deg]'
+            className='relative w-[500px] -left-[10%] max-w-none -top-[150px] rotate-[35deg]'
           />
         </div>
       </div>
