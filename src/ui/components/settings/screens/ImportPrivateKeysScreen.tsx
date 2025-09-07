@@ -48,10 +48,17 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
     )
   }
 
+  const setInputError = (inputId: string, hasError: boolean): void => {
+    setPrivateKeyInputs(prev =>
+      prev.map(input => input.id === inputId ? { ...input, hasError } : input)
+    )
+  }
+
   const validateAndImportKeys = async (): Promise<void> => {
     setError(null)
     setIsLoading(true)
     setSuccessMessage(null)
+    setPrivateKeyInputs(prev => prev.map(input => ({ ...input, hasError: false })))
 
     if (currentIdentity === null || currentIdentity === '') {
       setError('No current identity found. Please select an identity first.')
@@ -78,23 +85,43 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
           // Check if the processed key belongs to the current identity
           const keyIdentityId = processed.identity.id.base58()
           if (keyIdentityId !== currentIdentity) {
+            setInputError(input.id, true)
             invalidInputIds.push(input.id)
           } else {
             validProcessedKeys.push(processed)
           }
         } catch (e) {
+          setInputError(input.id, true)
           invalidInputIds.push(input.id)
         }
       }
 
-      // Mark invalid inputs with error state
+      // Set error message if there are invalid inputs
       if (invalidInputIds.length > 0) {
-        setPrivateKeyInputs(prev =>
-          prev.map(input => ({
-            ...input,
-            hasError: invalidInputIds.includes(input.id)
-          }))
+        const hasDecodingErrors = await Promise.all(
+          nonEmptyInputs
+            .filter(input => invalidInputIds.includes(input.id))
+            .map(async input => {
+              try {
+                const network = (currentNetwork as Network) ?? Network.testnet
+                await processPrivateKey(input.value.trim(), sdk, network)
+                return false // No decoding error, key belongs to different identity
+              } catch (e) {
+                return true
+              }
+            })
         )
+
+        const hasAnyDecodingErrors = hasDecodingErrors.some(hasError => hasError)
+        
+        if (hasAnyDecodingErrors) {
+          setError('Could not decode private key from hex')
+        } else {
+          const errorMsg = invalidInputIds.length === 1
+            ? 'Key belongs to another identity'
+            : 'Some of the keys belong to another identity'
+          setError(errorMsg)
+        }
 
         setIsLoading(false)
         return
@@ -133,11 +160,14 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
     }
   }
 
-  // Clear error and success message when inputs change
+  // Clear error and success message when user types
   useEffect(() => {
-    setError(null)
-    setSuccessMessage(null)
-  }, [privateKeyInputs])
+    const hasValueChanges = privateKeyInputs.some(input => input.value !== '')
+    if (hasValueChanges) {
+      setError(null)
+      setSuccessMessage(null)
+    }
+  }, [privateKeyInputs.map(input => input.value).join(',')])
 
   const hasValidKeys = privateKeyInputs.some(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
 
@@ -194,17 +224,9 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
         </div>
 
         {/* Error Display */}
-        {(error !== null || privateKeyInputs.some(input => input.hasError)) && (
+        {error !== null && (
           <ValueCard colorScheme='yellow' className='break-all'>
-            <Text color='red'>
-              {privateKeyInputs.some(input => input.hasError)
-                ? (
-                    privateKeyInputs.filter(input => input.value?.trim() !== '' && input.value?.trim() !== undefined).length === 1
-                      ? 'Key belongs to another identity'
-                      : 'Some of the keys belong to another identity'
-                  )
-                : error}
-            </Text>
+            <Text color='red'>{error}</Text>
           </ValueCard>
         )}
 
