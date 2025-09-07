@@ -17,7 +17,6 @@ import {
 } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { processPrivateKey, ProcessedPrivateKey } from '../../../utils'
-import { Network } from '../../../types/enums/Network'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { NetworkType, WalletType } from '../../../types'
 
