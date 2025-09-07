@@ -1,6 +1,5 @@
 # Dash Platform Extension
 
-
 ###### A browser extension that let users easily interact with Dash Platform DApps.
 ![Dash](https://img.shields.io/badge/dash-008DE4?style=for-the-badge&logo=dash&logoColor=white)
 ![Google Chrome](https://img.shields.io/badge/Google%20Chrome-4285F4?style=for-the-badge&logo=GoogleChrome&logoColor=white)
@@ -23,10 +22,31 @@ Metamask-like style
 Extension keep your wallet data and encrypted private keys in the browser storage, and provide a secure public API 
 interface for developers to integrate their application and create transactions. 
 
+## Versioning
+
+### 2.x.x Tapti (work in progress)
+- Dash usernames registration
+- Identity registration
+- Create seedphrase
+
+### 1.x.x Narmada (in Chrome Store review)
+- Mainnet support
+- DashPay seedphrases (no create / register yet)
+- Multi wallet and identity
+- Reworked UI screens
+- Tokens on homepage
+
+### 0.x.x Mekong (in store)
+- Proof of Concept
+- Home page (balance, transactions)
+- Testnet only
+- Web integration and SDK (delegated tx signing to extension)
+- 1 identity and 1 private key support
+
 ## Current features
 
-- Testnet
-- Identity management (with secure key storage)
+- Mainnet / Testnet
+- Seedphrase and Identity management (with encrypted storage)
 - Show your Identity balance & transactions
 - Developer SDK for interaction with extension & blockchain (with cryptographic proofs)
 - Sign transactions with your wallet without sharing with the website
