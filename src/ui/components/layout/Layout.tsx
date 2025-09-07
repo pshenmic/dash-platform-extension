@@ -20,19 +20,12 @@ const Layout: FC = () => {
   const [availableIdentities, setAvailableIdentities] = useState<Identity[]>([])
 
   const loadStatus = async (): Promise<void> => {
-    try {
-      const status = await extensionAPI.getStatus()
+    const status = await extensionAPI.getStatus()
 
-      if (status.ready) {
-        setIsApiReady(true)
-        setCurrentNetwork(status.network as NetworkType)
-        setCurrentWallet(status.currentWalletId)
-      } else {
-        setIsApiReady(false)
-      }
-    } catch (error) {
-      console.log('Failed to load current network:', error)
-      setIsApiReady(false)
+    if (status.ready) {
+      setIsApiReady(true)
+      await networkChangeHandler(status.network as NetworkType)
+      setCurrentWallet(status.currentWalletId)
     }
   }
 
@@ -60,7 +53,7 @@ const Layout: FC = () => {
     }
   }, [])
 
-  // Load identities and set current identity
+  // Load current identities
   useEffect(() => {
     const loadCurrentIdentity = async (): Promise<void> => {
       if (!isApiReady || currentWallet === null) return
@@ -118,11 +111,9 @@ const Layout: FC = () => {
   }, [isApiReady, loadWallets])
 
   const networkChangeHandler = useCallback(async (network): Promise<void> => {
-    if (!isApiReady) return
+    if (!isApiReady || currentNetwork === network) return
 
     try {
-      if (currentNetwork === network) return
-
       sdk.setNetwork(network as NetworkType)
       await extensionAPI.switchNetwork(network)
       const status: GetStatusResponse = await extensionAPI.getStatus()
@@ -194,7 +185,7 @@ const Layout: FC = () => {
         {isApiReady
           ? (
             <>
-              <Header
+              <Header // TODO: make one prop {}
                 onNetworkChange={(network) => {
                   networkChangeHandler(network).catch(error => console.log('Network change error:', error))
                 }}
