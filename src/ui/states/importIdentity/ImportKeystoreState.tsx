@@ -20,6 +20,7 @@ import { processPrivateKey, ProcessedPrivateKey } from '../../../utils'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType, NetworkType } from '../../../types'
 import { IdentityPreview } from '../../components/Identities'
+import { PrivateKeyWASM, IdentityWASM } from 'pshenmic-dpp'
 
 interface PrivateKeyInput {
   id: string
