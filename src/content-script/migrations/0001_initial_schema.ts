@@ -5,7 +5,7 @@ export default async function initialSchemaMigration (storageAdapter: StorageAda
 
   if (schemaVersion == null) {
     await storageAdapter.set('schema_version', 1)
-    await storageAdapter.set('network', 'testnet')
+    await storageAdapter.set('network', 'mainnet')
     await storageAdapter.set('currentWalletId', null)
     await storageAdapter.set('passwordPublicKey', null)
   }

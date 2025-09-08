@@ -18,7 +18,7 @@ describe('create wallet', () => {
 
   beforeEach(async () => {
     const memoryStorageAdapter = new MemoryStorageAdapter()
-    sdk = new DashPlatformSDK()
+    sdk = new DashPlatformSDK({ network: 'testnet' })
 
     storage = memoryStorageAdapter
     await runMigrations(storage)

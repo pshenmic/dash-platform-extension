@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text } from 'dash-ui/react'
+import { Text } from 'dash-ui-kit/react'
 import { creditsToDash } from '../../../utils'
 
 interface BalanceInfoProps {

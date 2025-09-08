@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Text, Input, Heading, DashLogo } from 'dash-ui/react'
+import { Button, Text, Input, Heading, DashLogo } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 
 export default function LoginState (): React.JSX.Element {
@@ -78,7 +78,7 @@ export default function LoginState (): React.JSX.Element {
         <Button
           size='xl'
           colorScheme='brand'
-          onClick={async () => await handleLogin().catch(e => console.warn('handleLogin error: ', e))}
+          onClick={async () => await handleLogin().catch(e => console.log('handleLogin error: ', e))}
           disabled={password === '' || isLoading}
           className='w-full'
         >

@@ -8,7 +8,7 @@ import {
   SettingsIcon,
   DashLogo,
   QuestionMessageIcon
-} from 'dash-ui/react'
+} from 'dash-ui-kit/react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import type { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
 

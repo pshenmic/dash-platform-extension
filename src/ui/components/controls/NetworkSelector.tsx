@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { OverlayMenu, WebIcon } from 'dash-ui/react'
+import { OverlayMenu, WebIcon } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { Network } from '../../../types/enums/Network'
 
@@ -7,20 +7,21 @@ interface NetworkSelectorProps {
   onSelect?: (network: string) => void
   variant?: 'default' | 'card'
   className?: string
+  currentNetwork?: 'mainnet' | 'testnet'
   border?: boolean
   wallets?: any[]
 }
 
-export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, variant = 'default', ...props }) => {
+export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, variant = 'default', currentNetwork, ...props }) => {
   const extensionAPI = useExtensionAPI()
-  const [currentNetwork, setCurrentNetwork] = useState<string>('testnet')
+  const [localCurrentNetwork, setLocalCurrentNetwork] = useState<string>(currentNetwork ?? 'mainnet')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadCurrentNetwork = async (): Promise<void> => {
+    const loadLocalCurrentNetwork = async (): Promise<void> => {
       try {
         const status = await extensionAPI.getStatus()
-        setCurrentNetwork(status.network)
+        setLocalCurrentNetwork(status.network)
       } catch (error) {
         console.error('Failed to load current network:', error)
       } finally {
@@ -28,20 +29,20 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, vari
       }
     }
 
-    void loadCurrentNetwork()
+    void loadLocalCurrentNetwork()
   }, [extensionAPI])
 
   const handleNetworkChange = async (network: string): Promise<void> => {
     try {
-      setCurrentNetwork(network)
+      setLocalCurrentNetwork(network)
       onSelect?.(network)
     } catch (error) {
       console.error('Failed to switch network:', error)
     }
   }
   useEffect(() => {
-    if (typeof onSelect === 'function') onSelect(currentNetwork)
-  }, [currentNetwork, onSelect])
+    if (typeof onSelect === 'function') onSelect(localCurrentNetwork)
+  }, [localCurrentNetwork, onSelect])
 
   if (loading) {
     return (
@@ -56,7 +57,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, vari
         className={variant === 'card' ? 'text-white' : '!text-dash-primary-dark-blue'}
       />
       <span className={`text-sm font-medium capitalize ${variant === 'card' ? 'text-white' : ''}`}>
-        {currentNetwork}
+        {localCurrentNetwork}
       </span>
     </div>
   )

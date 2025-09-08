@@ -1,4 +1,4 @@
-import { EventData } from '../../../../types/EventData'
+import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
 import { WalletRepository } from '../../../repository/WalletRepository'
@@ -25,7 +25,7 @@ export class SwitchNetworkHandler implements APIHandler {
     const currentNetwork = await this.storageAdapter.get('network')
 
     if (currentNetwork === payload.network) {
-      throw new Error('Cannot switch to the same network')
+      return {}
     }
 
     await this.storageAdapter.set('network', network)

@@ -1,7 +1,7 @@
 import React from 'react'
 import { MenuSection } from '../MenuSection'
 import type { SettingsScreenProps } from '../types'
-import { KeyIcon } from 'dash-ui/react'
+import { KeyIcon } from 'dash-ui-kit/react'
 
 export const SecuritySettingsScreen: React.FC<SettingsScreenProps> = () => {
   const handleItemClick = (itemId: string): void => {

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Dialog, Button, Text } from 'dash-ui/react'
+import { Dialog, Button, Text } from 'dash-ui-kit/react'
 
 interface ConfirmDialogProps {
   open: boolean

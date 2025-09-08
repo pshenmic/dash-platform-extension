@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, BigNumber } from 'dash-ui/react'
+import { Text, BigNumber } from 'dash-ui-kit/react'
 import { TokenData, NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { getTokenName } from '../../../utils'
 import { PLATFORM_EXPLORER_URLS } from '../../../constants'

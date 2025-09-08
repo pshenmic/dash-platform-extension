@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, useTheme, ChevronIcon } from 'dash-ui/react'
+import { Text, useTheme, ChevronIcon } from 'dash-ui-kit/react'
 import { cva } from 'class-variance-authority'
 
 interface MenuItemProps {

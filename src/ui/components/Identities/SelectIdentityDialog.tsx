@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Dialog, Identifier, Text, BigNumber, Avatar, Button, PlusIcon } from 'dash-ui/react'
+import { Dialog, Identifier, Text, BigNumber, Avatar, Button, PlusIcon } from 'dash-ui-kit/react'
 import { usePlatformExplorerClient, type IdentityApiData, type NetworkType, type ApiState } from '../../hooks/usePlatformExplorerApi'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useNavigate } from 'react-router-dom'
