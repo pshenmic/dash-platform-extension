@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Text, WebIcon, Button } from 'dash-ui/react'
+import { Text, WebIcon, Button } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { ConfirmDialog } from '../../controls'
 import type { SettingsScreenProps } from '../types'
