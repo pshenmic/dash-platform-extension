@@ -37,6 +37,8 @@ import { GetAvailableKeyPairsResponse } from './messages/response/GetAvailableKe
 import { GetAvailableKeyPairsPayload } from './messages/payloads/GetAvailableKeyPairsPayload'
 import { SwitchNetworkPayload } from './messages/payloads/SwitchNetworkPayload'
 import { RemoveIdentityPrivateKeyPayload } from './messages/payloads/RemoveIdentityPrivateKeyPayload'
+import { GetAllAppConnectsResponse } from './messages/response/GetAllAppConnectsResponse'
+import { RemoveAppConnectPayload } from './messages/payloads/RemoveAppConnectPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -200,6 +202,23 @@ export class PrivateAPIClient {
     const response: GetAppConnectResponse = await this._rpcCall(MessagingMethods.GET_APP_CONNECT, payload)
 
     return response.appConnect
+  }
+
+  async getAllAppConnects (): Promise<AppConnect[]> {
+    const payload: EmptyPayload = {
+    }
+
+    const response: GetAllAppConnectsResponse = await this._rpcCall(MessagingMethods.GET_ALL_APP_CONNECTS, payload)
+
+    return response.appConnects
+  }
+
+  async removeAppConnectById (id: string): Promise<void> {
+    const payload: RemoveAppConnectPayload = {
+      id
+    }
+
+    await this._rpcCall(MessagingMethods.REMOVE_APP_CONNECT, payload)
   }
 
   async approveAppConnect (id: string): Promise<void> {

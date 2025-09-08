@@ -1,15 +1,15 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { PrivateAPIClient } from '../../../../src/types/PrivateAPIClient'
+import { PrivateAPIClient, WalletType } from '../../../../src/types'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
 import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
-import { WalletType } from '../../../../src/types/WalletType'
 import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
-import { KeyPairsSchema } from '../../../../src/content-script/storage/storageSchema'
+import { AppConnectsStorageSchema } from '../../../../src/content-script/storage/storageSchema'
+import { AppConnectStatus } from '../../../../src/types/enums/AppConnectStatus'
 
-describe('add identity private key', () => {
+describe('app connects', () => {
   let privateAPI: PrivateAPI
   let privateAPIClient: PrivateAPIClient
   let storage: StorageAdapter
@@ -37,25 +37,39 @@ describe('add identity private key', () => {
     await storage.set('passwordPublicKey', passwordPublicKey)
   })
 
-  test('should add private key to identity', async () => {
+  test('should remove an appConnect', async () => {
     const { walletId } = await privateAPIClient.createWallet(WalletType.keystore)
 
     await storage.set('currentWalletId', walletId)
     const identity = 'J6toeWxpVqqgL8H21mAsLzcM6Sf8cPbzTqYoX7GsrzRj'
 
     const privateKey = '3eb1e386ee623138ac9454d117bf07abb36f54a83c982679f615c4c3ec7e9a78'
-    const newPrivateKey = '7ce07b2720541a558fbabf44014bedc8f294e82d3c80aadc067291e7e44bf0ae'
 
     await privateAPIClient.importIdentity(identity, [privateKey])
 
-    let keyPairStoreSchema = await storage.get(`keyPairs_testnet_${walletId}`) as KeyPairsSchema
+    const mockAppConnects: AppConnectsStorageSchema = {
+      mockId1: { id: 'mockId1', url: 'http://localhost:8080', status: AppConnectStatus.approved },
+      mockId2: { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected }
+    }
 
-    expect(keyPairStoreSchema[identity].length).toBe(1)
+    await storage.set(`appConnects_testnet_${walletId}`, mockAppConnects)
 
-    await privateAPIClient.addIdentityPrivateKey(identity, newPrivateKey)
+    let appConnects = await privateAPIClient.getAllAppConnects()
 
-    keyPairStoreSchema = await storage.get(`keyPairs_testnet_${walletId}`) as KeyPairsSchema
+    let expectedAppConnects = [{
+      id: 'mockId1',
+      url: 'http://localhost:8080',
+      status: AppConnectStatus.approved
+    }, { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected }]
 
-    expect(keyPairStoreSchema[identity].length).toBe(2)
+    expect(appConnects).toStrictEqual(expectedAppConnects)
+
+    await privateAPIClient.removeAppConnectById('mockId1')
+
+    appConnects = await privateAPIClient.getAllAppConnects()
+
+    expectedAppConnects = [{ id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected }]
+
+    expect(appConnects).toStrictEqual(expectedAppConnects)
   })
 })

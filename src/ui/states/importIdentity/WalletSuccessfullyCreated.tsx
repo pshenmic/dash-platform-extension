@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, Heading, Button, DashLogo } from 'dash-ui/react'
+import { Text, Heading, Button, DashLogo } from 'dash-ui-kit/react'
 import { useNavigate } from 'react-router-dom'
 import { useStaticAsset } from '../../hooks/useStaticAsset'
 import { withAccessControl } from '../../components/auth/withAccessControl'

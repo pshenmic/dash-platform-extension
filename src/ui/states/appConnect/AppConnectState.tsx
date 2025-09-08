@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { Text, Button, Heading, ValueCard } from 'dash-ui/react'
+import { Text, Button, Heading, ValueCard } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { AppConnect } from '../../../types/AppConnect'
@@ -41,7 +41,7 @@ function AppConnectState (): React.JSX.Element {
     }
 
     loadAppConnect()
-      .catch(e => console.warn('loadAppConnect error: ', e))
+      .catch(e => console.log('loadAppConnect error: ', e))
   }, [params.id, extensionAPI])
 
   const handleApprove = async (): Promise<void> => {
@@ -52,7 +52,7 @@ function AppConnectState (): React.JSX.Element {
       await extensionAPI.approveAppConnect(params.id)
       window.close()
     } catch (error) {
-      console.warn('Error during approval:', error)
+      console.log('Error during approval:', error)
       setError('Failed to approve connection')
       setProcessingStatus(null)
     }
@@ -66,7 +66,7 @@ function AppConnectState (): React.JSX.Element {
       await extensionAPI.rejectAppConnect(params.id)
       window.close()
     } catch (error) {
-      console.warn('Error during rejection:', error)
+      console.log('Error during rejection:', error)
       setError('Failed to reject connection')
       setProcessingStatus(null)
     }
@@ -134,7 +134,7 @@ function AppConnectState (): React.JSX.Element {
 
       <div className='flex gap-2 w-full'>
         <Button
-          onClick={() => { handleReject().catch(e => console.warn('handleReject error: ', e)) }}
+          onClick={() => { handleReject().catch(e => console.log('handleReject error: ', e)) }}
           colorScheme='lightBlue'
           className='w-1/2'
           disabled={processingStatus != null}
@@ -142,7 +142,7 @@ function AppConnectState (): React.JSX.Element {
           {processingStatus === 'rejecting' ? 'Rejecting...' : 'Reject'}
         </Button>
         <Button
-          onClick={() => { handleApprove().catch(e => console.warn('handleApprove error: ', e)) }}
+          onClick={() => { handleApprove().catch(e => console.log('handleApprove error: ', e)) }}
           colorScheme='brand'
           className='w-1/2'
           disabled={processingStatus != null}

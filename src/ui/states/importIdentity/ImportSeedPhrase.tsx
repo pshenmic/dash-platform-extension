@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Text, Heading, Button, Input, Switch, DashLogo } from 'dash-ui/react'
+import { Text, Heading, Button, Input, Switch, DashLogo } from 'dash-ui-kit/react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import type { OutletContext } from '../../types/OutletContext'
@@ -97,7 +97,7 @@ function ImportSeedPhrase (): React.JSX.Element {
       })
       setSeedWords(newWords)
     } catch (error) {
-      console.warn('Error pasting from clipboard:', error)
+      console.log('Error pasting from clipboard:', error)
     }
   }
 
@@ -209,7 +209,7 @@ function ImportSeedPhrase (): React.JSX.Element {
           colorScheme='brand'
           className='w-full'
         >
-          {isLoading ? 'Importing...' : 'Import Identity'}
+          {isLoading ? '...' : 'Import'}
         </Button>
       </div>
     </div>

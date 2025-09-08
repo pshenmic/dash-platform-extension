@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, ValueCard, Select, KeyIcon } from 'dash-ui/react'
+import { Text, ValueCard, Select, KeyIcon } from 'dash-ui-kit/react'
 import { getPurposeLabel, getSecurityLabel } from '../../../enums'
 
 export interface PublicKeyInfo {

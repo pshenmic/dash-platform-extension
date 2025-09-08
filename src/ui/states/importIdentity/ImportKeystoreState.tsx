@@ -14,17 +14,18 @@ import {
   EyeClosedIcon,
   EyeOpenIcon,
   DeleteIcon
-} from 'dash-ui/react'
+} from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { PrivateKeyWASM, IdentityWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
+import { processPrivateKey, ProcessedPrivateKey } from '../../../utils'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { WalletType } from '../../../types'
+import { WalletType, NetworkType } from '../../../types'
 import { IdentityPreview } from '../../components/Identities'
 
 interface PrivateKeyInput {
   id: string
   value: string
   isVisible: boolean
+  hasError?: boolean
 }
 
 function ImportKeystoreState (): React.JSX.Element {
@@ -34,9 +35,9 @@ function ImportKeystoreState (): React.JSX.Element {
 
   const extensionAPI = useExtensionAPI()
   const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInput[]>([
-    { id: Date.now().toString(), value: '', isVisible: false }
+    { id: Date.now().toString(), value: '', isVisible: false, hasError: false }
   ])
-  const [identities, setIdentities] = useState<Array<{ key: PrivateKeyWASM, identity: IdentityWASM, balance: string }>>([])
+  const [identities, setIdentities] = useState<ProcessedPrivateKey[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -72,19 +73,19 @@ function ImportKeystoreState (): React.JSX.Element {
           void navigate('/choose-wallet-type')
         }
       } catch (error) {
-        console.warn('Failed to check wallet type:', error)
+        console.log('Failed to check wallet type:', error)
         void navigate('/choose-wallet-type')
       }
     }
 
     void checkWalletType().catch(error => {
-      console.warn('Failed to check wallet type in effect:', error)
+      console.log('Failed to check wallet type in effect:', error)
     })
   }, [currentWallet, extensionAPI, navigate])
 
   const addPrivateKeyInput = (): void => {
     const newId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    setPrivateKeyInputs(prev => [...prev, { id: newId, value: '', isVisible: false }])
+    setPrivateKeyInputs(prev => [...prev, { id: newId, value: '', isVisible: false, hasError: false }])
   }
 
   const removePrivateKeyInput = (id: string): void => {
@@ -95,7 +96,7 @@ function ImportKeystoreState (): React.JSX.Element {
 
   const updatePrivateKeyInput = (id: string, value: string): void => {
     setPrivateKeyInputs(prev =>
-      prev.map(input => input.id === id ? { ...input, value } : input)
+      prev.map(input => input.id === id ? { ...input, value, hasError: false } : input)
     )
   }
 
@@ -105,12 +106,20 @@ function ImportKeystoreState (): React.JSX.Element {
     )
   }
 
+  const setInputError = (inputId: string, hasError: boolean): void => {
+    setPrivateKeyInputs(prev =>
+      prev.map(input => input.id === inputId ? { ...input, hasError } : input)
+    )
+  }
+
   const checkPrivateKeys = async (): Promise<void> => {
     setError(null)
     setIsLoading(true)
+    setPrivateKeyInputs(prev => prev.map(input => ({ ...input, hasError: false })))
 
     try {
-      const validIdentities: Array<{ key: PrivateKeyWASM, identity: IdentityWASM, balance: string }> = []
+      const validIdentities: ProcessedPrivateKey[] = []
+      const invalidInputIds: string[] = []
 
       // Filter out empty private key inputs
       const nonEmptyInputs = privateKeyInputs.filter(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
@@ -120,77 +129,55 @@ function ImportKeystoreState (): React.JSX.Element {
       }
 
       for (const input of nonEmptyInputs) {
-        const privateKey = input.value?.trim() ?? ''
-        let pkeyWASM: PrivateKeyWASM | null = null
+        const privateKeyString = input.value.trim()
 
-        if (privateKey.length === 52) {
-          // wif
-          try {
-            pkeyWASM = PrivateKeyWASM.fromWIF(privateKey)
-          } catch (e) {
-            console.log(e)
-            return setError(`Could not decode private key from WIF: ${privateKey}`)
-          }
-        } else if (privateKey.length === 64) {
-          // hex
-          try {
-            pkeyWASM = PrivateKeyWASM.fromHex(privateKey, (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet')
-          } catch (e) {
-            console.log(e)
-            return setError(`Could not decode private key from hex: ${privateKey}`)
-          }
+        try {
+          const network = currentNetwork as NetworkType
+          const processed = await processPrivateKey(privateKeyString, sdk, network)
+          validIdentities.push(processed)
+        } catch (e) {
+          setInputError(input.id, true)
+          invalidInputIds.push(input.id)
+        }
+      }
+
+      // Set error message if there are invalid inputs
+      if (invalidInputIds.length > 0) {
+        const hasDecodingErrors = await Promise.all(
+          nonEmptyInputs
+            .filter(input => invalidInputIds.includes(input.id))
+            .map(async input => {
+              try {
+                const network = currentNetwork as NetworkType
+                await processPrivateKey(input.value.trim(), sdk, network)
+                return false // No decoding error
+              } catch (e) {
+                return true
+              }
+            })
+        )
+
+        const hasAnyDecodingErrors = hasDecodingErrors.some(hasError => hasError)
+
+        if (hasAnyDecodingErrors) {
+          setError('Could not decode private key from hex')
         } else {
-          return setError('Unrecognized private key format')
+          setError('Could not find identity belonging to private key')
         }
 
-        if (pkeyWASM == null) {
-          return setError(`Failed to process private key: ${privateKey}`)
-        }
-
-        let uniqueIdentity
-        try {
-          uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(pkeyWASM.getPublicKeyHash())
-        } catch (e) {}
-
-        let nonUniqueIdentity
-        try {
-          nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkeyWASM.getPublicKeyHash())
-        } catch (e) {}
-
-        const [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e !== null && e !== undefined)
-
-        if (identity == null) {
-          return setError(`Could not find identity belonging to private key: ${privateKey}`)
-        }
-
-        const [identityPublicKey] = identity.getPublicKeys()
-          .filter((publicKey: IdentityPublicKeyWASM) =>
-            publicKey.getPublicKeyHash() === pkeyWASM?.getPublicKeyHash())
-
-        if (identityPublicKey === null || identityPublicKey === undefined) {
-          return setError(`Please use a key with purpose AUTHENTICATION and security level HIGH: ${privateKey}`)
-        }
-
-        // Get identifier as base58 string directly from IdentifierWASM
-        const identifierString = identity.id.base58()
-        const balance = await sdk.identities.getIdentityBalance(identifierString)
-
-        validIdentities.push({
-          key: pkeyWASM,
-          identity,
-          balance: balance.toString()
-        })
+        setIsLoading(false)
+        return
       }
 
       // Show preview with first identity data
       if (validIdentities.length > 0) {
         const firstIdentity = validIdentities[0].identity
         const identityId = firstIdentity.id.base58()
-        
+
         // Get all public keys from identity
         const allPublicKeys = firstIdentity.getPublicKeys()
         const availableKeyIds = validIdentities.map(({ key }) => {
-          const publicKey = firstIdentity.getPublicKeys().find((ipk: any) => 
+          const publicKey = firstIdentity.getPublicKeys().find((ipk: any) =>
             ipk.getPublicKeyHash() === key.getPublicKeyHash()
           )
           return publicKey ? publicKey.keyId : null
@@ -201,7 +188,7 @@ function ImportKeystoreState (): React.JSX.Element {
           const purpose = String(publicKey.purpose ?? 'UNKNOWN')
           const securityLevel = String(publicKey.securityLevel ?? 'UNKNOWN')
           const keyType = String(publicKey.type ?? 'UNKNOWN')
-          
+
           return {
             keyId,
             purpose,
@@ -232,23 +219,25 @@ function ImportKeystoreState (): React.JSX.Element {
     }
   }
 
+  // Clear error only when user types in input
   useEffect(() => {
-    setError(null)
+    const hasValueChanges = privateKeyInputs.some(input => input.value !== '')
+    if (hasValueChanges) {
+      setError(null)
+    }
+  }, [privateKeyInputs.map(input => input.value).join(',')])
+
+  useEffect(() => {
     setShowPreview(false)
     setPreviewData(null)
   }, [privateKeyInputs])
 
   const confirmImport = (): void => {
     if (!previewData) return
-    
+
     setIdentities(previewData.validKeys)
     setShowPreview(false)
   }
-
-  // const cancelPreview = (): void => {
-  //   setShowPreview(false)
-  //   setPreviewData(null)
-  // }
 
   const importIdentities = (): void => {
     const run = async (): Promise<void> => {
@@ -283,7 +272,7 @@ function ImportKeystoreState (): React.JSX.Element {
   }
 
   const handleCheckClick = (): void => {
-    checkPrivateKeys().catch(console.warn)
+    checkPrivateKeys().catch(console.log)
   }
 
   const hasValidKeys = privateKeyInputs.some(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
@@ -358,6 +347,7 @@ function ImportKeystoreState (): React.JSX.Element {
                       type={input.isVisible ? 'text' : 'password'}
                       size='xl'
                       showPasswordToggle={false}
+                      error={input.hasError}
                       style={{
                         paddingRight: input.value !== '' && input.value !== undefined
                           ? (privateKeyInputs.length > 1 ? '4.5rem' : '2.5rem')

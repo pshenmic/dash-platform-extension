@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, List, Text, ValueCard } from 'dash-ui/react'
+import { Button, List, Text, ValueCard } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { WalletType } from '../../../types'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -62,7 +62,7 @@ function CreateWalletState (): React.JSX.Element {
 
       <Button
         colorScheme='brand'
-        onClick={async () => await handleCreateWallet().catch(e => console.warn('handleCreateWallet error: ', e))}
+        onClick={async () => await handleCreateWallet().catch(e => console.log('handleCreateWallet error: ', e))}
         disabled={isLoading}
         className='w-full'
       >

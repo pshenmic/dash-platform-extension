@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
-import { KeyIcon, Button, DeleteIcon, Text, ValueCard, Identifier } from 'dash-ui/react'
+import { KeyIcon, Button, DeleteIcon, Text, ValueCard, Identifier } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { useSdk } from '../../../hooks/useSdk'
 import { useAsyncState } from '../../../hooks/useAsyncState'
@@ -102,12 +102,12 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         const status = await extensionAPI.getStatus()
         setCurrentWalletId(status.currentWalletId)
       } catch (error) {
-        console.warn('Failed to load wallet info:', error)
+        console.log('Failed to load wallet info:', error)
       }
     }
 
     void loadWalletInfo().catch(error => {
-      console.warn('Failed to load wallet info:', error)
+      console.log('Failed to load wallet info:', error)
     })
   }, [extensionAPI])
 
@@ -152,7 +152,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   useEffect(() => {
     if (currentWalletId === null || currentNetwork === null || currentIdentity === null) return
     void loadKeys(fetchAvailablePublicKeys).catch(error => {
-      console.warn('Failed to load public keys:', error)
+      console.log('Failed to load public keys:', error)
     })
   }, [currentWalletId, currentNetwork, currentIdentity, extensionAPI, sdk, loadKeys])
 
@@ -178,7 +178,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
   const handleDeleteKey = (keyId: number): void => {
     if (currentIdentity === null) {
-      console.warn('No identity selected for key deletion')
+      console.log('No identity selected for key deletion')
       return
     }
 
@@ -195,7 +195,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
       // Refresh the keys list after successful deletion
       void loadKeys(fetchAvailablePublicKeys).catch(error => {
-        console.warn('Failed to reload public keys after deletion:', error)
+        console.log('Failed to reload public keys after deletion:', error)
       })
     } catch (error) {
       console.error('Failed to delete private key:', error)
@@ -308,7 +308,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
           if (!open) setKeyToDelete(null)
         }}
         title='Delete Private Key'
-        message={`Are you sure you want to delete private key with ID ${keyToDelete ?? 'unknown'}? This action cannot be undone.`}
+        message={`Are you sure you want to delete private key with ID ${keyToDelete ?? 'unknown'}? This will delete private key from a extension but not disable from the Identity.`}
         confirmText='Delete'
         cancelText='Cancel'
         onConfirm={() => { void confirmDeleteKey().catch(error => console.error('Delete key error:', error)) }}
