@@ -7,12 +7,12 @@ interface BigNumberDisplayProps {
   className?: string
 }
 
-function BigNumberDisplay({ children, className = '' }: BigNumberDisplayProps): React.JSX.Element {
+function BigNumberDisplay ({ children, className = '' }: BigNumberDisplayProps): React.JSX.Element {
   const number = children
 
   return isTooBigNumber(number)
-  ? <Text monospace={true} className={className ?? ''}>{currencyRound(number)}</Text>
-  : <BigNumber className={className ?? ''}>{Number(number)}</BigNumber>
+    ? <Text monospace className={className ?? ''}>{currencyRound(number)}</Text>
+    : <BigNumber className={className ?? ''}>{Number(number)}</BigNumber>
 }
 
 export default BigNumberDisplay
