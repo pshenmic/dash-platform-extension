@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, Identifier, Avatar, CheckmarkIcon, Accordion } from 'dash-ui-kit/react'
+import { Text, Identifier, Avatar, CheckmarkIcon, Accordion, KeyIcon } from 'dash-ui-kit/react'
 import { getPurposeLabel, getSecurityLabel } from '../../../enums'
 
 interface PublicKeyData {
@@ -76,10 +76,9 @@ export const IdentityPreview: React.FC<IdentityPreviewProps> = ({ identity, clas
             )}
             <Identifier
               key={identity.id}
-              middleEllipsis
-              edgeChars={8}
               highlight='both'
               className='text-xs'
+              linesAdjustment={false}
             >
               {identity.id}
             </Identifier>
@@ -87,9 +86,12 @@ export const IdentityPreview: React.FC<IdentityPreviewProps> = ({ identity, clas
         </div>
       </div>
 
-      <Text size='sm' weight='medium' className='text-gray-700 opacity-50 mb-3 text-right'>
-        Public Keys:
-      </Text>
+      <div className='flex gap-2 items-center mb-3'>
+        <KeyIcon className='text-gray-700 ml-1 w-4 h-4' />
+        <Text size='sm' weight='medium' className='text-gray-700 opacity-50'>
+          Public Keys:
+        </Text>
+      </div>
 
       <Accordion
         title={`${availableKeys} / ${totalKeys} Public Keys:`}
