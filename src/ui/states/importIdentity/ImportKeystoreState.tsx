@@ -172,7 +172,8 @@ function ImportKeystoreState (): React.JSX.Element {
 
       // Show preview with first identity data
       if (validIdentities.length > 0) {
-        const firstIdentity = validIdentities[0].identity
+        const [firstIdentityData] = validIdentities
+        const firstIdentity = firstIdentityData.identity
         const identityId = firstIdentity.id.base58()
 
         // Get all public keys from identity
@@ -188,7 +189,7 @@ function ImportKeystoreState (): React.JSX.Element {
           const keyId = publicKey.keyId
           const purpose = String(publicKey.purpose ?? 'UNKNOWN')
           const securityLevel = String(publicKey.securityLevel ?? 'UNKNOWN')
-          const keyType = String(publicKey.type ?? 'UNKNOWN')
+          const keyType = String(publicKey.keyType ?? 'UNKNOWN')
 
           return {
             keyId,
