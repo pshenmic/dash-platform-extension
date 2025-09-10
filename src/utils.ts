@@ -255,30 +255,39 @@ function numberFormat (number: number): string {
 }
 
 export function numberDigitRound (number: number | string | bigint): string {
-  const num = Number(number)
-  const billions = num / 1.0e9
-  const millions = num / 1.0e6
-  const thousands = num / 1.0e3
+  const parsedNumber = typeof number === 'string'
+    ? (number.length > 15 ? BigInt(number) : Number(number))
+    : number
 
-  if (Math.abs(num) >= 1.0e9) {
+  const isBigInt = typeof parsedNumber === 'bigint'
+  const billions = isBigInt ? Number(parsedNumber / 1000000000n) : parsedNumber / 1.0e9
+  const millions = isBigInt ? Number(parsedNumber / 1000000n) : parsedNumber / 1.0e6
+  const thousands = isBigInt ? Number(parsedNumber / 1000n) : parsedNumber / 1.0e3
+  
+  const absValue = isBigInt ? (parsedNumber < 0n ? -parsedNumber : parsedNumber) : Math.abs(parsedNumber)
+  const billion = isBigInt ? 1000000000n : 1.0e9
+  const million = isBigInt ? 1000000n : 1.0e6
+  const thousand = isBigInt ? 1000n : 1.0e3
+
+  if (absValue >= billion) {
     if (Math.abs(billions) >= 100) return `${numberFormat(Math.round(billions))}B`
     if (Math.abs(billions) >= 10) return `${numberFormat(Number(billions.toFixed(1)))}B`
     return `${numberFormat(Number(billions.toFixed(2)))}B`
   }
 
-  if (Math.abs(num) >= 1.0e6) {
+  if (absValue >= million) {
     if (Math.abs(millions) >= 100) return `${numberFormat(Math.round(millions))}M`
     if (Math.abs(millions) >= 10) return `${numberFormat(Number(millions.toFixed(1)))}M`
     return `${numberFormat(Number(millions.toFixed(2)))}M`
   }
 
-  if (Math.abs(num) >= 1.0e3) {
+  if (absValue >= thousand) {
     if (Math.abs(thousands) >= 100) return `${numberFormat(Math.round(thousands))}K`
     if (Math.abs(thousands) >= 10) return `${numberFormat(Number(thousands.toFixed(1)))}K`
     return `${numberFormat(Number(thousands.toFixed(1)))}K`
   }
 
-  return num.toFixed()
+  return isBigInt ? parsedNumber.toString() : parsedNumber.toFixed()
 }
 
 export const isTooBigNumber = (number: number | string | bigint): boolean => Number(number) > 999999999
