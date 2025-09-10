@@ -182,7 +182,7 @@ function ImportKeystoreState (): React.JSX.Element {
           const publicKey = firstIdentity.getPublicKeys().find((ipk: any) =>
             ipk.getPublicKeyHash() === key.getPublicKeyHash()
           )
-          return publicKey ? publicKey.keyId : null
+          return (publicKey != null) ? publicKey.keyId : null
         }).filter(id => id !== null)
 
         const publicKeysData = allPublicKeys.map((publicKey: any) => {
@@ -235,7 +235,7 @@ function ImportKeystoreState (): React.JSX.Element {
   }, [privateKeyInputs])
 
   const confirmImport = (): void => {
-    if (!previewData) return
+    if (previewData == null) return
 
     setIdentities(previewData.validKeys)
     setShowPreview(false)
@@ -280,7 +280,7 @@ function ImportKeystoreState (): React.JSX.Element {
   const hasValidKeys = privateKeyInputs.some(input => input.value?.trim() !== '' && input.value?.trim() !== undefined)
 
   // Show preview if available
-  if (showPreview && previewData) {
+  if (showPreview && (previewData != null)) {
     return (
       <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
         <div className='flex flex-col gap-2.5 mb-6'>
