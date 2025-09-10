@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, Identifier, Avatar, KeyIcon } from 'dash-ui-kit/react'
+import { Text, Identifier, Avatar, CheckmarkIcon, Accordion } from 'dash-ui-kit/react'
 import { getPurposeLabel, getSecurityLabel } from '../../../enums'
 
 interface PublicKeyData {
@@ -22,29 +22,36 @@ interface IdentityPreviewProps {
   className?: string
 }
 
-const PublicKeyBadge: React.FC<{ text: string }> = ({ text }) => (
-  <div className='px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium'>
-    {text}
+const PublicKeyBadge: React.FC<{ title: string, value: string }> = ({ title, value }) => (
+  <div className='flex gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium'>
+    <span>
+      {title}:
+    </span>
+    <span className='font-bold'>
+      {value}
+    </span>
   </div>
 )
 
-const PublicKeyItem: React.FC<{ publicKey: PublicKeyData }> = ({ publicKey }) => (
-  <div className={`bg-white rounded-xl p-3 shadow-sm border border-gray-100 ${!publicKey.isAvailable ? 'opacity-50' : ''}`}>
-    <div className='flex items-center flex-wrap gap-2'>
-      <div className='flex items-center justify-center w-5 h-5 bg-gray-100 rounded-full'>
+const PublicKeyItem: React.FC<{ publicKey: PublicKeyData }> = ({publicKey}) => (
+  <div className={`bg-white rounded-xl p-2 shadow-sm border border-gray-100 ${!publicKey.isAvailable ? 'opacity-50' : ''}`}>
+    <div className='flex items-center flex-wrap gap-1'>
+      <div className='flex items-center justify-center w-5 h-5 rounded-full mr-1'>
         {publicKey.isAvailable ? (
-          <KeyIcon size={10} className='text-blue-600' />
+          <div className='w-5 h-5 bg-blue-50 rounded-full flex items-center justify-center'>
+            <CheckmarkIcon size={10} className='text-blue-600' />
+          </div>
         ) : (
-          <div className='w-2 h-2 bg-orange-400 rounded-full'>
-            <span className='text-orange-600 text-xs font-bold'>!</span>
+          <div className='w-5 h-5 bg-orange-50 rounded-full flex items-center justify-center'>
+            <Text size='xs' className='text-orange-600 font-bold'>!</Text>
           </div>
         )}
       </div>
-      
-      <PublicKeyBadge text={`Key ID: ${publicKey.keyId}`} />
-      <PublicKeyBadge text={`Purpose: ${getPurposeLabel(publicKey.purpose)}`} />
-      <PublicKeyBadge text={`Security: ${getSecurityLabel(publicKey.securityLevel)}`} />
-      <PublicKeyBadge text={`Type: ${publicKey.type}`} />
+
+      <PublicKeyBadge title='Key ID' value={`${publicKey.keyId}`} />
+      <PublicKeyBadge title='Purpose' value={`${getPurposeLabel(publicKey.purpose)}`} />
+      <PublicKeyBadge title='Security' value={`${getSecurityLabel(publicKey.securityLevel)}`} />
+      <PublicKeyBadge title='Type' value={`${publicKey.type}`} />
     </div>
   </div>
 )
@@ -55,16 +62,15 @@ export const IdentityPreview: React.FC<IdentityPreviewProps> = ({ identity, clas
 
   return (
     <div className={`bg-gray-50 rounded-2xl p-5 ${className}`}>
-      {/* Identity Header */}
-      <div className='bg-white rounded-2xl p-4 mb-4'>
-        <div className='flex items-center gap-3 mb-3'>
-          <div className='w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center'>
+      <div className='bg-dash-primary-dark-blue/[0.05] rounded-2xl p-3 mb-4'>
+        <div className='flex items-center gap-3'>
+          <div className='w-14 h-14 rounded-full overflow-hidden'>
             <Avatar username={identity.id} />
           </div>
-          
+
           <div className='flex-1'>
             {identity.name && (
-              <Text size='lg' weight='semibold' className='text-gray-900 mb-1'>
+              <Text size='md' weight='medium' className='text-gray-900 mb-1'>
                 {identity.name}
               </Text>
             )}
@@ -73,7 +79,7 @@ export const IdentityPreview: React.FC<IdentityPreviewProps> = ({ identity, clas
               middleEllipsis
               edgeChars={8}
               highlight='both'
-              className='text-sm'
+              className='text-xs'
             >
               {identity.id}
             </Identifier>
@@ -81,38 +87,20 @@ export const IdentityPreview: React.FC<IdentityPreviewProps> = ({ identity, clas
         </div>
       </div>
 
-      {/* Public Keys Section */}
-      <div className='mb-4'>
-        <div className='flex items-center justify-between mb-3'>
-          <Text size='sm' weight='medium' className='text-gray-700'>
-            Public Keys:
-          </Text>
-          <div className='flex items-center gap-2'>
-            <Text size='sm' weight='medium' className='text-gray-900'>
-              {totalKeys} Public Keys:
-            </Text>
-            <KeyIcon size={16} className='text-gray-600' />
-          </div>
-        </div>
+      <Text size='sm' weight='medium' className='text-gray-700 opacity-50 mb-3 text-right'>
+        Public Keys:
+      </Text>
 
-        <div className='bg-white rounded-2xl p-4'>
-          <div className='space-y-3'>
-            {identity.publicKeys.map((publicKey, index) => (
-              <PublicKeyItem key={`${publicKey.keyId}-${index}`} publicKey={publicKey} />
-            ))}
-          </div>
-
-          {availableKeys < totalKeys && (
-            <div className='mt-3 pt-3 border-t border-gray-100'>
-              <div className='bg-orange-50 rounded-lg p-3'>
-                <Text size='sm' className='text-orange-700'>
-                  Note: {totalKeys - availableKeys} key{totalKeys - availableKeys > 1 ? 's' : ''} will not be available for import
-                </Text>
-              </div>
-            </div>
-          )}
+      <Accordion
+        title={`${availableKeys} / ${totalKeys} Public Keys:`}
+        showSeparator={true}
+      >
+        <div className='space-y-3'>
+          {identity.publicKeys.map((publicKey, index) => (
+            <PublicKeyItem key={`${publicKey.keyId}-${index}`} publicKey={publicKey}/>
+          ))}
         </div>
-      </div>
+      </Accordion>
     </div>
   )
 }
