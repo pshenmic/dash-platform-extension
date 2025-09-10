@@ -1,4 +1,26 @@
 # CHANGELOG
+
+# 0.1.0 (Narmada)
+
+- Mainnet support
+- DashPay seedphrases (no create / register yet)
+- Multi wallet and identity
+- Reworked UI screens
+- Dash UI kit v1 integration [[Link]](https://github.com/AlexeyTripleA/dash-ui-kit)
+- Tokens on homepage
+
+## What's Changed
+* Implement dash-ui kit by @AlexeyTripleA in https://github.com/pshenmic/dash-platform-extension/pull/4
+* Move out components from all pages into UI kit by @AlexeyTripleA in https://github.com/pshenmic/dash-platform-extension/pull/24
+* Seedphrases support by @pshenmic in https://github.com/pshenmic/dash-platform-extension/pull/36
+* Keypair management methods by @pshenmic in https://github.com/pshenmic/dash-platform-extension/pull/43
+* Implement import seed phrase screen by @AlexeyTripleA in https://github.com/pshenmic/dash-platform-extension/pull/33
+* Implement multi network, wallets, identities, private keys and settings menu by @AlexeyTripleA in https://github.com/pshenmic/dash-platform-extension/pull/37
+* AppConnect list and removal in the API by @pshenmic in https://github.com/pshenmic/dash-platform-extension/pull/46
+* Prepublish fixes of seedphrases integration by @pshenmic in https://github.com/pshenmic/dash-platform-extension/pull/50
+
+**Full Changelog**: https://github.com/pshenmic/dash-platform-extension/compare/0.0.9...1.0.0
+
 ## 0.0.9
 Updated Dash Platform SDK dependency to 1.1.4
 
@@ -85,7 +107,7 @@ Frontend stabilization, improved data loading, and additional checks on approve 
 
 **Full Changelog**: https://github.com/pshenmic/dash-platform-extension/compare/0.0.1...0.0.2
 
-## 0.0.1
+# 0.0.1
 
 First build
 
