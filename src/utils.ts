@@ -254,7 +254,7 @@ function numberFormat (number: number): string {
   return new Intl.NumberFormat('en', { maximumSignificantDigits: 3 }).format(number)
 }
 
-export default function currencyRound (number: number | string | bigint): string {
+export function numberDigitRound (number: number | string | bigint): string {
   const num = Number(number)
   const billions = num / 1.0e9
   const millions = num / 1.0e6
