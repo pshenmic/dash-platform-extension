@@ -1,21 +1,35 @@
 import React, { useState, useEffect } from 'react'
-import { Text, WebIcon, Button, ValueCard } from 'dash-ui-kit/react'
+import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { useAsyncState } from '../../../hooks/useAsyncState'
 import { ConfirmDialog } from '../../controls'
+import { ConnectedDappItem } from '../../dapps/ConnectedDappItem'
 import type { SettingsScreenProps } from '../types'
 import type { AppConnect } from '../../../../types'
+
+interface ConfirmDialogState {
+  open: boolean
+  type: 'single' | 'all'
+  dappId?: string
+  dappName?: string
+}
+
+const EmptyListMessage = () => (
+  <ValueCard colorScheme='lightGray' className='flex flex-col gap-2'>
+    <Text size='lg' weight='medium' className='text-gray-600'>
+      No Connected DApps
+    </Text>
+    <Text size='sm' className='text-gray-500'>
+      When you connect to DApps, they will appear here
+    </Text>
+  </ValueCard>
+)
 
 export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   const [connectedDappsState, loadConnectedDapps, setConnectedDapps] = useAsyncState<AppConnect[]>([])
   const [disconnectingIds, setDisconnectingIds] = useState<Set<string>>(new Set())
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean
-    type: 'single' | 'all'
-    dappId?: string
-    dappName?: string
-  }>({ open: false, type: 'single' })
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ open: false, type: 'single' })
   const extensionAPI = useExtensionAPI()
 
   useEffect(() => {
@@ -51,6 +65,10 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
       throw new Error('asdasdasd')
     } catch (error) {
       setErrorMessage(`Failed to disconnect dapp ${dappId}: ${String(error)}`)
+
+      setTimeout(() => {
+        setErrorMessage(null)
+      }, 5000)
     } finally {
       setDisconnectingIds(prev => {
         const next = new Set(prev)
@@ -103,42 +121,14 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
 
         {connectedDappsState?.data?.length != null && connectedDappsState.data.length > 0
           ? connectedDappsState.data?.map((dapp) => (
-              <div
+              <ConnectedDappItem
                 key={dapp.id}
-                className='rounded-[1rem] px-[1rem] py-[0.625rem] flex items-center justify-between bg-dash-primary-dark-blue/[0.03]'
-              >
-                <div className='flex items-center gap-[1rem] grow-1'>
-                  <div className='w-[50px] h-[50px] bg-white rounded-full flex items-center justify-center'>
-                    <WebIcon/>
-                  </div>
-
-                  <div className='flex flex-col gap-[0.25rem]'>
-                    <Text size='md' className='text-dash-primary-dark-blue leading-[1.2]'>
-                      {new URL(dapp.url).hostname}
-                    </Text>
-                  </div>
-                </div>
-
-                <Button
-                  size='sm'
-                  className='h-8 !min-h-auto'
-                  onClick={() => showDisconnectDialog(dapp.id)}
-                  disabled={disconnectingIds.has(dapp.id)}
-                >
-                  {disconnectingIds.has(dapp.id) ? 'Disconnecting...' : 'Disconnect'}
-                </Button>
-              </div>
+                dapp={dapp}
+                isDisconnecting={disconnectingIds.has(dapp.id)}
+                onDisconnect={showDisconnectDialog}
+              />
             ))
-          : (
-            <ValueCard>
-              <Text size='lg' weight='medium' className='text-gray-600'>
-                No Connected DApps
-              </Text>
-              <Text size='sm' className='text-gray-500'>
-                When you connect to DApps, they will appear here
-              </Text>
-            </ValueCard>
-          )
+          : <EmptyListMessage />
         }
 
         {/* Error Display */}
