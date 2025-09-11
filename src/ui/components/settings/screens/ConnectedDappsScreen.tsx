@@ -14,7 +14,7 @@ interface ConfirmDialogState {
   dappName?: string
 }
 
-const EmptyListMessage = () => (
+const EmptyListMessage = (): React.JSX.Element => (
   <ValueCard colorScheme='lightGray' className='flex flex-col gap-2'>
     <Text size='lg' weight='medium' className='text-gray-600'>
       No Connected DApps
@@ -118,20 +118,18 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
 
       <div className='flex flex-col gap-[0.875rem] h-full grow'>
         {connectedDappsState.loading &&
-          <Text dim>loading...</Text>
-        }
+          <Text dim>loading...</Text>}
 
         {connectedDappsState?.data?.length != null && connectedDappsState.data.length > 0
           ? connectedDappsState.data?.map((dapp) => (
-              <ConnectedDappItem
-                key={dapp.id}
-                dapp={dapp}
-                isDisconnecting={disconnectingIds.has(dapp.id)}
-                onDisconnect={showDisconnectDialog}
-              />
-            ))
-          : <EmptyListMessage />
-        }
+            <ConnectedDappItem
+              key={dapp.id}
+              dapp={dapp}
+              isDisconnecting={disconnectingIds.has(dapp.id)}
+              onDisconnect={showDisconnectDialog}
+            />
+          ))
+          : <EmptyListMessage />}
 
         {(errorMessage !== null || connectedDappsState.error != null) && (
           <ValueCard colorScheme='yellow' className='break-all'>
@@ -151,8 +149,7 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
           >
             {disconnectingIds.size > 0 ? 'Disconnecting...' : 'Disconnect All'}
           </Button>
-        </div>
-      }
+        </div>}
 
       <ConfirmDialog
         open={confirmDialog.open}
