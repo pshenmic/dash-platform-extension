@@ -3,6 +3,9 @@ import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'pshenmic-dp
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from './types/enums/Network'
 import { NetworkType } from './types'
+import formatBigNumber from './utils/formatBigNumber'
+
+export { formatBigNumber }
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -248,46 +251,6 @@ export const processPrivateKey = async (
     identity,
     balance: balance.toString()
   }
-}
-
-function numberFormat (number: number): string {
-  return new Intl.NumberFormat('en', { maximumSignificantDigits: 3 }).format(number)
-}
-
-export function numberDigitRound (number: number | string | bigint): string {
-  const parsedNumber = typeof number === 'string'
-    ? (number.length > 15 ? BigInt(number) : Number(number))
-    : number
-
-  const isBigInt = typeof parsedNumber === 'bigint'
-  const billions = isBigInt ? Number(parsedNumber / 1000000000n) : parsedNumber / 1.0e9
-  const millions = isBigInt ? Number(parsedNumber / 1000000n) : parsedNumber / 1.0e6
-  const thousands = isBigInt ? Number(parsedNumber / 1000n) : parsedNumber / 1.0e3
-  
-  const absValue = isBigInt ? (parsedNumber < 0n ? -parsedNumber : parsedNumber) : Math.abs(parsedNumber)
-  const billion = isBigInt ? 1000000000n : 1.0e9
-  const million = isBigInt ? 1000000n : 1.0e6
-  const thousand = isBigInt ? 1000n : 1.0e3
-
-  if (absValue >= billion) {
-    if (Math.abs(billions) >= 100) return `${numberFormat(Math.round(billions))}B`
-    if (Math.abs(billions) >= 10) return `${numberFormat(Number(billions.toFixed(1)))}B`
-    return `${numberFormat(Number(billions.toFixed(2)))}B`
-  }
-
-  if (absValue >= million) {
-    if (Math.abs(millions) >= 100) return `${numberFormat(Math.round(millions))}M`
-    if (Math.abs(millions) >= 10) return `${numberFormat(Number(millions.toFixed(1)))}M`
-    return `${numberFormat(Number(millions.toFixed(2)))}M`
-  }
-
-  if (absValue >= thousand) {
-    if (Math.abs(thousands) >= 100) return `${numberFormat(Math.round(thousands))}K`
-    if (Math.abs(thousands) >= 10) return `${numberFormat(Number(thousands.toFixed(1)))}K`
-    return `${numberFormat(Number(thousands.toFixed(1)))}K`
-  }
-
-  return isBigInt ? parsedNumber.toString() : parsedNumber.toFixed()
 }
 
 export const isTooBigNumber = (number: number | string | bigint): boolean => Number(number) > 999999999
