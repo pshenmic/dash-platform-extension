@@ -41,7 +41,7 @@ export function EmptyState ({ title, buttonText, onButtonClick, className = '', 
           </div>
         )}
 
-        {buttonText && onButtonClick && (
+        {(buttonText != null && onButtonClick != null) && (
           <div className='w-full'>
             <Button
               onClick={onButtonClick}
