@@ -31,6 +31,7 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ open: false, type: 'single' })
   const extensionAPI = useExtensionAPI()
+  const errorHiddenTime = 5000
 
   useEffect(() => {
     loadConnectedDapps(async () => await extensionAPI.getAllAppConnects())
@@ -67,7 +68,7 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
 
       setTimeout(() => {
         setErrorMessage(null)
-      }, 5000)
+      }, errorHiddenTime)
     } finally {
       setDisconnectingIds(prev => {
         const next = new Set(prev)
@@ -90,6 +91,12 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
       console.warn('Failed to disconnect all dapps:', error)
       const dapps = await extensionAPI.getAllAppConnects()
       setConnectedDapps(dapps)
+
+      setErrorMessage(`Failed to disconnect all dapps: ${String(error)}`)
+
+      setTimeout(() => {
+        setErrorMessage(null)
+      }, errorHiddenTime)
     } finally {
       setDisconnectingIds(new Set())
     }
@@ -105,18 +112,14 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
 
   return (
     <div className='flex flex-col gap-4 h-full'>
-      <Text
-        size='sm'
-        dim
-        className='text-dash-primary-dark-blue'
-      >
+      <Text size='sm' dim className='text-dash-primary-dark-blue'>
         Manage dapps you have connected to.
       </Text>
 
       <div className='flex flex-col gap-[0.875rem] h-full grow'>
-        <Text dim>
-          {connectedDappsState.loading && 'loading...'}
-        </Text>
+        {connectedDappsState.loading &&
+          <Text dim>loading...</Text>
+        }
 
         {connectedDappsState?.data?.length != null && connectedDappsState.data.length > 0
           ? connectedDappsState.data?.map((dapp) => (
@@ -130,7 +133,6 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
           : <EmptyListMessage />
         }
 
-        {/* Error Display */}
         {(errorMessage !== null || connectedDappsState.error != null) && (
           <ValueCard colorScheme='yellow' className='break-all'>
             <Text color='red'>
