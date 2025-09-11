@@ -62,7 +62,6 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
       if (connectedDappsState.data != null) {
         setConnectedDapps(connectedDappsState.data.filter(dapp => dapp.id !== dappId))
       }
-      throw new Error('asdasdasd')
     } catch (error) {
       setErrorMessage(`Failed to disconnect dapp ${dappId}: ${String(error)}`)
 
