@@ -1,6 +1,6 @@
 import React from 'react'
 import { BigNumber, Text } from 'dash-ui-kit/react'
-import { isTooBigNumber, numberDigitRound } from '../../../utils'
+import { isTooBigNumber, formatBigNumber } from '../../../utils'
 
 interface BigNumberDisplayProps {
   children: number | string | bigint
@@ -11,7 +11,7 @@ function BigNumberDisplay ({ children, className = '' }: BigNumberDisplayProps):
   const number = children
 
   return isTooBigNumber(number)
-    ? <Text monospace className={className ?? ''}>{numberDigitRound(number)}</Text>
+    ? <Text monospace className={className ?? ''}>{formatBigNumber(String(number))}</Text>
     : <BigNumber className={className ?? ''}>{Number(number)}</BigNumber>
 }
 
