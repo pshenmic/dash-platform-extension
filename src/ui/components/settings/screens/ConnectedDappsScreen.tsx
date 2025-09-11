@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import { Text, WebIcon, Button } from 'dash-ui-kit/react'
+import { Text, WebIcon, Button, ValueCard } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
+import { useAsyncState } from '../../../hooks/useAsyncState'
 import { ConfirmDialog } from '../../controls'
 import type { SettingsScreenProps } from '../types'
 import type { AppConnect } from '../../../../types'
 
 export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
-  const [connectedDapps, setConnectedDapps] = useState<AppConnect[]>([])
-  const [loading, setLoading] = useState(true)
+  const [connectedDappsState, loadConnectedDapps, setConnectedDapps] = useAsyncState<AppConnect[]>([])
   const [disconnectingIds, setDisconnectingIds] = useState<Set<string>>(new Set())
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean
     type: 'single' | 'all'
@@ -18,22 +19,12 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   const extensionAPI = useExtensionAPI()
 
   useEffect(() => {
-    const loadConnectedDapps = async (): Promise<void> => {
-      try {
-        const dapps = await extensionAPI.getAllAppConnects()
-        setConnectedDapps(dapps)
-      } catch (error) {
-        console.error('Failed to load connected dapps:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    void loadConnectedDapps()
-  }, [extensionAPI])
+    loadConnectedDapps(async () => await extensionAPI.getAllAppConnects())
+      .catch(console.log)
+  }, [extensionAPI, loadConnectedDapps])
 
   const showDisconnectDialog = (dappId: string): void => {
-    const dapp = connectedDapps.find(d => d.id === dappId)
+    const dapp = connectedDappsState.data?.find(d => d.id === dappId)
     setConfirmDialog({
       open: true,
       type: 'single',
@@ -54,9 +45,12 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
 
     try {
       await extensionAPI.removeAppConnectById(dappId)
-      setConnectedDapps(prev => prev.filter(dapp => dapp.id !== dappId))
+      if (connectedDappsState.data != null) {
+        setConnectedDapps(connectedDappsState.data.filter(dapp => dapp.id !== dappId))
+      }
+      throw new Error('asdasdasd')
     } catch (error) {
-      console.warn(`Failed to disconnect dapp ${dappId}:`, error)
+      setErrorMessage(`Failed to disconnect dapp ${dappId}: ${String(error)}`)
     } finally {
       setDisconnectingIds(prev => {
         const next = new Set(prev)
@@ -67,7 +61,9 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   }
 
   const handleDisconnectAll = async (): Promise<void> => {
-    const allIds = connectedDapps.map(dapp => dapp.id)
+    if (connectedDappsState.data == null) return
+
+    const allIds = connectedDappsState.data.map(dapp => dapp.id)
     setDisconnectingIds(new Set(allIds))
 
     try {
@@ -90,88 +86,82 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
     }
   }
 
-  const renderIcon = (): React.JSX.Element => (
-    <div className='w-[50px] h-[50px] bg-white rounded-full flex items-center justify-center'>
-      <WebIcon />
-    </div>
-  )
-
-  if (loading) {
-    return (
-      <div className='flex items-center justify-center min-h-[200px]'>
-        <Text size='md' className='text-gray-500'>
-          Loading connected DApps...
-        </Text>
-      </div>
-    )
-  }
-
-  if (connectedDapps.length === 0) {
-    return (
-      <div className='flex flex-col items-center justify-center min-h-[200px] text-center'>
-        <Text size='lg' weight='medium' className='text-gray-600'>
-          No Connected DApps
-        </Text>
-        <Text size='sm' className='text-gray-500'>
-          When you connect to DApps, they will appear here
-        </Text>
-      </div>
-    )
-  }
-
   return (
     <div className='flex flex-col gap-4 h-full'>
       <Text
         size='sm'
         dim
-        className='opacity-50 text-dash-primary-dark-blue'
+        className='text-dash-primary-dark-blue'
       >
         Manage dapps you have connected to.
       </Text>
 
       <div className='flex flex-col gap-[0.875rem] h-full grow'>
-        {connectedDapps.map((dapp) => (
-          <div
-            key={dapp.id}
-            className='rounded-[1rem] px-[1rem] py-[0.625rem] flex items-center justify-between bg-[rgba(12,28,51,0.03)]'
-          >
-            <div className='flex items-center gap-[1rem] grow-1'>
-              {renderIcon()}
+        <Text dim>
+          {connectedDappsState.loading && 'loading...'}
+        </Text>
 
-              <div className='flex flex-col gap-[0.25rem]'>
-                <Text size='md' className='text-dash-primary-dark-blue leading-[1.2]'>
-                  {new URL(dapp.url).hostname}
-                </Text>
-                <Text
-                  dim
-                  className='!font-grotesque !text-[0.75rem] leading-[1.2]'
+        {connectedDappsState?.data?.length != null && connectedDappsState.data.length > 0
+          ? connectedDappsState.data?.map((dapp) => (
+              <div
+                key={dapp.id}
+                className='rounded-[1rem] px-[1rem] py-[0.625rem] flex items-center justify-between bg-dash-primary-dark-blue/[0.03]'
+              >
+                <div className='flex items-center gap-[1rem] grow-1'>
+                  <div className='w-[50px] h-[50px] bg-white rounded-full flex items-center justify-center'>
+                    <WebIcon/>
+                  </div>
+
+                  <div className='flex flex-col gap-[0.25rem]'>
+                    <Text size='md' className='text-dash-primary-dark-blue leading-[1.2]'>
+                      {new URL(dapp.url).hostname}
+                    </Text>
+                  </div>
+                </div>
+
+                <Button
+                  size='sm'
+                  className='h-8 !min-h-auto'
+                  onClick={() => showDisconnectDialog(dapp.id)}
+                  disabled={disconnectingIds.has(dapp.id)}
                 >
-                  {dapp.url}
-                </Text>
+                  {disconnectingIds.has(dapp.id) ? 'Disconnecting...' : 'Disconnect'}
+                </Button>
               </div>
-            </div>
+            ))
+          : (
+            <ValueCard>
+              <Text size='lg' weight='medium' className='text-gray-600'>
+                No Connected DApps
+              </Text>
+              <Text size='sm' className='text-gray-500'>
+                When you connect to DApps, they will appear here
+              </Text>
+            </ValueCard>
+          )
+        }
 
-            <Button
-              size='sm'
-              className='h-8 !min-h-auto'
-              onClick={() => showDisconnectDialog(dapp.id)}
-              disabled={disconnectingIds.has(dapp.id)}
-            >
-              {disconnectingIds.has(dapp.id) ? 'Disconnecting...' : 'Disconnect'}
-            </Button>
-          </div>
-        ))}
+        {/* Error Display */}
+        {(errorMessage !== null || connectedDappsState.error != null) && (
+          <ValueCard colorScheme='yellow' className='break-all'>
+            <Text color='red'>
+              {errorMessage ?? connectedDappsState.error}
+            </Text>
+          </ValueCard>
+        )}
       </div>
 
-      <div className='mt-6'>
-        <Button
-          className='w-full'
-          onClick={showDisconnectAllDialog}
-          disabled={disconnectingIds.size > 0}
-        >
-          {disconnectingIds.size > 0 ? 'Disconnecting...' : 'Disconnect All'}
-        </Button>
-      </div>
+      {(connectedDappsState?.data?.length != null && connectedDappsState.data.length > 0) &&
+        <div className='mt-6'>
+          <Button
+            className='w-full'
+            onClick={showDisconnectAllDialog}
+            disabled={disconnectingIds.size > 0}
+          >
+            {disconnectingIds.size > 0 ? 'Disconnecting...' : 'Disconnect All'}
+          </Button>
+        </div>
+      }
 
       <ConfirmDialog
         open={confirmDialog.open}
@@ -180,7 +170,7 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
         message={
           confirmDialog.type === 'single'
             ? `Are you sure you want to disconnect ${confirmDialog.dappName ?? 'this DApp'}? This will revoke its access to your wallet.`
-            : `Are you sure you want to disconnect ${connectedDapps.length} connected DApps? This will revoke their access to your wallet.`
+            : `Are you sure you want to disconnect ${connectedDappsState.data?.length ?? 0} connected DApps? This will revoke their access to your wallet.`
         }
         confirmText='Disconnect'
         cancelText='Cancel'
