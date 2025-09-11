@@ -11,7 +11,7 @@ export default function formatBigNumber (input: bigint | string, precision: numb
   const numStr = typeof input === 'bigint' ? input.toString() : input
 
   // Check input data validity
-  if (!numStr || numStr.trim() === '') {
+  if (numStr.length === 0 || numStr.trim() === '') {
     return '0'
   }
 
@@ -59,7 +59,7 @@ export default function formatBigNumber (input: bigint | string, precision: numb
 
   // Collect digits for fractional part from remaining integer digits and fractional part
   let remainingDigits = intPart.slice(digitsBeforeDecimal)
-  if (fracPart) {
+  if (fracPart.length > 0) {
     remainingDigits += fracPart
   }
 
@@ -67,13 +67,13 @@ export default function formatBigNumber (input: bigint | string, precision: numb
   let result = mainDigits
 
   // Add fractional part if needed and there are digits
-  if (precision > 0 && remainingDigits) {
+  if (precision > 0 && remainingDigits.length > 0) {
     const decimalPart = remainingDigits.slice(0, precision).padEnd(precision, '0')
 
     // Remove trailing zeros
     const trimmedDecimal = decimalPart.replace(/0+$/, '')
 
-    if (trimmedDecimal) {
+    if (trimmedDecimal.length > 0) {
       result += '.' + trimmedDecimal
     }
   }
