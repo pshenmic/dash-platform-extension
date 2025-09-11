@@ -1,9 +1,9 @@
 import { base58 } from '@scure/base'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { Network } from './types/enums/Network'
-import { NetworkType } from './types'
-import formatBigNumber from './utils/formatBigNumber'
+import { Network } from '../types/enums/Network'
+import { NetworkType } from '../types'
+import formatBigNumber from './formatBigNumber'
 
 export { formatBigNumber }
 
