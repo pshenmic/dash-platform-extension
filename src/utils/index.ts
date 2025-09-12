@@ -1,8 +1,11 @@
 import { base58 } from '@scure/base'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { Network } from './types/enums/Network'
-import { NetworkType } from './types'
+import { Network } from '../types/enums/Network'
+import { NetworkType } from '../types'
+import formatBigNumber from './formatBigNumber'
+
+export { formatBigNumber }
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -249,3 +252,5 @@ export const processPrivateKey = async (
     balance: balance.toString()
   }
 }
+
+export const isTooBigNumber = (number: number | string | bigint): boolean => Number(number) > 999999999

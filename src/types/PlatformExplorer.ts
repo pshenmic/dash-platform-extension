@@ -63,6 +63,7 @@ export interface TokenOwner {
 }
 
 export interface TokenData {
+  balance: string
   identifier: string
   position: number
   timestamp: string | null
