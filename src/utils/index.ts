@@ -184,9 +184,7 @@ export const findIdentityForPrivateKey = async (
   try {
     const uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(publicKeyHash)
     if (uniqueIdentity != null) return uniqueIdentity
-  } catch (e) {
-    console.log('Continue to check non-unique', e)
-  }
+  } catch (e) {}
 
   // Try non-unique identity
   try {

@@ -2,8 +2,9 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Text, Input, Heading, DashLogo } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 
-export default function LoginState (): React.JSX.Element {
+function LoginState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [password, setPassword] = useState('')
@@ -88,3 +89,7 @@ export default function LoginState (): React.JSX.Element {
     </div>
   )
 }
+
+export default withAccessControl(LoginState, {
+  requireWallet: false
+})

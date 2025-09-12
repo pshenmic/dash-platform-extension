@@ -3,7 +3,7 @@ import { Text, Heading, Button, Input, Switch, DashLogo } from 'dash-ui-kit/reac
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import type { OutletContext } from '../../types/OutletContext'
-import { WalletType } from '../../../types/WalletType'
+import { WalletType } from '../../../types'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 
 function ImportSeedPhrase (): React.JSX.Element {
@@ -115,13 +115,14 @@ function ImportSeedPhrase (): React.JSX.Element {
       const identities = await extensionAPI.getIdentities()
 
       setCurrentWallet(walletId)
-      setCurrentIdentity(identities[0].identifier)
 
-      if (identities.length > 0) {
-        void navigate('/wallet-created')
-      } else {
-        setError('No identities found for this seed phrase. The wallet was created but contains no identities.')
+      const [avalibleIdentity] = identities ?? []
+
+      if (avalibleIdentity?.identifier != null) {
+        setCurrentIdentity(avalibleIdentity.identifier)
       }
+
+      void navigate('/wallet-created')
     } catch (err) {
       console.warn('Import failed:', err)
       setError((err as Error).message.length > 0 ? (err as Error).message : 'Failed to import seed phrase')
