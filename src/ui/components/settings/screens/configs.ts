@@ -2,7 +2,7 @@ import type { ScreenConfig } from '../types'
 import {
   mainScreenConfig,
   walletSettingsConfig,
-  connectedDappsConfig,
+  connectedWebsitesConfig,
   securityPrivacyConfig,
   aboutDashConfig
 } from './MainSettingsScreen'
@@ -15,7 +15,7 @@ export const screenConfigs: Record<string, ScreenConfig> = {
   main: mainScreenConfig,
   'current-wallet': walletSettingsConfig,
   preferences: preferencesScreenConfig,
-  'connected-dapps': connectedDappsConfig,
+  'connected-websites': connectedWebsitesConfig,
   'private-keys': privateKeysScreenConfig,
   'import-private-keys-settings': importPrivateKeysScreenConfig,
   'security-privacy': securityPrivacyConfig,
