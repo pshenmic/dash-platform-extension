@@ -1,6 +1,16 @@
 # CHANGELOG
 
-# 0.1.0 (Narmada)
+# 1.0.1
+
+Identity public keys preview on import of identity and bugfixes (fixes error on importing empty seedphrase)
+
+## What's Changed
+* Update tokens balance display by @AlexeyTripleA in https://github.com/pshenmic/dash-platform-extension/pull/51
+* Implement Identity preview during import process by @AlexeyTripleA in https://github.com/pshenmic/dash-platform-extension/pull/45
+
+**Full Changelog**: https://github.com/pshenmic/dash-platform-extension/compare/1.0.0...1.0.1
+
+# 1.0.0 (Narmada)
 
 - Mainnet support
 - DashPay seedphrases (no create / register yet)
