@@ -4,12 +4,13 @@ import { useStaticAsset } from '../../hooks/useStaticAsset'
 
 interface EmptyStateProps {
   title: string | React.ReactNode
-  buttonText: string
-  onButtonClick: () => void
+  buttonText?: string
+  onButtonClick?: () => void
   className?: string
+  description?: string | React.ReactNode
 }
 
-export function EmptyState ({ title, buttonText, onButtonClick, className = '' }: EmptyStateProps): React.JSX.Element {
+export function EmptyState ({ title, buttonText, onButtonClick, className = '', description }: EmptyStateProps): React.JSX.Element {
   return (
     <div className={`relative flex flex-col h-full ${className}`}>
       <div className='relative top-0 left-0 w-full h-[300px] pointer-events-none'>
@@ -32,19 +33,29 @@ export function EmptyState ({ title, buttonText, onButtonClick, className = '' }
           </Heading>
         </div>
 
-        <div className='w-full'>
-          <Button
-            onClick={onButtonClick}
-            variant='outline'
-            size='xl'
-            className='w-full h-[3.625rem] gap-4'
-          >
-            <PlusIcon />
-            <span className='text-sm font-normal'>
-              {buttonText}
-            </span>
-          </Button>
-        </div>
+        {description != null && (
+          <div className='text-center'>
+            <div className='text-dash-gray-500 text-sm'>
+              {description}
+            </div>
+          </div>
+        )}
+
+        {(buttonText != null && onButtonClick != null) && (
+          <div className='w-full'>
+            <Button
+              onClick={onButtonClick}
+              variant='outline'
+              size='xl'
+              className='w-full h-[3.625rem] gap-4'
+            >
+              <PlusIcon />
+              <span className='text-sm font-normal'>
+                {buttonText}
+              </span>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

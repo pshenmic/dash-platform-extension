@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, Identifier, Avatar, CheckmarkIcon, Accordion } from 'dash-ui-kit/react'
+import { Text, Identifier, Avatar, CheckmarkIcon, Accordion, KeyIcon } from 'dash-ui-kit/react'
 import { getPurposeLabel, getSecurityLabel } from '../../../enums'
 
 interface PublicKeyData {
@@ -33,19 +33,21 @@ const PublicKeyBadge: React.FC<{ title: string, value: string }> = ({ title, val
   </div>
 )
 
-const PublicKeyItem: React.FC<{ publicKey: PublicKeyData }> = ({publicKey}) => (
-  <div className={`bg-white rounded-xl p-2 shadow-sm border border-gray-100 ${!publicKey.isAvailable ? 'opacity-50' : ''}`}>
+const PublicKeyItem: React.FC<{ publicKey: PublicKeyData }> = ({ publicKey }) => (
+  <div className={`bg-white rounded-xl p-2 shadow-sm border border-gray-100 ${publicKey.isAvailable === false ? 'opacity-50' : ''}`}>
     <div className='flex items-center flex-wrap gap-1'>
       <div className='flex items-center justify-center w-5 h-5 rounded-full mr-1'>
-        {publicKey.isAvailable ? (
-          <div className='w-5 h-5 bg-blue-50 rounded-full flex items-center justify-center'>
-            <CheckmarkIcon size={10} className='text-blue-600' />
-          </div>
-        ) : (
-          <div className='w-5 h-5 bg-orange-50 rounded-full flex items-center justify-center'>
-            <Text size='xs' className='text-orange-600 font-bold'>!</Text>
-          </div>
-        )}
+        {publicKey.isAvailable === true
+          ? (
+            <div className='w-5 h-5 bg-blue-50 rounded-full flex items-center justify-center'>
+              <CheckmarkIcon size={10} className='text-blue-600' />
+            </div>
+            )
+          : (
+            <div className='w-5 h-5 bg-orange-50 rounded-full flex items-center justify-center'>
+              <Text size='xs' className='text-orange-600 font-bold'>!</Text>
+            </div>
+            )}
       </div>
 
       <PublicKeyBadge title='Key ID' value={`${publicKey.keyId}`} />
@@ -69,17 +71,16 @@ export const IdentityPreview: React.FC<IdentityPreviewProps> = ({ identity, clas
           </div>
 
           <div className='flex-1'>
-            {identity.name && (
+            {(identity.name != null && identity.name !== '') && (
               <Text size='md' weight='medium' className='text-gray-900 mb-1'>
                 {identity.name}
               </Text>
             )}
             <Identifier
               key={identity.id}
-              middleEllipsis
-              edgeChars={8}
               highlight='both'
               className='text-xs'
+              linesAdjustment={false}
             >
               {identity.id}
             </Identifier>
@@ -87,17 +88,20 @@ export const IdentityPreview: React.FC<IdentityPreviewProps> = ({ identity, clas
         </div>
       </div>
 
-      <Text size='sm' weight='medium' className='text-gray-700 opacity-50 mb-3 text-right'>
-        Public Keys:
-      </Text>
+      <div className='flex gap-2 items-center mb-3'>
+        <KeyIcon className='text-gray-700 ml-1 w-4 h-4' />
+        <Text size='sm' weight='medium' className='text-gray-700 opacity-50'>
+          Public Keys:
+        </Text>
+      </div>
 
       <Accordion
         title={`${availableKeys} / ${totalKeys} Public Keys:`}
-        showSeparator={true}
+        showSeparator
       >
         <div className='space-y-3'>
           {identity.publicKeys.map((publicKey, index) => (
-            <PublicKeyItem key={`${publicKey.keyId}-${index}`} publicKey={publicKey}/>
+            <PublicKeyItem key={`${publicKey.keyId}-${index}`} publicKey={publicKey} />
           ))}
         </div>
       </Accordion>

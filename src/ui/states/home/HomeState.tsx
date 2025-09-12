@@ -130,7 +130,8 @@ function HomeState (): React.JSX.Element {
   }
 
   if (identities.length === 0) {
-    return <NoIdentities />
+    const currentWalletInfo = allWallets.find(wallet => wallet.walletId === currentWallet)
+    return <NoIdentities walletType={currentWalletInfo?.type} />
   }
 
   return (
