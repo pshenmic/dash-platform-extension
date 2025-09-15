@@ -1,10 +1,11 @@
 import React from 'react'
-import { Text, BigNumber } from 'dash-ui-kit/react'
+import { Text } from 'dash-ui-kit/react'
 import { TokenData, NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { getTokenName } from '../../../utils'
 import { PLATFORM_EXPLORER_URLS } from '../../../constants'
 import EntityList from '../common/EntityList'
 import EntityListItem from '../common/EntityListItem'
+import { BigNumberDisplay } from '../data'
 
 interface TokensListProps {
   tokens: TokenData[]
@@ -51,7 +52,7 @@ function TokensList ({
         const initials = getTokenInitials(token)
         const singularName = getTokenName(token.localizations, 'singularForm') ?? (token.description !== '' ? token.description : 'Unknown Token')
         const pluralName = getTokenName(token.localizations, 'pluralForm') ?? singularName
-        const balance = token.totalSupply
+        const balance = token.balance
 
         return (
           <EntityListItem
@@ -84,8 +85,8 @@ function TokensList ({
               </div>
             </div>
 
-            <div className='flex items-end gap-1 text-[0.875rem] text-dash-primary-dark-blue text-right'>
-              <BigNumber className='font-extrabold'>{balance}</BigNumber>
+            <div className='flex items-end gap-1 text-dash-primary-dark-blue text-right'>
+              {balance != null ? <BigNumberDisplay className='!font-extrabold !text-[0.875rem]'>{balance}</BigNumberDisplay> : '-'}
               <Text size='sm'>{pluralName}</Text>
             </div>
           </EntityListItem>
