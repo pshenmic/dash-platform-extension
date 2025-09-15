@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Text, Input, Heading, DashLogo } from 'dash-ui-kit/react'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { Button, Text, Input } from 'dash-ui-kit/react'
+import { useExtensionAPI } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 
 function LoginState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -42,17 +43,11 @@ function LoginState (): React.JSX.Element {
 
   return (
     <div className='flex flex-col'>
-      <div className='flex items-center flex-col w-full gap-2.5 mb-6'>
-        <DashLogo containerSize='3rem' />
-
-        <Heading level={1} size='2xl'>
-          Welcome Back
-        </Heading>
-
-        <Text dim className='leading-tight' size='sm'>
-          Use the password to unlock your wallet.
-        </Text>
-      </div>
+      <TitleBlock 
+        title='Welcome Back'
+        description='Use the password to unlock your wallet.'
+        centered
+      />
 
       <div className='flex flex-col gap-4'>
         <div className='flex flex-col gap-2 w-full'>

@@ -14,7 +14,7 @@ const IMAGE_VARIANTS = {
     src: 'coin_bagel.png',
     alt: 'Badge',
     imgClasses: 'max-w -mt-[22%]',
-    containerClasses: 'w-[120%] -mr-[55%]'
+    containerClasses: 'w-[100%] -mr-[55%]'
   }
 } as const
 

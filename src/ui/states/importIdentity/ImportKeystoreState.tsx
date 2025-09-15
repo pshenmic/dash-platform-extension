@@ -7,8 +7,6 @@ import {
   Text,
   ValueCard,
   Input,
-  Heading,
-  DashLogo,
   EyeClosedIcon,
   EyeOpenIcon,
   DeleteIcon
@@ -18,6 +16,7 @@ import { processPrivateKey, ProcessedPrivateKey } from '../../../utils'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType, NetworkType } from '../../../types'
 import { IdentityPreview } from '../../components/Identities'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PrivateKeyWASM, IdentityWASM } from 'pshenmic-dpp'
 
 interface PrivateKeyInput {
@@ -279,17 +278,10 @@ function ImportKeystoreState (): React.JSX.Element {
   if (showPreview && (previewData != null)) {
     return (
       <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
-        <div className='flex flex-col gap-2.5 mb-6'>
-          <DashLogo containerSize='3rem' />
-
-          <Heading level={1} size='2xl'>Import your Identity</Heading>
-
-          <div className='!leading-tight'>
-            <Text size='sm' dim>
-              Carefully check all the imported private keys and continue.
-            </Text>
-          </div>
-        </div>
+        <TitleBlock 
+          title='Import your Identity'
+          description='Carefully check all the imported private keys and continue.'
+        />
 
         {/* Identity Preview */}
         <div className='mb-6'>
@@ -314,17 +306,10 @@ function ImportKeystoreState (): React.JSX.Element {
 
   return (
     <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
-      <div className='flex flex-col gap-2.5 mb-6'>
-        <DashLogo containerSize='3rem' />
-
-        <Heading level={1} size='2xl'>Import Private Keys</Heading>
-
-        <div className='!leading-tight'>
-          <Text size='sm' dim>
-            Add more Private Keys to your wallet.
-          </Text>
-        </div>
-      </div>
+      <TitleBlock 
+        title='Import Private Keys'
+        description='Add more Private Keys to your wallet.'
+      />
 
       <div className='flex flex-col gap-[0.875rem]'>
         <div className='mb-6'>

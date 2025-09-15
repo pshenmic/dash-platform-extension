@@ -1,9 +1,7 @@
 import React from 'react'
 import {
   Text,
-  Heading,
   ValueCard,
-  DashLogo,
   KeyIcon,
   ProtectedMessageIcon
 } from 'dash-ui-kit/react'
@@ -11,6 +9,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
 import { WalletType } from '../../../types'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 
 interface ImportOption {
   id: string
@@ -57,15 +56,11 @@ function ChooseWalletType (): React.JSX.Element {
       <div className='mb-8'>
         <div className='flex items-start gap-3'>
           <div className='flex flex-col gap-2.5 flex-1'>
-            <DashLogo containerSize='3rem' />
-            <Heading level={1} className='text-3xl font-extrabold text-gray-900 leading-tight'>
-              Choose Wallet Type
-            </Heading>
-            <div className='!leading-tight'>
-              <Text size='sm' dim>
-                You can create your wallet using these options, more options will come in future updates.
-              </Text>
-            </div>
+            <TitleBlock 
+              title='Choose Wallet Type'
+              description='You can create your wallet using these options, more options will come in future updates.'
+              titleClassName='font-extrabold text-gray-900 leading-tight'
+            />
           </div>
         </div>
       </div>
