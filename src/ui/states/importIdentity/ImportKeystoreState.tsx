@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useSdk } from '../../hooks/useSdk'
+import { useSdk } from '../../hooks'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
 import {
