@@ -9,7 +9,7 @@ export const AboutScreen: React.FC<SettingsScreenProps> = () => {
         <div className='flex justify-center mb-4'>
           <DashLogo />
         </div>
-        <Text size='xl' weight='600' className='text-[#0C1C33] mb-2'>
+        <Text size='xl' weight='600' className='text-dash-primary-dark-blue mb-2'>
           Dash Platform Extension
         </Text>
         <Text size='sm' className='text-gray-600 mb-1'>
