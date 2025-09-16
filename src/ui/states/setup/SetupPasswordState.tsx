@@ -53,6 +53,7 @@ export default function SetupPasswordState (): React.JSX.Element {
       <TitleBlock 
         title='Create Password'
         description='You will use this password to unlock your wallet. Do not share your password with others'
+        containerClassName='!mb-4'
       />
 
       <div className='flex flex-col gap-2'>

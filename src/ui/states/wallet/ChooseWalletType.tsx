@@ -53,15 +53,13 @@ function ChooseWalletType (): React.JSX.Element {
 
   return (
     <div className='flex flex-col h-full bg-white -mt-16 pb-2'>
-      <div className='mb-8'>
-        <div className='flex items-start gap-3'>
-          <div className='flex flex-col gap-2.5 flex-1'>
-            <TitleBlock 
-              title='Choose Wallet Type'
-              description='You can create your wallet using these options, more options will come in future updates.'
-              titleClassName='font-extrabold text-gray-900 leading-tight'
-            />
-          </div>
+      <div className='flex items-start gap-3'>
+        <div className='flex flex-col gap-2.5 flex-1'>
+          <TitleBlock
+            title='Choose Wallet Type'
+            description='You can create your wallet using these options, more options will come in future updates.'
+            titleClassName='font-extrabold text-gray-900 leading-tight'
+          />
         </div>
       </div>
 

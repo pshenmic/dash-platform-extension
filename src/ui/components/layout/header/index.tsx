@@ -40,14 +40,14 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
   landing: {
     hideLeftSection: true,
     imageType: 'coins',
-    imageClasses: '!w-[109%] -mt-[67%] right-[7%]'
+    imageClasses: '!w-[110%] -mt-[67%] right-[7%]'
   },
 
   // Import/setup screens with centered image
   onboarding: {
     hideLeftSection: false,
     imageType: 'coins',
-    imageClasses: '-mt-[62%] !w-[426px] -ml-[15%]'
+    imageClasses: '-mt-[65%] !w-[426px] -ml-[15%]'
   },
 
   // Choose wallet type with network selector in top-right

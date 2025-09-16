@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Text, Button } from 'dash-ui-kit/react'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { Button } from 'dash-ui-kit/react'
+import { useExtensionAPI } from '../../hooks'
 import { TitleBlock } from '../../components/layout/TitleBlock'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 
 function NoWalletState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -60,4 +61,6 @@ function NoWalletState (): React.JSX.Element {
   )
 }
 
-export default NoWalletState
+export default withAccessControl(NoWalletState, {
+  requireWallet: false
+})
