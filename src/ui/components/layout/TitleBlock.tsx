@@ -11,8 +11,8 @@ interface TitleBlockProps {
   containerClassName?: string
 }
 
-export const TitleBlock: React.FC<TitleBlockProps> = ({ 
-  title, 
+export const TitleBlock: React.FC<TitleBlockProps> = ({
+  title,
   description,
   logoSize = '3rem',
   centered = false,
@@ -21,8 +21,8 @@ export const TitleBlock: React.FC<TitleBlockProps> = ({
   containerClassName
 }) => {
   const baseContainerClass = `flex ${centered ? 'items-center' : ''} flex-col w-full gap-2.5 mb-6`
-  
-  const containerClass = containerClassName 
+
+  const containerClass = containerClassName
     ? `${baseContainerClass} ${containerClassName}`
     : baseContainerClass
 
@@ -30,8 +30,8 @@ export const TitleBlock: React.FC<TitleBlockProps> = ({
     <div className={containerClass}>
       <DashLogo containerSize={logoSize} />
 
-      <Heading 
-        level={1} 
+      <Heading
+        level={1}
         size={titleSize}
         className={titleClassName}
       >

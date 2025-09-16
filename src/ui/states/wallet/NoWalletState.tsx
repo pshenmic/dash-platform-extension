@@ -35,7 +35,7 @@ function NoWalletState (): React.JSX.Element {
     <div className='flex flex-col h-full bg-white pb-2'>
       <div className='flex flex-col items-center text-center mb-3'>
         <div className='mb-8'>
-          <TitleBlock 
+          <TitleBlock
             title={
               <>
                 <span className='!font-normal'>Welcome to</span> <span>Dash Platform Extension</span>

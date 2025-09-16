@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useSdk } from '../../hooks'
+import { useSdk, useExtensionAPI } from '../../hooks'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
 import {
@@ -11,7 +11,6 @@ import {
   EyeOpenIcon,
   DeleteIcon
 } from 'dash-ui-kit/react'
-import { useExtensionAPI } from '../../hooks'
 import { processPrivateKey, ProcessedPrivateKey } from '../../../utils'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType, NetworkType } from '../../../types'
@@ -278,7 +277,7 @@ function ImportKeystoreState (): React.JSX.Element {
   if (showPreview && (previewData != null)) {
     return (
       <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
-        <TitleBlock 
+        <TitleBlock
           title='Import your Identity'
           description='Carefully check all the imported private keys and continue.'
         />
@@ -306,7 +305,7 @@ function ImportKeystoreState (): React.JSX.Element {
 
   return (
     <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
-      <TitleBlock 
+      <TitleBlock
         title='Import Private Keys'
         description='Add more Private Keys to your wallet.'
       />
@@ -388,7 +387,6 @@ function ImportKeystoreState (): React.JSX.Element {
           </Button>
         </div>
       </div>
-
 
       {error !== null &&
         <ValueCard colorScheme='yellow' className='break-all'>

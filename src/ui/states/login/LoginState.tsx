@@ -43,7 +43,7 @@ function LoginState (): React.JSX.Element {
 
   return (
     <div className='flex flex-col'>
-      <TitleBlock 
+      <TitleBlock
         title='Welcome Back'
         description='Use the password to unlock your wallet.'
         centered

@@ -30,7 +30,7 @@ function WalletSuccessfullyCreated (): React.JSX.Element {
 
       <div className='z-10 flex flex-col h-full pt-16 pb-36'>
         <div className='flex flex-col items-center text-center gap-2.5 mb-8'>
-          <TitleBlock 
+          <TitleBlock
             title={
               <>
                 Your Wallet Was<br /><span className='text-dash-brand'>Successfully Created</span>
