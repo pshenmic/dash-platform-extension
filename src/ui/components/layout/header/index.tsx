@@ -6,20 +6,8 @@ import { ArrowIcon, Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/re
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
 import { SettingsMenu } from '../../settings'
-import { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
-import { NetworkType, Identity } from '../../../../types'
-
-interface LayoutContext {
-  currentNetwork: NetworkType
-  setCurrentNetwork: (network: NetworkType) => Promise<void>
-  currentWallet: string | null
-  setCurrentWallet: (walletId: string | null) => Promise<void>
-  currentIdentity: string | null
-  setCurrentIdentity: (identity: string) => Promise<void>
-  allWallets: WalletAccountInfo[]
-  availableIdentities: Identity[]
-  createWallet: (walletType: any, mnemonic?: string) => Promise<any>
-}
+import type { LayoutContext } from '../types'
+import type { NetworkType } from '../../../../types'
 
 const IMAGE_VARIANTS = {
   coins: {
@@ -159,7 +147,7 @@ export default function Header (): React.JSX.Element {
     setCurrentWallet,
     currentIdentity,
     allWallets
-  } = context || {}
+  } = context ?? {} as Partial<LayoutContext>
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
