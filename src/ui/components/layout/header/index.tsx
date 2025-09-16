@@ -1,13 +1,25 @@
 import React, { useState } from 'react'
 import { cva } from 'class-variance-authority'
-import { useNavigate, useMatches } from 'react-router-dom'
+import { useNavigate, useMatches, useOutletContext } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import { ArrowIcon, Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
 import { SettingsMenu } from '../../settings'
 import { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
-import { NetworkType } from '../../../../types'
+import { NetworkType, Identity } from '../../../../types'
+
+interface LayoutContext {
+  currentNetwork: NetworkType
+  setCurrentNetwork: (network: NetworkType) => Promise<void>
+  currentWallet: string | null
+  setCurrentWallet: (walletId: string | null) => Promise<void>
+  currentIdentity: string | null
+  setCurrentIdentity: (identity: string) => Promise<void>
+  allWallets: WalletAccountInfo[]
+  availableIdentities: Identity[]
+  createWallet: (walletType: any, mnemonic?: string) => Promise<any>
+}
 
 const IMAGE_VARIANTS = {
   coins: {
@@ -136,16 +148,18 @@ const headerStyles = cva(
   }
 )
 
-interface HeaderProps {
-  onWalletChange?: (walletId: string | null) => void
-  onNetworkChange?: (network: string) => void
-  currentNetwork?: string | null
-  currentIdentity?: string | null
-  currentWalletId?: string | null
-  wallets?: WalletAccountInfo[]
-}
+export default function Header (): React.JSX.Element {
+  const context = useOutletContext<LayoutContext | null>()
 
-export default function Header ({ onWalletChange, onNetworkChange, currentNetwork, currentIdentity, currentWalletId, wallets = [] }: HeaderProps): React.JSX.Element {
+  // Handle case where context might be null during initial render
+  const {
+    currentNetwork,
+    setCurrentNetwork,
+    currentWallet,
+    setCurrentWallet,
+    currentIdentity,
+    allWallets
+  } = context || {}
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -174,15 +188,15 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
   }
 
   const getWalletDisplayName = (): string => {
-    if (currentWalletId === null) return 'Wallet'
+    if (currentWallet === null || !allWallets?.length) return 'Wallet'
 
-    const availableWallets = wallets.filter(wallet => wallet.network === currentNetwork)
-    const currentWallet = availableWallets.find(wallet => wallet.walletId === currentWalletId)
+    const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
+    const currentWalletData = availableWallets.find(wallet => wallet.walletId === currentWallet)
 
-    if (currentWallet == null) return 'Wallet'
+    if (currentWalletData == null) return 'Wallet'
 
-    const currentWalletIndex = availableWallets.findIndex(wallet => wallet.walletId === currentWalletId)
-    return currentWallet.label ?? `Wallet_${currentWalletIndex + 1}`
+    const currentWalletIndex = availableWallets.findIndex(wallet => wallet.walletId === currentWallet)
+    return currentWalletData.label ?? `Wallet_${currentWalletIndex + 1}`
   }
 
   const getRightSectionType = (): 'image' | 'burger' | 'none' => {
@@ -213,15 +227,15 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
               </Button>
               )}
 
-          {config.showWalletSelector && <WalletSelector onSelect={onWalletChange} currentNetwork={currentNetwork} wallets={wallets} currentWalletId={currentWalletId} />}
+          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
         </div>
       )}
 
       {/* Network & Wallet Selectors in left side */}
       {config.hideLeftSection && (config.showNetworkSelector || config.showWalletSelector) && (
         <div className='flex items-center gap-2.5'>
-          {config.showNetworkSelector && <NetworkSelector onSelect={onNetworkChange} currentNetwork={currentNetwork as NetworkType} wallets={wallets} />}
-          {config.showWalletSelector && <WalletSelector onSelect={onWalletChange} currentNetwork={currentNetwork} wallets={wallets} currentWalletId={currentWalletId} />}
+          {config.showNetworkSelector && <NetworkSelector onSelect={setCurrentNetwork} currentNetwork={currentNetwork as NetworkType} wallets={allWallets} />}
+          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
         </div>
       )}
 
@@ -240,7 +254,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
       {/* Right side read-only displays and selectors */}
       {(config.showWalletRightReadOnly || config.showNetworkRightReadOnly || config.showNetworkRightSelector) && (
         <div className={`flex items-center gap-2.5 ${config.imageType != null ? 'absolute top-0 right-0 z-10' : 'w-full justify-between'}`}>
-          {config.showWalletRightReadOnly && currentWalletId !== null && (
+          {config.showWalletRightReadOnly && currentWallet !== null && (
             <Text size='sm' color='gray' weight='medium' className='text-right' dim>
               {getWalletDisplayName()}
             </Text>
@@ -259,13 +273,13 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
           {config.showNetworkRightSelector && (
             config.networkDisplayFormat === 'card'
               ? <NetworkSelector
-                  onSelect={onNetworkChange}
-                  wallets={wallets}
+                  onSelect={setCurrentNetwork}
+                  wallets={allWallets}
                   variant='card'
                   border
                   className='!backdrop-blur-[15px] !bg-[rgba(12,28,51,0.15)] text-white !outline-white/15'
                 />
-              : <NetworkSelector onSelect={onNetworkChange} wallets={wallets} />
+              : <NetworkSelector onSelect={setCurrentNetwork} wallets={allWallets} />
           )}
         </div>
       )}
@@ -291,7 +305,7 @@ export default function Header ({ onWalletChange, onNetworkChange, currentNetwor
         onClose={() => setIsMenuOpen(false)}
         currentIdentity={currentIdentity}
         currentNetwork={currentNetwork}
-        currentWallet={wallets.find(wallet => wallet.walletId === currentWalletId) ?? null}
+        currentWallet={allWallets?.find(wallet => wallet.walletId === currentWallet) ?? null}
       />
     </header>
   )

@@ -1,6 +1,5 @@
 import React, { FC, useState, useEffect, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
-import Header from './header'
 import { ThemeProvider } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks'
 import { useSdk } from '../../hooks'
@@ -176,18 +175,7 @@ const Layout: FC = () => {
     <ThemeProvider initialTheme='light'>
       <div className='main_container'>
         {isApiReady
-          ?
-            <>
-              <Header
-                onNetworkChange={handleNetworkChange}
-                currentNetwork={currentNetwork}
-                onWalletChange={handleWalletChange}
-                currentIdentity={currentIdentity}
-                currentWalletId={currentWallet}
-                wallets={allWallets}
-              />
-              <Outlet context={context} />
-            </>
+          ? <Outlet context={context} />
           : <LoadingScreen message='Initializing application...' />}
       </div>
     </ThemeProvider>
