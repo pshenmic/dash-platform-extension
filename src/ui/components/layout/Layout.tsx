@@ -160,38 +160,35 @@ const Layout: FC = () => {
     loadData()
   }, [isApiReady, loadWallets, loadIdentities, loadCurrentIdentity])
 
-  if (!isApiReady) {
-    return (
-      <ThemeProvider initialTheme='light'>
-        <div className='main_container'>
-          <LoadingScreen message='Initializing application...' />
-        </div>
-      </ThemeProvider>
-    )
+  const context = {
+    currentNetwork,
+    setCurrentNetwork: handleNetworkChange,
+    currentWallet,
+    setCurrentWallet: handleWalletChange,
+    currentIdentity,
+    setCurrentIdentity: handleIdentityChange,
+    allWallets,
+    availableIdentities,
+    createWallet
   }
 
   return (
     <ThemeProvider initialTheme='light'>
       <div className='main_container'>
-        <Header
-          onNetworkChange={handleNetworkChange}
-          currentNetwork={currentNetwork}
-          onWalletChange={handleWalletChange}
-          currentIdentity={currentIdentity}
-          currentWalletId={currentWallet}
-          wallets={allWallets}
-        />
-        <Outlet context={{
-          currentNetwork,
-          setCurrentNetwork: handleNetworkChange,
-          currentWallet,
-          setCurrentWallet: handleWalletChange,
-          currentIdentity,
-          setCurrentIdentity: handleIdentityChange,
-          allWallets,
-          availableIdentities,
-          createWallet
-        }} />
+        {isApiReady
+          ?
+            <>
+              <Header
+                onNetworkChange={handleNetworkChange}
+                currentNetwork={currentNetwork}
+                onWalletChange={handleWalletChange}
+                currentIdentity={currentIdentity}
+                currentWalletId={currentWallet}
+                wallets={allWallets}
+              />
+              <Outlet context={context} />
+            </>
+          : <LoadingScreen message='Initializing application...' />}
       </div>
     </ThemeProvider>
   )
