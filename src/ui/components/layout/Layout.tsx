@@ -7,6 +7,18 @@ import { GetStatusResponse } from '../../../types/messages/response/GetStatusRes
 import { NetworkType, EventData, Identity } from '../../../types'
 import LoadingScreen from './LoadingScreen'
 
+export interface LayoutContext {
+  currentNetwork: NetworkType
+  setCurrentNetwork: (network: NetworkType) => Promise<void>
+  currentWallet: string | null
+  setCurrentWallet: (walletId: string | null) => Promise<void>
+  currentIdentity: string | null
+  setCurrentIdentity: (identity: string) => Promise<void>
+  allWallets: WalletAccountInfo[]
+  availableIdentities: Identity[]
+  createWallet: (walletType: any, mnemonic?: string) => Promise<any>
+}
+
 const Layout: FC = () => {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()

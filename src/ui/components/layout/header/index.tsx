@@ -6,7 +6,7 @@ import { ArrowIcon, Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/re
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
 import { SettingsMenu } from '../../settings'
-import type { LayoutContext } from '../types'
+import type { LayoutContext } from '../Layout'
 import type { NetworkType } from '../../../../types'
 
 const IMAGE_VARIANTS = {
