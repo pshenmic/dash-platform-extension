@@ -37,7 +37,6 @@ const NameRegistrationState: React.FC = () => {
     }
   }
 
-  // load rate
   useEffect(() => {
     loadRate(async () => {
       const result = await platformClient.fetchRate(currentNetwork as NetworkType)
@@ -91,21 +90,15 @@ const NameRegistrationState: React.FC = () => {
       case 1:
         return (
           <>
-            {isContested && (
+            {username.length > 0 && (isContested === true || isValid === false ) && (
               <>
-                {username && !isValid && (
-                  <div className='mb-8'>
-                    <Text size='xs' color='error' className='text-center'>
-                      Username must be at least 3 characters and contain only letters, numbers, hyphens, and underscores
-                    </Text>
-                  </div>
-                )}
                 <ValueCard
                   border={false}
                   className='mb-[0.675rem] !text-[0.75rem] dash-shadow-xl text-dash-primary-dark-blue/75'
                 >
-                  This username falls under the rules of a contested username. Masternodes will vote for your username
-                  approval
+                  {!isValid
+                    ? 'Username must be at least 3 characters and contain only letters, numbers, hyphens, and underscores'
+                    : 'This username falls under the rules of a contested username. Masternodes will vote for your username approval'}
                 </ValueCard>
               </>
             )}
@@ -160,7 +153,7 @@ const NameRegistrationState: React.FC = () => {
           </div>
         )
     }
-  }, [currentStep, username])
+  }, [currentStep, username, isContested, isValid])
 
   return (
     <div className='flex flex-col h-full'>
