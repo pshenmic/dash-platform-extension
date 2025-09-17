@@ -1,5 +1,6 @@
 import React from 'react'
-import { Text, TransactionStatusIcon, DateBlock } from 'dash-ui-kit/react'
+import { Text, TransactionStatusIcon, DateBlock, Button } from 'dash-ui-kit/react'
+import { useNavigate } from 'react-router-dom'
 import { NetworkType } from '../../../types'
 import EntityList from '../common/EntityList'
 import EntityListItem from '../common/EntityListItem'
@@ -23,11 +24,16 @@ function NamesList ({
   error,
   currentNetwork
 }: NamesListProps): React.JSX.Element {
+  const navigate = useNavigate()
+
+  const handleRegisterName = () => {
+    navigate('/name-registration')
+  }
   const isValidTimestamp = (timestamp: string | null): boolean => {
     if (timestamp === null || timestamp === '') {
       return false
     }
-    
+
     try {
       const date = new Date(timestamp)
       return !isNaN(date.getTime())
@@ -61,16 +67,31 @@ function NamesList ({
   }
 
   return (
-    <EntityList
-      loading={loading}
-      error={error}
-      isEmpty={(names == null) || names.length === 0}
-      variant='tight'
-      loadingText='Loading names...'
-      errorText={(error != null && error !== '') ? `Error loading names: ${error}` : undefined}
-      emptyText='No names found'
-    >
-      {names.map((nameItem) => {
+    <div className='flex flex-col gap-4'>
+      {/* Register Name Button */}
+      <div className='px-4'>
+        <Button
+          variant='outline'
+          colorScheme='brand'
+          size='md'
+          onClick={handleRegisterName}
+          className='w-full'
+        >
+          Register Name
+        </Button>
+      </div>
+
+      {/* Names List */}
+      <EntityList
+        loading={loading}
+        error={error}
+        isEmpty={(names == null) || names.length === 0}
+        variant='tight'
+        loadingText='Loading names...'
+        errorText={(error != null && error !== '') ? `Error loading names: ${error}` : undefined}
+        emptyText='No names found'
+      >
+        {names.map((nameItem) => {
         const hasValidTimestamp = isValidTimestamp(nameItem.registrationTime)
         const stateIcon = getStateIcon(nameItem.state)
         const stateColor = getStateColor(nameItem.state)
@@ -126,7 +147,8 @@ function NamesList ({
           </EntityListItem>
         )
       })}
-    </EntityList>
+      </EntityList>
+    </div>
   )
 }
 
