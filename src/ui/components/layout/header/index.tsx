@@ -147,7 +147,7 @@ export default function Header (): React.JSX.Element {
     setCurrentWallet,
     currentIdentity,
     allWallets
-  } = context ?? {} as Partial<LayoutContext>
+  } = context ?? ({} satisfies Partial<LayoutContext>)
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -176,7 +176,7 @@ export default function Header (): React.JSX.Element {
   }
 
   const getWalletDisplayName = (): string => {
-    if (currentWallet === null || !allWallets?.length) return 'Wallet'
+    if (currentWallet === null || allWallets === null || allWallets === undefined || allWallets.length === 0) return 'Wallet'
 
     const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
     const currentWalletData = availableWallets.find(wallet => wallet.walletId === currentWallet)
