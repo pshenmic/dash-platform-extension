@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
-import { Text, Heading, Button, Input, Switch, DashLogo } from 'dash-ui-kit/react'
+import { Text, Button, Input, Switch } from 'dash-ui-kit/react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import type { OutletContext } from '../../types/OutletContext'
 import { WalletType } from '../../../types'
 import { withAccessControl } from '../../components/auth/withAccessControl'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 
 function ImportSeedPhrase (): React.JSX.Element {
   const navigate = useNavigate()
@@ -138,16 +139,11 @@ function ImportSeedPhrase (): React.JSX.Element {
       <div className='mb-6'>
         <div className='flex items-start gap-3'>
           <div className='flex-1'>
-            <DashLogo containerSize='3rem' />
-
-            <Heading level={1} className='text-3xl font-extrabold text-gray-900 mb-2 leading-tight'>
-              Import your Seed Phrase
-            </Heading>
-            <div className='!leading-tight'>
-              <Text size='sm' dim>
-                Paste your DashPay seed phrase from mobile wallet or Dash Evo tool
-              </Text>
-            </div>
+            <TitleBlock
+              title='Import your Seed Phrase'
+              description='Paste your DashPay seed phrase from mobile wallet or Dash Evo tool'
+              titleClassName='font-extrabold text-gray-900 mb-2 leading-tight'
+            />
           </div>
         </div>
       </div>

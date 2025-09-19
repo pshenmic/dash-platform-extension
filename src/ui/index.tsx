@@ -11,9 +11,11 @@ import NoWalletState from './states/wallet/NoWalletState'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 import AppConnectState from './states/appConnect/AppConnectState'
 import Layout from './components/layout/Layout'
+import PageWithHeader from './components/layout/PageWithHeader'
 import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
 import ChooseWalletType from './states/wallet/ChooseWalletType'
 import WalletSuccessfullyCreated from './states/importIdentity/WalletSuccessfullyCreated'
+import NameRegistrationState from './states/nameRegistration'
 import './styles/app.pcss'
 
 const App: React.FC = function () {
@@ -24,7 +26,7 @@ const App: React.FC = function () {
         {
           index: true,
           path: '/',
-          element: <StartState />,
+          element: <PageWithHeader><StartState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'minimal'
@@ -33,7 +35,7 @@ const App: React.FC = function () {
         },
         {
           path: '/choose-wallet-type',
-          element: <ChooseWalletType />,
+          element: <PageWithHeader><ChooseWalletType /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'chooseWalletType'
@@ -42,7 +44,7 @@ const App: React.FC = function () {
         },
         {
           path: '/import-seed-phrase',
-          element: <ImportSeedPhrase />,
+          element: <PageWithHeader><ImportSeedPhrase /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -51,7 +53,7 @@ const App: React.FC = function () {
         },
         {
           path: '/no-wallet',
-          element: <NoWalletState />,
+          element: <PageWithHeader><NoWalletState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'landing'
@@ -60,7 +62,7 @@ const App: React.FC = function () {
         },
         {
           path: '/home',
-          element: <HomeState />,
+          element: <PageWithHeader><HomeState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'main'
@@ -69,7 +71,7 @@ const App: React.FC = function () {
         },
         {
           path: '/setup-password',
-          element: <SetupPasswordState />,
+          element: <PageWithHeader><SetupPasswordState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'onboarding'
@@ -78,7 +80,7 @@ const App: React.FC = function () {
         },
         {
           path: '/login',
-          element: <LoginState />,
+          element: <PageWithHeader><LoginState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'landing'
@@ -87,7 +89,7 @@ const App: React.FC = function () {
         },
         {
           path: '/create-wallet',
-          element: <CreateWalletState />,
+          element: <PageWithHeader><CreateWalletState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'simple'
@@ -96,7 +98,7 @@ const App: React.FC = function () {
         },
         {
           path: '/import-keystore',
-          element: <ImportKeystoreState />,
+          element: <PageWithHeader><ImportKeystoreState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -105,7 +107,7 @@ const App: React.FC = function () {
         },
         {
           path: '/approve/:txhash',
-          element: <ApproveTransactionState />,
+          element: <PageWithHeader><ApproveTransactionState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'transaction'
@@ -114,7 +116,7 @@ const App: React.FC = function () {
         },
         {
           path: '/connect/:id',
-          element: <AppConnectState />,
+          element: <PageWithHeader><AppConnectState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'simple'
@@ -123,10 +125,19 @@ const App: React.FC = function () {
         },
         {
           path: '/wallet-created',
-          element: <WalletSuccessfullyCreated />,
+          element: <PageWithHeader><WalletSuccessfullyCreated /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'minimal'
+            }
+          }
+        },
+        {
+          path: '/name-registration',
+          element: <PageWithHeader><NameRegistrationState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'simple'
             }
           }
         }

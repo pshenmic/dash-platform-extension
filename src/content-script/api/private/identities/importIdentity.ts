@@ -1,5 +1,5 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { EventData } from '../../../../types/EventData'
+import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { IdentityPublicKeyWASM, PrivateKeyWASM, IdentifierWASM } from 'pshenmic-dpp'
 import { WalletRepository } from '../../../repository/WalletRepository'

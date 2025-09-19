@@ -28,9 +28,9 @@ export const preferencesConfig: ScreenConfig = {
   content: []
 }
 
-export const connectedDappsConfig: ScreenConfig = {
-  id: 'connected-dapps',
-  title: 'Connected dapps',
+export const connectedWebsitesConfig: ScreenConfig = {
+  id: 'connected-websites',
+  title: 'Connected Websites',
   icon: <ChainSmallIcon className='text-dash-primary-dark-blue' />,
   category: 'wallet',
   content: []
@@ -78,12 +78,11 @@ export const mainScreenConfig: ScreenConfig = {
       title: 'Wallet Settings',
       items: [
         {
-          id: 'connected-dapps-item',
-          title: connectedDappsConfig.title,
-          icon: connectedDappsConfig.icon,
-          screenId: connectedDappsConfig.id,
-          hasSubMenu: true,
-          disabled: true
+          id: 'connected-websites-item',
+          title: connectedWebsitesConfig.title,
+          icon: connectedWebsitesConfig.icon,
+          screenId: connectedWebsitesConfig.id,
+          hasSubMenu: true
         },
         {
           id: 'security-privacy-item',

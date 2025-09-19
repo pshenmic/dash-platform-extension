@@ -5,16 +5,16 @@ import { PublicAPI } from './api/PublicAPI'
 import hash from 'hash.js'
 import { AppConnectStorageSchema } from './storage/storageSchema'
 import { AppConnectStatus } from '../types/enums/AppConnectStatus'
-import { EventData } from '../types/EventData'
+import { EventData } from '../types'
 import { MessagingMethods } from '../types/enums/MessagingMethods'
 import { injectScript } from '../utils'
-import {Network} from "../types/enums/Network";
+import { Network } from '../types/enums/Network'
 
 export async function initApp (): Promise<void> {
   const extensionStorageAdapter = new ExtensionStorageAdapter()
   const network = await extensionStorageAdapter.get('network') as string
 
-  const sdk = new DashPlatformSDK({ network: Network[network]})
+  const sdk = new DashPlatformSDK({ network: Network[network] })
 
   const privateAPI = new PrivateAPI(sdk, extensionStorageAdapter)
   const publicAPI = new PublicAPI(sdk, extensionStorageAdapter)
