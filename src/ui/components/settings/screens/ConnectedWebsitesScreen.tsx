@@ -3,30 +3,30 @@ import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { useAsyncState } from '../../../hooks/useAsyncState'
 import { ConfirmDialog } from '../../controls'
-import { ConnectedDappItem } from '../../dapps/ConnectedDappItem'
+import { ConnectedWebsiteItem } from '../../websites/ConnectedWebsiteItem'
 import type { SettingsScreenProps } from '../types'
 import type { AppConnect } from '../../../../types'
 
 interface ConfirmDialogState {
   open: boolean
   type: 'single' | 'all'
-  dappId?: string
-  dappName?: string
+  websiteId?: string
+  websiteName?: string
 }
 
 const EmptyListMessage = (): React.JSX.Element => (
   <ValueCard colorScheme='lightGray' className='flex flex-col gap-2'>
     <Text size='lg' weight='medium' className='text-gray-600'>
-      No Connected DApps
+      No Connected websites
     </Text>
     <Text size='sm' className='text-gray-500'>
-      When you connect to DApps, they will appear here
+      When you connect to websites, they will appear here
     </Text>
   </ValueCard>
 )
 
-export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
-  const [connectedDappsState, loadConnectedDapps, setConnectedDapps] = useAsyncState<AppConnect[]>([])
+export const ConnectedWebsitesScreen: React.FC<SettingsScreenProps> = () => {
+  const [ConnectedWebsitesState, loadConnectedWebsites, setConnectedWebsites] = useAsyncState<AppConnect[]>([])
   const [disconnectingIds, setDisconnectingIds] = useState<Set<string>>(new Set())
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ open: false, type: 'single' })
@@ -34,17 +34,17 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   const errorHiddenTime = 5000
 
   useEffect(() => {
-    loadConnectedDapps(async () => await extensionAPI.getAllAppConnects())
+    loadConnectedWebsites(async () => await extensionAPI.getAllAppConnects())
       .catch(console.log)
-  }, [extensionAPI, loadConnectedDapps])
+  }, [extensionAPI, loadConnectedWebsites])
 
-  const showDisconnectDialog = (dappId: string): void => {
-    const dapp = connectedDappsState.data?.find(d => d.id === dappId)
+  const showDisconnectDialog = (websiteId: string): void => {
+    const website = ConnectedWebsitesState.data?.find(d => d.id === websiteId)
     setConfirmDialog({
       open: true,
       type: 'single',
-      dappId,
-      dappName: (dapp != null) ? new URL(dapp.url).hostname : 'Unknown'
+      websiteId,
+      websiteName: (website != null) ? new URL(website.url).hostname : 'Unknown'
     })
   }
 
@@ -55,16 +55,16 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
     })
   }
 
-  const handleDisconnect = async (dappId: string): Promise<void> => {
-    setDisconnectingIds(prev => new Set(prev).add(dappId))
+  const handleDisconnect = async (websiteId: string): Promise<void> => {
+    setDisconnectingIds(prev => new Set(prev).add(websiteId))
 
     try {
-      await extensionAPI.removeAppConnectById(dappId)
-      if (connectedDappsState.data != null) {
-        setConnectedDapps(connectedDappsState.data.filter(dapp => dapp.id !== dappId))
+      await extensionAPI.removeAppConnectById(websiteId)
+      if (ConnectedWebsitesState.data != null) {
+        setConnectedWebsites(ConnectedWebsitesState.data.filter(website => website.id !== websiteId))
       }
     } catch (error) {
-      setErrorMessage(`Failed to disconnect dapp ${dappId}: ${String(error)}`)
+      setErrorMessage(`Failed to disconnect website ${websiteId}: ${String(error)}`)
 
       setTimeout(() => {
         setErrorMessage(null)
@@ -72,27 +72,27 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
     } finally {
       setDisconnectingIds(prev => {
         const next = new Set(prev)
-        next.delete(dappId)
+        next.delete(websiteId)
         return next
       })
     }
   }
 
   const handleDisconnectAll = async (): Promise<void> => {
-    if (connectedDappsState.data == null) return
+    if (ConnectedWebsitesState.data == null) return
 
-    const allIds = connectedDappsState.data.map(dapp => dapp.id)
+    const allIds = ConnectedWebsitesState.data.map(website => website.id)
     setDisconnectingIds(new Set(allIds))
 
     try {
       await Promise.all(allIds.map(async id => await extensionAPI.removeAppConnectById(id)))
-      setConnectedDapps([])
+      setConnectedWebsites([])
     } catch (error) {
-      console.warn('Failed to disconnect all dapps:', error)
-      const dapps = await extensionAPI.getAllAppConnects()
-      setConnectedDapps(dapps)
+      console.warn('Failed to disconnect all websites:', error)
+      const websites = await extensionAPI.getAllAppConnects()
+      setConnectedWebsites(websites)
 
-      setErrorMessage(`Failed to disconnect all dapps: ${String(error)}`)
+      setErrorMessage(`Failed to disconnect all websites: ${String(error)}`)
 
       setTimeout(() => {
         setErrorMessage(null)
@@ -103,8 +103,8 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   }
 
   const handleConfirmDisconnect = async (): Promise<void> => {
-    if (confirmDialog.type === 'single' && confirmDialog.dappId != null && confirmDialog.dappId !== '') {
-      await handleDisconnect(confirmDialog.dappId)
+    if (confirmDialog.type === 'single' && confirmDialog.websiteId != null && confirmDialog.websiteId !== '') {
+      await handleDisconnect(confirmDialog.websiteId)
     } else if (confirmDialog.type === 'all') {
       await handleDisconnectAll()
     }
@@ -113,34 +113,34 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
   return (
     <div className='flex flex-col gap-4 h-full'>
       <Text size='sm' dim className='text-dash-primary-dark-blue'>
-        Manage dapps you have connected to.
+        Manage websites you have connected to.
       </Text>
 
       <div className='flex flex-col gap-[0.875rem] h-full grow'>
-        {connectedDappsState.loading &&
+        {ConnectedWebsitesState.loading &&
           <Text dim>loading...</Text>}
 
-        {connectedDappsState?.data?.length != null && connectedDappsState.data.length > 0
-          ? connectedDappsState.data?.map((dapp) => (
-            <ConnectedDappItem
-              key={dapp.id}
-              dapp={dapp}
-              isDisconnecting={disconnectingIds.has(dapp.id)}
+        {ConnectedWebsitesState?.data?.length != null && ConnectedWebsitesState.data.length > 0
+          ? ConnectedWebsitesState.data?.map(website => (
+            <ConnectedWebsiteItem
+              key={website.id}
+              website={website}
+              isDisconnecting={disconnectingIds.has(website.id)}
               onDisconnect={showDisconnectDialog}
             />
           ))
           : <EmptyListMessage />}
 
-        {(errorMessage !== null || connectedDappsState.error != null) && (
+        {(errorMessage !== null || ConnectedWebsitesState.error != null) && (
           <ValueCard colorScheme='yellow' className='break-all'>
             <Text color='red'>
-              {errorMessage ?? connectedDappsState.error}
+              {errorMessage ?? ConnectedWebsitesState.error}
             </Text>
           </ValueCard>
         )}
       </div>
 
-      {(connectedDappsState?.data?.length != null && connectedDappsState.data.length > 0) &&
+      {(ConnectedWebsitesState?.data?.length != null && ConnectedWebsitesState.data.length > 0) &&
         <div className='mt-6'>
           <Button
             className='w-full'
@@ -154,11 +154,11 @@ export const ConnectedDappsScreen: React.FC<SettingsScreenProps> = () => {
       <ConfirmDialog
         open={confirmDialog.open}
         onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}
-        title={confirmDialog.type === 'single' ? 'Disconnect DApp' : 'Disconnect DApps'}
+        title={confirmDialog.type === 'single' ? 'Disconnect Website' : 'Disconnect Websites'}
         message={
           confirmDialog.type === 'single'
-            ? `Are you sure you want to disconnect ${confirmDialog.dappName ?? 'this DApp'}? This will revoke its access to your wallet.`
-            : `Are you sure you want to disconnect ${connectedDappsState.data?.length ?? 0} connected DApps? This will revoke their access to your wallet.`
+            ? `Are you sure you want to disconnect ${confirmDialog.websiteName ?? 'this website'}? This will revoke its access to your wallet.`
+            : `Are you sure you want to disconnect ${ConnectedWebsitesState.data?.length ?? 0} connected websites? This will revoke their access to your wallet.`
         }
         confirmText='Disconnect'
         cancelText='Cancel'

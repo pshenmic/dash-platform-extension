@@ -120,7 +120,7 @@ function TransactionsList ({
 
                   {gasAmount > 0 && (
                     <div className='flex flex-col items-end gap-[5px]'>
-                      <div className='flex items-center gap-1 text-[#0C1C33]'>
+                      <div className='flex items-center gap-1 text-dash-primary-dark-blue'>
                         <BigNumber className='!font-bold text-[0.875rem]'>
                           {gasAmount}
                         </BigNumber>

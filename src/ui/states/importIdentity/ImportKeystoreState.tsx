@@ -1,25 +1,21 @@
 import React, { useEffect, useState } from 'react'
-import { useSdk } from '../../hooks/useSdk'
+import { useSdk, useExtensionAPI } from '../../hooks'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
 import {
   Button,
   Text,
-  Identifier,
   ValueCard,
-  BigNumber,
   Input,
-  Heading,
-  DashLogo,
   EyeClosedIcon,
   EyeOpenIcon,
   DeleteIcon
 } from 'dash-ui-kit/react'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { processPrivateKey, ProcessedPrivateKey } from '../../../utils'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType, NetworkType } from '../../../types'
 import { IdentityPreview } from '../../components/Identities'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PrivateKeyWASM, IdentityWASM } from 'pshenmic-dpp'
 
 interface PrivateKeyInput {
@@ -38,7 +34,6 @@ function ImportKeystoreState (): React.JSX.Element {
   const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInput[]>([
     { id: Date.now().toString(), value: '', isVisible: false, hasError: false }
   ])
-  const [identities, setIdentities] = useState<ProcessedPrivateKey[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -237,13 +232,12 @@ function ImportKeystoreState (): React.JSX.Element {
   const confirmImport = (): void => {
     if (previewData == null) return
 
-    setIdentities(previewData.validKeys)
-    setShowPreview(false)
+    importIdentities(previewData.validKeys)
   }
 
-  const importIdentities = (): void => {
+  const importIdentities = (identitiesToImport: ProcessedPrivateKey[]): void => {
     const run = async (): Promise<void> => {
-      if (identities.length === 0) {
+      if (identitiesToImport.length === 0) {
         return setError('No identities found to import')
       }
 
@@ -252,10 +246,10 @@ function ImportKeystoreState (): React.JSX.Element {
       }
 
       // Get all private keys as hex
-      const privateKeys = identities.map(({ key }) => key.hex())
+      const privateKeys = identitiesToImport.map(({ key }) => key.hex())
 
       // Use the first identity's identifier for the import
-      const identifier = identities[0].identity.id.base58()
+      const identifier = identitiesToImport[0].identity.id.base58()
 
       await extensionAPI.importIdentity(identifier, privateKeys)
       setCurrentIdentity(identifier)
@@ -283,17 +277,10 @@ function ImportKeystoreState (): React.JSX.Element {
   if (showPreview && (previewData != null)) {
     return (
       <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
-        <div className='flex flex-col gap-2.5 mb-6'>
-          <DashLogo containerSize='3rem' />
-
-          <Heading level={1} size='2xl'>Import your Identity</Heading>
-
-          <div className='!leading-tight'>
-            <Text size='sm' dim>
-              Carefully check all the imported private keys and continue.
-            </Text>
-          </div>
-        </div>
+        <TitleBlock
+          title='Import your Identity'
+          description='Carefully check all the imported private keys and continue.'
+        />
 
         {/* Identity Preview */}
         <div className='mb-6'>
@@ -318,154 +305,88 @@ function ImportKeystoreState (): React.JSX.Element {
 
   return (
     <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
-      <div className='flex flex-col gap-2.5 mb-6'>
-        <DashLogo containerSize='3rem' />
+      <TitleBlock
+        title='Import Private Keys'
+        description='Add more Private Keys to your wallet.'
+      />
 
-        <Heading level={1} size='2xl'>Import Private Keys</Heading>
+      <div className='flex flex-col gap-[0.875rem]'>
+        <div className='mb-6'>
+          <Text dim>
+            Private Key
+          </Text>
 
-        {identities.length === 0 &&
-          <div className='!leading-tight'>
-            <Text size='sm' dim>
-              Add more Private Keys to your wallet.
-            </Text>
-          </div>}
-      </div>
-
-      {identities.length === 0 &&
-        <div className='flex flex-col gap-[0.875rem]'>
-          <div className='mb-6'>
-            <Text dim>
-              Private Key
-            </Text>
-
-            <div className='flex flex-col gap-2.5'>
-              {privateKeyInputs.map((input, index) => (
-                <div key={input.id} className='flex gap-2.5'>
-                  <div className='flex-1 relative'>
-                    <Input
-                      placeholder='Paste your Key'
-                      value={input.value}
-                      onChange={(e) => updatePrivateKeyInput(input.id, e.target.value)}
-                      type={input.isVisible ? 'text' : 'password'}
-                      size='xl'
-                      showPasswordToggle={false}
-                      error={input.hasError}
-                      style={{
-                        paddingRight: input.value !== '' && input.value !== undefined
-                          ? (privateKeyInputs.length > 1 ? '4.5rem' : '2.5rem')
-                          : undefined
-                      }}
-                    />
-                    {input.value !== '' && input.value !== undefined && (
-                      <div className='absolute right-3 top-1/2 transform -translate-y-1/2 flex gap-1'>
+          <div className='flex flex-col gap-2.5'>
+            {privateKeyInputs.map((input, index) => (
+              <div key={input.id} className='flex gap-2.5'>
+                <div className='flex-1 relative'>
+                  <Input
+                    placeholder='Paste your Key'
+                    value={input.value}
+                    onChange={(e) => updatePrivateKeyInput(input.id, e.target.value)}
+                    type={input.isVisible ? 'text' : 'password'}
+                    size='xl'
+                    showPasswordToggle={false}
+                    error={input.hasError}
+                    style={{
+                      paddingRight: input.value !== '' && input.value !== undefined
+                        ? (privateKeyInputs.length > 1 ? '4.5rem' : '2.5rem')
+                        : undefined
+                    }}
+                  />
+                  {input.value !== '' && input.value !== undefined && (
+                    <div className='absolute right-3 top-1/2 transform -translate-y-1/2 flex gap-1'>
+                      <button
+                        onClick={() => togglePrivateKeyVisibility(input.id)}
+                        className='p-1 hover:bg-gray-100 rounded'
+                        type='button'
+                      >
+                        {input.isVisible
+                          ? <EyeClosedIcon className='text-dash-primary-dark-blue' />
+                          : <EyeOpenIcon className='text-dash-primary-dark-blue' />}
+                      </button>
+                      {privateKeyInputs.length > 1 && (
                         <button
-                          onClick={() => togglePrivateKeyVisibility(input.id)}
+                          onClick={() => removePrivateKeyInput(input.id)}
                           className='p-1 hover:bg-gray-100 rounded'
                           type='button'
                         >
-                          {input.isVisible
-                            ? <EyeClosedIcon className='text-dash-primary-dark-blue' />
-                            : <EyeOpenIcon className='text-dash-primary-dark-blue' />}
+                          <DeleteIcon />
                         </button>
-                        {privateKeyInputs.length > 1 && (
-                          <button
-                            onClick={() => removePrivateKeyInput(input.id)}
-                            className='p-1 hover:bg-gray-100 rounded'
-                            type='button'
-                          >
-                            <DeleteIcon />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {index === privateKeyInputs.length - 1 && (
-                    <button
-                      onClick={addPrivateKeyInput}
-                      disabled={input.value?.trim() === '' || input.value?.trim() === undefined}
-                      className={`flex items-center justify-center w-14 h-14 rounded-2xl border border-gray-200 ${
-                        input.value?.trim() !== '' && input.value?.trim() !== undefined
-                          ? 'bg-gray-50 hover:bg-gray-100 cursor-pointer'
-                          : 'bg-gray-25 cursor-not-allowed opacity-50'
-                      }`}
-                      type='button'
-                    >
-                      <Text size='xl' weight='medium'>+</Text>
-                    </button>
+                      )}
+                    </div>
                   )}
                 </div>
-              ))}
-            </div>
+                {index === privateKeyInputs.length - 1 && (
+                  <button
+                    onClick={addPrivateKeyInput}
+                    disabled={input.value?.trim() === '' || input.value?.trim() === undefined}
+                    className={`flex items-center justify-center w-14 h-14 rounded-2xl border border-gray-200 ${
+                      input.value?.trim() !== '' && input.value?.trim() !== undefined
+                        ? 'bg-gray-50 hover:bg-gray-100 cursor-pointer'
+                        : 'bg-gray-25 cursor-not-allowed opacity-50'
+                    }`}
+                    type='button'
+                  >
+                    <Text size='xl' weight='medium'>+</Text>
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
+        </div>
 
-          <div>
-            <Button
-              colorScheme='brand'
-              disabled={!hasValidKeys || isLoading}
-              className='w-full'
-              onClick={handleCheckClick}
-            >
-              {isLoading ? 'Checking...' : 'Check'}
-            </Button>
-          </div>
-        </div>}
-
-      {/* Identities Preview */}
-      {identities.length > 0 &&
-        <div className='flex flex-col gap-[0.875rem] mb-2.5'>
-          <Text dim>
-            We found {identities.length} identit{identities.length === 1 ? 'y' : 'ies'} associated with the given private key{identities.length === 1 ? '' : 's'}
-          </Text>
-
-          {identities.map((item, index) => {
-            return (
-              <ValueCard key={index} colorScheme='lightBlue'>
-                <div className='flex flex-col gap-[0.875rem]'>
-                  <div className='flex flex-col gap-[0.125rem]'>
-                    <Text size='md' dim>Identifier</Text>
-                    <ValueCard colorScheme='white'>
-                      <Identifier
-                        highlight='both'
-                        copyButton
-                        ellipsis={false}
-                        linesAdjustment={false}
-                      >
-                        {item.identity.id.base58()}
-                      </Identifier>
-                    </ValueCard>
-                  </div>
-                  <div className='flex flex-col gap-[0.125rem]'>
-                    <Text dim>Balance</Text>
-
-                    <span>
-                      <Text size='xl' weight='bold' monospace>
-                        <BigNumber>
-                          {item.balance}
-                        </BigNumber>
-                      </Text>
-                      <Text
-                        size='lg'
-                        className='ml-2'
-                      >
-                        Credits
-                      </Text>
-                    </span>
-                  </div>
-                </div>
-              </ValueCard>
-            )
-          }
-          )}
-
+        <div>
           <Button
             colorScheme='brand'
-            disabled={isLoading}
+            disabled={!hasValidKeys || isLoading}
             className='w-full'
-            onClick={() => importIdentities()}
+            onClick={handleCheckClick}
           >
-            {isLoading ? 'Importing...' : 'Import'}
+            {isLoading ? 'Checking...' : 'Check'}
           </Button>
-        </div>}
+        </div>
+      </div>
 
       {error !== null &&
         <ValueCard colorScheme='yellow' className='break-all'>
