@@ -25,6 +25,8 @@ const NameRegistrationState: React.FC = () => {
   const [username, setUsername] = useState('')
   const [isContested, setIsContested] = useState(false)
   const [isValid, setIsValid] = useState(false)
+  const [isAvailable, setIsAvailable] = useState(true)
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
   const [registrationError, setRegistrationError] = useState<string | null>(null)
   const [password, setPassword] = useState<string>('')
@@ -127,16 +129,32 @@ const NameRegistrationState: React.FC = () => {
 
   useEffect(() => {
     if (username) {
-      try {
-        const fullName = username.includes('.dash') ? username : `${username}.dash`
-        const contested = sdk.names.testNameContested(fullName)
-        setIsContested(contested)
-      } catch (error) {
-        console.log('Error checking contested name:', error)
-        setIsContested(false)
+      const checkNameAvailability = async () => {
+        try {
+          setIsCheckingAvailability(true)
+          const fullName = username.includes('.dash') ? username : `${username}.dash`
+          
+          // Check if name is contested
+          const contested = sdk.names.testNameContested(fullName)
+          setIsContested(contested)
+          
+          // Check if name is available using searchByName
+          const existingNames = await sdk.names.searchByName(fullName)
+          setIsAvailable(existingNames.length === 0)
+        } catch (error) {
+          console.log('Error checking name availability:', error)
+          setIsContested(false)
+          setIsAvailable(true)
+        } finally {
+          setIsCheckingAvailability(false)
+        }
       }
+
+      checkNameAvailability()
     } else {
       setIsContested(false)
+      setIsAvailable(true)
+      setIsCheckingAvailability(false)
     }
   }, [username, sdk])
 
@@ -288,6 +306,8 @@ const NameRegistrationState: React.FC = () => {
             username={username}
             isContested={isContested}
             isValid={isValid}
+            isAvailable={isAvailable}
+            isCheckingAvailability={isCheckingAvailability}
             hasCompatibleKeys={hasCompatibleKeys}
             onRequestUsername={() => setCurrentStep(2)}
           />
