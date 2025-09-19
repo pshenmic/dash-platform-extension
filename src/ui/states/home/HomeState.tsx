@@ -14,6 +14,7 @@ import { useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
 import { TransactionsList } from '../../components/transactions'
 import { TokensList } from '../../components/tokens'
+import { NamesList, type NameData } from '../../components/names'
 import { BalanceInfo } from '../../components/data'
 
 function HomeState (): React.JSX.Element {
@@ -25,6 +26,7 @@ function HomeState (): React.JSX.Element {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [transactionsState, loadTransactions] = useAsyncState<TransactionData[]>()
   const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
+  const [namesState, loadNames] = useAsyncState<NameData[]>()
   const [balanceState, loadBalance] = useAsyncState<bigint>()
   const [rateState, loadRate] = useAsyncState<number>()
 
@@ -91,6 +93,14 @@ function HomeState (): React.JSX.Element {
         }
         throw new Error(result.error ?? 'Failed to load tokens')
       }).catch(e => console.log('loadTokens error:', e))
+
+      loadNames(async () => {
+        const result = await platformClient.fetchNames(currentIdentity, currentNetwork as NetworkType)
+        if (result.data !== null && result.data !== undefined) {
+          return result.data
+        }
+        throw new Error(result.error ?? 'Failed to load names')
+      }).catch(e => console.log('loadNames error:', e))
     }
 
     loadData().catch(e => console.log('loadData error:', e))
@@ -103,6 +113,7 @@ function HomeState (): React.JSX.Element {
     loadBalance,
     loadTransactions,
     loadTokens,
+    loadNames,
     identities.length,
     allWallets.length
   ])
@@ -230,6 +241,18 @@ function HomeState (): React.JSX.Element {
                   tokens={tokensState.data ?? []}
                   loading={tokensState.loading}
                   error={tokensState.error}
+                  currentNetwork={currentNetwork as NetworkType}
+                />
+              )
+            },
+            {
+              value: 'names',
+              label: 'Names',
+              content: (
+                <NamesList
+                  names={namesState.data ?? []}
+                  loading={namesState.loading}
+                  error={namesState.error}
                   currentNetwork={currentNetwork as NetworkType}
                 />
               )
