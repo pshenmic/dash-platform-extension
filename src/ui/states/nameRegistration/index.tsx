@@ -2,13 +2,14 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { UsernameInput } from '../../components/forms'
-import { Text, Identifier } from 'dash-ui-kit/react'
+import { Text, Identifier, ValueCard } from 'dash-ui-kit/react'
 import type { LayoutContext } from '../../components/layout/Layout'
 import { useAsyncState, useSdk, usePlatformExplorerClient, useExtensionAPI, useSigningKeys } from '../../hooks'
 import { NetworkType } from '../../../types'
 import { UsernameStep } from './UsernameStep'
 import { ConfirmationStep } from './ConfirmationStep'
 import type { KeyRequirement } from '../../components/keys'
+import { isKeyCompatible } from '../../../utils'
 type Step = 1 | 2
 
 const NameRegistrationState: React.FC = () => {
@@ -20,6 +21,7 @@ const NameRegistrationState: React.FC = () => {
   const keyRequirements: KeyRequirement[] = [
     { purpose: 'AUTHENTICATION', securityLevel: 'HIGH' }
   ]
+  
   const [username, setUsername] = useState('')
   const [isContested, setIsContested] = useState(false)
   const [isValid, setIsValid] = useState(false)
@@ -34,10 +36,18 @@ const NameRegistrationState: React.FC = () => {
     loading: signingKeysLoading,
     error: signingKeysError
   } = useSigningKeys({
-    identity: currentStep === 2 ? currentIdentity : null
+    identity: currentIdentity
   })
   const [rateState, loadRate] = useAsyncState<number>()
   const platformClient = usePlatformExplorerClient()
+  
+  // Check if there are compatible keys available
+  const compatibleKeys = signingKeys.filter(key => isKeyCompatible(key, keyRequirements))
+  const hasCompatibleKeys = compatibleKeys.length > 0
+
+  console.log('signingKeys', signingKeys)
+  console.log('compatibleKeys', compatibleKeys)
+  console.log('hasCompatibleKeys', hasCompatibleKeys)
 
   const handleUsernameChange = (value: string) => {
     setUsername(value)
@@ -159,7 +169,60 @@ const NameRegistrationState: React.FC = () => {
         </div>
       )
     }
-  }, [currentStep, username, handleUsernameChange])
+  }, [currentStep, username, handleUsernameChange, signingKeysLoading, hasCompatibleKeys, keyRequirements, navigate])
+
+  // // Show message if no compatible keys available on step 2
+  // if (currentStep === 2 && !signingKeysLoading && !hasCompatibleKeys) {
+  //   return (
+  //     <div className='flex flex-col h-full min-h-max'>
+  //       <TitleBlock
+  //         title={<>Missing Required Key</>}
+  //         description='You need a compatible signing key to register a username'
+  //         showLogo={false}
+  //       />
+
+  //       <div className='flex flex-col gap-6 flex-grow'>
+  //         <ValueCard colorScheme='yellow' size='xl' border={false} className='flex flex-col items-start gap-4'>
+  //           <Text size='md' weight='medium'>
+  //             Required Key Type
+  //           </Text>
+  //           <div className='flex flex-col gap-2'>
+  //             {keyRequirements.map((req, index) => (
+  //               <div key={index} className='flex items-center gap-2'>
+  //                 <Text size='sm' weight='medium'>Purpose:</Text>
+  //                 <ValueCard colorScheme='lightGray' size='sm' className='px-2 py-1'>
+  //                   <Text size='sm'>{req.purpose}</Text>
+  //                 </ValueCard>
+  //                 <Text size='sm' weight='medium'>Security Level:</Text>
+  //                 <ValueCard colorScheme='lightGray' size='sm' className='px-2 py-1'>
+  //                   <Text size='sm'>{req.securityLevel}</Text>
+  //                 </ValueCard>
+  //               </div>
+  //             ))}
+  //           </div>
+  //           <Text size='sm' className='text-gray-600'>
+  //             You need to add a private key with the above requirements to proceed with username registration.
+  //           </Text>
+  //         </ValueCard>
+  //       </div>
+
+  //       <div className='flex flex-col gap-2 w-full mt-6'>
+  //         <Button
+  //           onClick={() => navigate('/choose-wallet-type')}
+  //           colorScheme='brand'
+  //         >
+  //           Add Private Key
+  //         </Button>
+  //         <Button
+  //           onClick={() => setCurrentStep(1)}
+  //           colorScheme='lightBlue'
+  //         >
+  //           Back
+  //         </Button>
+  //       </div>
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className='flex flex-col h-full min-h-max'>
@@ -171,31 +234,61 @@ const NameRegistrationState: React.FC = () => {
         showLogo={false}
       />
 
-      <div className='flex flex-col gap-6 flex-grow'>
-        <div className='flex justify-center'>
-          <NameBlock />
+      {(currentStep === 1 && !signingKeysLoading && !hasCompatibleKeys)
+      ? (
+        <div className='flex-grow'>
+          <ValueCard colorScheme='yellow' size='xl' border={false} className='flex flex-col items-start gap-4'>
+            <Text size='md' weight='medium'>
+              Missing Required Key
+            </Text>
+            <div className='flex flex-col gap-2'>
+              {keyRequirements.map((req, index) => (
+                <div key={index} className='flex items-center gap-2'>
+                  <ValueCard colorScheme='white' size='sm' className='px-2 py-1'>
+                    <Text size='sm'>{req.purpose}</Text>
+                  </ValueCard>
+                  <ValueCard colorScheme='white' size='sm' className='px-2 py-1'>
+                    <Text size='sm'>{req.securityLevel}</Text>
+                  </ValueCard>
+                </div>
+              ))}
+            </div>
+            <Text size='sm' className='text-gray-600'>
+              You need to add a private key with the above requirements to register a username.
+            </Text>
+          </ValueCard>
         </div>
+        )
+        : (
+          <div className='flex flex-col gap-6 flex-grow'>
+            <div className='flex justify-center'>
+              <NameBlock />
+            </div>
 
-        <div className='text-center leading-none'>
-          <Text size='xs' dim className='mb-1 inline-block'>
-            This username will be created for identity
-          </Text>
+            <div className='text-center leading-none'>
+              <Text size='xs' dim className='mb-1 inline-block'>
+                This username will be created for identity
+              </Text>
 
-          <Identifier
-            highlight='both'
-            size='xs'
-            className='text-center text-xs'
-          >
-            {currentIdentity}
-          </Identifier>
-        </div>
-      </div>
+              <Identifier
+                highlight='both'
+                size='xs'
+                className='text-center text-xs'
+              >
+                {currentIdentity}
+              </Identifier>
+            </div>
+          </div>
+        )
+      }
+
       <div className='flex flex-col gap-4 w-full mt-6'>
         {currentStep === 1 ? (
           <UsernameStep
             username={username}
             isContested={isContested}
             isValid={isValid}
+            hasCompatibleKeys={hasCompatibleKeys}
             onRequestUsername={() => setCurrentStep(2)}
           />
         ) : (

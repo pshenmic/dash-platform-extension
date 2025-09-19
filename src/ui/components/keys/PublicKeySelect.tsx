@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { Text, ValueCard, Select, KeyIcon } from 'dash-ui-kit/react'
 import { getPurposeLabel, getSecurityLabel } from '../../../enums'
+import { isKeyCompatible } from '../../../utils'
 
 export interface PublicKeyInfo {
   keyId: number | null
@@ -33,25 +34,11 @@ export function PublicKeySelect ({
   error = null,
   keyRequirements = []
 }: PublicKeySelectProps): React.JSX.Element {
-  // Function to check if a key is compatible with transaction requirements
-  const isKeyCompatible = (key: PublicKeyInfo): boolean => {
-    if (keyRequirements.length === 0) {
-      return true // No requirements means all keys are compatible
-    }
-
-    // Exact string comparison for purpose and security level
-    const keyPurpose = String(key.purpose)
-    const keySecurityLevel = String(key.securityLevel)
-    
-    return keyRequirements.some(req => 
-      req.purpose === keyPurpose && req.securityLevel === keySecurityLevel
-    )
-  }
 
   // Auto-select first compatible key when keys or requirements change
   useEffect(() => {
     if (keys.length > 0) {
-      const compatibleKeys = keys.filter(isKeyCompatible)
+      const compatibleKeys = keys.filter(key => isKeyCompatible(key, keyRequirements))
       
       if (compatibleKeys.length > 0) {
         const currentKey = keys.find(key => {
@@ -59,7 +46,7 @@ export function PublicKeySelect ({
           return keyValue === value
         })
         
-        const isCurrentKeyCompatible = currentKey ? isKeyCompatible(currentKey) : false
+        const isCurrentKeyCompatible = currentKey ? isKeyCompatible(currentKey, keyRequirements) : false
         
         // Select first compatible key if no key selected or current key is not compatible
         if (!value || !isCurrentKeyCompatible) {
@@ -78,7 +65,7 @@ export function PublicKeySelect ({
     const securityLabel = getSecurityLabel(key.securityLevel)
 
     // Check if key is compatible with requirements
-    const isKeyDisabled = !isKeyCompatible(key)
+    const isKeyDisabled = !isKeyCompatible(key, keyRequirements)
 
     return {
       value: keyValue,

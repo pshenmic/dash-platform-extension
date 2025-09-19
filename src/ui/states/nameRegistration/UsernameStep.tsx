@@ -5,6 +5,7 @@ interface UsernameStepProps {
   username: string
   isContested: boolean
   isValid: boolean
+  hasCompatibleKeys: boolean
   onRequestUsername: () => void
 }
 
@@ -12,6 +13,7 @@ export const UsernameStep: React.FC<UsernameStepProps> = ({
   username,
   isContested,
   isValid,
+  hasCompatibleKeys,
   onRequestUsername
 }) => {
   return (
@@ -30,7 +32,7 @@ export const UsernameStep: React.FC<UsernameStepProps> = ({
         colorScheme='brand'
         size='md'
         onClick={onRequestUsername}
-        disabled={!isValid}
+        disabled={!isValid || !hasCompatibleKeys}
         className='w-full'
       >
         Request Username
