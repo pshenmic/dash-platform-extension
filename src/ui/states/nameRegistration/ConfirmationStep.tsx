@@ -5,7 +5,7 @@ import { PublicKeySelect, PublicKeyInfo, KeyRequirement } from '../../components
 interface ConfirmationStepProps {
   // Rate data
   rateData: number | null
-  
+
   // Authentication
   password: string
   passwordError: string | null
@@ -14,11 +14,11 @@ interface ConfirmationStepProps {
   signingKeysLoading: boolean
   signingKeysError: string | null
   keyRequirements?: KeyRequirement[]
-  
+
   // Form state
   isRegistering: boolean
   registrationError: string | null
-  
+
   // Actions
   onCancel: () => void
   onConfirm: () => void
@@ -59,7 +59,7 @@ export const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
           </div>
         </div>
       </ValueCard>
-      
+
       {/* Choose Signing Key */}
       <PublicKeySelect
         keys={signingKeys}
@@ -91,7 +91,7 @@ export const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
         )}
       </div>
 
-      {registrationError && (
+      {(registrationError != null && registrationError !== '') && (
         <ValueCard
           border={false}
           colorScheme='yellow'
@@ -100,7 +100,7 @@ export const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
           {registrationError}
         </ValueCard>
       )}
-      
+
       <div className='flex gap-[0.675rem]'>
         <Button
           variant='outline'
@@ -116,7 +116,7 @@ export const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
           colorScheme='brand'
           size='md'
           onClick={onConfirm}
-          disabled={isRegistering || !password || selectedSigningKey === null}
+          disabled={isRegistering || password === '' || selectedSigningKey === null}
           className='flex-1'
         >
           {isRegistering ? 'Registering...' : 'Confirm'}

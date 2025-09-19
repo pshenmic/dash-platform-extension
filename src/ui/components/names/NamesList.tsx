@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, DateBlock, Button } from 'dash-ui-kit/react'
+import { Text, Button } from 'dash-ui-kit/react'
 import { useNavigate } from 'react-router-dom'
 import { NetworkType } from '../../../types'
 import EntityList from '../common/EntityList'
@@ -26,8 +26,8 @@ function NamesList ({
 }: NamesListProps): React.JSX.Element {
   const navigate = useNavigate()
 
-  const handleRegisterName = () => {
-    navigate('/name-registration')
+  const handleRegisterName = (): void => {
+    void navigate('/name-registration')
   }
   const isValidTimestamp = (timestamp: string | null): boolean => {
     if (timestamp === null || timestamp === '') {
@@ -46,17 +46,17 @@ function NamesList ({
     if (!isValidTimestamp(timestamp)) {
       return 'Unknown date'
     }
-    
-    const date = new Date(timestamp!)
+
+    const date = new Date(timestamp as string)
     const day = date.getDate()
     const month = date.toLocaleDateString('en', { month: 'short' })
     const year = date.getFullYear()
-    const time = date.toLocaleTimeString('en', { 
-      hour: '2-digit', 
+    const time = date.toLocaleTimeString('en', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: false 
+      hour12: false
     })
-    
+
     return `Created: ${day} ${month} ${year}, ${time}`
   }
 
@@ -86,9 +86,9 @@ function NamesList ({
                   >
                     {nameItem.name}
                   </Text>
-                  
-                  <Text 
-                    size='xs' 
+
+                  <Text
+                    size='xs'
                     weight='medium'
                     className='text-[rgba(12,28,51,0.35)] leading-[1.366em]'
                   >

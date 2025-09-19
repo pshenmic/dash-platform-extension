@@ -31,7 +31,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const [hasWallet, setHasWallet] = useState<boolean>(false)
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
   const [keyRequirements, setKeyRequirements] = useState<KeyRequirement[]>([])
-  
+
   const {
     signingKeys,
     selectedSigningKey,
@@ -84,7 +84,6 @@ function ApproveTransactionState (): React.JSX.Element {
       .catch(e => console.log('loadData error', e))
   }, [isCheckingWallet, hasWallet, currentWallet])
 
-
   useEffect(() => {
     const transactionHash = params.hash ?? params.txhash
     if (transactionHash != null) {
@@ -121,7 +120,7 @@ function ApproveTransactionState (): React.JSX.Element {
     try {
       const purposeRequirements = stateTransitionWASM.getPurposeRequirement()
       const requirements: KeyRequirement[] = []
-      
+
       if (Array.isArray(purposeRequirements)) {
         for (const purpose of purposeRequirements) {
           const securityLevel = stateTransitionWASM.getKeyLevelRequirement(purpose)
@@ -136,7 +135,7 @@ function ApproveTransactionState (): React.JSX.Element {
           }
         }
       }
- 
+
       setKeyRequirements(requirements)
     } catch (error) {
       console.log('Error extracting key requirements:', error)

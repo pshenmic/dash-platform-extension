@@ -16,7 +16,7 @@ export const TitleBlock: React.FC<TitleBlockProps> = ({
   title,
   description,
   logoSize = '3rem',
-  showLogo=true,
+  showLogo = true,
   centered = false,
   titleSize = '2xl',
   titleClassName,

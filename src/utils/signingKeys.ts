@@ -56,8 +56,8 @@ export const isKeyCompatible = (key: PublicKeyInfo, keyRequirements: KeyRequirem
 
   const keyPurpose = String(key.purpose)
   const keySecurityLevel = String(key.securityLevel)
-  
-  return keyRequirements.some(req => 
+
+  return keyRequirements.some(req =>
     req.purpose === keyPurpose && req.securityLevel === keySecurityLevel
   )
 }

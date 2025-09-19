@@ -5,7 +5,6 @@ import { UsernameInput } from '../../components/forms'
 import { Text, Identifier, ValueCard } from 'dash-ui-kit/react'
 import type { LayoutContext } from '../../components/layout/Layout'
 import { useAsyncState, useSdk, usePlatformExplorerClient, useExtensionAPI, useSigningKeys } from '../../hooks'
-import { NetworkType } from '../../../types'
 import { UsernameStep } from './UsernameStep'
 import { ConfirmationStep } from './ConfirmationStep'
 import type { KeyRequirement } from '../../components/keys'
@@ -21,7 +20,7 @@ const NameRegistrationState: React.FC = () => {
   const keyRequirements: KeyRequirement[] = [
     { purpose: 'AUTHENTICATION', securityLevel: 'HIGH' }
   ]
-  
+
   const [username, setUsername] = useState('')
   const [isContested, setIsContested] = useState(false)
   const [isValid, setIsValid] = useState(false)
@@ -44,7 +43,7 @@ const NameRegistrationState: React.FC = () => {
   })
   const [rateState, loadRate] = useAsyncState<number>()
   const platformClient = usePlatformExplorerClient()
-  
+
   // Check if there are compatible keys available
   const compatibleKeys = signingKeys.filter(key => isKeyCompatible(key, keyRequirements))
   const hasCompatibleKeys = compatibleKeys.length > 0
@@ -53,13 +52,13 @@ const NameRegistrationState: React.FC = () => {
   console.log('compatibleKeys', compatibleKeys)
   console.log('hasCompatibleKeys', hasCompatibleKeys)
 
-  const handleUsernameChange = (value: string) => {
+  const handleUsernameChange = (value: string): void => {
     setUsername(value)
     setIsValid(value.length >= 3 && /^[a-zA-Z0-9_-]+$/.test(value))
   }
 
-  const registerName = async () => {
-    if (!currentIdentity || !username || !selectedSigningKey || isRegistering) {
+  const registerName = async (): Promise<void> => {
+    if ((currentIdentity == null || currentIdentity === '') || username === '' || (selectedSigningKey == null || selectedSigningKey === '') || isRegistering) {
       return
     }
 
@@ -85,7 +84,7 @@ const NameRegistrationState: React.FC = () => {
         return
       }
 
-      if (!selectedSigningKey) {
+      if (selectedSigningKey == null || selectedSigningKey === '') {
         setPasswordError('Key not selected')
         setIsRegistering(false)
         return
@@ -106,7 +105,7 @@ const NameRegistrationState: React.FC = () => {
       console.log('res', res)
       console.log('Username registration successful!')
 
-      navigate('/home')
+      void navigate('/home')
     } catch (error) {
       console.log('Failed to register username:', error)
       const errorMessage = error instanceof Error ? error.message : (String(error) ?? 'Unknown error occurred')
@@ -118,10 +117,9 @@ const NameRegistrationState: React.FC = () => {
     setIsRegistering(false)
   }
 
-
   useEffect(() => {
     loadRate(async () => {
-      const result = await platformClient.fetchRate(currentNetwork as NetworkType)
+      const result = await platformClient.fetchRate(currentNetwork)
       if (result.data !== null && result.data !== undefined) {
         return result.data
       }
@@ -130,55 +128,49 @@ const NameRegistrationState: React.FC = () => {
   }, [currentNetwork, platformClient, loadRate])
 
   useEffect(() => {
-    if (!currentIdentity) {
+    if (currentIdentity == null || currentIdentity === '') {
       setHasSufficientBalance(true)
       return
     }
 
-    const checkBalance = async () => {
-      try {
-        setIsCheckingBalance(true)
-        const balance = await sdk.identities.getIdentityBalance(currentIdentity)
-        const dashBalance = creditsToDash(balance)
-        const requiredDash = 0.25
-        
-        setHasSufficientBalance(dashBalance >= requiredDash)
-        console.log('Balance check:', { dashBalance, requiredDash, sufficient: dashBalance >= requiredDash })
-      } catch (error) {
-        console.log('Error checking balance:', error)
-        setHasSufficientBalance(true)
-      } finally {
-        setIsCheckingBalance(false)
-      }
+    const checkBalance = async (): Promise<void> => {
+      setIsCheckingBalance(true)
+      const balance = await sdk.identities.getIdentityBalance(currentIdentity)
+      const dashBalance = creditsToDash(balance)
+      const requiredDash = 0.25
+      setHasSufficientBalance(dashBalance >= requiredDash)
     }
 
     checkBalance()
+      .catch(e => {
+        console.log('Error checking balance:', e)
+        setHasSufficientBalance(true)
+      })
+      .finally(() => setIsCheckingBalance(false))
   }, [currentIdentity, sdk])
 
   useEffect(() => {
-    if (username) {
-      const checkNameAvailability = async () => {
-        try {
-          setIsCheckingAvailability(true)
-          const fullName = username.includes('.dash') ? username : `${username}.dash`
-          
-          // Check if name is contested
-          const contested = sdk.names.testNameContested(fullName)
-          setIsContested(contested)
-          
-          // Check if name is available using searchByName
-          const existingNames = await sdk.names.searchByName(fullName)
-          setIsAvailable(existingNames.length === 0)
-        } catch (error) {
-          console.log('Error checking name availability:', error)
-          setIsContested(false)
-          setIsAvailable(true)
-        } finally {
-          setIsCheckingAvailability(false)
-        }
+    if (username !== '') {
+      const checkNameAvailability = async (): Promise<void> => {
+        setIsCheckingAvailability(true)
+        const fullName = username.includes('.dash') ? username : `${username}.dash`
+
+        // Check if name is contested
+        const contested = sdk.names.testNameContested(fullName)
+        setIsContested(contested)
+
+        // Check if name is available using searchByName
+        const existingNames = await sdk.names.searchByName(fullName)
+        setIsAvailable(existingNames.length === 0)
       }
 
       checkNameAvailability()
+        .catch((e) => {
+          console.log('Error checking name availability:', e)
+          setIsContested(false)
+          setIsAvailable(true)
+        })
+        .finally(() => setIsCheckingAvailability(false))
     } else {
       setIsContested(false)
       setIsAvailable(true)
@@ -217,94 +209,41 @@ const NameRegistrationState: React.FC = () => {
     }
   }, [currentStep, username, handleUsernameChange, signingKeysLoading, hasCompatibleKeys, keyRequirements, navigate])
 
-  // // Show message if no compatible keys available on step 2
-  // if (currentStep === 2 && !signingKeysLoading && !hasCompatibleKeys) {
-  //   return (
-  //     <div className='flex flex-col h-full min-h-max'>
-  //       <TitleBlock
-  //         title={<>Missing Required Key</>}
-  //         description='You need a compatible signing key to register a username'
-  //         showLogo={false}
-  //       />
-
-  //       <div className='flex flex-col gap-6 flex-grow'>
-  //         <ValueCard colorScheme='yellow' size='xl' border={false} className='flex flex-col items-start gap-4'>
-  //           <Text size='md' weight='medium'>
-  //             Required Key Type
-  //           </Text>
-  //           <div className='flex flex-col gap-2'>
-  //             {keyRequirements.map((req, index) => (
-  //               <div key={index} className='flex items-center gap-2'>
-  //                 <Text size='sm' weight='medium'>Purpose:</Text>
-  //                 <ValueCard colorScheme='lightGray' size='sm' className='px-2 py-1'>
-  //                   <Text size='sm'>{req.purpose}</Text>
-  //                 </ValueCard>
-  //                 <Text size='sm' weight='medium'>Security Level:</Text>
-  //                 <ValueCard colorScheme='lightGray' size='sm' className='px-2 py-1'>
-  //                   <Text size='sm'>{req.securityLevel}</Text>
-  //                 </ValueCard>
-  //               </div>
-  //             ))}
-  //           </div>
-  //           <Text size='sm' className='text-gray-600'>
-  //             You need to add a private key with the above requirements to proceed with username registration.
-  //           </Text>
-  //         </ValueCard>
-  //       </div>
-
-  //       <div className='flex flex-col gap-2 w-full mt-6'>
-  //         <Button
-  //           onClick={() => navigate('/choose-wallet-type')}
-  //           colorScheme='brand'
-  //         >
-  //           Add Private Key
-  //         </Button>
-  //         <Button
-  //           onClick={() => setCurrentStep(1)}
-  //           colorScheme='lightBlue'
-  //         >
-  //           Back
-  //         </Button>
-  //       </div>
-  //     </div>
-  //   )
-  // }
-
   return (
     <div className='flex flex-col h-full min-h-max'>
       <TitleBlock
-        title={<>{currentStep === 1 ? 'Create' : 'Confirm'} your<br/>Dash Username</>}
+        title={<>{currentStep === 1 ? 'Create' : 'Confirm'} your<br />Dash Username</>}
         description={currentStep === 1
           ? 'You will not be able to change it in the future'
-          : `You have chosen ${username} as your username. Please note that you can\'t change your name once it is registered.`}
+          : `You have chosen ${username} as your username. Please note that you can't change your name once it is registered.`}
         showLogo={false}
       />
 
       {(currentStep === 1 && !signingKeysLoading && !hasCompatibleKeys)
-      ? (
-        <div className='flex-grow'>
-          <ValueCard colorScheme='yellow' size='xl' border={false} className='flex flex-col items-start gap-4'>
-            <Text size='md' weight='medium'>
-              Missing Required Key
-            </Text>
-            <div className='flex flex-col gap-2'>
-              {keyRequirements.map((req, index) => (
-                <div key={index} className='flex items-center gap-2'>
-                  <ValueCard colorScheme='white' size='sm' className='px-2 py-1'>
-                    <Text size='sm'>{req.purpose}</Text>
-                  </ValueCard>
-                  <ValueCard colorScheme='white' size='sm' className='px-2 py-1'>
-                    <Text size='sm'>{req.securityLevel}</Text>
-                  </ValueCard>
-                </div>
-              ))}
-            </div>
-            <Text size='sm' className='text-gray-600'>
-              You need to add a private key with the above requirements to register a username.
-            </Text>
-          </ValueCard>
-        </div>
-        )
+        ? (
+          <div className='flex-grow'>
+            <ValueCard colorScheme='yellow' size='xl' border={false} className='flex flex-col items-start gap-4'>
+              <Text size='md' weight='medium'>
+                Missing Required Key
+              </Text>
+              <div className='flex flex-col gap-2'>
+                {keyRequirements.map((req, index) => (
+                  <div key={index} className='flex items-center gap-2'>
+                    <ValueCard colorScheme='white' size='sm' className='px-2 py-1'>
+                      <Text size='sm'>{req.purpose}</Text>
+                    </ValueCard>
+                    <ValueCard colorScheme='white' size='sm' className='px-2 py-1'>
+                      <Text size='sm'>{req.securityLevel}</Text>
+                    </ValueCard>
+                  </div>
+                ))}
+              </div>
+              <Text size='sm' className='text-gray-600'>
+                You need to add a private key with the above requirements to register a username.
+              </Text>
+            </ValueCard>
+          </div>
+          )
         : (
           <div className='flex flex-col gap-6 flex-grow'>
             <div className='flex justify-center'>
@@ -325,40 +264,41 @@ const NameRegistrationState: React.FC = () => {
               </Identifier>
             </div>
           </div>
-        )
-      }
+          )}
 
       <div className='flex flex-col gap-4 w-full mt-6'>
-        {currentStep === 1 ? (
-          <UsernameStep
-            username={username}
-            isContested={isContested}
-            isValid={isValid}
-            isAvailable={isAvailable}
-            isCheckingAvailability={isCheckingAvailability}
-            hasSufficientBalance={hasSufficientBalance}
-            isCheckingBalance={isCheckingBalance}
-            hasCompatibleKeys={hasCompatibleKeys}
-            onRequestUsername={() => setCurrentStep(2)}
-          />
-        ) : (
-          <ConfirmationStep
-            rateData={rateState.data}
-            password={password}
-            passwordError={passwordError}
-            selectedSigningKey={selectedSigningKey}
-            signingKeys={signingKeys}
-            signingKeysLoading={signingKeysLoading}
-            signingKeysError={signingKeysError}
-            keyRequirements={keyRequirements}
-            isRegistering={isRegistering}
-            registrationError={registrationError}
-            onCancel={handleCancel}
-            onConfirm={registerName}
-            onPasswordChange={(value: string) => setPassword(value)}
-            onSigningKeyChange={(keyId: string) => setSelectedSigningKey(keyId)}
-          />
-        )}
+        {currentStep === 1
+          ? (
+            <UsernameStep
+              username={username}
+              isContested={isContested}
+              isValid={isValid}
+              isAvailable={isAvailable}
+              isCheckingAvailability={isCheckingAvailability}
+              hasSufficientBalance={hasSufficientBalance}
+              isCheckingBalance={isCheckingBalance}
+              hasCompatibleKeys={hasCompatibleKeys}
+              onRequestUsername={() => setCurrentStep(2)}
+            />
+            )
+          : (
+            <ConfirmationStep
+              rateData={rateState.data}
+              password={password}
+              passwordError={passwordError}
+              selectedSigningKey={selectedSigningKey}
+              signingKeys={signingKeys}
+              signingKeysLoading={signingKeysLoading}
+              signingKeysError={signingKeysError}
+              keyRequirements={keyRequirements}
+              isRegistering={isRegistering}
+              registrationError={registrationError}
+              onCancel={handleCancel}
+              onConfirm={() => { void registerName() }}
+              onPasswordChange={(value: string) => setPassword(value)}
+              onSigningKeyChange={(keyId: string) => setSelectedSigningKey(keyId)}
+            />
+            )}
       </div>
     </div>
   )

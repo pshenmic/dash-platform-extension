@@ -34,24 +34,23 @@ export function PublicKeySelect ({
   error = null,
   keyRequirements = []
 }: PublicKeySelectProps): React.JSX.Element {
-
   // Auto-select first compatible key when keys or requirements change
   useEffect(() => {
     if (keys.length > 0) {
       const compatibleKeys = keys.filter(key => isKeyCompatible(key, keyRequirements))
-      
+
       if (compatibleKeys.length > 0) {
         const currentKey = keys.find(key => {
           const keyValue = key.keyId?.toString() ?? (key.hash !== '' ? key.hash : `key-${keys.indexOf(key)}`)
           return keyValue === value
         })
-        
-        const isCurrentKeyCompatible = currentKey ? isKeyCompatible(currentKey, keyRequirements) : false
-        
+
+        const isCurrentKeyCompatible = (currentKey != null) ? isKeyCompatible(currentKey, keyRequirements) : false
+
         // Select first compatible key if no key selected or current key is not compatible
-        if (!value || !isCurrentKeyCompatible) {
+        if (value === '' || !isCurrentKeyCompatible) {
           const firstCompatibleKey = compatibleKeys[0]
-          const keyValue = firstCompatibleKey.keyId?.toString() ?? 
+          const keyValue = firstCompatibleKey.keyId?.toString() ??
             (firstCompatibleKey.hash !== '' ? firstCompatibleKey.hash : 'key-0')
           onChange(keyValue)
         }
@@ -74,7 +73,8 @@ export function PublicKeySelect ({
         <div className={`flex items-center flex-wrap gap-2 w-full ${isKeyDisabled ? 'opacity-50' : ''}`}>
           <div className={`flex items-center justify-center w-5 h-5 rounded-full ${
             isKeyDisabled ? 'bg-gray-200' : 'bg-gray-100'
-          }`}>
+          }`}
+          >
             <KeyIcon size={10} className={isKeyDisabled ? 'text-gray-500' : 'text-gray-700'} />
           </div>
 

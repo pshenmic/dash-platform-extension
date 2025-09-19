@@ -37,7 +37,7 @@ export const useSigningKeys = (options: UseSigningKeysOptions): UseSigningKeysRe
       return
     }
 
-    loadSigningKeys(() => getSigningKeys(sdk, extensionAPI, identity))
+    loadSigningKeys(async () => await getSigningKeys(sdk, extensionAPI, identity))
       .catch(e => console.log('useSigningKeys error', e))
   }, [identity, sdk, extensionAPI, loadSigningKeys])
 
@@ -56,7 +56,7 @@ export const useSigningKeys = (options: UseSigningKeysOptions): UseSigningKeysRe
     error: signingKeysState.error,
     reload: () => {
       if (identity != null) {
-        loadSigningKeys(() => getSigningKeys(sdk, extensionAPI, identity))
+        loadSigningKeys(async () => await getSigningKeys(sdk, extensionAPI, identity))
           .catch(e => console.log('useSigningKeys reload error', e))
       }
     }
