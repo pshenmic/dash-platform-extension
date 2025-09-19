@@ -94,6 +94,7 @@ export function PublicKeySelect ({
                   showArrow
                   size='xl'
                   disabled={disabled}
+                  className='py-[0.875rem]'
                 />
                 )
               : (
