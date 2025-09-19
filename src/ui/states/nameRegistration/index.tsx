@@ -9,7 +9,7 @@ import { NetworkType } from '../../../types'
 import { UsernameStep } from './UsernameStep'
 import { ConfirmationStep } from './ConfirmationStep'
 import type { KeyRequirement } from '../../components/keys'
-import { isKeyCompatible } from '../../../utils'
+import { isKeyCompatible, creditsToDash } from '../../../utils'
 type Step = 1 | 2
 
 const NameRegistrationState: React.FC = () => {
@@ -27,6 +27,8 @@ const NameRegistrationState: React.FC = () => {
   const [isValid, setIsValid] = useState(false)
   const [isAvailable, setIsAvailable] = useState(true)
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
+  const [hasSufficientBalance, setHasSufficientBalance] = useState(true)
+  const [isCheckingBalance, setIsCheckingBalance] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
   const [registrationError, setRegistrationError] = useState<string | null>(null)
   const [password, setPassword] = useState<string>('')
@@ -126,6 +128,32 @@ const NameRegistrationState: React.FC = () => {
       throw new Error(result.error ?? 'Failed to load rate')
     }).catch(e => console.log('loadRate error:', e))
   }, [currentNetwork, platformClient, loadRate])
+
+  useEffect(() => {
+    if (!currentIdentity) {
+      setHasSufficientBalance(true)
+      return
+    }
+
+    const checkBalance = async () => {
+      try {
+        setIsCheckingBalance(true)
+        const balance = await sdk.identities.getIdentityBalance(currentIdentity)
+        const dashBalance = creditsToDash(balance)
+        const requiredDash = 0.25
+        
+        setHasSufficientBalance(dashBalance >= requiredDash)
+        console.log('Balance check:', { dashBalance, requiredDash, sufficient: dashBalance >= requiredDash })
+      } catch (error) {
+        console.log('Error checking balance:', error)
+        setHasSufficientBalance(true)
+      } finally {
+        setIsCheckingBalance(false)
+      }
+    }
+
+    checkBalance()
+  }, [currentIdentity, sdk])
 
   useEffect(() => {
     if (username) {
@@ -308,6 +336,8 @@ const NameRegistrationState: React.FC = () => {
             isValid={isValid}
             isAvailable={isAvailable}
             isCheckingAvailability={isCheckingAvailability}
+            hasSufficientBalance={hasSufficientBalance}
+            isCheckingBalance={isCheckingBalance}
             hasCompatibleKeys={hasCompatibleKeys}
             onRequestUsername={() => setCurrentStep(2)}
           />
