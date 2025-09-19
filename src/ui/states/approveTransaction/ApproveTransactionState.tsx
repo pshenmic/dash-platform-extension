@@ -3,15 +3,12 @@ import { useNavigate, useParams, useOutletContext } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
 import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { useSdk } from '../../hooks/useSdk'
-import { useAsyncState } from '../../hooks/useAsyncState'
+import { useExtensionAPI, useSdk, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types/OutletContext'
 import LoadingScreen from '../../components/layout/LoadingScreen'
-import { PublicKeySelect, PublicKeyInfo } from '../../components/keys'
-import { loadSigningKeys as getSigningKeys } from '../../../utils'
+import { PublicKeySelect } from '../../components/keys'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -35,9 +32,16 @@ function ApproveTransactionState (): React.JSX.Element {
   const [hasWallet, setHasWallet] = useState<boolean>(false)
 
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
-  const [selectedSigningKey, setSelectedSigningKey] = useState<string | null>(null)
-  const [signingKeys, setSigningKeys] = useState<PublicKeyInfo[]>([])
-  const [signingKeysState, loadSigningKeys] = useAsyncState<PublicKeyInfo[]>()
+  
+  const {
+    signingKeys,
+    selectedSigningKey,
+    setSelectedSigningKey,
+    loading: signingKeysLoading,
+    error: signingKeysError
+  } = useSigningKeys({
+    identity: currentIdentity
+  })
 
   useEffect(() => {
     const checkWallet = async (): Promise<void> => {
@@ -81,44 +85,6 @@ function ApproveTransactionState (): React.JSX.Element {
       .catch(e => console.log('loadData error', e))
   }, [isCheckingWallet, hasWallet, currentWallet])
 
-  // Load signing keys when wallet/identity/network changes
-  useEffect(() => {
-    if (currentWallet == null || currentNetwork == null || currentIdentity == null) {
-      setSigningKeys([])
-      setSelectedSigningKey(null)
-      return
-    }
-
-    loadSigningKeys(async () => {
-      const allWallets = await extensionAPI.getAllWallets()
-      const wallet = allWallets.find(w => w.walletId === currentWallet && w.network === currentNetwork)
-      if (wallet == null) throw new Error('Wallet not found')
-
-      return await getSigningKeys(sdk, extensionAPI, currentIdentity)
-    })
-      .catch(e => console.log('loadSigningKeys error', e))
-  }, [currentWallet, currentNetwork, currentIdentity])
-
-  // Update local state when signing keys are loaded
-  useEffect(() => {
-    if (signingKeysState.data != null) {
-      setSigningKeys(signingKeysState.data)
-
-      if (signingKeysState.data.length > 0 && selectedSigningKey === null) {
-        const firstKey = signingKeysState.data[0]
-        const keyValue = firstKey.keyId?.toString() ?? (firstKey.hash !== '' ? firstKey.hash : 'key-0')
-        setSelectedSigningKey(keyValue)
-      }
-
-      return
-    }
-
-    setSigningKeys([])
-
-    if (selectedSigningKey !== null) {
-      setSelectedSigningKey(null)
-    }
-  }, [signingKeysState.data, selectedSigningKey])
 
   useEffect(() => {
     const transactionHash = params.hash ?? params.txhash
@@ -374,8 +340,8 @@ function ApproveTransactionState (): React.JSX.Element {
             keys={signingKeys}
             value={selectedSigningKey ?? ''}
             onChange={setSelectedSigningKey}
-            loading={signingKeysState.loading}
-            error={signingKeysState.error}
+            loading={signingKeysLoading}
+            error={signingKeysError}
           />
         )}
 
