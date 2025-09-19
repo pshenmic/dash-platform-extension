@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, Button } from 'dash-ui-kit/react'
+import { Button } from 'dash-ui-kit/react'
 import { useNavigate } from 'react-router-dom'
 import { useStaticAsset } from '../../hooks/useStaticAsset'
 import { withAccessControl } from '../../components/auth/withAccessControl'

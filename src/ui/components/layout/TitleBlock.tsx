@@ -24,7 +24,7 @@ export const TitleBlock: React.FC<TitleBlockProps> = ({
 }) => {
   const baseContainerClass = `flex ${centered ? 'items-center' : ''} flex-col w-full gap-2.5 mb-6`
 
-  const containerClass = containerClassName
+  const containerClass = containerClassName !== null && containerClassName !== undefined && containerClassName !== ''
     ? `${baseContainerClass} ${containerClassName}`
     : baseContainerClass
 
@@ -41,7 +41,7 @@ export const TitleBlock: React.FC<TitleBlockProps> = ({
         {title}
       </Heading>
 
-      {description && (
+      {description !== null && description !== undefined && description !== '' && (
         <div className='!leading-tight'>
           <Text size='sm' dim>
             {description}

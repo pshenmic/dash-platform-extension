@@ -43,7 +43,7 @@ const Layout: FC = () => {
   }, [isApiReady, extensionAPI])
 
   const loadIdentities = useCallback(async (): Promise<void> => {
-    if (!isApiReady || !currentWallet) return
+    if (!isApiReady || currentWallet === null || currentWallet === '') return
     try {
       const identities = await extensionAPI.getIdentities()
       setAvailableIdentities(identities)
@@ -53,7 +53,7 @@ const Layout: FC = () => {
   }, [isApiReady, currentWallet, extensionAPI])
 
   const loadCurrentIdentity = useCallback(async (): Promise<void> => {
-    if (!isApiReady || !currentWallet) return
+    if (!isApiReady || currentWallet === null || currentWallet === '') return
     try {
       const identity = await extensionAPI.getCurrentIdentity()
       setCurrentIdentity(identity)
@@ -80,7 +80,7 @@ const Layout: FC = () => {
   }, [isApiReady, sdk, extensionAPI, loadWallets])
 
   const handleWalletChange = useCallback(async (walletId: string | null): Promise<void> => {
-    if (!isApiReady || !walletId) return
+    if (!isApiReady || walletId === null || walletId === '') return
 
     try {
       await extensionAPI.switchWallet(walletId)
@@ -137,12 +137,12 @@ const Layout: FC = () => {
 
     const handleContentScriptReady = (event: MessageEvent<EventData>): void => {
       if (event.data?.method === 'content-script-ready') {
-        initializeApp()
+        initializeApp().catch(e => console.log('initializeApp error', e))
       }
     }
 
     window.addEventListener('message', handleContentScriptReady)
-    initializeApp()
+    initializeApp().catch(e => console.log('initializeApp error', e))
 
     return () => {
       window.removeEventListener('message', handleContentScriptReady)
@@ -159,7 +159,7 @@ const Layout: FC = () => {
       await loadCurrentIdentity()
     }
 
-    loadData()
+    loadData().catch(e => console.log('loadData error', e))
   }, [isApiReady, loadWallets, loadIdentities, loadCurrentIdentity])
 
   return (
