@@ -1,4 +1,4 @@
-import type { PublicKeyInfo } from '../ui/components/keys'
+import type { PublicKeyInfo, KeyRequirement } from '../ui/components/keys'
 import type { DashPlatformSDK } from 'dash-platform-sdk'
 import type { PrivateAPIClient } from '../types'
 
@@ -41,4 +41,23 @@ export const loadSigningKeys = async (
   })
 
   return keys
+}
+
+/**
+ * Checks if a key is compatible with the given requirements
+ * @param key - The key to check
+ * @param keyRequirements - Array of key requirements to match against
+ * @returns true if the key matches any of the requirements
+ */
+export const isKeyCompatible = (key: PublicKeyInfo, keyRequirements: KeyRequirement[]): boolean => {
+  if (keyRequirements.length === 0) {
+    return true // No requirements means all keys are compatible
+  }
+
+  const keyPurpose = String(key.purpose)
+  const keySecurityLevel = String(key.securityLevel)
+  
+  return keyRequirements.some(req => 
+    req.purpose === keyPurpose && req.securityLevel === keySecurityLevel
+  )
 }
