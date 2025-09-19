@@ -30,14 +30,10 @@ export class RegisterUsernameHandler implements APIHandler {
       throw new Error('No wallet is chosen')
     }
 
-    if (wallet.type !== 'keystore') {
-      throw new Error('Importing identity only possible in keystore wallet mode')
-    }
-
     const identity = await this.identitiesRepository.getByIdentifier(payload.identity)
 
-    if (identity != null) {
-      throw new Error(`Identity with identifier ${payload.identity} already exists`)
+    if (identity == null) {
+      throw new Error(`Identity with identifier ${payload.identity} not found`)
     }
 
     let privateKeyWASM
