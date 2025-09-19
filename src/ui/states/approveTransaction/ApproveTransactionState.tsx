@@ -144,17 +144,6 @@ function ApproveTransactionState (): React.JSX.Element {
     }
   }, [stateTransitionWASM])
 
-
-  // Auto-select first key when keys are loaded
-  useEffect(() => {
-    if (signingKeys.length > 0 && selectedSigningKey === null) {
-      const firstKey = signingKeys[0]
-      const keyValue = firstKey.keyId?.toString() ?? 
-        (firstKey.hash !== '' ? firstKey.hash : 'key-0')
-      setSelectedSigningKey(keyValue)
-    }
-  }, [signingKeys, selectedSigningKey])
-
   if (isCheckingWallet || isLoadingIdentities) {
     return (
       <LoadingScreen

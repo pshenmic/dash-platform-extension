@@ -41,16 +41,12 @@ export const useSigningKeys = (options: UseSigningKeysOptions): UseSigningKeysRe
       .catch(e => console.log('useSigningKeys error', e))
   }, [identity, sdk, extensionAPI, loadSigningKeys])
 
-  // Auto-select first key when keys are loaded
+  // Reset selection when no keys are available
   useEffect(() => {
-    if (signingKeysState.data != null && signingKeysState.data.length > 0 && selectedSigningKey === null) {
-      const firstKey = signingKeysState.data[0]
-      const keyValue = firstKey.keyId?.toString() ?? (firstKey.hash !== '' ? firstKey.hash : 'key-0')
-      setSelectedSigningKey(keyValue)
-    } else if (signingKeysState.data == null || signingKeysState.data.length === 0) {
+    if (signingKeysState.data == null || signingKeysState.data.length === 0) {
       setSelectedSigningKey(null)
     }
-  }, [signingKeysState.data, selectedSigningKey])
+  }, [signingKeysState.data])
 
   return {
     signingKeys: signingKeysState.data ?? [],

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Text, ValueCard, Select, KeyIcon } from 'dash-ui-kit/react'
 import { getPurposeLabel, getSecurityLabel } from '../../../enums'
 
@@ -47,6 +47,30 @@ export function PublicKeySelect ({
       req.purpose === keyPurpose && req.securityLevel === keySecurityLevel
     )
   }
+
+  // Auto-select first compatible key when keys or requirements change
+  useEffect(() => {
+    if (keys.length > 0 && keyRequirements.length > 0) {
+      const compatibleKeys = keys.filter(isKeyCompatible)
+      
+      if (compatibleKeys.length > 0) {
+        const currentKey = keys.find(key => {
+          const keyValue = key.keyId?.toString() ?? (key.hash !== '' ? key.hash : `key-${keys.indexOf(key)}`)
+          return keyValue === value
+        })
+        
+        const isCurrentKeyCompatible = currentKey ? isKeyCompatible(currentKey) : false
+        
+        // Select first compatible key if no key selected or current key is not compatible
+        if (!value || !isCurrentKeyCompatible) {
+          const firstCompatibleKey = compatibleKeys[0]
+          const keyValue = firstCompatibleKey.keyId?.toString() ?? 
+            (firstCompatibleKey.hash !== '' ? firstCompatibleKey.hash : 'key-0')
+          onChange(keyValue)
+        }
+      }
+    }
+  }, [keys, keyRequirements, value, onChange])
 
   const signingKeyOptions = keys.map((key, index) => {
     const keyValue = key.keyId?.toString() ?? (key.hash !== '' ? key.hash : `key-${index}`)
