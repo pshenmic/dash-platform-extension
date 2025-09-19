@@ -3,18 +3,17 @@ import { useNavigate, useParams, useOutletContext } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
 import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
-import { useExtensionAPI, useSdk, useSigningKeys } from '../../hooks'
+import { useExtensionAPI, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types/OutletContext'
 import LoadingScreen from '../../components/layout/LoadingScreen'
-import { PublicKeySelect } from '../../components/keys'
+import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
-  const sdk = useSdk()
-  const { currentNetwork, currentWallet, currentIdentity, setCurrentIdentity } = useOutletContext<OutletContext>()
+  const { currentWallet, currentIdentity, setCurrentIdentity } = useOutletContext<OutletContext>()
 
   const params = useParams()
 
@@ -30,8 +29,8 @@ function ApproveTransactionState (): React.JSX.Element {
   const [isLoadingIdentities, setIsLoadingIdentities] = useState<boolean>(true)
   const [isCheckingWallet, setIsCheckingWallet] = useState<boolean>(true)
   const [hasWallet, setHasWallet] = useState<boolean>(false)
-
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
+  const [keyRequirements, setKeyRequirements] = useState<KeyRequirement[]>([])
   
   const {
     signingKeys,
@@ -111,6 +110,50 @@ function ApproveTransactionState (): React.JSX.Element {
         .finally(() => setIsLoadingTransaction(false))
     }
   }, [params.hash, params.txhash])
+
+  // Extract key requirements from state transition
+  useEffect(() => {
+    if (stateTransitionWASM == null) {
+      setKeyRequirements([])
+      return
+    }
+
+    try {
+      const purposeRequirements = stateTransitionWASM.getPurposeRequirement()
+      const requirements: KeyRequirement[] = []
+      
+      if (Array.isArray(purposeRequirements)) {
+        for (const purpose of purposeRequirements) {
+          const securityLevel = stateTransitionWASM.getKeyLevelRequirement(purpose)
+
+          if (Array.isArray(securityLevel)) {
+            securityLevel.forEach(level => {
+              requirements.push({
+                purpose,
+                securityLevel: level
+              })
+            })
+          }
+        }
+      }
+ 
+      setKeyRequirements(requirements)
+    } catch (error) {
+      console.log('Error extracting key requirements:', error)
+      setKeyRequirements([])
+    }
+  }, [stateTransitionWASM])
+
+
+  // Auto-select first key when keys are loaded
+  useEffect(() => {
+    if (signingKeys.length > 0 && selectedSigningKey === null) {
+      const firstKey = signingKeys[0]
+      const keyValue = firstKey.keyId?.toString() ?? 
+        (firstKey.hash !== '' ? firstKey.hash : 'key-0')
+      setSelectedSigningKey(keyValue)
+    }
+  }, [signingKeys, selectedSigningKey])
 
   if (isCheckingWallet || isLoadingIdentities) {
     return (
@@ -342,6 +385,7 @@ function ApproveTransactionState (): React.JSX.Element {
             onChange={setSelectedSigningKey}
             loading={signingKeysLoading}
             error={signingKeysError}
+            keyRequirements={keyRequirements}
           />
         )}
 
