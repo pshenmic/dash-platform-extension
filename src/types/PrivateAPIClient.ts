@@ -41,6 +41,7 @@ import { GetAllAppConnectsResponse } from './messages/response/GetAllAppConnects
 import { RemoveAppConnectPayload } from './messages/payloads/RemoveAppConnectPayload'
 import { ExportPrivateKeyPayload } from './messages/payloads/ExportPrivateKeyPayload'
 import { ExportPrivateKeyResponse } from './messages/response/ExportPrivateKeyResponse'
+import { RegisterUsernamePayload } from './messages/payloads/RegisterUsernamePayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -243,6 +244,17 @@ export class PrivateAPIClient {
     }
 
     await this._rpcCall(MessagingMethods.REJECT_APP_CONNECT, payload)
+  }
+
+  async registerUsername (fullUsername: string, identity: string, keyId: number, password: string): Promise<void> {
+    const payload: RegisterUsernamePayload = {
+      username: fullUsername,
+      identity,
+      keyId,
+      password
+    }
+
+    await this._rpcCall(MessagingMethods.REGISTER_USERNAME, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
