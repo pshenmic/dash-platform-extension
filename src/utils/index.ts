@@ -2,8 +2,11 @@ import { base58 } from '@scure/base'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
-import { NetworkType } from '../types'
+import { NetworkType, Wallet } from '../types'
 import formatBigNumber from './formatBigNumber'
+import hash from 'hash.js'
+import { decrypt, PrivateKey } from 'eciesjs'
+import { KeypairRepository } from '../content-script/repository/KeypairRepository'
 
 export { formatBigNumber }
 
@@ -47,6 +50,53 @@ export const utf8ToBytes = (str: string): Uint8Array => {
 }
 export const bytesToUtf8 = (bytes: Uint8Array): string => {
   return new TextDecoder().decode(bytes)
+}
+
+export const deriveKeystorePrivateKey = async (wallet: Wallet, password: string, identityId: string, keyId: number, keyPairRepository: KeypairRepository): Promise<PrivateKeyWASM> => {
+  const keyPairs = await keyPairRepository.getAllByIdentity(identityId)
+
+  const [keyPair] = keyPairs
+    .filter(keyPair => keyPair.identityPublicKey.keyId === keyId)
+
+  if (keyPair == null || keyPair.encryptedPrivateKey == null) {
+    throw new Error(`Could not find private key with KeyID ${keyId} for identity ${identityId}`)
+  }
+
+  const passwordHash = hash.sha256().update(password).digest('hex')
+
+  let privateKey
+
+  try {
+    privateKey = decrypt(passwordHash, hexToBytes(keyPair.encryptedPrivateKey))
+  } catch (e) {
+    throw new Error('Failed to decrypt')
+  }
+
+  return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+}
+
+export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: string, identityIndex: number, keyId: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+  if (wallet.encryptedMnemonic == null) {
+    throw new Error('Missing mnemonic')
+  }
+
+  const passwordHash = hash.sha256().update(password).digest('hex')
+  const secretKey = PrivateKey.fromHex(passwordHash)
+
+  let mnemonic
+
+  try {
+    mnemonic = bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(wallet.encryptedMnemonic)))
+  } catch (e) {
+    throw new Error('Failed to decrypt')
+  }
+
+  const seed = await sdk.keyPair.mnemonicToSeed(mnemonic, undefined, true)
+  const hdWallet = await sdk.keyPair.seedToWallet(seed)
+  const hdKey = await sdk.keyPair.walletToIdentityKey(hdWallet, identityIndex, keyId, { network: Network[wallet.network] })
+  const privateKey = hdKey.privateKey
+
+  return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 }
 
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {
