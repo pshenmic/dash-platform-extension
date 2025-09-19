@@ -7,6 +7,7 @@ import type { LayoutContext } from '../../components/layout/Layout'
 import { useAsyncState, useSdk, usePlatformExplorerClient, useExtensionAPI } from '../../hooks'
 import { NetworkType } from '../../../types'
 import { PublicKeyInfo } from '../../components/keys'
+import { loadSigningKeys as getSigningKeys } from '../../../utils'
 import { UsernameStep } from './UsernameStep'
 import { ConfirmationStep } from './ConfirmationStep'
 type Step = 1 | 2
@@ -83,10 +84,9 @@ const NameRegistrationState: React.FC = () => {
       console.log('res', res)
       console.log('Username registration successful!')
 
-      // Navigate back to home on success
       navigate('/home')
     } catch (error) {
-      console.error('Failed to register username:', error)
+      console.log('Failed to register username:', error)
       const errorMessage = error instanceof Error ? error.message : (String(error) ?? 'Unknown error occurred')
       setRegistrationError(errorMessage)
     } finally {
@@ -100,35 +100,7 @@ const NameRegistrationState: React.FC = () => {
   useEffect(() => {
     if (currentStep !== 2 || currentNetwork == null || currentIdentity == null) return
 
-    loadSigningKeys(async () => {
-      const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
-      const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity)
-
-      // Filter identity public keys to only show those that are available
-      const availablePublicKeys = identityPublicKeys.filter((key: any) => {
-        const keyId = key?.keyId ?? key?.getId?.() ?? null
-        return keyId != null && availableKeyIds.includes(keyId)
-      })
-
-      const keys: PublicKeyInfo[] = availablePublicKeys.map((key: any) => {
-        const keyId = key?.keyId ?? key?.getId?.() ?? null
-        const purpose = String(key?.purpose ?? 'UNKNOWN')
-        const security = String(key?.securityLevel ?? 'UNKNOWN')
-        let hash = ''
-        try {
-          hash = typeof key?.getPublicKeyHash === 'function' ? key.getPublicKeyHash() : ''
-        } catch {}
-
-        return {
-          keyId: keyId ?? 0,
-          securityLevel: security,
-          purpose,
-          hash
-        }
-      })
-
-      return keys
-    })
+    loadSigningKeys(() => getSigningKeys(sdk, extensionAPI, currentIdentity))
       .catch(e => console.log('loadSigningKeys error', e))
   }, [currentStep, currentNetwork, currentIdentity, sdk, extensionAPI, loadSigningKeys])
 
