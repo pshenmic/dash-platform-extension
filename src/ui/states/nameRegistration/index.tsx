@@ -4,10 +4,8 @@ import { TitleBlock } from '../../components/layout/TitleBlock'
 import { UsernameInput } from '../../components/forms'
 import { Text, Identifier } from 'dash-ui-kit/react'
 import type { LayoutContext } from '../../components/layout/Layout'
-import { useAsyncState, useSdk, usePlatformExplorerClient, useExtensionAPI } from '../../hooks'
+import { useAsyncState, useSdk, usePlatformExplorerClient, useExtensionAPI, useSigningKeys } from '../../hooks'
 import { NetworkType } from '../../../types'
-import { PublicKeyInfo } from '../../components/keys'
-import { loadSigningKeys as getSigningKeys } from '../../../utils'
 import { UsernameStep } from './UsernameStep'
 import { ConfirmationStep } from './ConfirmationStep'
 type Step = 1 | 2
@@ -25,9 +23,15 @@ const NameRegistrationState: React.FC = () => {
   const [registrationError, setRegistrationError] = useState<string | null>(null)
   const [password, setPassword] = useState<string>('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
-  const [selectedSigningKey, setSelectedSigningKey] = useState<string | null>(null)
-  const [signingKeys, setSigningKeys] = useState<PublicKeyInfo[]>([])
-  const [signingKeysState, loadSigningKeys] = useAsyncState<PublicKeyInfo[]>()
+  const {
+    signingKeys,
+    selectedSigningKey,
+    setSelectedSigningKey,
+    loading: signingKeysLoading,
+    error: signingKeysError
+  } = useSigningKeys({
+    identity: currentStep === 2 ? currentIdentity : null
+  })
   const [rateState, loadRate] = useAsyncState<number>()
   const platformClient = usePlatformExplorerClient()
 
@@ -96,34 +100,6 @@ const NameRegistrationState: React.FC = () => {
     setIsRegistering(false)
   }
 
-  // Load signing keys when moving to step 2
-  useEffect(() => {
-    if (currentStep !== 2 || currentNetwork == null || currentIdentity == null) return
-
-    loadSigningKeys(() => getSigningKeys(sdk, extensionAPI, currentIdentity))
-      .catch(e => console.log('loadSigningKeys error', e))
-  }, [currentStep, currentNetwork, currentIdentity, sdk, extensionAPI, loadSigningKeys])
-
-  // Update local state when signing keys are loaded
-  useEffect(() => {
-    if (signingKeysState.data != null) {
-      setSigningKeys(signingKeysState.data)
-
-      if (signingKeysState.data.length > 0 && selectedSigningKey === null) {
-        const firstKey = signingKeysState.data[0]
-        const keyValue = firstKey.keyId?.toString() ?? (firstKey.hash !== '' ? firstKey.hash : 'key-0')
-        setSelectedSigningKey(keyValue)
-      }
-
-      return
-    }
-
-    setSigningKeys([])
-
-    if (selectedSigningKey !== null) {
-      setSelectedSigningKey(null)
-    }
-  }, [signingKeysState.data, selectedSigningKey])
 
   useEffect(() => {
     loadRate(async () => {
@@ -225,8 +201,8 @@ const NameRegistrationState: React.FC = () => {
             passwordError={passwordError}
             selectedSigningKey={selectedSigningKey}
             signingKeys={signingKeys}
-            signingKeysLoading={signingKeysState.loading}
-            signingKeysError={signingKeysState.error}
+            signingKeysLoading={signingKeysLoading}
+            signingKeysError={signingKeysError}
             isRegistering={isRegistering}
             registrationError={registrationError}
             onCancel={handleCancel}
