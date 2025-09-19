@@ -4,26 +4,12 @@ import { MessagingMethods } from './enums/MessagingMethods'
 import { ConnectAppResponse } from './messages/response/ConnectAppResponse'
 import { RequestStateTransitionApprovalResponse } from './messages/response/RequestStateTransitionApprovalResponse'
 import { generateRandomHex } from '../utils'
-import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
-import { GetAvailableIdentitiesResponse } from './messages/response/GetAvailableIdentitiesResponse'
 
 export class PublicAPIClient {
   async connectApp (url: string): Promise<ConnectAppResponse> {
     return await this._rpcCall(MessagingMethods.CONNECT_APP,
       {
         url
-      })
-  }
-
-  async getCurrentIdentity (): Promise<GetCurrentIdentityResponse> {
-    return await this._rpcCall(MessagingMethods.GET_CURRENT_IDENTITY,
-      {
-      })
-  }
-
-  async getAvailableIdentities (): Promise<GetAvailableIdentitiesResponse> {
-    return await this._rpcCall(MessagingMethods.GET_AVAILABLE_IDENTITIES,
-      {
       })
   }
 

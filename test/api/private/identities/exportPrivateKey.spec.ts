@@ -5,14 +5,14 @@ import { PrivateAPIClient, WalletType } from '../../../../src/types'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
 import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
-import { IdentitiesStoreSchema, KeyPairsSchema } from '../../../../src/content-script/storage/storageSchema'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
 
-describe('switch identity', () => {
+describe('exportPrivateKey', () => {
   let privateAPI: PrivateAPI
   let privateAPIClient: PrivateAPIClient
   let storage: StorageAdapter
   let secretKey: PrivateKey
+  let mnemonic: string
 
   beforeEach(async () => {
     const sdk = new DashPlatformSDK({ network: 'testnet' })
@@ -32,26 +32,35 @@ describe('switch identity', () => {
     secretKey = PrivateKey.fromHex(passwordHash)
     const passwordPublicKey = secretKey.publicKey.toHex()
 
+    mnemonic = 'frequent situate velvet inform help family salad park torch zero chapter right'
+
     await storage.set('network', 'testnet')
     await storage.set('passwordPublicKey', passwordPublicKey)
   })
 
-  test('should import identity', async () => {
+  test('should export private key from keystore wallet', async () => {
     const { walletId } = await privateAPIClient.createWallet(WalletType.keystore)
 
-    await storage.set('currentWalletId', walletId)
+    await privateAPIClient.switchWallet(walletId)
+
     const identity = 'J6toeWxpVqqgL8H21mAsLzcM6Sf8cPbzTqYoX7GsrzRj'
-    const privateKey = '3eb1e386ee623138ac9454d117bf07abb36f54a83c982679f615c4c3ec7e9a78'
 
-    await privateAPIClient.importIdentity(identity, [privateKey])
+    await privateAPIClient.importIdentity(identity, ['3eb1e386ee623138ac9454d117bf07abb36f54a83c982679f615c4c3ec7e9a78'])
 
-    const identitiesStoreSchema = await storage.get(`identities_testnet_${walletId}`) as IdentitiesStoreSchema
+    const privateKey = await privateAPIClient.exportPrivateKey(identity, 4, 'test')
+    expect(privateKey.wif).toBe('cPga9SSbAwfoCi6QCpoVMCuW93ScUHTQ1Pgdoz58DZ6h8dA7YPzq')
+    expect(privateKey.hex).toBe('3eb1e386ee623138ac9454d117bf07abb36f54a83c982679f615c4c3ec7e9a78')
+  })
 
-    expect(Object.keys(identitiesStoreSchema).length).toBe(1)
-    expect(identitiesStoreSchema[identity]).toBeDefined()
+  test('should export private key from seedphrase wallet', async () => {
+    const { walletId } = await privateAPIClient.createWallet(WalletType.seedphrase, mnemonic)
 
-    const keyPairStoreSchema = await storage.get(`keyPairs_testnet_${walletId}`) as KeyPairsSchema
+    await privateAPIClient.switchWallet(walletId)
+    await privateAPIClient.resyncIdentities('test')
 
-    expect(keyPairStoreSchema[identity].length).toBe(1)
+    const privateKey = await privateAPIClient.exportPrivateKey('2MfmHqYmAk1jAQNv7SsGJPT22MrfKFcHKZDc7cTu2biX', 4, 'test')
+
+    expect(privateKey.wif).toBe('cTH8iAXphX2GHqMsvc1NZTnxgVn859G6XRVJekxtASffDqtLW1Yy')
+    expect(privateKey.hex).toBe('a9fc9e209d5b3f73b09d5062e1f9729e3ff288ab0012c0a4851e6a94683d7208')
   })
 })
