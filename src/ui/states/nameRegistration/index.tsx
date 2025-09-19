@@ -201,24 +201,12 @@ const NameRegistrationState: React.FC = () => {
     }
   }, [currentStep, username, handleUsernameChange])
 
-  const handleRequestUsername = useCallback(() => {
-    setCurrentStep(2)
-  }, [])
-
   const handleCancel = useCallback(() => {
     setCurrentStep(1)
     setRegistrationError(null)
     setPassword('')
     setPasswordError(null)
     setSelectedSigningKey(null)
-  }, [])
-
-  const handlePasswordChange = useCallback((value: string) => {
-    setPassword(value)
-  }, [])
-
-  const handleSigningKeyChange = useCallback((keyId: string) => {
-    setSelectedSigningKey(keyId)
   }, [])
 
   return (
@@ -256,7 +244,7 @@ const NameRegistrationState: React.FC = () => {
             username={username}
             isContested={isContested}
             isValid={isValid}
-            onRequestUsername={handleRequestUsername}
+            onRequestUsername={() => setCurrentStep(2)}
           />
         ) : (
           <ConfirmationStep
@@ -271,8 +259,8 @@ const NameRegistrationState: React.FC = () => {
             registrationError={registrationError}
             onCancel={handleCancel}
             onConfirm={registerName}
-            onPasswordChange={handlePasswordChange}
-            onSigningKeyChange={handleSigningKeyChange}
+            onPasswordChange={(value: string) => setPassword(value)}
+            onSigningKeyChange={(keyId: string) => setSelectedSigningKey(keyId)}
           />
         )}
       </div>
