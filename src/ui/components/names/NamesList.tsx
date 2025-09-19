@@ -1,9 +1,10 @@
 import React from 'react'
-import { Text, TransactionStatusIcon, DateBlock, Button } from 'dash-ui-kit/react'
+import { Text, DateBlock, Button } from 'dash-ui-kit/react'
 import { useNavigate } from 'react-router-dom'
 import { NetworkType } from '../../../types'
 import EntityList from '../common/EntityList'
 import EntityListItem from '../common/EntityListItem'
+import StatusBadge, { NameIcon } from './StatusBadge'
 
 export interface NameData {
   name: string
@@ -21,8 +22,7 @@ interface NamesListProps {
 function NamesList ({
   names,
   loading,
-  error,
-  currentNetwork
+  error
 }: NamesListProps): React.JSX.Element {
   const navigate = useNavigate()
 
@@ -42,32 +42,67 @@ function NamesList ({
     }
   }
 
-  const getStateIcon = (state: string): 'success' | 'error' | 'pending' => {
-    switch (state) {
-      case 'active':
-        return 'success'
-      case 'locked':
-        return 'error'
-      case 'pending':
-      default:
-        return 'pending'
+  const formatDate = (timestamp: string | null): string => {
+    if (!isValidTimestamp(timestamp)) {
+      return 'Unknown date'
     }
-  }
-
-  const getStateColor = (state: string): string => {
-    switch (state) {
-      case 'active':
-        return 'text-green-600'
-      case 'locked':
-        return 'text-red-600'
-      case 'pending':
-      default:
-        return 'text-yellow-600'
-    }
+    
+    const date = new Date(timestamp!)
+    const day = date.getDate()
+    const month = date.toLocaleDateString('en', { month: 'short' })
+    const year = date.getFullYear()
+    const time = date.toLocaleTimeString('en', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    })
+    
+    return `Created: ${day} ${month} ${year}, ${time}`
   }
 
   return (
-    <div className='flex flex-col gap-4'>
+    <div className='flex flex-col gap-[10px]'>
+      {/* Names List */}
+      <EntityList
+        loading={loading}
+        error={error}
+        isEmpty={(names == null) || names.length === 0}
+        variant='tight'
+        loadingText='Loading names...'
+        errorText={(error != null && error !== '') ? `Error loading names: ${error}` : undefined}
+        emptyText='No names found'
+      >
+        {names.map((nameItem) => {
+          return (
+            <EntityListItem key={nameItem.name}>
+              <div className='flex items-center gap-3'>
+                <NameIcon state={nameItem.state} />
+
+                <div className='flex flex-col gap-[2px]'>
+                  <Text
+                    weight='medium'
+                    size='sm'
+                    className='text-[#0C1C33] leading-[1.366em]'
+                  >
+                    {nameItem.name}
+                  </Text>
+                  
+                  <Text 
+                    size='xs' 
+                    weight='medium'
+                    className='text-[rgba(12,28,51,0.35)] leading-[1.366em]'
+                  >
+                    {formatDate(nameItem.registrationTime)}
+                  </Text>
+                </div>
+              </div>
+
+              <StatusBadge state={nameItem.state} />
+            </EntityListItem>
+          )
+        })}
+      </EntityList>
+
       {/* Register Name Button */}
       <div className='px-4'>
         <Button
@@ -80,74 +115,6 @@ function NamesList ({
           Register Name
         </Button>
       </div>
-
-      {/* Names List */}
-      <EntityList
-        loading={loading}
-        error={error}
-        isEmpty={(names == null) || names.length === 0}
-        variant='tight'
-        loadingText='Loading names...'
-        errorText={(error != null && error !== '') ? `Error loading names: ${error}` : undefined}
-        emptyText='No names found'
-      >
-        {names.map((nameItem) => {
-        const hasValidTimestamp = isValidTimestamp(nameItem.registrationTime)
-        const stateIcon = getStateIcon(nameItem.state)
-        const stateColor = getStateColor(nameItem.state)
-
-        return (
-          <EntityListItem key={nameItem.name}>
-            <div className='flex items-center gap-3'>
-              <TransactionStatusIcon 
-                className='w-6 h-6 opacity-80' 
-                status={stateIcon} 
-              />
-
-              <div className='flex flex-col gap-1'>
-                <div className='flex items-center gap-2'>
-                  <Text
-                    weight='medium'
-                    size='sm'
-                    className='text-dash-primary-dark-blue'
-                  >
-                    {nameItem.name}
-                  </Text>
-                </div>
-                
-                <div className='flex items-center gap-2'>
-                  <Text size='xs' className='text-gray-500'>
-                    Registered:
-                  </Text>
-                  {hasValidTimestamp ? (
-                    <DateBlock
-                      timestamp={nameItem.registrationTime!}
-                      format='dateOnly'
-                      showTime={false}
-                      className='text-xs text-gray-600'
-                    />
-                  ) : (
-                    <Text size='xs' className='text-gray-600'>
-                      Unknown
-                    </Text>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className='flex flex-col items-end gap-1'>
-              <Text
-                size='sm'
-                weight='medium'
-                className={`capitalize ${stateColor}`}
-              >
-                {nameItem.state}
-              </Text>
-            </div>
-          </EntityListItem>
-        )
-      })}
-      </EntityList>
     </div>
   )
 }
