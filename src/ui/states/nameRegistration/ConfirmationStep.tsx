@@ -1,6 +1,6 @@
 import React from 'react'
 import { Button, ValueCard, Text, DashLogo, Input } from 'dash-ui-kit/react'
-import { PublicKeySelect, PublicKeyInfo } from '../../components/keys'
+import { PublicKeySelect, PublicKeyInfo, KeyRequirement } from '../../components/keys'
 
 interface ConfirmationStepProps {
   // Rate data
@@ -13,6 +13,7 @@ interface ConfirmationStepProps {
   signingKeys: PublicKeyInfo[]
   signingKeysLoading: boolean
   signingKeysError: string | null
+  keyRequirements?: KeyRequirement[]
   
   // Form state
   isRegistering: boolean
@@ -33,6 +34,7 @@ export const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
   signingKeys,
   signingKeysLoading,
   signingKeysError,
+  keyRequirements,
   isRegistering,
   registrationError,
   onCancel,
@@ -66,6 +68,7 @@ export const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
         loading={signingKeysLoading}
         error={signingKeysError}
         disabled={isRegistering}
+        keyRequirements={keyRequirements}
       />
 
       {/* Password */}

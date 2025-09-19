@@ -8,6 +8,7 @@ import { useAsyncState, useSdk, usePlatformExplorerClient, useExtensionAPI, useS
 import { NetworkType } from '../../../types'
 import { UsernameStep } from './UsernameStep'
 import { ConfirmationStep } from './ConfirmationStep'
+import type { KeyRequirement } from '../../components/keys'
 type Step = 1 | 2
 
 const NameRegistrationState: React.FC = () => {
@@ -16,6 +17,9 @@ const NameRegistrationState: React.FC = () => {
   const extensionAPI = useExtensionAPI()
   const [currentStep, setCurrentStep] = useState<Step>(1)
   const { currentNetwork, currentIdentity } = useOutletContext<LayoutContext>()
+  const keyRequirements: KeyRequirement[] = [
+    { purpose: 'AUTHENTICATION', securityLevel: 'HIGH' }
+  ]
   const [username, setUsername] = useState('')
   const [isContested, setIsContested] = useState(false)
   const [isValid, setIsValid] = useState(false)
@@ -203,6 +207,7 @@ const NameRegistrationState: React.FC = () => {
             signingKeys={signingKeys}
             signingKeysLoading={signingKeysLoading}
             signingKeysError={signingKeysError}
+            keyRequirements={keyRequirements}
             isRegistering={isRegistering}
             registrationError={registrationError}
             onCancel={handleCancel}

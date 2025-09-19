@@ -36,7 +36,7 @@ export function PublicKeySelect ({
   // Function to check if a key is compatible with transaction requirements
   const isKeyCompatible = (key: PublicKeyInfo): boolean => {
     if (keyRequirements.length === 0) {
-      return false // No requirements means no keys are compatible
+      return true // No requirements means all keys are compatible
     }
 
     // Exact string comparison for purpose and security level
@@ -50,7 +50,7 @@ export function PublicKeySelect ({
 
   // Auto-select first compatible key when keys or requirements change
   useEffect(() => {
-    if (keys.length > 0 && keyRequirements.length > 0) {
+    if (keys.length > 0) {
       const compatibleKeys = keys.filter(isKeyCompatible)
       
       if (compatibleKeys.length > 0) {
