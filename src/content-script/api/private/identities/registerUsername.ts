@@ -41,7 +41,7 @@ export class RegisterUsernameHandler implements APIHandler {
     if (wallet.type === WalletType.keystore) {
       privateKeyWASM = await deriveKeystorePrivateKey(wallet, payload.password, payload.identity, payload.keyId, this.keypairRepository)
     } else if (wallet.type === WalletType.seedphrase) {
-      privateKeyWASM = await deriveSeedphrasePrivateKey(wallet, payload.password, payload.keyId, payload.keyId, this.sdk)
+      privateKeyWASM = await deriveSeedphrasePrivateKey(wallet, payload.password, identity.index, payload.keyId, this.sdk)
     } else {
       throw new Error('Unsupported wallet type')
     }
