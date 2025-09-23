@@ -2,7 +2,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import HomeState from './states/home/HomeState'
-import ImportKeystoreState from './states/importIdentity/ImportKeystoreState'
+import ImportRegularState from './states/importIdentity/ImportRegularState'
+import ImportMasternodeState from './states/importIdentity/ImportMasternodeState'
+import SelectImportTypesState from "./states/importIdentity/SelectImportTypesState";
 import StartState from './states/start/StartState'
 import SetupPasswordState from './states/setup/SetupPasswordState'
 import LoginState from './states/login/LoginState'
@@ -95,9 +97,36 @@ const App: React.FC = function () {
             }
           }
         },
+        // {
+        //   path: '/import-keystore',
+        //   element: <PageWithHeader><ImportRegularState /></PageWithHeader>,
+        //   handle: {
+        //     headerProps: {
+        //       variant: 'seedImport'
+        //     }
+        //   }
+        // },
         {
-          path: '/import-keystore',
-          element: <PageWithHeader><ImportKeystoreState /></PageWithHeader>,
+          path: '/import-regular-identity',
+          element: <PageWithHeader><ImportRegularState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'seedImport'
+            }
+          }
+        },
+        {
+          path: '/import-masternode-identity',
+          element: <PageWithHeader><ImportMasternodeState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'seedImport'
+            }
+          }
+        },
+        {
+          path: '/select-import-type',
+          element: <PageWithHeader><SelectImportTypesState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'

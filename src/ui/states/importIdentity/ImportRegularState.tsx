@@ -1,5 +1,3 @@
-// TODO: Deprecated, remove this file
-
 import React, { useEffect, useState } from 'react'
 import { useSdk, useExtensionAPI } from '../../hooks'
 import { useNavigate, useOutletContext } from 'react-router-dom'
@@ -7,33 +5,23 @@ import type { OutletContext } from '../../types/OutletContext'
 import {
   Button,
   Text,
-  ValueCard,
-  Input,
-  EyeClosedIcon,
-  EyeOpenIcon,
-  DeleteIcon
+  ValueCard
 } from 'dash-ui-kit/react'
 import { processPrivateKey, ProcessedPrivateKey } from '../../../utils'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType, NetworkType } from '../../../types'
 import { IdentityPreview } from '../../components/Identities'
 import { TitleBlock } from '../../components/layout/TitleBlock'
+import { PrivateKeyInput, type PrivateKeyInputData } from '../../components/keys'
 import { PrivateKeyWASM, IdentityWASM } from 'pshenmic-dpp'
 
-interface PrivateKeyInput {
-  id: string
-  value: string
-  isVisible: boolean
-  hasError?: boolean
-}
-
-function ImportKeystoreState (): React.JSX.Element {
+function ImportRegularState (): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
   const { currentNetwork, currentWallet, setCurrentIdentity } = useOutletContext<OutletContext>()
 
   const extensionAPI = useExtensionAPI()
-  const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInput[]>([
+  const [privateKeyInputs, setPrivateKeyInputs] = useState<PrivateKeyInputData[]>([
     { id: Date.now().toString(), value: '', isVisible: false, hasError: false }
   ])
   const [error, setError] = useState<string | null>(null)
@@ -320,60 +308,17 @@ function ImportKeystoreState (): React.JSX.Element {
 
           <div className='flex flex-col gap-2.5'>
             {privateKeyInputs.map((input, index) => (
-              <div key={input.id} className='flex gap-2.5'>
-                <div className='flex-1 relative'>
-                  <Input
-                    placeholder='Paste your Key'
-                    value={input.value}
-                    onChange={(e) => updatePrivateKeyInput(input.id, e.target.value)}
-                    type={input.isVisible ? 'text' : 'password'}
-                    size='xl'
-                    showPasswordToggle={false}
-                    error={input.hasError}
-                    style={{
-                      paddingRight: input.value !== '' && input.value !== undefined
-                        ? (privateKeyInputs.length > 1 ? '4.5rem' : '2.5rem')
-                        : undefined
-                    }}
-                  />
-                  {input.value !== '' && input.value !== undefined && (
-                    <div className='absolute right-3 top-1/2 transform -translate-y-1/2 flex gap-1'>
-                      <button
-                        onClick={() => togglePrivateKeyVisibility(input.id)}
-                        className='p-1 hover:bg-gray-100 rounded'
-                        type='button'
-                      >
-                        {input.isVisible
-                          ? <EyeClosedIcon className='text-dash-primary-dark-blue' />
-                          : <EyeOpenIcon className='text-dash-primary-dark-blue' />}
-                      </button>
-                      {privateKeyInputs.length > 1 && (
-                        <button
-                          onClick={() => removePrivateKeyInput(input.id)}
-                          className='p-1 hover:bg-gray-100 rounded'
-                          type='button'
-                        >
-                          <DeleteIcon />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {index === privateKeyInputs.length - 1 && (
-                  <button
-                    onClick={addPrivateKeyInput}
-                    disabled={input.value?.trim() === '' || input.value?.trim() === undefined}
-                    className={`flex items-center justify-center w-14 h-14 rounded-2xl border border-gray-200 ${
-                      input.value?.trim() !== '' && input.value?.trim() !== undefined
-                        ? 'bg-gray-50 hover:bg-gray-100 cursor-pointer'
-                        : 'bg-gray-25 cursor-not-allowed opacity-50'
-                    }`}
-                    type='button'
-                  >
-                    <Text size='xl' weight='medium'>+</Text>
-                  </button>
-                )}
-              </div>
+              <PrivateKeyInput
+                key={input.id}
+                input={input}
+                placeholder='Paste your Key'
+                showAddButton={index === privateKeyInputs.length - 1}
+                canDelete={privateKeyInputs.length > 1}
+                onValueChange={updatePrivateKeyInput}
+                onVisibilityToggle={togglePrivateKeyVisibility}
+                onDelete={removePrivateKeyInput}
+                onAdd={addPrivateKeyInput}
+              />
             ))}
           </div>
         </div>
@@ -398,6 +343,6 @@ function ImportKeystoreState (): React.JSX.Element {
   )
 }
 
-export default withAccessControl(ImportKeystoreState, {
+export default withAccessControl(ImportRegularState, {
   requireWallet: false
 })
