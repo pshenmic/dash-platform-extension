@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useSdk, useExtensionAPI } from '../../hooks'
 import { useNavigate, useOutletContext } from 'react-router-dom'
-import type { OutletContext } from '../../types/OutletContext'
+import type { OutletContext, MasternodeIdentityInput } from '../../types'
 import {
   Button,
   Text,
@@ -10,7 +10,6 @@ import {
 } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType } from '../../../types'
-import type { MasternodeIdentityInput } from '../../../types/MasternodeIdentity'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PrivateKeyInput, type PrivateKeyInputData } from '../../components/keys'
 
