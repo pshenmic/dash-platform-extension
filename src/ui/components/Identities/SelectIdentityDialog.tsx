@@ -119,7 +119,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                 className='w-full h-[3.625rem] gap-4'
                 onClick={() => {
                   setOpen(false)
-                  void navigate('/import-keystore')
+                  void navigate('/select-import-type')
                 }}
               >
                 <PlusIcon />

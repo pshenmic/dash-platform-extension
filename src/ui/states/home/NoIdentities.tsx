@@ -18,7 +18,7 @@ export default function NoIdentities ({ walletType }: NoIdentitiesProps): React.
           : <>You <Text weight='bold' color='blue' className='!text-[size:inherit] !leading-[inherit]'>Don't Have any Identities</Text> imported yet</>}
         {...(walletType !== 'seedphrase' && {
           buttonText: 'Add an identity',
-          onButtonClick: () => { void navigate('/import-keystore') }
+          onButtonClick: () => { void navigate('/select-import-type') }
         })}
         description={walletType === 'seedphrase' ? 'We will add identity creation soon.' : undefined}
       />

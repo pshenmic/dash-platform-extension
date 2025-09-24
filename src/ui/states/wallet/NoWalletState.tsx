@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heading, Text, Button, DashLogo } from 'dash-ui-kit/react'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { Button } from 'dash-ui-kit/react'
+import { useExtensionAPI } from '../../hooks'
+import { TitleBlock } from '../../components/layout/TitleBlock'
+import { withAccessControl } from '../../components/auth/withAccessControl'
 
 function NoWalletState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -32,19 +34,18 @@ function NoWalletState (): React.JSX.Element {
   return (
     <div className='flex flex-col h-full bg-white pb-2'>
       <div className='flex flex-col items-center text-center mb-3'>
-        <div className='flex items-center justify-center w-12 h-12'>
-          <DashLogo />
-        </div>
-
         <div className='mb-8'>
-          <Heading level={1} className='text-3xl font-extrabold text-gray-900 mb-2 leading-tight'>
-            <span className='!font-normal'>Welcome to</span> <span>Dash Platform Extension</span>
-          </Heading>
-          <div className='!leading-tight max-w-sm mx-auto'>
-            <Text size='sm' dim>
-              Enjoy all the benefits of Dash Platform in your browser
-            </Text>
-          </div>
+          <TitleBlock
+            title={
+              <>
+                <span className='!font-normal'>Welcome to</span> <span>Dash Platform Extension</span>
+              </>
+            }
+            description='Enjoy all the benefits of Dash Platform in your browser'
+            centered
+            titleClassName='font-extrabold leading-tight'
+            containerClassName='max-w-sm mx-auto'
+          />
         </div>
 
         <Button
@@ -60,4 +61,6 @@ function NoWalletState (): React.JSX.Element {
   )
 }
 
-export default NoWalletState
+export default withAccessControl(NoWalletState, {
+  requireWallet: false
+})

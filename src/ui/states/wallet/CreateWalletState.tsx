@@ -19,7 +19,7 @@ function CreateWalletState (): React.JSX.Element {
       const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
       await extensionAPI.switchWallet(walletId)
 
-      void navigate('/import-keystore')
+      void navigate('/select-import-type')
     } catch (err) {
       setError((err as Error).toString())
     } finally {

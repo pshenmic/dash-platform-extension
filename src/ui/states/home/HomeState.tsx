@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import NoIdentities from './NoIdentities'
 import NoWallets from './NoWallets'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
@@ -17,6 +18,7 @@ import { TokensList } from '../../components/tokens'
 import { BalanceInfo } from '../../components/data'
 
 function HomeState (): React.JSX.Element {
+  const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformClient = usePlatformExplorerClient()
@@ -197,7 +199,14 @@ function HomeState (): React.JSX.Element {
       </div>
 
       <div className='flex gap-2'>
-        <Button className='w-1/2' disabled>Send</Button>
+        <Button
+          className='w-1/2'
+          colorScheme='brand'
+          onClick={() => navigate('/send-transaction')}
+          disabled={currentIdentity === null || balanceState.data === null}
+        >
+          Send
+        </Button>
         <Button className='w-1/2' disabled>Withdraw</Button>
       </div>
 
