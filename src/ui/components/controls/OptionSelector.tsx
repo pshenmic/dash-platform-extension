@@ -23,7 +23,7 @@ export const OptionSelector: React.FC<OptionSelectorProps> = ({
   className = ''
 }) => {
   return (
-    <div className={`flex flex-col gap-3 ${className}`}>
+    <div className={`flex flex-col gap-2 ${className}`}>
       {options.map((option) => {
         const IconComponent = option.icon
         const isSelected = selectedId === option.id
@@ -32,16 +32,18 @@ export const OptionSelector: React.FC<OptionSelectorProps> = ({
           <div
             key={option.id}
             onClick={() => onOptionSelect(option.id)}
-            className={`flex gap-4 items-center rounded-2xl px-6 py-4 cursor-pointer transition-all ${
+            className={`flex items-center rounded-2xl px-6 py-3 cursor-pointer transition-all border-l-2 ${
               isSelected
-                ? 'bg-dash-brand/15 border-l-2 border-dash-brand'
-                : 'bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08]'
+                ? 'bg-dash-brand/15 border-dash-brand'
+                : 'bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] border-transparent'
             }`}
           >
             {IconComponent && (
-              <IconComponent 
-                className={`${isSelected ? 'text-dash-brand' : 'text-dash-primary-dark-blue'}`} 
-              />
+              <div className="flex items-center justify-center w-[34px] h-[34px] rounded-full bg-dash-brand/15 mr-[15px] flex-shrink-0">
+                <IconComponent 
+                  className={`w-[14px] h-[14px] ${isSelected ? 'text-dash-brand' : 'text-dash-brand'}`} 
+                />
+              </div>
             )}
             <div className='flex-1'>
               <Text color={isSelected ? 'blue' : 'default'} weight='medium'>
