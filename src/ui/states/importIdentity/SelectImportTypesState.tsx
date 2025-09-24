@@ -1,9 +1,26 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from 'dash-ui-kit/react'
+import { Button, WalletIcon, ShieldSmallIcon } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { TitleBlock } from '../../components/layout/TitleBlock'
-import { IdentityTypeSelector, type IdentityType } from '../../components/importIdentity'
+import { OptionSelector, type OptionItem } from '../../components/controls'
+
+export type IdentityType = 'regular' | 'masternode'
+
+const identityOptions: OptionItem[] = [
+  {
+    id: 'regular',
+    label: 'Identity',
+    boldLabel: 'Regular',
+    icon: WalletIcon
+  },
+  {
+    id: 'masternode',
+    label: 'Identity',
+    boldLabel: 'Masternode',
+    icon: ShieldSmallIcon
+  }
+]
 
 function SelectImportTypesState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -24,9 +41,10 @@ function SelectImportTypesState (): React.JSX.Element {
       />
 
       <div className='flex flex-col gap-[0.875rem]'>
-        <IdentityTypeSelector
-          selectedType={selectedType}
-          onTypeSelect={setSelectedType}
+        <OptionSelector
+          options={identityOptions}
+          selectedId={selectedType}
+          onOptionSelect={(id) => setSelectedType(id as IdentityType)}
         />
 
         <div className='mt-4'>
