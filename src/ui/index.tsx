@@ -12,6 +12,7 @@ import CreateWalletState from './states/wallet/CreateWalletState'
 import NoWalletState from './states/wallet/NoWalletState'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 import AppConnectState from './states/appConnect/AppConnectState'
+import SendTransactionState from './states/sendTransaction/SendTransactionState'
 import Layout from './components/layout/Layout'
 import PageWithHeader from './components/layout/PageWithHeader'
 import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
@@ -157,6 +158,15 @@ const App: React.FC = function () {
           handle: {
             headerProps: {
               variant: 'minimal'
+            }
+          }
+        },
+        {
+          path: '/send-transaction',
+          element: <PageWithHeader><SendTransactionState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'simple'
             }
           }
         }
