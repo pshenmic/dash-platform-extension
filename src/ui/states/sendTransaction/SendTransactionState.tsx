@@ -4,20 +4,17 @@ import {
   Button,
   Text,
   Input,
-  Identifier,
   ChevronIcon,
-  OverlaySelect,
   EyeOpenIcon,
   EyeClosedIcon,
-  DashLogo
+  DashLogo,
+  Badge
 } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { useSdk } from '../../hooks/useSdk'
-import { useAsyncState } from '../../hooks/useAsyncState'
+import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PublicKeySelect, PublicKeyInfo } from '../../components/keys'
-import type { OutletContext } from '../../types/OutletContext'
+import type { OutletContext } from '../../types'
 
 interface AssetOption {
   value: 'dash' | 'credits' | 'tokens'
@@ -242,7 +239,12 @@ function SendTransactionState(): React.JSX.Element {
           {/* Asset Selection and Quick Buttons */}
           <div className='flex flex-col gap-1'>
             {/* Asset Selection */}
-            <div className='bg-dash-secondary-half-dark bg-opacity-80 rounded-3xl p-1 flex items-center gap-2'>
+            <Badge
+              color='light-gray'
+              variant='flat'
+              size='xss'
+              className='flex items-center gap-2'
+            >
               <div className='w-4 h-4 bg-dash-brand rounded-full flex items-center justify-center'>
                   <DashLogo className='!text-white w-2 h-2' />
               </div>
@@ -250,7 +252,7 @@ function SendTransactionState(): React.JSX.Element {
                 DASH
               </Text>
               <ChevronIcon direction='down' size={8} className='text-dash-primary-dark-blue mr-1' />
-            </div>
+            </Badge>
 
             {/* Quick Amount Buttons */}
             <div className='flex gap-2'>
