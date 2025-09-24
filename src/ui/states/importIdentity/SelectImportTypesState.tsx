@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, WalletIcon, ShieldSmallIcon } from 'dash-ui-kit/react'
+import { Button, FingerprintIcon, FaceIcon } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { OptionSelector, type OptionItem } from '../../components/controls'
@@ -12,21 +12,23 @@ const identityOptions: OptionItem[] = [
     id: 'regular',
     label: 'Identity',
     boldLabel: 'Regular',
-    icon: WalletIcon
+    icon: FaceIcon
   },
   {
     id: 'masternode',
     label: 'Identity',
     boldLabel: 'Masternode',
-    icon: ShieldSmallIcon
+    icon: FingerprintIcon
   }
 ]
 
 function SelectImportTypesState (): React.JSX.Element {
   const navigate = useNavigate()
-  const [selectedType, setSelectedType] = useState<IdentityType>('regular')
+  const [selectedType, setSelectedType] = useState<IdentityType | null>(null)
 
   const handleNext = (): void => {
+    if (selectedType == null) return
+    
     const route = selectedType === 'regular'
       ? '/import-regular-identity'
       : '/import-masternode-identity'
@@ -52,6 +54,7 @@ function SelectImportTypesState (): React.JSX.Element {
             colorScheme='brand'
             className='w-full'
             onClick={handleNext}
+            disabled={selectedType == null}
           >
             Next
           </Button>

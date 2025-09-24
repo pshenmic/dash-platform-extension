@@ -11,7 +11,7 @@ export interface OptionItem {
 
 interface OptionSelectorProps {
   options: OptionItem[]
-  selectedId: string
+  selectedId: string | null
   onOptionSelect: (id: string) => void
   className?: string
 }
@@ -26,7 +26,7 @@ export const OptionSelector: React.FC<OptionSelectorProps> = ({
     <div className={`flex flex-col gap-2 ${className}`}>
       {options.map((option) => {
         const IconComponent = option.icon
-        const isSelected = selectedId === option.id
+        const isSelected = selectedId != null && selectedId === option.id
         
         return (
           <div
@@ -39,9 +39,9 @@ export const OptionSelector: React.FC<OptionSelectorProps> = ({
             }`}
           >
             {IconComponent && (
-              <div className="flex items-center justify-center w-[34px] h-[34px] rounded-full bg-dash-brand/15 mr-[15px] flex-shrink-0">
+              <div className='flex items-center justify-center w-[34px] h-[34px] rounded-full bg-dash-brand/15 mr-[15px] flex-shrink-0'>
                 <IconComponent 
-                  className={`w-[14px] h-[14px] ${isSelected ? 'text-dash-brand' : 'text-dash-brand'}`} 
+                  className={`w-4 h-4 ${isSelected ? 'text-dash-brand' : 'text-dash-brand'}`} 
                 />
               </div>
             )}
@@ -52,7 +52,7 @@ export const OptionSelector: React.FC<OptionSelectorProps> = ({
                 {option.label}
               </Text>
               {option.description && (
-                <Text size="sm" color={isSelected ? 'blue' : 'muted'} className='mt-1'>
+                <Text size='sm' color={isSelected ? 'blue' : 'muted'} className='mt-1'>
                   {option.description}
                 </Text>
               )}
