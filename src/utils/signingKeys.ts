@@ -6,16 +6,16 @@ import type { PrivateAPIClient } from '../types'
  * Loads available signing keys for a given identity
  * @param sdk - Dash Platform SDK instance
  * @param extensionAPI - Extension API instance
- * @param currentIdentity - Current identity identifier
+ * @param identity - Current identity identifier
  * @returns Promise that resolves to array of PublicKeyInfo
  */
 export const loadSigningKeys = async (
   sdk: DashPlatformSDK,
   extensionAPI: PrivateAPIClient,
-  currentIdentity: string
+  identity: string
 ): Promise<PublicKeyInfo[]> => {
-  const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
-  const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity)
+  const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(identity)
+  const availableKeyIds = await extensionAPI.getAvailableKeyPairs(identity)
 
   // Filter identity public keys to only show those that are available
   const availablePublicKeys = identityPublicKeys.filter((key: any) => {
