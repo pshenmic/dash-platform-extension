@@ -5,6 +5,7 @@ interface TitleBlockProps {
   title: string | React.ReactNode
   description?: string
   logoSize?: string
+  showLogo?: boolean
   centered?: boolean
   titleSize?: 'xl' | '2xl' | '3xl'
   titleClassName?: string
@@ -15,6 +16,7 @@ export const TitleBlock: React.FC<TitleBlockProps> = ({
   title,
   description,
   logoSize = '3rem',
+  showLogo = true,
   centered = false,
   titleSize = '2xl',
   titleClassName,
@@ -28,7 +30,8 @@ export const TitleBlock: React.FC<TitleBlockProps> = ({
 
   return (
     <div className={containerClass}>
-      <DashLogo containerSize={logoSize} />
+      {showLogo &&
+        <DashLogo containerSize={logoSize} />}
 
       <Heading
         level={1}

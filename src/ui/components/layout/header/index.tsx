@@ -138,8 +138,6 @@ const headerStyles = cva(
 
 export default function Header (): React.JSX.Element {
   const context = useOutletContext<LayoutContext | null>()
-
-  // Handle case where context might be null during initial render
   const {
     currentNetwork,
     setCurrentNetwork,
