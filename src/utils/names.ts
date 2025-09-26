@@ -2,8 +2,9 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { type NameData } from '../ui/components/names'
 import type { NetworkType, PlatformExplorerClient } from '../types'
 
-export const normalizeName = (name: string): string => {
-  return name.replace(/\.dash$/, '')
+export const normalizeName = (name: string, sdk?: DashPlatformSDK): string => {
+  const nameWithoutDash = name.replace(/\.dash$/, '')
+  return sdk?.names.normalizeLabel(nameWithoutDash) ?? nameWithoutDash
 }
 
 export const fetchNames = async (
@@ -36,11 +37,11 @@ export const fetchNames = async (
 
     if (platformResult.data != null) {
       const sdkNameLabels = new Set(
-        sdkNames.map(nameData => normalizeName(nameData.name)).filter(Boolean)
+        sdkNames.map(nameData => normalizeName(nameData.name, sdk)).filter(Boolean)
       )
 
       platformNames = platformResult.data
-        .filter(platformName => !sdkNameLabels.has(normalizeName(platformName.name))) as NameData[]
+        .filter(platformName => !sdkNameLabels.has(normalizeName(platformName.name, sdk))) as NameData[]
     }
   } catch (platformError) {
     console.warn('Failed to fetch names from platform client', platformError)
