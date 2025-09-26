@@ -1,9 +1,10 @@
 import React from 'react'
 import { Text, CheckmarkIcon, LockIcon, PendingIcon } from 'dash-ui-kit/react'
+import { NameStatus } from '../../../types'
 import { nameStatusStyles } from './nameStatusStyles'
 
 interface StatusBadgeProps {
-  status: 'pending' | 'ok' | 'locked'
+  status: NameStatus
 }
 
 const StatusBadge = ({ status }: StatusBadgeProps): React.JSX.Element => {

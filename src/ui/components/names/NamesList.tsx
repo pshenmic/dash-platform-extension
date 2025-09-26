@@ -1,7 +1,7 @@
 import React from 'react'
 import { Text, Button } from 'dash-ui-kit/react'
 import { useNavigate } from 'react-router-dom'
-import { NetworkType } from '../../../types'
+import { NetworkType, NameStatus } from '../../../types'
 import EntityList from '../common/EntityList'
 import EntityListItem from '../common/EntityListItem'
 import StatusBadge from './StatusBadge'
@@ -10,7 +10,7 @@ import SignStatusIcon from './SignStatusIcon'
 export interface NameData {
   name: string
   registrationTime: string | null
-  status: 'pending' | 'ok' | 'locked'
+  status: NameStatus
 }
 
 interface NamesListProps {
