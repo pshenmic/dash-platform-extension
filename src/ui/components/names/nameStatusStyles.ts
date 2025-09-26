@@ -1,4 +1,4 @@
-import type { NameStatus } from '../../../types/NameStatus'
+import type { NameStatus } from '../../../types'
 
 export interface NameStatusStyle {
   iconBg: string
