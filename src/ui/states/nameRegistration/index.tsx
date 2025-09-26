@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { TitleBlock } from '../../components/layout/TitleBlock'
-import { UsernameInput } from '../../components/forms'
+import { UsernameInput } from '../../components/names'
 import { Text, Identifier, ValueCard } from 'dash-ui-kit/react'
 import type { LayoutContext } from '../../components/layout/Layout'
 import { useAsyncState, useSdk, usePlatformExplorerClient, useExtensionAPI, useSigningKeys } from '../../hooks'
