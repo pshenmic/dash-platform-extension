@@ -169,8 +169,6 @@ export class PlatformExplorerClient {
 
   async fetchNames (identityId: string, network: NetworkType = 'testnet'): Promise<ApiState<any[]>> {
     try {
-      // For now, we'll extract names from the identity aliases
-      // This might need to be updated when a dedicated names API endpoint is available
       const identityResult = await this.fetchIdentity(identityId, network)
 
       if (identityResult.error != null || identityResult.data == null) {
@@ -179,7 +177,6 @@ export class PlatformExplorerClient {
 
       const aliases = identityResult.data.aliases ?? []
 
-      // Transform aliases into name data format
       const names = aliases.map((alias: any) => ({
         name: (alias.alias ?? alias.name) ?? 'Unknown',
         registrationTime: (alias.timestamp ?? identityResult.data?.timestamp) ?? null,
