@@ -8,24 +8,24 @@ export interface NameStatusStyle {
 
 export const nameStatusStyles: Record<'ok' | 'locked' | 'pending', NameStatusStyle> = {
   ok: {
-    iconBg: 'bg-[rgba(76,126,255,0.05)]',
-    iconColor: 'stroke-[#4C7EFF]',
-    statusBg: 'bg-[rgba(76,126,255,0.15)]',
-    statusText: '!text-[#4C7EFF]',
+    iconBg: 'bg-dash-brand/15',
+    iconColor: 'text-dash-brand',
+    statusBg: 'bg-dash-brand/15',
+    statusText: '!text-dash-brand',
     statusLabel: 'Finished'
   },
   locked: {
-    iconBg: 'bg-[rgba(233,54,54,0.05)]',
-    iconColor: 'stroke-[#E93636]',
-    statusBg: 'bg-[rgba(233,54,54,0.15)]',
-    statusText: '!text-[#E93636]',
+    iconBg: 'bg-dash-red-5',
+    iconColor: 'text-dash-red',
+    statusBg: 'bg-dash-red-15',
+    statusText: '!text-dash-red',
     statusLabel: 'Locked'
   },
   pending: {
-    iconBg: 'bg-[rgba(255,193,7,0.05)]',
-    iconColor: 'stroke-[#FFC107]',
-    statusBg: 'bg-[rgba(255,193,7,0.15)]',
-    statusText: '!text-[#FFC107]',
+    iconBg: 'bg-dash-orange-5',
+    iconColor: 'text-dash-orange',
+    statusBg: 'bg-dash-orange-15',
+    statusText: '!text-dash-orange',
     statusLabel: 'Pending'
   }
 }
