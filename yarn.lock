@@ -3674,9 +3674,10 @@ dash-platform-sdk@1.3.0-dev.3:
     nice-grpc-web "^3.3.6"
     pshenmic-dpp "1.0.25"
 
-dash-ui-kit@AlexeyTripleA/dash-ui-kit#feat/new-components:
-  version "1.0.5"
-  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/d1a6ac6143027a4ed9f0b6295091bfdfa3ff88f5"
+dash-ui-kit@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/dash-ui-kit/-/dash-ui-kit-1.0.6.tgz#5ada19eaec3620604ae31699c383fe7d1eeaecca"
+  integrity sha512-a8nNUbtZIofAwzpCeZpQ6DqMOvGFFYgvKd5yD6VZ3NOkBm1uCfoSTjQgPO9vKXMBEV6yLl4TgKzpGyMFMmlT/A==
   dependencies:
     "@radix-ui/react-accordion" "^1.2.12"
     "@radix-ui/react-dialog" "^1.1.14"
