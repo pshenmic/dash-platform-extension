@@ -110,17 +110,15 @@ function NamesList ({
         })}
       </EntityList>
 
-      <div className='px-4'>
-        <Button
-          variant='outline'
-          colorScheme='brand'
-          size='md'
-          onClick={handleRegisterName}
-          className='w-full'
-        >
-          Register Name
-        </Button>
-      </div>
+      <Button
+        variant='outline'
+        colorScheme='brand'
+        size='md'
+        onClick={handleRegisterName}
+        className='w-full'
+      >
+        Register Name
+      </Button>
     </div>
   )
 }
