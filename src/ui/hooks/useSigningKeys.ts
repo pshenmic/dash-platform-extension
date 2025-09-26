@@ -19,7 +19,7 @@ interface UseSigningKeysResult {
 }
 
 /**
- * Custom hook for managing signing keys state and selection
+ * Hook for managing signing keys state and selection
  * Handles loading, caching, and automatic selection of the first available key
  */
 export const useSigningKeys = (options: UseSigningKeysOptions): UseSigningKeysResult => {
