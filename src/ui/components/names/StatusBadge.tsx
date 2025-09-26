@@ -18,8 +18,8 @@ const StatusBadge = ({ status }: StatusBadgeProps): React.JSX.Element => {
   }
 
   return (
-    <div className={`flex items-center gap-2 px-[5px] py-[3px] pl-[3px] rounded-[24px] ${styles.statusBg}`}>
-      <div className={` flex items-center justify-center w-[14px] h-[14px] rounded-full ${styles.statusBg}`}>
+    <div className={`flex items-center gap-2 px-[0.3125rem] py-[0.1875rem] pl-[0.1875rem] rounded-[1.5rem] ${styles.statusBg}`}>
+      <div className={` flex items-center justify-center w-[0.875rem] h-[0.875rem] rounded-full ${styles.statusBg}`}>
         {StatusIcon[status]}
       </div>
       <Text
