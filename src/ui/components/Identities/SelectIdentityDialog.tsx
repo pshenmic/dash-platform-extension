@@ -35,7 +35,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
           const status = await extensionAPI.getStatus()
           const network = status.network as NetworkType
           const result = await platformClient.fetchMultipleIdentities(identities, network)
-          setIdentitiesState(result)
+          setIdentitiesState({ data: result, loading: false, error: null })
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : 'Unknown error'
           setIdentitiesState({ data: null, loading: false, error: errorMessage })

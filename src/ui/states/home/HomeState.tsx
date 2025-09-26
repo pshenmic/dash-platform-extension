@@ -77,19 +77,11 @@ function HomeState (): React.JSX.Element {
       }).catch(e => console.log('loadBalance error', e))
 
       loadTransactions(async () => {
-        const result = await platformExplorerClient.fetchTransactions(currentIdentity, currentNetwork as NetworkType, 'desc')
-        if (result.data !== null && result.data !== undefined) {
-          return result.data
-        }
-        throw new Error(result.error ?? 'Failed to load transactions')
+        return await platformExplorerClient.fetchTransactions(currentIdentity, currentNetwork as NetworkType, 'desc')
       }).catch(e => console.log('loadTransactions error', e))
 
       loadTokens(async () => {
-        const result = await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
-        if (result.data !== null && result.data !== undefined) {
-          return result.data
-        }
-        throw new Error(result.error ?? 'Failed to load tokens')
+        return await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
       }).catch(e => console.log('loadTokens error:', e))
 
       loadNames(async () => {
@@ -115,11 +107,7 @@ function HomeState (): React.JSX.Element {
   // load rate
   useEffect(() => {
     loadRate(async () => {
-      const result = await platformExplorerClient.fetchRate(currentNetwork as NetworkType)
-      if (result.data !== null && result.data !== undefined) {
-        return result.data
-      }
-      throw new Error(result.error ?? 'Failed to load rate')
+      return await platformExplorerClient.fetchRate(currentNetwork as NetworkType)
     }).catch(e => console.log('loadRate error:', e))
   }, [currentNetwork, platformExplorerClient, loadRate])
 

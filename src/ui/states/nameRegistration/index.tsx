@@ -119,11 +119,7 @@ const NameRegistrationState: React.FC = () => {
 
   useEffect(() => {
     loadRate(async () => {
-      const result = await platformClient.fetchRate(currentNetwork)
-      if (result.data !== null && result.data !== undefined) {
-        return result.data
-      }
-      throw new Error(result.error ?? 'Failed to load rate')
+      return await platformClient.fetchRate(currentNetwork)
     }).catch(e => console.log('loadRate error:', e))
   }, [currentNetwork, platformClient, loadRate])
 

@@ -33,16 +33,14 @@ export const fetchNames = async (
   }
 
   try {
-    const platformResult = await platformExplorerClient.fetchNames(identityId, currentNetwork)
+    const platformData = await platformExplorerClient.fetchNames(identityId, currentNetwork)
 
-    if (platformResult.data != null) {
-      const sdkNameLabels = new Set(
-        sdkNames.map(nameData => normalizeName(nameData.name, sdk)).filter(Boolean)
-      )
+    const sdkNameLabels = new Set(
+      sdkNames.map(nameData => normalizeName(nameData.name, sdk)).filter(Boolean)
+    )
 
-      platformNames = platformResult.data
-        .filter(platformName => !sdkNameLabels.has(normalizeName(platformName.name, sdk))) as NameData[]
-    }
+    platformNames = platformData
+      .filter(platformName => !sdkNameLabels.has(normalizeName(platformName.name, sdk))) as NameData[]
   } catch (platformError) {
     console.warn('Failed to fetch names from platform client', platformError)
   }
