@@ -88,7 +88,9 @@ function NamesList ({
                   >
                     {(() => {
                       const [base, ...rest] = nameItem.name.split('.')
-                      return rest.length ? <>{base}<Text weight='normal' color='blue'>.{rest.join('.')}</Text></> : nameItem.name
+                      return (rest.length > 0)
+                        ? <>{base}<Text weight='normal' color='blue'>.{rest.join('.')}</Text></>
+                        : nameItem.name
                     })()}
                   </Text>
 

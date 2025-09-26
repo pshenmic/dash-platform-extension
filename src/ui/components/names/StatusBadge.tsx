@@ -14,10 +14,10 @@ const StatusBadge = ({ status }: StatusBadgeProps): React.JSX.Element => {
     <div className={`flex items-center gap-2 px-[5px] py-[3px] pl-[3px] rounded-[24px] ${styles.statusBg}`}>
       <div className={` flex items-center justify-center w-[14px] h-[14px] rounded-full ${styles.statusBg}`}>
         {status === 'locked'
-          ? <LockIcon className={`w-2 h-2 ${styles.iconColor}`}/>
+          ? <LockIcon className={`w-2 h-2 ${styles.iconColor}`} />
           : status === 'pending'
-            ? <PendingIcon className={`w-2 h-2 ${styles.iconColor}`}/>
-            : <CheckmarkIcon className={`w-2 h-2 ${styles.iconColor}`}/>}
+            ? <PendingIcon className={`w-2 h-2 ${styles.iconColor}`} />
+            : <CheckmarkIcon className={`w-2 h-2 ${styles.iconColor}`} />}
       </div>
       <Text
         size='xs'

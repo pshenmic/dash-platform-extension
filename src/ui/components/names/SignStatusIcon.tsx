@@ -9,8 +9,8 @@ export const SignStatusIcon = ({ status }: { status: NameStatus }): React.JSX.El
   return (
     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${styles.iconBg}`}>
       {status === 'locked'
-        ? <SignLockIcon/>
-        : <SignIcon className={styles.statusText}/>}
+        ? <SignLockIcon />
+        : <SignIcon className={styles.statusText} />}
     </div>
   )
 }

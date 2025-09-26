@@ -20,11 +20,11 @@ export const fetchNames = async (
     const sdkNamesResult = await sdk.names.searchByIdentity(identityId)
 
     sdkNames = sdkNamesResult.map(doc => {
-      const normalizedLabel = doc.properties?.normalizedLabel || ''
+      const normalizedLabel = (doc.properties?.normalizedLabel != null) ? String(doc.properties.normalizedLabel) : ''
 
       return {
         name: `${normalizedLabel}.dash`,
-        registrationTime: doc.createdAt ? new Date(Number(doc.createdAt)).toISOString() : null,
+        registrationTime: (doc.createdAt != null && doc.createdAt !== 0n) ? new Date(Number(doc.createdAt)).toISOString() : null,
         status: 'ok' as const
       }
     })
