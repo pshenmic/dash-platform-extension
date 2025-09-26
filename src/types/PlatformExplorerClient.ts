@@ -183,7 +183,7 @@ export class PlatformExplorerClient {
       const names = aliases.map((alias: any) => ({
         name: (alias.alias ?? alias.name) ?? 'Unknown',
         registrationTime: (alias.timestamp ?? identityResult.data?.timestamp) ?? null,
-        state: alias.contested === true ? 'locked' : 'active'
+        status: alias.status
       }))
 
       return { data: names, loading: false, error: null }

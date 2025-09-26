@@ -1,20 +1,20 @@
 import React from 'react'
-import { Text } from 'dash-ui-kit/react'
+import { Text, CheckIcon } from 'dash-ui-kit/react'
 
 interface StatusBadgeProps {
-  state: 'pending' | 'active' | 'locked'
+  status: 'pending' | 'ok' | 'locked'
   showIcon?: boolean
 }
 
-const getStateStyles = (state: string): {
+const getStateStyles = (status: string): {
   iconBg: string
   iconColor: string
   statusBg: string
   statusText: string
   statusLabel: string
 } => {
-  switch (state) {
-    case 'active':
+  switch (status) {
+    case 'ok':
       return {
         iconBg: 'bg-[rgba(76,126,255,0.05)]',
         iconColor: 'stroke-[#4C7EFF]',
@@ -42,10 +42,12 @@ const getStateStyles = (state: string): {
   }
 }
 
-export const NameIcon = ({ state }: { state: string }): React.JSX.Element => {
-  const styles = getStateStyles(state)
+export const NameIcon = ({ status }: { status: string }): React.JSX.Element => {
+  const styles = getStateStyles(status)
 
-  if (state === 'locked') {
+  // TODO: update condition
+
+  if (status === 'locked') {
     return (
       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${styles.iconBg}`}>
         <svg width='16' height='12' viewBox='0 0 16 12' fill='none' xmlns='http://www.w3.org/2000/svg'>
@@ -64,18 +66,18 @@ export const NameIcon = ({ state }: { state: string }): React.JSX.Element => {
   )
 }
 
-const StatusBadge = ({ state, showIcon = false }: StatusBadgeProps): React.JSX.Element => {
-  const styles = getStateStyles(state)
+const StatusBadge = ({ status, showIcon = false }: StatusBadgeProps): React.JSX.Element => {
+  const styles = getStateStyles(status)
 
   if (showIcon) {
-    return <NameIcon state={state} />
+    return <NameIcon status={status} />
   }
 
   return (
     <div className={`flex items-center gap-2 px-[5px] py-[3px] pl-[3px] rounded-[24px] ${styles.statusBg}`}>
       <div className='w-[14px] h-[14px] relative'>
         <div className={`w-[14px] h-[14px] rounded-full ${styles.statusBg}`} />
-        {state === 'locked'
+        {status === 'locked'
           ? (
             <svg
               width='6'

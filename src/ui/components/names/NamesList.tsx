@@ -9,7 +9,7 @@ import StatusBadge, { NameIcon } from './StatusBadge'
 export interface NameData {
   name: string
   registrationTime: string | null
-  state: 'pending' | 'active' | 'locked'
+  status: 'pending' | 'ok' | 'locked'
 }
 
 interface NamesListProps {
@@ -76,7 +76,7 @@ function NamesList ({
           return (
             <EntityListItem key={nameItem.name}>
               <div className='flex items-center gap-3'>
-                <NameIcon state={nameItem.state} />
+                <NameIcon status={nameItem.status} />
 
                 <div className='flex flex-col gap-[2px]'>
                   <Text
@@ -97,7 +97,7 @@ function NamesList ({
                 </div>
               </div>
 
-              <StatusBadge state={nameItem.state} />
+              <StatusBadge status={nameItem.status} />
             </EntityListItem>
           )
         })}
