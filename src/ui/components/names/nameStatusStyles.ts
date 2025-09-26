@@ -1,3 +1,5 @@
+import type { NameStatus } from '../../../types/NameStatus'
+
 export interface NameStatusStyle {
   iconBg: string
   iconColor: string
@@ -6,7 +8,7 @@ export interface NameStatusStyle {
   statusLabel: string
 }
 
-export const nameStatusStyles: Record<'ok' | 'locked' | 'pending', NameStatusStyle> = {
+export const nameStatusStyles: Record<NameStatus, NameStatusStyle> = {
   ok: {
     iconBg: 'bg-dash-brand/15',
     iconColor: 'text-dash-brand',
