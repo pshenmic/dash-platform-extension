@@ -63,8 +63,7 @@ function NamesList ({
   }
 
   return (
-    <div className='flex flex-col gap-[10px]'>
-      {/* Names List */}
+    <div className='flex flex-col gap-[0.625rem]'>
       <EntityList
         loading={loading}
         error={error}
@@ -80,7 +79,7 @@ function NamesList ({
               <div className='flex items-center gap-3'>
                 <SignStatusIcon status={nameItem.status} />
 
-                <div className='flex flex-col gap-[2px]'>
+                <div className='flex flex-col gap-[0.125rem]'>
                   <Text
                     weight='bold'
                     size='sm'
@@ -111,7 +110,6 @@ function NamesList ({
         })}
       </EntityList>
 
-      {/* Register Name Button */}
       <div className='px-4'>
         <Button
           variant='outline'
