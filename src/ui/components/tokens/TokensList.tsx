@@ -64,7 +64,7 @@ function TokensList ({
                 <Text
                   weight='medium'
                   size='base'
-                  className='text-[#0C1C33] text-center'
+                  className='text-dash-primary-dark-blue text-center'
                   style={{ fontSize: '16px', lineHeight: '1.366em' }}
                 >
                   {initials}
@@ -76,7 +76,7 @@ function TokensList ({
                   <Text
                     weight='medium'
                     size='sm'
-                    className='text-[#0C1C33]'
+                    className='text-dash-primary-dark-blue'
                     style={{ fontSize: '14px', lineHeight: '1.366em' }}
                   >
                     {singularName}

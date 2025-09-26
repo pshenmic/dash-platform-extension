@@ -3,7 +3,7 @@ import { OverlayMenu } from './OverlayMenu'
 import { MainSettingsScreen } from './screens/MainSettingsScreen'
 import { WalletSettingsScreen } from './screens/WalletSettingsScreen'
 import { PreferencesScreen } from './screens/PreferencesScreen'
-import { ConnectedDappsScreen } from './screens/ConnectedDappsScreen'
+import { ConnectedWebsitesScreen } from './screens/ConnectedWebsitesScreen'
 import { PrivateKeysScreen } from './screens/PrivateKeysScreen'
 import { ImportPrivateKeysScreen } from './screens/ImportPrivateKeysScreen'
 import { SecuritySettingsScreen } from './screens/SecuritySettingsScreen'
@@ -14,12 +14,12 @@ import { screenConfigs } from './screens/configs'
 import type { MenuSection as MenuSectionType, SettingsScreenProps } from './types'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 
-type ScreenType = 'main' | 'current-wallet' | 'preferences' | 'connected-dapps' | 'private-keys' | 'import-private-keys-settings' | 'security-privacy' | 'help-support' | 'about-dash'
+type ScreenType = 'main' | 'current-wallet' | 'preferences' | 'connected-websites' | 'private-keys' | 'import-private-keys-settings' | 'security-privacy' | 'help-support' | 'about-dash'
 
 const SCREEN_COMPONENTS: Record<string, React.ComponentType<SettingsScreenProps>> = {
   'current-wallet': WalletSettingsScreen,
   preferences: PreferencesScreen,
-  'connected-dapps': ConnectedDappsScreen,
+  'connected-websites': ConnectedWebsitesScreen,
   'private-keys': PrivateKeysScreen,
   'import-private-keys-settings': ImportPrivateKeysScreen,
   'security-privacy': SecuritySettingsScreen,

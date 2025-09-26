@@ -2,14 +2,14 @@ import React from 'react'
 import { Text, WebIcon, Button } from 'dash-ui-kit/react'
 import type { AppConnect } from '../../../types'
 
-interface ConnectedDappItemProps {
-  dapp: AppConnect
+interface ConnectedWebsiteItemProps {
+  website: AppConnect
   isDisconnecting: boolean
-  onDisconnect: (dappId: string) => void
+  onDisconnect: (websiteId: string) => void
 }
 
-export const ConnectedDappItem: React.FC<ConnectedDappItemProps> = ({
-  dapp,
+export const ConnectedWebsiteItem: React.FC<ConnectedWebsiteItemProps> = ({
+  website,
   isDisconnecting,
   onDisconnect
 }) => {
@@ -22,7 +22,7 @@ export const ConnectedDappItem: React.FC<ConnectedDappItemProps> = ({
 
         <div className='flex flex-col gap-[0.25rem]'>
           <Text size='md' className='text-dash-primary-dark-blue leading-[1.2]'>
-            {new URL(dapp.url).hostname}
+            {new URL(website.url).hostname}
           </Text>
         </div>
       </div>
@@ -30,7 +30,7 @@ export const ConnectedDappItem: React.FC<ConnectedDappItemProps> = ({
       <Button
         size='sm'
         className='h-8 !min-h-auto'
-        onClick={() => onDisconnect(dapp.id)}
+        onClick={() => onDisconnect(website.id)}
         disabled={isDisconnecting}
       >
         {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}

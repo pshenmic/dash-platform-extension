@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { Button, Text, Input, Heading, DashLogo } from 'dash-ui-kit/react'
+import { useExtensionAPI } from '../../hooks'
+import { Button, Text, Input } from 'dash-ui-kit/react'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 
 export default function SetupPasswordState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -49,17 +50,11 @@ export default function SetupPasswordState (): React.JSX.Element {
 
   return (
     <div className='flex flex-col gap-2.5 -mt-16'>
-      <div className='flex flex-col gap-2.5 mb-6'>
-        <DashLogo containerSize='3rem' />
-
-        <Heading level={1} size='2xl'>
-          Create Password
-        </Heading>
-
-        <Text dim className='leading-tight' size='sm'>
-          You will use this password to unlock your wallet. Do not share your password with others
-        </Text>
-      </div>
+      <TitleBlock
+        title='Create Password'
+        description='You will use this password to unlock your wallet. Do not share your password with others'
+        containerClassName='!mb-4'
+      />
 
       <div className='flex flex-col gap-2'>
         <Text dim>

@@ -17,13 +17,13 @@ export function EmptyState ({ title, buttonText, onButtonClick, className = '', 
         <div className='absolute w-full top-[24px]'>
           <img
             src={useStaticAsset('spiral-of-squares.png')}
-            alt='Background pattern'
-            className='relative w-[500px] -left-[10%] max-w-none -top-[150px] rotate-[35deg]'
+            alt=''
+            className='relative w-[500px] -left-[10%] max-w-none -top-[150px] rotate-[35deg] opacity-75'
           />
         </div>
       </div>
 
-      <div className='flex flex-column flex-grow gap-6 relative z-10 flex flex-col px-4'>
+      <div className='flex flex-column flex-grow gap-6 relative z-10 flex-col px-4'>
         <div className='text-center'>
           <Heading
             weight='medium'
