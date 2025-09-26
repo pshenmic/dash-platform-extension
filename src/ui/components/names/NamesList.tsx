@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { NetworkType } from '../../../types'
 import EntityList from '../common/EntityList'
 import EntityListItem from '../common/EntityListItem'
-import StatusBadge, { NameIcon } from './StatusBadge'
+import StatusBadge from './StatusBadge'
+import SignStatusIcon from './SignStatusIcon'
 
 export interface NameData {
   name: string
@@ -29,6 +30,7 @@ function NamesList ({
   const handleRegisterName = (): void => {
     void navigate('/name-registration')
   }
+
   const isValidTimestamp = (timestamp: string | null): boolean => {
     if (timestamp === null || timestamp === '') {
       return false
@@ -76,21 +78,25 @@ function NamesList ({
           return (
             <EntityListItem key={nameItem.name}>
               <div className='flex items-center gap-3'>
-                <NameIcon status={nameItem.status} />
+                <SignStatusIcon status={nameItem.status} />
 
                 <div className='flex flex-col gap-[2px]'>
                   <Text
-                    weight='medium'
+                    weight='bold'
                     size='sm'
-                    className='text-[#0C1C33] leading-[1.366em]'
+                    className='leading-[1.366em]'
                   >
-                    {nameItem.name}
+                    {(() => {
+                      const [base, ...rest] = nameItem.name.split('.')
+                      return rest.length ? <>{base}<Text weight='normal' color='blue'>.{rest.join('.')}</Text></> : nameItem.name
+                    })()}
                   </Text>
 
                   <Text
                     size='xs'
                     weight='medium'
-                    className='text-[rgba(12,28,51,0.35)] leading-[1.366em]'
+                    className='leading-[1.366em]'
+                    dim
                   >
                     {formatDate(nameItem.registrationTime)}
                   </Text>
