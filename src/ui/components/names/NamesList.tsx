@@ -76,7 +76,7 @@ function NamesList ({
       >
         {names.map((nameItem) => {
           return (
-            <EntityListItem key={nameItem.name}>
+            <EntityListItem key={nameItem.name} className='!cursor-default hover:!bg-[rgba(12,28,51,0.03)]'>
               <div className='flex items-center gap-3'>
                 <SignStatusIcon status={nameItem.status} />
 
