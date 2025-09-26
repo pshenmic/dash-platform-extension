@@ -4,23 +4,23 @@ import NoWallets from './NoWallets'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
 import { Button, Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs } from 'dash-ui-kit/react'
 import LoadingScreen from '../../components/layout/LoadingScreen'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { useSdk } from '../../hooks/useSdk'
+import { useExtensionAPI, useAsyncState } from '../../hooks'
+import { useSdk } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { usePlatformExplorerClient, type TransactionData, type NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { type TokenData } from '../../../types'
-import { useAsyncState } from '../../hooks/useAsyncState'
 import { useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
 import { TransactionsList } from '../../components/transactions'
 import { TokensList } from '../../components/tokens'
 import { NamesList, type NameData } from '../../components/names'
 import { BalanceInfo } from '../../components/data'
+import { fetchNames } from '../../../utils'
 
 function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
-  const platformClient = usePlatformExplorerClient()
+  const platformExplorerClient = usePlatformExplorerClient()
   const { currentNetwork, currentWallet, currentIdentity, setCurrentIdentity, allWallets } = useOutletContext<OutletContext>()
   const [identities, setIdentities] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -74,12 +74,11 @@ function HomeState (): React.JSX.Element {
       }
 
       loadBalance(async () => {
-        const balance = await sdk.identities.getIdentityBalance(currentIdentity)
-        return balance
+        return await sdk.identities.getIdentityBalance(currentIdentity)
       }).catch(e => console.log('loadBalance error', e))
 
       loadTransactions(async () => {
-        const result = await platformClient.fetchTransactions(currentIdentity, currentNetwork as NetworkType, 'desc')
+        const result = await platformExplorerClient.fetchTransactions(currentIdentity, currentNetwork as NetworkType, 'desc')
         if (result.data !== null && result.data !== undefined) {
           return result.data
         }
@@ -87,7 +86,7 @@ function HomeState (): React.JSX.Element {
       }).catch(e => console.log('loadTransactions error', e))
 
       loadTokens(async () => {
-        const result = await platformClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
+        const result = await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
         if (result.data !== null && result.data !== undefined) {
           return result.data
         }
@@ -95,11 +94,7 @@ function HomeState (): React.JSX.Element {
       }).catch(e => console.log('loadTokens error:', e))
 
       loadNames(async () => {
-        const result = await platformClient.fetchNames(currentIdentity, currentNetwork as NetworkType)
-        if (result.data !== null && result.data !== undefined) {
-          return result.data
-        }
-        throw new Error(result.error ?? 'Failed to load names')
+        return await fetchNames(sdk, platformExplorerClient, currentIdentity, currentNetwork as NetworkType)
       }).catch(e => console.log('loadNames error:', e))
     }
 
@@ -108,7 +103,7 @@ function HomeState (): React.JSX.Element {
     currentIdentity,
     currentNetwork,
     currentWallet,
-    platformClient,
+    platformExplorerClient,
     sdk,
     loadBalance,
     loadTransactions,
@@ -121,13 +116,13 @@ function HomeState (): React.JSX.Element {
   // load rate
   useEffect(() => {
     loadRate(async () => {
-      const result = await platformClient.fetchRate(currentNetwork as NetworkType)
+      const result = await platformExplorerClient.fetchRate(currentNetwork as NetworkType)
       if (result.data !== null && result.data !== undefined) {
         return result.data
       }
       throw new Error(result.error ?? 'Failed to load rate')
     }).catch(e => console.log('loadRate error:', e))
-  }, [currentNetwork, platformClient, loadRate])
+  }, [currentNetwork, platformExplorerClient, loadRate])
 
   if (isLoading) {
     return <LoadingScreen message='Loading wallet data...' />
@@ -229,7 +224,7 @@ function HomeState (): React.JSX.Element {
                   error={transactionsState.error}
                   rate={rateState.data}
                   currentNetwork={currentNetwork as NetworkType}
-                  getTransactionExplorerUrl={platformClient.getTransactionExplorerUrl}
+                  getTransactionExplorerUrl={platformExplorerClient.getTransactionExplorerUrl}
                 />
               )
             },
