@@ -16,6 +16,7 @@ import { PublicKeySelect, PublicKeyInfo } from '../../components/keys'
 import type { OutletContext } from '../../types'
 import { PlatformExplorerClient } from '../../../types'
 import type { NetworkType } from '../../../types'
+import { loadSigningKeys } from '../../../utils'
 
 interface AssetOption {
   value: 'dash' | 'credits' | 'tokens'
@@ -58,13 +59,10 @@ function SendTransactionState(): React.JSX.Element {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // const [showPasswordField, setShowPasswordField] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
   const [balance, setBalance] = useState<bigint | null>(null)
   const [rate, setRate] = useState<number | null>(null)
   const [publicKeys, setPublicKeys] = useState<PublicKeyInfo[]>([])
-  const [signingKeysState, loadSigningKeys] = useAsyncState<PublicKeyInfo[]>()
-  const [password, setPassword] = useState('')
+  const [signingKeysState, loadSigningKeysAsync] = useAsyncState<PublicKeyInfo[]>()
 
   // Load balance and exchange rate on component mount
   useEffect(() => {
@@ -102,41 +100,15 @@ function SendTransactionState(): React.JSX.Element {
       return
     }
 
-    loadSigningKeys(async () => {
+    loadSigningKeysAsync(async () => {
       const allWallets = await extensionAPI.getAllWallets()
       const wallet = allWallets.find(w => w.walletId === currentWallet && w.network === currentNetwork)
       if (wallet == null) throw new Error('Wallet not found')
 
-      const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
-      const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity)
-
-      // Filter identity public keys to only show those that are available
-      const availablePublicKeys = identityPublicKeys.filter((key: any) => {
-        const keyId = key?.keyId ?? key?.getId?.() ?? null
-        return keyId != null && availableKeyIds.includes(keyId)
-      })
-
-      const keys: PublicKeyInfo[] = availablePublicKeys.map((key: any) => {
-        const keyId = key?.keyId ?? key?.getId?.() ?? null
-        const purpose = String(key?.purpose ?? 'UNKNOWN')
-        const security = String(key?.securityLevel ?? 'UNKNOWN')
-        let hash = ''
-        try {
-          hash = typeof key?.getPublicKeyHash === 'function' ? key.getPublicKeyHash() : ''
-        } catch {}
-
-        return {
-          keyId: keyId ?? 0,
-          securityLevel: security,
-          purpose,
-          hash
-        }
-      })
-
-      return keys
+      return await loadSigningKeys(sdk, extensionAPI, currentIdentity)
     })
       .catch(e => console.log('loadSigningKeys error', e))
-  }, [currentWallet, currentNetwork, currentIdentity])
+  }, [currentWallet, currentNetwork, currentIdentity, sdk, extensionAPI])
 
   // Update local state when signing keys are loaded
   useEffect(() => {
