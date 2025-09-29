@@ -1,4 +1,4 @@
-import type { DashPlatformSDK } from '@dashevo/platform-sdk'
+import { DashPlatformSDK } from 'dash-platform-sdk'
 import { validateIdentifier } from './index'
 import type { PlatformExplorerClient } from '../types'
 import type { NetworkType } from '../types'
