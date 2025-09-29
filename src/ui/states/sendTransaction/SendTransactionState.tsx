@@ -5,19 +5,17 @@ import {
   Text,
   Input,
   ChevronIcon,
-  EyeOpenIcon,
-  EyeClosedIcon,
   DashLogo,
   Badge
 } from 'dash-ui-kit/react'
-import { AutoSizingInput } from '../../components/controls/AutoSizingInput'
+import { AutoSizingInput } from '../../components/controls'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PublicKeySelect, PublicKeyInfo } from '../../components/keys'
 import type { OutletContext } from '../../types'
-import { PlatformExplorerClient } from '../../../types/PlatformExplorerClient'
-import type { NetworkType } from '../../../types/PlatformExplorer'
+import { PlatformExplorerClient } from '../../../types'
+import type { NetworkType } from '../../../types'
 
 interface AssetOption {
   value: 'dash' | 'credits' | 'tokens'
