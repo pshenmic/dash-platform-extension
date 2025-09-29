@@ -13,6 +13,7 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PublicKeySelect, PublicKeyInfo, KeyRequirement } from '../../components/keys'
+import { AssetSelectionMenu } from '../../components/assetSelection'
 import type { OutletContext } from '../../types'
 import { PlatformExplorerClient } from '../../../types'
 import type { NetworkType } from '../../../types'
@@ -56,6 +57,7 @@ function SendTransactionState(): React.JSX.Element {
   const [rate, setRate] = useState<number | null>(null)
   const [publicKeys, setPublicKeys] = useState<PublicKeyInfo[]>([])
   const [signingKeysState, loadSigningKeysAsync] = useAsyncState<PublicKeyInfo[]>()
+  const [showAssetSelection, setShowAssetSelection] = useState(false)
   const [formData, setFormData] = useState<SendFormData>({
     recipient: '',
     amount: '',
@@ -74,8 +76,9 @@ function SendTransactionState(): React.JSX.Element {
   // Load balance and exchange rate on component mount
   useEffect(() => {
     const loadBalance = async () => {
-      if (currentIdentity && formData.selectedAsset === 'dash') {
+      if (currentIdentity) {
         try {
+          // Load credits balance (which is the identity balance)
           const identityBalance = await sdk.identities.getIdentityBalance(currentIdentity)
           setBalance(identityBalance)
         } catch (err) {
@@ -96,7 +99,7 @@ function SendTransactionState(): React.JSX.Element {
 
     loadBalance().catch(e => console.log('loadBalance error:', e))
     loadRate().catch(e => console.log('loadRate error:', e))
-  }, [currentIdentity, sdk, formData.selectedAsset, currentNetwork])
+  }, [currentIdentity, sdk, currentNetwork])
 
   // Load signing keys when wallet/identity/network changes
   useEffect(() => {
@@ -133,6 +136,14 @@ function SendTransactionState(): React.JSX.Element {
   const handleInputChange = (field: keyof SendFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setError(null)
+    
+    // Real-time balance validation for amount field
+    if (field === 'amount' && balance !== null && value.trim() !== '') {
+      const numericValue = Number(value)
+      if (numericValue > Number(balance)) {
+        setError('Amount exceeds available balance')
+      }
+    }
   }
 
   const handleQuickAmount = (percentage: number) => {
@@ -188,9 +199,27 @@ function SendTransactionState(): React.JSX.Element {
   }
 
   const formatUSDValue = (amount: string): string => {
-    if (!rate || !amount) return ''
+    // Only show USD value for DASH
+    if (!rate || !amount || formData.selectedAsset !== 'dash') return ''
     const usdValue = Number(amount) * rate
     return `~$${usdValue.toFixed(2)}`
+  }
+
+  const handleAssetSelect = (asset: 'dash' | 'credits') => {
+    setFormData(prev => ({ ...prev, selectedAsset: asset }))
+  }
+
+  const getAssetLabel = (): string => {
+    return formData.selectedAsset === 'dash' ? 'DASH' : 'CRDT'
+  }
+
+  const getAssetIcon = (): React.ReactNode => {
+    if (formData.selectedAsset === 'dash') {
+      return <DashLogo className='!text-white w-2 h-2' />
+    }
+    return (
+      <span className='text-dash-brand text-[0.6rem] font-medium'>C</span>
+    )
   }
 
   return (
@@ -208,7 +237,7 @@ function SendTransactionState(): React.JSX.Element {
             <AutoSizingInput
               value={formData.amount}
               onChange={(value) => handleInputChange('amount', value)}
-              placeholder='12.01'
+              placeholder='Amount'
               onChangeFilter={(value) => value.replace(/[^0-9.]/g, '')}
                 rightContent={
                   formData.amount && (
@@ -223,20 +252,29 @@ function SendTransactionState(): React.JSX.Element {
           {/* Asset Selection and Quick Buttons */}
           <div className='flex flex-col gap-1'>
             {/* Asset Selection */}
-            <Badge
-              color='light-gray'
-              variant='flat'
-              size='xxs'
-              className='flex items-center gap-2 w-max cursor-pointer'
+            <div 
+              onClick={() => setShowAssetSelection(true)}
+              className='cursor-pointer'
             >
-              <div className='w-4 h-4 bg-dash-brand rounded-full flex items-center justify-center'>
-                <DashLogo className='!text-white w-2 h-2' />
-              </div>
-              <Text weight='bold' className='text-dash-primary-dark-blue !text-[0.75rem]'>
-                DASH
-              </Text>
-              <ChevronIcon direction='down' size={8} className='text-dash-primary-dark-blue mr-1' />
-            </Badge>
+              <Badge
+                color='light-gray'
+                variant='flat'
+                size='xxs'
+                className='flex items-center gap-2 w-max'
+              >
+                <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                  formData.selectedAsset === 'dash' 
+                    ? 'bg-dash-brand' 
+                    : 'bg-[rgba(12,28,51,0.05)]'
+                }`}>
+                  {getAssetIcon()}
+                </div>
+                <Text weight='bold' className='text-dash-primary-dark-blue !text-[0.75rem]'>
+                  {getAssetLabel()}
+                </Text>
+                <ChevronIcon direction='down' size={8} className='text-dash-primary-dark-blue mr-1' />
+              </Badge>
+            </div>
 
             {/* Quick Amount Buttons */}
             <div className='flex gap-2'>
@@ -315,6 +353,15 @@ function SendTransactionState(): React.JSX.Element {
           Next
         </Button>
       </div>
+
+      {/* Asset Selection Menu */}
+      <AssetSelectionMenu
+        isOpen={showAssetSelection}
+        onClose={() => setShowAssetSelection(false)}
+        selectedAsset={formData.selectedAsset as 'dash' | 'credits'}
+        onAssetSelect={handleAssetSelect}
+        creditsBalance={balance ? balance.toString() : undefined}
+      />
     </div>
   )
 }
