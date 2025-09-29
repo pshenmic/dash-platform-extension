@@ -10,11 +10,14 @@ import {
   DashLogo,
   Badge
 } from 'dash-ui-kit/react'
+import { AutoSizingInput } from '../../components/controls/AutoSizingInput'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PublicKeySelect, PublicKeyInfo } from '../../components/keys'
 import type { OutletContext } from '../../types'
+import { PlatformExplorerClient } from '../../../types/PlatformExplorerClient'
+import type { NetworkType } from '../../../types/PlatformExplorer'
 
 interface AssetOption {
   value: 'dash' | 'credits' | 'tokens'
@@ -60,12 +63,12 @@ function SendTransactionState(): React.JSX.Element {
   const [showPasswordField, setShowPasswordField] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [balance, setBalance] = useState<bigint | null>(null)
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null)
+  const [rate, setRate] = useState<number | null>(null)
   const [publicKeys, setPublicKeys] = useState<PublicKeyInfo[]>([])
   const [signingKeysState, loadSigningKeys] = useAsyncState<PublicKeyInfo[]>()
   const [password, setPassword] = useState('')
 
-  // Load balance on component mount
+  // Load balance and exchange rate on component mount
   useEffect(() => {
     const loadBalance = async () => {
       if (currentIdentity && formData.selectedAsset === 'dash') {
@@ -78,8 +81,20 @@ function SendTransactionState(): React.JSX.Element {
       }
     }
 
+    const loadRate = async () => {
+      try {
+        const client = new PlatformExplorerClient()
+        const rate = await client.fetchRate((currentNetwork ?? 'testnet') as NetworkType)
+        setRate(rate)
+      } catch (err) {
+        console.log('Failed to load exchange rate:', err)
+        setRate(null)
+      }
+    }
+
     loadBalance().catch(e => console.log('loadBalance error:', e))
-  }, [currentIdentity, sdk, formData.selectedAsset])
+    loadRate().catch(e => console.log('loadRate error:', e))
+  }, [currentIdentity, sdk, formData.selectedAsset, currentNetwork])
 
   // Load signing keys when wallet/identity/network changes
   useEffect(() => {
@@ -204,8 +219,8 @@ function SendTransactionState(): React.JSX.Element {
   }
 
   const formatUSDValue = (amount: string): string => {
-    if (!exchangeRate || !amount) return ''
-    const usdValue = Number(amount) * exchangeRate
+    if (!rate || !amount) return ''
+    const usdValue = Number(amount) * rate
     return `~$${usdValue.toFixed(2)}`
   }
 
@@ -220,20 +235,20 @@ function SendTransactionState(): React.JSX.Element {
       <div className='flex justify-center'>
         <div className='flex items-start gap-[1.125rem]'>
           {/* Amount Input */}
-          <div className='border-b border-dash-primary-dark-blue border-opacity-15 pb-3'>
-            <Input
+          <div>
+            <AutoSizingInput
               value={formData.amount}
-              onChange={(e) => handleInputChange('amount', e.target.value)}
+              onChange={(value) => handleInputChange('amount', value)}
               placeholder='12.01'
-              type='number'
-              variant='unstyled'
-              className='text-3xl font-bold text-dash-primary-dark-blue w-auto'
+              onChangeFilter={(value) => value.replace(/[^0-9.]/g, '')}
+                rightContent={
+                  formData.amount && (
+                    <Text size='sm' className='text-dash-primary-dark-blue opacity-35 ml-2'>
+                      {formatUSDValue(formData.amount)}
+                    </Text>
+                  )
+                }
             />
-            {formData.amount && (
-              <Text size='xs' className='text-dash-primary-dark-blue opacity-35 mt-1'>
-                {formatUSDValue(formData.amount)}
-              </Text>
-            )}
           </div>
 
           {/* Asset Selection and Quick Buttons */}
@@ -242,8 +257,8 @@ function SendTransactionState(): React.JSX.Element {
             <Badge
               color='light-gray'
               variant='flat'
-              size='xss'
-              className='flex items-center gap-2'
+              size='xxs'
+              className='flex items-center gap-2 w-max'
             >
               <div className='w-4 h-4 bg-dash-brand rounded-full flex items-center justify-center'>
                   <DashLogo className='!text-white w-2 h-2' />
