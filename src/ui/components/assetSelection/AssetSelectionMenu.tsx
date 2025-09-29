@@ -1,6 +1,6 @@
 import React from 'react'
 import { Text, DashLogo } from 'dash-ui-kit/react'
-import { OverlayMenu } from '../settings'
+import { OverlayMenu } from '../common'
 
 interface AssetOption {
   value: 'dash' | 'credits'
