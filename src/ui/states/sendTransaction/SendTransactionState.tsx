@@ -12,7 +12,7 @@ import { AutoSizingInput } from '../../components/controls'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { TitleBlock } from '../../components/layout/TitleBlock'
-import { PublicKeySelect, PublicKeyInfo } from '../../components/keys'
+import { PublicKeySelect, PublicKeyInfo, KeyRequirement } from '../../components/keys'
 import type { OutletContext } from '../../types'
 import { PlatformExplorerClient } from '../../../types'
 import type { NetworkType } from '../../../types'
@@ -48,8 +48,14 @@ function SendTransactionState(): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
+  const platformExplorerClient = new PlatformExplorerClient()
   const { currentNetwork, currentWallet, currentIdentity } = useOutletContext<OutletContext>()
-
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [balance, setBalance] = useState<bigint | null>(null)
+  const [rate, setRate] = useState<number | null>(null)
+  const [publicKeys, setPublicKeys] = useState<PublicKeyInfo[]>([])
+  const [signingKeysState, loadSigningKeysAsync] = useAsyncState<PublicKeyInfo[]>()
   const [formData, setFormData] = useState<SendFormData>({
     recipient: '',
     amount: '',
@@ -57,12 +63,13 @@ function SendTransactionState(): React.JSX.Element {
     selectedKeyId: null,
     password: ''
   })
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [balance, setBalance] = useState<bigint | null>(null)
-  const [rate, setRate] = useState<number | null>(null)
-  const [publicKeys, setPublicKeys] = useState<PublicKeyInfo[]>([])
-  const [signingKeysState, loadSigningKeysAsync] = useAsyncState<PublicKeyInfo[]>()
+
+  // Define key requirements for credit transfer transactions
+  const keyRequirements: KeyRequirement[] = [
+    { purpose: 'AUTHENTICATION', securityLevel: 'HIGH' },
+    { purpose: 'AUTHENTICATION', securityLevel: 'MASTER' },
+    { purpose: 'MASTER', securityLevel: 'MASTER' }
+  ]
 
   // Load balance and exchange rate on component mount
   useEffect(() => {
@@ -79,8 +86,7 @@ function SendTransactionState(): React.JSX.Element {
 
     const loadRate = async () => {
       try {
-        const client = new PlatformExplorerClient()
-        const rate = await client.fetchRate((currentNetwork ?? 'testnet') as NetworkType)
+        const rate = await platformExplorerClient.fetchRate((currentNetwork ?? 'testnet') as NetworkType)
         setRate(rate)
       } catch (err) {
         console.log('Failed to load exchange rate:', err)
@@ -114,13 +120,6 @@ function SendTransactionState(): React.JSX.Element {
   useEffect(() => {
     if (signingKeysState.data != null) {
       setPublicKeys(signingKeysState.data)
-
-      if (signingKeysState.data.length > 0 && formData.selectedKeyId === null) {
-        const firstKey = signingKeysState.data[0]
-        const keyValue = firstKey.keyId?.toString() ?? (firstKey.hash !== '' ? firstKey.hash : 'key-0')
-        setFormData(prev => ({ ...prev, selectedKeyId: keyValue }))
-      }
-
       return
     }
 
@@ -279,16 +278,8 @@ function SendTransactionState(): React.JSX.Element {
         onChange={(keyId) => setFormData(prev => ({ ...prev, selectedKeyId: keyId }))}
         loading={signingKeysState.loading}
         error={signingKeysState.error}
+        keyRequirements={keyRequirements}
       />
-
-      {/* Error Message */}
-      {error && (
-        <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
-          <Text size='sm' color='red'>
-            {error}
-          </Text>
-        </div>
-      )}
 
       {/* password */}
       <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>
@@ -302,6 +293,15 @@ function SendTransactionState(): React.JSX.Element {
         placeholder='Extension password'
         className='w-full'
       />
+
+      {/* Error Message */}
+      {error && (
+        <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
+          <Text size='sm' color='red'>
+            {error}
+          </Text>
+        </div>
+      )}
 
       {/* Action Button */}
       <div className='flex flex-col gap-4'>
