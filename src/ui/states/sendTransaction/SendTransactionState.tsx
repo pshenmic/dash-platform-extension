@@ -60,7 +60,7 @@ function SendTransactionState(): React.JSX.Element {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showPasswordField, setShowPasswordField] = useState(false)
+  // const [showPasswordField, setShowPasswordField] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [balance, setBalance] = useState<bigint | null>(null)
   const [rate, setRate] = useState<number | null>(null)
@@ -193,7 +193,7 @@ function SendTransactionState(): React.JSX.Element {
       return
     }
 
-    setShowPasswordField(true)
+    // setShowPasswordField(true)
   }
 
   const handleSend = async () => {
@@ -258,10 +258,10 @@ function SendTransactionState(): React.JSX.Element {
               color='light-gray'
               variant='flat'
               size='xxs'
-              className='flex items-center gap-2 w-max'
+              className='flex items-center gap-2 w-max cursor-pointer'
             >
               <div className='w-4 h-4 bg-dash-brand rounded-full flex items-center justify-center'>
-                  <DashLogo className='!text-white w-2 h-2' />
+                <DashLogo className='!text-white w-2 h-2' />
               </div>
               <Text weight='bold' className='text-dash-primary-dark-blue !text-[0.75rem]'>
                 DASH
@@ -275,10 +275,10 @@ function SendTransactionState(): React.JSX.Element {
                 <Button
                   key={button.label}
                   onClick={() => handleQuickAmount(button.value)}
-                  variant='outline'
-                  colorScheme='brand'
+                  variant='solid'
+                  colorScheme='lightBlue'
                   size='xs'
-                  className='px-2 py-1'
+                  className='px-2 py-1 !min-h-0 text-[0.75rem]'
                 >
                   {button.label}
                 </Button>
@@ -290,7 +290,7 @@ function SendTransactionState(): React.JSX.Element {
 
       {/* Recipient Input */}
       <div className='flex flex-col gap-2.5'>
-        <Text size='md' className='text-dash-primary-dark-blue opacity-50'>
+        <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>
           Recipient
         </Text>
         <Input
@@ -311,32 +311,6 @@ function SendTransactionState(): React.JSX.Element {
         error={signingKeysState.error}
       />
 
-      {/* Password Field (shows when Next is clicked) */}
-      {showPasswordField && (
-        <div className='flex flex-col gap-2.5'>
-          <Text size='md' className='text-dash-primary-dark-blue opacity-50'>
-            Password
-          </Text>
-          <div className='relative'>
-            <Input
-              type={showPassword ? 'text' : 'password'}
-              value={formData.password}
-              onChange={(e) => handleInputChange('password', e.target.value)}
-              placeholder='Your Password'
-              size='xl'
-              variant='outlined'
-              className='pr-12'
-            />
-            <button
-              onClick={() => setShowPassword(!showPassword)}
-              className='absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 opacity-50 flex items-center justify-center'
-            >
-              {showPassword ? <EyeClosedIcon size={16} /> : <EyeOpenIcon size={16} />}
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Error Message */}
       {error && (
         <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
@@ -347,38 +321,29 @@ function SendTransactionState(): React.JSX.Element {
       )}
 
       {/* password */}
+      <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>
+        Password
+      </Text>
       <Input
         type='password'
         size='xl'
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
+        value={formData.password}
+        onChange={(e) => handleInputChange('password', e.target.value)}
         placeholder='Extension password'
         className='w-full'
       />
 
       {/* Action Button */}
       <div className='flex flex-col gap-4'>
-        {!showPasswordField ? (
-          <Button
-            colorScheme='brand'
-            size='lg'
-            className='w-full'
-            onClick={handleNext}
-            disabled={isLoading}
-          >
-            Next
-          </Button>
-        ) : (
-          <Button
-            colorScheme='brand'
-            size='lg'
-            className='w-full'
-            onClick={handleSend}
-            disabled={isLoading || !formData.password.trim()}
-          >
-            {isLoading ? 'Sending...' : 'Send Transaction'}
-          </Button>
-        )}
+        <Button
+          colorScheme='brand'
+          size='lg'
+          className='w-full'
+          onClick={handleNext}
+          disabled={isLoading || !formData.password.trim()}
+        >
+          Next
+        </Button>
       </div>
     </div>
   )
