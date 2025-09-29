@@ -1,5 +1,5 @@
-import React from 'react'
-import { Text, DashLogo } from 'dash-ui-kit/react'
+import React, { useState, useMemo } from 'react'
+import { Text, DashLogo, Input } from 'dash-ui-kit/react'
 import { OverlayMenu } from '../common'
 
 interface AssetOption {
@@ -52,6 +52,8 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
   dashBalance,
   creditsBalance
 }) => {
+  const [searchQuery, setSearchQuery] = useState('')
+
   const handleAssetClick = (asset: 'dash' | 'credits') => {
     onAssetSelect(asset)
     onClose()
@@ -67,14 +69,36 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
     return '0'
   }
 
+  const filteredAssets = useMemo(() => {
+    if (!searchQuery.trim()) return ASSET_OPTIONS
+    
+    const query = searchQuery.toLowerCase()
+    return ASSET_OPTIONS.filter(asset => 
+      asset.label.toLowerCase().includes(query) ||
+      asset.symbol.toLowerCase().includes(query)
+    )
+  }, [searchQuery])
+
   return (
     <OverlayMenu
       isOpen={isOpen}
       onClose={onClose}
       title='Select an asset'
     >
-      <div className='flex flex-col gap-2.5 pt-4'>
-        {ASSET_OPTIONS.map((asset) => (
+      <div className='flex flex-col gap-4'>
+        {/* Search Input */}
+          <Input
+            placeholder='Search'
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            size='xl'
+            colorScheme='default'
+            className='w-full'
+          />
+
+        {/* Assets List */}
+        <div className='flex flex-col gap-2.5'>
+          {filteredAssets.map((asset) => (
           <div
             key={asset.value}
             onClick={() => handleAssetClick(asset.value)}
@@ -104,7 +128,8 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
               </div>
             </div>
           </div>
-        ))}
+          ))}
+        </div>
       </div>
     </OverlayMenu>
   )
