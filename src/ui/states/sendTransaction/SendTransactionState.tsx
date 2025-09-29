@@ -6,7 +6,10 @@ import {
   Input,
   ChevronIcon,
   DashLogo,
-  Badge
+  Badge,
+  SuccessIcon,
+  ErrorIcon,
+  CircleProcessIcon
 } from 'dash-ui-kit/react'
 import { AutoSizingInput } from '../../components/controls'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -17,7 +20,7 @@ import { AssetSelectionMenu } from '../../components/assetSelection'
 import type { OutletContext } from '../../types'
 import { PlatformExplorerClient } from '../../../types'
 import type { NetworkType } from '../../../types'
-import { loadSigningKeys } from '../../../utils'
+import { loadSigningKeys, validateRecipientIdentifier, type IdentityValidationState } from '../../../utils'
 
 interface AssetOption {
   value: 'dash' | 'credits' | 'tokens'
@@ -58,6 +61,11 @@ function SendTransactionState(): React.JSX.Element {
   const [publicKeys, setPublicKeys] = useState<PublicKeyInfo[]>([])
   const [signingKeysState, loadSigningKeysAsync] = useAsyncState<PublicKeyInfo[]>()
   const [showAssetSelection, setShowAssetSelection] = useState(false)
+  const [recipientValidationState, setRecipientValidationState] = useState<IdentityValidationState>({
+    isValidating: false,
+    isValid: null,
+    error: null
+  })
   const [formData, setFormData] = useState<SendFormData>({
     recipient: '',
     amount: '',
@@ -133,9 +141,56 @@ function SendTransactionState(): React.JSX.Element {
     }
   }, [signingKeysState.data, formData.selectedKeyId])
 
+  // Handle recipient identifier validation
+  const handleRecipientValidation = async (identifier: string): Promise<void> => {
+    if (!identifier.trim()) {
+      setRecipientValidationState({
+        isValidating: false,
+        isValid: null,
+        error: null
+      })
+      return
+    }
+
+    setRecipientValidationState({
+      isValidating: true,
+      isValid: null,
+      error: null
+    })
+
+    const validationResult = await validateRecipientIdentifier(
+      identifier,
+      platformExplorerClient,
+      sdk,
+      currentNetwork as NetworkType | null
+    )
+
+    setRecipientValidationState(validationResult)
+  }
+
+  // Debounced validation for recipient input
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (formData.recipient.trim()) {
+        handleRecipientValidation(formData.recipient).catch(console.error)
+      }
+    }, 500) // 500ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [formData.recipient, currentNetwork])
+
   const handleInputChange = (field: keyof SendFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setError(null)
+    
+    // Reset recipient validation when typing
+    if (field === 'recipient') {
+      setRecipientValidationState({
+        isValidating: false,
+        isValid: null,
+        error: null
+      })
+    }
     
     // Real-time balance validation for amount field
     if (field === 'amount' && balance !== null && value.trim() !== '') {
@@ -155,7 +210,16 @@ function SendTransactionState(): React.JSX.Element {
 
   const validateForm = (): string | null => {
     if (!formData.recipient.trim()) {
-      return 'Recipient address is required'
+      return 'Recipient identifier is required'
+    }
+    if (recipientValidationState.isValidating) {
+      return 'Validating recipient identifier...'
+    }
+    if (recipientValidationState.isValid === false) {
+      return recipientValidationState.error || 'Invalid recipient identifier'
+    }
+    if (recipientValidationState.isValid === null && formData.recipient.trim()) {
+      return 'Please wait for recipient validation to complete'
     }
     if (!formData.amount.trim() || Number(formData.amount) <= 0) {
       return 'Valid amount is required'
@@ -235,13 +299,14 @@ function SendTransactionState(): React.JSX.Element {
           {/* Amount Input */}
           <div>
             <AutoSizingInput
+              className='items-center'
               value={formData.amount}
               onChange={(value) => handleInputChange('amount', value)}
               placeholder='0'
               onChangeFilter={(value) => value.replace(/[^0-9.]/g, '')}
                 rightContent={
                   formData.amount && (
-                    <Text size='sm' className='text-dash-primary-dark-blue opacity-35 ml-2'>
+                    <Text size='sm' className='text-dash-primary-dark-blue opacity-35 ml-2' dim>
                       {formatUSDValue(formData.amount)}
                     </Text>
                   )
@@ -298,15 +363,49 @@ function SendTransactionState(): React.JSX.Element {
       {/* Recipient Input */}
       <div className='flex flex-col gap-2.5'>
         <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>
-          Recipient
+          Recipient Identity
         </Text>
-        <Input
-          value={formData.recipient}
-          onChange={(e) => handleInputChange('recipient', e.target.value)}
-          placeholder='Enter recipient address'
-          size='xl'
-          variant='outlined'
-        />
+        <div className='relative'>
+          <Input
+            value={formData.recipient}
+            onChange={(e) => handleInputChange('recipient', e.target.value)}
+            placeholder='Enter recipient identity identifier'
+            size='xl'
+            variant='outlined'
+            className={`pr-10 ${
+              recipientValidationState.isValid === true 
+                ? 'border-green-500' 
+                : recipientValidationState.isValid === false 
+                  ? 'border-red-500' 
+                  : ''
+            }`}
+          />
+          {/* Validation Icon */}
+          {formData.recipient.trim() && (
+            <div className='absolute right-3 top-1/2 transform -translate-y-1/2'>
+              {recipientValidationState.isValidating && (
+                <CircleProcessIcon className='w-4 h-4 text-blue-500 animate-spin' />
+              )}
+              {recipientValidationState.isValid === true && (
+                <SuccessIcon className='w-4 h-4 text-green-500' />
+              )}
+              {recipientValidationState.isValid === false && (
+                <ErrorIcon className='w-4 h-4 text-red-500' />
+              )}
+            </div>
+          )}
+        </div>
+        {/* Validation Message */}
+        {recipientValidationState.error && (
+          <Text size='sm' className='text-red-500'>
+            {recipientValidationState.error}
+          </Text>
+        )}
+        {recipientValidationState.isValid === true && (
+          <Text size='sm' className='text-green-600'>
+            ✓ Valid identity identifier
+          </Text>
+        )}
       </div>
 
       {/* Public Key Selection */}
