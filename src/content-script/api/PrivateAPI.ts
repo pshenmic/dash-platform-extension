@@ -32,6 +32,7 @@ import { RemoveIdentityPrivateKeyHandler } from './private/identities/removePriv
 import { GetAllAppConnectsHandler } from './private/appConnect/getAllAppConnects'
 import { RemoveAppConnectHandler } from './private/appConnect/removeAppConnect'
 import { ExportPrivateKeyHandler } from './private/identities/exportPrivateKey'
+import { RegisterUsernameHandler } from './private/identities/registerUsername'
 
 /**
  * Handlers for a messages within extension context
@@ -98,7 +99,8 @@ export class PrivateAPI {
       [MessagingMethods.GET_ALL_APP_CONNECTS]: new GetAllAppConnectsHandler(appConnectRepository),
       [MessagingMethods.REMOVE_APP_CONNECT]: new RemoveAppConnectHandler(appConnectRepository),
       [MessagingMethods.APPROVE_APP_CONNECT]: new ApproveAppConnectHandler(appConnectRepository, this.storageAdapter),
-      [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter)
+      [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter),
+      [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk)
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {
