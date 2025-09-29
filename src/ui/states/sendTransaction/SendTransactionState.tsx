@@ -237,7 +237,7 @@ function SendTransactionState(): React.JSX.Element {
             <AutoSizingInput
               value={formData.amount}
               onChange={(value) => handleInputChange('amount', value)}
-              placeholder='Amount'
+              placeholder='0'
               onChangeFilter={(value) => value.replace(/[^0-9.]/g, '')}
                 rightContent={
                   formData.amount && (
