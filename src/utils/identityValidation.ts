@@ -29,7 +29,7 @@ export const validateRecipientIdentifier = async (
       return {
         isValidating: false,
         isValid: false,
-        error: 'Invalid identifier format. Must be a valid 32-byte base58 encoded string'
+        error: 'Invalid identifier format'
       }
     }
 
