@@ -7,9 +7,9 @@ import {
   ChevronIcon,
   DashLogo,
   Badge,
-  SuccessIcon,
   ErrorIcon,
-  CircleProcessIcon
+  CircleProcessIcon,
+  Avatar
 } from 'dash-ui-kit/react'
 import { AutoSizingInput } from '../../components/controls'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -379,6 +379,16 @@ function SendTransactionState(): React.JSX.Element {
                   ? 'border-red-500' 
                   : ''
             }`}
+            prefixClassName='flex items-center'
+            prefix={
+              recipientValidationState.isValid === true && formData.recipient.trim() ? (
+                <Avatar
+                  username={formData.recipient}
+                  size='xs'
+                  className='w-6 h-6'
+                />
+              ) : undefined
+            }
           />
           {/* Validation Icon */}
           {formData.recipient.trim() && (
@@ -386,24 +396,15 @@ function SendTransactionState(): React.JSX.Element {
               {recipientValidationState.isValidating && (
                 <CircleProcessIcon className='w-4 h-4 text-blue-500 animate-spin' />
               )}
-              {recipientValidationState.isValid === true && (
-                <SuccessIcon className='w-4 h-4 text-green-500' />
-              )}
               {recipientValidationState.isValid === false && (
                 <ErrorIcon className='w-4 h-4 text-red-500' />
               )}
             </div>
           )}
         </div>
-        {/* Validation Message */}
         {recipientValidationState.error && (
           <Text size='sm' className='text-red-500'>
             {recipientValidationState.error}
-          </Text>
-        )}
-        {recipientValidationState.isValid === true && (
-          <Text size='sm' className='text-green-600'>
-            ✓ Valid identity identifier
           </Text>
         )}
       </div>
