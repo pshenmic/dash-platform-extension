@@ -295,29 +295,28 @@ function SendTransactionState(): React.JSX.Element {
 
       {/* Amount Input and Asset Selection */}
       <div className='flex justify-center'>
-        <div className='flex items-start gap-[1.125rem]'>
+        <div className='flex flex-col justify-center items-center gap-[1.125rem] max-w-full'>
           {/* Amount Input */}
-          <div>
-            <AutoSizingInput
-              className='items-center'
-              value={formData.amount}
-              onChange={(value) => handleInputChange('amount', value)}
-              placeholder='0'
-              onChangeFilter={(value) => value.replace(/[^0-9.]/g, '')}
-                rightContent={
-                  formData.amount && (
-                    <Text size='sm' className='text-dash-primary-dark-blue opacity-35 ml-2' dim>
-                      {formatUSDValue(formData.amount)}
-                    </Text>
-                  )
-                }
-            />
-          </div>
+          <AutoSizingInput
+            containerClassName='flex justify-center max-w-full'
+            className='items-center max-w-full'
+            value={formData.amount}
+            onChange={(value) => handleInputChange('amount', value)}
+            placeholder='0'
+            onChangeFilter={(value) => value.replace(/[^0-9.]/g, '')}
+            rightContent={
+              formData.amount && (
+                <Text size='sm' className='text-dash-primary-dark-blue opacity-35 ml-2' dim>
+                  {formatUSDValue(formData.amount)}
+                </Text>
+              )
+            }
+          />
 
           {/* Asset Selection and Quick Buttons */}
           <div className='flex flex-col gap-1'>
             {/* Asset Selection */}
-            <div 
+            <div
               onClick={() => setShowAssetSelection(true)}
               className='cursor-pointer'
             >
