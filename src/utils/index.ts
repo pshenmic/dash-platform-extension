@@ -195,6 +195,8 @@ export const creditsToDash = (credits: number | bigint): number => {
   return numericCredits / 10e10
 }
 
+export * from './bigintUtils'
+
 export const getTokenName = (localizations: any, form: 'singularForm' | 'pluralForm' = 'singularForm'): string => {
   return localizations?.en?.[form] ??
     Object.values(localizations ?? {})[0]?.[form] ??
