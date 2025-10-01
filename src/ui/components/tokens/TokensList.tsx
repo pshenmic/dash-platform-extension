@@ -1,7 +1,7 @@
 import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { TokenData, NetworkType } from '../../hooks/usePlatformExplorerApi'
-import { getTokenName } from '../../../utils'
+import { getTokenName, fromBaseUnit } from '../../../utils'
 import { PLATFORM_EXPLORER_URLS } from '../../../constants'
 import EntityList from '../common/EntityList'
 import EntityListItem from '../common/EntityListItem'
@@ -52,7 +52,7 @@ function TokensList ({
         const initials = getTokenInitials(token)
         const singularName = getTokenName(token.localizations, 'singularForm') ?? (token.description !== '' ? token.description : 'Unknown Token')
         const pluralName = getTokenName(token.localizations, 'pluralForm') ?? singularName
-        const balance = token.balance
+        const balance = fromBaseUnit(token.balance, token.decimals)
 
         return (
           <EntityListItem
