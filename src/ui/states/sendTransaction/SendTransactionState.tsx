@@ -19,7 +19,7 @@ import { PublicKeySelect, PublicKeyInfo, KeyRequirement } from '../../components
 import { AssetSelectionMenu } from '../../components/assetSelection'
 import type { OutletContext } from '../../types'
 import type { NetworkType, TokenData } from '../../../types'
-import { loadSigningKeys, validateRecipientIdentifier, type IdentityValidationState } from '../../../utils'
+import { loadSigningKeys, validateRecipientIdentifier, creditsToDash, type IdentityValidationState } from '../../../utils'
 
 interface AssetOption {
   value: 'dash' | 'credits' | 'tokens'
@@ -188,10 +188,26 @@ function SendTransactionState(): React.JSX.Element {
     return () => clearTimeout(timeoutId)
   }, [formData.recipient, currentNetwork])
 
+  const getAvailableBalance = (): number => {
+    if (formData.selectedAsset === 'dash' && balance !== null) {
+      return creditsToDash(balance)
+    }
+    if (formData.selectedAsset === 'credits' && balance !== null) {
+      return Number(balance)
+    }
+
+    const token = getSelectedToken()
+    if (token) {
+      return Number(token.balance) / Math.pow(10, token.decimals)
+    }
+
+    return 0
+  }
+
   const handleInputChange = (field: keyof SendFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setError(null)
-    
+
     // Reset recipient validation when typing
     if (field === 'recipient') {
       setRecipientValidationState({
@@ -200,19 +216,21 @@ function SendTransactionState(): React.JSX.Element {
         error: null
       })
     }
-    
+
     // Real-time balance validation for amount field
-    if (field === 'amount' && balance !== null && value.trim() !== '') {
+    if (field === 'amount' && value.trim() !== '') {
       const numericValue = Number(value)
-      if (numericValue > Number(balance)) {
+      const availableBalance = getAvailableBalance()
+      if (numericValue > availableBalance) {
         setError('Amount exceeds available balance')
       }
     }
   }
 
   const handleQuickAmount = (percentage: number) => {
-    if (balance !== null) {
-      const amount = (Number(balance) * percentage).toString()
+    const availableBalance = getAvailableBalance()
+    if (availableBalance > 0) {
+      const amount = (availableBalance * percentage).toString()
       setFormData(prev => ({ ...prev, amount }))
     }
   }
@@ -233,7 +251,9 @@ function SendTransactionState(): React.JSX.Element {
     if (!formData.amount.trim() || Number(formData.amount) <= 0) {
       return 'Valid amount is required'
     }
-    if (balance !== null && Number(formData.amount) > Number(balance)) {
+
+    const availableBalance = getAvailableBalance()
+    if (Number(formData.amount) > availableBalance) {
       return 'Insufficient balance'
     }
     return null
@@ -343,7 +363,26 @@ function SendTransactionState(): React.JSX.Element {
             value={formData.amount}
             onChange={(value) => handleInputChange('amount', value)}
             placeholder='0'
-            onChangeFilter={(value) => value.replace(/[^0-9.]/g, '')}
+            onChangeFilter={(value) => {
+              // Remove non-numeric characters except decimal point
+              const cleaned = value.replace(/[^0-9.]/g, '')
+
+              // Prevent multiple decimal points
+              const parts = cleaned.split('.')
+              if (parts.length > 2) {
+                return parts[0] + '.' + parts.slice(1).join('')
+              }
+
+              // Check against available balance
+              const availableBalance = getAvailableBalance()
+              const numericValue = Number(cleaned)
+
+              if (cleaned && numericValue > availableBalance) {
+                return availableBalance.toString() // Set to max balance if exceeds
+              }
+
+              return cleaned
+            }}
             rightContent={
               formData.amount && (
                 <Text size='sm' className='text-dash-primary-dark-blue opacity-35 ml-2' dim>

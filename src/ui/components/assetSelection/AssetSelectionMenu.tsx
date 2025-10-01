@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { Text, DashLogo, Input, Avatar } from 'dash-ui-kit/react'
 import { OverlayMenu } from '../common'
 import type { TokenData } from '../../../types'
+import { creditsToDash } from '../../../utils'
 
 interface AssetOption {
   value: string
@@ -65,8 +66,9 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
   }
 
   const getAssetBalance = (asset: AssetOption): string => {
-    if (asset.value === 'dash' && dashBalance) {
-      return `${dashBalance} DASH`
+    if (asset.value === 'dash' && creditsBalance) {
+      const dashAmount = creditsToDash(Number(creditsBalance))
+      return `${dashAmount.toFixed(8)} DASH`
     }
     if (asset.value === 'credits' && creditsBalance) {
       return `${creditsBalance} CRDT`
