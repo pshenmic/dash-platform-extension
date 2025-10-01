@@ -376,7 +376,7 @@ function SendTransactionState(): React.JSX.Element {
         <Avatar
           username={token.identifier}
           size='xs'
-          className='w-2 h-2'
+          className='w-4 h-4'
         />
       )
     }
@@ -434,17 +434,14 @@ function SendTransactionState(): React.JSX.Element {
           />
 
           {/* Asset Selection and Quick Buttons */}
-          <div className='flex flex-col gap-1'>
+          <div className='flex gap-3'>
             {/* Asset Selection */}
-            <div
-              onClick={() => setShowAssetSelection(true)}
-              className='cursor-pointer'
-            >
               <Badge
                 color='light-gray'
                 variant='flat'
                 size='xxs'
-                className='flex items-center gap-2 w-max'
+                className='flex items-center gap-2 w-max cursor-pointer'
+                onClick={() => setShowAssetSelection(true)}
               >
                 {formData.selectedAsset === 'dash' || formData.selectedAsset === 'credits' ? (
                   <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
@@ -462,7 +459,6 @@ function SendTransactionState(): React.JSX.Element {
                 </Text>
                 <ChevronIcon direction='down' size={8} className='text-dash-primary-dark-blue mr-1' />
               </Badge>
-            </div>
 
             {/* Quick Amount Buttons */}
             <div className='flex gap-2'>
@@ -473,7 +469,7 @@ function SendTransactionState(): React.JSX.Element {
                   variant='solid'
                   colorScheme='lightBlue'
                   size='xs'
-                  className='px-2 py-1 !min-h-0 text-[0.75rem]'
+                  className='px-2 py-1 !min-h-0 text-[0.75rem] leading-1'
                 >
                   {button.label}
                 </Button>
