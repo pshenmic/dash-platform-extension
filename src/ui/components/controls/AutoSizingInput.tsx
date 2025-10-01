@@ -5,6 +5,7 @@ interface AutoSizingInputProps {
   onChange: (value: string) => void
   placeholder?: string
   className?: string
+  containerClassName?: string
   autoFocus?: boolean
   disabled?: boolean
   maxLength?: number
@@ -12,15 +13,15 @@ interface AutoSizingInputProps {
   onChangeFilter?: (value: string) => string
 }
 
-const containerStyles = 'inline-flex border-b border-gray-300 p-3 rounded-xl focus-within:border-brand-500 transition-colors duration-200 items-baseline'
-
-const inputStyles = 'bg-transparent border-none outline-none font-bold text-gray-900 placeholder-gray-400 min-w-0 flex-shrink-0 text-3xl'
+const containerStyles = 'inline-flex border-b border-gray-300 p-3 rounded-xl focus-within:border-brand-500 transition-colors duration-200 items-baseline max-w-full'
+const inputStyles = 'bg-transparent border-none outline-none font-bold text-gray-900 placeholder-gray-400 min-w-0 flex-shrink text-3xl'
 
 export const AutoSizingInput: React.FC<AutoSizingInputProps> = ({
   value,
   onChange,
   placeholder = 'Enter text',
   className,
+  containerClassName,
   autoFocus,
   disabled,
   maxLength,
@@ -47,7 +48,7 @@ export const AutoSizingInput: React.FC<AutoSizingInputProps> = ({
   }
 
   return (
-    <div className='relative'>
+    <div className={`relative ${containerClassName ?? ''}`}>
       <span
         ref={measureRef}
         className={`${inputStyles} absolute invisible pointer-events-none whitespace-nowrap`}
@@ -62,7 +63,7 @@ export const AutoSizingInput: React.FC<AutoSizingInputProps> = ({
           onChange={handleChange}
           placeholder={placeholder}
           className={inputStyles}
-          style={{ width: `${inputWidth}px` }}
+          style={{ width: `${inputWidth}px`, maxWidth: '100%' }}
           autoFocus={autoFocus}
           disabled={disabled}
           maxLength={maxLength}
