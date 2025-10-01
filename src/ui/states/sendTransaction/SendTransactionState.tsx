@@ -379,23 +379,27 @@ function SendTransactionState(): React.JSX.Element {
                   ? 'border-red-500' 
                   : ''
             }`}
-            prefixClassName='flex items-center'
+            prefixClassName='flex items-center !opacity-100'
             prefix={
-              recipientValidationState.isValid === true && formData.recipient.trim() ? (
-                <Avatar
-                  username={formData.recipient}
-                  size='xs'
-                  className='w-6 h-6'
-                />
-              ) : undefined
+              <div className={`${formData.recipient.trim() && (recipientValidationState.isValidating || recipientValidationState.isValid === true) ? 'w-6' : 'w-0'} h-6 flex items-center justify-center`}>
+                {recipientValidationState.isValidating ? (
+                  <CircleProcessIcon className='w-4 h-4 text-blue-500 animate-spin' />
+                ) : recipientValidationState.isValid === true ? (
+                  <Avatar
+                    username={formData.recipient}
+                    size='xs'
+                    className='w-6 h-6'
+                  />
+                ) : null}
+              </div>
             }
           />
           {/* Validation Icon */}
           {formData.recipient.trim() && (
             <div className='absolute right-3 top-1/2 transform -translate-y-1/2'>
-              {recipientValidationState.isValidating && (
+              {/* {recipientValidationState.isValidating && (
                 <CircleProcessIcon className='w-4 h-4 text-blue-500 animate-spin' />
-              )}
+              )} */}
               {recipientValidationState.isValid === false && (
                 <ErrorIcon className='w-4 h-4 text-red-500' />
               )}
