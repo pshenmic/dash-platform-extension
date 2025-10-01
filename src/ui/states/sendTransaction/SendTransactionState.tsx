@@ -19,7 +19,14 @@ import { PublicKeySelect, PublicKeyInfo, KeyRequirement } from '../../components
 import { AssetSelectionMenu } from '../../components/assetSelection'
 import type { OutletContext } from '../../types'
 import type { NetworkType, TokenData } from '../../../types'
-import { loadSigningKeys, validateRecipientIdentifier, creditsToDash, type IdentityValidationState } from '../../../utils'
+import {
+  loadSigningKeys,
+  validateRecipientIdentifier,
+  creditsToDashBigInt,
+  fromBaseUnit,
+  parseDecimalInput,
+  type IdentityValidationState
+} from '../../../utils'
 
 interface AssetOption {
   value: 'dash' | 'credits' | 'tokens'
@@ -188,20 +195,28 @@ function SendTransactionState(): React.JSX.Element {
     return () => clearTimeout(timeoutId)
   }, [formData.recipient, currentNetwork])
 
-  const getAvailableBalance = (): number => {
+  const getAvailableBalance = (): string => {
     if (formData.selectedAsset === 'dash' && balance !== null) {
-      return creditsToDash(balance)
+      return creditsToDashBigInt(balance)
     }
     if (formData.selectedAsset === 'credits' && balance !== null) {
-      return Number(balance)
+      return balance.toString()
     }
 
     const token = getSelectedToken()
     if (token) {
-      return Number(token.balance) / Math.pow(10, token.decimals)
+      return fromBaseUnit(token.balance, token.decimals)
     }
 
-    return 0
+    return '0'
+  }
+
+  const getAssetDecimals = (): number => {
+    if (formData.selectedAsset === 'dash') return 8
+    if (formData.selectedAsset === 'credits') return 0
+
+    const token = getSelectedToken()
+    return token?.decimals ?? 0
   }
 
   const handleInputChange = (field: keyof SendFormData, value: string) => {
@@ -219,9 +234,13 @@ function SendTransactionState(): React.JSX.Element {
 
     // Real-time balance validation for amount field
     if (field === 'amount' && value.trim() !== '') {
-      const numericValue = Number(value)
       const availableBalance = getAvailableBalance()
-      if (numericValue > availableBalance) {
+
+      // Simple numeric comparison since balances are in decimal format
+      const numericValue = Number(value)
+      const numericBalance = Number(availableBalance)
+
+      if (!isNaN(numericValue) && !isNaN(numericBalance) && numericValue > numericBalance) {
         setError('Amount exceeds available balance')
       }
     }
@@ -229,9 +248,18 @@ function SendTransactionState(): React.JSX.Element {
 
   const handleQuickAmount = (percentage: number) => {
     const availableBalance = getAvailableBalance()
-    if (availableBalance > 0) {
-      const amount = (availableBalance * percentage).toString()
-      setFormData(prev => ({ ...prev, amount }))
+    if (Number(availableBalance) > 0) {
+      const decimals = getAssetDecimals()
+
+      if (formData.selectedAsset === 'credits') {
+        // For credits (no decimals), use simple percentage
+        const amount = Math.floor(Number(availableBalance) * percentage).toString()
+        setFormData(prev => ({ ...prev, amount }))
+      } else {
+        // For dash and tokens with decimals
+        const amount = (Number(availableBalance) * percentage).toFixed(decimals)
+        setFormData(prev => ({ ...prev, amount }))
+      }
     }
   }
 
@@ -253,9 +281,19 @@ function SendTransactionState(): React.JSX.Element {
     }
 
     const availableBalance = getAvailableBalance()
-    if (Number(formData.amount) > availableBalance) {
+
+    // Simple numeric comparison since balances are in decimal format
+    const numericValue = Number(formData.amount)
+    const numericBalance = Number(availableBalance)
+
+    if (isNaN(numericValue)) {
+      return 'Invalid amount format'
+    }
+
+    if (numericValue > numericBalance) {
       return 'Insufficient balance'
     }
+
     return null
   }
 
@@ -364,24 +402,27 @@ function SendTransactionState(): React.JSX.Element {
             onChange={(value) => handleInputChange('amount', value)}
             placeholder='0'
             onChangeFilter={(value) => {
-              // Remove non-numeric characters except decimal point
-              const cleaned = value.replace(/[^0-9.]/g, '')
+              const decimals = getAssetDecimals()
 
-              // Prevent multiple decimal points
-              const parts = cleaned.split('.')
-              if (parts.length > 2) {
-                return parts[0] + '.' + parts.slice(1).join('')
+              // Parse and validate decimal input
+              const parsed = parseDecimalInput(value, decimals)
+              if (parsed === null) {
+                return formData.amount
               }
 
               // Check against available balance
-              const availableBalance = getAvailableBalance()
-              const numericValue = Number(cleaned)
+              if (parsed && parsed !== '' && parsed !== '.') {
+                const availableBalance = getAvailableBalance()
+                const numericValue = Number(parsed)
+                const numericBalance = Number(availableBalance)
 
-              if (cleaned && numericValue > availableBalance) {
-                return availableBalance.toString() // Set to max balance if exceeds
+                if (!isNaN(numericValue) && !isNaN(numericBalance) && numericValue > numericBalance) {
+                  // Set to max balance if exceeds
+                  return availableBalance
+                }
               }
 
-              return cleaned
+              return parsed
             }}
             rightContent={
               formData.amount && (
