@@ -65,7 +65,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
         size='xl'
         showCloseButton
       >
-        <div className='flex flex-col gap-4 -mx-6'>
+        <div className='flex flex-col gap-4 -mx-6 overflow-y-auto'>
           <div className='flex flex-col gap-2'>
             {identities.map((identity) => (
               <div
