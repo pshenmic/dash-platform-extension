@@ -13,13 +13,12 @@ import {
 } from 'dash-ui-kit/react'
 import { AutoSizingInput } from '../../components/controls'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
+import { useExtensionAPI, useAsyncState, useSdk, usePlatformExplorerClient } from '../../hooks'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PublicKeySelect, PublicKeyInfo, KeyRequirement } from '../../components/keys'
 import { AssetSelectionMenu } from '../../components/assetSelection'
 import type { OutletContext } from '../../types'
-import { PlatformExplorerClient } from '../../../types'
-import type { NetworkType } from '../../../types'
+import type { NetworkType, TokenData } from '../../../types'
 import { loadSigningKeys, validateRecipientIdentifier, type IdentityValidationState } from '../../../utils'
 
 interface AssetOption {
@@ -31,7 +30,7 @@ interface AssetOption {
 interface SendFormData {
   recipient: string
   amount: string
-  selectedAsset: 'dash' | 'credits' | 'tokens'
+  selectedAsset: string
   selectedKeyId: string | null
   password: string
 }
@@ -52,7 +51,7 @@ function SendTransactionState(): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
-  const platformExplorerClient = new PlatformExplorerClient()
+  const platformExplorerClient = usePlatformExplorerClient()
   const { currentNetwork, currentWallet, currentIdentity } = useOutletContext<OutletContext>()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +59,7 @@ function SendTransactionState(): React.JSX.Element {
   const [rate, setRate] = useState<number | null>(null)
   const [publicKeys, setPublicKeys] = useState<PublicKeyInfo[]>([])
   const [signingKeysState, loadSigningKeysAsync] = useAsyncState<PublicKeyInfo[]>()
+  const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
   const [showAssetSelection, setShowAssetSelection] = useState(false)
   const [recipientValidationState, setRecipientValidationState] = useState<IdentityValidationState>({
     isValidating: false,
@@ -81,7 +81,7 @@ function SendTransactionState(): React.JSX.Element {
     { purpose: 'MASTER', securityLevel: 'MASTER' }
   ]
 
-  // Load balance and exchange rate on component mount
+  // Load balance, tokens and exchange rate on component mount
   useEffect(() => {
     const loadBalance = async () => {
       if (currentIdentity) {
@@ -108,6 +108,15 @@ function SendTransactionState(): React.JSX.Element {
     loadBalance().catch(e => console.log('loadBalance error:', e))
     loadRate().catch(e => console.log('loadRate error:', e))
   }, [currentIdentity, sdk, currentNetwork])
+
+  // Load tokens for the current identity
+  useEffect(() => {
+    if (currentIdentity === null) return
+
+    loadTokens(async () => {
+      return await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
+    }).catch(e => console.log('loadTokens error:', e))
+  }, [currentIdentity, currentNetwork, platformExplorerClient, loadTokens])
 
   // Load signing keys when wallet/identity/network changes
   useEffect(() => {
@@ -269,21 +278,52 @@ function SendTransactionState(): React.JSX.Element {
     return `~$${usdValue.toFixed(2)}`
   }
 
-  const handleAssetSelect = (asset: 'dash' | 'credits') => {
+  const handleAssetSelect = (asset: string) => {
     setFormData(prev => ({ ...prev, selectedAsset: asset }))
   }
 
+  const getSelectedToken = (): TokenData | undefined => {
+    if (formData.selectedAsset === 'dash' || formData.selectedAsset === 'credits') {
+      return undefined
+    }
+    return tokensState.data?.find(token => token.identifier === formData.selectedAsset)
+  }
+
   const getAssetLabel = (): string => {
-    return formData.selectedAsset === 'dash' ? 'DASH' : 'CRDT'
+    if (formData.selectedAsset === 'dash') return 'DASH'
+    if (formData.selectedAsset === 'credits') return 'CRDT'
+
+    const token = getSelectedToken()
+    if (token) {
+      const singularForm = token.localizations?.en?.singularForm || token.identifier
+      return singularForm.toUpperCase().slice(0, 4)
+    }
+
+    return 'N/A'
   }
 
   const getAssetIcon = (): React.ReactNode => {
     if (formData.selectedAsset === 'dash') {
       return <DashLogo className='!text-white w-2 h-2' />
     }
-    return (
-      <span className='text-dash-brand text-[0.6rem] font-medium'>C</span>
-    )
+    if (formData.selectedAsset === 'credits') {
+      return (
+        <span className='text-dash-brand text-[0.6rem] font-medium'>C</span>
+      )
+    }
+
+    const token = getSelectedToken()
+    if (token) {
+      return (
+        <Avatar
+          username={token.identifier}
+          size='xs'
+          className='w-2 h-2'
+        />
+      )
+    }
+
+    return null
   }
 
   return (
@@ -326,13 +366,17 @@ function SendTransactionState(): React.JSX.Element {
                 size='xxs'
                 className='flex items-center gap-2 w-max'
               >
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                  formData.selectedAsset === 'dash' 
-                    ? 'bg-dash-brand' 
-                    : 'bg-[rgba(12,28,51,0.05)]'
-                }`}>
-                  {getAssetIcon()}
-                </div>
+                {formData.selectedAsset === 'dash' || formData.selectedAsset === 'credits' ? (
+                  <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                    formData.selectedAsset === 'dash'
+                      ? 'bg-dash-brand'
+                      : 'bg-[rgba(12,28,51,0.05)]'
+                  }`}>
+                    {getAssetIcon()}
+                  </div>
+                ) : (
+                  getAssetIcon()
+                )}
                 <Text weight='bold' className='text-dash-primary-dark-blue !text-[0.75rem]'>
                   {getAssetLabel()}
                 </Text>
@@ -461,9 +505,10 @@ function SendTransactionState(): React.JSX.Element {
       <AssetSelectionMenu
         isOpen={showAssetSelection}
         onClose={() => setShowAssetSelection(false)}
-        selectedAsset={formData.selectedAsset as 'dash' | 'credits'}
+        selectedAsset={formData.selectedAsset}
         onAssetSelect={handleAssetSelect}
         creditsBalance={balance ? balance.toString() : undefined}
+        tokens={tokensState.data ?? []}
       />
     </div>
   )

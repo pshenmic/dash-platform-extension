@@ -1,22 +1,26 @@
 import React, { useState, useMemo } from 'react'
-import { Text, DashLogo, Input } from 'dash-ui-kit/react'
+import { Text, DashLogo, Input, Avatar } from 'dash-ui-kit/react'
 import { OverlayMenu } from '../common'
+import type { TokenData } from '../../../types'
 
 interface AssetOption {
-  value: 'dash' | 'credits'
+  value: string
   label: string
   symbol: string
   icon: React.ReactNode
   balance?: string
+  isToken?: boolean
+  tokenData?: TokenData
 }
 
 interface AssetSelectionMenuProps {
   isOpen: boolean
   onClose: () => void
-  selectedAsset: 'dash' | 'credits'
-  onAssetSelect: (asset: 'dash' | 'credits') => void
+  selectedAsset: string
+  onAssetSelect: (asset: string) => void
   dashBalance?: string
   creditsBalance?: string
+  tokens?: TokenData[]
 }
 
 const ASSET_OPTIONS: AssetOption[] = [
@@ -50,34 +54,61 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
   selectedAsset,
   onAssetSelect,
   dashBalance,
-  creditsBalance
+  creditsBalance,
+  tokens = []
 }) => {
   const [searchQuery, setSearchQuery] = useState('')
 
-  const handleAssetClick = (asset: 'dash' | 'credits') => {
+  const handleAssetClick = (asset: string) => {
     onAssetSelect(asset)
     onClose()
   }
 
-  const getAssetBalance = (assetValue: 'dash' | 'credits'): string => {
-    if (assetValue === 'dash' && dashBalance) {
+  const getAssetBalance = (asset: AssetOption): string => {
+    if (asset.value === 'dash' && dashBalance) {
       return `${dashBalance} DASH`
     }
-    if (assetValue === 'credits' && creditsBalance) {
+    if (asset.value === 'credits' && creditsBalance) {
       return `${creditsBalance} CRDT`
+    }
+    if (asset.isToken && asset.tokenData) {
+      const balance = Number(asset.tokenData.balance) / Math.pow(10, asset.tokenData.decimals)
+      return `${balance.toFixed(asset.tokenData.decimals)} ${asset.symbol}`
     }
     return '0'
   }
 
+  const allAssets = useMemo(() => {
+    const tokenOptions: AssetOption[] = tokens.map(token => {
+      const singularForm = token.localizations?.en?.singularForm || token.identifier
+      return {
+        value: token.identifier,
+        label: singularForm,
+        symbol: singularForm.toUpperCase().slice(0, 4),
+        icon: (
+          <Avatar
+            username={token.identifier}
+            size='sm'
+            className='w-[39px] h-[39px]'
+          />
+        ),
+        isToken: true,
+        tokenData: token
+      }
+    })
+
+    return [...ASSET_OPTIONS, ...tokenOptions]
+  }, [tokens])
+
   const filteredAssets = useMemo(() => {
-    if (!searchQuery.trim()) return ASSET_OPTIONS
-    
+    if (!searchQuery.trim()) return allAssets
+
     const query = searchQuery.toLowerCase()
-    return ASSET_OPTIONS.filter(asset => 
+    return allAssets.filter(asset =>
       asset.label.toLowerCase().includes(query) ||
       asset.symbol.toLowerCase().includes(query)
     )
-  }, [searchQuery])
+  }, [searchQuery, allAssets])
 
   return (
     <OverlayMenu
@@ -123,7 +154,7 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
               
               <div className='text-right'>
                 <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
-                  {getAssetBalance(asset.value)}
+                  {getAssetBalance(asset)}
                 </Text>
               </div>
             </div>
