@@ -99,8 +99,9 @@ export class PlatformExplorerClient {
       }
     })
 
+    // Log errors but don't throw - return successful results
     if (errors.length > 0) {
-      throw new Error(errors.join('; '))
+      console.warn('Some identities failed to fetch:', errors.join('; '))
     }
 
     return successfulResults
