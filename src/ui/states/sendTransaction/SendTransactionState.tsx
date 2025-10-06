@@ -330,6 +330,12 @@ function SendTransactionState(): React.JSX.Element {
         // Convert amount to base units
         const amountInBaseUnits = toBaseUnit(formData.amount, token.decimals, true) as bigint
 
+        // Check if the converted amount is 0
+        if (amountInBaseUnits === 0n) {
+          setError('Amount is too small')
+          return
+        }
+
         console.log('Creating token transfer:', {
           tokenIdentifier: token.identifier,
           recipient: formData.recipient,
