@@ -1765,7 +1765,7 @@
     "@radix-ui/react-use-effect-event" "0.0.2"
     "@radix-ui/react-use-is-hydrated" "0.1.0"
 
-"@radix-ui/react-popover@1.1.15":
+"@radix-ui/react-popover@1.1.15", "@radix-ui/react-popover@^1.1.15":
   version "1.1.15"
   resolved "https://registry.yarnpkg.com/@radix-ui/react-popover/-/react-popover-1.1.15.tgz#9c852f93990a687ebdc949b2c3de1f37cdc4c5d5"
   integrity sha512-kr0X2+6Yy/vJzLYJUPCZEc8SfQcf+1COFoAqauJm74umQhta9M7lNJHP7QQS3vkvcGLQUbWpMzwrXYwrYztHKA==
@@ -3657,10 +3657,10 @@ csstype@^3.0.2:
   resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.1.3.tgz#d80ff294d114fb0e6ac500fbf85b60137d7eff81"
   integrity sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==
 
-dash-platform-sdk@1.3.0-dev.3:
-  version "1.3.0-dev.3"
-  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.3.0-dev.3.tgz#a02d5a02bfc962cf2aad07da44ba1f0bbc6e08bb"
-  integrity sha512-fLrcp0ABbQVLFOL2LDyawu0gXEY2D5K5W+WEh/YdH7nV3rttxEfz1iRPjdIPfpCeknr/Ay+hkVg0dx+WdYL6ew==
+dash-platform-sdk@1.3.0-dev.4:
+  version "1.3.0-dev.4"
+  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.3.0-dev.4.tgz#8a34cf39ccc4acd16e2e35fc5324829c2ef4977d"
+  integrity sha512-OFAvM4a1Wo2ky/lDpUTkTG1pCcO3NpLHkX6PvqXkDMjvjoXblWjA+NXFjHItCw0A69IZAdnq/MdNmDm/RuIIDQ==
   dependencies:
     "@bufbuild/protobuf" "^2.6.0"
     "@dashincubator/secp256k1" "^1.7.1-5"
@@ -3672,15 +3672,15 @@ dash-platform-sdk@1.3.0-dev.3:
     grpc-web "^1.5.0"
     hash.js "^1.1.7"
     nice-grpc-web "^3.3.6"
-    pshenmic-dpp "1.0.25"
+    pshenmic-dpp "1.1.0-dev.6"
 
-dash-ui-kit@^1.0.6:
+dash-ui-kit@AlexeyTripleA/dash-ui-kit#feat/update-components:
   version "1.0.6"
-  resolved "https://registry.yarnpkg.com/dash-ui-kit/-/dash-ui-kit-1.0.6.tgz#5ada19eaec3620604ae31699c383fe7d1eeaecca"
-  integrity sha512-a8nNUbtZIofAwzpCeZpQ6DqMOvGFFYgvKd5yD6VZ3NOkBm1uCfoSTjQgPO9vKXMBEV6yLl4TgKzpGyMFMmlT/A==
+  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/0ffed4503183e9a4825d552bddf3ea0a9551540c"
   dependencies:
     "@radix-ui/react-accordion" "^1.2.12"
     "@radix-ui/react-dialog" "^1.1.14"
+    "@radix-ui/react-popover" "^1.1.15"
     "@radix-ui/react-select" "^2.2.5"
     class-variance-authority "^0.7.1"
     minidenticons "^4.2.1"
@@ -4517,6 +4517,11 @@ fb-watchman@^2.0.0:
   integrity sha512-p5161BqbuCaSnB8jIbzQHOlpgsPmK5rJVDfDKO91Axs5NC1uu3HRQm6wt9cd9/+GtQQIO53JdGXXoyDpTAsgYA==
   dependencies:
     bser "2.1.1"
+
+fflate@^0.8.2:
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/fflate/-/fflate-0.8.2.tgz#fc8631f5347812ad6028bbe4a2308b2792aa1dea"
+  integrity sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==
 
 file-entry-cache@^6.0.1:
   version "6.0.1"
@@ -6796,10 +6801,12 @@ proxy-addr@~2.0.7:
     forwarded "0.2.0"
     ipaddr.js "1.9.1"
 
-pshenmic-dpp@1.0.25:
-  version "1.0.25"
-  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-1.0.25.tgz#0ccfe3c8ee79940ee9e4678580d4df97cdd21120"
-  integrity sha512-wxxqnDF2x2adUrp11bQ7J/BRhqQJRnH6AnE+ATddU6J5mnR2mQ1xkvQvHYxgSH93ErQhlih5MuSKQJMaBohAlA==
+pshenmic-dpp@1.1.0-dev.6:
+  version "1.1.0-dev.6"
+  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-1.1.0-dev.6.tgz#a8a04ffb49610a060b700cb88f5490dfd1c51f74"
+  integrity sha512-ULaAwjT4GaacO46lYLSDhNAt7OxQSdCr4/XSJZ08AAE4FKClA/UBk3LGKMc2leHLsiFVLCXG/k479JGasOHS8w==
+  dependencies:
+    fflate "^0.8.2"
 
 punycode@^2.1.0:
   version "2.3.1"
