@@ -25,6 +25,7 @@ import {
   creditsToDashBigInt,
   fromBaseUnit,
   parseDecimalInput,
+  toBaseUnit,
   type IdentityValidationState
 } from '../../../utils'
 
@@ -38,8 +39,6 @@ interface SendFormData {
   recipient: string
   amount: string
   selectedAsset: string
-  selectedKeyId: string | null
-  password: string
 }
 
 const ASSET_OPTIONS: AssetOption[] = [
@@ -76,9 +75,7 @@ function SendTransactionState(): React.JSX.Element {
   const [formData, setFormData] = useState<SendFormData>({
     recipient: '',
     amount: '',
-    selectedAsset: 'dash',
-    selectedKeyId: null,
-    password: ''
+    selectedAsset: 'dash'
   })
 
   // Define key requirements for credit transfer transactions
@@ -129,7 +126,6 @@ function SendTransactionState(): React.JSX.Element {
   useEffect(() => {
     if (currentWallet == null || currentNetwork == null || currentIdentity == null) {
       setPublicKeys([])
-      setFormData(prev => ({ ...prev, selectedKeyId: null }))
       return
     }
 
@@ -151,11 +147,7 @@ function SendTransactionState(): React.JSX.Element {
     }
 
     setPublicKeys([])
-
-    if (formData.selectedKeyId !== null) {
-      setFormData(prev => ({ ...prev, selectedKeyId: null }))
-    }
-  }, [signingKeysState.data, formData.selectedKeyId])
+  }, [signingKeysState.data])
 
   // Handle recipient identifier validation
   const handleRecipientValidation = async (identifier: string): Promise<void> => {
@@ -308,8 +300,8 @@ function SendTransactionState(): React.JSX.Element {
   }
 
   const handleSend = async () => {
-    if (!formData.password.trim()) {
-      setError('Password is required')
+    if (!currentIdentity) {
+      setError('No identity selected')
       return
     }
 
@@ -317,13 +309,75 @@ function SendTransactionState(): React.JSX.Element {
     setError(null)
 
     try {
-      // TODO: Implement actual send transaction logic
-      console.log('Sending transaction:', formData)
-      
-      // Navigate to transaction confirmation or home
-      navigate('/home')
+      if (formData.selectedAsset === 'dash') {
+        // TODO: Implement DASH transfer
+        console.log('DASH transfer not yet implemented')
+        setError('DASH transfers are not yet supported')
+        return
+      } else if (formData.selectedAsset === 'credits') {
+        // TODO: Implement credits transfer
+        console.log('Credits transfer not yet implemented')
+        setError('Credits transfers are not yet supported')
+        return
+      } else {
+        // Token transfer
+        const token = getSelectedToken()
+        if (!token) {
+          setError('Selected token not found')
+          return
+        }
+
+        // Convert amount to base units
+        const amountInBaseUnits = toBaseUnit(formData.amount, token.decimals, true) as bigint
+
+        console.log('Creating token transfer:', {
+          tokenIdentifier: token.identifier,
+          recipient: formData.recipient,
+          amount: formData.amount,
+          amountInBaseUnits: amountInBaseUnits.toString(),
+          decimals: token.decimals
+        })
+
+        // Create token base transition first
+        const baseTransition = await sdk.tokens.createBaseTransition(
+          token.identifier,
+          currentIdentity
+        )
+
+        console.log('baseTransition', baseTransition)
+
+        // Create unsigned token transfer state transition
+        const stateTransition = sdk.tokens.createStateTransition(
+          baseTransition,
+          currentIdentity,
+          'transfer',
+          {
+            identityId: formData.recipient,
+            amount: amountInBaseUnits
+          }
+        )
+
+        // Store the unsigned state transition using the extension API
+        const { base64 } = await import('@scure/base')
+        const stateTransitionBytes = stateTransition.bytes()
+        const stateTransitionBase64 = base64.encode(stateTransitionBytes)
+
+        console.log('stateTransitionBase64', stateTransitionBase64)
+
+        // Use the extension API to create the state transition
+        // This ensures it's stored in the StateTransitionsRepository correctly
+        const response = await extensionAPI.createStateTransition(stateTransitionBase64)
+
+        console.log('response', response)
+
+        console.log('State transition created:', response.hash)
+
+        // Navigate to the approval page
+        navigate(`/approve/${response.hash}`)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Transaction failed')
+      console.error('Transaction creation failed:', err)
+      setError(err instanceof Error ? err.message : 'Transaction creation failed')
     } finally {
       setIsLoading(false)
     }
@@ -532,29 +586,6 @@ function SendTransactionState(): React.JSX.Element {
         )}
       </div>
 
-      {/* Public Key Selection */}
-      <PublicKeySelect
-        keys={publicKeys}
-        value={formData.selectedKeyId ?? ''}
-        onChange={(keyId) => setFormData(prev => ({ ...prev, selectedKeyId: keyId }))}
-        loading={signingKeysState.loading}
-        error={signingKeysState.error}
-        keyRequirements={keyRequirements}
-      />
-
-      {/* password */}
-      <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>
-        Password
-      </Text>
-      <Input
-        type='password'
-        size='xl'
-        value={formData.password}
-        onChange={(e) => handleInputChange('password', e.target.value)}
-        placeholder='Extension password'
-        className='w-full'
-      />
-
       {/* Error Message */}
       {error && (
         <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
@@ -570,10 +601,10 @@ function SendTransactionState(): React.JSX.Element {
           colorScheme='brand'
           size='lg'
           className='w-full'
-          onClick={handleNext}
-          disabled={isLoading || !formData.password.trim()}
+          onClick={handleSend}
+          disabled={isLoading}
         >
-          Next
+          {isLoading ? 'Creating Transaction...' : 'Next'}
         </Button>
       </div>
 
