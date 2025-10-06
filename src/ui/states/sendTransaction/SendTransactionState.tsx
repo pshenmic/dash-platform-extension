@@ -389,14 +389,26 @@ function SendTransactionState(): React.JSX.Element {
   }
 
   const formatUSDValue = (amount: string): string => {
-    // Only show USD value for DASH
-    if (!rate || !amount || formData.selectedAsset !== 'dash') return ''
-    const usdValue = Number(amount) * rate
+    if (!rate || !amount) return ''
+
+    let dashAmount: number
+    if (formData.selectedAsset === 'dash') {
+      dashAmount = Number(amount)
+    } else if (formData.selectedAsset === 'credits') {
+      // Convert credits to DASH for USD calculation
+      const creditsAmount = BigInt(Math.floor(Number(amount)))
+      const dashValue = creditsToDashBigInt(creditsAmount)
+      dashAmount = Number(dashValue)
+    } else {
+      return ''
+    }
+
+    const usdValue = dashAmount * rate
     return `~$${usdValue.toFixed(2)}`
   }
 
   const handleAssetSelect = (asset: string) => {
-    setFormData(prev => ({ ...prev, selectedAsset: asset }))
+    setFormData(prev => ({ ...prev, selectedAsset: asset, amount: '' }))
   }
 
   const getSelectedToken = (): TokenData | undefined => {
