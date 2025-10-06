@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams, useOutletContext } from 'react-router-dom'
+import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
 import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
@@ -12,10 +12,14 @@ import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
+  const location = useLocation()
   const extensionAPI = useExtensionAPI()
   const { currentWallet, currentIdentity, setCurrentIdentity } = useOutletContext<OutletContext>()
 
   const params = useParams()
+
+  // Check if identity switching should be disabled (e.g., when navigating from SendTransaction)
+  const disableIdentitySelect = location.state?.disableIdentitySelect === true
 
   const [transactionDecodeError, setTransactionDecodeError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
@@ -361,6 +365,7 @@ function ApproveTransactionState (): React.JSX.Element {
               options={identityOptions}
               showArrow
               size='xl'
+              disabled={disableIdentitySelect}
             />
           </div>
         )}

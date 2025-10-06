@@ -372,8 +372,7 @@ function SendTransactionState(): React.JSX.Element {
 
         console.log('State transition created:', response.hash)
 
-        // Navigate to the approval page
-        navigate(`/approve/${response.hash}`)
+        navigate(`/approve/${response.hash}`, { state: { disableIdentitySelect: true } })
       }
     } catch (err) {
       console.error('Transaction creation failed:', err)
