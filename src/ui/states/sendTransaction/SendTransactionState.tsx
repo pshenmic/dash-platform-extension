@@ -12,37 +12,23 @@ import { AutoSizingInput } from '../../components/controls'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI, useAsyncState, useSdk, usePlatformExplorerClient } from '../../hooks'
 import { TitleBlock } from '../../components/layout/TitleBlock'
-import { PublicKeyInfo, KeyRequirement } from '../../components/keys'
 import { AssetSelectionMenu } from '../../components/assetSelection'
 import { RecipientSearchInput } from '../../components/Identities'
 import type { OutletContext } from '../../types'
 import type { NetworkType, TokenData } from '../../../types'
 import type { RecipientSearchResult } from '../../../utils'
 import {
-  loadSigningKeys,
   creditsToDashBigInt,
   fromBaseUnit,
   parseDecimalInput,
   toBaseUnit
 } from '../../../utils'
 
-interface AssetOption {
-  value: 'dash' | 'credits' | 'tokens'
-  label: string
-  icon?: React.ReactNode
-}
-
 interface SendFormData {
   recipient: string
   amount: string
   selectedAsset: string
 }
-
-const ASSET_OPTIONS: AssetOption[] = [
-  { value: 'dash', label: 'DASH' },
-  { value: 'credits', label: 'Credits' },
-  { value: 'tokens', label: 'Tokens' }
-]
 
 const QUICK_AMOUNT_BUTTONS = [
   { label: 'Max', value: 1 },
@@ -55,13 +41,11 @@ function SendTransactionState(): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
-  const { currentNetwork, currentWallet, currentIdentity } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentIdentity } = useOutletContext<OutletContext>()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [balance, setBalance] = useState<bigint | null>(null)
   const [rate, setRate] = useState<number | null>(null)
-  const [publicKeys, setPublicKeys] = useState<PublicKeyInfo[]>([])
-  const [signingKeysState, loadSigningKeysAsync] = useAsyncState<PublicKeyInfo[]>()
   const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
   const [showAssetSelection, setShowAssetSelection] = useState(false)
   const [selectedRecipient, setSelectedRecipient] = useState<RecipientSearchResult | null>(null)
@@ -70,13 +54,6 @@ function SendTransactionState(): React.JSX.Element {
     amount: '',
     selectedAsset: 'dash'
   })
-
-  // Define key requirements for credit transfer transactions
-  const keyRequirements: KeyRequirement[] = [
-    { purpose: 'AUTHENTICATION', securityLevel: 'HIGH' },
-    { purpose: 'AUTHENTICATION', securityLevel: 'MASTER' },
-    { purpose: 'MASTER', securityLevel: 'MASTER' }
-  ]
 
   // Load balance, tokens and exchange rate on component mount
   useEffect(() => {
@@ -114,33 +91,6 @@ function SendTransactionState(): React.JSX.Element {
       return await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
     }).catch(e => console.log('loadTokens error:', e))
   }, [currentIdentity, currentNetwork, platformExplorerClient, loadTokens])
-
-  // Load signing keys when wallet/identity/network changes
-  useEffect(() => {
-    if (currentWallet == null || currentNetwork == null || currentIdentity == null) {
-      setPublicKeys([])
-      return
-    }
-
-    loadSigningKeysAsync(async () => {
-      const allWallets = await extensionAPI.getAllWallets()
-      const wallet = allWallets.find(w => w.walletId === currentWallet && w.network === currentNetwork)
-      if (wallet == null) throw new Error('Wallet not found')
-
-      return await loadSigningKeys(sdk, extensionAPI, currentIdentity)
-    })
-      .catch(e => console.log('loadSigningKeys error', e))
-  }, [currentWallet, currentNetwork, currentIdentity, sdk, extensionAPI])
-
-  // Update local state when signing keys are loaded
-  useEffect(() => {
-    if (signingKeysState.data != null) {
-      setPublicKeys(signingKeysState.data)
-      return
-    }
-
-    setPublicKeys([])
-  }, [signingKeysState.data])
 
   // Handle recipient selection
   const handleRecipientSelect = (recipient: RecipientSearchResult): void => {
@@ -239,16 +189,6 @@ function SendTransactionState(): React.JSX.Element {
     }
 
     return null
-  }
-
-  const handleNext = async () => {
-    const validationError = validateForm()
-    if (validationError) {
-      setError(validationError)
-      return
-    }
-
-    // setShowPasswordField(true)
   }
 
   const handleSend = async () => {
