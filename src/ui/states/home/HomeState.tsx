@@ -154,7 +154,7 @@ function HomeState (): React.JSX.Element {
               </Identifier>
 
               <div className='flex items-center gap-2'>
-                <ChevronIcon size={12} className='text-gray-800 rotate-90' />
+                <ChevronIcon size={12} className='text-gray-800' />
               </div>
             </div>
           </SelectIdentityDialog>
