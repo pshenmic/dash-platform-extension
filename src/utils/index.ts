@@ -91,10 +91,10 @@ export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: strin
     throw new Error('Failed to decrypt')
   }
 
-  const seed =  sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
-  const walletHDKey =  sdk.keyPair.seedToHdKey(seed)
+  const seed = await sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
+  const walletHDKey = await sdk.keyPair.seedToWallet(seed)
 
-  const hdKey =  sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, identityIndex, keyId, Network[wallet.network])
+  const hdKey = await sdk.keyPair.walletToIdentityKey(walletHDKey, identityIndex, keyId, { network: Network[wallet.network] })
   const privateKey = hdKey.privateKey
 
   if (privateKey == null) {
@@ -105,7 +105,7 @@ export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: strin
 }
 
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {
-  const walletHDKey =  sdk.keyPair.seedToHdKey(seed)
+  const walletHDKey = await sdk.keyPair.seedToWallet(seed)
 
   const identities = []
 
@@ -113,7 +113,7 @@ export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformS
   let identityIndex = 0
 
   do {
-    const hdKey =  sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, identityIndex, 0, network)
+    const hdKey = await sdk.keyPair.walletToIdentityKey(walletHDKey, identityIndex, 0, { network })
     const privateKey = hdKey.privateKey
 
     if (privateKey == null) {
