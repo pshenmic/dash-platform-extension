@@ -3676,7 +3676,7 @@ dash-platform-sdk@1.3.0-dev.4:
 
 dash-ui-kit@AlexeyTripleA/dash-ui-kit#feat/update-components:
   version "1.0.6"
-  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/0ffed4503183e9a4825d552bddf3ea0a9551540c"
+  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/83021378a7d51efde1d3f81b9aac3bc8c15de8a6"
   dependencies:
     "@radix-ui/react-accordion" "^1.2.12"
     "@radix-ui/react-dialog" "^1.1.14"
@@ -7998,9 +7998,9 @@ use-sidecar@^1.1.3:
     tslib "^2.0.0"
 
 use-sync-external-store@^1.5.0:
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/use-sync-external-store/-/use-sync-external-store-1.5.0.tgz#55122e2a3edd2a6c106174c27485e0fd59bcfca0"
-  integrity sha512-Rb46I4cGGVBmjamjphe8L/UnvJD+uPPtTkNvX5mZgqdbavhI4EbgIWJiIHXJ8bc/i9EQGPRh4DwEURJ552Do0A==
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/use-sync-external-store/-/use-sync-external-store-1.6.0.tgz#b174bfa65cb2b526732d9f2ac0a408027876f32d"
+  integrity sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==
 
 util-deprecate@^1.0.1, util-deprecate@^1.0.2, util-deprecate@~1.0.1:
   version "1.0.2"
