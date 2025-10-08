@@ -48,10 +48,6 @@ const NameRegistrationState: React.FC = () => {
   const compatibleKeys = signingKeys.filter(key => isKeyCompatible(key, keyRequirements))
   const hasCompatibleKeys = compatibleKeys.length > 0
 
-  console.log('signingKeys', signingKeys)
-  console.log('compatibleKeys', compatibleKeys)
-  console.log('hasCompatibleKeys', hasCompatibleKeys)
-
   const handleUsernameChange = (value: string): void => {
     setUsername(value)
     setIsValid(value.length >= 3 && /^[a-zA-Z0-9_-]+$/.test(value))
