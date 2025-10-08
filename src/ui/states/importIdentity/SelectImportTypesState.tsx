@@ -28,11 +28,11 @@ function SelectImportTypesState (): React.JSX.Element {
 
   const handleNext = (): void => {
     if (selectedType == null) return
-    
+
     const route = selectedType === 'regular'
       ? '/import-regular-identity'
       : '/import-masternode-identity'
-    navigate(route)
+    void navigate(route)
   }
 
   return (

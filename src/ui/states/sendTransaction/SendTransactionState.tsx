@@ -36,7 +36,7 @@ const QUICK_AMOUNT_BUTTONS = [
   { label: '25%', value: 0.25 }
 ]
 
-function SendTransactionState(): React.JSX.Element {
+function SendTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
@@ -48,7 +48,6 @@ function SendTransactionState(): React.JSX.Element {
   const [rate, setRate] = useState<number | null>(null)
   const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
   const [showAssetSelection, setShowAssetSelection] = useState(false)
-  const [selectedRecipient, setSelectedRecipient] = useState<RecipientSearchResult | null>(null)
   const [formData, setFormData] = useState<SendFormData>({
     recipient: '',
     amount: '',
@@ -57,8 +56,8 @@ function SendTransactionState(): React.JSX.Element {
 
   // Load balance, tokens and exchange rate on component mount
   useEffect(() => {
-    const loadBalance = async () => {
-      if (currentIdentity) {
+    const loadBalance = async (): Promise<void> => {
+      if ((currentIdentity !== null && currentIdentity !== undefined)) {
         try {
           // Load credits balance (which is the identity balance)
           const identityBalance = await sdk.identities.getIdentityBalance(currentIdentity)
@@ -69,7 +68,7 @@ function SendTransactionState(): React.JSX.Element {
       }
     }
 
-    const loadRate = async () => {
+    const loadRate = async (): Promise<void> => {
       try {
         const rate = await platformExplorerClient.fetchRate((currentNetwork ?? 'testnet') as NetworkType)
         setRate(rate)
@@ -79,8 +78,8 @@ function SendTransactionState(): React.JSX.Element {
       }
     }
 
-    loadBalance().catch(e => console.log('loadBalance error:', e))
-    loadRate().catch(e => console.log('loadRate error:', e))
+    void loadBalance().catch(e => console.log('loadBalance error:', e))
+    void loadRate().catch(e => console.log('loadRate error:', e))
   }, [currentIdentity, sdk, currentNetwork])
 
   // Load tokens for the current identity
@@ -94,7 +93,6 @@ function SendTransactionState(): React.JSX.Element {
 
   // Handle recipient selection
   const handleRecipientSelect = (recipient: RecipientSearchResult): void => {
-    setSelectedRecipient(recipient)
     setFormData(prev => ({ ...prev, recipient: recipient.identifier }))
     setError(null)
   }
@@ -108,7 +106,7 @@ function SendTransactionState(): React.JSX.Element {
     }
 
     const token = getSelectedToken()
-    if (token) {
+    if (token != null) {
       return fromBaseUnit(token.balance, token.decimals)
     }
 
@@ -123,14 +121,9 @@ function SendTransactionState(): React.JSX.Element {
     return token?.decimals ?? 0
   }
 
-  const handleInputChange = (field: keyof SendFormData, value: string) => {
+  const handleInputChange = (field: keyof SendFormData, value: string): void => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setError(null)
-
-    // Reset recipient selection when typing
-    if (field === 'recipient') {
-      setSelectedRecipient(null)
-    }
 
     // Real-time balance validation for amount field
     if (field === 'amount' && value.trim() !== '') {
@@ -146,7 +139,7 @@ function SendTransactionState(): React.JSX.Element {
     }
   }
 
-  const handleQuickAmount = (percentage: number) => {
+  const handleQuickAmount = (percentage: number): void => {
     const availableBalance = getAvailableBalance()
     if (Number(availableBalance) > 0) {
       const decimals = getAssetDecimals()
@@ -163,36 +156,8 @@ function SendTransactionState(): React.JSX.Element {
     }
   }
 
-  const validateForm = (): string | null => {
-    if (!formData.recipient.trim()) {
-      return 'Recipient identifier is required'
-    }
-    if (!selectedRecipient) {
-      return 'Please select a valid recipient from search results'
-    }
-    if (!formData.amount.trim() || Number(formData.amount) <= 0) {
-      return 'Valid amount is required'
-    }
-
-    const availableBalance = getAvailableBalance()
-
-    // Simple numeric comparison since balances are in decimal format
-    const numericValue = Number(formData.amount)
-    const numericBalance = Number(availableBalance)
-
-    if (isNaN(numericValue)) {
-      return 'Invalid amount format'
-    }
-
-    if (numericValue > numericBalance) {
-      return 'Insufficient balance'
-    }
-
-    return null
-  }
-
-  const handleSend = async () => {
-    if (!currentIdentity) {
+  const handleSend = async (): Promise<void> => {
+    if ((currentIdentity === null || currentIdentity === undefined)) {
       setError('No identity selected')
       return
     }
@@ -205,16 +170,14 @@ function SendTransactionState(): React.JSX.Element {
         // TODO: Implement DASH transfer
         console.log('DASH transfer not yet implemented')
         setError('DASH transfers are not yet supported')
-        return
       } else if (formData.selectedAsset === 'credits') {
         // TODO: Implement credits transfer
         console.log('Credits transfer not yet implemented')
         setError('Credits transfers are not yet supported')
-        return
       } else {
         // Token transfer
         const token = getSelectedToken()
-        if (!token) {
+        if (token == null) {
           setError('Selected token not found')
           return
         }
@@ -270,7 +233,7 @@ function SendTransactionState(): React.JSX.Element {
 
         console.log('State transition created:', response.hash)
 
-        navigate(`/approve/${response.hash}`, { state: { disableIdentitySelect: true } })
+        void navigate(`/approve/${response.hash}`, { state: { disableIdentitySelect: true } })
       }
     } catch (err) {
       console.error('Transaction creation failed:', err)
@@ -281,7 +244,7 @@ function SendTransactionState(): React.JSX.Element {
   }
 
   const formatUSDValue = (amount: string): string => {
-    if (!rate || !amount) return ''
+    if ((rate === null || rate === undefined) || amount === '') return ''
 
     let dashAmount: number
     if (formData.selectedAsset === 'dash') {
@@ -299,7 +262,7 @@ function SendTransactionState(): React.JSX.Element {
     return `~$${usdValue.toFixed(2)}`
   }
 
-  const handleAssetSelect = (asset: string) => {
+  const handleAssetSelect = (asset: string): void => {
     setFormData(prev => ({ ...prev, selectedAsset: asset, amount: '' }))
   }
 
@@ -315,8 +278,8 @@ function SendTransactionState(): React.JSX.Element {
     if (formData.selectedAsset === 'credits') return 'CRDT'
 
     const token = getSelectedToken()
-    if (token) {
-      const singularForm = token.localizations?.en?.singularForm || token.identifier
+    if (token != null) {
+      const singularForm = (token.localizations?.en?.singularForm ?? null) !== null ? token.localizations.en.singularForm : token.identifier
       return singularForm.toUpperCase().slice(0, 4)
     }
 
@@ -334,7 +297,7 @@ function SendTransactionState(): React.JSX.Element {
     }
 
     const token = getSelectedToken()
-    if (token) {
+    if (token != null) {
       return (
         <Avatar
           username={token.identifier}
@@ -374,7 +337,7 @@ function SendTransactionState(): React.JSX.Element {
               }
 
               // Check against available balance
-              if (parsed && parsed !== '' && parsed !== '.') {
+              if ((parsed !== null && parsed !== undefined) && parsed !== '' && parsed !== '.') {
                 const availableBalance = getAvailableBalance()
                 const numericValue = Number(parsed)
                 const numericBalance = Number(availableBalance)
@@ -388,7 +351,7 @@ function SendTransactionState(): React.JSX.Element {
               return parsed
             }}
             rightContent={
-              formData.amount && (
+              formData.amount !== '' && (
                 <Text size='sm' className='text-dash-primary-dark-blue opacity-35 ml-2' dim>
                   {formatUSDValue(formData.amount)}
                 </Text>
@@ -399,29 +362,32 @@ function SendTransactionState(): React.JSX.Element {
           {/* Asset Selection and Quick Buttons */}
           <div className='flex gap-3'>
             {/* Asset Selection */}
-              <Badge
-                color='light-gray'
-                variant='flat'
-                size='xxs'
-                className='flex items-center gap-2 w-max cursor-pointer'
-                onClick={() => setShowAssetSelection(true)}
-              >
-                {formData.selectedAsset === 'dash' || formData.selectedAsset === 'credits' ? (
+            <Badge
+              color='light-gray'
+              variant='flat'
+              size='xxs'
+              className='flex items-center gap-2 w-max cursor-pointer'
+              onClick={() => setShowAssetSelection(true)}
+            >
+              {formData.selectedAsset === 'dash' || formData.selectedAsset === 'credits'
+                ? (
                   <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
                     formData.selectedAsset === 'dash'
                       ? 'bg-dash-brand'
                       : 'bg-[rgba(12,28,51,0.05)]'
-                  }`}>
+                  }`}
+                  >
                     {getAssetIcon()}
                   </div>
-                ) : (
-                  getAssetIcon()
-                )}
-                <Text weight='bold' className='text-dash-primary-dark-blue !text-[0.75rem]'>
-                  {getAssetLabel()}
-                </Text>
-                <ChevronIcon direction='down' size={8} className='text-dash-primary-dark-blue mr-1' />
-              </Badge>
+                  )
+                : (
+                    getAssetIcon()
+                  )}
+              <Text weight='bold' className='text-dash-primary-dark-blue !text-[0.75rem]'>
+                {getAssetLabel()}
+              </Text>
+              <ChevronIcon direction='down' size={8} className='text-dash-primary-dark-blue mr-1' />
+            </Badge>
 
             {/* Quick Amount Buttons */}
             <div className='flex gap-2'>
@@ -457,7 +423,7 @@ function SendTransactionState(): React.JSX.Element {
       </div>
 
       {/* Error Message */}
-      {error && (
+      {(error !== null && error !== undefined) && (
         <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
           <Text size='sm' color='red'>
             {error}
@@ -484,7 +450,7 @@ function SendTransactionState(): React.JSX.Element {
         onClose={() => setShowAssetSelection(false)}
         selectedAsset={formData.selectedAsset}
         onAssetSelect={handleAssetSelect}
-        creditsBalance={balance ? balance.toString() : undefined}
+        creditsBalance={(balance !== null && balance !== undefined) ? balance.toString() : undefined}
         tokens={tokensState.data ?? []}
       />
     </div>

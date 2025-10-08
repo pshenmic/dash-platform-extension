@@ -8,7 +8,7 @@
  * @param decimals - Number of decimal places (default 0 for no decimals)
  * @returns The decimal representation as a string
  */
-export function fromBaseUnit(value: string | bigint | number, decimals: number = 0): string {
+export function fromBaseUnit (value: string | bigint | number, decimals: number = 0): string {
   const stringValue = typeof value === 'bigint' ? value.toString() : String(value)
 
   if (decimals === 0) {
@@ -19,13 +19,14 @@ export function fromBaseUnit(value: string | bigint | number, decimals: number =
   const absoluteValue = isNegative ? stringValue.slice(1) : stringValue
 
   const paddedValue = absoluteValue.padStart(decimals + 1, '0')
-  const integerPart = paddedValue.slice(0, -decimals) || '0'
+  const integerPartRaw = paddedValue.slice(0, -decimals)
+  const integerPart = integerPartRaw !== '' ? integerPartRaw : '0'
   const fractionalPart = paddedValue.slice(-decimals)
 
   // Remove trailing zeros from fractional part
   const trimmedFractional = fractionalPart.replace(/0+$/, '')
 
-  if (trimmedFractional === '') {
+  if (trimmedFractional.length === 0) {
     return (isNegative ? '-' : '') + integerPart
   }
 
@@ -39,7 +40,7 @@ export function fromBaseUnit(value: string | bigint | number, decimals: number =
  * @param returnBigInt - Whether to return bigint (default) or string
  * @returns The base unit value
  */
-export function toBaseUnit(value: string | number, decimals: number = 0, returnBigInt: boolean = true): bigint | string {
+export function toBaseUnit (value: string | number, decimals: number = 0, returnBigInt: boolean = true): bigint | string {
   const stringValue = String(value).trim()
 
   if (decimals === 0) {
@@ -64,7 +65,7 @@ export function toBaseUnit(value: string | number, decimals: number = 0, returnB
 /**
  * Add two bigint values represented as strings or bigint
  */
-export function bigintAdd(a: string | bigint, b: string | bigint): bigint {
+export function bigintAdd (a: string | bigint, b: string | bigint): bigint {
   const aBigInt = typeof a === 'bigint' ? a : BigInt(a)
   const bBigInt = typeof b === 'bigint' ? b : BigInt(b)
   return aBigInt + bBigInt
@@ -73,7 +74,7 @@ export function bigintAdd(a: string | bigint, b: string | bigint): bigint {
 /**
  * Subtract two bigint values
  */
-export function bigintSubtract(a: string | bigint, b: string | bigint): bigint {
+export function bigintSubtract (a: string | bigint, b: string | bigint): bigint {
   const aBigInt = typeof a === 'bigint' ? a : BigInt(a)
   const bBigInt = typeof b === 'bigint' ? b : BigInt(b)
   return aBigInt - bBigInt
@@ -82,7 +83,7 @@ export function bigintSubtract(a: string | bigint, b: string | bigint): bigint {
 /**
  * Multiply two bigint values
  */
-export function bigintMultiply(a: string | bigint, b: string | bigint): bigint {
+export function bigintMultiply (a: string | bigint, b: string | bigint): bigint {
   const aBigInt = typeof a === 'bigint' ? a : BigInt(a)
   const bBigInt = typeof b === 'bigint' ? b : BigInt(b)
   return aBigInt * bBigInt
@@ -91,7 +92,7 @@ export function bigintMultiply(a: string | bigint, b: string | bigint): bigint {
 /**
  * Divide two bigint values
  */
-export function bigintDivide(a: string | bigint, b: string | bigint): bigint {
+export function bigintDivide (a: string | bigint, b: string | bigint): bigint {
   const aBigInt = typeof a === 'bigint' ? a : BigInt(a)
   const bBigInt = typeof b === 'bigint' ? b : BigInt(b)
   return aBigInt / bBigInt
@@ -101,7 +102,7 @@ export function bigintDivide(a: string | bigint, b: string | bigint): bigint {
  * Compare two bigint values
  * @returns -1 if a < b, 0 if a === b, 1 if a > b
  */
-export function bigintCompare(a: string | bigint, b: string | bigint): number {
+export function bigintCompare (a: string | bigint, b: string | bigint): number {
   const aBigInt = typeof a === 'bigint' ? a : BigInt(a)
   const bBigInt = typeof b === 'bigint' ? b : BigInt(b)
 
@@ -113,28 +114,28 @@ export function bigintCompare(a: string | bigint, b: string | bigint): number {
 /**
  * Check if a value is greater than another
  */
-export function bigintGreaterThan(a: string | bigint, b: string | bigint): boolean {
+export function bigintGreaterThan (a: string | bigint, b: string | bigint): boolean {
   return bigintCompare(a, b) > 0
 }
 
 /**
  * Check if a value is less than another
  */
-export function bigintLessThan(a: string | bigint, b: string | bigint): boolean {
+export function bigintLessThan (a: string | bigint, b: string | bigint): boolean {
   return bigintCompare(a, b) < 0
 }
 
 /**
  * Check if a value is greater than or equal to another
  */
-export function bigintGreaterThanOrEqual(a: string | bigint, b: string | bigint): boolean {
+export function bigintGreaterThanOrEqual (a: string | bigint, b: string | bigint): boolean {
   return bigintCompare(a, b) >= 0
 }
 
 /**
  * Check if a value is less than or equal to another
  */
-export function bigintLessThanOrEqual(a: string | bigint, b: string | bigint): boolean {
+export function bigintLessThanOrEqual (a: string | bigint, b: string | bigint): boolean {
   return bigintCompare(a, b) <= 0
 }
 
@@ -145,7 +146,7 @@ export function bigintLessThanOrEqual(a: string | bigint, b: string | bigint): b
  * @param decimals - Decimal places for the base value
  * @returns The calculated percentage value
  */
-export function bigintPercentage(
+export function bigintPercentage (
   value: string | bigint,
   percentage: number,
   decimals: number = 0
@@ -168,7 +169,7 @@ export function bigintPercentage(
  * @param displayDecimals - Number of decimal places to display (default: same as decimals)
  * @returns Formatted string
  */
-export function formatBigintForDisplay(
+export function formatBigintForDisplay (
   value: string | bigint,
   decimals: number = 0,
   displayDecimals?: number
@@ -189,7 +190,7 @@ export function formatBigintForDisplay(
  * @param decimals - Maximum allowed decimal places
  * @returns Validated and formatted string, or null if invalid
  */
-export function parseDecimalInput(input: string, decimals: number = 0): string | null {
+export function parseDecimalInput (input: string, decimals: number = 0): string | null {
   // Remove non-numeric characters except decimal point
   const cleaned = input.replace(/[^0-9.]/g, '')
 
@@ -211,7 +212,7 @@ export function parseDecimalInput(input: string, decimals: number = 0): string |
 /**
  * Convert credits to dash (specific utility for this project)
  */
-export function creditsToDashBigInt(credits: string | bigint): string {
+export function creditsToDashBigInt (credits: string | bigint): string {
   const creditsBigInt = typeof credits === 'bigint' ? credits : BigInt(credits)
   // 1 DASH = 100,000,000,000 credits (10^11)
   const dashValue = Number(creditsBigInt) / 1e11
@@ -221,7 +222,7 @@ export function creditsToDashBigInt(credits: string | bigint): string {
 /**
  * Convert dash to credits (specific utility for this project)
  */
-export function dashToCreditsBigInt(dash: string | number): bigint {
+export function dashToCreditsBigInt (dash: string | number): bigint {
   const dashValue = typeof dash === 'string' ? Number(dash) : dash
   // 1 DASH = 100,000,000,000 credits (10^11)
   return BigInt(Math.floor(dashValue * 1e11))

@@ -27,7 +27,7 @@ export const OptionSelector: React.FC<OptionSelectorProps> = ({
       {options.map((option) => {
         const IconComponent = option.icon
         const isSelected = selectedId != null && selectedId === option.id
-        
+
         return (
           <div
             key={option.id}
@@ -38,20 +38,20 @@ export const OptionSelector: React.FC<OptionSelectorProps> = ({
                 : 'bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] border-transparent'
             }`}
           >
-            {IconComponent && (
+            {(IconComponent != null) && (
               <div className='flex items-center justify-center w-[34px] h-[34px] rounded-full bg-dash-brand/15 mr-[15px] flex-shrink-0'>
-                <IconComponent 
-                  className={`w-4 h-4 ${isSelected ? 'text-dash-brand' : 'text-dash-brand'}`} 
+                <IconComponent
+                  className={`w-4 h-4 ${isSelected ? 'text-dash-brand' : 'text-dash-brand'}`}
                 />
               </div>
             )}
             <div className='flex-1'>
               <Text color={isSelected ? 'blue' : 'default'} weight='medium'>
-                {option.boldLabel && <span className='font-bold'>{option.boldLabel}</span>}
-                {option.boldLabel && ' '}
+                {(option.boldLabel !== null && option.boldLabel !== undefined) && <span className='font-bold'>{option.boldLabel}</span>}
+                {(option.boldLabel !== null && option.boldLabel !== undefined) && ' '}
                 {option.label}
               </Text>
-              {option.description && (
+              {(option.description !== null && option.description !== undefined) && (
                 <Text size='sm' color={isSelected ? 'blue' : 'muted'} className='mt-1'>
                   {option.description}
                 </Text>

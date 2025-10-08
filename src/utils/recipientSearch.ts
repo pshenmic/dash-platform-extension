@@ -17,7 +17,7 @@ export const searchRecipients = async (
   sdk: DashPlatformSDK
 ): Promise<RecipientSearchResult[]> => {
   const query = searchQuery.trim()
-  if (!query) return []
+  if (query === '') return []
 
   const results: RecipientSearchResult[] = []
 
@@ -25,19 +25,19 @@ export const searchRecipients = async (
   if (validateIdentifier(query)) {
     try {
       const identity = await sdk.identities.getIdentityByIdentifier(query)
-      
-      if (identity) {
+
+      if (identity !== null && identity !== undefined) {
         try {
           const names = await sdk.names.searchByIdentity(query)
           // const firstName = names[0]?.properties?.normalizedLabel as string | undefined
           const [firstName] = names
-          const nameLabel = firstName?.properties?.normalizedLabel as string | undefined
+          const nameLabel = (firstName?.properties?.normalizedLabel ?? null) as string | null
           console.log('nameLabel', nameLabel)
 
           results.push({
             identifier: query,
-            name: nameLabel ? `${nameLabel}.dash` : undefined,
-            nameStatus: nameLabel ? 'ok' : undefined
+            name: (nameLabel !== null && nameLabel !== undefined) ? `${nameLabel}.dash` : undefined,
+            nameStatus: (nameLabel !== null && nameLabel !== undefined) ? 'ok' : undefined
           })
         } catch {
           results.push({ identifier: query })
@@ -53,16 +53,16 @@ export const searchRecipients = async (
     try {
       const fullName = query.includes('.dash') ? query : `${query}.dash`
       const nameDocuments = await sdk.names.searchByName(fullName)
-      
+
       // Map documents to results
       for (const doc of nameDocuments) {
         const normalizedLabel = doc.properties?.normalizedLabel as string
         const ownerId = doc.ownerId
-        
-        if (!normalizedLabel || !ownerId) continue
-        
+
+        if (normalizedLabel === '' || (ownerId === null || ownerId === undefined)) continue
+
         const identifierString = ownerId.base58()
-        
+
         // Check if already added (avoid duplicates)
         if (!results.some(r => r.identifier === identifierString)) {
           results.push({
@@ -79,4 +79,3 @@ export const searchRecipients = async (
 
   return results
 }
-

@@ -1,7 +1,6 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { validateIdentifier } from './index'
-import type { PlatformExplorerClient } from '../types'
-import type { NetworkType } from '../types'
+import type { PlatformExplorerClient, NetworkType } from '../types'
 
 export interface IdentityValidationState {
   isValidating: boolean
@@ -15,7 +14,7 @@ export const validateRecipientIdentifier = async (
   sdk: DashPlatformSDK,
   currentNetwork: NetworkType | null
 ): Promise<IdentityValidationState> => {
-  if (!identifier.trim()) {
+  if (identifier.trim() === '') {
     return {
       isValidating: false,
       isValid: null,
@@ -35,8 +34,8 @@ export const validateRecipientIdentifier = async (
 
     // Step 2: Check if identity exists on the network
     try {
-      await platformExplorerClient.fetchIdentity(identifier, (currentNetwork ?? 'testnet') as NetworkType)
-      
+      await platformExplorerClient.fetchIdentity(identifier, (currentNetwork ?? 'testnet'))
+
       return {
         isValidating: false,
         isValid: true,
@@ -46,7 +45,7 @@ export const validateRecipientIdentifier = async (
       // If platform explorer fails, try SDK
       try {
         const identity = await sdk.identities.getIdentityByIdentifier(identifier)
-        if (identity) {
+        if (identity !== null && identity !== undefined) {
           return {
             isValidating: false,
             isValid: true,

@@ -4,7 +4,7 @@ import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import HomeState from './states/home/HomeState'
 import ImportRegularState from './states/importIdentity/ImportRegularState'
 import ImportMasternodeState from './states/importIdentity/ImportMasternodeState'
-import SelectImportTypesState from "./states/importIdentity/SelectImportTypesState";
+import SelectImportTypesState from './states/importIdentity/SelectImportTypesState'
 import StartState from './states/start/StartState'
 import SetupPasswordState from './states/setup/SetupPasswordState'
 import LoginState from './states/login/LoginState'

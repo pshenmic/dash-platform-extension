@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import NoIdentities from './NoIdentities'
 import NoWallets from './NoWallets'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
@@ -9,7 +9,6 @@ import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { usePlatformExplorerClient, type TransactionData, type NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { type TokenData } from '../../../types'
-import { useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
 import { TransactionsList } from '../../components/transactions'
 import { TokensList } from '../../components/tokens'
@@ -195,7 +194,7 @@ function HomeState (): React.JSX.Element {
         <Button
           className='w-1/2'
           colorScheme='brand'
-          onClick={() => navigate('/send-transaction')}
+          onClick={async () => await navigate('/send-transaction')}
           disabled={currentIdentity === null || balanceState.data === null}
         >
           Send

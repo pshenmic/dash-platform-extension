@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useSdk, useExtensionAPI } from '../../hooks'
+import { useExtensionAPI } from '../../hooks'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { OutletContext, MasternodeIdentityInput } from '../../types'
 import {
@@ -13,10 +13,9 @@ import { WalletType } from '../../../types'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PrivateKeyInput, type PrivateKeyInputData } from '../../components/keys'
 
-function ImportMasternodeState(): React.JSX.Element {
+function ImportMasternodeState (): React.JSX.Element {
   const navigate = useNavigate()
-  const sdk = useSdk()
-  const { currentNetwork, currentWallet, setCurrentIdentity } = useOutletContext<OutletContext>()
+  const { currentWallet } = useOutletContext<OutletContext>()
   const extensionAPI = useExtensionAPI()
 
   const [formData, setFormData] = useState<MasternodeIdentityInput>({
@@ -44,7 +43,7 @@ function ImportMasternodeState(): React.JSX.Element {
   useEffect(() => {
     const checkWalletType = async (): Promise<void> => {
       if (currentWallet === null) {
-        navigate('/choose-wallet-type')
+        void navigate('/choose-wallet-type')
         return
       }
 
@@ -53,15 +52,15 @@ function ImportMasternodeState(): React.JSX.Element {
         const currentWalletInfo = wallets.find(wallet => wallet.walletId === currentWallet)
 
         if (currentWalletInfo?.type !== WalletType.keystore) {
-          navigate('/choose-wallet-type')
+          void navigate('/choose-wallet-type')
         }
       } catch (error) {
         console.log('Failed to check wallet type:', error)
-        navigate('/choose-wallet-type')
+        void navigate('/choose-wallet-type')
       }
     }
 
-    checkWalletType().catch(console.log)
+    void checkWalletType().catch(console.log)
   }, [currentWallet, extensionAPI, navigate])
 
   const updateField = (field: keyof MasternodeIdentityInput, value: string | number): void => {
@@ -93,13 +92,13 @@ function ImportMasternodeState(): React.JSX.Element {
 
     try {
       // Validate required fields
-      if (!formData.proTxHash.trim()) {
+      if (formData.proTxHash.trim() === '') {
         throw new Error('Pro TX Hash is required')
       }
-      if (!formData.ownerKey.trim()) {
+      if (formData.ownerKey.trim() === '') {
         throw new Error('Owner Key is required')
       }
-      if (!formData.payoutKey.trim()) {
+      if (formData.payoutKey.trim() === '') {
         throw new Error('Payout Key is required')
       }
 
@@ -112,13 +111,13 @@ function ImportMasternodeState(): React.JSX.Element {
       // 5. Importing the identity with masternode-specific metadata
 
       console.log('Importing masternode identity with data:', formData)
-      
+
       // For now, just navigate to home
       // In real implementation, you would:
       // await extensionAPI.importMasternodeIdentity(formData)
       // setCurrentIdentity(masternodeIdentityId)
-      
-      navigate('/home')
+
+      void navigate('/home')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
@@ -126,11 +125,9 @@ function ImportMasternodeState(): React.JSX.Element {
     }
   }
 
-  const isFormValid = Boolean(
-    formData.proTxHash.trim() &&
-    formData.ownerKey.trim() &&
-    formData.payoutKey.trim()
-  )
+  const isFormValid = formData.proTxHash.trim() !== '' &&
+    formData.ownerKey.trim() !== '' &&
+    formData.payoutKey.trim() !== ''
 
   return (
     <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
@@ -196,7 +193,7 @@ function ImportMasternodeState(): React.JSX.Element {
         </div>
       </div>
 
-      {error && (
+      {(error !== null && error !== undefined) && (
         <ValueCard colorScheme='yellow' className='break-all'>
           <Text color='red'>{error}</Text>
         </ValueCard>
