@@ -96,10 +96,7 @@ const NameRegistrationState: React.FC = () => {
       })
 
       // Use extensionAPI.registerUsername method
-      const res = await extensionAPI.registerUsername(fullName, currentIdentity, keyId, password)
-
-      console.log('res', res)
-      console.log('Username registration successful!')
+      await extensionAPI.registerUsername(fullName, currentIdentity, keyId, password)
 
       void navigate('/home')
     } catch (error) {
@@ -252,7 +249,7 @@ const NameRegistrationState: React.FC = () => {
                 size='xs'
                 className='text-center text-xs'
               >
-                {currentIdentity}
+                {currentIdentity ?? undefined}
               </Identifier>
             </div>
           </div>
