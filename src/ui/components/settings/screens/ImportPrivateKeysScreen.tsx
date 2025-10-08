@@ -236,7 +236,9 @@ export const ImportPrivateKeysScreen: React.FC<SettingsScreenProps> = ({ current
           colorScheme='brand'
           disabled={!hasValidKeys || isLoading || currentIdentity === null || currentIdentity === ''}
           className='w-full'
-          onClick={validateAndImportKeys}
+          onClick={() => {
+            validateAndImportKeys().catch(e => console.log('validateAndImportKeys error', e))
+          }}
         >
           {isLoading ? 'Importing...' : 'Import Private Keys'}
         </Button>

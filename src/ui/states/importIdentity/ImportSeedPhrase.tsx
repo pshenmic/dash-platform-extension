@@ -166,7 +166,10 @@ function ImportSeedPhrase (): React.JSX.Element {
               key={index}
               value={seedWords[index] ?? ''}
               onChange={(e) => handleWordChange(index, e.target.value)}
-              onPaste={handlePaste(index)}
+              onPaste={(e) => {
+                handlePaste(index)(e)
+                  .catch(e => console.log('past error', e))
+              }}
               prefix={`${index + 1}.`}
               placeholder=''
             />
@@ -201,7 +204,9 @@ function ImportSeedPhrase (): React.JSX.Element {
       {/* Import Button */}
       <div className='mb-6'>
         <Button
-          onClick={() => { handleImport().catch(console.error); return undefined }}
+          onClick={() => {
+            handleImport().catch(e => console.log('Import error', e))
+          }}
           disabled={isImportDisabled || isLoading}
           colorScheme='brand'
           className='w-full'
