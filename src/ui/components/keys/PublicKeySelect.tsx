@@ -68,6 +68,7 @@ export function PublicKeySelect ({
 
     return {
       value: keyValue,
+      label: `Key ID: ${key.keyId} - ${securityLabel} - ${purposeLabel}`,
       disabled: isKeyDisabled,
       content: (
         <div className={`flex items-center flex-wrap gap-2 w-full ${isKeyDisabled ? 'opacity-50' : ''}`}>
