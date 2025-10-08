@@ -96,7 +96,7 @@ function TransactionsList ({
                   onClick={() => window.open(getTransactionExplorerUrl(hash, currentNetwork), '_blank')}
                 >
                   <div className='flex items-center gap-3.5'>
-                    <TransactionStatusIcon className='w-6 h-6 opacity-80' status={transaction.status ?? 'unknown'} />
+                    <TransactionStatusIcon className='w-6 h-6 opacity-80' status={(transaction.status?.toUpperCase() ?? 'QUEUED') as 'SUCCESS' | 'FAIL' | 'QUEUED' | 'POOLED' | 'BROADCASTED'} />
 
                     <div className='flex flex-col gap-1'>
                       <Text weight='medium' size='sm' className='text-dash-primary-dark-blue'>

@@ -1,5 +1,5 @@
 import { AbstractSigner, WalletInfo } from 'dash-platform-sdk/src/signer/AbstractSigner'
-import { StateTransitionWASM } from 'pshenmic-dpp/dist/wasm'
+import { StateTransitionWASM } from 'pshenmic-dpp'
 import { hexToBytes, popupWindow, wait } from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'

@@ -167,7 +167,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
         <div className='flex flex-col gap-2 w-full'>
           <Button
-            onClick={async () => await navigate('/create-wallet')}
+            onClick={() => { void navigate('/create-wallet') }}
             colorScheme='brand'
           >
             Create Wallet
@@ -200,7 +200,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
         <div className='flex flex-col gap-2 w-full'>
           <Button
-            onClick={async () => await navigate('/choose-wallet-type')}
+            onClick={() => { void navigate('/choose-wallet-type') }}
             colorScheme='brand'
           >
             Import Identity
@@ -305,6 +305,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
   const identityOptions = identities.map(identifier => ({
     value: identifier,
+    label: identifier,
     content: (
       <Identifier
         middleEllipsis
@@ -353,10 +354,10 @@ function ApproveTransactionState (): React.JSX.Element {
             <Text size='md' opacity='50'>Choose Identity</Text>
             <Select
               value={currentIdentity ?? ''}
-              onChange={async (e: string) => {
+              onChange={(e: string) => {
                 const identity = e
                 setCurrentIdentity(identity)
-                await extensionAPI.switchIdentity(identity).catch(err => console.log('Failed to switch identity', err))
+                extensionAPI.switchIdentity(identity).catch(err => console.log('Failed to switch identity', err))
               }}
               options={identityOptions}
               showArrow
