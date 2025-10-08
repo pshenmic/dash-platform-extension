@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { cva } from 'class-variance-authority'
-import { useNavigate, useMatches, useOutletContext } from 'react-router-dom'
+import { useNavigate, useMatches, useOutletContext, useSearchParams } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import { ArrowIcon, Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
 import { NetworkSelector } from '../../controls/NetworkSelector'
@@ -14,6 +14,12 @@ const IMAGE_VARIANTS = {
     src: 'coin_bagel.png',
     alt: 'Badge',
     imgClasses: 'max-w -mt-[22%]',
+    containerClasses: 'w-[100%] -mr-[55%]'
+  },
+  app: {
+    src: 'app.png',
+    alt: 'App',
+    imgClasses: '-mt-[67%]',
     containerClasses: 'w-[100%] -mr-[55%]'
   }
 } as const
@@ -86,6 +92,21 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
   // Simple back navigation only
   simple: {},
 
+  // Identity registration intro with app image
+  identityRegistration: {
+    hideLeftSection: false,
+    showNetworkRightReadOnly: true,
+    networkDisplayFormat: 'card',
+    imageType: 'app',
+    imageClasses: '-mt-[10%] !w-[412px]',
+    containerClasses: 'absolute top-0 right-0 -mr-[25%]'
+  },
+
+  // Identity registration with dynamic image based on stage
+  identityRegistrationDynamic: {
+    hideLeftSection: false
+  },
+
   // Minimal header with just logo
   minimal: {
     hideLeftSection: true,
@@ -148,12 +169,32 @@ export default function Header (): React.JSX.Element {
   } = context ?? ({} satisfies Partial<LayoutContext>)
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const deepestRoute = [...matches].reverse().find((m): boolean =>
     m.handle?.headerProps != null
   )
   const headerProps = deepestRoute?.handle?.headerProps
-  const variant = headerProps?.variant !== null && headerProps?.variant !== undefined ? HEADER_VARIANTS[headerProps.variant] : {}
+  const variantKey = headerProps?.variant
+  let variant = variantKey !== null && variantKey !== undefined ? HEADER_VARIANTS[variantKey] : {}
+
+  // Handle dynamic identity registration variant based on stage param
+  if (variantKey === 'identityRegistrationDynamic') {
+    const stage = searchParams.get('stage') ?? '1'
+    if (stage === '1') {
+      // Stage 1: Show app image with network card
+      variant = {
+        ...variant,
+        showNetworkRightReadOnly: true,
+        networkDisplayFormat: 'card',
+        imageType: 'app',
+        imageClasses: '-mt-[10%] !w-[412px]',
+        containerClasses: 'absolute top-0 right-0 -mr-[25%]'
+      }
+    }
+    // Stages 2-4: No image, just back button (default behavior)
+  }
+
   const config = {
     showLogo: variant.showLogo ?? false,
     hideLeftSection: variant.hideLeftSection ?? false,

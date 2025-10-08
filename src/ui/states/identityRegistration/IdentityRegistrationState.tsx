@@ -1,0 +1,250 @@
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Button, Text, Avatar, CopyButton, ChevronIcon } from 'dash-ui-kit/react'
+import { TitleBlock } from '../../components/layout/TitleBlock'
+import { useStaticAsset } from '../../hooks/useStaticAsset'
+
+type Stage = 1 | 2 | 3 | 4
+
+const mockIdentity = {
+  id: 'EWNwtGEC1qAbgNgo2UgadmQhB9DaZtB942x8bXgJrPNS',
+  name: 'test.dash'
+}
+
+const mockPaymentAddress = 'QMfCRPcjXoTnZa9sA9JR2KWgGGDFGDHJDGASFS'
+
+const ProgressSteps: React.FC<{ currentStage: Stage }> = ({ currentStage }) => (
+  <div className='flex gap-2 w-full'>
+    {[1, 2, 3, 4].map((step) => (
+      <div
+        key={step}
+        className={`h-[5px] flex-1 rounded-full transition-colors ${
+          step <= currentStage ? 'bg-blue-600' : 'bg-blue-600/15'
+        }`}
+      />
+    ))}
+  </div>
+)
+
+function IdentityRegistrationState (): React.JSX.Element {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [showKeys, setShowKeys] = useState(false)
+  const coinImage = useStaticAsset('coin_bagel.png')
+  
+  const stage = parseInt(searchParams.get('stage') ?? '1', 10) as Stage
+
+  // Stage 2: Auto-advance after 5 seconds
+  useEffect(() => {
+    if (stage === 2) {
+      const timer = setTimeout(() => {
+        void navigate('/register-identity?stage=3')
+      }, 5000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [stage, navigate])
+
+  // Stage 3: Auto-advance after 5 seconds
+  useEffect(() => {
+    if (stage === 3) {
+      const timer = setTimeout(() => {
+        void navigate('/register-identity?stage=4')
+      }, 5000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [stage, navigate])
+
+  const handleNext = (): void => {
+    void navigate('/register-identity?stage=2')
+  }
+
+  const handleDone = (): void => {
+    void navigate('/home')
+  }
+
+  // Stage 1: Introduction (image is in header)
+  if (stage === 1) {
+    return (
+      <div className='flex flex-col h-full'>
+        <div className='px-[15px] pt-[210px]'>
+          <TitleBlock
+            title='Identity Registration'
+            description='Lets start the identity creation process. A small fee will be taken for the registration. To continue press next.'
+            logoSize='3rem'
+            showLogo
+            containerClassName='mb-0'
+          />
+        </div>
+
+        <div className='flex-1' />
+
+        <div className='px-[15px] pb-[15px] flex flex-col gap-4'>
+          <Button
+            colorScheme='brand'
+            className='w-full'
+            onClick={handleNext}
+          >
+            Next
+          </Button>
+          <ProgressSteps currentStage={stage} />
+        </div>
+      </div>
+    )
+  }
+
+  // Stage 2: Waiting for payment with QR code
+  if (stage === 2) {
+    return (
+      <div className='flex flex-col h-full'>
+        <div className='px-[15px] pt-4'>
+          <TitleBlock
+            title='Waiting for Payment'
+            description="Your private keys are stored securely and never leave this device. Send a any desired amount to an address below and we'll do the process of Identity registration for you."
+            logoSize='3rem'
+            showLogo
+            containerClassName='mb-0'
+          />
+        </div>
+
+        <div className='mt-6 px-[15px]'>
+          <div className='bg-dash-primary-dark-blue/[0.04] rounded-3xl p-6 flex gap-6 items-center'>
+            <div className='w-28 h-28 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0'>
+              <Text size='xs' className='text-gray-500'>
+                QR
+              </Text>
+            </div>
+            <div className='flex flex-col gap-1 flex-1 min-w-0'>
+              <div className='flex items-center gap-2'>
+                <Text
+                  size='sm'
+                  weight='medium'
+                  className='text-dash-primary-dark-blue leading-[1.366em] tracking-[-0.01em] break-all'
+                >
+                  {mockPaymentAddress}
+                </Text>
+                <div className='flex-shrink-0'>
+                  <CopyButton text={mockPaymentAddress} />
+                </div>
+              </div>
+              <Text className='text-xs leading-[1.366em] tracking-[-0.01em] text-dash-primary-dark-blue/80'>
+                You can send any amount convenient for you (over 0.1 Dash). We are ready to accept a transfer at any time!
+              </Text>
+            </div>
+          </div>
+        </div>
+
+        <div className='flex-1' />
+
+        <div className='px-[15px] pb-[15px] flex flex-col gap-4'>
+          <Button
+            variant='outline'
+            colorScheme='brand'
+            className='w-full'
+          >
+            Enter Manually
+          </Button>
+          <ProgressSteps currentStage={stage} />
+        </div>
+      </div>
+    )
+  }
+
+  // Stage 3: Payment received with animated coin
+  if (stage === 3) {
+    return (
+      <div className='flex flex-col h-full relative overflow-hidden'>
+        <div
+          className='absolute left-[30px] top-[362px] w-[552px] h-[513px] pointer-events-none'
+          style={{
+            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0) 15%, rgba(255, 255, 255, 1) 42%)'
+          }}
+        >
+          <img src={coinImage} alt='' className='w-full h-full object-cover' />
+        </div>
+
+        <div className='relative z-10 flex flex-col h-full'>
+          <div className='px-[15px] pt-4'>
+            <TitleBlock
+              title={<>We received your<br />payment</>}
+              description='Please kindly wait for all Identity registration transactions to be processed by the network. Usually, it takes less than 10 seconds.'
+              logoSize='3rem'
+              showLogo
+              containerClassName='mb-0'
+            />
+          </div>
+
+          <div className='flex-1' />
+
+          <div className='px-[15px] pb-[15px]'>
+            <ProgressSteps currentStage={stage} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Stage 4: Success with identity card
+  return (
+    <div className='flex flex-col h-full'>
+      <div className='px-[15px] pt-4'>
+        <TitleBlock
+          title='Congratulations!'
+          description="Now you have your first Identity and you're ready to dive into the space of truly decentralized Web3 applications. Check out latest Dash Platform DApps on dashdapps.com"
+          logoSize='3rem'
+          showLogo
+          containerClassName='mb-0'
+        />
+      </div>
+
+      <div className='mt-6 px-[15px]'>
+        <div className='bg-dash-primary-dark-blue/[0.05] rounded-2xl p-[10px_15px_18px] flex flex-col gap-6'>
+          <div className='flex items-center gap-3'>
+            <div className='w-[58.5px] h-[58.5px] rounded-[75px] overflow-hidden flex-shrink-0'>
+              <Avatar username={mockIdentity.id} />
+            </div>
+            <div className='flex flex-col gap-2 flex-1 min-w-0'>
+              <Text size='md' weight='medium' className='text-dash-primary-dark-blue'>
+                {mockIdentity.name}
+              </Text>
+              <Text className='text-xs leading-[1.366em] text-dash-primary-dark-blue break-all'>
+                {mockIdentity.id}
+              </Text>
+            </div>
+          </div>
+
+          <div className='flex flex-col gap-3'>
+            <button
+              onClick={() => setShowKeys(!showKeys)}
+              className='flex items-center justify-between w-full'
+            >
+              <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
+                4 Public Keys:
+              </Text>
+              <ChevronIcon
+                className={`w-4 h-4 transition-transform ${showKeys ? 'rotate-180' : ''}`}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className='flex-1' />
+
+      <div className='px-[15px] pb-[15px] flex flex-col gap-4'>
+        <Button
+          colorScheme='brand'
+          className='w-full'
+          onClick={handleDone}
+        >
+          Done
+        </Button>
+        <ProgressSteps currentStage={stage} />
+      </div>
+    </div>
+  )
+}
+
+export default IdentityRegistrationState
+
