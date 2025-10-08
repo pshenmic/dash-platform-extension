@@ -92,9 +92,9 @@ export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: strin
   }
 
   const seed = await sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
-  const walletHDKey =  sdk.keyPair.seedToHdKey(seed)
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed)
 
-  const hdKey =  sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, identityIndex, keyId,  Network[wallet.network] )
+  const hdKey = sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, identityIndex, keyId, Network[wallet.network])
   const privateKey = hdKey.privateKey
 
   if (privateKey == null) {
@@ -113,7 +113,7 @@ export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformS
   let identityIndex = 0
 
   do {
-    const hdKey =  sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, identityIndex, 0, network )
+    const hdKey = sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, identityIndex, 0, network)
     const privateKey = hdKey.privateKey
 
     if (privateKey == null) {

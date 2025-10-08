@@ -51,7 +51,7 @@ export class ResyncIdentitiesHandler implements APIHandler {
     let seed
 
     if (payload.mnemonic != null) {
-      seed =  this.sdk.keyPair.mnemonicToSeed(payload.mnemonic)
+      seed = this.sdk.keyPair.mnemonicToSeed(payload.mnemonic)
     }
 
     if (payload.password != null) {
