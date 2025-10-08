@@ -1,10 +1,8 @@
-const config = {
+export default {
   setupFiles: [
     './test/bootstrap.js'
   ],
   transformIgnorePatterns: [
-    '/node_modules/(?!pshenmic-dpp|wasm-drive-verify|dash-platform-sdk)'
+    '/node_modules/(?!(?:.pnpm/))(?!dash-platform-sdk|pshenmic-dpp|@protobuf-ts/grpcweb-transport|@scure*|@noble*|cbor-x|micro-packed)'
   ]
 }
-
-module.exports = config

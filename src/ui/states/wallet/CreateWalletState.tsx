@@ -62,7 +62,9 @@ function CreateWalletState (): React.JSX.Element {
 
       <Button
         colorScheme='brand'
-        onClick={async () => await handleCreateWallet().catch(e => console.log('handleCreateWallet error: ', e))}
+        onClick={() => {
+          handleCreateWallet().catch(e => console.log('handleCreateWallet error: ', e))
+        }}
         disabled={isLoading}
         className='w-full'
       >
