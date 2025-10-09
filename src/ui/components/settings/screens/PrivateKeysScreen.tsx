@@ -119,7 +119,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   }, [error])
 
   const handleDeleteKey = (keyId: number): void => {
-    if (currentIdentity === null) {
+    if (currentIdentity == null) {
       console.log('No identity selected for key deletion')
       return
     }
@@ -128,7 +128,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   }
 
   const confirmDeleteKey = async (): Promise<void> => {
-    if (keyToDelete === null || currentIdentity == null) {
+    if (keyToDelete == null || currentIdentity == null) {
       return
     }
 
@@ -158,7 +158,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         <Text size='sm' dim>
           Manage public keys available for the current identity:
         </Text>
-        {currentIdentity !== null && (
+        {currentIdentity != null && (
           <Identifier
             key={currentIdentity}
             middleEllipsis
@@ -187,7 +187,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* No Identity State */}
-      {(currentIdentity === null || currentIdentity === '') && !keysLoading && (
+      {currentIdentity == null && !keysLoading && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='lightGray' size='xl'>
             <Text size='md' opacity='50'>No identity selected</Text>
@@ -196,7 +196,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* No Keys State */}
-      {!keysLoading && keysError == null && currentIdentity !== null && currentIdentity !== '' && publicKeys.length === 0 && (
+      {!keysLoading && keysError == null && currentIdentity != null && publicKeys.length === 0 && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='lightGray' size='xl'>
             <Text size='md' opacity='50'>No public keys available for this identity</Text>
@@ -243,7 +243,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
       {/* Confirm Delete Dialog */}
       <ConfirmDialog
-        open={keyToDelete !== null}
+        open={keyToDelete != null}
         onOpenChange={(open) => {
           if (!open) setKeyToDelete(null)
         }}
