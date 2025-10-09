@@ -54,7 +54,7 @@ const NameRegistrationState: React.FC = () => {
   }
 
   const registerName = async (): Promise<void> => {
-    if ((currentIdentity == null || currentIdentity === '') || username === '' || (selectedSigningKey == null || selectedSigningKey === '') || isRegistering) {
+    if (currentIdentity == null || username === '' || selectedSigningKey == null || isRegistering) {
       return
     }
 
@@ -80,7 +80,7 @@ const NameRegistrationState: React.FC = () => {
         return
       }
 
-      if (selectedSigningKey == null || selectedSigningKey === '') {
+      if (selectedSigningKey == null) {
         setPasswordError('Key not selected')
         setIsRegistering(false)
         return
@@ -101,13 +101,11 @@ const NameRegistrationState: React.FC = () => {
       void navigate('/home')
     } catch (error) {
       console.log('Failed to register username:', error)
-      const errorMessage = error instanceof Error ? error.message : (String(error) ?? 'Unknown error occurred')
+      const errorMessage = error instanceof Error ? error.message : String(error)
       setRegistrationError(errorMessage)
     } finally {
       setIsRegistering(false)
     }
-
-    setIsRegistering(false)
   }
 
   useEffect(() => {
@@ -117,7 +115,7 @@ const NameRegistrationState: React.FC = () => {
   }, [currentNetwork, platformClient, loadRate])
 
   useEffect(() => {
-    if (currentIdentity == null || currentIdentity === '') {
+    if (currentIdentity == null) {
       setHasSufficientBalance(true)
       return
     }
