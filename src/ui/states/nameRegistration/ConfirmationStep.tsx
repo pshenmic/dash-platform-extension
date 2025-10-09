@@ -91,7 +91,7 @@ export const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
         )}
       </div>
 
-      {(registrationError != null && registrationError !== '') && (
+      {registrationError != null && (
         <ValueCard
           border={false}
           colorScheme='yellow'
@@ -116,7 +116,7 @@ export const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
           colorScheme='brand'
           size='md'
           onClick={onConfirm}
-          disabled={isRegistering || password === '' || selectedSigningKey === null}
+          disabled={isRegistering || password === '' || selectedSigningKey == null}
           className='flex-1'
         >
           {isRegistering ? 'Registering...' : 'Confirm'}
