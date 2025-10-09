@@ -102,7 +102,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   const publicKeys: PublicKey[] = signingKeys
     .filter(key => key.keyId !== null)
     .map(key => ({
-      keyId: key.keyId as number, // Safe cast after filter
+      keyId: key.keyId,
       securityLevel: getSecurityLabel(key.securityLevel),
       purpose: getPurposeLabel(key.purpose),
       hash: key.hash
