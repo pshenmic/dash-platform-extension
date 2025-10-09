@@ -109,7 +109,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     }))
 
   useEffect(() => {
-    if (error !== null && error !== '') {
+    if (error != null) {
       const timer = setTimeout(() => {
         setError(null)
       }, 5000)
@@ -178,7 +178,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* Error State */}
-      {keysError !== null && keysError !== '' && (
+      {keysError != null && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='red' size='xl'>
             <Text size='md' color='red'>Error loading public keys: {keysError}</Text>
@@ -196,7 +196,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* No Keys State */}
-      {!keysLoading && (keysError === null || keysError === '') && currentIdentity !== null && currentIdentity !== '' && publicKeys.length === 0 && (
+      {!keysLoading && keysError == null && currentIdentity !== null && currentIdentity !== '' && publicKeys.length === 0 && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='lightGray' size='xl'>
             <Text size='md' opacity='50'>No public keys available for this identity</Text>
@@ -205,7 +205,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* Public Keys List */}
-      {!keysLoading && (keysError === null || keysError === '') && publicKeys.length > 0 && (
+      {!keysLoading && keysError == null && publicKeys.length > 0 && (
         <div className='flex-1 px-4 space-y-2.5'>
           {publicKeys.map((publicKey, index) => (
             <PublicKeyItem
@@ -219,7 +219,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* Delete Error State */}
-      {error !== null && error !== '' && (
+      {error != null && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='red' size='xl'>
             <Text size='md' color='red'>{error}</Text>

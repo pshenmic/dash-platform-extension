@@ -32,7 +32,7 @@ function NamesList ({
   }
 
   const isValidTimestamp = (timestamp: string | null): boolean => {
-    if (timestamp === null || timestamp === '') {
+    if (timestamp == null) {
       return false
     }
 

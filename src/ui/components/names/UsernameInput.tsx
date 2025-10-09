@@ -28,7 +28,7 @@ export const UsernameInput: React.FC<UsernameInputProps> = ({
 
   useEffect(() => {
     if (measureRef.current != null) {
-      const textToMeasure = (value !== '' ? value : placeholder !== '' ? placeholder : '') ?? ''
+      const textToMeasure = value !== '' ? value : placeholder
       measureRef.current.textContent = textToMeasure
       const measuredWidth = measureRef.current.offsetWidth
       setInputWidth(Math.max(20, measuredWidth + 4))
