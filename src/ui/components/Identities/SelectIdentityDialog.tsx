@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Avatar, BigNumber, Button, Dialog, Identifier, PlusIcon, Text } from 'dash-ui-kit/react'
+import { Avatar, BigNumber, Button, Dialog, Identifier, PlusIcon, Text, NotActive } from 'dash-ui-kit/react'
 import { type ApiState, WalletType } from '../../../types'
 import { useSdk } from '../../hooks'
 import { useNavigate } from 'react-router-dom'
@@ -30,15 +30,14 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
         setBalancesState({ data: null, loading: true, error: null })
 
         try {
-          const balances: Record<string, bigint> = {}
-          
-          await Promise.all(
-            identities.map(async (identity) => {
-              balances[identity] = await sdk.identities.getIdentityBalance(identity)
-            })
+          const balanceEntries = await Promise.all(
+            identities.map(async (identity) => [
+              identity,
+              await sdk.identities.getIdentityBalance(identity)
+            ] as const)
           )
 
-          setBalancesState({ data: balances, loading: false, error: null })
+          setBalancesState({ data: Object.fromEntries(balanceEntries), loading: false, error: null })
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : 'Unknown error'
           setBalancesState({ data: null, loading: false, error: errorMessage })
@@ -98,13 +97,14 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                   <Text weight='semibold' size='sm'>
                     {balancesState.loading
                       ? 'Loading...'
-                      : balancesState.error !== null && balancesState.error !== ''
-                        ? 'Error'
-                        : (
-                          <>
-                            <BigNumber>{balancesState.data?.[identity]?.toString() ?? '0'}</BigNumber> Credits
-                          </>
-                          )}
+                      : (
+                        <>
+                          {((balancesState.error !== null && balancesState.error !== '') || balancesState.data?.[identity] == null)
+                            ? <NotActive>n/a</NotActive>
+                            : <BigNumber>{balancesState.data[identity].toString()}</BigNumber>}
+                          Credits
+                        </>
+                        )}
                   </Text>
                   <Text size='xs' className='text-gray-500'>
                     ~ $0.00
