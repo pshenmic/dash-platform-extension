@@ -117,7 +117,6 @@ export function RecipientSearchInput ({
             {(selectedResult != null) && (
               <Avatar
                 username={selectedResult.identifier}
-                size='xs'
                 className='w-5 h-5'
               />
             )}
@@ -142,7 +141,7 @@ export function RecipientSearchInput ({
                   className='w-4 h-4 flex items-center justify-center opacity-35 hover:opacity-60 transition-opacity cursor-pointer'
                   aria-label='Search'
                 >
-                  <SearchIcon direction='down' size={16} className='text-dash-primary-dark-blue' />
+                  <SearchIcon size={16} className='text-dash-primary-dark-blue' />
                 </button>
                 )}
           </div>

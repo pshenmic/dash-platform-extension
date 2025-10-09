@@ -301,7 +301,6 @@ function SendTransactionState (): React.JSX.Element {
       return (
         <Avatar
           username={token.identifier}
-          size='xs'
           className='w-4 h-4'
         />
       )
@@ -386,7 +385,7 @@ function SendTransactionState (): React.JSX.Element {
               <Text weight='bold' className='text-dash-primary-dark-blue !text-[0.75rem]'>
                 {getAssetLabel()}
               </Text>
-              <ChevronIcon direction='down' size={8} className='text-dash-primary-dark-blue mr-1' />
+              <ChevronIcon size={8} className='text-dash-primary-dark-blue mr-1' />
             </Badge>
 
             {/* Quick Amount Buttons */}
@@ -397,7 +396,7 @@ function SendTransactionState (): React.JSX.Element {
                   onClick={() => handleQuickAmount(button.value)}
                   variant='solid'
                   colorScheme='lightBlue'
-                  size='xs'
+                  size='sm'
                   className='px-2 py-1 !min-h-0 text-[0.75rem] leading-1'
                 >
                   {button.label}
@@ -435,7 +434,7 @@ function SendTransactionState (): React.JSX.Element {
       <div className='flex flex-col gap-4'>
         <Button
           colorScheme='brand'
-          size='lg'
+          size='xl'
           className='w-full'
           onClick={handleSend}
           disabled={isLoading}
