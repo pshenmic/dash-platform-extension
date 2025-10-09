@@ -45,7 +45,7 @@ export function PublicKeySelect ({
         const isCurrentKeyCompatible = (currentKey != null) ? isKeyCompatible(currentKey, keyRequirements) : false
 
         // Select first compatible key if no key selected or current key is not compatible
-        if (value === '' || value === null || !isCurrentKeyCompatible) {
+        if (value === '' || value == null || !isCurrentKeyCompatible) {
           const firstCompatibleKey = compatibleKeys[0]
           onChange(firstCompatibleKey.keyId.toString())
         }
