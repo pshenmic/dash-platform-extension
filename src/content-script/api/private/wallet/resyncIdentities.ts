@@ -51,7 +51,7 @@ export class ResyncIdentitiesHandler implements APIHandler {
     let seed
 
     if (payload.mnemonic != null) {
-      seed = await this.sdk.keyPair.mnemonicToSeed(payload.mnemonic, undefined, true)
+      seed = this.sdk.keyPair.mnemonicToSeed(payload.mnemonic)
     }
 
     if (payload.password != null) {
@@ -66,7 +66,7 @@ export class ResyncIdentitiesHandler implements APIHandler {
         throw new Error('Failed to decrypt')
       }
 
-      seed = await this.sdk.keyPair.mnemonicToSeed(mnemonic, undefined, true)
+      seed = this.sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
     }
 
     const identities = await fetchIdentitiesBySeed(seed, this.sdk, Network[network])

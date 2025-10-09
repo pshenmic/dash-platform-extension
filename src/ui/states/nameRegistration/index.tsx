@@ -48,10 +48,6 @@ const NameRegistrationState: React.FC = () => {
   const compatibleKeys = signingKeys.filter(key => isKeyCompatible(key, keyRequirements))
   const hasCompatibleKeys = compatibleKeys.length > 0
 
-  console.log('signingKeys', signingKeys)
-  console.log('compatibleKeys', compatibleKeys)
-  console.log('hasCompatibleKeys', hasCompatibleKeys)
-
   const handleUsernameChange = (value: string): void => {
     setUsername(value)
     setIsValid(value.length >= 3 && /^[a-zA-Z0-9_-]+$/.test(value))
@@ -100,10 +96,7 @@ const NameRegistrationState: React.FC = () => {
       })
 
       // Use extensionAPI.registerUsername method
-      const res = await extensionAPI.registerUsername(fullName, currentIdentity, keyId, password)
-
-      console.log('res', res)
-      console.log('Username registration successful!')
+      await extensionAPI.registerUsername(fullName, currentIdentity, keyId, password)
 
       void navigate('/home')
     } catch (error) {
@@ -256,7 +249,7 @@ const NameRegistrationState: React.FC = () => {
                 size='xs'
                 className='text-center text-xs'
               >
-                {currentIdentity}
+                {currentIdentity ?? undefined}
               </Identifier>
             </div>
           </div>

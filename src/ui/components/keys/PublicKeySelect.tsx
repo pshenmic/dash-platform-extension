@@ -4,7 +4,7 @@ import { getPurposeLabel, getSecurityLabel } from '../../../enums'
 import { isKeyCompatible } from '../../../utils'
 
 export interface PublicKeyInfo {
-  keyId: number | null
+  keyId: number
   purpose: string
   securityLevel: string
   hash: string
@@ -40,26 +40,21 @@ export function PublicKeySelect ({
       const compatibleKeys = keys.filter(key => isKeyCompatible(key, keyRequirements))
 
       if (compatibleKeys.length > 0) {
-        const currentKey = keys.find(key => {
-          const keyValue = key.keyId?.toString() ?? (key.hash !== '' ? key.hash : `key-${keys.indexOf(key)}`)
-          return keyValue === value
-        })
+        const currentKey = keys.find(key => key.keyId.toString() === value)
 
         const isCurrentKeyCompatible = (currentKey != null) ? isKeyCompatible(currentKey, keyRequirements) : false
 
         // Select first compatible key if no key selected or current key is not compatible
         if (value === '' || !isCurrentKeyCompatible) {
           const firstCompatibleKey = compatibleKeys[0]
-          const keyValue = firstCompatibleKey.keyId?.toString() ??
-            (firstCompatibleKey.hash !== '' ? firstCompatibleKey.hash : 'key-0')
-          onChange(keyValue)
+          onChange(firstCompatibleKey.keyId.toString())
         }
       }
     }
   }, [keys, keyRequirements, value, onChange])
 
-  const signingKeyOptions = keys.map((key, index) => {
-    const keyValue = key.keyId?.toString() ?? (key.hash !== '' ? key.hash : `key-${index}`)
+  const signingKeyOptions = keys.map((key) => {
+    const keyValue = key.keyId.toString()
     const purposeLabel = getPurposeLabel(key.purpose)
     const securityLabel = getSecurityLabel(key.securityLevel)
 
@@ -68,6 +63,7 @@ export function PublicKeySelect ({
 
     return {
       value: keyValue,
+      label: `Key: ${keyValue}`,
       disabled: isKeyDisabled,
       content: (
         <div className={`flex items-center flex-wrap gap-2 w-full ${isKeyDisabled ? 'opacity-50' : ''}`}>

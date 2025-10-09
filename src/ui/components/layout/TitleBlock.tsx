@@ -34,7 +34,7 @@ export const TitleBlock: React.FC<TitleBlockProps> = ({
         <DashLogo containerSize={logoSize} />}
 
       <Heading
-        level={1}
+        as='h1'
         size={titleSize}
         className={titleClassName}
       >
