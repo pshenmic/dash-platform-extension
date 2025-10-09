@@ -370,7 +370,7 @@ function ApproveTransactionState (): React.JSX.Element {
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <PublicKeySelect
             keys={signingKeys}
-            value={selectedSigningKey ?? ''}
+            value={selectedSigningKey}
             onChange={setSelectedSigningKey}
             loading={signingKeysLoading}
             error={signingKeysError}

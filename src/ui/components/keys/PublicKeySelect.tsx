@@ -17,7 +17,7 @@ export interface KeyRequirement {
 
 interface PublicKeySelectProps {
   keys: PublicKeyInfo[]
-  value: string
+  value: string | null
   onChange: (keyId: string) => void
   disabled?: boolean
   loading?: boolean
@@ -45,7 +45,7 @@ export function PublicKeySelect ({
         const isCurrentKeyCompatible = (currentKey != null) ? isKeyCompatible(currentKey, keyRequirements) : false
 
         // Select first compatible key if no key selected or current key is not compatible
-        if (value === '' || !isCurrentKeyCompatible) {
+        if (value === '' || value === null || !isCurrentKeyCompatible) {
           const firstCompatibleKey = compatibleKeys[0]
           onChange(firstCompatibleKey.keyId.toString())
         }
@@ -122,7 +122,7 @@ export function PublicKeySelect ({
             : signingKeyOptions.length > 0
               ? (
                 <Select
-                  value={value}
+                  value={value ?? ''}
                   onChange={onChange}
                   options={signingKeyOptions}
                   showArrow

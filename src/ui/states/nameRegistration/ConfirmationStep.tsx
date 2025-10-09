@@ -63,7 +63,7 @@ export const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
       {/* Choose Signing Key */}
       <PublicKeySelect
         keys={signingKeys}
-        value={selectedSigningKey ?? ''}
+        value={selectedSigningKey}
         onChange={onSigningKeyChange}
         loading={signingKeysLoading}
         error={signingKeysError}
