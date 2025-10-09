@@ -122,7 +122,7 @@ export function PublicKeySelect ({
             : signingKeyOptions.length > 0
               ? (
                 <Select
-                  value={value ?? ''}
+                  value={value ?? undefined}
                   onChange={onChange}
                   options={signingKeyOptions}
                   showArrow
