@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { KeyIcon, Button, DeleteIcon, Text, ValueCard, Identifier } from 'dash-ui-kit/react'
-import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
-import { useSdk } from '../../../hooks/useSdk'
-import { useAsyncState } from '../../../hooks/useAsyncState'
+import { useExtensionAPI, useSigningKeys } from '../../../hooks'
 import { getPurposeLabel, getSecurityLabel } from '../../../../enums'
 import { WalletType } from '../../../../types'
 import { ConfirmDialog } from '../../controls'
@@ -85,89 +83,33 @@ export const privateKeysScreenConfig: ScreenConfig = {
   content: []
 }
 
-export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, currentNetwork, currentWallet, onItemSelect }) => {
+export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, currentWallet, onItemSelect }) => {
   const extensionAPI = useExtensionAPI()
-  const sdk = useSdk()
 
-  const [publicKeys, setPublicKeys] = useState<PublicKey[]>([])
-  const [currentWalletId, setCurrentWalletId] = useState<string | null>(null)
-  const [keysState, loadKeys] = useAsyncState<PublicKey[]>()
   const [keyToDelete, setKeyToDelete] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Load wallet info
-  useEffect(() => {
-    const loadWalletInfo = async (): Promise<void> => {
-      try {
-        const status = await extensionAPI.getStatus()
-        setCurrentWalletId(status.currentWalletId)
-      } catch (error) {
-        console.log('Failed to load wallet info:', error)
-      }
-    }
+  const {
+    signingKeys,
+    loading: keysLoading,
+    error: keysError,
+    reload: reloadKeys
+  } = useSigningKeys({
+    identity: currentIdentity ?? null
+  })
 
-    void loadWalletInfo().catch(error => {
-      console.log('Failed to load wallet info:', error)
-    })
-  }, [extensionAPI])
-
-  // Helper to fetch available public keys for current identity/wallet
-  const fetchAvailablePublicKeys = async (): Promise<PublicKey[]> => {
-    const allWallets = await extensionAPI.getAllWallets()
-    const wallet = allWallets.find(w => w.walletId === currentWalletId && w.network === currentNetwork)
-    if (wallet == null) throw new Error('Wallet not found')
-
-    if (currentIdentity == null) throw new Error('No current identity')
-
-    const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
-    const availableKeyIds = await extensionAPI.getAvailableKeyPairs(currentIdentity)
-
-    // Filter identity public keys to only show those that are available
-    const availablePublicKeys = identityPublicKeys.filter((key: any) => {
-      const keyId = key?.keyId ?? key?.getId?.() ?? null
-      return keyId !== null && keyId !== undefined && availableKeyIds.includes(keyId)
-    })
-
-    const keys: PublicKey[] = availablePublicKeys.map((key: any) => {
-      const keyId = key?.keyId ?? key?.getId?.() ?? null
-      const purpose = String(key?.purpose ?? 'UNKNOWN')
-      const security = String(key?.securityLevel ?? 'UNKNOWN')
-      let hash = ''
-      try {
-        hash = typeof key?.getPublicKeyHash === 'function' ? key.getPublicKeyHash() : ''
-      } catch {}
-
-      return {
-        keyId: keyId ?? 0,
-        securityLevel: getSecurityLabel(security),
-        purpose: getPurposeLabel(purpose),
-        hash
-      }
-    })
-
-    return keys
-  }
-
-  // Load public keys
-  useEffect(() => {
-    if (currentWalletId === null || currentNetwork === null || currentIdentity === null) return
-    void loadKeys(fetchAvailablePublicKeys).catch(error => {
-      console.log('Failed to load public keys:', error)
-    })
-  }, [currentWalletId, currentNetwork, currentIdentity, extensionAPI, sdk, loadKeys])
-
-  // Update local state when keys are loaded
-  useEffect(() => {
-    if (keysState.data != null) {
-      setPublicKeys(keysState.data)
-      return
-    }
-
-    setPublicKeys([])
-  }, [keysState.data])
+  // Transform signing keys to the format expected by this screen
+  const publicKeys: PublicKey[] = signingKeys
+    .filter(key => key.keyId !== null)
+    .map(key => ({
+      keyId: key.keyId,
+      securityLevel: getSecurityLabel(key.securityLevel),
+      purpose: getPurposeLabel(key.purpose),
+      hash: key.hash
+    }))
 
   useEffect(() => {
-    if (error !== null && error !== '') {
+    if (error != null) {
       const timer = setTimeout(() => {
         setError(null)
       }, 5000)
@@ -177,7 +119,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   }, [error])
 
   const handleDeleteKey = (keyId: number): void => {
-    if (currentIdentity === null) {
+    if (currentIdentity == null) {
       console.log('No identity selected for key deletion')
       return
     }
@@ -186,7 +128,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   }
 
   const confirmDeleteKey = async (): Promise<void> => {
-    if (keyToDelete === null || currentIdentity == null) {
+    if (keyToDelete == null || currentIdentity == null) {
       return
     }
 
@@ -194,9 +136,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       await extensionAPI.removeIdentityPrivateKey(currentIdentity, keyToDelete)
 
       // Refresh the keys list after successful deletion
-      void loadKeys(fetchAvailablePublicKeys).catch(error => {
-        console.log('Failed to reload public keys after deletion:', error)
-      })
+      reloadKeys()
     } catch (error) {
       console.error('Failed to delete private key:', error)
 
@@ -218,7 +158,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         <Text size='sm' dim>
           Manage public keys available for the current identity:
         </Text>
-        {currentIdentity !== null && (
+        {currentIdentity != null && (
           <Identifier
             key={currentIdentity}
             middleEllipsis
@@ -231,23 +171,23 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         )}
       </div>
 
-      {keysState.loading && (
+      {keysLoading && (
         <div className='px-4 mb-4'>
           <Text size='md' opacity='50'>Loading public keys...</Text>
         </div>
       )}
 
       {/* Error State */}
-      {keysState.error !== null && keysState.error !== '' && (
+      {keysError != null && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='red' size='xl'>
-            <Text size='md' color='red'>Error loading public keys: {keysState.error}</Text>
+            <Text size='md' color='red'>Error loading public keys: {keysError}</Text>
           </ValueCard>
         </div>
       )}
 
       {/* No Identity State */}
-      {(currentIdentity === null || currentIdentity === '') && !keysState.loading && (
+      {currentIdentity == null && !keysLoading && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='lightGray' size='xl'>
             <Text size='md' opacity='50'>No identity selected</Text>
@@ -256,7 +196,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* No Keys State */}
-      {!keysState.loading && (keysState.error === null || keysState.error === '') && currentIdentity !== null && currentIdentity !== '' && publicKeys.length === 0 && (
+      {!keysLoading && keysError == null && currentIdentity != null && publicKeys.length === 0 && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='lightGray' size='xl'>
             <Text size='md' opacity='50'>No public keys available for this identity</Text>
@@ -265,7 +205,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* Public Keys List */}
-      {!keysState.loading && (keysState.error === null || keysState.error === '') && publicKeys.length > 0 && (
+      {!keysLoading && keysError == null && publicKeys.length > 0 && (
         <div className='flex-1 px-4 space-y-2.5'>
           {publicKeys.map((publicKey, index) => (
             <PublicKeyItem
@@ -279,7 +219,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       )}
 
       {/* Delete Error State */}
-      {error !== null && error !== '' && (
+      {error != null && (
         <div className='px-4 mb-4'>
           <ValueCard colorScheme='red' size='xl'>
             <Text size='md' color='red'>{error}</Text>
@@ -303,7 +243,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
       {/* Confirm Delete Dialog */}
       <ConfirmDialog
-        open={keyToDelete !== null}
+        open={keyToDelete != null}
         onOpenChange={(open) => {
           if (!open) setKeyToDelete(null)
         }}

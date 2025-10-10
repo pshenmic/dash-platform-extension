@@ -15,6 +15,7 @@ import PageWithHeader from './components/layout/PageWithHeader'
 import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
 import ChooseWalletType from './states/wallet/ChooseWalletType'
 import WalletSuccessfullyCreated from './states/importIdentity/WalletSuccessfullyCreated'
+import NameRegistrationState from './states/nameRegistration'
 import './styles/app.pcss'
 
 const App: React.FC = function () {
@@ -128,6 +129,15 @@ const App: React.FC = function () {
           handle: {
             headerProps: {
               variant: 'minimal'
+            }
+          }
+        },
+        {
+          path: '/name-registration',
+          element: <PageWithHeader><NameRegistrationState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'simple'
             }
           }
         }
