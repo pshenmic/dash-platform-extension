@@ -9,14 +9,14 @@ import { IdentitiesStoreSchema, KeyPairsSchema } from '../../../../src/content-s
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 
-describe('switch identity', () => {
+describe('import masternode identity', () => {
   let privateAPI: PrivateAPI
   let privateAPIClient: PrivateAPIClient
   let sdk: DashPlatformSDK
   let storage: StorageAdapter
   let secretKey: PrivateKey
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     sdk = new DashPlatformSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
@@ -117,6 +117,9 @@ describe('switch identity', () => {
     const { walletId } = await privateAPIClient.createWallet(WalletType.keystore)
     await storage.set('currentWalletId', walletId)
 
+    // let before = await storage.getAll()
+    // console.log(before)
+
     const proTxHash = '143dcd6a6b7684fde01e88a10e5d65de9a29244c5ecd586d14a342657025f113'
     const ownerPrivateKey = PrivateKeyWASM.fromWIF('cSwpp87Ck1LxwUfFywNAG3QRkd6rW4L5JeT2RdNebPAz2hivpNnP')
 
@@ -125,7 +128,10 @@ describe('switch identity', () => {
     const masternodeIdentifier = sdk.utils.createMasternodeIdentifier(proTxHash)
     const voterIdentifier = await sdk.utils.createVoterIdentifier(proTxHash, ownerPrivateKey.getPublicKeyHash())
 
-    const identitiesStoreSchema = await storage.get(`identities_testnet_${walletId}`) as IdentitiesStoreSchema
+    // let after = await storage.getAll()
+    // console.log(after)
+
+    let identitiesStoreSchema = await storage.get(`identities_testnet_${walletId}`) as IdentitiesStoreSchema
 
     expect(Object.keys(identitiesStoreSchema).length).toBe(2)
     expect(identitiesStoreSchema[masternodeIdentifier.base58()]).toBeDefined()

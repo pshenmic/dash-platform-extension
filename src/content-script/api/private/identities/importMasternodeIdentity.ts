@@ -74,7 +74,7 @@ export class ImportMasternodeIdentityHandler implements APIHandler {
     if (owner != null) {
       await this.processMasternodeIdentity(proTxHash, owner, 'masternode', Network[wallet.network])
 
-      if (owner === voting) {
+      if (owner === voting || voting == null) {
         await this.processMasternodeIdentity(proTxHash, owner, 'voting', Network[wallet.network])
       }
     }
