@@ -42,6 +42,8 @@ import { RemoveAppConnectPayload } from './messages/payloads/RemoveAppConnectPay
 import { ExportPrivateKeyPayload } from './messages/payloads/ExportPrivateKeyPayload'
 import { ExportPrivateKeyResponse } from './messages/response/ExportPrivateKeyResponse'
 import { RegisterUsernamePayload } from './messages/payloads/RegisterUsernamePayload'
+import {CreateStateTransitionPayload} from "./messages/payloads/CreateStateTransitionPayload";
+import {CreateStateTransitionResponse} from "./messages/response/CreateStateTransitionResponse";
 
 export class PrivateAPIClient {
   constructor () {
@@ -255,6 +257,14 @@ export class PrivateAPIClient {
     }
 
     await this._rpcCall(MessagingMethods.REGISTER_USERNAME, payload)
+  }
+
+  async createStateTransition (base64: string): Promise<CreateStateTransitionResponse> {
+    const payload: CreateStateTransitionPayload = {
+      base64
+    }
+
+    return this._rpcCall(MessagingMethods.CREATE_STATE_TRANSITION, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
