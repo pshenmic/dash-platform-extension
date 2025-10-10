@@ -1,6 +1,6 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'pshenmic-dpp'
-import { KeyPair } from '../../types/KeyPair'
+import { KeyPair } from '../../types'
 import { base64 } from '@scure/base'
 import { KeyPairSchema, KeyPairsSchema } from '../storage/storageSchema'
 import { bytesToHex, hexToBytes } from '../../utils'

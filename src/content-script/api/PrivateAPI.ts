@@ -33,6 +33,7 @@ import { GetAllAppConnectsHandler } from './private/appConnect/getAllAppConnects
 import { RemoveAppConnectHandler } from './private/appConnect/removeAppConnect'
 import { ExportPrivateKeyHandler } from './private/identities/exportPrivateKey'
 import { RegisterUsernameHandler } from './private/identities/registerUsername'
+import { ImportMasternodeIdentityHandler } from './private/identities/importMasternodeIdentity'
 
 /**
  * Handlers for a messages within extension context
@@ -82,6 +83,7 @@ export class PrivateAPI {
       [MessagingMethods.SWITCH_IDENTITY]: new SwitchIdentityHandler(identitiesRepository, walletRepository),
       [MessagingMethods.GET_ALL_WALLETS]: new GetAllWalletsHandler(walletRepository, this.sdk, this.storageAdapter),
       [MessagingMethods.IMPORT_IDENTITY]: new ImportIdentityHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
+      [MessagingMethods.IMPORT_MASTERNODE_IDENTITY]: new ImportMasternodeIdentityHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.EXPORT_PRIVATE_KEY]: new ExportPrivateKeyHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.ADD_IDENTITY_PRIVATE_KEY]: new AddIdentityPrivateKey(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.REMOVE_IDENTITY_PRIVATE_KEY]: new RemoveIdentityPrivateKeyHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
