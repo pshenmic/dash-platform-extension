@@ -29,7 +29,7 @@ export const loadSigningKeys = async (
     const security = String(key?.securityLevel ?? 'UNKNOWN')
     let hash = ''
     try {
-      hash = typeof key?.getPublicKeyHash === 'function' ? key.getPublicKeyHash() : ''
+      hash = key?.getPublicKeyHash?.() ?? ''
     } catch {}
 
     return {

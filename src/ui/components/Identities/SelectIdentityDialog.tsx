@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { Dialog, Identifier, Text, BigNumber, Avatar, Button, PlusIcon } from 'dash-ui-kit/react'
-import { usePlatformExplorerClient, type IdentityApiData, type NetworkType, type ApiState } from '../../hooks/usePlatformExplorerApi'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { Avatar, BigNumber, Button, Dialog, Identifier, PlusIcon, Text, NotActive } from 'dash-ui-kit/react'
+import { type ApiState, WalletType } from '../../../types'
+import { useSdk } from '../../hooks'
 import { useNavigate } from 'react-router-dom'
-import { WalletType } from '../../../types'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 
 interface SelectIdentityDialogProps {
@@ -16,11 +15,10 @@ interface SelectIdentityDialogProps {
 
 function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, currentWallet, children }: SelectIdentityDialogProps): React.JSX.Element {
   const [open, setOpen] = useState(false)
-  const platformClient = usePlatformExplorerClient()
-  const extensionAPI = useExtensionAPI()
+  const sdk = useSdk()
   const navigate = useNavigate()
 
-  const [identitiesState, setIdentitiesState] = useState<ApiState<Record<string, IdentityApiData>>>({
+  const [balancesState, setBalancesState] = useState<ApiState<Record<string, bigint>>>({
     data: null,
     loading: false,
     error: null
@@ -29,22 +27,26 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
   useEffect(() => {
     if (open && identities.length > 0) {
       const fetchIdentitiesData = async (): Promise<void> => {
-        setIdentitiesState({ data: null, loading: true, error: null })
+        setBalancesState({ data: null, loading: true, error: null })
 
         try {
-          const status = await extensionAPI.getStatus()
-          const network = status.network as NetworkType
-          const result = await platformClient.fetchMultipleIdentities(identities, network)
-          setIdentitiesState({ data: result, loading: false, error: null })
+          const balanceEntries = await Promise.all(
+            identities.map(async (identity) => [
+              identity,
+              await sdk.identities.getIdentityBalance(identity)
+            ] as const)
+          )
+
+          setBalancesState({ data: Object.fromEntries(balanceEntries), loading: false, error: null })
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-          setIdentitiesState({ data: null, loading: false, error: errorMessage })
+          setBalancesState({ data: null, loading: false, error: errorMessage })
         }
       }
 
       void fetchIdentitiesData()
     }
-  }, [open, identities, platformClient, extensionAPI])
+  }, [open, identities, sdk])
 
   const handleSelectIdentity = (identity: string): void => {
     onSelectIdentity(identity)
@@ -93,15 +95,16 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
 
                 <div className='flex flex-col items-end gap-1 text-right shrink-0'>
                   <Text weight='semibold' size='sm'>
-                    {identitiesState.loading
+                    {balancesState.loading
                       ? 'Loading...'
-                      : identitiesState.error !== null && identitiesState.error !== ''
-                        ? 'Error'
-                        : (
-                          <>
-                            <BigNumber>{identitiesState.data?.[identity]?.balance ?? '0'}</BigNumber> Credits
-                          </>
-                          )}
+                      : (
+                        <>
+                          {((balancesState.error !== null && balancesState.error !== '') || balancesState.data?.[identity] == null)
+                            ? <NotActive>n/a</NotActive>
+                            : <BigNumber>{balancesState.data[identity].toString()}</BigNumber>}
+                          Credits
+                        </>
+                        )}
                   </Text>
                   <Text size='xs' className='text-gray-500'>
                     ~ $0.00
