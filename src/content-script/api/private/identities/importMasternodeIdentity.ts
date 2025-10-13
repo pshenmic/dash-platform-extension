@@ -37,10 +37,6 @@ export class ImportMasternodeIdentityHandler implements APIHandler {
       throw new Error('Could not find identity public key matching private key for masternode identity')
     }
 
-    if (identityPublicKey.disabledAt != null) {
-      throw new Error('Identity key is disabled')
-    }
-
     const existingIdentity = await this.identitiesRepository.getByIdentifier(identity.id.base58())
 
     if (existingIdentity == null) {
