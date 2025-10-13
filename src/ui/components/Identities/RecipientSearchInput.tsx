@@ -166,24 +166,26 @@ export function RecipientSearchInput ({
                       <div
                         key={`${result.identifier}-${index}`}
                         onClick={() => handleSelectResult(result)}
-                        className='flex flex-col gap-3 p-[0.9375rem] rounded-[0.9375rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
+                        className='flex flex-col gap-3 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
                       >
-                        <div className='flex items-center gap-0'>
-                          {(result.name !== null && result.name !== undefined)
-                            ? (
-                              <Text size='xs' weight='medium' className='text-dash-primary-dark-blue truncate'>
+                        <div className='flex flex-col gap-2.5'>
+                          <Identifier
+                            avatar={true}
+                            highlight='both'
+                            className='text-xs'
+                          >
+                            {result.identifier}
+                          </Identifier>
+                          {(result.name != null) && (
+                            <div className='flex items-baseline gap-2'>
+                              <Text className='text-xs' dim>
+                                Name:
+                              </Text>
+                              <Text className='text-xs'>
                                 {result.name}
                               </Text>
-                              )
-                            : (
-                              <Identifier
-                                highlight='both'
-                                className='text-xs'
-                                linesAdjustment={false}
-                              >
-                                {result.identifier}
-                              </Identifier>
-                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
