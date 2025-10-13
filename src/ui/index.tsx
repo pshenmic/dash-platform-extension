@@ -99,15 +99,6 @@ const App: React.FC = function () {
             }
           }
         },
-        // {
-        //   path: '/import-keystore',
-        //   element: <PageWithHeader><ImportRegularState /></PageWithHeader>,
-        //   handle: {
-        //     headerProps: {
-        //       variant: 'seedImport'
-        //     }
-        //   }
-        // },
         {
           path: '/import-regular-identity',
           element: <PageWithHeader><ImportRegularState /></PageWithHeader>,
