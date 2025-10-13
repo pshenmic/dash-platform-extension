@@ -32,6 +32,11 @@ interface SendFormData {
   selectedAsset: string
 }
 
+interface RecipientData {
+  identifier: string
+  name?: string
+}
+
 const QUICK_AMOUNT_BUTTONS = [
   { label: 'Max', value: 1 },
   { label: '50%', value: 0.5 },
@@ -53,6 +58,7 @@ function SendTransactionState (): React.JSX.Element {
   const [rate, setRate] = useState<number | null>(null)
   const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
   const [showAssetSelection, setShowAssetSelection] = useState(false)
+  const [selectedRecipient, setSelectedRecipient] = useState<RecipientData | null>(null)
   const [formData, setFormData] = useState<SendFormData>({
     recipient: '',
     amount: '',
@@ -98,6 +104,10 @@ function SendTransactionState (): React.JSX.Element {
 
   // Handle recipient selection
   const handleRecipientSelect = (recipient: RecipientSearchResult): void => {
+    setSelectedRecipient({
+      identifier: recipient.identifier,
+      name: recipient.name
+    })
     setFormData(prev => ({ ...prev, recipient: recipient.identifier }))
     setError(null)
   }
@@ -129,6 +139,11 @@ function SendTransactionState (): React.JSX.Element {
   const handleInputChange = (field: keyof SendFormData, value: string): void => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setError(null)
+
+    // Reset selected recipient when user manually changes recipient field
+    if (field === 'recipient') {
+      setSelectedRecipient(null)
+    }
 
     // Validation for amount field
     if (field === 'amount' && value.trim() !== '') {
@@ -197,6 +212,12 @@ function SendTransactionState (): React.JSX.Element {
       return
     }
 
+    // Validate that recipient is selected from search results
+    if (selectedRecipient === null) {
+      setError('Please select a recipient from search results')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
@@ -217,7 +238,7 @@ function SendTransactionState (): React.JSX.Element {
         const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
           identityId: currentIdentity,
           amount: amountInCredits,
-          recipientId: formData.recipient,
+          recipientId: selectedRecipient.identifier,
           identityNonce: identityNonce + 1n
         })
 
@@ -245,7 +266,7 @@ function SendTransactionState (): React.JSX.Element {
         const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
           identityId: currentIdentity,
           amount: amountInCredits,
-          recipientId: formData.recipient,
+          recipientId: selectedRecipient.identifier,
           identityNonce: identityNonce + 1n
         })
 
@@ -293,7 +314,7 @@ function SendTransactionState (): React.JSX.Element {
           currentIdentity,
           'transfer',
           {
-            identityId: formData.recipient,
+            identityId: selectedRecipient.identifier,
             amount: amountInBaseUnits
           }
         )
@@ -504,7 +525,7 @@ function SendTransactionState (): React.JSX.Element {
           onClick={() => {
             handleSend().catch(e => console.log('handleSend error', e))
           }}
-          disabled={isLoading}
+          disabled={isLoading || selectedRecipient === null || formData.amount === ''}
         >
           {isLoading ? 'Creating Transaction...' : 'Next'}
         </Button>
