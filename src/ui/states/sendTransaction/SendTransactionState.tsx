@@ -231,9 +231,9 @@ function SendTransactionState (): React.JSX.Element {
 
         console.log('response', response)
 
-        console.log('State transition created:', response.hash)
+        console.log('State transition created:', response.stateTransition.hash)
 
-        void navigate(`/approve/${response.hash}`, { state: { disableIdentitySelect: true } })
+        void navigate(`/approve/${response.stateTransition.hash}`, { state: { disableIdentitySelect: true } })
       }
     } catch (err) {
       console.error('Transaction creation failed:', err)
