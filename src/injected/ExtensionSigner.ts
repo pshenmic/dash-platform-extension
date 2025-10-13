@@ -1,4 +1,3 @@
-import { AbstractSigner, WalletInfo } from 'dash-platform-sdk/src/signer/AbstractSigner'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { hexToBytes, popupWindow, wait } from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
@@ -9,8 +8,9 @@ import {
   RequestStateTransitionApprovalResponse
 } from '../types/messages/response/RequestStateTransitionApprovalResponse'
 import { ConnectAppResponse } from '../types/messages/response/ConnectAppResponse'
+import { WalletInfo } from '../types/WalletInfo'
 
-export class ExtensionSigner implements AbstractSigner {
+export class ExtensionSigner {
   publicAPIClient: PublicAPIClient
 
   constructor (publicAPIClient: PublicAPIClient) {

@@ -1,6 +1,6 @@
 import { AppConnectRepository } from '../../repository/AppConnectRepository'
 import { ConnectAppResponse } from '../../../types/messages/response/ConnectAppResponse'
-import { EventData } from '../../../types/EventData'
+import { EventData } from '../../../types'
 import { APIHandler } from '../APIHandler'
 import hash from 'hash.js'
 import { IdentitiesRepository } from '../../repository/IdentitiesRepository'
@@ -43,7 +43,7 @@ export class ConnectAppHandler implements APIHandler {
     return {
       redirectUrl: chrome.runtime.getURL(`index.html#/connect/${appConnect.id}`),
       status: appConnect.status,
-      identities: identities.map(identity => identity.identifier),
+      identities: identities.map(identity => ({ identifier: identity.identifier, type: identity.type, proTxHash: identity.proTxHash })),
       currentIdentity: wallet.currentIdentity
     }
   }
