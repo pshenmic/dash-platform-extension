@@ -95,7 +95,11 @@ export function RecipientSearchInput ({
     }
   }
 
-  const displayValue = selectedResult?.name ?? value
+  const displayValue = selectedResult != null
+    ? (selectedResult.name != null 
+        ? normalizeName(selectedResult.name, sdk) + '.dash'
+        : selectedResult.identifier)
+    : value
   const showSearchResults = isSearchActive && (selectedResult == null) && value.trim() !== ''
 
   // Filter out current identity from results
@@ -112,40 +116,55 @@ export function RecipientSearchInput ({
       >
 
         {/* Input Section */}
-        <div className='flex items-center gap-3 px-[1.5625rem] py-[1.25rem]'>
-          {/* Avatar Prefix */}
-          <div className={`${(selectedResult != null) ? 'w-5' : 'w-0'} h-5 flex items-center justify-center transition-all overflow-hidden`}>
-            {(selectedResult != null) && (
-              <Avatar
-                username={selectedResult.identifier}
-                className='w-5 h-5'
-              />
-            )}
+        <div className='flex flex-col gap-2'>
+          <div className='flex items-center gap-3 px-[1.5625rem] py-[1.25rem]'>
+            {/* Avatar Prefix */}
+            <div className={`${(selectedResult != null) ? 'w-5' : 'w-0'} h-5 flex items-center justify-center transition-all overflow-hidden`}>
+              {(selectedResult != null) && (
+                <Avatar
+                  username={selectedResult.identifier}
+                  className='w-5 h-5'
+                />
+              )}
+            </div>
+
+            {/* Input Field */}
+            <input
+              ref={inputRef}
+              value={displayValue}
+              onChange={handleInputChange}
+              placeholder={placeholder}
+              className='flex-1 text-sm font-light text-dash-primary-dark-blue outline-none bg-transparent font-dash-grotesque'
+            />
+
+            {/* Status Icons */}
+            <div className='flex items-center gap-2'>
+              {(error !== null && error !== undefined)
+                ? <ErrorIcon className='w-4 h-4 text-red-500' />
+                : (
+                  <button
+                    onClick={handleSearchIconClick}
+                    className='w-4 h-4 flex items-center justify-center opacity-35 hover:opacity-60 transition-opacity cursor-pointer'
+                    aria-label='Search'
+                  >
+                    <SearchIcon className='text-dash-primary-dark-blue w-4 h-4' />
+                  </button>
+                  )}
+            </div>
           </div>
 
-          {/* Input Field */}
-          <input
-            ref={inputRef}
-            value={displayValue}
-            onChange={handleInputChange}
-            placeholder={placeholder}
-            className='flex-1 text-sm font-light text-dash-primary-dark-blue outline-none bg-transparent font-dash-grotesque'
-          />
-
-          {/* Status Icons */}
-          <div className='flex items-center gap-2'>
-            {(error !== null && error !== undefined)
-              ? <ErrorIcon className='w-4 h-4 text-red-500' />
-              : (
-                <button
-                  onClick={handleSearchIconClick}
-                  className='w-4 h-4 flex items-center justify-center opacity-35 hover:opacity-60 transition-opacity cursor-pointer'
-                  aria-label='Search'
-                >
-                  <SearchIcon className='text-dash-primary-dark-blue w-4 h-4' />
-                </button>
-                )}
-          </div>
+          {/* Selected Identifier Display */}
+          {(selectedResult != null && selectedResult.name != null) && (
+            <div className='px-[1.5625rem] pb-3'>
+              <Identifier
+                highlight='both'
+                className='text-xs'
+                disableCopy
+              >
+                {selectedResult.identifier}
+              </Identifier>
+            </div>
+          )}
         </div>
 
         {/* Search Results */}
