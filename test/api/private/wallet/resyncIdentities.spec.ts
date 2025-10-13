@@ -46,7 +46,11 @@ describe('resync identities', () => {
 
     await privateAPIClient.switchWallet(walletId)
 
-    const mockIdentities: IdentityStoreSchema[] = [{ index: 0, identifier: '1', label: null }, { index: 1, identifier: '2', label: null }, { index: 3, identifier: '3', label: null }]
+    const mockIdentities: IdentityStoreSchema[] = [
+      { index: 0, identifier: '1', label: null, type: 'regular', proTxHash: null },
+      { index: 1, identifier: '2', label: null, type: 'regular', proTxHash: null },
+      { index: 3, identifier: '3', label: null, type: 'regular', proTxHash: null }
+    ]
 
     await storage.set(`identities_testnet_${walletId}`, { 1: mockIdentities[0], 2: mockIdentities[1], 3: mockIdentities[2] })
 
@@ -58,27 +62,37 @@ describe('resync identities', () => {
       {
         index: 0,
         identifier: '2MfmHqYmAk1jAQNv7SsGJPT22MrfKFcHKZDc7cTu2biX',
-        label: null
+        label: null,
+        type: 'regular',
+        proTxHash: null
       },
       {
         index: 1,
         identifier: 'Y6WwZ3LYETZjsekjWjoZWnSBu9o5P5MD4Z3HmVGJiYt',
-        label: null
+        label: null,
+        type: 'regular',
+        proTxHash: null
       },
       {
         index: 2,
         identifier: 'D18qqAPmwRmCEQaLjaZMpjcbeNmuCcvV9ZFeNYs4jmTe',
-        label: null
+        label: null,
+        type: 'regular',
+        proTxHash: null
       },
       {
         index: 3,
         identifier: '64n4ccx4zmCyuCqaHp7yX2P3S3oqEkHaAK3m5VMPpbBj',
-        label: null
+        label: null,
+        type: 'regular',
+        proTxHash: null
       },
       {
         index: 4,
         identifier: 'BrJUt5g7Z2bsAXZUWcLUT1DX4KuQhG6VPB71RjiLE6b2',
-        label: null
+        label: null,
+        type: 'regular',
+        proTxHash: null
       }
     ]
 
@@ -101,7 +115,11 @@ describe('resync identities', () => {
 
     await privateAPIClient.switchWallet(walletId)
 
-    const mockIdentities: IdentityStoreSchema[] = [{ index: 0, identifier: '1', label: null }, { index: 1, identifier: '2', label: null }, { index: 3, identifier: '3', label: null }]
+    const mockIdentities: IdentityStoreSchema[] = [
+      { index: 0, identifier: '1', label: null, type: 'regular', proTxHash: null },
+      { index: 1, identifier: '2', label: null, type: 'regular', proTxHash: null },
+      { index: 3, identifier: '3', label: null, type: 'regular', proTxHash: null }
+    ]
 
     await storage.set(`identities_testnet_${walletId}`, { 1: mockIdentities[0], 2: mockIdentities[1], 3: mockIdentities[2] })
 
@@ -113,27 +131,37 @@ describe('resync identities', () => {
       {
         index: 0,
         identifier: '2MfmHqYmAk1jAQNv7SsGJPT22MrfKFcHKZDc7cTu2biX',
-        label: null
+        label: null,
+        type: 'regular',
+        proTxHash: null
       },
       {
         index: 1,
         identifier: 'Y6WwZ3LYETZjsekjWjoZWnSBu9o5P5MD4Z3HmVGJiYt',
-        label: null
+        label: null,
+        type: 'regular',
+        proTxHash: null
       },
       {
         index: 2,
         identifier: 'D18qqAPmwRmCEQaLjaZMpjcbeNmuCcvV9ZFeNYs4jmTe',
-        label: null
+        label: null,
+        type: 'regular',
+        proTxHash: null
       },
       {
         index: 3,
         identifier: '64n4ccx4zmCyuCqaHp7yX2P3S3oqEkHaAK3m5VMPpbBj',
-        label: null
+        label: null,
+        type: 'regular',
+        proTxHash: null
       },
       {
         index: 4,
         identifier: 'BrJUt5g7Z2bsAXZUWcLUT1DX4KuQhG6VPB71RjiLE6b2',
-        label: null
+        label: null,
+        type: 'regular',
+        proTxHash: null
       }
     ]
 

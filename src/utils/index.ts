@@ -24,8 +24,12 @@ export const wait = async (ms: number): Promise<void> => {
   return await new Promise((resolve, reject) => setTimeout(resolve, ms))
 }
 
-export const validateHex = (str: string): boolean => {
-  return /[0-9a-fA-F]{32}/.test(str)
+export const validateHex = (str: string = ''): boolean => {
+  try {
+    return /[0-9a-fA-F]{32}/.test(str)
+  } catch (e) {
+    return false
+  }
 }
 
 export const validateWalletId = (walletId: string): boolean => {

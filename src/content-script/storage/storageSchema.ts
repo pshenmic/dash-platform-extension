@@ -12,8 +12,10 @@ export interface KeyPairsSchema {
 
 export interface IdentityStoreSchema {
   index: number
+  label: null | string
   identifier: string
-  label: string | null
+  proTxHash: null | string
+  type: string
 }
 
 export interface IdentitiesStoreSchema {

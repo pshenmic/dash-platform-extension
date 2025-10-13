@@ -1,13 +1,14 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
-import { IdentityPublicKeyWASM, PrivateKeyWASM, IdentifierWASM } from 'pshenmic-dpp'
+import { IdentifierWASM, IdentityPublicKeyWASM, PrivateKeyWASM } from 'pshenmic-dpp'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { validateHex } from '../../../../utils'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ImportIdentityPayload } from '../../../../types/messages/payloads/ImportIdentityPayload'
+import { IdentityType } from '../../../../types/enums/IdentityType'
 
 export class ImportIdentityHandler implements APIHandler {
   keypairRepository: KeypairRepository
@@ -59,7 +60,7 @@ export class ImportIdentityHandler implements APIHandler {
       await this.keypairRepository.add(payload.identity, privateKey, identityPublicKey)
     }
 
-    await this.identitiesRepository.create(payload.identity)
+    await this.identitiesRepository.create(payload.identity, IdentityType.regular)
 
     return {}
   }
