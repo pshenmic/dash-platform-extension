@@ -5,10 +5,11 @@ import {
   CircleProcessIcon,
   ErrorIcon,
   Identifier,
-  SearchIcon
+  SearchIcon,
+  ValueCard
 } from 'dash-ui-kit/react'
 import { useSdk } from '../../hooks'
-import { searchRecipients, type RecipientSearchResult } from '../../../utils'
+import { searchRecipients, type RecipientSearchResult, normalizeName } from '../../../utils'
 
 interface RecipientSearchInputProps {
   value: string
@@ -181,9 +182,14 @@ export function RecipientSearchInput ({
                               <Text className='text-xs' dim>
                                 Name:
                               </Text>
-                              <Text className='text-xs'>
-                                {result.name}
-                              </Text>
+                              <ValueCard border={false} colorScheme='lightGray' size='xs' className='text-xs text-dash-primary-dark-blue'>
+                                <Text size='sm' monospace className='!text-dash-primary-dark-blue'>
+                                  {normalizeName(result.name, sdk)}
+                                </Text>
+                                <Text size='sm' monospace className='!text-dash-brand'>
+                                  .dash
+                                </Text>
+                              </ValueCard>
                             </div>
                           )}
                         </div>
