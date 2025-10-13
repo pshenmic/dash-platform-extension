@@ -42,6 +42,9 @@ import { RemoveAppConnectPayload } from './messages/payloads/RemoveAppConnectPay
 import { ExportPrivateKeyPayload } from './messages/payloads/ExportPrivateKeyPayload'
 import { ExportPrivateKeyResponse } from './messages/response/ExportPrivateKeyResponse'
 import { RegisterUsernamePayload } from './messages/payloads/RegisterUsernamePayload'
+import { ImportMasternodeIdentityPayload } from './messages/payloads/ImportMasternodeIdentityPayload'
+import { CreateStateTransitionPayload } from './messages/payloads/CreateStateTransitionPayload'
+import { CreateStateTransitionResponse } from './messages/response/CreateStateTransitionResponse'
 
 export class PrivateAPIClient {
   constructor () {
@@ -102,6 +105,19 @@ export class PrivateAPIClient {
     const payload: ImportIdentityPayload = { identity, privateKeys }
 
     return await this._rpcCall(MessagingMethods.IMPORT_IDENTITY, payload)
+  }
+
+  async importMasternodeIdentity (proTxHash: string, ownerPrivateKey?: string, votingPrivateKey?: string, payoutPrivateKey?: string): Promise<void> {
+    const payload: ImportMasternodeIdentityPayload = {
+      proTxHash,
+      privateKeys: {
+        owner: ownerPrivateKey,
+        payout: payoutPrivateKey,
+        voting: votingPrivateKey
+      }
+    }
+
+    return await this._rpcCall(MessagingMethods.IMPORT_MASTERNODE_IDENTITY, payload)
   }
 
   async exportPrivateKey (identity: string, keyId: number, password: string): Promise<ExportPrivateKeyResponse> {
@@ -255,6 +271,14 @@ export class PrivateAPIClient {
     }
 
     await this._rpcCall(MessagingMethods.REGISTER_USERNAME, payload)
+  }
+
+  async createStateTransition (base64: string): Promise<CreateStateTransitionResponse> {
+    const payload: CreateStateTransitionPayload = {
+      base64
+    }
+
+    return await this._rpcCall(MessagingMethods.CREATE_STATE_TRANSITION, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
