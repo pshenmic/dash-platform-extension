@@ -18,8 +18,8 @@ import { RecipientSearchInput } from '../../components/Identities'
 import type { OutletContext } from '../../types'
 import type { NetworkType, TokenData } from '../../../types'
 import type { RecipientSearchResult } from '../../../utils'
-import { dashToCreditsBigInt } from '../../../utils'
 import {
+  dashToCreditsBigInt,
   creditsToDashBigInt,
   fromBaseUnit,
   parseDecimalInput,
@@ -503,7 +503,9 @@ function SendTransactionState (): React.JSX.Element {
           colorScheme='brand'
           size='xl'
           className='w-full'
-          onClick={handleSend}
+          onClick={() => {
+            handleSend().catch(e => console.log('handleSend error', e))
+          }}
           disabled={isLoading}
         >
           {isLoading ? 'Creating Transaction...' : 'Next'}

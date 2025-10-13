@@ -170,7 +170,7 @@ export function RecipientSearchInput ({
                       >
                         <div className='flex flex-col gap-2.5'>
                           <Identifier
-                            avatar={true}
+                            avatar
                             highlight='both'
                             className='text-xs'
                           >

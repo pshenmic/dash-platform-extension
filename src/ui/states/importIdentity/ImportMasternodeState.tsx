@@ -104,11 +104,11 @@ function ImportMasternodeState (): React.JSX.Element {
 
       // Convert WIF/hex keys to hex format
       const ownerKeyHex = parsePrivateKey(formData.ownerKey, network).hex()
-      const votingKeyHex = formData.votingKey.trim() !== '' 
-        ? parsePrivateKey(formData.votingKey, network).hex() 
+      const votingKeyHex = formData.votingKey.trim() !== ''
+        ? parsePrivateKey(formData.votingKey, network).hex()
         : undefined
-      const payoutKeyHex = formData.payoutKey.trim() !== '' 
-        ? parsePrivateKey(formData.payoutKey, network).hex() 
+      const payoutKeyHex = formData.payoutKey.trim() !== ''
+        ? parsePrivateKey(formData.payoutKey, network).hex()
         : undefined
 
       // Import masternode identity
@@ -187,7 +187,9 @@ function ImportMasternodeState (): React.JSX.Element {
             colorScheme='brand'
             disabled={!isFormValid || isLoading}
             className='w-full'
-            onClick={handleImport}
+            onClick={() => {
+              handleImport().catch(e => console.log('handleImport error', e))
+            }}
           >
             {isLoading ? 'Authorizing...' : 'Next'}
           </Button>
