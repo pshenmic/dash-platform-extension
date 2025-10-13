@@ -96,7 +96,7 @@ export function RecipientSearchInput ({
   }
 
   const displayValue = selectedResult != null
-    ? (selectedResult.name != null 
+    ? (selectedResult.name != null
         ? normalizeName(selectedResult.name, sdk) + '.dash'
         : selectedResult.identifier)
     : value
@@ -154,7 +154,7 @@ export function RecipientSearchInput ({
           </div>
 
           {/* Selected Identifier Display */}
-          {(selectedResult != null && selectedResult.name != null) && (
+          {(selectedResult?.name != null) && (
             <div className='px-[1.5625rem] pb-3'>
               <Identifier
                 highlight='both'
