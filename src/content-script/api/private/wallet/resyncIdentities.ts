@@ -13,6 +13,7 @@ import hash from 'hash.js'
 import { Network } from '../../../../types/enums/Network'
 import * as bip39 from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english'
+import { IdentityType } from '../../../../types/enums/IdentityType'
 
 export class ResyncIdentitiesHandler implements APIHandler {
   identitiesRepository: IdentitiesRepository
@@ -71,7 +72,7 @@ export class ResyncIdentitiesHandler implements APIHandler {
 
     const identities = await fetchIdentitiesBySeed(seed, this.sdk, Network[network])
 
-    await this.identitiesRepository.replaceAll(identities.map((identity, index) => ({ identifier: identity.id.base58(), index, label: null })))
+    await this.identitiesRepository.replaceAll(identities.map((identity, index) => ({ identifier: identity.id.base58(), index, label: null, type: IdentityType.regular, proTxHash: null })))
 
     return { identitiesCount: identities.length }
   }

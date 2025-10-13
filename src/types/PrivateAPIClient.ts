@@ -42,6 +42,7 @@ import { RemoveAppConnectPayload } from './messages/payloads/RemoveAppConnectPay
 import { ExportPrivateKeyPayload } from './messages/payloads/ExportPrivateKeyPayload'
 import { ExportPrivateKeyResponse } from './messages/response/ExportPrivateKeyResponse'
 import { RegisterUsernamePayload } from './messages/payloads/RegisterUsernamePayload'
+import { ImportMasternodeIdentityPayload } from './messages/payloads/ImportMasternodeIdentityPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -102,6 +103,19 @@ export class PrivateAPIClient {
     const payload: ImportIdentityPayload = { identity, privateKeys }
 
     return await this._rpcCall(MessagingMethods.IMPORT_IDENTITY, payload)
+  }
+
+  async importMasternodeIdentity (proTxHash: string, ownerPrivateKey?: string, votingPrivateKey?: string, payoutPrivateKey?: string): Promise<void> {
+    const payload: ImportMasternodeIdentityPayload = {
+      proTxHash,
+      privateKeys: {
+        owner: ownerPrivateKey,
+        payout: payoutPrivateKey,
+        voting: votingPrivateKey
+      }
+    }
+
+    return await this._rpcCall(MessagingMethods.IMPORT_MASTERNODE_IDENTITY, payload)
   }
 
   async exportPrivateKey (identity: string, keyId: number, password: string): Promise<ExportPrivateKeyResponse> {
