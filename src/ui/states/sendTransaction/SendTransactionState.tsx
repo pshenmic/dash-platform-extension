@@ -6,7 +6,9 @@ import {
   ChevronIcon,
   Badge,
   Avatar,
-  ValueCard
+  ValueCard,
+  Identifier,
+  BigNumber
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
 import { AutoSizingInput, AssetSelectionMenu } from '../../components/controls'
@@ -430,6 +432,51 @@ function SendTransactionState (): React.JSX.Element {
           </div>
         </div>
       </div>
+
+      {/* Identity Info */}
+      {(currentIdentity !== null && currentIdentity !== undefined) && (
+        <ValueCard colorScheme='gray' className='flex flex-col items-start gap-3'>
+          <div className='flex items-center justify-between w-full gap-4'>
+            <Text size='sm' dim className='whitespace-nowrap'>
+              From Identity:
+            </Text>
+            <Identifier avatar className='text-sm text-right' highlight='both' linesAdjustment={false}>
+              {currentIdentity}
+            </Identifier>
+          </div>
+
+          <div className='flex items-center justify-between w-full gap-4'>
+            <Text size='sm' dim>
+              Available Balance:
+            </Text>
+            <div className='flex flex-col items-end gap-1'>
+              {balance !== null
+                ? (
+                  <>
+                    <div className='flex items-center gap-1.5'>
+                      <BigNumber className='text-dash-primary-dark-blue font-medium'>
+                        {balance.toString()}
+                      </BigNumber>
+                      <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
+                        CRDT
+                      </Text>
+                    </div>
+                    {(rate !== null && rate !== undefined) && (
+                      <Text size='xs' className='text-dash-primary-dark-blue opacity-35'>
+                        ~${(Number(creditsToDashBigInt(balance)) * rate).toFixed(2)}
+                      </Text>
+                    )}
+                  </>
+                  )
+                : (
+                  <Text size='sm' className='text-dash-primary-dark-blue opacity-35'>
+                    Loading...
+                  </Text>
+                  )}
+            </div>
+          </div>
+        </ValueCard>
+      )}
 
       {/* Recipient Input */}
       <div className='flex flex-col gap-2.5'>
