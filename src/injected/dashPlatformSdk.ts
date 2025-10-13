@@ -9,6 +9,6 @@ declare global {
 }
 
 // create DashPlatformSDK
-window.dashPlatformSDK = new DashPlatformSDK({ network: 'mainnet', signer: window.dashPlatformExtension.signer })
+window.dashPlatformSDK = new DashPlatformSDK({ network: 'mainnet' })
 
 console.log('injected Dash Platform SDK')
