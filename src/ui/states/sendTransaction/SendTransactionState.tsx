@@ -6,7 +6,8 @@ import {
   ChevronIcon,
   DashLogo,
   Badge,
-  Avatar
+  Avatar,
+  ValueCard
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
 import { AutoSizingInput } from '../../components/controls'
@@ -490,11 +491,9 @@ function SendTransactionState (): React.JSX.Element {
 
       {/* Error Message */}
       {(error !== null && error !== undefined) && (
-        <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
-          <Text size='sm' color='red'>
-            {error}
-          </Text>
-        </div>
+        <ValueCard colorScheme='yellow'>
+          {error}
+        </ValueCard>
       )}
 
       {/* Action Button */}
