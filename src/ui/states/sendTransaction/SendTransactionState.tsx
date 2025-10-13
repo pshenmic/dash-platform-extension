@@ -10,11 +10,10 @@ import {
   ValueCard
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
-import { AutoSizingInput } from '../../components/controls'
+import { AutoSizingInput, AssetSelectionMenu } from '../../components/controls'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI, useAsyncState, useSdk, usePlatformExplorerClient } from '../../hooks'
 import { TitleBlock } from '../../components/layout/TitleBlock'
-import { AssetSelectionMenu } from '../../components/controls'
 import { RecipientSearchInput } from '../../components/Identities'
 import type { OutletContext } from '../../types'
 import type { NetworkType, TokenData } from '../../../types'
