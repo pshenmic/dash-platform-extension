@@ -89,7 +89,6 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
         icon: (
           <Avatar
             username={token.identifier}
-            size='sm'
             className='w-[39px] h-[39px]'
           />
         ),
