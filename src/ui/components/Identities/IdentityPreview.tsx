@@ -1,24 +1,10 @@
 import React from 'react'
 import { Text, Identifier, Avatar, CheckmarkIcon, Accordion, KeyIcon } from 'dash-ui-kit/react'
 import { getPurposeLabel, getSecurityLabel } from '../../../enums'
-
-interface PublicKeyData {
-  keyId: number
-  purpose: string
-  securityLevel: string
-  type: string
-  isAvailable?: boolean
-}
-
-interface IdentityData {
-  id: string
-  name?: string
-  balance: string
-  publicKeys: PublicKeyData[]
-}
+import type { PublicKeyData, IdentityPreviewData } from '../../types'
 
 interface IdentityPreviewProps {
-  identity: IdentityData
+  identity: IdentityPreviewData
   className?: string
 }
 
