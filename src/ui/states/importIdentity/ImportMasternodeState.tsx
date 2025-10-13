@@ -9,13 +9,14 @@ import {
   Input
 } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { WalletType } from '../../../types'
+import { WalletType, type NetworkType } from '../../../types'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PrivateKeyInput, type PrivateKeyInputData } from '../../components/keys'
+import { parsePrivateKey } from '../../../utils'
 
 function ImportMasternodeState (): React.JSX.Element {
   const navigate = useNavigate()
-  const { currentWallet } = useOutletContext<OutletContext>()
+  const { currentWallet, currentNetwork } = useOutletContext<OutletContext>()
   const extensionAPI = useExtensionAPI()
 
   const [formData, setFormData] = useState<MasternodeIdentityInput>({
@@ -98,24 +99,25 @@ function ImportMasternodeState (): React.JSX.Element {
       if (formData.ownerKey.trim() === '') {
         throw new Error('Owner Key is required')
       }
-      if (formData.payoutKey.trim() === '') {
-        throw new Error('Payout Key is required')
-      }
 
-      // TODO: Implement masternode identity import logic
-      // This would involve:
-      // 1. Validating the owner private key format
-      // 2. Validating the payout address format
-      // 3. Validating the operator public key format
-      // 4. Creating or finding the masternode identity on the platform
-      // 5. Importing the identity with masternode-specific metadata
+      const network = currentNetwork as NetworkType
 
-      console.log('Importing masternode identity with data:', formData)
+      // Convert WIF/hex keys to hex format
+      const ownerKeyHex = parsePrivateKey(formData.ownerKey, network).hex()
+      const votingKeyHex = formData.votingKey.trim() !== '' 
+        ? parsePrivateKey(formData.votingKey, network).hex() 
+        : undefined
+      const payoutKeyHex = formData.payoutKey.trim() !== '' 
+        ? parsePrivateKey(formData.payoutKey, network).hex() 
+        : undefined
 
-      // For now, just navigate to home
-      // In real implementation, you would:
-      // await extensionAPI.importMasternodeIdentity(formData)
-      // setCurrentIdentity(masternodeIdentityId)
+      // Import masternode identity
+      await extensionAPI.importMasternodeIdentity(
+        formData.proTxHash,
+        ownerKeyHex,
+        votingKeyHex,
+        payoutKeyHex
+      )
 
       void navigate('/home')
     } catch (e) {
@@ -126,8 +128,7 @@ function ImportMasternodeState (): React.JSX.Element {
   }
 
   const isFormValid = formData.proTxHash.trim() !== '' &&
-    formData.ownerKey.trim() !== '' &&
-    formData.payoutKey.trim() !== ''
+    formData.ownerKey.trim() !== ''
 
   return (
     <div className='flex flex-col gap-2 flex-1 -mt-16 pb-2'>
@@ -161,7 +162,7 @@ function ImportMasternodeState (): React.JSX.Element {
 
         {/* Voting Key */}
         <div>
-          <Text dim className='mb-2'>Voting Key</Text>
+          <Text dim className='mb-2'>Voting Key (optional)</Text>
           <PrivateKeyInput
             input={votingKeyData}
             placeholder='Enter Voting Key...'
@@ -172,7 +173,7 @@ function ImportMasternodeState (): React.JSX.Element {
 
         {/* Payout Key */}
         <div>
-          <Text dim className='mb-2'>Payout Key</Text>
+          <Text dim className='mb-2'>Payout Key (optional)</Text>
           <Input
             placeholder='Enter Payout Key...'
             value={formData.payoutKey}
