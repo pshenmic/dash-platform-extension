@@ -35,7 +35,6 @@ import { ExportPrivateKeyHandler } from './private/identities/exportPrivateKey'
 import { RegisterUsernameHandler } from './private/identities/registerUsername'
 import { ImportMasternodeIdentityHandler } from './private/identities/importMasternodeIdentity'
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
-import id = chrome.runtime.id;
 
 /**
  * Handlers for a messages within extension context
