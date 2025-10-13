@@ -1,11 +1,11 @@
-import {  StateTransitionWASM } from 'pshenmic-dpp'
+import { StateTransitionWASM } from 'pshenmic-dpp'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { APIHandler } from '../../APIHandler'
-import {RequestStateTransitionApprovalPayload} from "../../../../types/messages/payloads/RequestStateTransitionApprovalPayload";
-import {base64} from "@scure/base";
-import {CreateStateTransitionResponse} from "../../../../types/messages/response/CreateStateTransitionResponse";
-import {CreateStateTransitionPayload} from "../../../../types/messages/payloads/CreateStateTransitionPayload";
-import {EventData} from "../../../../types";
+import { RequestStateTransitionApprovalPayload } from '../../../../types/messages/payloads/RequestStateTransitionApprovalPayload'
+import { base64 } from '@scure/base'
+import { CreateStateTransitionResponse } from '../../../../types/messages/response/CreateStateTransitionResponse'
+import { CreateStateTransitionPayload } from '../../../../types/messages/payloads/CreateStateTransitionPayload'
+import { EventData } from '../../../../types'
 
 export class CreateStateTransitionHandler implements APIHandler {
   stateTransitionsRepository: StateTransitionsRepository
