@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react'
-import { Text, DashLogo, CreditsIcon, Input, Avatar } from 'dash-ui-kit/react'
+import { Text, CreditsIcon, Input, Avatar } from 'dash-ui-kit/react'
 import { OverlayMenu } from '../common'
 import type { TokenData } from '../../../types'
-import { creditsToDashBigInt, fromBaseUnit } from '../../../utils'
+import { fromBaseUnit } from '../../../utils'
 
 interface AssetOption {
   value: string
@@ -25,16 +25,6 @@ interface AssetSelectionMenuProps {
 }
 
 const ASSET_OPTIONS: AssetOption[] = [
-  {
-    value: 'dash',
-    label: 'Dash',
-    symbol: 'DASH',
-    icon: (
-      <div className='w-[2.438rem] h-[2.438rem] bg-dash-brand rounded-full flex items-center justify-center'>
-        <DashLogo className='!text-white w-5 h-4' />
-      </div>
-    )
-  },
   {
     value: 'credits',
     label: 'Credits',
@@ -63,10 +53,6 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
   }
 
   const getAssetBalance = (asset: AssetOption): string => {
-    if (asset.value === 'dash' && (creditsBalance !== null && creditsBalance !== undefined)) {
-      const dashAmount = creditsToDashBigInt(creditsBalance)
-      return `${dashAmount} DASH`
-    }
     if (asset.value === 'credits' && (creditsBalance !== null && creditsBalance !== undefined)) {
       return `${creditsBalance} CRDT`
     }

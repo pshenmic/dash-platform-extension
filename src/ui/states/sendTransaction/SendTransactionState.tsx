@@ -4,7 +4,6 @@ import {
   Button,
   Text,
   ChevronIcon,
-  DashLogo,
   Badge,
   Avatar,
   ValueCard
@@ -19,7 +18,6 @@ import type { OutletContext } from '../../types'
 import type { NetworkType, TokenData } from '../../../types'
 import type { RecipientSearchResult } from '../../../utils'
 import {
-  dashToCreditsBigInt,
   creditsToDashBigInt,
   fromBaseUnit,
   parseDecimalInput,
@@ -62,7 +60,7 @@ function SendTransactionState (): React.JSX.Element {
   const [formData, setFormData] = useState<SendFormData>({
     recipient: '',
     amount: '',
-    selectedAsset: 'dash'
+    selectedAsset: 'credits'
   })
 
   // Load balance, tokens and exchange rate on component mount
@@ -113,9 +111,6 @@ function SendTransactionState (): React.JSX.Element {
   }
 
   const getAvailableBalance = (): string => {
-    if (formData.selectedAsset === 'dash' && balance !== null) {
-      return creditsToDashBigInt(balance)
-    }
     if (formData.selectedAsset === 'credits' && balance !== null) {
       return balance.toString()
     }
@@ -129,7 +124,6 @@ function SendTransactionState (): React.JSX.Element {
   }
 
   const getAssetDecimals = (): number => {
-    if (formData.selectedAsset === 'dash') return 8
     if (formData.selectedAsset === 'credits') return 0
 
     const token = getSelectedToken()
@@ -164,14 +158,6 @@ function SendTransactionState (): React.JSX.Element {
           setError(`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`)
         }
       }
-
-      // Minimum DASH transfer validation (DASH is converted to credits)
-      if (formData.selectedAsset === 'dash' && numericValue > 0) {
-        const amountInCredits = dashToCreditsBigInt(numericValue)
-        if (amountInCredits < MIN_CREDIT_TRANSFER) {
-          setError(`Minimum transfer amount is ${creditsToDashBigInt(MIN_CREDIT_TRANSFER)} DASH`)
-        }
-      }
     }
   }
 
@@ -188,15 +174,6 @@ function SendTransactionState (): React.JSX.Element {
           Math.max(calculatedAmount, Number(MIN_CREDIT_TRANSFER)),
           Number(availableBalance)
         ).toString()
-        setFormData(prev => ({ ...prev, amount }))
-      } else if (formData.selectedAsset === 'dash') {
-        // For DASH, ensure minimum amount (0.001 DASH) but don't exceed balance
-        const calculatedAmount = Number(availableBalance) * percentage
-        const minDashAmount = Number(creditsToDashBigInt(MIN_CREDIT_TRANSFER))
-        const amount = Math.min(
-          Math.max(calculatedAmount, minDashAmount),
-          Number(availableBalance)
-        ).toFixed(decimals)
         setFormData(prev => ({ ...prev, amount }))
       } else {
         // For tokens with decimals
@@ -222,35 +199,7 @@ function SendTransactionState (): React.JSX.Element {
     setError(null)
 
     try {
-      if (formData.selectedAsset === 'dash') {
-        const amountInCredits = dashToCreditsBigInt(formData.amount)
-
-        // Validate minimum credit transfer amount
-        if (amountInCredits < MIN_CREDIT_TRANSFER) {
-          setError(`Minimum transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits (${creditsToDashBigInt(MIN_CREDIT_TRANSFER)} DASH)`)
-          return
-        }
-
-        // Get identity nonce
-        const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
-
-        // Create unsigned identity credit transfer state transition
-        const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
-          identityId: currentIdentity,
-          amount: amountInCredits,
-          recipientId: selectedRecipient.identifier,
-          identityNonce: identityNonce + 1n
-        })
-
-        // Convert to base64
-        const stateTransitionBytes = stateTransition.bytes()
-        const stateTransitionBase64 = base64.encode(stateTransitionBytes)
-
-        // Create the state transition
-        const response = await extensionAPI.createStateTransition(stateTransitionBase64)
-
-        void navigate(`/approve/${response.stateTransition.hash}`, { state: { disableIdentitySelect: true } })
-      } else if (formData.selectedAsset === 'credits') {
+      if (formData.selectedAsset === 'credits') {
         const amountInCredits = BigInt(Math.floor(Number(formData.amount)))
 
         // Validate minimum credit transfer amount
@@ -335,19 +284,15 @@ function SendTransactionState (): React.JSX.Element {
   const formatUSDValue = (amount: string): string => {
     if ((rate === null || rate === undefined) || amount === '') return ''
 
-    let dashAmount: number
-    if (formData.selectedAsset === 'dash') {
-      dashAmount = Number(amount)
-    } else if (formData.selectedAsset === 'credits') {
+    if (formData.selectedAsset === 'credits') {
       const creditsAmount = BigInt(Math.floor(Number(amount)))
       const dashValue = creditsToDashBigInt(creditsAmount)
-      dashAmount = Number(dashValue)
-    } else {
-      return ''
+      const dashAmount = Number(dashValue)
+      const usdValue = dashAmount * rate
+      return `~$${usdValue.toFixed(2)}`
     }
 
-    const usdValue = dashAmount * rate
-    return `~$${usdValue.toFixed(2)}`
+    return ''
   }
 
   const handleAssetSelect = (asset: string): void => {
@@ -355,14 +300,13 @@ function SendTransactionState (): React.JSX.Element {
   }
 
   const getSelectedToken = (): TokenData | undefined => {
-    if (formData.selectedAsset === 'dash' || formData.selectedAsset === 'credits') {
+    if (formData.selectedAsset === 'credits') {
       return undefined
     }
     return tokensState.data?.find(token => token.identifier === formData.selectedAsset)
   }
 
   const getAssetLabel = (): string => {
-    if (formData.selectedAsset === 'dash') return 'DASH'
     if (formData.selectedAsset === 'credits') return 'CRDT'
 
     const token = getSelectedToken()
@@ -375,9 +319,6 @@ function SendTransactionState (): React.JSX.Element {
   }
 
   const getAssetIcon = (): React.ReactNode => {
-    if (formData.selectedAsset === 'dash') {
-      return <DashLogo className='!text-white w-2 h-2' />
-    }
     if (formData.selectedAsset === 'credits') {
       return (
         <span className='text-dash-brand text-[0.6rem] font-medium'>C</span>
@@ -456,14 +397,9 @@ function SendTransactionState (): React.JSX.Element {
               className='flex items-center gap-2 w-max cursor-pointer'
               onClick={() => setShowAssetSelection(true)}
             >
-              {formData.selectedAsset === 'dash' || formData.selectedAsset === 'credits'
+              {formData.selectedAsset === 'credits'
                 ? (
-                  <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                    formData.selectedAsset === 'dash'
-                      ? 'bg-dash-brand'
-                      : 'bg-[rgba(12,28,51,0.05)]'
-                  }`}
-                  >
+                  <div className='w-4 h-4 rounded-full flex items-center justify-center bg-[rgba(12,28,51,0.05)]'>
                     {getAssetIcon()}
                   </div>
                   )
