@@ -249,7 +249,6 @@ function SendTransactionState (): React.JSX.Element {
           return
         }
 
-        // Get identity nonce
         const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
 
         // Create unsigned identity credit transfer state transition
