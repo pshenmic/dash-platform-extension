@@ -309,7 +309,13 @@ function ApproveTransactionState (): React.JSX.Element {
         <div>
           <Button
             className='w-full'
-            onClick={() => returnToHome ? navigate('/') : window.close()}
+            onClick={() => {
+              if (returnToHome) {
+                void navigate('/')
+              } else {
+                window.close()
+              }
+            }}
             colorScheme='lightBlue'
           >
             Close
