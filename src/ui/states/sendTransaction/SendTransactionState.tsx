@@ -207,8 +207,8 @@ function SendTransactionState (): React.JSX.Element {
       if (balance !== null && balance > 0n) {
         const calculatedAmount = multiplyBigIntByPercentage(balance, percentage)
         // Ensure amount doesn't exceed balance but meets minimum requirement
-        const amount = calculatedAmount < MIN_CREDIT_TRANSFER 
-          ? MIN_CREDIT_TRANSFER.toString() 
+        const amount = calculatedAmount < MIN_CREDIT_TRANSFER
+          ? MIN_CREDIT_TRANSFER.toString()
           : calculatedAmount.toString()
         setFormData(prev => ({ ...prev, amount }))
       }
