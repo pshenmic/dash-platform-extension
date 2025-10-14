@@ -86,7 +86,7 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
   // Simple back navigation only
   simple: {},
 
-  // Send transaction with network display (same as transaction but with back button)
+  // Send transaction screen
   sendTransaction: {
     showNetworkRightReadOnly: true,
     networkDisplayFormat: 'text',
@@ -182,7 +182,7 @@ export default function Header (): React.JSX.Element {
   }
 
   const getWalletDisplayName = (): string => {
-    if (currentWallet === null || allWallets === null || allWallets === undefined || allWallets.length === 0) return 'Wallet'
+    if (currentWallet == null || allWallets == null || allWallets.length === 0) return 'Wallet'
 
     const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
     const currentWalletData = availableWallets.find(wallet => wallet.walletId === currentWallet)

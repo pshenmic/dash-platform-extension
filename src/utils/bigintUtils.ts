@@ -44,7 +44,7 @@ export function toBaseUnit (value: string | number, decimals: number = 0, return
   const stringValue = String(value).trim()
 
   if (decimals === 0) {
-    const result = stringValue.split('.')[0] // Remove any decimal part
+    const [result = ''] = stringValue.split('.') // Remove any decimal part
     return returnBigInt ? BigInt(result) : result
   }
 

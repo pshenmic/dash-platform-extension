@@ -46,7 +46,7 @@ const Layout: FC = () => {
   }, [isApiReady, extensionAPI])
 
   const loadIdentities = useCallback(async (): Promise<void> => {
-    if (!isApiReady || currentWallet === null || currentWallet === '') return
+    if (!isApiReady || currentWallet == null) return
     try {
       const identities = await extensionAPI.getIdentities()
       setAvailableIdentities(identities)
@@ -56,7 +56,7 @@ const Layout: FC = () => {
   }, [isApiReady, currentWallet, extensionAPI])
 
   const loadCurrentIdentity = useCallback(async (): Promise<void> => {
-    if (!isApiReady || currentWallet === null || currentWallet === '') return
+    if (!isApiReady || currentWallet == null) return
     try {
       const identity = await extensionAPI.getCurrentIdentity()
       setCurrentIdentity(identity)

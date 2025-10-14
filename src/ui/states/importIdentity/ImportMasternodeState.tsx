@@ -66,7 +66,7 @@ function ImportMasternodeState (): React.JSX.Element {
   // Check wallet type
   useEffect(() => {
     const checkWalletType = async (): Promise<void> => {
-      if (currentWallet === null) {
+      if (currentWallet == null) {
         void navigate('/choose-wallet-type')
         return
       }
@@ -460,8 +460,8 @@ function ImportMasternodeState (): React.JSX.Element {
 
       <div className='flex flex-col gap-[0.875rem]'>
         {/* Pro TX Hash */}
-        <div>
-          <Text dim className='mb-2'>Pro TX Hash</Text>
+        <div className='flex flex-col gap-2'>
+          <Text dim>Pro TX Hash</Text>
           <Input
             placeholder='Enter Pro TX Hash...'
             value={formData.proTxHash}
@@ -471,8 +471,8 @@ function ImportMasternodeState (): React.JSX.Element {
         </div>
 
         {/* Owner Key */}
-        <div>
-          <Text dim className='mb-2'>Owner Key</Text>
+        <div className='flex flex-col gap-2'>
+          <Text dim>Owner Key</Text>
           <PrivateKeyInput
             input={keysData.ownerKey}
             placeholder='Enter Owner Key...'
@@ -482,8 +482,8 @@ function ImportMasternodeState (): React.JSX.Element {
         </div>
 
         {/* Voting Key */}
-        <div>
-          <Text dim className='mb-2'>Voting Key (optional)</Text>
+        <div className='flex flex-col gap-2'>
+          <Text dim>Voting Key (optional)</Text>
           <PrivateKeyInput
             input={keysData.votingKey}
             placeholder='Enter Voting Key...'
@@ -493,8 +493,8 @@ function ImportMasternodeState (): React.JSX.Element {
         </div>
 
         {/* Payout Key */}
-        <div>
-          <Text dim className='mb-2'>Payout Key (optional)</Text>
+        <div className='flex flex-col gap-2'>
+          <Text dim>Payout Key (optional)</Text>
           <PrivateKeyInput
             input={keysData.payoutKey}
             placeholder='Enter Payout Key...'
@@ -502,6 +502,12 @@ function ImportMasternodeState (): React.JSX.Element {
             onVisibilityToggle={toggleKeyVisibility('payoutKey')}
           />
         </div>
+
+        {error !== null && (
+          <ValueCard colorScheme='yellow' className='break-all mt-4'>
+            <Text color='red'>{error}</Text>
+          </ValueCard>
+        )}
 
         <div className='mt-4'>
           <Button
@@ -516,12 +522,6 @@ function ImportMasternodeState (): React.JSX.Element {
           </Button>
         </div>
       </div>
-
-      {error !== null && (
-        <ValueCard colorScheme='yellow' className='break-all'>
-          <Text color='red'>{error}</Text>
-        </ValueCard>
-      )}
     </div>
   )
 }

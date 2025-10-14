@@ -321,5 +321,4 @@ export const processPrivateKey = async (
 
 export const isTooBigNumber = (number: number | string | bigint): boolean => Number(number) > 999999999
 
-export * from './identityValidation'
 export * from './recipientSearch'
