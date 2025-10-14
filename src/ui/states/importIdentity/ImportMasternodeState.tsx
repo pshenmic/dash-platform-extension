@@ -367,6 +367,7 @@ function ImportMasternodeState (): React.JSX.Element {
       setPreviewData(preview)
       setShowPreview(true)
     } catch (e) {
+      console.log('checkMasternodeKeys error', e)
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
       setIsLoading(false)
@@ -395,6 +396,7 @@ function ImportMasternodeState (): React.JSX.Element {
 
       void navigate('/home')
     } catch (e) {
+      console.log('confirmImport error', e)
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
       setIsLoading(false)

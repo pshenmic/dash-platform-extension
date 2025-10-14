@@ -233,7 +233,7 @@ export default function Header (): React.JSX.Element {
         </div>
       )}
 
-      {(headerComponent !== null && headerComponent !== undefined) && (
+      {headerComponent != null && (
         <div className='flex-1 flex items-center ml-[0.625rem] mr-auto'>
           {headerComponent}
         </div>

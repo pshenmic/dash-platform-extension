@@ -105,3 +105,21 @@ export function dashToCreditsBigInt (dash: string | number): bigint {
   // 1 DASH = 100,000,000,000 credits (10^11)
   return BigInt(Math.floor(dashValue * 1e11))
 }
+
+/**
+ * Multiply a bigint by a percentage (0-1 range)
+ * @param value - The bigint value to multiply
+ * @param percentage - The percentage as a decimal (0.5 for 50%, 1 for 100%)
+ * @returns The result as bigint (rounded down)
+ */
+export function multiplyBigIntByPercentage (value: bigint, percentage: number): bigint {
+  if (percentage <= 0) return 0n
+  if (percentage >= 1) return value
+
+  // Convert percentage to integer ratio to avoid floating point
+  // Multiply by 10000 to handle 4 decimal places precision (e.g., 0.5 -> 5000, 0.25 -> 2500)
+  const percentageInt = Math.floor(percentage * 10000)
+  const result = (value * BigInt(percentageInt)) / 10000n
+
+  return result
+}

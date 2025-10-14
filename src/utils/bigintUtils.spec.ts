@@ -3,7 +3,8 @@ import {
   toBaseUnit,
   parseDecimalInput,
   creditsToDashBigInt,
-  dashToCreditsBigInt
+  dashToCreditsBigInt,
+  multiplyBigIntByPercentage
 } from './bigintUtils'
 
 describe('bigintUtils', () => {
@@ -227,6 +228,60 @@ describe('bigintUtils', () => {
         value = creditsToDashBigInt(credits)
       }
       expect(value).toBe('5.50000000')
+    })
+  })
+
+  describe('multiplyBigIntByPercentage', () => {
+    it('should multiply by 100% (1.0)', () => {
+      expect(multiplyBigIntByPercentage(1000n, 1.0)).toBe(1000n)
+      expect(multiplyBigIntByPercentage(123456789n, 1.0)).toBe(123456789n)
+    })
+
+    it('should multiply by 50% (0.5)', () => {
+      expect(multiplyBigIntByPercentage(1000n, 0.5)).toBe(500n)
+      expect(multiplyBigIntByPercentage(100000n, 0.5)).toBe(50000n)
+    })
+
+    it('should multiply by 25% (0.25)', () => {
+      expect(multiplyBigIntByPercentage(1000n, 0.25)).toBe(250n)
+      expect(multiplyBigIntByPercentage(100000n, 0.25)).toBe(25000n)
+    })
+
+    it('should handle 0% (0.0)', () => {
+      expect(multiplyBigIntByPercentage(1000n, 0.0)).toBe(0n)
+      expect(multiplyBigIntByPercentage(999999n, 0)).toBe(0n)
+    })
+
+    it('should handle negative percentages as 0', () => {
+      expect(multiplyBigIntByPercentage(1000n, -0.5)).toBe(0n)
+      expect(multiplyBigIntByPercentage(1000n, -1)).toBe(0n)
+    })
+
+    it('should handle percentages > 1 as 100%', () => {
+      expect(multiplyBigIntByPercentage(1000n, 1.5)).toBe(1000n)
+      expect(multiplyBigIntByPercentage(1000n, 2.0)).toBe(1000n)
+    })
+
+    it('should round down the result', () => {
+      expect(multiplyBigIntByPercentage(100n, 0.333)).toBe(33n)
+      expect(multiplyBigIntByPercentage(100n, 0.666)).toBe(66n)
+      expect(multiplyBigIntByPercentage(1000n, 0.1234)).toBe(123n)
+    })
+
+    it('should handle large bigint values', () => {
+      const largeValue = 123456789012345678901234567890n
+      expect(multiplyBigIntByPercentage(largeValue, 0.5)).toBe(61728394506172839450617283945n)
+      expect(multiplyBigIntByPercentage(largeValue, 0.25)).toBe(30864197253086419725308641972n)
+    })
+
+    it('should handle small percentages with precision', () => {
+      expect(multiplyBigIntByPercentage(1000000n, 0.0001)).toBe(100n)
+      expect(multiplyBigIntByPercentage(10000000n, 0.0025)).toBe(25000n)
+    })
+
+    it('should handle zero value', () => {
+      expect(multiplyBigIntByPercentage(0n, 0.5)).toBe(0n)
+      expect(multiplyBigIntByPercentage(0n, 1.0)).toBe(0n)
     })
   })
 })

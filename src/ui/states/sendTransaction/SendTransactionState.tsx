@@ -23,7 +23,8 @@ import {
   creditsToDashBigInt,
   fromBaseUnit,
   parseDecimalInput,
-  toBaseUnit
+  toBaseUnit,
+  multiplyBigIntByPercentage
 } from '../../../utils'
 
 interface SendFormData {
@@ -111,14 +112,14 @@ function SendTransactionState (): React.JSX.Element {
       setHeaderComponent(
         <ValueCard colorScheme='lightGray' border={false} className='py-[0.5rem] px-[0.625rem]'>
           <div className='flex items-center gap-2'>
-            <div className='flex items-center justify-center rounded-full w-[2.25rem] h-[2.25rem] bg-[rgba(12,28,51,0.05)]'>
+            <div className='flex items-center justify-center rounded-full w-[2rem] h-[2rem] bg-[rgba(12,28,51,0.03)]'>
               <Avatar username={currentIdentity} className='w-4 h-4' />
             </div>
             <div>
               <Identifier className='text-xs leading-[100%]' highlight='both' middleEllipsis edgeChars={4}>
                 {currentIdentity}
               </Identifier>
-              <div className='flex gap-1 leading-[100%]'>
+              <div className='flex items-baseline gap-1 leading-[90%]'>
                 <Text size='xs' dim>Balance:</Text>
                 <BigNumber className='text-dash-primary-dark-blue font-medium text-[0.75rem] weight-bold'>
                   {getFormattedBalance()}
@@ -201,22 +202,23 @@ function SendTransactionState (): React.JSX.Element {
   }
 
   const handleQuickAmount = (percentage: number): void => {
-    const availableBalance = getAvailableBalance()
-    if (Number(availableBalance) > 0) {
-      const decimals = getAssetDecimals()
-
-      if (formData.selectedAsset === 'credits') {
-        // For credits (no decimals), use simple percentage
-        const calculatedAmount = Math.floor(Number(availableBalance) * percentage)
+    if (formData.selectedAsset === 'credits') {
+      // For credits (no decimals), use simple percentage
+      if (balance !== null && balance > 0n) {
+        const calculatedAmount = multiplyBigIntByPercentage(balance, percentage)
         // Ensure amount doesn't exceed balance but meets minimum requirement
-        const amount = Math.min(
-          Math.max(calculatedAmount, Number(MIN_CREDIT_TRANSFER)),
-          Number(availableBalance)
-        ).toString()
+        const amount = calculatedAmount < MIN_CREDIT_TRANSFER 
+          ? MIN_CREDIT_TRANSFER.toString() 
+          : calculatedAmount.toString()
         setFormData(prev => ({ ...prev, amount }))
-      } else {
-        // For tokens with decimals
-        const amount = (Number(availableBalance) * percentage).toFixed(decimals)
+      }
+    } else {
+      // For tokens with decimals - use bigint to avoid precision loss
+      const token = getSelectedToken()
+      if (token != null && BigInt(token.balance) > 0n) {
+        const decimals = token.decimals
+        const calculatedAmountInBaseUnits = multiplyBigIntByPercentage(BigInt(token.balance), percentage)
+        const amount = fromBaseUnit(calculatedAmountInBaseUnits, decimals)
         setFormData(prev => ({ ...prev, amount }))
       }
     }
