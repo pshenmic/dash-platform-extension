@@ -26,23 +26,18 @@ export const searchRecipients = async (
     try {
       const identity = await sdk.identities.getIdentityByIdentifier(query)
 
-      if (identity !== null && identity !== undefined) {
-        try {
-          const names = await sdk.names.searchByIdentity(query)
-          // const firstName = names[0]?.properties?.normalizedLabel as string | undefined
-          const [firstName] = names
-          const nameLabel = (firstName?.properties?.normalizedLabel ?? null) as string | null
-          console.log('nameLabel', nameLabel)
+      if (identity === null || identity === undefined) return results
 
-          results.push({
-            identifier: query,
-            name: (nameLabel !== null && nameLabel !== undefined) ? `${nameLabel}.dash` : undefined,
-            nameStatus: (nameLabel !== null && nameLabel !== undefined) ? 'ok' : undefined
-          })
-        } catch {
-          results.push({ identifier: query })
-        }
-      }
+      // Get names, fallback to empty array on error
+      const names = await sdk.names.searchByIdentity(query).catch(() => [])
+      const [firstName] = names
+      const nameLabel = (firstName?.properties?.normalizedLabel ?? null) as string | null
+
+      results.push({
+        identifier: query,
+        name: nameLabel !== null && nameLabel !== undefined ? `${nameLabel}.dash` : undefined,
+        nameStatus: nameLabel !== null && nameLabel !== undefined ? 'ok' : undefined
+      })
     } catch (error) {
       console.log('Identity not found:', query)
     }
