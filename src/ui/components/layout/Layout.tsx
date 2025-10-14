@@ -17,6 +17,8 @@ export interface LayoutContext {
   allWallets: WalletAccountInfo[]
   availableIdentities: Identity[]
   createWallet: (walletType: any, mnemonic?: string) => Promise<any>
+  headerComponent: React.ReactNode
+  setHeaderComponent: (component: React.ReactNode) => void
 }
 
 const Layout: FC = () => {
@@ -29,6 +31,7 @@ const Layout: FC = () => {
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
   const [availableIdentities, setAvailableIdentities] = useState<Identity[]>([])
+  const [headerComponent, setHeaderComponent] = useState<React.ReactNode>(null)
 
   const loadWallets = useCallback(async (): Promise<WalletAccountInfo[]> => {
     if (!isApiReady) return []
@@ -175,7 +178,9 @@ const Layout: FC = () => {
             setCurrentIdentity: handleIdentityChange,
             allWallets,
             availableIdentities,
-            createWallet
+            createWallet,
+            headerComponent,
+            setHeaderComponent
           }}
             />
           : <LoadingScreen message='Initializing application...' />}

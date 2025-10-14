@@ -86,6 +86,13 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
   // Simple back navigation only
   simple: {},
 
+  // Send transaction with network display (same as transaction but with back button)
+  sendTransaction: {
+    showNetworkRightReadOnly: true,
+    networkDisplayFormat: 'text',
+    hideLeftSection: false
+  },
+
   // Minimal header with just logo
   minimal: {
     hideLeftSection: true,
@@ -144,7 +151,8 @@ export default function Header (): React.JSX.Element {
     currentWallet,
     setCurrentWallet,
     currentIdentity,
-    allWallets
+    allWallets,
+    headerComponent
   } = context ?? ({} satisfies Partial<LayoutContext>)
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
@@ -208,7 +216,7 @@ export default function Header (): React.JSX.Element {
               />
               )
             : (
-              <Button onClick={handleBack} colorScheme='lightGray'>
+              <Button onClick={handleBack} colorScheme='lightGray' className='w-[3rem] h-[3rem]'>
                 <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
               </Button>
               )}
@@ -222,6 +230,12 @@ export default function Header (): React.JSX.Element {
         <div className='flex items-center gap-2.5'>
           {config.showNetworkSelector && <NetworkSelector onSelect={setCurrentNetwork} currentNetwork={currentNetwork as NetworkType} wallets={allWallets} />}
           {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
+        </div>
+      )}
+
+      {(headerComponent !== null && headerComponent !== undefined) && (
+        <div className='flex-1 flex items-center ml-[0.625rem] mr-auto'>
+          {headerComponent}
         </div>
       )}
 
@@ -239,7 +253,7 @@ export default function Header (): React.JSX.Element {
 
       {/* Right side read-only displays and selectors */}
       {(config.showWalletRightReadOnly || config.showNetworkRightReadOnly || config.showNetworkRightSelector) && (
-        <div className={`flex items-center gap-2.5 ${config.imageType != null ? 'absolute top-0 right-0 z-10' : 'w-full justify-between'}`}>
+        <div className={`flex items-center gap-2.5 ${config.imageType != null ? 'absolute top-0 right-0 z-10' : config.hideLeftSection && config.showWalletRightReadOnly ? 'w-full justify-between' : ''}`}>
           {config.showWalletRightReadOnly && currentWallet !== null && (
             <Text size='sm' color='gray' weight='medium' className='text-right' dim>
               {getWalletDisplayName()}
@@ -250,7 +264,7 @@ export default function Header (): React.JSX.Element {
             config.networkDisplayFormat === 'card'
               ? <NetworkCard network={currentNetwork ?? ''} />
               : (
-                <Text className='capitalize' size='sm' color='gray' weight='medium' dim>
+                <Text className='!flex items-center capitalize h-[3rem]' size='sm' color='gray' weight='medium' dim>
                   {currentNetwork}
                 </Text>
                 )
