@@ -134,7 +134,7 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
                         {asset.label}
                       </Text>
 
-                      <div className='bg-[rgba(76,126,255,0.1)] rounded px-[5px] py-[3px]'>
+                      <div className='flex bg-dash-brand/10 rounded px-[5px] py-[3px]'>
                         <Text size='xs' weight='medium' className='text-dash-brand !text-[10px] leading-[1.366]'>
                           {asset.symbol}
                         </Text>
