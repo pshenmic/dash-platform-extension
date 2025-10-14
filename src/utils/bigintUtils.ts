@@ -4,12 +4,12 @@
 
 /**
  * Convert a string or bigint to a decimal number with specified decimals
- * @param value - The value to convert (string, bigint, or number)
+ * @param value - The value to convert (string or bigint)
  * @param decimals - Number of decimal places (default 0 for no decimals)
  * @returns The decimal representation as a string
  */
-export function fromBaseUnit (value: string | bigint | number, decimals: number = 0): string {
-  const stringValue = typeof value === 'bigint' ? value.toString() : String(value)
+export function fromBaseUnit (value: string | bigint, decimals: number = 0): string {
+  const stringValue = typeof value === 'bigint' ? value.toString() : value
 
   if (decimals === 0) {
     return stringValue
@@ -40,8 +40,8 @@ export function fromBaseUnit (value: string | bigint | number, decimals: number 
  * @param returnBigInt - Whether to return bigint (default) or string
  * @returns The base unit value
  */
-export function toBaseUnit (value: string | number, decimals: number = 0, returnBigInt: boolean = true): bigint | string {
-  const stringValue = String(value).trim()
+export function toBaseUnit (value: string, decimals: number = 0, returnBigInt: boolean = true): bigint | string {
+  const stringValue = value.trim()
 
   if (decimals === 0) {
     const [result = ''] = stringValue.split('.') // Remove any decimal part

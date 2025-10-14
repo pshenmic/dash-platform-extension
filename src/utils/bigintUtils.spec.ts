@@ -12,7 +12,6 @@ describe('bigintUtils', () => {
     it('should convert base unit to decimal with 0 decimals', () => {
       expect(fromBaseUnit('12345', 0)).toBe('12345')
       expect(fromBaseUnit(12345n, 0)).toBe('12345')
-      expect(fromBaseUnit(12345, 0)).toBe('12345')
     })
 
     it('should convert base unit to decimal with decimals', () => {
@@ -54,7 +53,6 @@ describe('bigintUtils', () => {
     it('should convert decimal to base unit with 0 decimals', () => {
       expect(toBaseUnit('12345', 0)).toBe(12345n)
       expect(toBaseUnit('12345.67', 0)).toBe(12345n)
-      expect(toBaseUnit(12345, 0)).toBe(12345n)
     })
 
     it('should convert decimal to base unit with decimals', () => {
