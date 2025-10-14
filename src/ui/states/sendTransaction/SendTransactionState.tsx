@@ -17,7 +17,7 @@ import { useExtensionAPI, useAsyncState, useSdk, usePlatformExplorerClient } fro
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { RecipientSearchInput } from '../../components/Identities'
 import type { NetworkType, TokenData } from '../../../types'
-import type { OutletContext } from '../../types/OutletContext'
+import type { OutletContext } from '../../types'
 import type { RecipientSearchResult } from '../../../utils'
 import {
   creditsToDashBigInt,
@@ -266,7 +266,12 @@ function SendTransactionState (): React.JSX.Element {
         // Create the state transition
         const response = await extensionAPI.createStateTransition(stateTransitionBase64)
 
-        void navigate(`/approve/${response.stateTransition.hash}`, { state: { disableIdentitySelect: true } })
+        void navigate(`/approve/${response.stateTransition.hash}`, {
+          state: {
+            disableIdentitySelect: true,
+            showBackButton: true
+          }
+        })
       } else {
         // Token transfer
         const token = getSelectedToken()
@@ -283,14 +288,6 @@ function SendTransactionState (): React.JSX.Element {
           setError('Amount is too small')
           return
         }
-
-        console.log('Creating token transfer:', {
-          tokenIdentifier: token.identifier,
-          recipient: formData.recipient,
-          amount: formData.amount,
-          amountInBaseUnits: amountInBaseUnits.toString(),
-          decimals: token.decimals
-        })
 
         // Create token base transition first
         const baseTransition = await sdk.tokens.createBaseTransition(
@@ -311,7 +308,12 @@ function SendTransactionState (): React.JSX.Element {
         const stateTransitionBytes = stateTransition.bytes()
         const stateTransitionBase64 = base64.encode(stateTransitionBytes)
         const response = await extensionAPI.createStateTransition(stateTransitionBase64)
-        void navigate(`/approve/${response.stateTransition.hash}`, { state: { disableIdentitySelect: true } })
+        void navigate(`/approve/${response.stateTransition.hash}`, {
+          state: {
+            disableIdentitySelect: true,
+            showBackButton: true
+          }
+        })
       }
     } catch (err) {
       console.error('Transaction creation failed:', err)

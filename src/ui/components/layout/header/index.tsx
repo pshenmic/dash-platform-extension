@@ -152,7 +152,8 @@ export default function Header (): React.JSX.Element {
     setCurrentWallet,
     currentIdentity,
     allWallets,
-    headerComponent
+    headerComponent,
+    headerConfigOverride
   } = context ?? ({} satisfies Partial<LayoutContext>)
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
@@ -164,13 +165,13 @@ export default function Header (): React.JSX.Element {
   const variant = headerProps?.variant !== null && headerProps?.variant !== undefined ? HEADER_VARIANTS[headerProps.variant] : {}
   const config = {
     showLogo: variant.showLogo ?? false,
-    hideLeftSection: variant.hideLeftSection ?? false,
+    hideLeftSection: headerConfigOverride?.showBackButton !== true && (variant.hideLeftSection ?? false),
     showNetworkSelector: variant.showNetworkSelector ?? false,
     showWalletSelector: variant.showWalletSelector ?? false,
     showBurgerMenu: variant.showBurgerMenu ?? false,
-    showNetworkRightReadOnly: variant.showNetworkRightReadOnly ?? false,
+    showNetworkRightReadOnly: headerConfigOverride?.showBackButton !== true && (variant.showNetworkRightReadOnly ?? false),
     showNetworkRightSelector: variant.showNetworkRightSelector ?? false,
-    showWalletRightReadOnly: variant.showWalletRightReadOnly ?? false,
+    showWalletRightReadOnly: headerConfigOverride?.showBackButton !== true && (variant.showWalletRightReadOnly ?? false),
     networkDisplayFormat: variant.networkDisplayFormat ?? 'text',
     imageType: variant.imageType,
     imageClasses: variant.imageClasses,

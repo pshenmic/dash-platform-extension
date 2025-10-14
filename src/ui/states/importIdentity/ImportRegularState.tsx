@@ -231,7 +231,7 @@ function ImportRegularState (): React.JSX.Element {
         return setError('No identities found to import')
       }
 
-      if (currentWallet === null) {
+      if (currentWallet == null) {
         return setError('No wallet selected')
       }
 
