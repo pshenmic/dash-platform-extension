@@ -340,6 +340,32 @@ function SendTransactionState (): React.JSX.Element {
     return null
   }
 
+  const getFormattedBalance = (): string => {
+    if (formData.selectedAsset === 'credits' && balance !== null) {
+      return balance.toString()
+    }
+
+    const token = getSelectedToken()
+    if (token != null) {
+      return fromBaseUnit(token.balance, token.decimals)
+    }
+
+    return '0'
+  }
+
+  const getBalanceUSDValue = (): string | null => {
+    if (rate === null || rate === undefined) return null
+
+    if (formData.selectedAsset === 'credits' && balance !== null) {
+      const dashValue = creditsToDashBigInt(balance)
+      const dashAmount = Number(dashValue)
+      const usdValue = dashAmount * rate
+      return `~$${usdValue.toFixed(2)}`
+    }
+
+    return null
+  }
+
   return (
     <div className='screen-content'>
       <TitleBlock
@@ -450,20 +476,20 @@ function SendTransactionState (): React.JSX.Element {
               Available Balance:
             </Text>
             <div className='flex flex-col items-end gap-1'>
-              {balance !== null
+              {(formData.selectedAsset === 'credits' && balance !== null) || (formData.selectedAsset !== 'credits' && getSelectedToken() != null)
                 ? (
                   <>
                     <div className='flex items-center gap-1.5'>
                       <BigNumber className='text-dash-primary-dark-blue font-medium'>
-                        {balance.toString()}
+                        {getFormattedBalance()}
                       </BigNumber>
                       <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
-                        CRDT
+                        {getAssetLabel()}
                       </Text>
                     </div>
-                    {(rate !== null && rate !== undefined) && (
+                    {getBalanceUSDValue() !== null && (
                       <Text size='xs' className='text-dash-primary-dark-blue opacity-35'>
-                        ~${(Number(creditsToDashBigInt(balance)) * rate).toFixed(2)}
+                        {getBalanceUSDValue()}
                       </Text>
                     )}
                   </>
