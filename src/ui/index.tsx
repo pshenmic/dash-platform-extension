@@ -167,7 +167,7 @@ const App: React.FC = function () {
           element: <PageWithHeader><SendTransactionState /></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'simple'
+              variant: 'sendTransaction'
             }
           }
         }

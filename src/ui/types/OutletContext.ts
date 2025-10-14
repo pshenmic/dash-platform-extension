@@ -1,3 +1,4 @@
+import React from 'react'
 import { WalletAccountInfo } from '../../types/messages/response/GetAllWalletsResponse'
 import { Identity } from '../../types'
 import { WalletType } from '../../types/WalletType'
@@ -12,4 +13,6 @@ export interface OutletContext {
   allWallets: WalletAccountInfo[]
   availableIdentities: Identity[]
   createWallet: (walletType: WalletType, mnemonic?: string) => Promise<{ walletId: string }>
+  headerComponent: React.ReactNode
+  setHeaderComponent: (component: React.ReactNode) => void
 }

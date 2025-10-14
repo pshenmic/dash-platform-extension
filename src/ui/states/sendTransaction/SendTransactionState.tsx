@@ -16,8 +16,8 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI, useAsyncState, useSdk, usePlatformExplorerClient } from '../../hooks'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { RecipientSearchInput } from '../../components/Identities'
-import type { OutletContext } from '../../types'
 import type { NetworkType, TokenData } from '../../../types'
+import type { OutletContext } from '../../types/OutletContext'
 import type { RecipientSearchResult } from '../../../utils'
 import {
   creditsToDashBigInt,
@@ -51,7 +51,7 @@ function SendTransactionState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
-  const { currentNetwork, currentIdentity } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentIdentity, setHeaderComponent } = useOutletContext<OutletContext>()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [balance, setBalance] = useState<bigint | null>(null)
@@ -101,6 +101,43 @@ function SendTransactionState (): React.JSX.Element {
       return await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
     }).catch(e => console.log('loadTokens error:', e))
   }, [currentIdentity, currentNetwork, platformExplorerClient, loadTokens])
+
+  // Set header component with balance info
+  useEffect(() => {
+    const hasBalance = (formData.selectedAsset === 'credits' && balance !== null) ||
+      (formData.selectedAsset !== 'credits' && getSelectedToken() != null)
+
+    if (hasBalance && currentIdentity !== null) {
+      setHeaderComponent(
+        <ValueCard colorScheme='lightGray' border={false} className='py-[0.5rem] px-[0.625rem]'>
+          <div className='flex items-center gap-2'>
+            <div className='flex items-center justify-center rounded-full w-[2.25rem] h-[2.25rem] bg-[rgba(12,28,51,0.05)]'>
+              <Avatar username={currentIdentity} className='w-4 h-4' />
+            </div>
+            <div>
+              <Identifier className='text-xs leading-[100%]' highlight='both' middleEllipsis edgeChars={4}>
+                {currentIdentity}
+              </Identifier>
+              <div className='flex gap-1 leading-[100%]'>
+                <Text size='xs' dim>Balance:</Text>
+                <BigNumber className='text-dash-primary-dark-blue font-medium text-[0.75rem] weight-bold'>
+                  {getFormattedBalance()}
+                </BigNumber>
+                <Text size='xs' weight='bold' className='text-dash-primary-dark-blue opacity-50'>
+                  {getAssetLabel()}
+                </Text>
+              </div>
+            </div>
+          </div>
+        </ValueCard>
+      )
+    }
+
+    // Clear header component on unmount
+    return () => {
+      setHeaderComponent(null)
+    }
+  }, [balance, rate, formData.selectedAsset, tokensState.data, currentIdentity, setHeaderComponent])
 
   // Handle recipient selection
   const handleRecipientSelect = (recipient: RecipientSearchResult): void => {
@@ -353,19 +390,6 @@ function SendTransactionState (): React.JSX.Element {
     return '0'
   }
 
-  const getBalanceUSDValue = (): string | null => {
-    if (rate === null || rate === undefined) return null
-
-    if (formData.selectedAsset === 'credits' && balance !== null) {
-      const dashValue = creditsToDashBigInt(balance)
-      const dashAmount = Number(dashValue)
-      const usdValue = dashAmount * rate
-      return `~$${usdValue.toFixed(2)}`
-    }
-
-    return null
-  }
-
   return (
     <div className='screen-content'>
       <TitleBlock
@@ -460,7 +484,7 @@ function SendTransactionState (): React.JSX.Element {
       </div>
 
       {/* Identity Info */}
-      {(currentIdentity !== null && currentIdentity !== undefined) && (
+      {/* {(currentIdentity !== null && currentIdentity !== undefined) && (
         <ValueCard colorScheme='gray' className='flex flex-col items-start gap-3'>
           <div className='flex items-center justify-between w-full gap-4'>
             <Text size='sm' dim className='whitespace-nowrap'>
@@ -502,7 +526,7 @@ function SendTransactionState (): React.JSX.Element {
             </div>
           </div>
         </ValueCard>
-      )}
+      )} */}
 
       {/* Recipient Input */}
       <div className='flex flex-col gap-2.5'>
