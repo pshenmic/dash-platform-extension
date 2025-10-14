@@ -8,7 +8,7 @@ import {
   SearchIcon,
   ValueCard
 } from 'dash-ui-kit/react'
-import { useSdk } from '../../hooks'
+import { useSdk, useDebounce } from '../../hooks'
 import { searchRecipients, type RecipientSearchResult, normalizeName } from '../../../utils'
 
 interface RecipientSearchInputProps {
@@ -36,20 +36,18 @@ export function RecipientSearchInput ({
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const debouncedValue = useDebounce(value, 300)
+
   // Handle search with debounce
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (value.trim() !== '' && (selectedResult == null)) {
-        setIsSearchActive(true)
-        void handleSearch(value).catch(console.error)
-      } else if (value.trim() === '') {
-        setSearchResults([])
-        setIsSearchActive(false)
-      }
-    }, 300)
-
-    return () => clearTimeout(timeoutId)
-  }, [value, selectedResult])
+    if (debouncedValue.trim() !== '' && selectedResult == null) {
+      setIsSearchActive(true)
+      void handleSearch(debouncedValue).catch(console.error)
+    } else if (debouncedValue.trim() === '') {
+      setSearchResults([])
+      setIsSearchActive(false)
+    }
+  }, [debouncedValue, selectedResult])
 
   const handleSearch = async (query: string): Promise<void> => {
     setIsSearching(true)
