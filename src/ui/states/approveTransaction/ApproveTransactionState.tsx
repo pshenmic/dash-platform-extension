@@ -21,6 +21,7 @@ function ApproveTransactionState (): React.JSX.Element {
   // Check if identity switching should be disabled (e.g., when navigating from SendTransaction)
   const disableIdentitySelect = location.state?.disableIdentitySelect === true
   const showBackButton = location.state?.showBackButton === true
+  const returnToHome = location.state?.returnToHome === true
 
   const [transactionDecodeError, setTransactionDecodeError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
@@ -308,7 +309,7 @@ function ApproveTransactionState (): React.JSX.Element {
         <div>
           <Button
             className='w-full'
-            onClick={() => window.close()}
+            onClick={() => returnToHome ? navigate('/') : window.close()}
             colorScheme='lightBlue'
           >
             Close

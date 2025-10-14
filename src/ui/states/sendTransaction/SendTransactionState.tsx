@@ -269,7 +269,8 @@ function SendTransactionState (): React.JSX.Element {
         void navigate(`/approve/${response.stateTransition.hash}`, {
           state: {
             disableIdentitySelect: true,
-            showBackButton: true
+            showBackButton: true,
+            returnToHome: true
           }
         })
       } else {
@@ -311,7 +312,8 @@ function SendTransactionState (): React.JSX.Element {
         void navigate(`/approve/${response.stateTransition.hash}`, {
           state: {
             disableIdentitySelect: true,
-            showBackButton: true
+            showBackButton: true,
+            returnToHome: true
           }
         })
       }
