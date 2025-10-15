@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import NoIdentities from './NoIdentities'
 import NoWallets from './NoWallets'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
@@ -8,7 +9,6 @@ import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { usePlatformExplorerClient, type TransactionData, type NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { type TokenData } from '../../../types'
-import { useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
 import { TransactionsList } from '../../components/transactions'
 import { TokensList } from '../../components/tokens'
@@ -17,6 +17,7 @@ import { BalanceInfo } from '../../components/data'
 import { fetchNames } from '../../../utils'
 
 function HomeState (): React.JSX.Element {
+  const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
@@ -190,7 +191,14 @@ function HomeState (): React.JSX.Element {
       </div>
 
       <div className='flex gap-2'>
-        <Button className='w-1/2' disabled>Send</Button>
+        <Button
+          className='w-1/2'
+          colorScheme='brand'
+          onClick={() => { void navigate('/send-transaction') }}
+          disabled={currentIdentity === null || balanceState.data === null}
+        >
+          Send
+        </Button>
         <Button className='w-1/2' disabled>Withdraw</Button>
       </div>
 

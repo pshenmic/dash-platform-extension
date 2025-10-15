@@ -5,6 +5,7 @@ import { useExtensionAPI, useSdk } from '../../hooks'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { GetStatusResponse } from '../../../types/messages/response/GetStatusResponse'
 import { NetworkType, EventData, Identity } from '../../../types'
+import type { HeaderConfigOverride } from '../../types'
 import LoadingScreen from './LoadingScreen'
 
 export interface LayoutContext {
@@ -17,6 +18,10 @@ export interface LayoutContext {
   allWallets: WalletAccountInfo[]
   availableIdentities: Identity[]
   createWallet: (walletType: any, mnemonic?: string) => Promise<any>
+  headerComponent: React.ReactNode
+  setHeaderComponent: (component: React.ReactNode) => void
+  headerConfigOverride: HeaderConfigOverride | null
+  setHeaderConfigOverride: (config: HeaderConfigOverride | null) => void
 }
 
 const Layout: FC = () => {
@@ -29,6 +34,8 @@ const Layout: FC = () => {
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
   const [availableIdentities, setAvailableIdentities] = useState<Identity[]>([])
+  const [headerComponent, setHeaderComponent] = useState<React.ReactNode>(null)
+  const [headerConfigOverride, setHeaderConfigOverride] = useState<HeaderConfigOverride | null>(null)
 
   const loadWallets = useCallback(async (): Promise<WalletAccountInfo[]> => {
     if (!isApiReady) return []
@@ -43,7 +50,7 @@ const Layout: FC = () => {
   }, [isApiReady, extensionAPI])
 
   const loadIdentities = useCallback(async (): Promise<void> => {
-    if (!isApiReady || currentWallet === null || currentWallet === '') return
+    if (!isApiReady || currentWallet == null) return
     try {
       const identities = await extensionAPI.getIdentities()
       setAvailableIdentities(identities)
@@ -53,7 +60,7 @@ const Layout: FC = () => {
   }, [isApiReady, currentWallet, extensionAPI])
 
   const loadCurrentIdentity = useCallback(async (): Promise<void> => {
-    if (!isApiReady || currentWallet === null || currentWallet === '') return
+    if (!isApiReady || currentWallet == null) return
     try {
       const identity = await extensionAPI.getCurrentIdentity()
       setCurrentIdentity(identity)
@@ -175,7 +182,11 @@ const Layout: FC = () => {
             setCurrentIdentity: handleIdentityChange,
             allWallets,
             availableIdentities,
-            createWallet
+            createWallet,
+            headerComponent,
+            setHeaderComponent,
+            headerConfigOverride,
+            setHeaderConfigOverride
           }}
             />
           : <LoadingScreen message='Initializing application...' />}

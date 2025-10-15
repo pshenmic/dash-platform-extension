@@ -1,6 +1,8 @@
+import { IdentityInfo } from '../../IdentityInfo'
+
 export interface ConnectAppResponse {
   redirectUrl: string
   status: 'pending' | 'approved' | 'rejected' | 'error'
-  identities: string[]
+  identities: IdentityInfo[]
   currentIdentity: string | null
 }

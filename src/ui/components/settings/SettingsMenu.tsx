@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { OverlayMenu } from './OverlayMenu'
+import { OverlayMenu } from '../common'
 import { MainSettingsScreen } from './screens/MainSettingsScreen'
 import { WalletSettingsScreen } from './screens/WalletSettingsScreen'
 import { PreferencesScreen } from './screens/PreferencesScreen'

@@ -67,7 +67,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
         size='xl'
         showCloseButton
       >
-        <div className='flex flex-col gap-4 -mx-6'>
+        <div className='flex flex-col gap-4 -mx-6 overflow-y-auto'>
           <div className='flex flex-col gap-2'>
             {identities.map((identity) => (
               <div
@@ -122,7 +122,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                 className='w-full h-[3.625rem] gap-4'
                 onClick={() => {
                   setOpen(false)
-                  void navigate('/import-keystore')
+                  void navigate('/select-import-type')
                 }}
               >
                 <PlusIcon />
