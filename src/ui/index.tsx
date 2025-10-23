@@ -193,6 +193,12 @@ rootDiv.render(
   <App />
 )
 
+// Hide initial HTML loader after React is ready
+const initialLoader = document.getElementById('initial-loader')
+if (initialLoader) {
+  initialLoader.classList.add('hidden')
+}
+
 // Load SDK in background - non-blocking
 loadSdk()
   .then(() => {
