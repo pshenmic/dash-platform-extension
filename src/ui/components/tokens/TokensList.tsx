@@ -102,9 +102,7 @@ function TokensList ({
                 <div className='flex items-center justify-center w-[2.438rem] h-[2.438rem] bg-[rgba(12,28,51,0.03)] rounded-full'>
                   <Text
                     weight='medium'
-                    size='base'
-                    className='text-dash-primary-dark-blue text-center'
-                    style={{ fontSize: '16px', lineHeight: '1.366em' }}
+                    className='text-dash-primary-dark-blue text-center text-[16px] leading-[1.366em]'
                   >
                     {initials}
                   </Text>
@@ -114,9 +112,7 @@ function TokensList ({
                   <div className='flex flex-col'>
                     <Text
                       weight='medium'
-                      size='sm'
-                      className='text-dash-primary-dark-blue'
-                      style={{ fontSize: '14px', lineHeight: '1.366em' }}
+                      className='text-dash-primary-dark-blue text-[14px] leading-[1.366em]'
                     >
                       {singularName}
                     </Text>
@@ -144,18 +140,13 @@ function TokensList ({
           headerContent={
             <div className='flex items-center gap-2'>
               <div className='flex items-center justify-center w-6 h-6 bg-[rgba(12,28,51,0.03)] rounded-full'>
-                <Text
-                  weight='medium'
-                  className='text-dash-primary-dark-blue text-center'
-                  style={{ fontSize: '9.846px', lineHeight: '1.366em' }}
-                >
+                <Text className='!text-[0.75rem]'>
                   {getTokenInitials(selectedToken)}
                 </Text>
               </div>
               <Text
-                weight='extrabold'
-                className='text-dash-primary-dark-blue'
-                style={{ fontSize: '12px', lineHeight: '1.366em' }}
+                weight='bold'
+                className='!text-[0.75rem]'
               >
                 {getTokenName(selectedToken.localizations, 'singularForm') ?? selectedToken.description ?? 'Unknown Token'}
               </Text>
@@ -167,7 +158,7 @@ function TokensList ({
               content: (
                 <div className='flex items-center gap-2'>
                   <ExternalLinkIcon size={16} />
-                  <Text weight='medium' style={{ fontSize: '12px', lineHeight: '1.4167em' }}>View on Explorer</Text>
+                  <Text weight='medium' className='!text-[0.75rem]'>View on Explorer</Text>
                 </div>
               ),
               onClick: () => {
@@ -180,7 +171,7 @@ function TokensList ({
               content: (
                 <div className='flex items-center gap-2'>
                   <AirplaneIcon size={16} />
-                  <Text weight='medium' style={{ fontSize: '12px', lineHeight: '1.4167em' }}>Transfer</Text>
+                  <Text weight='medium' className='!text-[0.75rem]'>Transfer</Text>
                 </div>
               ),
               onClick: () => {
