@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import {
   Button,
   Text,
@@ -49,10 +49,12 @@ const MIN_CREDIT_TRANSFER = 100000n
 
 function SendTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
+  const location = useLocation()
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
   const { currentNetwork, currentIdentity, setHeaderComponent } = useOutletContext<OutletContext>()
+  const locationState = location.state as { selectedToken?: string } | null
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [balance, setBalance] = useState<bigint | null>(null)
@@ -63,8 +65,16 @@ function SendTransactionState (): React.JSX.Element {
   const [formData, setFormData] = useState<SendFormData>({
     recipient: '',
     amount: '',
-    selectedAsset: 'credits'
+    selectedAsset: locationState?.selectedToken ?? 'credits'
   })
+
+  // Clear navigation state after it's been read
+  useEffect(() => {
+    if (locationState?.selectedToken != null) {
+      // Replace current history entry to clear the state
+      window.history.replaceState({}, document.title)
+    }
+  }, [locationState])
 
   // Load balance, tokens and exchange rate on component mount
   useEffect(() => {
@@ -92,7 +102,7 @@ function SendTransactionState (): React.JSX.Element {
 
     void loadBalance().catch(e => console.log('loadBalance error:', e))
     void loadRate().catch(e => console.log('loadRate error:', e))
-  }, [currentIdentity, sdk, currentNetwork])
+  }, [currentIdentity, sdk, currentNetwork, platformExplorerClient])
 
   // Load tokens for the current identity
   useEffect(() => {
