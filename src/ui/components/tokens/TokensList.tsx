@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { Text, OverlayMenu, WebIcon, ArrowIcon } from 'dash-ui-kit/react'
+import { Text, OverlayMenu, ExternalLinkIcon, AirplaneIcon } from 'dash-ui-kit/react'
 import { TokenData, NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { getTokenName, fromBaseUnit } from '../../../utils'
 import { PLATFORM_EXPLORER_URLS } from '../../../constants'
@@ -164,7 +164,7 @@ function TokensList ({
               id: 'view-explorer',
               content: (
                 <div className='flex items-center gap-2'>
-                  <WebIcon size={16} />
+                  <ExternalLinkIcon size={16} />
                   <Text size='xs' weight='medium'>View on Explorer</Text>
                 </div>
               ),
@@ -177,7 +177,7 @@ function TokensList ({
               id: 'transfer',
               content: (
                 <div className='flex items-center gap-2'>
-                  <ArrowIcon size={16} />
+                  <AirplaneIcon size={16} />
                   <Text size='xs' weight='medium'>Transfer</Text>
                 </div>
               ),
