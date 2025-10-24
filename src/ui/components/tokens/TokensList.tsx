@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Text, OverlayMenu, ExternalLinkIcon, AirplaneIcon } from 'dash-ui-kit/react'
 import { TokenData, NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { getTokenName, fromBaseUnit } from '../../../utils'
@@ -17,7 +18,7 @@ interface TokensListProps {
 interface MenuState {
   isOpen: boolean
   tokenId: string | null
-  position: { top: number; right: number } | null
+  position: { top: number, right: number } | null
 }
 
 function TokensList ({
@@ -26,6 +27,7 @@ function TokensList ({
   error,
   currentNetwork
 }: TokensListProps): React.JSX.Element {
+  const navigate = useNavigate()
   const [menuState, setMenuState] = useState<MenuState>({
     isOpen: false,
     tokenId: null,
@@ -53,7 +55,7 @@ function TokensList ({
   const handleTokenClick = useCallback((event: React.MouseEvent<HTMLDivElement>, tokenId: string) => {
     const target = event.currentTarget
     const rect = target.getBoundingClientRect()
-    
+
     setMenuState({
       isOpen: true,
       tokenId,
@@ -152,8 +154,8 @@ function TokensList ({
               </div>
               <Text
                 weight='extrabold'
-                size='xs'
                 className='text-dash-primary-dark-blue'
+                style={{ fontSize: '12px', lineHeight: '1.366em' }}
               >
                 {getTokenName(selectedToken.localizations, 'singularForm') ?? selectedToken.description ?? 'Unknown Token'}
               </Text>
@@ -165,7 +167,7 @@ function TokensList ({
               content: (
                 <div className='flex items-center gap-2'>
                   <ExternalLinkIcon size={16} />
-                  <Text size='xs' weight='medium'>View on Explorer</Text>
+                  <Text weight='medium' style={{ fontSize: '12px', lineHeight: '1.4167em' }}>View on Explorer</Text>
                 </div>
               ),
               onClick: () => {
@@ -178,13 +180,16 @@ function TokensList ({
               content: (
                 <div className='flex items-center gap-2'>
                   <AirplaneIcon size={16} />
-                  <Text size='xs' weight='medium'>Transfer</Text>
+                  <Text weight='medium' style={{ fontSize: '12px', lineHeight: '1.4167em' }}>Transfer</Text>
                 </div>
               ),
               onClick: () => {
-                // TODO: Implement transfer logic
-                console.log('Transfer token:', selectedToken.identifier)
                 handleCloseMenu()
+                void navigate('/send-transaction', {
+                  state: {
+                    selectedToken: selectedToken.identifier
+                  }
+                })
               }
             }
           ]}
