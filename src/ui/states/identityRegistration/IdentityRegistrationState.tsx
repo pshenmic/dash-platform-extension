@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Button, Text, Avatar, CopyButton, ChevronIcon } from 'dash-ui-kit/react'
+import { Button, Text, Avatar, CopyButton, ChevronIcon, Input } from 'dash-ui-kit/react'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { useStaticAsset } from '../../hooks/useStaticAsset'
+import { QRCodeSVG } from 'qrcode.react'
 
-type Stage = 1 | 2 | 3 | 4
+type Stage = 1 | 2 | 3 | 4 | 5
 
 const mockIdentity = {
   id: 'EWNwtGEC1qAbgNgo2UgadmQhB9DaZtB942x8bXgJrPNS',
@@ -15,7 +16,7 @@ const mockPaymentAddress = 'QMfCRPcjXoTnZa9sA9JR2KWgGGDFGDHJDGASFS'
 
 const ProgressSteps: React.FC<{ currentStage: Stage }> = ({ currentStage }) => (
   <div className='flex gap-2 w-full'>
-    {[1, 2, 3, 4].map((step) => (
+    {[1, 2, 3, 4, 5].map((step) => (
       <div
         key={step}
         className={`h-[5px] flex-1 rounded-full transition-colors ${
@@ -30,20 +31,12 @@ function IdentityRegistrationState (): React.JSX.Element {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [showKeys, setShowKeys] = useState(false)
-  const coinImage = useStaticAsset('coin_bagel.png')
+  const [showManualEntry, setShowManualEntry] = useState(false)
+  const [transactionHash, setTransactionHash] = useState('')
+  const coinBagelImage = useStaticAsset('coin_bagel.png')
+  const coinImage = useStaticAsset('coin.png')
   
   const stage = parseInt(searchParams.get('stage') ?? '1', 10) as Stage
-
-  // Stage 2: Auto-advance after 5 seconds
-  useEffect(() => {
-    if (stage === 2) {
-      const timer = setTimeout(() => {
-        void navigate('/register-identity?stage=3')
-      }, 5000)
-
-      return () => clearTimeout(timer)
-    }
-  }, [stage, navigate])
 
   // Stage 3: Auto-advance after 5 seconds
   useEffect(() => {
@@ -56,8 +49,23 @@ function IdentityRegistrationState (): React.JSX.Element {
     }
   }, [stage, navigate])
 
+  // Stage 4: Auto-advance after 5 seconds
+  useEffect(() => {
+    if (stage === 4) {
+      const timer = setTimeout(() => {
+        void navigate('/register-identity?stage=5')
+      }, 5000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [stage, navigate])
+
   const handleNext = (): void => {
     void navigate('/register-identity?stage=2')
+  }
+
+  const handleProceedToPayment = (): void => {
+    void navigate('/register-identity?stage=3')
   }
 
   const handleDone = (): void => {
@@ -80,7 +88,7 @@ function IdentityRegistrationState (): React.JSX.Element {
 
         <div className='flex-1' />
 
-        <div className='px-[15px] pb-[15px] flex flex-col gap-4'>
+        <div className='flex flex-col gap-4'>
           <Button
             colorScheme='brand'
             className='w-full'
@@ -94,26 +102,54 @@ function IdentityRegistrationState (): React.JSX.Element {
     )
   }
 
-  // Stage 2: Waiting for payment with QR code
+  // Stage 2: Fee information with coin image
   if (stage === 2) {
     return (
       <div className='flex flex-col h-full'>
-        <div className='px-[15px] pt-4'>
-          <TitleBlock
-            title='Waiting for Payment'
-            description="Your private keys are stored securely and never leave this device. Send a any desired amount to an address below and we'll do the process of Identity registration for you."
-            logoSize='3rem'
-            showLogo
-            containerClassName='mb-0'
-          />
+        <TitleBlock
+          title='Registration Fee'
+          description='Identity registration on Dash Platform requires a small network fee. This one-time payment covers the cost of storing your identity on the blockchain.'
+          logoSize='3rem'
+          showLogo
+          containerClassName='mb-0'
+        />
+
+        <div className='flex-1 flex items-center justify-center'>
+          <div className='w-[200px] h-[200px]'>
+            <img src={coinImage} alt='Dash coin' className='w-full h-full object-contain' />
+          </div>
         </div>
+
+        <div className='flex flex-col gap-4'>
+          <Button
+            colorScheme='brand'
+            className='w-full'
+            onClick={handleProceedToPayment}
+          >
+            Continue To Payment
+          </Button>
+          <ProgressSteps currentStage={stage} />
+        </div>
+      </div>
+    )
+  }
+
+  // Stage 3: Waiting for payment with QR code
+  if (stage === 3) {
+    return (
+      <div className='flex flex-col h-full'>
+        <TitleBlock
+          title='Waiting for Payment'
+          description="Your private keys are stored securely and never leave this device. Send a any desired amount to an address below and we'll do the process of Identity registration for you."
+          logoSize='3rem'
+          showLogo
+          containerClassName='mb-0'
+        />
 
         <div className='mt-6 px-[15px]'>
           <div className='bg-dash-primary-dark-blue/[0.04] rounded-3xl p-6 flex gap-6 items-center'>
-            <div className='w-28 h-28 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0'>
-              <Text size='xs' className='text-gray-500'>
-                QR
-              </Text>
+            <div className='flex-shrink-0'>
+              <QRCodeSVG value='https://dash.org/' fgColor='#4C7EFF' bgColor='transparent' size={100}/>
             </div>
             <div className='flex flex-col gap-1 flex-1 min-w-0'>
               <div className='flex items-center gap-2'>
@@ -128,7 +164,7 @@ function IdentityRegistrationState (): React.JSX.Element {
                   <CopyButton text={mockPaymentAddress} />
                 </div>
               </div>
-              <Text className='text-xs leading-[1.366em] tracking-[-0.01em] text-dash-primary-dark-blue/80'>
+              <Text className='text-xs' dim>
                 You can send any amount convenient for you (over 0.1 Dash). We are ready to accept a transfer at any time!
               </Text>
             </div>
@@ -137,22 +173,31 @@ function IdentityRegistrationState (): React.JSX.Element {
 
         <div className='flex-1' />
 
-        <div className='px-[15px] pb-[15px] flex flex-col gap-4'>
-          <Button
-            variant='outline'
-            colorScheme='brand'
-            className='w-full'
-          >
-            Enter Manually
-          </Button>
+        <div className='flex flex-col gap-4'>
+          {!showManualEntry ? (
+            <Button
+              variant='outline'
+              colorScheme='brand'
+              className='w-full'
+              onClick={() => setShowManualEntry(true)}
+            >
+              Enter Manually
+            </Button>
+          ) : (
+            <Input
+              placeholder='Enter transaction hash'
+              value={transactionHash}
+              onChange={(e) => setTransactionHash(e.target.value)}
+            />
+          )}
           <ProgressSteps currentStage={stage} />
         </div>
       </div>
     )
   }
 
-  // Stage 3: Payment received with animated coin
-  if (stage === 3) {
+  // Stage 4: Payment received with animated coin
+  if (stage === 4) {
     return (
       <div className='flex flex-col h-full relative overflow-hidden'>
         <div
@@ -161,11 +206,11 @@ function IdentityRegistrationState (): React.JSX.Element {
             background: 'linear-gradient(180deg, rgba(255, 255, 255, 0) 15%, rgba(255, 255, 255, 1) 42%)'
           }}
         >
-          <img src={coinImage} alt='' className='w-full h-full object-cover' />
+          <img src={coinBagelImage} alt='' className='w-full h-full object-cover' />
         </div>
 
         <div className='relative z-10 flex flex-col h-full'>
-          <div className='px-[15px] pt-4'>
+          <div>
             <TitleBlock
               title={<>We received your<br />payment</>}
               description='Please kindly wait for all Identity registration transactions to be processed by the network. Usually, it takes less than 10 seconds.'
@@ -177,7 +222,7 @@ function IdentityRegistrationState (): React.JSX.Element {
 
           <div className='flex-1' />
 
-          <div className='px-[15px] pb-[15px]'>
+          <div className=''>
             <ProgressSteps currentStage={stage} />
           </div>
         </div>
@@ -185,18 +230,16 @@ function IdentityRegistrationState (): React.JSX.Element {
     )
   }
 
-  // Stage 4: Success with identity card
+  // Stage 5: Success with identity card
   return (
     <div className='flex flex-col h-full'>
-      <div className='px-[15px] pt-4'>
-        <TitleBlock
-          title='Congratulations!'
-          description="Now you have your first Identity and you're ready to dive into the space of truly decentralized Web3 applications. Check out latest Dash Platform DApps on dashdapps.com"
-          logoSize='3rem'
-          showLogo
-          containerClassName='mb-0'
-        />
-      </div>
+      <TitleBlock
+        title='Congratulations!'
+        description="Now you have your first Identity and you're ready to dive into the space of truly decentralized Web3 applications. Check out latest Dash Platform DApps on dashdapps.com"
+        logoSize='3rem'
+        showLogo
+        containerClassName='mb-0'
+      />
 
       <div className='mt-6 px-[15px]'>
         <div className='bg-dash-primary-dark-blue/[0.05] rounded-2xl p-[10px_15px_18px] flex flex-col gap-6'>
