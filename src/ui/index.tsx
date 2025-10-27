@@ -100,15 +100,6 @@ const App: React.FC = function () {
             }
           }
         },
-        // {
-        //   path: '/import-keystore',
-        //   element: <PageWithHeader><ImportRegularState /></PageWithHeader>,
-        //   handle: {
-        //     headerProps: {
-        //       variant: 'seedImport'
-        //     }
-        //   }
-        // },
         {
           path: '/import-regular-identity',
           element: <PageWithHeader><ImportRegularState /></PageWithHeader>,
@@ -186,7 +177,7 @@ const App: React.FC = function () {
           element: <PageWithHeader><SendTransactionState /></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'simple'
+              variant: 'sendTransaction'
             }
           }
         }

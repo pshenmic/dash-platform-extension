@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react'
-import { Text, DashLogo, Input, Avatar } from 'dash-ui-kit/react'
+import { Text, CreditsIcon, Input, Avatar } from 'dash-ui-kit/react'
 import { OverlayMenu } from '../common'
 import type { TokenData } from '../../../types'
-import { creditsToDashBigInt, fromBaseUnit } from '../../../utils'
+import { fromBaseUnit } from '../../../utils'
 
 interface AssetOption {
   value: string
@@ -26,24 +26,12 @@ interface AssetSelectionMenuProps {
 
 const ASSET_OPTIONS: AssetOption[] = [
   {
-    value: 'dash',
-    label: 'Dash',
-    symbol: 'DASH',
-    icon: (
-      <div className='w-[39px] h-[39px] bg-dash-brand rounded-full flex items-center justify-center'>
-        <DashLogo className='!text-white w-5 h-4' />
-      </div>
-    )
-  },
-  {
     value: 'credits',
     label: 'Credits',
     symbol: 'CRDT',
     icon: (
-      <div className='w-[39px] h-[39px] bg-[rgba(12,28,51,0.05)] rounded-full flex items-center justify-center'>
-        <Text size='md' weight='medium' className='text-dash-brand !text-[15px] leading-[21px]'>
-          C
-        </Text>
+      <div className='w-[2.438rem] h-[2.438rem] bg-[rgba(12,28,51,0.05)] rounded-full flex items-center justify-center'>
+        <CreditsIcon className='!text-dash-brand w-5 h-5' />
       </div>
     )
   }
@@ -65,10 +53,6 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
   }
 
   const getAssetBalance = (asset: AssetOption): string => {
-    if (asset.value === 'dash' && (creditsBalance !== null && creditsBalance !== undefined)) {
-      const dashAmount = creditsToDashBigInt(creditsBalance)
-      return `${dashAmount} DASH`
-    }
     if (asset.value === 'credits' && (creditsBalance !== null && creditsBalance !== undefined)) {
       return `${creditsBalance} CRDT`
     }
@@ -89,7 +73,7 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
         icon: (
           <Avatar
             username={token.identifier}
-            className='w-[40px] h-[40px]'
+            className='w-[2.438rem] h-[2.438rem]'
           />
         ),
         isToken: true,
@@ -150,7 +134,7 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
                         {asset.label}
                       </Text>
 
-                      <div className='bg-[rgba(76,126,255,0.1)] rounded px-[5px] py-[3px]'>
+                      <div className='flex bg-dash-brand/10 rounded px-[5px] py-[3px]'>
                         <Text size='xs' weight='medium' className='text-dash-brand !text-[10px] leading-[1.366]'>
                           {asset.symbol}
                         </Text>

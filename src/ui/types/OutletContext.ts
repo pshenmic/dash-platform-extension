@@ -1,6 +1,10 @@
+import React from 'react'
 import { WalletAccountInfo } from '../../types/messages/response/GetAllWalletsResponse'
-import { Identity } from '../../types'
-import { WalletType } from '../../types/WalletType'
+import { Identity, WalletType } from '../../types'
+
+export interface HeaderConfigOverride {
+  showBackButton?: boolean
+}
 
 export interface OutletContext {
   currentNetwork: string | null
@@ -12,4 +16,8 @@ export interface OutletContext {
   allWallets: WalletAccountInfo[]
   availableIdentities: Identity[]
   createWallet: (walletType: WalletType, mnemonic?: string) => Promise<{ walletId: string }>
+  headerComponent: React.ReactNode
+  setHeaderComponent: (component: React.ReactNode) => void
+  headerConfigOverride: HeaderConfigOverride | null
+  setHeaderConfigOverride: (config: HeaderConfigOverride | null) => void
 }

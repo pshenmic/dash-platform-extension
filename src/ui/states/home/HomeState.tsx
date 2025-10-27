@@ -194,7 +194,7 @@ function HomeState (): React.JSX.Element {
         <Button
           className='w-1/2'
           colorScheme='brand'
-          onClick={async () => await navigate('/send-transaction')}
+          onClick={() => { void navigate('/send-transaction') }}
           disabled={currentIdentity === null || balanceState.data === null}
         >
           Send

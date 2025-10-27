@@ -3716,10 +3716,10 @@ csstype@^3.0.2:
   resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.1.3.tgz#d80ff294d114fb0e6ac500fbf85b60137d7eff81"
   integrity sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==
 
-dash-platform-sdk@1.3.0-dev.7:
-  version "1.3.0-dev.7"
-  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.3.0-dev.7.tgz#f965e203262797732af45c732bcf0e6efde8d288"
-  integrity sha512-NY8Lz+yhchqDMWHkAiifLXG47VBhijZZGobtQZConLSdbypis6T1bUYrZ0J0f6hc/hSeNoKW+ZHAF4G9Wr8VyA==
+dash-platform-sdk@1.3.0-dev.10:
+  version "1.3.0-dev.10"
+  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.3.0-dev.10.tgz#680db6ec0b378cbd4652595a983fe532f414f73d"
+  integrity sha512-OACZeZzwiS1102VNUMYnUPGrrVwa0aN7HBwvHJlQSjeOUcxvdRiEoUwac4Bm/8OGm08Jhf3/tyTYN3vLuvEYKg==
   dependencies:
     "@bufbuild/protobuf" "^2.6.0"
     "@protobuf-ts/grpcweb-transport" "^2.11.1"
@@ -3730,9 +3730,9 @@ dash-platform-sdk@1.3.0-dev.7:
     cbor-x "^1.6.0"
     pshenmic-dpp "1.1.0-dev.7"
 
-dash-ui-kit@AlexeyTripleA/dash-ui-kit#feat/update-components:
-  version "1.0.6"
-  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/0579bc32c829a7ad79c8544dd70006eb9ec132b2"
+dash-ui-kit@AlexeyTripleA/dash-ui-kit:
+  version "1.0.8"
+  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/648fa6fe27631be9168bee83d3044ef43468692a"
   dependencies:
     "@radix-ui/react-accordion" "^1.2.12"
     "@radix-ui/react-dialog" "^1.1.14"

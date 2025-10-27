@@ -1,3 +1,5 @@
+import { StateTransition } from '../../StateTransition'
+
 export interface CreateStateTransitionResponse {
-  hash: string
+  stateTransition: StateTransition
 }

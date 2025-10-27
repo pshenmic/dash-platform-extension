@@ -1,7 +1,8 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import { Identity } from '../../types/Identity'
+import { Identity } from '../../types'
 import { IdentitiesStoreSchema, IdentityStoreSchema } from '../storage/storageSchema'
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { IdentityType } from '../../types/enums/IdentityType'
 
 export class IdentitiesRepository {
   storageAdapter: StorageAdapter
@@ -12,7 +13,7 @@ export class IdentitiesRepository {
     this.storageAdapter = storageAdapter
   }
 
-  async create (identifier: string): Promise<Identity> {
+  async create (identifier: string, type: IdentityType, proTxHash?: string): Promise<Identity> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
@@ -35,6 +36,8 @@ export class IdentitiesRepository {
     const identityStoreSchema: IdentityStoreSchema = {
       index,
       label: null,
+      proTxHash: proTxHash ?? null,
+      type,
       identifier
     }
 
@@ -45,7 +48,9 @@ export class IdentitiesRepository {
     return {
       identifier: identityStoreSchema.identifier,
       index: identityStoreSchema.index,
-      label: identityStoreSchema.label
+      label: identityStoreSchema.label,
+      proTxHash: identityStoreSchema.proTxHash,
+      type
     }
   }
 
@@ -63,7 +68,9 @@ export class IdentitiesRepository {
       const schema: IdentityStoreSchema = {
         index: value.index,
         identifier: value.identifier,
-        label: null
+        label: null,
+        proTxHash: value.proTxHash,
+        type: value.type
       }
 
       return { ...acc, [value.identifier]: schema }
@@ -89,7 +96,9 @@ export class IdentitiesRepository {
         ({
           identifier,
           index: entry.index,
-          label: entry.label
+          label: entry.label,
+          proTxHash: entry.proTxHash,
+          type: entry.type as IdentityType
         })
       ))
   }
@@ -115,7 +124,9 @@ export class IdentitiesRepository {
     return {
       index: identity.index,
       identifier: identity.identifier,
-      label: identity.label
+      proTxHash: identity.proTxHash,
+      label: identity.label,
+      type: identity.type as IdentityType
     }
   }
 }

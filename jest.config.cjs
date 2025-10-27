@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   setupFiles: [
     './test/bootstrap.js'
   ],

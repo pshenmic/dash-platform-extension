@@ -1,9 +1,7 @@
 import { IdentityType } from './enums/IdentityType'
 
-export interface Identity {
-  index: number
+export interface IdentityInfo {
   type: IdentityType
   proTxHash: null | string
   identifier: string
-  label: string | null
 }

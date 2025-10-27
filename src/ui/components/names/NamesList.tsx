@@ -32,7 +32,7 @@ function NamesList ({
   }
 
   const isValidTimestamp = (timestamp: string | null): boolean => {
-    if (timestamp === null || timestamp === '') {
+    if (timestamp == null) {
       return false
     }
 
@@ -70,7 +70,7 @@ function NamesList ({
         isEmpty={(names == null) || names.length === 0}
         variant='tight'
         loadingText='Loading names...'
-        errorText={(error != null && error !== '') ? `Error loading names: ${error}` : undefined}
+        errorText={error != null ? `Error loading names: ${error}` : undefined}
         emptyText='No names found'
       >
         {names.map((nameItem) => {

@@ -60,7 +60,7 @@ function TokensList ({
             href={getTokenExplorerUrl(token.identifier)}
           >
             <div className='flex items-center gap-3'>
-              <div className='flex items-center justify-center w-[39px] h-[39px] bg-[rgba(12,28,51,0.03)] rounded-full'>
+              <div className='flex items-center justify-center w-[2.438rem] h-[2.438rem] bg-[rgba(12,28,51,0.03)] rounded-full'>
                 <Text
                   weight='medium'
                   size='base'

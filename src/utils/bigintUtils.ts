@@ -4,12 +4,12 @@
 
 /**
  * Convert a string or bigint to a decimal number with specified decimals
- * @param value - The value to convert (string, bigint, or number)
+ * @param value - The value to convert (string or bigint)
  * @param decimals - Number of decimal places (default 0 for no decimals)
  * @returns The decimal representation as a string
  */
-export function fromBaseUnit (value: string | bigint | number, decimals: number = 0): string {
-  const stringValue = typeof value === 'bigint' ? value.toString() : String(value)
+export function fromBaseUnit (value: string | bigint, decimals: number = 0): string {
+  const stringValue = typeof value === 'bigint' ? value.toString() : value
 
   if (decimals === 0) {
     return stringValue
@@ -40,11 +40,11 @@ export function fromBaseUnit (value: string | bigint | number, decimals: number 
  * @param returnBigInt - Whether to return bigint (default) or string
  * @returns The base unit value
  */
-export function toBaseUnit (value: string | number, decimals: number = 0, returnBigInt: boolean = true): bigint | string {
-  const stringValue = String(value).trim()
+export function toBaseUnit (value: string, decimals: number = 0, returnBigInt: boolean = true): bigint | string {
+  const stringValue = value.trim()
 
   if (decimals === 0) {
-    const result = stringValue.split('.')[0] // Remove any decimal part
+    const [result = ''] = stringValue.split('.') // Remove any decimal part
     return returnBigInt ? BigInt(result) : result
   }
 
@@ -60,128 +60,6 @@ export function toBaseUnit (value: string | number, decimals: number = 0, return
   const result = (isNegative ? '-' : '') + combinedValue
 
   return returnBigInt ? BigInt(result) : result
-}
-
-/**
- * Add two bigint values represented as strings or bigint
- */
-export function bigintAdd (a: string | bigint, b: string | bigint): bigint {
-  const aBigInt = typeof a === 'bigint' ? a : BigInt(a)
-  const bBigInt = typeof b === 'bigint' ? b : BigInt(b)
-  return aBigInt + bBigInt
-}
-
-/**
- * Subtract two bigint values
- */
-export function bigintSubtract (a: string | bigint, b: string | bigint): bigint {
-  const aBigInt = typeof a === 'bigint' ? a : BigInt(a)
-  const bBigInt = typeof b === 'bigint' ? b : BigInt(b)
-  return aBigInt - bBigInt
-}
-
-/**
- * Multiply two bigint values
- */
-export function bigintMultiply (a: string | bigint, b: string | bigint): bigint {
-  const aBigInt = typeof a === 'bigint' ? a : BigInt(a)
-  const bBigInt = typeof b === 'bigint' ? b : BigInt(b)
-  return aBigInt * bBigInt
-}
-
-/**
- * Divide two bigint values
- */
-export function bigintDivide (a: string | bigint, b: string | bigint): bigint {
-  const aBigInt = typeof a === 'bigint' ? a : BigInt(a)
-  const bBigInt = typeof b === 'bigint' ? b : BigInt(b)
-  return aBigInt / bBigInt
-}
-
-/**
- * Compare two bigint values
- * @returns -1 if a < b, 0 if a === b, 1 if a > b
- */
-export function bigintCompare (a: string | bigint, b: string | bigint): number {
-  const aBigInt = typeof a === 'bigint' ? a : BigInt(a)
-  const bBigInt = typeof b === 'bigint' ? b : BigInt(b)
-
-  if (aBigInt < bBigInt) return -1
-  if (aBigInt > bBigInt) return 1
-  return 0
-}
-
-/**
- * Check if a value is greater than another
- */
-export function bigintGreaterThan (a: string | bigint, b: string | bigint): boolean {
-  return bigintCompare(a, b) > 0
-}
-
-/**
- * Check if a value is less than another
- */
-export function bigintLessThan (a: string | bigint, b: string | bigint): boolean {
-  return bigintCompare(a, b) < 0
-}
-
-/**
- * Check if a value is greater than or equal to another
- */
-export function bigintGreaterThanOrEqual (a: string | bigint, b: string | bigint): boolean {
-  return bigintCompare(a, b) >= 0
-}
-
-/**
- * Check if a value is less than or equal to another
- */
-export function bigintLessThanOrEqual (a: string | bigint, b: string | bigint): boolean {
-  return bigintCompare(a, b) <= 0
-}
-
-/**
- * Calculate percentage of a bigint value
- * @param value - The base value
- * @param percentage - Percentage (0-1 for 0-100%)
- * @param decimals - Decimal places for the base value
- * @returns The calculated percentage value
- */
-export function bigintPercentage (
-  value: string | bigint,
-  percentage: number,
-  decimals: number = 0
-): bigint {
-  if (decimals === 0) {
-    const valueBigInt = typeof value === 'bigint' ? value : BigInt(value)
-    return BigInt(Math.floor(Number(valueBigInt) * percentage))
-  }
-
-  // For values with decimals, convert to decimal, calculate, then convert back
-  const decimalValue = fromBaseUnit(value, decimals)
-  const result = Number(decimalValue) * percentage
-  return toBaseUnit(result.toString(), decimals, true) as bigint
-}
-
-/**
- * Format a bigint value for display with specified decimals and optional rounding
- * @param value - The value to format
- * @param decimals - Number of decimal places in the base unit
- * @param displayDecimals - Number of decimal places to display (default: same as decimals)
- * @returns Formatted string
- */
-export function formatBigintForDisplay (
-  value: string | bigint,
-  decimals: number = 0,
-  displayDecimals?: number
-): string {
-  const decimalValue = fromBaseUnit(value, decimals)
-
-  if (displayDecimals === undefined) {
-    return decimalValue
-  }
-
-  const numValue = Number(decimalValue)
-  return numValue.toFixed(displayDecimals)
 }
 
 /**
@@ -226,4 +104,22 @@ export function dashToCreditsBigInt (dash: string | number): bigint {
   const dashValue = typeof dash === 'string' ? Number(dash) : dash
   // 1 DASH = 100,000,000,000 credits (10^11)
   return BigInt(Math.floor(dashValue * 1e11))
+}
+
+/**
+ * Multiply a bigint by a percentage (0-1 range)
+ * @param value - The bigint value to multiply
+ * @param percentage - The percentage as a decimal (0.5 for 50%, 1 for 100%)
+ * @returns The result as bigint (rounded down)
+ */
+export function multiplyBigIntByPercentage (value: bigint, percentage: number): bigint {
+  if (percentage <= 0) return 0n
+  if (percentage >= 1) return value
+
+  // Convert percentage to integer ratio to avoid floating point
+  // Multiply by 10000 to handle 4 decimal places precision (e.g., 0.5 -> 5000, 0.25 -> 2500)
+  const percentageInt = Math.floor(percentage * 10000)
+  const result = (value * BigInt(percentageInt)) / 10000n
+
+  return result
 }

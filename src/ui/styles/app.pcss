@@ -74,4 +74,12 @@ body {
   height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+  
+  /* Hide scrollbar completely but keep scroll functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  
+  &::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
+  }
 }

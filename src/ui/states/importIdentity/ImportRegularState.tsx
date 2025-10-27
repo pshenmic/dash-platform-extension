@@ -46,7 +46,7 @@ function ImportRegularState (): React.JSX.Element {
   // Check if selected wallet is keystore type
   useEffect(() => {
     const checkWalletType = async (): Promise<void> => {
-      if (currentWallet === null) {
+      if (currentWallet == null) {
         void navigate('/choose-wallet-type')
         return
       }
@@ -231,7 +231,7 @@ function ImportRegularState (): React.JSX.Element {
         return setError('No identities found to import')
       }
 
-      if (currentWallet === null) {
+      if (currentWallet == null) {
         return setError('No wallet selected')
       }
 

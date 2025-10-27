@@ -92,6 +92,13 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
   // Simple back navigation only
   simple: {},
 
+  // Send transaction screen
+  sendTransaction: {
+    showNetworkRightReadOnly: true,
+    networkDisplayFormat: 'text',
+    hideLeftSection: false
+  },
+
   // Identity registration intro with app image
   identityRegistration: {
     hideLeftSection: false,
@@ -165,7 +172,9 @@ export default function Header (): React.JSX.Element {
     currentWallet,
     setCurrentWallet,
     currentIdentity,
-    allWallets
+    allWallets,
+    headerComponent,
+    headerConfigOverride
   } = context ?? ({} satisfies Partial<LayoutContext>)
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
@@ -197,13 +206,13 @@ export default function Header (): React.JSX.Element {
 
   const config = {
     showLogo: variant.showLogo ?? false,
-    hideLeftSection: variant.hideLeftSection ?? false,
+    hideLeftSection: headerConfigOverride?.showBackButton !== true && (variant.hideLeftSection ?? false),
     showNetworkSelector: variant.showNetworkSelector ?? false,
     showWalletSelector: variant.showWalletSelector ?? false,
     showBurgerMenu: variant.showBurgerMenu ?? false,
-    showNetworkRightReadOnly: variant.showNetworkRightReadOnly ?? false,
+    showNetworkRightReadOnly: headerConfigOverride?.showBackButton !== true && (variant.showNetworkRightReadOnly ?? false),
     showNetworkRightSelector: variant.showNetworkRightSelector ?? false,
-    showWalletRightReadOnly: variant.showWalletRightReadOnly ?? false,
+    showWalletRightReadOnly: headerConfigOverride?.showBackButton !== true && (variant.showWalletRightReadOnly ?? false),
     networkDisplayFormat: variant.networkDisplayFormat ?? 'text',
     imageType: variant.imageType,
     imageClasses: variant.imageClasses,
@@ -215,7 +224,7 @@ export default function Header (): React.JSX.Element {
   }
 
   const getWalletDisplayName = (): string => {
-    if (currentWallet === null || allWallets === null || allWallets === undefined || allWallets.length === 0) return 'Wallet'
+    if (currentWallet == null || allWallets == null || allWallets.length === 0) return 'Wallet'
 
     const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
     const currentWalletData = availableWallets.find(wallet => wallet.walletId === currentWallet)
@@ -249,7 +258,7 @@ export default function Header (): React.JSX.Element {
               />
               )
             : (
-              <Button onClick={handleBack} colorScheme='lightGray'>
+              <Button onClick={handleBack} colorScheme='lightGray' className='w-[3rem] h-[3rem]'>
                 <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
               </Button>
               )}
@@ -263,6 +272,12 @@ export default function Header (): React.JSX.Element {
         <div className='flex items-center gap-2.5'>
           {config.showNetworkSelector && <NetworkSelector onSelect={setCurrentNetwork} currentNetwork={currentNetwork as NetworkType} wallets={allWallets} />}
           {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
+        </div>
+      )}
+
+      {headerComponent != null && (
+        <div className='flex-1 flex items-center ml-[0.625rem] mr-auto'>
+          {headerComponent}
         </div>
       )}
 
@@ -280,7 +295,7 @@ export default function Header (): React.JSX.Element {
 
       {/* Right side read-only displays and selectors */}
       {(config.showWalletRightReadOnly || config.showNetworkRightReadOnly || config.showNetworkRightSelector) && (
-        <div className={`flex items-center gap-2.5 ${config.imageType != null ? 'absolute top-0 right-0 z-10' : 'w-full justify-between'}`}>
+        <div className={`flex items-center gap-2.5 ${config.imageType != null ? 'absolute top-0 right-0 z-10' : config.hideLeftSection && config.showWalletRightReadOnly ? 'w-full justify-between' : ''}`}>
           {config.showWalletRightReadOnly && currentWallet !== null && (
             <Text size='sm' color='gray' weight='medium' className='text-right' dim>
               {getWalletDisplayName()}
@@ -291,7 +306,7 @@ export default function Header (): React.JSX.Element {
             config.networkDisplayFormat === 'card'
               ? <NetworkCard network={currentNetwork ?? ''} />
               : (
-                <Text className='capitalize' size='sm' color='gray' weight='medium' dim>
+                <Text className='!flex items-center capitalize h-[3rem]' size='sm' color='gray' weight='medium' dim>
                   {currentNetwork}
                 </Text>
                 )

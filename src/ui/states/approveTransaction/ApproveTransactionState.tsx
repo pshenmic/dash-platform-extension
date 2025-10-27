@@ -6,7 +6,7 @@ import { GetStateTransitionResponse } from '../../../types/messages/response/Get
 import { useExtensionAPI, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import type { OutletContext } from '../../types/OutletContext'
+import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 
@@ -14,12 +14,14 @@ function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const extensionAPI = useExtensionAPI()
-  const { currentWallet, currentIdentity, setCurrentIdentity } = useOutletContext<OutletContext>()
+  const { currentWallet, currentIdentity, setCurrentIdentity, setHeaderConfigOverride } = useOutletContext<OutletContext>()
 
   const params = useParams()
 
   // Check if identity switching should be disabled (e.g., when navigating from SendTransaction)
   const disableIdentitySelect = location.state?.disableIdentitySelect === true
+  const showBackButton = location.state?.showBackButton === true
+  const returnToHome = location.state?.returnToHome === true
 
   const [transactionDecodeError, setTransactionDecodeError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
@@ -45,6 +47,18 @@ function ApproveTransactionState (): React.JSX.Element {
   } = useSigningKeys({
     identity: currentIdentity
   })
+
+  // Set header config override based on navigation state
+  useEffect(() => {
+    if (showBackButton) {
+      setHeaderConfigOverride({ showBackButton: true })
+    }
+
+    // Clear header config override on unmount
+    return () => {
+      setHeaderConfigOverride(null)
+    }
+  }, [showBackButton, setHeaderConfigOverride])
 
   useEffect(() => {
     const checkWallet = async (): Promise<void> => {
@@ -295,7 +309,13 @@ function ApproveTransactionState (): React.JSX.Element {
         <div>
           <Button
             className='w-full'
-            onClick={() => window.close()}
+            onClick={() => {
+              if (returnToHome) {
+                void navigate('/')
+              } else {
+                window.close()
+              }
+            }}
             colorScheme='lightBlue'
           >
             Close
@@ -375,7 +395,7 @@ function ApproveTransactionState (): React.JSX.Element {
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <PublicKeySelect
             keys={signingKeys}
-            value={selectedSigningKey ?? ''}
+            value={selectedSigningKey}
             onChange={setSelectedSigningKey}
             loading={signingKeysLoading}
             error={signingKeysError}

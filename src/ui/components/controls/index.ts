@@ -1,3 +1,4 @@
+export { AssetSelectionMenu } from './AssetSelectionMenu'
 export { AutoSizingInput } from './AutoSizingInput'
 export { ConfirmDialog } from './ConfirmDialog'
 export { NetworkSelector } from './NetworkSelector'
