@@ -43,7 +43,7 @@ function IdentityRegistrationState (): React.JSX.Element {
     if (stage === 3) {
       const timer = setTimeout(() => {
         void navigate('/register-identity?stage=4')
-      }, 5000)
+      }, 50000)
 
       return () => clearTimeout(timer)
     }
@@ -171,24 +171,33 @@ function IdentityRegistrationState (): React.JSX.Element {
           </div>
         </div>
 
-        <div className='flex-1' />
-
-        <div className='flex flex-col gap-4'>
+        <div className='flex flex-col gap-4 mt-6'>
           {!showManualEntry ? (
             <Button
-              variant='outline'
-              colorScheme='brand'
+              colorScheme='lightBlue'
               className='w-full'
               onClick={() => setShowManualEntry(true)}
             >
               Enter Manually
             </Button>
           ) : (
-            <Input
-              placeholder='Enter transaction hash'
-              value={transactionHash}
-              onChange={(e) => setTransactionHash(e.target.value)}
-            />
+            <div className='flex flex-col gap-2'>
+              <Text dim>
+                Transaction Hash
+              </Text>
+              <Input
+                placeholder='Enter transaction hash'
+                value={transactionHash}
+                onChange={(e) => setTransactionHash(e.target.value)}
+              />
+              <Button
+                colorScheme='lightBlue'
+                className='w-full'
+                onClick={() => void navigate('/register-identity?stage=4')}
+              >
+                Confirm
+              </Button>
+            </div>
           )}
           <ProgressSteps currentStage={stage} />
         </div>
@@ -210,19 +219,17 @@ function IdentityRegistrationState (): React.JSX.Element {
         </div>
 
         <div className='relative z-10 flex flex-col h-full'>
-          <div>
-            <TitleBlock
-              title={<>We received your<br />payment</>}
-              description='Please kindly wait for all Identity registration transactions to be processed by the network. Usually, it takes less than 10 seconds.'
-              logoSize='3rem'
-              showLogo
-              containerClassName='mb-0'
-            />
-          </div>
+          <TitleBlock
+            title={<>We received your<br />payment</>}
+            description='Please kindly wait for all Identity registration transactions to be processed by the network. Usually, it takes less than 10 seconds.'
+            logoSize='3rem'
+            showLogo
+            containerClassName='mb-0'
+          />
 
           <div className='flex-1' />
 
-          <div className=''>
+          <div>
             <ProgressSteps currentStage={stage} />
           </div>
         </div>
