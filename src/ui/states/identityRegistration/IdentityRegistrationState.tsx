@@ -54,7 +54,7 @@ function IdentityRegistrationState (): React.JSX.Element {
     if (stage === 4) {
       const timer = setTimeout(() => {
         void navigate('/register-identity?stage=5')
-      }, 5000)
+      }, 100000)
 
       return () => clearTimeout(timer)
     }
@@ -208,15 +208,19 @@ function IdentityRegistrationState (): React.JSX.Element {
   // Stage 4: Payment received with animated coin
   if (stage === 4) {
     return (
-      <div className='flex flex-col h-full relative overflow-hidden'>
-        <div
-          className='absolute left-[30px] top-[362px] w-[552px] h-[513px] pointer-events-none'
-          style={{
-            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0) 15%, rgba(255, 255, 255, 1) 42%)'
-          }}
-        >
-          <img src={coinBagelImage} alt='' className='w-full h-full object-cover' />
+      <div className='flex flex-col h-full relative'>
+        <div className='absolute right-[-1rem] top-[100%] w-full h-[240px] overflow-hidden pointer-events-none translate-y-[-40%] translate-y-[-100%]'>
+          <img src={coinBagelImage} alt='' className='w-[552px] h-[513px] object-cover object-left' />
         </div>
+        <div
+          className='absolute h-[130px]'
+          style={{
+            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1) 85%)',
+            top: '100%',
+            width: 'calc(100% + 1rem)',
+            transform: 'translateY(calc(-100% + 0.875rem))'
+          }}
+        />
 
         <div className='relative z-10 flex flex-col h-full'>
           <TitleBlock
