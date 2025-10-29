@@ -1,15 +1,48 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Button, Text, Avatar, CopyButton, ChevronIcon, Input } from 'dash-ui-kit/react'
+import { Button, Text, CopyButton, Input } from 'dash-ui-kit/react'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { useStaticAsset } from '../../hooks/useStaticAsset'
 import { QRCodeSVG } from 'qrcode.react'
+import { IdentityPreview } from '../../components/Identities'
+import type { IdentityPreviewData } from '../../types'
 
 type Stage = 1 | 2 | 3 | 4 | 5
 
-const mockIdentity = {
+const mockIdentity: IdentityPreviewData = {
   id: 'EWNwtGEC1qAbgNgo2UgadmQhB9DaZtB942x8bXgJrPNS',
-  name: 'test.dash'
+  name: 'test.dash',
+  balance: '0.5',
+  publicKeys: [
+    {
+      keyId: 0,
+      purpose: 'AUTHENTICATION',
+      securityLevel: 'MASTER',
+      type: 'ECDSA_SECP256K1',
+      isAvailable: true
+    },
+    {
+      keyId: 1,
+      purpose: 'AUTHENTICATION',
+      securityLevel: 'CRITICAL',
+      type: 'ECDSA_SECP256K1',
+      isAvailable: true
+    },
+    {
+      keyId: 2,
+      purpose: 'AUTHENTICATION',
+      securityLevel: 'HIGH',
+      type: 'ECDSA_SECP256K1',
+      isAvailable: true
+    },
+    {
+      keyId: 3,
+      purpose: 'ENCRYPTION',
+      securityLevel: 'MEDIUM',
+      type: 'ECDSA_SECP256K1',
+      isAvailable: true
+    }
+  ]
 }
 
 const mockPaymentAddress = 'QMfCRPcjXoTnZa9sA9JR2KWgGGDFGDHJDGASFS'
@@ -30,7 +63,6 @@ const ProgressSteps: React.FC<{ currentStage: Stage }> = ({ currentStage }) => (
 function IdentityRegistrationState (): React.JSX.Element {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [showKeys, setShowKeys] = useState(false)
   const [showManualEntry, setShowManualEntry] = useState(false)
   const [transactionHash, setTransactionHash] = useState('')
   const coinBagelImage = useStaticAsset('coin_bagel.png')
@@ -54,7 +86,7 @@ function IdentityRegistrationState (): React.JSX.Element {
     if (stage === 4) {
       const timer = setTimeout(() => {
         void navigate('/register-identity?stage=5')
-      }, 100000)
+      }, 5000)
 
       return () => clearTimeout(timer)
     }
@@ -247,7 +279,7 @@ function IdentityRegistrationState (): React.JSX.Element {
     )
   }
 
-  // Stage 5: Success with identity card
+  // Stage 5: Success with identity preview
   return (
     <div className='flex flex-col h-full'>
       <TitleBlock
@@ -258,41 +290,13 @@ function IdentityRegistrationState (): React.JSX.Element {
         containerClassName='mb-0'
       />
 
-      <div className='mt-6 px-[15px]'>
-        <div className='bg-dash-primary-dark-blue/[0.05] rounded-2xl p-[10px_15px_18px] flex flex-col gap-6'>
-          <div className='flex items-center gap-3'>
-            <div className='w-[58.5px] h-[58.5px] rounded-[75px] overflow-hidden flex-shrink-0'>
-              <Avatar username={mockIdentity.id} />
-            </div>
-            <div className='flex flex-col gap-2 flex-1 min-w-0'>
-              <Text size='md' weight='medium' className='text-dash-primary-dark-blue'>
-                {mockIdentity.name}
-              </Text>
-              <Text className='text-xs leading-[1.366em] text-dash-primary-dark-blue break-all'>
-                {mockIdentity.id}
-              </Text>
-            </div>
-          </div>
-
-          <div className='flex flex-col gap-3'>
-            <button
-              onClick={() => setShowKeys(!showKeys)}
-              className='flex items-center justify-between w-full'
-            >
-              <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
-                4 Public Keys:
-              </Text>
-              <ChevronIcon
-                className={`w-4 h-4 transition-transform ${showKeys ? 'rotate-180' : ''}`}
-              />
-            </button>
-          </div>
-        </div>
+      <div className='mt-3 px-[15px]'>
+        <IdentityPreview identity={mockIdentity} />
       </div>
 
       <div className='flex-1' />
 
-      <div className='px-[15px] pb-[15px] flex flex-col gap-4'>
+      <div className='px-[15px] pb-[15px] flex flex-col gap-4 mt-8'>
         <Button
           colorScheme='brand'
           className='w-full'
