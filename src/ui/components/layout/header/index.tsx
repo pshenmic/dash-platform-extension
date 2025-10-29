@@ -197,7 +197,7 @@ export default function Header (): React.JSX.Element {
         showNetworkRightReadOnly: true,
         networkDisplayFormat: 'card',
         imageType: 'app',
-        imageClasses: '-mt-[10%] !w-[412px]',
+        imageClasses: '-mt-[20%] !w-[412px]',
         containerClasses: 'absolute top-0 right-0 -mr-[25%]'
       }
     }
