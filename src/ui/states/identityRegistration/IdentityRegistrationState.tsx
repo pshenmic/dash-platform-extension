@@ -76,7 +76,7 @@ function IdentityRegistrationState (): React.JSX.Element {
   if (stage === 1) {
     return (
       <div className='flex flex-col h-full'>
-        <div className='px-[15px] pt-[210px]'>
+        <div className='px-[15px] pt-[176px]'>
           <TitleBlock
             title='Identity Registration'
             description='Lets start the identity creation process. A small fee will be taken for the registration. To continue press next.'
@@ -114,8 +114,14 @@ function IdentityRegistrationState (): React.JSX.Element {
           containerClassName='mb-0'
         />
 
-        <div className='flex-1 flex items-center justify-center'>
+        <div className='flex-1 flex items-center justify-center relative'>
           <div className='w-[200px] h-[200px]'>
+            <img src={coinImage} alt='Dash coin' className='w-full h-full object-contain' />
+          </div>
+          <div className='absolute top-[10px] right-[24px] w-[100px] h-[100px] rotate-34'>
+            <img src={coinImage} alt='Dash coin' className='w-full h-full object-contain' />
+          </div>
+          <div className='absolute bottom-[34px] left-[24px] w-[100px] h-[100px] -rotate-31'>
             <img src={coinImage} alt='Dash coin' className='w-full h-full object-contain' />
           </div>
         </div>
