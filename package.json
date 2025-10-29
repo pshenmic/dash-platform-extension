@@ -26,6 +26,7 @@
     "dash-ui-kit": "^1.0.8",
     "eciesjs": "^0.4.15",
     "hash.js": "^1.1.7",
+    "qrcode.react": "^4.2.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router": "^7.4.1",
