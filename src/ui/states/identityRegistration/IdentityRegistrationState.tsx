@@ -108,7 +108,7 @@ function IdentityRegistrationState (): React.JSX.Element {
   if (stage === 1) {
     return (
       <div className='flex flex-col h-full'>
-        <div className='px-[15px] pt-[176px]'>
+        <div className='pt-[176px]'>
           <TitleBlock
             title='Identity Registration'
             description='Lets start the identity creation process. A small fee will be taken for the registration. To continue press next.'
@@ -184,7 +184,7 @@ function IdentityRegistrationState (): React.JSX.Element {
           containerClassName='mb-0'
         />
 
-        <div className='mt-6 px-[15px]'>
+        <div className='mt-6'>
           <div className='bg-dash-primary-dark-blue/[0.04] rounded-3xl p-6 flex gap-6 items-center'>
             <div className='flex-shrink-0'>
               <QRCodeSVG value='https://dash.org/' fgColor='#4C7EFF' bgColor='transparent' size={100}/>
@@ -290,13 +290,13 @@ function IdentityRegistrationState (): React.JSX.Element {
         containerClassName='mb-0'
       />
 
-      <div className='mt-3 px-[15px]'>
+      <div className='mt-3'>
         <IdentityPreview identity={mockIdentity} />
       </div>
 
       <div className='flex-1' />
 
-      <div className='px-[15px] pb-[15px] flex flex-col gap-4 mt-8'>
+      <div className='pb-[15px] flex flex-col gap-4 mt-8'>
         <Button
           colorScheme='brand'
           className='w-full'
