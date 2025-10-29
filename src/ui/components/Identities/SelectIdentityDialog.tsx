@@ -113,12 +113,11 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
               </div>
             ))}
           </div>
-
-          {currentWallet?.type === WalletType.keystore && (
-            <div className='px-6 pb-2'>
+          <div className='px-6 pb-2'>
+            {currentWallet?.type === WalletType.keystore && (
               <Button
                 variant='outline'
-                size='md'
+                size='xl'
                 className='w-full h-[3.625rem] gap-4'
                 onClick={() => {
                   setOpen(false)
@@ -126,10 +125,25 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                 }}
               >
                 <PlusIcon />
-                <div>Add an identity</div>
+                <div>Import identity</div>
               </Button>
+            )}
+
+            {currentWallet?.type === WalletType.seedphrase && (
+              <Button
+                variant='outline'
+                size='xl'
+                className='w-full h-[3.625rem] gap-4'
+                onClick={() => {
+                  setOpen(false)
+                  void navigate('/register-identity')
+                }}
+              >
+                <PlusIcon />
+                <div>Create identity</div>
+              </Button>
+            )}
             </div>
-          )}
         </div>
       </Dialog>
     </>
