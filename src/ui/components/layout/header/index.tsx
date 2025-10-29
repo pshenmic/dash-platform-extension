@@ -200,6 +200,12 @@ export default function Header (): React.JSX.Element {
         imageClasses: '-mt-[20%] !w-[412px]',
         containerClasses: 'absolute top-0 right-0 -mr-[25%]'
       }
+    } else {
+      variant = {
+        ...variant,
+        showNetworkRightReadOnly: true,
+        networkDisplayFormat: 'card',
+      }
     }
     // Stages 2-4: No image, just back button (default behavior)
   }
