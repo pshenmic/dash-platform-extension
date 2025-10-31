@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { UsernameInput } from '../../components/names'
-import { Text, Identifier, ValueCard } from 'dash-ui-kit/react'
+import { Text, Identifier } from 'dash-ui-kit/react'
 import type { LayoutContext } from '../../components/layout/Layout'
 import { useAsyncState, useSdk, usePlatformExplorerClient, useExtensionAPI, useSigningKeys } from '../../hooks'
 import { UsernameStep } from './UsernameStep'
 import { ConfirmationStep } from './ConfirmationStep'
-import type { KeyRequirement } from '../../components/keys'
+import { MissingRequiredKeyWarning, type KeyRequirement } from '../../components/keys'
 import { isKeyCompatible, creditsToDash } from '../../../utils'
 type Step = 1 | 2
 
@@ -209,26 +209,10 @@ const NameRegistrationState: React.FC = () => {
       {(currentStep === 1 && !signingKeysLoading && !hasCompatibleKeys)
         ? (
           <div className='flex-grow'>
-            <ValueCard colorScheme='yellow' size='xl' border={false} className='flex flex-col items-start gap-4'>
-              <Text size='md' weight='medium'>
-                Missing Required Key
-              </Text>
-              <div className='flex flex-col gap-2'>
-                {keyRequirements.map((req, index) => (
-                  <div key={index} className='flex items-center gap-2'>
-                    <ValueCard colorScheme='white' size='sm' className='px-2 py-1'>
-                      <Text size='sm'>{req.purpose}</Text>
-                    </ValueCard>
-                    <ValueCard colorScheme='white' size='sm' className='px-2 py-1'>
-                      <Text size='sm'>{req.securityLevel}</Text>
-                    </ValueCard>
-                  </div>
-                ))}
-              </div>
-              <Text size='sm' className='text-gray-600'>
-                You need to add a private key with the above requirements to register a username.
-              </Text>
-            </ValueCard>
+            <MissingRequiredKeyWarning
+              keyRequirements={keyRequirements}
+              description='You need to add a private key with the above requirements to register a username.'
+            />
           </div>
           )
         : (
