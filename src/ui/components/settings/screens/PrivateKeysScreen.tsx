@@ -47,13 +47,13 @@ const KeyActions: React.FC<{
   isExpanded: boolean
   isPrivateKeyVisible: boolean
 }> = ({
-        keyId,
-        onDelete,
-        onToggleShow,
-        showDelete,
-        isExpanded,
-        isPrivateKeyVisible
-      }) => (
+  keyId,
+  onDelete,
+  onToggleShow,
+  showDelete,
+  isExpanded,
+  isPrivateKeyVisible
+}) => (
   <div className='flex items-center gap-1'>
     <Button
       onClick={(e) => {
@@ -65,11 +65,13 @@ const KeyActions: React.FC<{
       className='!min-h-0 flex items-center justify-center p-1 rounded'
       aria-label={`${isPrivateKeyVisible ? 'Hide' : 'Show'} private key ${keyId}`}
     >
-      {isPrivateKeyVisible ? (
-        <EyeClosedIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
-      ) : (
-        <EyeOpenIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
-      )}
+      {isPrivateKeyVisible
+        ? (
+          <EyeClosedIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
+          )
+        : (
+          <EyeOpenIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
+          )}
     </Button>
     {showDelete && (
       <Button
@@ -101,15 +103,15 @@ const PublicKeyItem: React.FC<{
   isPrivateKeyVisible: boolean
   onTogglePrivateKeyVisibility: () => void
 }> = ({
-        publicKey,
-        onDelete,
-        showDelete,
-        isExpanded,
-        onToggleExpand,
-        privateKeyData,
-        isPrivateKeyVisible,
-        onTogglePrivateKeyVisibility
-      }) => (
+  publicKey,
+  onDelete,
+  showDelete,
+  isExpanded,
+  onToggleExpand,
+  privateKeyData,
+  isPrivateKeyVisible,
+  onTogglePrivateKeyVisibility
+}) => (
   <div className='bg-gray-100 rounded-2xl p-3'>
     <div
       className='flex items-center justify-between cursor-pointer'
@@ -181,7 +183,7 @@ const PublicKeyItem: React.FC<{
               <Identifier
                 middleEllipsis
                 edgeChars={5}
-                copyButton={true}
+                copyButton
               >
                 {publicKey.data}
               </Identifier>
@@ -195,7 +197,7 @@ const PublicKeyItem: React.FC<{
               <Identifier
                 middleEllipsis
                 edgeChars={5}
-                copyButton={true}
+                copyButton
               >
                 {publicKey.hash}
               </Identifier>
@@ -210,7 +212,7 @@ const PublicKeyItem: React.FC<{
                 <Identifier
                   middleEllipsis
                   edgeChars={5}
-                  copyButton={true}
+                  copyButton
                 >
                   {privateKeyData}
                 </Identifier>
@@ -305,8 +307,8 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
               securityLevel: getSecurityLabel(key.securityLevel),
               purpose: getPurposeLabel(key.purpose),
               hash: key.hash,
-              type: sdkKey?.keyType ? String(sdkKey.keyType) : 'Unknown',
-              data: sdkKey?.data ? String(sdkKey.data) : '',
+              type: (sdkKey?.keyType != null) ? String(sdkKey.keyType) : 'Unknown',
+              data: (sdkKey?.data != null) ? String(sdkKey.data) : '',
               readOnly: sdkKey?.readOnly ?? false
             }
           })
@@ -430,7 +432,12 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     onItemSelect?.('import-private-keys-settings')
   }
 
+  const handleCreateKey = (): void => {
+    onItemSelect?.('create-key-settings')
+  }
+
   const isKeystoreWallet = currentWallet?.type === WalletType.keystore
+  const isSeedPhraseWallet = currentWallet?.type === WalletType.seedphrase
   const shouldShowDelete = isKeystoreWallet && publicKeys.length > 1
 
   return (
@@ -513,17 +520,34 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         </div>
       )}
 
-      {/* Import Button - Only show for keystore wallets */}
-      {isKeystoreWallet && (
+      {/* Action Buttons */}
+      {(isKeystoreWallet || isSeedPhraseWallet) && (
         <div className='p-4 mt-auto'>
-          <button
-            onClick={handleImportPrivateKeys}
-            className='w-full bg-blue-50 hover:bg-blue-100 transition-colors rounded-2xl px-6 py-3'
-          >
-            <span className='text-base font-medium text-blue-600'>
-              Import Private Keys
-            </span>
-          </button>
+          <div className='flex gap-2'>
+            {/* Import Button - Only show for keystore wallets */}
+            {isKeystoreWallet && (
+              <button
+                onClick={handleImportPrivateKeys}
+                className='flex-1 bg-blue-600 hover:bg-blue-700 transition-colors rounded-2xl px-6 py-3'
+              >
+                <span className='text-base font-medium text-white'>
+                  Import Private Key
+                </span>
+              </button>
+            )}
+
+            {/* Create Key Button - Only show for seed phrase wallets */}
+            {isSeedPhraseWallet && (
+              <button
+                onClick={handleCreateKey}
+                className='flex-1 bg-blue-50 hover:bg-blue-100 transition-colors rounded-2xl px-6 py-3'
+              >
+                <span className='text-base font-medium text-blue-600'>
+                  Create New Key
+                </span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
