@@ -10,6 +10,7 @@ import { helpSupportScreenConfig } from './HelpSupportScreen'
 import { preferencesScreenConfig } from './PreferencesScreen'
 import { privateKeysScreenConfig } from './PrivateKeysScreen'
 import { importPrivateKeysScreenConfig } from './ImportPrivateKeysScreen'
+import { createKeyScreenConfig } from './CreateKeyScreen'
 
 export const screenConfigs: Record<string, ScreenConfig> = {
   main: mainScreenConfig,
@@ -18,6 +19,7 @@ export const screenConfigs: Record<string, ScreenConfig> = {
   'connected-websites': connectedWebsitesConfig,
   'private-keys': privateKeysScreenConfig,
   'import-private-keys-settings': importPrivateKeysScreenConfig,
+  'create-key-settings': createKeyScreenConfig,
   'security-privacy': securityPrivacyConfig,
   'help-support': helpSupportScreenConfig,
   'about-dash': aboutDashConfig
