@@ -87,6 +87,10 @@ export const PrivateKeyDialog: React.FC<PrivateKeyDialogProps> = ({
       open={isOpen} 
       onOpenChange={onOpenChange}
       className='w-[390px] max-w-[390px]'
+      showCloseButton={false}
+      position='bottom'
+      bottomOffset={20}
+      horizontalMargin={20}
     >
       <div className='flex flex-col gap-4'>
         {/* Key Info */}
