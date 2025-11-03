@@ -56,13 +56,7 @@ const KeyActions: React.FC<{
       className='!min-h-0 flex items-center justify-center p-1 rounded'
       aria-label={`${isPrivateKeyVisible ? 'Hide' : 'Show'} private key ${keyId}`}
     >
-      {isPrivateKeyVisible
-        ? (
-          <EyeClosedIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
-          )
-        : (
-          <EyeOpenIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
-          )}
+      <EyeOpenIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
     </Button>
     {showDelete && (
       <Button

@@ -99,9 +99,10 @@ export const PrivateKeyDialog: React.FC<PrivateKeyDialogProps> = ({
             colorScheme='lightGray'
             size='sm'
             className='flex items-center gap-3 p-3 rounded-xl'
+            border={false}
           >
             <InfoCircleIcon size={18} className='text-blue-500' />
-            <Text size='sm' monospace weight='500'>
+            <Text size='sm' monospace weight='medium'>
               {publicKey.data.slice(0, 5)}...{publicKey.data.slice(-5)}
             </Text>
           </ValueCard>
@@ -110,8 +111,9 @@ export const PrivateKeyDialog: React.FC<PrivateKeyDialogProps> = ({
             colorScheme='lightGray'
             size='sm'
             className='flex items-center p-3 rounded-xl'
+            border={false}
           >
-            <Text size='sm' monospace weight='500'>
+            <Text size='sm' monospace weight='medium'>
               {publicKey.purpose}
             </Text>
           </ValueCard>
@@ -173,7 +175,7 @@ export const PrivateKeyDialog: React.FC<PrivateKeyDialogProps> = ({
                  <div className='flex items-center justify-between gap-6'>
                    <Text
                      size='sm'
-                     weight='500'
+                     weight='medium'
                      className='break-all flex-1'
                      monospace
                    >
