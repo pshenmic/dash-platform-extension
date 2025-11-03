@@ -8,7 +8,6 @@ import {
   ValueCard,
   Identifier,
   EyeOpenIcon,
-  EyeClosedIcon,
   ChevronIcon
 } from 'dash-ui-kit/react'
 import { useExtensionAPI, useSigningKeys, useSdk } from '../../../hooks'
@@ -225,7 +224,7 @@ const PublicKeyItem: React.FC<{
               onDelete(publicKey.keyId)
             }}
             variant='solid'
-            colorScheme='brand'
+            colorScheme='red'
             size='md'
             className='w-full'
           >
