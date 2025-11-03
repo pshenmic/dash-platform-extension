@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { base64 } from '@scure/base'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import {
   KeyIcon,
@@ -14,7 +16,7 @@ import { useExtensionAPI, useSigningKeys, useSdk } from '../../../hooks'
 import { getPurposeLabel, getSecurityLabel } from '../../../../enums'
 import { WalletType } from '../../../../types'
 import { ConfirmDialog } from '../../controls'
-import { PrivateKeyDialog, type PublicKey } from '../../keys'
+import { PrivateKeyDialog, DisableKeyDialog, type PublicKey } from '../../keys'
 
 const Badge: React.FC<{ text: string }> = ({ text }) => (
   <ValueCard
@@ -80,6 +82,7 @@ const KeyActions: React.FC<{
 const PublicKeyItem: React.FC<{
   publicKey: PublicKey
   onDelete: (id: number) => void
+  onDisable: (id: number) => void
   showDelete: boolean
   isExpanded: boolean
   onToggleExpand: () => void
@@ -89,6 +92,7 @@ const PublicKeyItem: React.FC<{
 }> = ({
   publicKey,
   onDelete,
+  onDisable,
   showDelete,
   isExpanded,
   onToggleExpand,
@@ -221,7 +225,7 @@ const PublicKeyItem: React.FC<{
           <Button
             onClick={(e) => {
               e.stopPropagation()
-              onDelete(publicKey.keyId)
+              onDisable(publicKey.keyId)
             }}
             variant='solid'
             colorScheme='red'
@@ -247,6 +251,7 @@ export const privateKeysScreenConfig: ScreenConfig = {
 export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, currentWallet, onItemSelect }) => {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
+  const navigate = useNavigate()
 
   const [keyToDelete, setKeyToDelete] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -256,11 +261,16 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   const [publicKeys, setPublicKeys] = useState<PublicKey[]>([])
   const [detailsLoading, setDetailsLoading] = useState(false)
   
-  // Dialog state
+  // Private Key Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedKeyForDialog, setSelectedKeyForDialog] = useState<number | null>(null)
   const [dialogLoading, setDialogLoading] = useState(false)
   const [dialogError, setDialogError] = useState<string | null>(null)
+  
+  // Disable Key Dialog state
+  const [disableKeyDialogOpen, setDisableKeyDialogOpen] = useState(false)
+  const [keyToDisable, setKeyToDisable] = useState<number | null>(null)
+  const [disableKeyLoading, setDisableKeyLoading] = useState(false)
 
   const {
     signingKeys,
@@ -418,6 +428,76 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     }
   }
 
+  const handleDisablePublicKey = async (): Promise<void> => {
+    if (currentIdentity == null || keyToDisable == null) {
+      console.log('No identity or key selected for disabling')
+      return
+    }
+
+    try {
+      setDisableKeyLoading(true)
+
+      // Get the current identity from the network
+      const identity = await sdk.identities.getIdentityByIdentifier(currentIdentity)
+      
+      // Get the current identity nonce
+      const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
+      
+      // Get the current revision from the identity
+      const revision = BigInt(identity.revision)
+
+      console.log('Identity info:', {
+        id: currentIdentity,
+        nonce: identityNonce.toString(),
+        revision: revision.toString(),
+        keyIdToDisable: keyToDisable
+      })
+
+      // Create state transition to disable the public key
+      const stateTransition = sdk.identities.createStateTransition('update', {
+        identityId: currentIdentity,
+        disablePublicKeyIds: [keyToDisable],
+        addPublicKeys: [],
+        identityNonce,
+        revision
+      })
+
+      console.log('State transition created:', stateTransition)
+
+      // Serialize state transition to base64
+      const stateTransitionBytes = stateTransition.bytes()
+      const stateTransitionBase64 = base64.encode(stateTransitionBytes)
+
+      // Save state transition to storage
+      const response = await extensionAPI.createStateTransition(stateTransitionBase64)
+
+      console.log('State transition saved:', response.stateTransition)
+
+      // Close dialog
+      setDisableKeyDialogOpen(false)
+      setKeyToDisable(null)
+
+      // Redirect to approval page with returnToHome flag
+      navigate(`/approve/${response.stateTransition.hash}`, {
+        state: {
+          returnToHome: true
+        }
+      })
+    } catch (error) {
+      console.error('Failed to disable public key:', error)
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setError(`Failed to disable public key: ${errorMessage}`)
+    } finally {
+      setDisableKeyLoading(false)
+    }
+  }
+
+  const handleOpenDisableDialog = (keyId: number): void => {
+    setKeyToDisable(keyId)
+    setDisableKeyDialogOpen(true)
+  }
+
   const handleImportPrivateKeys = (): void => {
     onItemSelect?.('import-private-keys-settings')
   }
@@ -490,6 +570,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
               key={`${publicKey.keyId}-${publicKey.hash}`}
               publicKey={publicKey}
               onDelete={handleDeleteKey}
+              onDisable={handleOpenDisableDialog}
               showDelete={shouldShowDelete}
               isExpanded={expandedKeyId === publicKey.keyId}
               onToggleExpand={() => handleToggleExpand(publicKey.keyId)}
@@ -565,6 +646,20 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         confirmText='Delete'
         cancelText='Cancel'
         onConfirm={() => { void confirmDeleteKey().catch(error => console.error('Delete key error:', error)) }}
+      />
+
+      {/* Disable Key Dialog */}
+      <DisableKeyDialog
+        isOpen={disableKeyDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDisableKeyDialogOpen(false)
+            setKeyToDisable(null)
+          }
+        }}
+        publicKey={keyToDisable != null ? publicKeys.find(k => k.keyId === keyToDisable) ?? null : null}
+        onConfirm={() => { void handleDisablePublicKey() }}
+        isLoading={disableKeyLoading}
       />
     </div>
   )
