@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Text, Button, ValueCard, Identifier } from 'dash-ui-kit/react'
+import { useNavigate } from 'react-router-dom'
+import { base64 } from '@scure/base'
+import { Text, Button, ValueCard, Identifier, Input } from 'dash-ui-kit/react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { WalletType } from '../../../../types'
+import { useExtensionAPI, useSdk } from '../../../hooks'
+import { PrivateKeyWASM } from 'pshenmic-dpp'
+import { hexToBytes } from '../../../../utils'
 
 export const createKeyScreenConfig: ScreenConfig = {
   id: 'create-key-settings',
@@ -81,12 +86,18 @@ const SelectField: React.FC<SelectFieldProps> = ({ label, options, selectedValue
 export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   currentIdentity,
   currentWallet,
-  onBack
+  onBack,
+  onClose
 }) => {
+  const navigate = useNavigate()
+  const extensionAPI = useExtensionAPI()
+  const sdk = useSdk()
+  
   const [keyType, setKeyType] = useState<number>(0)
   const [purpose, setPurpose] = useState<number>(0)
   const [securityLevel, setSecurityLevel] = useState<number>(2)
   const [readOnly, setReadOnly] = useState<boolean>(false)
+  const [password, setPassword] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -107,8 +118,14 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       return
     }
 
-    if (currentWallet?.type !== WalletType.seedphrase) {
-      setError('Key creation is only available for seed phrase wallets')
+    if (currentWallet == null) {
+      setError('No wallet selected')
+      return
+    }
+
+    // For seed phrase wallets, password is required
+    if (currentWallet.type === WalletType.seedphrase && password.trim() === '') {
+      setError('Password is required for seed phrase wallets')
       return
     }
 
@@ -116,46 +133,117 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       setIsCreating(true)
       setError(null)
 
-      // TODO: Implement key creation via state transition
-      // This will require creating an IdentityUpdate state transition
-      // with the new public key
       console.log('Creating key with parameters:', {
         identity: currentIdentity,
         keyType,
         purpose,
         securityLevel,
-        readOnly
+        readOnly,
+        network: currentWallet.network,
+        walletType: currentWallet.type
       })
 
-      // Placeholder error for now
-      throw new Error('Key creation is not yet implemented. This feature requires creating an Identity Update state transition on the Dash Platform.')
+      // Step 1: Generate/derive private key using the handler
+      // This will either derive from seed phrase (with password) or generate random (keystore)
+      const { privateKey: privateKeyHex, walletType } = await extensionAPI.createIdentityKey(
+        currentIdentity,
+        password
+      )
+
+      console.log('Private key created for wallet type:', walletType)
+
+      // Step 2: Get the public key data
+      const privateKeyWASM = PrivateKeyWASM.fromHex(privateKeyHex, currentWallet.network)
+      const publicKeyBytes = privateKeyWASM.getPublicKey().bytes() // 33 bytes compressed
+      const publicKeyHashHex = privateKeyWASM.getPublicKeyHash() // 20 bytes hash as hex string
+      const publicKeyHashBytes = hexToBytes(publicKeyHashHex) // Convert to Uint8Array
+
+      // Step 3: Get identity data from network
+      const identity = await sdk.identities.getIdentityByIdentifier(currentIdentity)
+      const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
+      
+      // Get next revision
+      const currentRevision = BigInt(identity.revision)
+      const nextRevision = currentRevision + BigInt(1)
+
+      // Get current keys to determine next key ID
+      const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
+      const maxKeyId = identityPublicKeys.reduce((max: number, key: any) => 
+        Math.max(max, key.keyId ?? 0), -1)
+      const nextKeyId = maxKeyId + 1
+
+      console.log('Next key ID will be:', nextKeyId)
+      console.log('Public key bytes (33):', Array.from(publicKeyBytes))
+      console.log('Public key hash bytes (20):', Array.from(publicKeyHashBytes))
+
+      // Step 4: Create public key structure for adding
+      // Use public key hash (20 bytes) as data
+      const publicKeyToAdd = {
+        id: nextKeyId,
+        keyType,       // 0 for ECDSA_SECP256K1
+        purpose,       // 0 for AUTHENTICATION
+        securityLevel, // 2 for HIGH
+        data: publicKeyHashBytes, // 20 bytes public key hash
+        readOnly
+      }
+
+      console.log('Public key to add:', {
+        ...publicKeyToAdd,
+        data: Array.from(publicKeyHashBytes)
+      })
+
+      // Step 5: Create state transition
+      const stateTransition = sdk.identities.createStateTransition('update', {
+        identityId: currentIdentity,
+        disablePublicKeyIds: [],
+        addPublicKeys: [publicKeyToAdd],
+        identityNonce: identityNonce + 1n,
+        revision: nextRevision
+      })
+
+      console.log('State transition created:', stateTransition)
+      console.log('State transition type:', typeof stateTransition)
+      console.log('State transition addPublicKeys:', (stateTransition as any).addPublicKeys)
+
+      // Step 6: Serialize state transition to base64
+      const stateTransitionBytes = stateTransition.bytes()
+      const stateTransitionBase64 = base64.encode(stateTransitionBytes)
+
+      // Step 7: Save state transition to storage
+      // Note: For keystore wallets, the private key should be saved/imported manually
+      // For seedphrase wallets, keys are derived automatically when needed
+      const response = await extensionAPI.createStateTransition(stateTransitionBase64)
+
+      console.log('State transition saved:', response.stateTransition)
+      
+      // For keystore wallets, log the private key for manual import
+      if (currentWallet.type === WalletType.keystore) {
+        console.warn('⚠️ IMPORTANT: Save this private key for manual import after transaction confirmation:')
+        console.warn('Private Key:', privateKeyHex)
+      }
+
+      // Step 8: Close settings menu
+      if (onClose != null) {
+        onClose()
+      }
+
+      // Step 9: Navigate to approval page
+      navigate(`/approve/${response.stateTransition.hash}`, {
+        state: {
+          returnToHome: true
+        }
+      })
     } catch (e) {
+      console.error('Failed to create key:', e)
       const errorMessage = e instanceof Error ? e.message : String(e)
-      setError(errorMessage)
+      setError(`Failed to create key: ${errorMessage}`)
     } finally {
       setIsCreating(false)
     }
   }
 
+
   const isSeedPhraseWallet = currentWallet?.type === WalletType.seedphrase
-
-  if (!isSeedPhraseWallet) {
-    return (
-      <div className='flex flex-col h-full px-4'>
-        <div className='mb-6'>
-          <Text size='sm' dim>
-            Key creation is only available for seed phrase wallets.
-          </Text>
-        </div>
-
-        <ValueCard colorScheme='yellow' size='xl'>
-          <Text size='md' color='red'>
-            This feature is only available for wallets created with a seed phrase. Keystore wallets can only import existing private keys.
-          </Text>
-        </ValueCard>
-      </div>
-    )
-  }
 
   return (
     <div className='flex flex-col h-full'>
@@ -177,8 +265,38 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         )}
       </div>
 
+      {/* Info for seed phrase wallets */}
+      {isSeedPhraseWallet && (
+        <div className='px-4 mb-4'>
+          <ValueCard colorScheme='lightBlue' className='border-l-4 border-blue-500'>
+            <Text size='sm' weight='medium' className='!text-blue-700 mb-2'>
+              ℹ️ Seed Phrase Wallet
+            </Text>
+            <Text size='sm' dim>
+              The key will be derived from your seed phrase using the proper derivation path. You'll need to enter your password to unlock the seed phrase.
+            </Text>
+          </ValueCard>
+        </div>
+      )}
+
       {/* Form Fields */}
       <div className='flex-1 px-4 space-y-6 overflow-y-auto'>
+        {/* Password field for seed phrase wallets */}
+        {isSeedPhraseWallet && (
+          <div className='flex flex-col gap-3'>
+            <Text size='sm' dim>
+              Password *
+            </Text>
+            <Input
+              type='password'
+              placeholder='Enter your wallet password'
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className='w-full'
+            />
+          </div>
+        )}
+
         <SelectField
           label='Type'
           options={KEY_TYPES}
@@ -250,7 +368,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         <Button
           colorScheme='brand'
           variant='outline'
-          disabled={isCreating || currentIdentity == null}
+          disabled={isCreating || currentIdentity == null || (isSeedPhraseWallet && password.trim() === '')}
           className='w-full'
           onClick={() => {
             handleCreateKey().catch(e => console.error('Create key error:', e))

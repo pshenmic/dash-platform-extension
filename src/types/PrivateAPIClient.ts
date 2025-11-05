@@ -43,8 +43,10 @@ import { ExportPrivateKeyPayload } from './messages/payloads/ExportPrivateKeyPay
 import { ExportPrivateKeyResponse } from './messages/response/ExportPrivateKeyResponse'
 import { RegisterUsernamePayload } from './messages/payloads/RegisterUsernamePayload'
 import { ImportMasternodeIdentityPayload } from './messages/payloads/ImportMasternodeIdentityPayload'
-import { CreateStateTransitionPayload } from './messages/payloads/CreateStateTransitionPayload'
+import { RequestStateTransitionApprovalPayload } from './messages/payloads/RequestStateTransitionApprovalPayload'
 import { CreateStateTransitionResponse } from './messages/response/CreateStateTransitionResponse'
+import { CreateIdentityKeyPayload } from './messages/payloads/CreateIdentityKeyPayload'
+import { CreateIdentityKeyResponse } from './messages/response/CreateIdentityKeyResponse'
 
 export class PrivateAPIClient {
   constructor () {
@@ -274,11 +276,20 @@ export class PrivateAPIClient {
   }
 
   async createStateTransition (base64: string): Promise<CreateStateTransitionResponse> {
-    const payload: CreateStateTransitionPayload = {
+    const payload: RequestStateTransitionApprovalPayload = {
       base64
     }
 
     return await this._rpcCall(MessagingMethods.CREATE_STATE_TRANSITION, payload)
+  }
+
+  async createIdentityKey (identity: string, password: string): Promise<CreateIdentityKeyResponse> {
+    const payload: CreateIdentityKeyPayload = {
+      identity,
+      password
+    }
+
+    return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_KEY, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {

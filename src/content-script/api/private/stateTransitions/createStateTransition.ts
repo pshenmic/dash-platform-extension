@@ -4,7 +4,6 @@ import { APIHandler } from '../../APIHandler'
 import { RequestStateTransitionApprovalPayload } from '../../../../types/messages/payloads/RequestStateTransitionApprovalPayload'
 import { base64 } from '@scure/base'
 import { CreateStateTransitionResponse } from '../../../../types/messages/response/CreateStateTransitionResponse'
-import { CreateStateTransitionPayload } from '../../../../types/messages/payloads/CreateStateTransitionPayload'
 import { EventData } from '../../../../types'
 
 export class CreateStateTransitionHandler implements APIHandler {
@@ -30,7 +29,7 @@ export class CreateStateTransitionHandler implements APIHandler {
     }
   }
 
-  validatePayload (payload: CreateStateTransitionPayload): null | string {
+  validatePayload (payload: RequestStateTransitionApprovalPayload): null | string {
     if (typeof payload.base64 !== 'string') {
       return 'State transition base64 is not string'
     }

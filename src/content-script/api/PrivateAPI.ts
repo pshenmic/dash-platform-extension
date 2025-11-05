@@ -35,6 +35,7 @@ import { ExportPrivateKeyHandler } from './private/identities/exportPrivateKey'
 import { RegisterUsernameHandler } from './private/identities/registerUsername'
 import { ImportMasternodeIdentityHandler } from './private/identities/importMasternodeIdentity'
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
+import { CreateIdentityKeyHandler } from './private/identities/createIdentityKey'
 
 /**
  * Handlers for a messages within extension context
@@ -104,7 +105,8 @@ export class PrivateAPI {
       [MessagingMethods.APPROVE_APP_CONNECT]: new ApproveAppConnectHandler(appConnectRepository, this.storageAdapter),
       [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter),
       [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
-      [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository)
+      [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
+      [MessagingMethods.CREATE_IDENTITY_KEY]: new CreateIdentityKeyHandler(walletRepository, identitiesRepository, this.storageAdapter, this.sdk)
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {
