@@ -2,4 +2,3 @@ export { PublicKeySelect, type PublicKeyInfo, type KeyRequirement } from './Publ
 export { PrivateKeyInput, type PrivateKeyInputData } from './PrivateKeyInput'
 export { PrivateKeyDialog, type PrivateKeyDialogProps, type PublicKey } from './PrivateKeyDialog'
 export { DisableKeyDialog, type DisableKeyDialogProps } from './DisableKeyDialog'
-export { EnableKeyDialog, type EnableKeyDialogProps } from './EnableKeyDialog'
