@@ -16,6 +16,7 @@ export interface PublicKey {
   type: string
   data: string
   readOnly: boolean
+  disabledAt?: number | null
 }
 
 export interface DisableKeyDialogProps {

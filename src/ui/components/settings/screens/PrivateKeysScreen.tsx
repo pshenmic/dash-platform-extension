@@ -16,7 +16,7 @@ import { useExtensionAPI, useSigningKeys, useSdk } from '../../../hooks'
 import { getPurposeLabel, getSecurityLabel } from '../../../../enums'
 import { WalletType } from '../../../../types'
 import { ConfirmDialog } from '../../controls'
-import { PrivateKeyDialog, DisableKeyDialog, type PublicKey } from '../../keys'
+import { PrivateKeyDialog, DisableKeyDialog, EnableKeyDialog, type PublicKey } from '../../keys'
 
 const Badge: React.FC<{ text: string }> = ({ text }) => (
   <ValueCard
@@ -83,6 +83,7 @@ const PublicKeyItem: React.FC<{
   publicKey: PublicKey
   onDelete: (id: number) => void
   onDisable: (id: number) => void
+  onEnable: (id: number) => void
   showDelete: boolean
   isExpanded: boolean
   onToggleExpand: () => void
@@ -93,13 +94,17 @@ const PublicKeyItem: React.FC<{
   publicKey,
   onDelete,
   onDisable,
+  onEnable,
   showDelete,
   isExpanded,
   onToggleExpand,
   privateKeyData,
   isPrivateKeyVisible,
   onTogglePrivateKeyVisibility
-}) => (
+}) => {
+  const isDisabled = publicKey.disabledAt != null
+
+  return (
   <div className='bg-gray-100 rounded-2xl p-3'>
     <div
       className='flex items-center justify-between cursor-pointer'
@@ -114,15 +119,22 @@ const PublicKeyItem: React.FC<{
       }}
     >
       <div className='flex items-center flex-wrap gap-2 flex-1 w-full'>
-        <div className='flex items-center justify-center w-5 h-5 bg-gray-100 rounded-full'>
-          <KeyIcon size={10} className='text-gray-700' />
+        <div className={`flex items-center justify-center w-5 h-5 rounded-full ${isDisabled ? 'bg-red-100' : 'bg-gray-100'}`}>
+          <KeyIcon size={10} className={isDisabled ? 'text-red-600' : 'text-gray-700'} />
         </div>
 
-        <Text size='sm' weight='medium' className='text-gray-900'>
+        <Text size='sm' weight='medium' className={isDisabled ? 'text-red-600' : 'text-gray-900'}>
           Key ID: {publicKey.keyId}
         </Text>
 
         <div className='flex items-center gap-2'>
+          {isDisabled && (
+            <ValueCard colorScheme='red' size='sm' className='p-2' border={false}>
+              <Text monospace weight='medium' className='!text-[0.75rem] !text-red-600'>
+                DISABLED
+              </Text>
+            </ValueCard>
+          )}
           <Badge text={publicKey.securityLevel} />
           <Badge text={publicKey.purpose} />
         </div>
@@ -220,25 +232,41 @@ const PublicKeyItem: React.FC<{
           </div>
         </ValueCard>
 
-        {/* Disable Public Key Button */}
+        {/* Disable/Enable Public Key Button */}
         <div className='mt-3'>
-          <Button
-            onClick={(e) => {
-              e.stopPropagation()
-              onDisable(publicKey.keyId)
-            }}
-            variant='solid'
-            colorScheme='red'
-            size='md'
-            className='w-full'
-          >
-            Disable Public Key
-          </Button>
+          {isDisabled ? (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation()
+                onEnable(publicKey.keyId)
+              }}
+              variant='solid'
+              colorScheme='mint'
+              size='md'
+              className='w-full'
+            >
+              Enable Public Key
+            </Button>
+          ) : (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation()
+                onDisable(publicKey.keyId)
+              }}
+              variant='solid'
+              colorScheme='red'
+              size='md'
+              className='w-full'
+            >
+              Disable Public Key
+            </Button>
+          )}
         </div>
       </div>
     )}
   </div>
-)
+  )
+}
 
 // Public Keys screen configuration
 export const privateKeysScreenConfig: ScreenConfig = {
@@ -271,6 +299,11 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   const [disableKeyDialogOpen, setDisableKeyDialogOpen] = useState(false)
   const [keyToDisable, setKeyToDisable] = useState<number | null>(null)
   const [disableKeyLoading, setDisableKeyLoading] = useState(false)
+  
+  // Enable Key Dialog state
+  const [enableKeyDialogOpen, setEnableKeyDialogOpen] = useState(false)
+  const [keyToEnable, setKeyToEnable] = useState<number | null>(null)
+  const [enableKeyLoading, setEnableKeyLoading] = useState(false)
 
   const {
     signingKeys,
@@ -309,7 +342,8 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
               hash: key.hash,
               type: (sdkKey?.keyType != null) ? String(sdkKey.keyType) : 'Unknown',
               data: (sdkKey?.data != null) ? String(sdkKey.data) : '',
-              readOnly: sdkKey?.readOnly ?? false
+              readOnly: sdkKey?.readOnly ?? false,
+              disabledAt: sdkKey?.disabledAt != null ? Number(sdkKey.disabledAt) : null
             }
           })
 
@@ -507,6 +541,108 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     setDisableKeyDialogOpen(true)
   }
 
+  const handleOpenEnableDialog = (keyId: number): void => {
+    setKeyToEnable(keyId)
+    setEnableKeyDialogOpen(true)
+  }
+
+  const handleEnablePublicKey = async (): Promise<void> => {
+    if (currentIdentity == null || keyToEnable == null) {
+      console.log('No identity or key selected for enabling')
+      return
+    }
+
+    try {
+      setEnableKeyLoading(true)
+
+      // Get the current identity from the network
+      const identity = await sdk.identities.getIdentityByIdentifier(currentIdentity)
+      
+      // Get the current identity nonce
+      const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
+      
+      // Get the next revision from the identity (current + 1)
+      const currentRevision = BigInt(identity.revision)
+      const nextRevision = currentRevision + BigInt(1)
+
+      // Create state transition to re-enable the public key
+      // Find any active key to use for creating valid state transition
+      const allKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
+      const activeKey = allKeys.find((pk: any) => {
+        const pkId = pk?.keyId ?? null
+        const disabled = pk?.disabledAt ?? null
+        return pkId !== keyToEnable && disabled == null && pkId != null
+      })
+
+      if (activeKey == null) {
+        throw new Error('No active keys found to create state transition')
+      }
+
+      const activeKeyId = activeKey?.keyId ?? 0
+
+      // Create state transition with dummy disable to make it valid
+      const stateTransition: any = sdk.identities.createStateTransition('update', {
+        identityId: currentIdentity,
+        disablePublicKeyIds: [activeKeyId],
+        addPublicKeys: [],
+        identityNonce: identityNonce + 1n,
+        revision: nextRevision
+      })
+
+      // Now manually modify publicKeysDisabledAt:
+      // - Remove the dummy disable by deleting the active key
+      // - Set the target key to null to re-enable it
+      if (stateTransition.publicKeysDisabledAt != null) {
+        delete stateTransition.publicKeysDisabledAt[activeKeyId]
+        stateTransition.publicKeysDisabledAt[keyToEnable] = null
+      }
+
+      console.log('State transition created for re-enabling key:', stateTransition)
+
+      // Serialize state transition to base64
+      const stateTransitionBytes = stateTransition.bytes()
+      const stateTransitionBase64 = base64.encode(stateTransitionBytes)
+
+      // Save state transition to storage
+      const response = await extensionAPI.createStateTransition(stateTransitionBase64)
+
+      console.log('State transition saved:', response.stateTransition)
+
+      // Close dialog
+      setEnableKeyDialogOpen(false)
+      setKeyToEnable(null)
+
+      // Redirect to approval page with returnToHome flag
+      navigate(`/approve/${response.stateTransition.hash}`, {
+        state: {
+          returnToHome: true
+        }
+      })
+
+      // Close settings menu
+      onClose()
+    } catch (error) {
+      console.error('Failed to enable public key:', error)
+
+      // Keep dialog open on error so user can try again
+      setEnableKeyDialogOpen(false)
+      setKeyToEnable(null)
+
+      let errorMessage = 'Unknown error occurred'
+      if (error instanceof Error) {
+        errorMessage = error.message
+        // Try to extract more readable error from RPC errors
+        if (errorMessage.includes('RpcError') || errorMessage.includes('serializedError')) {
+          errorMessage = 'Network error: Unable to broadcast transaction. Please check your identity state and try again.'
+        }
+      }
+      
+      setError(`Failed to create enable key transaction: ${errorMessage}`)
+    } finally {
+      setEnableKeyLoading(false)
+    }
+  }
+
   const handleImportPrivateKeys = (): void => {
     onItemSelect?.('import-private-keys-settings')
   }
@@ -580,6 +716,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
               publicKey={publicKey}
               onDelete={handleDeleteKey}
               onDisable={handleOpenDisableDialog}
+              onEnable={handleOpenEnableDialog}
               showDelete={shouldShowDelete}
               isExpanded={expandedKeyId === publicKey.keyId}
               onToggleExpand={() => handleToggleExpand(publicKey.keyId)}
@@ -669,6 +806,20 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         publicKey={keyToDisable != null ? publicKeys.find(k => k.keyId === keyToDisable) ?? null : null}
         onConfirm={() => { void handleDisablePublicKey() }}
         isLoading={disableKeyLoading}
+      />
+
+      {/* Enable Key Dialog */}
+      <EnableKeyDialog
+        isOpen={enableKeyDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEnableKeyDialogOpen(false)
+            setKeyToEnable(null)
+          }
+        }}
+        publicKey={keyToEnable != null ? publicKeys.find(k => k.keyId === keyToEnable) ?? null : null}
+        onConfirm={() => { void handleEnablePublicKey() }}
+        isLoading={enableKeyLoading}
       />
     </div>
   )
