@@ -248,7 +248,7 @@ export const privateKeysScreenConfig: ScreenConfig = {
   content: []
 }
 
-export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, currentWallet, onItemSelect }) => {
+export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdentity, currentWallet, onItemSelect, onClose }) => {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const navigate = useNavigate()
@@ -443,23 +443,17 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       // Get the current identity nonce
       const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
       
-      // Get the current revision from the identity
-      const revision = BigInt(identity.revision)
-
-      console.log('Identity info:', {
-        id: currentIdentity,
-        nonce: identityNonce.toString(),
-        revision: revision.toString(),
-        keyIdToDisable: keyToDisable
-      })
+      // Get the next revision from the identity (current + 1)
+      const currentRevision = BigInt(identity.revision)
+      const nextRevision = currentRevision + BigInt(1)
 
       // Create state transition to disable the public key
       const stateTransition = sdk.identities.createStateTransition('update', {
         identityId: currentIdentity,
         disablePublicKeyIds: [keyToDisable],
         addPublicKeys: [],
-        identityNonce,
-        revision
+        identityNonce: identityNonce + 1n,
+        revision: nextRevision
       })
 
       console.log('State transition created:', stateTransition)
@@ -483,11 +477,26 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
           returnToHome: true
         }
       })
+
+      // Close settings menu
+      onClose()
     } catch (error) {
       console.error('Failed to disable public key:', error)
 
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      setError(`Failed to disable public key: ${errorMessage}`)
+      // Keep dialog open on error so user can try again
+      setDisableKeyDialogOpen(false)
+      setKeyToDisable(null)
+
+      let errorMessage = 'Unknown error occurred'
+      if (error instanceof Error) {
+        errorMessage = error.message
+        // Try to extract more readable error from RPC errors
+        if (errorMessage.includes('RpcError') || errorMessage.includes('serializedError')) {
+          errorMessage = 'Network error: Unable to broadcast transaction. Please check your identity state and try again.'
+        }
+      }
+      
+      setError(`Failed to create disable key transaction: ${errorMessage}`)
     } finally {
       setDisableKeyLoading(false)
     }
