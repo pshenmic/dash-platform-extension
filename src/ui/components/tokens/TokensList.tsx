@@ -15,12 +15,6 @@ interface TokensListProps {
   currentNetwork: NetworkType
 }
 
-interface MenuState {
-  isOpen: boolean
-  tokenId: string | null
-  position: { top: number, right: number } | null
-}
-
 function TokensList ({
   tokens,
   loading,
@@ -28,11 +22,7 @@ function TokensList ({
   currentNetwork
 }: TokensListProps): React.JSX.Element {
   const navigate = useNavigate()
-  const [menuState, setMenuState] = useState<MenuState>({
-    isOpen: false,
-    tokenId: null,
-    position: null
-  })
+  const [openMenuTokenId, setOpenMenuTokenId] = useState<string | null>(null)
 
   const getTokenInitials = (token: TokenData): string => {
     const singularName = getTokenName(token.localizations, 'singularForm')
@@ -52,51 +42,36 @@ function TokensList ({
     return `${explorerBaseUrl}/token/${tokenIdentifier}`
   }
 
-  const handleTokenClick = useCallback((event: React.MouseEvent<HTMLDivElement>, tokenId: string) => {
-    const target = event.currentTarget
-    const rect = target.getBoundingClientRect()
-
-    setMenuState({
-      isOpen: true,
-      tokenId,
-      position: {
-        top: rect.top + rect.height / 2,
-        right: rect.right + 8
-      }
-    })
+  const handleTokenClick = useCallback((e: React.MouseEvent<HTMLDivElement>, tokenId: string) => {
+    e.stopPropagation()
+    setOpenMenuTokenId(prevId => prevId === tokenId ? null : tokenId)
   }, [])
 
   const handleCloseMenu = useCallback(() => {
-    setMenuState({
-      isOpen: false,
-      tokenId: null,
-      position: null
-    })
+    setOpenMenuTokenId(null)
   }, [])
 
-  const selectedToken = tokens.find(token => token.identifier === menuState.tokenId)
-
   return (
-    <>
-      <EntityList
-        loading={loading}
-        error={error}
-        isEmpty={(tokens == null) || tokens.length === 0}
-        variant='tight'
-        loadingText='Loading tokens...'
-        errorText={(error != null && error !== '') ? `Error loading tokens: ${error}` : undefined}
-        emptyText='No tokens found'
-      >
-        {tokens.map((token) => {
-          const initials = getTokenInitials(token)
-          const singularName = getTokenName(token.localizations, 'singularForm') ?? (token.description !== '' ? token.description : 'Unknown Token')
-          const pluralName = getTokenName(token.localizations, 'pluralForm') ?? singularName
-          const balance = fromBaseUnit(token.balance, token.decimals)
+    <EntityList
+      loading={loading}
+      error={error}
+      isEmpty={(tokens == null) || tokens.length === 0}
+      variant='tight'
+      loadingText='Loading tokens...'
+      errorText={(error != null && error !== '') ? `Error loading tokens: ${error}` : undefined}
+      emptyText='No tokens found'
+    >
+      {tokens.map((token) => {
+        const initials = getTokenInitials(token)
+        const singularName = getTokenName(token.localizations, 'singularForm') ?? (token.description !== '' ? token.description : 'Unknown Token')
+        const pluralName = getTokenName(token.localizations, 'pluralForm') ?? singularName
+        const balance = fromBaseUnit(token.balance, token.decimals)
+        const isMenuOpen = openMenuTokenId === token.identifier
 
-          return (
+        return (
+          <div key={token.identifier} className='relative'>
             <EntityListItem
-              key={token.identifier}
-              onClick={(e: React.MouseEvent<HTMLDivElement>) => handleTokenClick(e, token.identifier)}
+              onClick={(e) => handleTokenClick(e, token.identifier)}
             >
               <div className='flex items-center gap-3'>
                 <div className='flex items-center justify-center w-[2.438rem] h-[2.438rem] bg-[rgba(12,28,51,0.03)] rounded-full'>
@@ -125,68 +100,56 @@ function TokensList ({
                 <Text size='sm'>{pluralName}</Text>
               </div>
             </EntityListItem>
-          )
-        })}
-      </EntityList>
 
-      {menuState.isOpen && selectedToken != null && menuState.position != null && (
-        <OverlayMenu
-          variant='context-menu'
-          size='xl'
-          width={200}
-          position={menuState.position}
-          showCloseButton
-          onClose={handleCloseMenu}
-          headerContent={
-            <div className='flex items-center gap-2'>
-              <div className='flex items-center justify-center w-6 h-6 bg-[rgba(12,28,51,0.03)] rounded-full'>
-                <Text className='!text-[0.75rem]'>
-                  {getTokenInitials(selectedToken)}
-                </Text>
+            {isMenuOpen && (
+              <div className='absolute top-1/2 left-full z-50'>
+                <OverlayMenu
+                  variant='context-menu'
+                  contentClassName='!translate-x-[-110%] !translate-y-[-50%]'
+                  size='xl'
+                  width={200}
+                  showCloseButton
+                  position={{}}
+                  onClose={handleCloseMenu}
+                  items={[
+                    {
+                      id: 'view-explorer',
+                      content: (
+                        <div className='flex items-center gap-2'>
+                          <ExternalLinkIcon size={16} />
+                          <Text weight='medium' className='!text-[0.75rem]'>View on Explorer</Text>
+                        </div>
+                      ),
+                      onClick: () => {
+                        window.open(getTokenExplorerUrl(token.identifier), '_blank', 'noopener,noreferrer')
+                        handleCloseMenu()
+                      }
+                    },
+                    {
+                      id: 'transfer',
+                      content: (
+                        <div className='flex items-center gap-2'>
+                          <AirplaneIcon size={16} />
+                          <Text weight='medium' className='!text-[0.75rem]'>Transfer</Text>
+                        </div>
+                      ),
+                      onClick: () => {
+                        handleCloseMenu()
+                        void navigate('/send-transaction', {
+                          state: {
+                            selectedToken: token.identifier
+                          }
+                        })
+                      }
+                    }
+                  ]}
+                />
               </div>
-              <Text
-                weight='bold'
-                className='!text-[0.75rem]'
-              >
-                {getTokenName(selectedToken.localizations, 'singularForm') ?? selectedToken.description ?? 'Unknown Token'}
-              </Text>
-            </div>
-          }
-          items={[
-            {
-              id: 'view-explorer',
-              content: (
-                <div className='flex items-center gap-2'>
-                  <ExternalLinkIcon size={16} />
-                  <Text weight='medium' className='!text-[0.75rem]'>View on Explorer</Text>
-                </div>
-              ),
-              onClick: () => {
-                window.open(getTokenExplorerUrl(selectedToken.identifier), '_blank', 'noopener,noreferrer')
-                handleCloseMenu()
-              }
-            },
-            {
-              id: 'transfer',
-              content: (
-                <div className='flex items-center gap-2'>
-                  <AirplaneIcon size={16} />
-                  <Text weight='medium' className='!text-[0.75rem]'>Transfer</Text>
-                </div>
-              ),
-              onClick: () => {
-                handleCloseMenu()
-                void navigate('/send-transaction', {
-                  state: {
-                    selectedToken: selectedToken.identifier
-                  }
-                })
-              }
-            }
-          ]}
-        />
-      )}
-    </>
+            )}
+          </div>
+        )
+      })}
+    </EntityList>
   )
 }
 
