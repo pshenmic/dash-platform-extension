@@ -238,6 +238,19 @@ const NameRegistrationState: React.FC = () => {
           </div>
           )}
 
+      {currentStep === 1 && ((username.length > 0 && (!isValid || !isAvailable)) || !hasSufficientBalance) && (
+        <ValueCard
+          border={false}
+          className='!text-[0.75rem] dash-shadow-xl text-dash-primary-dark-blue/75 mt-6'
+        >
+          {!hasSufficientBalance
+            ? 'Insufficient balance. You need at least 0.25 DASH equivalent in credits to register a username.'
+            : !isValid
+                ? 'Username must be at least 3 characters and contain only letters, numbers, hyphens, and underscores'
+                : 'This username is already taken. Please choose a different one.'}
+        </ValueCard>
+      )}
+
       <div className='flex flex-col gap-4 w-full mt-6 relative'>
         {currentStep === 1
           ? (
@@ -293,7 +306,7 @@ const NameRegistrationState: React.FC = () => {
                     </div>
                   </div>
                   <div className='absolute right-1 top-1'>
-                    <InfoCircleIcon className='w-6 h-6 text-gray-400' />
+                    <InfoCircleIcon className='w-5 h-5 text-gray-400' />
                   </div>
                 </ValueCard>
 
@@ -336,14 +349,12 @@ const NameRegistrationState: React.FC = () => {
                     </div>
                   </div>
                   <div className='absolute right-1 top-1'>
-                    <InfoCircleIcon className='w-6 h-6 text-gray-400' />
+                    <InfoCircleIcon className='w-5 h-5 text-gray-400' />
                   </div>
                 </ValueCard>
               </div>
 
               <UsernameStep
-                username={username}
-                isContested={isContested}
                 isValid={isValid}
                 isAvailable={isAvailable}
                 isCheckingAvailability={isCheckingAvailability}
