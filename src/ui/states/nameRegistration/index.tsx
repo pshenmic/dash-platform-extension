@@ -255,7 +255,13 @@ const NameRegistrationState: React.FC = () => {
 
               <div className='flex gap-2 w-full'>
                 <ValueCard
-                  className={`relative items-center justify-between w-full ${isContested ? '' : 'opacity-50'}`}
+                  className={`relative items-center justify-between w-full cursor-pointer transition-opacity ${
+                    hoveredCard === 'premium'
+                      ? 'opacity-100'
+                      : hoveredCard === 'regular'
+                        ? isContested ? 'opacity-70' : 'opacity-50'
+                        : isContested ? 'opacity-100' : 'opacity-50'
+                  }`}
                   colorScheme='lightGray'
                   border={false}
                   onMouseEnter={() => setHoveredCard('premium')}
@@ -292,7 +298,13 @@ const NameRegistrationState: React.FC = () => {
                 </ValueCard>
 
                 <ValueCard
-                  className={`relative items-center justify-between w-full ${!isContested ? '' : 'opacity-50'}`}
+                  className={`relative items-center justify-between w-full cursor-pointer transition-opacity ${
+                    hoveredCard === 'regular'
+                      ? 'opacity-100'
+                      : hoveredCard === 'premium'
+                        ? !isContested ? 'opacity-70' : 'opacity-50'
+                        : !isContested ? 'opacity-100' : 'opacity-50'
+                  }`}
                   colorScheme='lightGray'
                   border={false}
                   onMouseEnter={() => setHoveredCard('regular')}
