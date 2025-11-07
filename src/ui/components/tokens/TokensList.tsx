@@ -42,7 +42,7 @@ function TokensList ({
     return `${explorerBaseUrl}/token/${tokenIdentifier}`
   }
 
-  const handleTokenClick = useCallback((e: React.MouseEvent<HTMLDivElement>, tokenId: string) => {
+  const handleTokenClick = useCallback((e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>, tokenId: string) => {
     e.stopPropagation()
     setOpenMenuTokenId(prevId => prevId === tokenId ? null : tokenId)
   }, [])
@@ -77,7 +77,7 @@ function TokensList ({
                 <div className='flex items-center justify-center w-[2.438rem] h-[2.438rem] bg-[rgba(12,28,51,0.03)] rounded-full'>
                   <Text
                     weight='medium'
-                    className='text-dash-primary-dark-blue text-center text-[16px] leading-[1.366em]'
+                    className='text-dash-primary-dark-blue text-center text-[1rem] leading-[1.366em]'
                   >
                     {initials}
                   </Text>
@@ -87,7 +87,7 @@ function TokensList ({
                   <div className='flex flex-col'>
                     <Text
                       weight='medium'
-                      className='text-dash-primary-dark-blue text-[14px] leading-[1.366em]'
+                      className='text-dash-primary-dark-blue text-[0.875rem] leading-[1.366em]'
                     >
                       {singularName}
                     </Text>
@@ -109,7 +109,6 @@ function TokensList ({
                   size='xl'
                   width={200}
                   showCloseButton
-                  position={{}}
                   onClose={handleCloseMenu}
                   items={[
                     {

@@ -71,7 +71,6 @@ function SendTransactionState (): React.JSX.Element {
   // Clear navigation state after it's been read
   useEffect(() => {
     if (locationState?.selectedToken != null) {
-      // Replace current history entry to clear the state
       window.history.replaceState({}, document.title)
     }
   }, [locationState])
