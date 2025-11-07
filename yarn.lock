@@ -3730,9 +3730,9 @@ dash-platform-sdk@1.3.0-dev.10:
     cbor-x "^1.6.0"
     pshenmic-dpp "1.1.0-dev.7"
 
-dash-ui-kit@AlexeyTripleA/dash-ui-kit#feat/update-components:
-  version "1.0.8"
-  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/c09d1cb8e5d3e95b7cae0b6c27fd2eb533f725c0"
+dash-ui-kit@AlexeyTripleA/dash-ui-kit#1.0.91:
+  version "1.0.91"
+  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/9bc4ae3ea1125dc0e47ffec584310c10e0275609"
   dependencies:
     "@radix-ui/react-accordion" "^1.2.12"
     "@radix-ui/react-dialog" "^1.1.14"
