@@ -32,6 +32,7 @@ const NameRegistrationState: React.FC = () => {
   const [registrationError, setRegistrationError] = useState<string | null>(null)
   const [password, setPassword] = useState<string>('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [hoveredCard, setHoveredCard] = useState<'premium' | 'regular' | null>(null)
   const {
     signingKeys,
     selectedSigningKey,
@@ -237,15 +238,28 @@ const NameRegistrationState: React.FC = () => {
           </div>
           )}
 
-      <div className='flex flex-col gap-4 w-full mt-6'>
+      <div className='flex flex-col gap-4 w-full mt-6 relative'>
         {currentStep === 1
           ? (
             <>
+              {hoveredCard != null && (
+                <div className='absolute left-0 -top-[70px] w-full flex items-center gap-3 p-3 bg-white rounded-xl border-l-2 border-dash-primary-dark-blue shadow-[0_0_75px_rgba(0,0,0,0.1)] z-10'>
+                  <InfoCircleIcon className='w-[26.5px] h-[26.5px] text-dash-primary-dark-blue flex-shrink-0' />
+                  <Text size='xs' weight='medium' className='flex-1'>
+                    {hoveredCard === 'premium'
+                      ? 'This username falls under the rules of a contested username. Masternodes will vote for your username approval'
+                      : 'This is a regular, non-contested username. It will be registered immediately without masternode voting'}
+                  </Text>
+                </div>
+              )}
+
               <div className='flex gap-2 w-full'>
                 <ValueCard
                   className={`relative items-center justify-between w-full ${isContested ? '' : 'opacity-50'}`}
                   colorScheme='lightGray'
                   border={false}
+                  onMouseEnter={() => setHoveredCard('premium')}
+                  onMouseLeave={() => setHoveredCard(null)}
                 >
                   <div className='flex flex-col gap-1'>
                     <div className='flex gap-1'>
@@ -281,6 +295,8 @@ const NameRegistrationState: React.FC = () => {
                   className={`relative items-center justify-between w-full ${!isContested ? '' : 'opacity-50'}`}
                   colorScheme='lightGray'
                   border={false}
+                  onMouseEnter={() => setHoveredCard('regular')}
+                  onMouseLeave={() => setHoveredCard(null)}
                 >
                   <div className='flex flex-col gap-1'>
                     <div className='flex gap-1'>
