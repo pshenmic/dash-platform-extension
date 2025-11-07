@@ -34,24 +34,24 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
     // handle changed owner from approve transaction screen
     if (stateTransitionWASM.getOwnerId().base58() !== identity.identifier) {
-      if (stateTransitionWASM.getActionType() === 'IDENTITY_CREATE') {
+      if (stateTransitionWASM.getActionType() === 'IdentityCreate') {
         throw new Error('Incorrect owner used for IdentityCreate transaction, changing is prohibited')
       }
 
       stateTransitionWASM.setOwnerId(identity.identifier)
 
       // replace identityContractNonce
-      if (['BATCH', 'DATA_CONTRACT_UPDATE'].includes(stateTransitionWASM.getActionType())) {
+      if (['Batch', 'DataContractUpdate'].includes(stateTransitionWASM.getActionType())) {
         let dataContractId
 
-        if (stateTransitionWASM.getActionType() === 'DATA_CONTRACT_UPDATE') {
+        if (stateTransitionWASM.getActionType() === 'DataContractUpdate') {
           const dataContractUpdateTransitionWASM = DataContractUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
 
           // @ts-expect-error
           dataContractId = dataContractUpdateTransitionWASM.getDataContract().id
         }
 
-        if (stateTransitionWASM.getActionType() === 'BATCH') {
+        if (stateTransitionWASM.getActionType() === 'Batch') {
           const batchTransition = BatchTransitionWASM.fromStateTransition(stateTransitionWASM)
           const [transition] = batchTransition.transitions
 
@@ -64,7 +64,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       }
 
       // replace identityNonce
-      if (['DATA_CONTRACT_CREATE', 'IDENTITY_CREDIT_WITHDRAWAL', 'IDENTITY_UPDATE', 'IDENTITY_CREDIT_TRANSFER', 'MasternodeVote'].includes(stateTransitionWASM.getActionType())) {
+      if (['DataContractCreate', 'IdentityCreditWithdrawal', 'IdentityUpdate', 'IdentityCreditTransfer', 'MasternodeVote'].includes(stateTransitionWASM.getActionType())) {
         const identityNonce = await this.sdk.identities.getIdentityNonce(identity.identifier)
         stateTransitionWASM.setIdentityNonce(identityNonce + 1n)
       }
