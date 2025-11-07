@@ -64,9 +64,9 @@ export class ApproveStateTransitionHandler implements APIHandler {
       }
 
       // replace identityNonce
-      if (['DATA_CONTRACT_CREATE', 'IDENTITY_CREDIT_WITHDRAWAL', 'IDENTITY_UPDATE', 'IDENTITY_CREDIT_TRANSFER', 'MASTERNODE_VOTE'].includes(stateTransitionWASM.getActionType())) {
+      if (['DATA_CONTRACT_CREATE', 'IDENTITY_CREDIT_WITHDRAWAL', 'IDENTITY_UPDATE', 'IDENTITY_CREDIT_TRANSFER', 'MasternodeVote'].includes(stateTransitionWASM.getActionType())) {
         const identityNonce = await this.sdk.identities.getIdentityNonce(identity.identifier)
-        stateTransitionWASM.setIdentityNonce(identityNonce)
+        stateTransitionWASM.setIdentityNonce(identityNonce + 1n)
       }
     }
 
