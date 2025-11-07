@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { UsernameInput } from '../../components/names'
-import { Text, Identifier } from 'dash-ui-kit/react'
+import { Text, Identifier, ValueCard, InfoCircleIcon, DashLogo } from 'dash-ui-kit/react'
 import type { LayoutContext } from '../../components/layout/Layout'
 import { useAsyncState, useSdk, usePlatformExplorerClient, useExtensionAPI, useSigningKeys } from '../../hooks'
 import { UsernameStep } from './UsernameStep'
@@ -240,17 +240,91 @@ const NameRegistrationState: React.FC = () => {
       <div className='flex flex-col gap-4 w-full mt-6'>
         {currentStep === 1
           ? (
-            <UsernameStep
-              username={username}
-              isContested={isContested}
-              isValid={isValid}
-              isAvailable={isAvailable}
-              isCheckingAvailability={isCheckingAvailability}
-              hasSufficientBalance={hasSufficientBalance}
-              isCheckingBalance={isCheckingBalance}
-              hasCompatibleKeys={hasCompatibleKeys}
-              onRequestUsername={() => setCurrentStep(2)}
-            />
+            <>
+              <div className='flex gap-2 w-full'>
+                <ValueCard
+                  className={`relative items-center justify-between w-full ${isContested ? '' : 'opacity-50'}`}
+                  colorScheme='lightGray'
+                  border={false}
+                >
+                  <div className='flex flex-col gap-1'>
+                    <div className='flex gap-1'>
+                      <Text size='sm' weight='bold'>
+                        Premium
+                      </Text>
+                      <Text size='sm'>
+                        Name:
+                      </Text>
+                    </div>
+                    <div className='flex items-center gap-1.5'>
+                      <Text size='xs' weight='medium'>
+                        0.25
+                      </Text>
+                      <Text size='xs' color='muted'>
+                        <DashLogo size={10} className='!text-dash-primary-dark-blue' />
+                      </Text>
+                      {rateState.data != null && (
+                        <ValueCard colorScheme='lightBlue' size='xs' border={false}>
+                          <Text size='xs' color='blue' weight='medium'>
+                            ~ ${(0.25 * rateState.data).toFixed(2)}
+                          </Text>
+                        </ValueCard>
+                      )}
+                    </div>
+                  </div>
+                  <div className='absolute right-1 top-1'>
+                    <InfoCircleIcon className='w-6 h-6 text-gray-400' />
+                  </div>
+                </ValueCard>
+
+                <ValueCard
+                  className={`relative items-center justify-between w-full ${!isContested ? '' : 'opacity-50'}`}
+                  colorScheme='lightGray'
+                  border={false}
+                >
+                  <div className='flex flex-col gap-1'>
+                    <div className='flex gap-1'>
+                      <Text size='sm' weight='bold'>
+                        Regular
+                      </Text>
+                      <Text size='sm'>
+                        Name:
+                      </Text>
+                    </div>
+                    <div className='flex items-center gap-1.5'>
+                      <Text size='xs' weight='medium'>
+                        0.05
+                      </Text>
+                      <Text size='xs' color='muted'>
+                        <DashLogo size={10} className='!text-dash-primary-dark-blue' />
+                      </Text>
+                      {rateState.data != null && (
+                        <ValueCard colorScheme='lightBlue' size='xs' border={false}>
+                          <Text size='xs' color='blue' weight='medium'>
+                            ~ ${(0.05 * rateState.data).toFixed(2)}
+                          </Text>
+                        </ValueCard>
+                      )}
+                    </div>
+                  </div>
+                  <div className='absolute right-1 top-1'>
+                    <InfoCircleIcon className='w-6 h-6 text-gray-400' />
+                  </div>
+                </ValueCard>
+              </div>
+
+              <UsernameStep
+                username={username}
+                isContested={isContested}
+                isValid={isValid}
+                isAvailable={isAvailable}
+                isCheckingAvailability={isCheckingAvailability}
+                hasSufficientBalance={hasSufficientBalance}
+                isCheckingBalance={isCheckingBalance}
+                hasCompatibleKeys={hasCompatibleKeys}
+                onRequestUsername={() => setCurrentStep(2)}
+              />
+            </>
             )
           : (
             <ConfirmationStep
