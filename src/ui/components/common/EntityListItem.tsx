@@ -3,7 +3,7 @@ import React from 'react'
 interface EntityListItemProps {
   children: React.ReactNode
   href?: string
-  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void
+  onClick?: (event: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) => void
   className?: string
 }
 
@@ -35,9 +35,10 @@ function EntityListItem ({
         onClick={onClick}
         role='button'
         tabIndex={0}
-        onKeyPress={(e) => {
+        onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-            onClick(e as any)
+            e.preventDefault()
+            onClick(e)
           }
         }}
       >
