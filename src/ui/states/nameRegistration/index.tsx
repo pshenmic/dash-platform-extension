@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { UsernameInput } from '../../components/names'
@@ -174,7 +174,7 @@ const NameRegistrationState: React.FC = () => {
     setSelectedSigningKey(null)
   }, [])
 
-  const NameBlock = useCallback(() => {
+  const NameBlock = useMemo(() => {
     switch (currentStep) {
       case 1: return (
         <UsernameInput
@@ -195,7 +195,7 @@ const NameRegistrationState: React.FC = () => {
         </div>
       )
     }
-  }, [currentStep, username, handleUsernameChange, signingKeysLoading, hasCompatibleKeys, keyRequirements, navigate])
+  }, [currentStep, username, handleUsernameChange])
 
   return (
     <div className='flex flex-col h-full min-h-max'>
@@ -219,7 +219,7 @@ const NameRegistrationState: React.FC = () => {
         : (
           <div className='flex flex-col gap-6 flex-grow'>
             <div className='flex justify-center'>
-              <NameBlock />
+              {NameBlock}
             </div>
 
             <div className='text-center leading-none'>
