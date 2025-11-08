@@ -168,7 +168,7 @@ const NameRegistrationState: React.FC = () => {
 
   const getTypeCardOpacity = useCallback((cardType: 'premium' | 'regular') => {
     if (hoveredCard === cardType) return 'opacity-100'
-    if (hoveredCard) {
+    if (hoveredCard != null) {
       return cardType === 'premium'
         ? (isContested ? 'opacity-70' : 'opacity-50')
         : (!isContested ? 'opacity-70' : 'opacity-50')
