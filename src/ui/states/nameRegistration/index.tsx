@@ -263,7 +263,7 @@ const NameRegistrationState: React.FC = () => {
                 hoveredCard != null ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
               }`}
               >
-                <InfoCircleIcon className='w-[26.5px] h-[26.5px] flex-shrink-0 text-gray-400' />
+                <InfoCircleIcon className='w-[1.625rem] h-[1.625rem] flex-shrink-0 text-gray-400' />
                 <Text size='xs' weight='medium' className='flex-1'>
                   {hoveredCard === 'premium'
                     ? 'This username falls under the rules of a contested username. Masternodes will vote for your username approval'
