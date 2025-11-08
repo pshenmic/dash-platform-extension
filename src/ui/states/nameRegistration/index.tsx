@@ -9,6 +9,7 @@ import { UsernameStep } from './UsernameStep'
 import { ConfirmationStep } from './ConfirmationStep'
 import { MissingRequiredKeyWarning, type KeyRequirement } from '../../components/keys'
 import { isKeyCompatible, creditsToDash } from '../../../utils'
+import { CONTESTED_NAME_COST_DASH, REGULAR_NAME_COST_DASH, NAME_SUFFIX } from './constants'
 type Step = 1 | 2
 
 const NameRegistrationState: React.FC = () => {
@@ -69,10 +70,8 @@ const NameRegistrationState: React.FC = () => {
       setRegistrationError(null)
       setPasswordError(null)
 
-      console.log('Starting name registration for:', username)
-
-      // Prepare the full name (add .dash if not present)
-      const fullName = username.includes('.dash') ? username : `${username}.dash`
+      // Prepare the full name (add NAME_SUFFIX if not present)
+      const fullName = username.includes(NAME_SUFFIX) ? username : `${username}${NAME_SUFFIX}`
 
       const passwordCheck = await extensionAPI.checkPassword(password)
       if (!passwordCheck.success) {
@@ -89,16 +88,10 @@ const NameRegistrationState: React.FC = () => {
 
       const keyId = Number(selectedSigningKey)
 
-      console.log('Registering username via extensionAPI:', {
-        fullUsername: fullName,
-        identity: currentIdentity,
-        keyId,
-        isContested
-      })
-
       // Use extensionAPI.registerUsername method
       await extensionAPI.registerUsername(fullName, currentIdentity, keyId, password)
 
+      setPassword('')
       void navigate('/home')
     } catch (error) {
       console.log('Failed to register username:', error)
@@ -125,8 +118,7 @@ const NameRegistrationState: React.FC = () => {
       setIsCheckingBalance(true)
       const balance = await sdk.identities.getIdentityBalance(currentIdentity)
       const dashBalance = creditsToDash(balance)
-      const requiredDash = 0.25
-      setHasSufficientBalance(dashBalance >= requiredDash)
+      setHasSufficientBalance(dashBalance >= CONTESTED_NAME_COST_DASH)
     }
 
     checkBalance()
@@ -141,7 +133,7 @@ const NameRegistrationState: React.FC = () => {
     if (username !== '') {
       const checkNameAvailability = async (): Promise<void> => {
         setIsCheckingAvailability(true)
-        const fullName = username.includes('.dash') ? username : `${username}.dash`
+        const fullName = username.includes(NAME_SUFFIX) ? username : `${username}${NAME_SUFFIX}`
 
         // Check if name is contested
         const contested = sdk.names.testNameContested(fullName)
@@ -244,7 +236,7 @@ const NameRegistrationState: React.FC = () => {
           className='!text-[0.75rem] dash-shadow-xl text-dash-primary-dark-blue/75 mt-6'
         >
           {!hasSufficientBalance
-            ? 'Insufficient balance. You need at least 0.25 DASH equivalent in credits to register a username.'
+            ? `Insufficient balance. You need at least ${CONTESTED_NAME_COST_DASH} DASH equivalent in credits to register a username.`
             : !isValid
                 ? 'Username must be at least 3 characters and contain only letters, numbers, hyphens, and underscores'
                 : 'This username is already taken. Please choose a different one.'}
@@ -257,7 +249,8 @@ const NameRegistrationState: React.FC = () => {
             <>
               <div className={`absolute left-0 -top-[70px] w-full flex items-center gap-3 p-3 bg-white rounded-xl border-l-2 border-dash-primary-dark-blue shadow-[0_0_75px_rgba(0,0,0,0.1)] z-10 transition-all duration-200 ${
                 hoveredCard != null ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
-              }`}>
+              }`}
+              >
                 <InfoCircleIcon className='w-[26.5px] h-[26.5px] text-dash-primary-dark-blue flex-shrink-0' />
                 <Text size='xs' weight='medium' className='flex-1'>
                   {hoveredCard === 'premium'
@@ -291,7 +284,7 @@ const NameRegistrationState: React.FC = () => {
                     </div>
                     <div className='flex items-center gap-1.5'>
                       <Text size='xs' weight='medium'>
-                        0.25
+                        {CONTESTED_NAME_COST_DASH}
                       </Text>
                       <Text size='xs' color='muted'>
                         <DashLogo size={10} className='!text-dash-primary-dark-blue' />
@@ -299,7 +292,7 @@ const NameRegistrationState: React.FC = () => {
                       {rateState.data != null && (
                         <ValueCard colorScheme='lightBlue' size='xs' border={false}>
                           <Text size='xs' color='blue' weight='medium'>
-                            ~ ${(0.25 * rateState.data).toFixed(2)}
+                            ~ ${(CONTESTED_NAME_COST_DASH * rateState.data).toFixed(2)}
                           </Text>
                         </ValueCard>
                       )}
@@ -334,7 +327,7 @@ const NameRegistrationState: React.FC = () => {
                     </div>
                     <div className='flex items-center gap-1.5'>
                       <Text size='xs' weight='medium'>
-                        0.05
+                        {REGULAR_NAME_COST_DASH}
                       </Text>
                       <Text size='xs' color='muted'>
                         <DashLogo size={10} className='!text-dash-primary-dark-blue' />
@@ -342,7 +335,7 @@ const NameRegistrationState: React.FC = () => {
                       {rateState.data != null && (
                         <ValueCard colorScheme='lightBlue' size='xs' border={false}>
                           <Text size='xs' color='blue' weight='medium'>
-                            ~ ${(0.05 * rateState.data).toFixed(2)}
+                            ~ ${(REGULAR_NAME_COST_DASH * rateState.data).toFixed(2)}
                           </Text>
                         </ValueCard>
                       )}
