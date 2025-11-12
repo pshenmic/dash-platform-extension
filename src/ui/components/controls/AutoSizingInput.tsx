@@ -43,7 +43,7 @@ export const AutoSizingInput: React.FC<AutoSizingInputProps> = ({
   // Determine which styles to use
   const containerStyles = useDefaultStyles ? defaultContainerStyles : ''
   const baseInputStyles = useDefaultStyles ? defaultInputStyles : 'bg-transparent border-none outline-none min-w-0 flex-shrink'
-  
+
   // Add sizing-specific styles
   const inputStyles = sizing === 'fill' ? `${baseInputStyles} flex-1 w-0` : baseInputStyles
 

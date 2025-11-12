@@ -77,7 +77,6 @@ function SendTransactionState (): React.JSX.Element {
     selectedAsset: 'credits'
   })
   const [equivalentAmount, setEquivalentAmount] = useState<string>('')
-  const [lastEditedField, setLastEditedField] = useState<'amount' | 'equivalent'>('amount')
   const [equivalentCurrency, setEquivalentCurrency] = useState<'usd' | 'dash'>('usd')
   const [showEquivalentCurrencyMenu, setShowEquivalentCurrencyMenu] = useState(false)
   const currencyMenuRef = useRef<HTMLDivElement>(null)
@@ -240,11 +239,9 @@ function SendTransactionState (): React.JSX.Element {
 
   // Handle amount input change and sync with equivalent
   const handleAmountChange = (value: string): void => {
-    setLastEditedField('amount')
-    
     const decimals = getAssetDecimals()
     const parsed = parseDecimalInput(value, decimals)
-    
+
     if (parsed === null) {
       return
     }
@@ -261,7 +258,7 @@ function SendTransactionState (): React.JSX.Element {
         if (formData.selectedAsset === 'credits') {
           const creditsAmount = BigInt(Math.floor(Number(availableBalance)))
           const dashValue = creditsToDash(creditsAmount)
-          
+
           if (equivalentCurrency === 'dash') {
             setEquivalentAmount(dashValue.toFixed(8))
           } else if (rate !== null) {
@@ -281,7 +278,7 @@ function SendTransactionState (): React.JSX.Element {
       if (!isNaN(numericValue) && numericValue > 0) {
         const creditsAmount = BigInt(Math.floor(numericValue))
         const dashValue = creditsToDash(creditsAmount)
-        
+
         if (equivalentCurrency === 'dash') {
           setEquivalentAmount(dashValue.toFixed(8))
         } else if (rate !== null) {
@@ -298,7 +295,7 @@ function SendTransactionState (): React.JSX.Element {
     // Validate amount
     if (parsed !== '' && parsed !== '.') {
       const numericValue = Number(parsed)
-      
+
       // Minimum credit transfer validation
       if (formData.selectedAsset === 'credits' && numericValue > 0) {
         const amountInCredits = BigInt(Math.floor(numericValue))
@@ -313,11 +310,9 @@ function SendTransactionState (): React.JSX.Element {
 
   // Handle equivalent input change and sync with amount
   const handleEquivalentChange = (value: string): void => {
-    setLastEditedField('equivalent')
-    
     const decimals = equivalentCurrency === 'dash' ? 8 : 2
     const parsed = parseDecimalInput(value, decimals)
-    
+
     if (parsed === null) {
       return
     }
@@ -329,7 +324,7 @@ function SendTransactionState (): React.JSX.Element {
       const equivalentValue = Number(parsed)
       if (!isNaN(equivalentValue) && equivalentValue > 0) {
         let dashValue: number
-        
+
         if (equivalentCurrency === 'dash') {
           dashValue = equivalentValue
         } else if (rate !== null && rate > 0) {
@@ -338,7 +333,7 @@ function SendTransactionState (): React.JSX.Element {
           setFormData(prev => ({ ...prev, amount: '' }))
           return
         }
-        
+
         const creditsAmount = Math.floor(dashValue * 10e10)
         setFormData(prev => ({ ...prev, amount: creditsAmount.toString() }))
       } else {
@@ -350,8 +345,6 @@ function SendTransactionState (): React.JSX.Element {
   }
 
   const handleQuickAmount = (percentage: number): void => {
-    setLastEditedField('amount')
-    
     if (formData.selectedAsset === 'credits') {
       // For credits - deduct fee from balance before calculating percentage
       if (balance !== null && balance > 0n) {
@@ -360,7 +353,7 @@ function SendTransactionState (): React.JSX.Element {
 
         // Check if balance is enough to cover fee + minimum transfer
         if (availableBalance < MIN_CREDIT_TRANSFER) {
-          setError(`Insufficient balance to cover fee and minimum transfer amount`)
+          setError('Insufficient balance to cover fee and minimum transfer amount')
           return
         }
 
@@ -374,7 +367,7 @@ function SendTransactionState (): React.JSX.Element {
         // Update equivalent amount
         const creditsAmount = BigInt(amount)
         const dashValue = creditsToDash(creditsAmount)
-        
+
         if (equivalentCurrency === 'dash') {
           setEquivalentAmount(dashValue.toFixed(8))
         } else if (rate !== null) {
@@ -517,12 +510,12 @@ function SendTransactionState (): React.JSX.Element {
   const handleEquivalentCurrencyChange = (currency: 'usd' | 'dash'): void => {
     setEquivalentCurrency(currency)
     setShowEquivalentCurrencyMenu(false)
-    
+
     // Recalculate equivalent amount with new currency
     if (formData.amount !== '' && formData.selectedAsset === 'credits') {
       const creditsAmount = BigInt(Math.floor(Number(formData.amount)))
       const dashValue = creditsToDash(creditsAmount)
-      
+
       if (currency === 'dash') {
         setEquivalentAmount(dashValue.toFixed(8))
       } else if (rate !== null) {
@@ -595,14 +588,14 @@ function SendTransactionState (): React.JSX.Element {
       // Format token amount nicely
       const numValue = Number(formData.amount)
       if (!isNaN(numValue)) {
-        return numValue.toLocaleString(undefined, { 
-          minimumFractionDigits: 0, 
-          maximumFractionDigits: 8 
+        return numValue.toLocaleString(undefined, {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 8
         })
       }
       return formData.amount
     }
-    
+
     return '0'
   }
 
@@ -627,18 +620,18 @@ function SendTransactionState (): React.JSX.Element {
         const amountInCredits = BigInt(Math.floor(Number(formData.amount)))
         return amountInCredits.toLocaleString()
       }
-      
+
       // For tokens
       const numValue = Number(formData.amount)
       if (!isNaN(numValue)) {
-        return numValue.toLocaleString(undefined, { 
-          minimumFractionDigits: 0, 
-          maximumFractionDigits: 8 
+        return numValue.toLocaleString(undefined, {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 8
         })
       }
       return formData.amount
     }
-    
+
     return '0'
   }
 
