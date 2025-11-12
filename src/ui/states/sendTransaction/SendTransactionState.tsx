@@ -849,27 +849,27 @@ function SendTransactionState (): React.JSX.Element {
           </Text>
         </div>
 
-        {/* Will be sent Row */}
-        <div className='flex items-center justify-between w-full'>
-          <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50'>
-            Will be sent:
-          </Text>
-          <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50 text-right'>
-            {getWillBeSentAmount()} {getWillBeSentUnit()}
-          </Text>
-        </div>
-
-        {/* Total Amount Row - Only for Credits */}
+        {/* Will be sent Row - Only for Credits */}
         {formData.selectedAsset === 'credits' && (
           <div className='flex items-center justify-between w-full'>
-            <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
-              Total Amount:
+            <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50'>
+              Will be sent:
             </Text>
-            <Text size='sm' className='text-dash-primary-dark-blue text-right font-extrabold'>
-              ~{getTotalAmount()} {getTotalAmountUnit()}
+            <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50 text-right'>
+              {getWillBeSentAmount()} {getWillBeSentUnit()}
             </Text>
           </div>
         )}
+
+        {/* Total Amount Row */}
+        <div className='flex items-center justify-between w-full'>
+          <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
+            Total Amount:
+          </Text>
+          <Text size='sm' className='text-dash-primary-dark-blue text-right font-extrabold'>
+            {formData.selectedAsset === 'credits' ? '~' : ''}{getTotalAmount()} {getTotalAmountUnit()}
+          </Text>
+        </div>
       </div>
 
       {/* Action Button */}
