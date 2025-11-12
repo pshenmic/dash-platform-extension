@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import {
   Button,
@@ -6,7 +6,8 @@ import {
   ChevronIcon,
   Avatar,
   ValueCard,
-  Identifier
+  Identifier,
+  DashLogo
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
 import { AutoSizingInput, AssetSelectionMenu } from '../../components/controls'
@@ -18,6 +19,7 @@ import type { OutletContext } from '../../types'
 import type { RecipientSearchResult } from '../../../utils'
 import {
   creditsToDashBigInt,
+  creditsToDash,
   fromBaseUnit,
   parseDecimalInput,
   toBaseUnit,
@@ -62,6 +64,28 @@ function SendTransactionState (): React.JSX.Element {
     amount: '',
     selectedAsset: 'credits'
   })
+  const [equivalentAmount, setEquivalentAmount] = useState<string>('')
+  const [lastEditedField, setLastEditedField] = useState<'amount' | 'equivalent'>('amount')
+  const [equivalentCurrency, setEquivalentCurrency] = useState<'usd' | 'dash'>('usd')
+  const [showEquivalentCurrencyMenu, setShowEquivalentCurrencyMenu] = useState(false)
+  const currencyMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close currency menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent): void => {
+      if (currencyMenuRef.current != null && !currencyMenuRef.current.contains(event.target as Node)) {
+        setShowEquivalentCurrencyMenu(false)
+      }
+    }
+
+    if (showEquivalentCurrencyMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showEquivalentCurrencyMenu])
 
   // Load balance, tokens and exchange rate on component mount
   useEffect(() => {
@@ -202,7 +226,120 @@ function SendTransactionState (): React.JSX.Element {
     }
   }
 
+  // Handle amount input change and sync with equivalent
+  const handleAmountChange = (value: string): void => {
+    setLastEditedField('amount')
+    
+    const decimals = getAssetDecimals()
+    const parsed = parseDecimalInput(value, decimals)
+    
+    if (parsed === null) {
+      return
+    }
+
+    // Check against available balance
+    if (parsed !== '' && parsed !== '.') {
+      const availableBalance = getAvailableBalance()
+      const numericValue = Number(parsed)
+      const numericBalance = Number(availableBalance)
+
+      if (!isNaN(numericValue) && !isNaN(numericBalance) && numericValue > numericBalance) {
+        setFormData(prev => ({ ...prev, amount: availableBalance }))
+        // Update equivalent for max balance
+        if (formData.selectedAsset === 'credits') {
+          const creditsAmount = BigInt(Math.floor(Number(availableBalance)))
+          const dashValue = creditsToDash(creditsAmount)
+          
+          if (equivalentCurrency === 'dash') {
+            setEquivalentAmount(dashValue.toFixed(8))
+          } else if (rate !== null) {
+            const usdValue = dashValue * rate
+            setEquivalentAmount(usdValue.toFixed(2))
+          }
+        }
+        return
+      }
+    }
+
+    setFormData(prev => ({ ...prev, amount: parsed }))
+
+    // Update equivalent amount for credits
+    if (formData.selectedAsset === 'credits' && parsed !== '' && parsed !== '.') {
+      const numericValue = Number(parsed)
+      if (!isNaN(numericValue) && numericValue > 0) {
+        const creditsAmount = BigInt(Math.floor(numericValue))
+        const dashValue = creditsToDash(creditsAmount)
+        
+        if (equivalentCurrency === 'dash') {
+          setEquivalentAmount(dashValue.toFixed(8))
+        } else if (rate !== null) {
+          const usdValue = dashValue * rate
+          setEquivalentAmount(usdValue.toFixed(2))
+        }
+      } else {
+        setEquivalentAmount('')
+      }
+    } else if (parsed === '' || parsed === '.') {
+      setEquivalentAmount('')
+    }
+
+    // Validate amount
+    if (parsed !== '' && parsed !== '.') {
+      const numericValue = Number(parsed)
+      
+      // Minimum credit transfer validation
+      if (formData.selectedAsset === 'credits' && numericValue > 0) {
+        const amountInCredits = BigInt(Math.floor(numericValue))
+        if (amountInCredits < MIN_CREDIT_TRANSFER) {
+          setError(`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`)
+        } else {
+          setError(null)
+        }
+      }
+    }
+  }
+
+  // Handle equivalent input change and sync with amount
+  const handleEquivalentChange = (value: string): void => {
+    setLastEditedField('equivalent')
+    
+    const decimals = equivalentCurrency === 'dash' ? 8 : 2
+    const parsed = parseDecimalInput(value, decimals)
+    
+    if (parsed === null) {
+      return
+    }
+
+    setEquivalentAmount(parsed)
+
+    // Update amount from equivalent
+    if (parsed !== '' && parsed !== '.') {
+      const equivalentValue = Number(parsed)
+      if (!isNaN(equivalentValue) && equivalentValue > 0) {
+        let dashValue: number
+        
+        if (equivalentCurrency === 'dash') {
+          dashValue = equivalentValue
+        } else if (rate !== null && rate > 0) {
+          dashValue = equivalentValue / rate
+        } else {
+          setFormData(prev => ({ ...prev, amount: '' }))
+          return
+        }
+        
+        const creditsAmount = Math.floor(dashValue * 10e10)
+        setFormData(prev => ({ ...prev, amount: creditsAmount.toString() }))
+      } else {
+        setFormData(prev => ({ ...prev, amount: '' }))
+      }
+    } else if (parsed === '' || parsed === '.') {
+      setFormData(prev => ({ ...prev, amount: '' }))
+    }
+  }
+
   const handleQuickAmount = (percentage: number): void => {
+    setLastEditedField('amount')
+    
     if (formData.selectedAsset === 'credits') {
       // For credits (no decimals), use simple percentage
       if (balance !== null && balance > 0n) {
@@ -212,6 +349,17 @@ function SendTransactionState (): React.JSX.Element {
           ? MIN_CREDIT_TRANSFER.toString()
           : calculatedAmount.toString()
         setFormData(prev => ({ ...prev, amount }))
+        
+        // Update equivalent amount
+        const creditsAmount = BigInt(amount)
+        const dashValue = creditsToDash(creditsAmount)
+        
+        if (equivalentCurrency === 'dash') {
+          setEquivalentAmount(dashValue.toFixed(8))
+        } else if (rate !== null) {
+          const usdValue = dashValue * rate
+          setEquivalentAmount(usdValue.toFixed(2))
+        }
       }
     } else {
       // For tokens with decimals - use bigint to avoid precision loss
@@ -326,20 +474,6 @@ function SendTransactionState (): React.JSX.Element {
     }
   }
 
-  const formatUSDValue = (amount: string): string => {
-    if ((rate === null || rate === undefined) || amount === '') return ''
-
-    if (formData.selectedAsset === 'credits') {
-      const creditsAmount = BigInt(Math.floor(Number(amount)))
-      const dashValue = creditsToDashBigInt(creditsAmount)
-      const dashAmount = Number(dashValue)
-      const usdValue = dashAmount * rate
-      return `~$${usdValue.toFixed(2)}`
-    }
-
-    return ''
-  }
-
   const getBalanceUSDValue = (): string | null => {
     if ((rate === null || rate === undefined)) return null
 
@@ -355,6 +489,26 @@ function SendTransactionState (): React.JSX.Element {
 
   const handleAssetSelect = (asset: string): void => {
     setFormData(prev => ({ ...prev, selectedAsset: asset, amount: '' }))
+    setEquivalentAmount('')
+    setError(null)
+  }
+
+  const handleEquivalentCurrencyChange = (currency: 'usd' | 'dash'): void => {
+    setEquivalentCurrency(currency)
+    setShowEquivalentCurrencyMenu(false)
+    
+    // Recalculate equivalent amount with new currency
+    if (formData.amount !== '' && formData.selectedAsset === 'credits') {
+      const creditsAmount = BigInt(Math.floor(Number(formData.amount)))
+      const dashValue = creditsToDash(creditsAmount)
+      
+      if (currency === 'dash') {
+        setEquivalentAmount(dashValue.toFixed(8))
+      } else if (rate !== null) {
+        const usdValue = dashValue * rate
+        setEquivalentAmount(usdValue.toFixed(2))
+      }
+    }
   }
 
   const getSelectedToken = (): TokenData | undefined => {
@@ -456,63 +610,106 @@ function SendTransactionState (): React.JSX.Element {
         </Text>
       </div>
 
-      {/* Amount Input and Asset Selection */}
-      <div className='flex justify-center'>
-        <div className='flex flex-col justify-center items-center gap-[1.125rem] max-w-full'>
-          {/* Amount Input */}
+      {/* Amount Input Section */}
+      <div className='flex flex-col items-center gap-[1.125rem] py-3 w-full'>
+        {/* Dual Input Row */}
+        <div className='flex items-end justify-center gap-3 w-full max-w-full px-0'>
+          {/* Main Amount Input */}
           <AutoSizingInput
-            containerClassName='flex justify-center max-w-full'
-            className='items-center max-w-full'
             value={formData.amount}
-            onChange={(value) => handleInputChange('amount', value)}
+            onChange={handleAmountChange}
             placeholder='0'
+            useDefaultStyles={false}
+            sizing='fill'
+            containerClassName='flex-1 min-w-0'
+            className='flex items-center gap-2 px-3 py-1 border-0 border-b border-solid border-[rgba(12,28,51,0.15)] rounded-xl'
+            inputClassName='text-dash-primary-dark-blue font-["Space_Grotesk"] font-bold text-[2rem] leading-[1.2] placeholder:text-[rgba(12,28,51,0.2)]'
             onChangeFilter={(value) => {
               const decimals = getAssetDecimals()
-
-              // Parse and validate decimal input
               const parsed = parseDecimalInput(value, decimals)
-              if (parsed === null) {
-                return formData.amount
-              }
-
-              // Check against available balance
-              if ((parsed !== null && parsed !== undefined) && parsed !== '' && parsed !== '.') {
-                const availableBalance = getAvailableBalance()
-                const numericValue = Number(parsed)
-                const numericBalance = Number(availableBalance)
-
-                if (!isNaN(numericValue) && !isNaN(numericBalance) && numericValue > numericBalance) {
-                  // Set to max balance if exceeds
-                  return availableBalance
-                }
-              }
-
-              return parsed
+              return parsed ?? formData.amount
             }}
             rightContent={
-              formData.amount !== '' && (
-                <Text size='sm' className='text-dash-primary-dark-blue opacity-35 ml-2' dim>
-                  {formatUSDValue(formData.amount)}
-                </Text>
-              )
-            }
-          />
-
-          {/* Quick Amount Buttons */}
-          <div className='flex gap-2'>
-            {QUICK_AMOUNT_BUTTONS.map((button) => (
               <Button
-                key={button.label}
-                onClick={() => handleQuickAmount(button.value)}
+                onClick={() => handleQuickAmount(1)}
                 variant='solid'
                 colorScheme='lightBlue'
                 size='sm'
-                className='px-2 py-1 !min-h-0 text-[0.75rem] leading-1'
+                className='px-2 py-1 !min-h-0 text-[0.75rem] leading-[1.2] bg-[rgba(76,126,255,0.05)] text-dash-brand hover:bg-[rgba(76,126,255,0.1)] flex-shrink-0'
               >
-                {button.label}
+                Max
               </Button>
-            ))}
-          </div>
+            }
+          />
+
+          {/* Equivalent Input */}
+          {formData.selectedAsset === 'credits' && (
+            <AutoSizingInput
+              value={equivalentAmount}
+              onChange={handleEquivalentChange}
+              placeholder='0'
+              useDefaultStyles={false}
+              sizing='auto'
+              containerClassName='flex-shrink-0 max-w-[40%]'
+              className='flex items-center gap-2 px-2 pl-2 py-1 border-0 border-b border-solid border-[rgba(12,28,51,0.15)] rounded-xl h-8'
+              inputClassName='text-dash-primary-dark-blue opacity-35 font-["Space_Grotesk"] font-medium text-[1rem] leading-[1.2] placeholder:text-[rgba(12,28,51,0.2)]'
+              minWidth={48}
+              onChangeFilter={(value) => {
+                const decimals = equivalentCurrency === 'dash' ? 8 : 2
+                const parsed = parseDecimalInput(value, decimals)
+                return parsed ?? equivalentAmount
+              }}
+              rightContent={
+                <div ref={currencyMenuRef} className='relative flex-shrink-0'>
+                  <div
+                    className='flex items-center gap-1 px-1 py-1 rounded-[1.5rem] bg-[rgba(12,28,51,0.05)] cursor-pointer'
+                    onClick={() => setShowEquivalentCurrencyMenu(!showEquivalentCurrencyMenu)}
+                  >
+                    <div className='w-4 h-4 rounded-full bg-dash-brand flex items-center justify-center'>
+                      {equivalentCurrency === 'usd'
+                        ? <span className='text-white text-[0.625rem] font-medium'>$</span>
+                        : <DashLogo className='w-2 h-2' color='white' />}
+                    </div>
+                    <ChevronIcon className='text-dash-primary-dark-blue w-2 h-1' />
+                  </div>
+
+                  {/* Currency Menu */}
+                  {showEquivalentCurrencyMenu && (
+                    <div className='absolute top-full right-0 mt-1 flex flex-col gap-2 p-1 bg-[#F3F3F4] rounded-xl z-10'>
+                      <div
+                        className='w-4 h-4 rounded-full bg-dash-brand flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity'
+                        onClick={() => handleEquivalentCurrencyChange('dash')}
+                      >
+                        <DashLogo className='w-2 h-2' color='white' />
+                      </div>
+                      <div
+                        className='w-4 h-4 rounded-full bg-dash-brand flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity'
+                        onClick={() => handleEquivalentCurrencyChange('usd')}
+                      >
+                        <span className='text-white text-[0.625rem] font-medium'>$</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              }
+            />
+          )}
+        </div>
+
+        {/* Quick Amount Buttons */}
+        <div className='flex gap-2'>
+          {QUICK_AMOUNT_BUTTONS.map((button) => (
+            <Button
+              key={button.label}
+              onClick={() => handleQuickAmount(button.value)}
+              variant='solid'
+              colorScheme='lightBlue'
+              size='sm'
+              className='px-2 py-1 !min-h-0 text-[0.75rem] leading-1'
+            >
+              {button.label}
+            </Button>
+          ))}
         </div>
       </div>
 
