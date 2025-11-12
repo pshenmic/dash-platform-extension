@@ -353,15 +353,24 @@ function SendTransactionState (): React.JSX.Element {
     setLastEditedField('amount')
     
     if (formData.selectedAsset === 'credits') {
-      // For credits (no decimals), use simple percentage
+      // For credits - deduct fee from balance before calculating percentage
       if (balance !== null && balance > 0n) {
-        const calculatedAmount = multiplyBigIntByPercentage(balance, percentage)
-        // Ensure amount doesn't exceed balance but meets minimum requirement
+        const fee = getEstimatedFeeBigInt()
+        const availableBalance = balance - fee
+
+        // Check if balance is enough to cover fee + minimum transfer
+        if (availableBalance < MIN_CREDIT_TRANSFER) {
+          setError(`Insufficient balance to cover fee and minimum transfer amount`)
+          return
+        }
+
+        const calculatedAmount = multiplyBigIntByPercentage(availableBalance, percentage)
+        // Ensure amount meets minimum requirement
         const amount = calculatedAmount < MIN_CREDIT_TRANSFER
           ? MIN_CREDIT_TRANSFER.toString()
           : calculatedAmount.toString()
         setFormData(prev => ({ ...prev, amount }))
-        
+
         // Update equivalent amount
         const creditsAmount = BigInt(amount)
         const dashValue = creditsToDash(creditsAmount)
@@ -570,7 +579,7 @@ function SendTransactionState (): React.JSX.Element {
 
   const getTotalAmount = (): string => {
     const fee = getEstimatedFeeBigInt()
-    
+
     if (formData.selectedAsset === 'credits') {
       if (formData.amount !== '') {
         const amountInCredits = BigInt(Math.floor(Number(formData.amount)))
@@ -580,17 +589,61 @@ function SendTransactionState (): React.JSX.Element {
       // If no amount entered, show only fee
       return fee.toLocaleString()
     }
+
+    // For tokens, show the token amount (if entered)
+    if (formData.amount !== '' && formData.amount !== '0') {
+      // Format token amount nicely
+      const numValue = Number(formData.amount)
+      if (!isNaN(numValue)) {
+        return numValue.toLocaleString(undefined, { 
+          minimumFractionDigits: 0, 
+          maximumFractionDigits: 8 
+        })
+      }
+      return formData.amount
+    }
     
-    // For tokens, show only fee (tokens are separate, fee is in credits)
-    return fee.toLocaleString()
+    return '0'
   }
 
-  const getTotalAmountLabel = (): string => {
+  const getTotalAmountUnit = (): string => {
     if (formData.selectedAsset === 'credits') {
-      return 'Total Amount:'
+      return 'Credits'
     }
-    // For tokens, it's just the fee in credits
-    return 'Total Fee:'
+
+    // For tokens, get token name
+    const token = getSelectedToken()
+    if (token != null) {
+      const tokenName = token.localizations?.en?.singularForm ?? token.identifier
+      return tokenName.charAt(0).toUpperCase() + tokenName.slice(1)
+    }
+
+    return 'Tokens'
+  }
+
+  const getWillBeSentAmount = (): string => {
+    if (formData.amount !== '' && formData.amount !== '0') {
+      if (formData.selectedAsset === 'credits') {
+        const amountInCredits = BigInt(Math.floor(Number(formData.amount)))
+        return amountInCredits.toLocaleString()
+      }
+      
+      // For tokens
+      const numValue = Number(formData.amount)
+      if (!isNaN(numValue)) {
+        return numValue.toLocaleString(undefined, { 
+          minimumFractionDigits: 0, 
+          maximumFractionDigits: 8 
+        })
+      }
+      return formData.amount
+    }
+    
+    return '0'
+  }
+
+  const getWillBeSentUnit = (): string => {
+    return getTotalAmountUnit()
   }
 
   return (
@@ -796,15 +849,27 @@ function SendTransactionState (): React.JSX.Element {
           </Text>
         </div>
 
-        {/* Total Amount Row */}
+        {/* Will be sent Row */}
         <div className='flex items-center justify-between w-full'>
-          <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
-            {getTotalAmountLabel()}
+          <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50'>
+            Will be sent:
           </Text>
-          <Text size='sm' className='text-dash-primary-dark-blue text-right font-extrabold'>
-            {getTotalAmount()} Credits
+          <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50 text-right'>
+            {getWillBeSentAmount()} {getWillBeSentUnit()}
           </Text>
         </div>
+
+        {/* Total Amount Row - Only for Credits */}
+        {formData.selectedAsset === 'credits' && (
+          <div className='flex items-center justify-between w-full'>
+            <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
+              Total Amount:
+            </Text>
+            <Text size='sm' className='text-dash-primary-dark-blue text-right font-extrabold'>
+              ~{getTotalAmount()} {getTotalAmountUnit()}
+            </Text>
+          </div>
+        )}
       </div>
 
       {/* Action Button */}
