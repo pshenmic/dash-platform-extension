@@ -46,6 +46,18 @@ const QUICK_AMOUNT_BUTTONS = [
 // Minimum credit transfer amount enforced by the protocol (0.001 DASH)
 const MIN_CREDIT_TRANSFER = 100000n
 
+// Estimated fees by network and asset type
+const ESTIMATED_FEES = {
+  testnet: {
+    credits: 2700000n,
+    tokens: 100000000n
+  },
+  mainnet: {
+    credits: 3300000n,
+    tokens: 110000000n
+  }
+} as const
+
 function SendTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
@@ -543,6 +555,44 @@ function SendTransactionState (): React.JSX.Element {
     return '0'
   }
 
+  const getEstimatedFee = (): string => {
+    const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+    const assetType = formData.selectedAsset === 'credits' ? 'credits' : 'tokens'
+    const fee = ESTIMATED_FEES[network][assetType]
+    return `~${fee.toLocaleString()}`
+  }
+
+  const getEstimatedFeeBigInt = (): bigint => {
+    const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+    const assetType = formData.selectedAsset === 'credits' ? 'credits' : 'tokens'
+    return ESTIMATED_FEES[network][assetType]
+  }
+
+  const getTotalAmount = (): string => {
+    const fee = getEstimatedFeeBigInt()
+    
+    if (formData.selectedAsset === 'credits') {
+      if (formData.amount !== '') {
+        const amountInCredits = BigInt(Math.floor(Number(formData.amount)))
+        const total = amountInCredits + fee
+        return total.toLocaleString()
+      }
+      // If no amount entered, show only fee
+      return fee.toLocaleString()
+    }
+    
+    // For tokens, show only fee (tokens are separate, fee is in credits)
+    return fee.toLocaleString()
+  }
+
+  const getTotalAmountLabel = (): string => {
+    if (formData.selectedAsset === 'credits') {
+      return 'Total Amount:'
+    }
+    // For tokens, it's just the fee in credits
+    return 'Total Fee:'
+  }
+
   return (
     <div className='screen-content'>
       {/* Title Section with Asset Selector */}
@@ -733,6 +783,29 @@ function SendTransactionState (): React.JSX.Element {
           {error}
         </ValueCard>
       )}
+
+      {/* Transaction Summary Card */}
+      <div className='flex flex-col gap-3 p-3 bg-white rounded-[0.9375rem] shadow-[0px_0px_35px_0px_rgba(0,0,0,0.1)]'>
+        {/* Fees Row */}
+        <div className='flex items-center justify-between w-full'>
+          <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50'>
+            Fees:
+          </Text>
+          <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50 text-right'>
+            {getEstimatedFee()} Credits
+          </Text>
+        </div>
+
+        {/* Total Amount Row */}
+        <div className='flex items-center justify-between w-full'>
+          <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
+            {getTotalAmountLabel()}
+          </Text>
+          <Text size='sm' className='text-dash-primary-dark-blue text-right font-extrabold'>
+            {getTotalAmount()} Credits
+          </Text>
+        </div>
+      </div>
 
       {/* Action Button */}
       <div className='flex flex-col gap-4'>
