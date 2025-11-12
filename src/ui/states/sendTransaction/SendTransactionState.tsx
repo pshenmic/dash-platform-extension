@@ -7,8 +7,7 @@ import {
   Badge,
   Avatar,
   ValueCard,
-  Identifier,
-  BigNumber
+  Identifier
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
 import { AutoSizingInput, AssetSelectionMenu } from '../../components/controls'
@@ -52,7 +51,7 @@ function SendTransactionState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
-  const { currentNetwork, currentIdentity, setHeaderComponent } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentIdentity, setHeaderComponent, allWallets, currentWallet } = useOutletContext<OutletContext>()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [balance, setBalance] = useState<bigint | null>(null)
@@ -103,12 +102,22 @@ function SendTransactionState (): React.JSX.Element {
     }).catch(e => console.log('loadTokens error:', e))
   }, [currentIdentity, currentNetwork, platformExplorerClient, loadTokens])
 
-  // Set header component with balance info
-  useEffect(() => {
-    const hasBalance = (formData.selectedAsset === 'credits' && balance !== null) ||
-      (formData.selectedAsset !== 'credits' && getSelectedToken() != null)
+  // Get wallet name for display
+  const getWalletName = (): string => {
+    if (currentWallet == null || allWallets == null || allWallets.length === 0) return 'Wallet'
 
-    if (hasBalance && currentIdentity !== null) {
+    const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
+    const currentWalletData = availableWallets.find(wallet => wallet.walletId === currentWallet)
+
+    if (currentWalletData == null) return 'Wallet'
+
+    const currentWalletIndex = availableWallets.findIndex(wallet => wallet.walletId === currentWallet)
+    return currentWalletData.label ?? `Wallet_${currentWalletIndex + 1}`
+  }
+
+  // Set header component with identity and wallet info
+  useEffect(() => {
+    if (currentIdentity !== null) {
       setHeaderComponent(
         <ValueCard colorScheme='lightGray' border={false} className='py-[0.5rem] px-[0.625rem]'>
           <div className='flex items-center gap-2'>
@@ -119,15 +128,9 @@ function SendTransactionState (): React.JSX.Element {
               <Identifier className='text-xs leading-[100%]' highlight='both' middleEllipsis edgeChars={4}>
                 {currentIdentity}
               </Identifier>
-              <div className='flex items-baseline gap-1 leading-[90%]'>
-                <Text size='xs' dim>Balance:</Text>
-                <BigNumber className='text-dash-primary-dark-blue font-medium text-[0.75rem] weight-bold'>
-                  {getFormattedBalance()}
-                </BigNumber>
-                <Text size='xs' weight='bold' className='text-dash-primary-dark-blue opacity-50'>
-                  {getAssetLabel()}
-                </Text>
-              </div>
+              <Text size='xs' dim className='leading-[90%]'>
+                {getWalletName()}
+              </Text>
             </div>
           </div>
         </ValueCard>
@@ -138,7 +141,7 @@ function SendTransactionState (): React.JSX.Element {
     return () => {
       setHeaderComponent(null)
     }
-  }, [balance, rate, formData.selectedAsset, tokensState.data, currentIdentity, setHeaderComponent])
+  }, [currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent])
 
   // Handle recipient selection
   const handleRecipientSelect = (recipient: RecipientSearchResult): void => {
@@ -339,6 +342,19 @@ function SendTransactionState (): React.JSX.Element {
     return ''
   }
 
+  const getBalanceUSDValue = (): string | null => {
+    if ((rate === null || rate === undefined)) return null
+
+    if (formData.selectedAsset === 'credits' && balance !== null) {
+      const dashValue = creditsToDashBigInt(balance)
+      const dashAmount = Number(dashValue)
+      const usdValue = dashAmount * rate
+      return `~ $${usdValue.toFixed(3)}`
+    }
+
+    return null
+  }
+
   const handleAssetSelect = (asset: string): void => {
     setFormData(prev => ({ ...prev, selectedAsset: asset, amount: '' }))
   }
@@ -401,6 +417,22 @@ function SendTransactionState (): React.JSX.Element {
         title='Send Transaction'
         description='Carefully check the transaction details before continuing'
       />
+
+      {/* Balance Display */}
+      {((formData.selectedAsset === 'credits' && balance !== null) || (formData.selectedAsset !== 'credits' && getSelectedToken() != null)) && (
+        <div className='flex items-center gap-3'>
+          <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50'>
+            Balance: {getFormattedBalance()} {getAssetLabel()}
+          </Text>
+          {getBalanceUSDValue() !== null && (
+            <div className='px-[0.3125rem] py-0 rounded-[0.3125rem] bg-[rgba(12,28,51,0.05)] flex items-center justify-center'>
+              <Text size='2xs' weight='light' className='text-dash-primary-dark-blue !text-[0.625rem] !leading-[1.2]'>
+                {getBalanceUSDValue()}
+              </Text>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Amount Input and Asset Selection */}
       <div className='flex justify-center'>
@@ -487,51 +519,6 @@ function SendTransactionState (): React.JSX.Element {
           </div>
         </div>
       </div>
-
-      {/* Identity Info */}
-      {/* {(currentIdentity !== null && currentIdentity !== undefined) && (
-        <ValueCard colorScheme='gray' className='flex flex-col items-start gap-3'>
-          <div className='flex items-center justify-between w-full gap-4'>
-            <Text size='sm' dim className='whitespace-nowrap'>
-              From Identity:
-            </Text>
-            <Identifier avatar className='text-sm text-right' highlight='both' linesAdjustment={false}>
-              {currentIdentity}
-            </Identifier>
-          </div>
-
-          <div className='flex items-center justify-between w-full gap-4'>
-            <Text size='sm' dim>
-              Available Balance:
-            </Text>
-            <div className='flex flex-col items-end gap-1'>
-              {(formData.selectedAsset === 'credits' && balance !== null) || (formData.selectedAsset !== 'credits' && getSelectedToken() != null)
-                ? (
-                  <>
-                    <div className='flex items-center gap-1.5'>
-                      <BigNumber className='text-dash-primary-dark-blue font-medium'>
-                        {getFormattedBalance()}
-                      </BigNumber>
-                      <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
-                        {getAssetLabel()}
-                      </Text>
-                    </div>
-                    {getBalanceUSDValue() !== null && (
-                      <Text size='xs' className='text-dash-primary-dark-blue opacity-35'>
-                        {getBalanceUSDValue()}
-                      </Text>
-                    )}
-                  </>
-                  )
-                : (
-                  <Text size='sm' className='text-dash-primary-dark-blue opacity-35'>
-                    Loading...
-                  </Text>
-                  )}
-            </div>
-          </div>
-        </ValueCard>
-      )} */}
 
       {/* Recipient Input */}
       <div className='flex flex-col gap-2.5'>
