@@ -4,7 +4,6 @@ import {
   Button,
   Text,
   ChevronIcon,
-  Badge,
   Avatar,
   ValueCard,
   Identifier
@@ -13,7 +12,6 @@ import { base64 } from '@scure/base'
 import { AutoSizingInput, AssetSelectionMenu } from '../../components/controls'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI, useAsyncState, useSdk, usePlatformExplorerClient } from '../../hooks'
-import { TitleBlock } from '../../components/layout/TitleBlock'
 import { RecipientSearchInput } from '../../components/Identities'
 import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
@@ -124,7 +122,7 @@ function SendTransactionState (): React.JSX.Element {
             <div className='flex items-center justify-center rounded-full w-[2rem] h-[2rem] bg-[rgba(12,28,51,0.03)]'>
               <Avatar username={currentIdentity} className='w-4 h-4' />
             </div>
-            <div>
+            <div className='flex flex-col gap-1'>
               <Identifier className='text-xs leading-[100%]' highlight='both' middleEllipsis edgeChars={4}>
                 {currentIdentity}
               </Identifier>
@@ -378,26 +376,6 @@ function SendTransactionState (): React.JSX.Element {
     return 'N/A'
   }
 
-  const getAssetIcon = (): React.ReactNode => {
-    if (formData.selectedAsset === 'credits') {
-      return (
-        <span className='text-dash-brand text-[0.6rem] font-medium'>C</span>
-      )
-    }
-
-    const token = getSelectedToken()
-    if (token != null) {
-      return (
-        <Avatar
-          username={token.identifier}
-          className='w-4 h-4'
-        />
-      )
-    }
-
-    return null
-  }
-
   const getFormattedBalance = (): string => {
     if (formData.selectedAsset === 'credits' && balance !== null) {
       return balance.toString()
@@ -413,26 +391,70 @@ function SendTransactionState (): React.JSX.Element {
 
   return (
     <div className='screen-content'>
-      <TitleBlock
-        title='Send Transaction'
-        description='Carefully check the transaction details before continuing'
-      />
+      {/* Title Section with Asset Selector */}
+      <div className='flex flex-col gap-6'>
+        <div className='flex flex-col gap-2'>
+          {/* Title and Asset Selector */}
+          <div className='flex items-center gap-[1.125rem]'>
+            <Text className='text-dash-primary-dark-blue !text-[2.5rem] !font-medium !leading-[1.25] tracking-[-0.03em]'>
+              Transfer
+            </Text>
 
-      {/* Balance Display */}
-      {((formData.selectedAsset === 'credits' && balance !== null) || (formData.selectedAsset !== 'credits' && getSelectedToken() != null)) && (
-        <div className='flex items-center gap-3'>
-          <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50'>
-            Balance: {getFormattedBalance()} {getAssetLabel()}
-          </Text>
-          {getBalanceUSDValue() !== null && (
-            <div className='px-[0.3125rem] py-0 rounded-[0.3125rem] bg-[rgba(12,28,51,0.05)] flex items-center justify-center'>
-              <Text size='2xs' weight='light' className='text-dash-primary-dark-blue !text-[0.625rem] !leading-[1.2]'>
-                {getBalanceUSDValue()}
+            {/* Asset Selector Badge */}
+            <div
+              className='flex items-center gap-3 px-2 py-1 pl-1 rounded-xl bg-[rgba(76,126,255,0.15)] cursor-pointer'
+              onClick={() => setShowAssetSelection(true)}
+            >
+              {/* Asset Icon */}
+              {formData.selectedAsset === 'credits'
+                ? (
+                  <div className='w-8 h-8 rounded-lg flex items-center justify-center bg-white'>
+                    <span className='text-dash-brand text-[0.875rem] font-medium'>C</span>
+                  </div>
+                  )
+                : (
+                  <div className='w-8 h-8 rounded-lg flex items-center justify-center bg-white'>
+                    <Avatar
+                      username={getSelectedToken()?.identifier ?? ''}
+                      className='w-8 h-8'
+                    />
+                  </div>
+                  )}
+
+              {/* Asset Name */}
+              <Text className='text-dash-brand !text-[1.5rem] !font-medium !leading-[1.2]'>
+                {formData.selectedAsset === 'credits'
+                  ? 'Credits'
+                  : (getSelectedToken()?.localizations?.en?.singularForm ?? getSelectedToken()?.identifier ?? 'Token')}
               </Text>
+
+              {/* Chevron */}
+              <ChevronIcon className='text-dash-brand w-3 h-[0.375rem]' />
+            </div>
+          </div>
+
+          {/* Balance Display */}
+          {((formData.selectedAsset === 'credits' && balance !== null) || (formData.selectedAsset !== 'credits' && getSelectedToken() != null)) && (
+            <div className='flex items-center gap-3'>
+              <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50'>
+                Balance: {getFormattedBalance()} {getAssetLabel()}
+              </Text>
+              {getBalanceUSDValue() !== null && (
+                <div className='px-[0.3125rem] py-0 rounded-[0.3125rem] bg-[rgba(12,28,51,0.05)] flex items-center justify-center'>
+                  <Text size='2xs' weight='light' className='text-dash-primary-dark-blue !text-[0.625rem] !leading-[1.2]'>
+                    {getBalanceUSDValue()}
+                  </Text>
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
+
+        {/* Description */}
+        <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50'>
+          You are going to transfer {formData.selectedAsset === 'credits' ? 'credits' : 'tokens'} from your account with this transaction. Carefully check the transaction details before proceeding to the next step.
+        </Text>
+      </div>
 
       {/* Amount Input and Asset Selection */}
       <div className='flex justify-center'>
@@ -476,46 +498,20 @@ function SendTransactionState (): React.JSX.Element {
             }
           />
 
-          {/* Asset Selection and Quick Buttons */}
-          <div className='flex gap-3'>
-            {/* Asset Selection */}
-            <Badge
-              color='light-gray'
-              variant='flat'
-              size='xxs'
-              className='flex items-center gap-2 w-max cursor-pointer'
-              onClick={() => setShowAssetSelection(true)}
-            >
-              {formData.selectedAsset === 'credits'
-                ? (
-                  <div className='w-4 h-4 rounded-full flex items-center justify-center bg-[rgba(12,28,51,0.05)]'>
-                    {getAssetIcon()}
-                  </div>
-                  )
-                : (
-                    getAssetIcon()
-                  )}
-              <Text weight='bold' className='text-dash-primary-dark-blue !text-[0.75rem]'>
-                {getAssetLabel()}
-              </Text>
-              <ChevronIcon className='text-dash-primary-dark-blue mr-1 w-2 h-2' />
-            </Badge>
-
-            {/* Quick Amount Buttons */}
-            <div className='flex gap-2'>
-              {QUICK_AMOUNT_BUTTONS.map((button) => (
-                <Button
-                  key={button.label}
-                  onClick={() => handleQuickAmount(button.value)}
-                  variant='solid'
-                  colorScheme='lightBlue'
-                  size='sm'
-                  className='px-2 py-1 !min-h-0 text-[0.75rem] leading-1'
-                >
-                  {button.label}
-                </Button>
-              ))}
-            </div>
+          {/* Quick Amount Buttons */}
+          <div className='flex gap-2'>
+            {QUICK_AMOUNT_BUTTONS.map((button) => (
+              <Button
+                key={button.label}
+                onClick={() => handleQuickAmount(button.value)}
+                variant='solid'
+                colorScheme='lightBlue'
+                size='sm'
+                className='px-2 py-1 !min-h-0 text-[0.75rem] leading-1'
+              >
+                {button.label}
+              </Button>
+            ))}
           </div>
         </div>
       </div>
