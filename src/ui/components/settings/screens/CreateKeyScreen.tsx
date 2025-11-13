@@ -265,20 +265,6 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         )}
       </div>
 
-      {/* Info for seed phrase wallets */}
-      {isSeedPhraseWallet && (
-        <div className='px-4 mb-4'>
-          <ValueCard colorScheme='lightBlue' className='border-l-4 border-blue-500'>
-            <Text size='sm' weight='medium' className='!text-blue-700 mb-2'>
-              ℹ️ Seed Phrase Wallet
-            </Text>
-            <Text size='sm' dim>
-              The key will be derived from your seed phrase using the proper derivation path. You'll need to enter your password to unlock the seed phrase.
-            </Text>
-          </ValueCard>
-        </div>
-      )}
-
       {/* Form Fields */}
       <div className='flex-1 px-4 space-y-6 overflow-y-auto'>
         {/* Password field for seed phrase wallets */}
