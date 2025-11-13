@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { base64 } from '@scure/base'
-import { Text, Button, ValueCard, Identifier, Input } from 'dash-ui-kit/react'
+import { Text, Button, ValueCard, Identifier, Input, InfoCircleIcon } from 'dash-ui-kit/react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { WalletType } from '../../../../types'
 import { useExtensionAPI, useSdk } from '../../../hooks'
@@ -246,9 +246,9 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   const isSeedPhraseWallet = currentWallet?.type === WalletType.seedphrase
 
   return (
-    <div className='flex flex-col h-full'>
+    <div className='flex flex-col h-full gap-4'>
       {/* Header Description */}
-      <div className='px-4 mb-6'>
+      <div className='flex flex-col gap-2 mb-2'>
         <Text size='sm' dim>
           Create a new public key, carefully check all the information before proceeding.
         </Text>
@@ -256,7 +256,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
           <Identifier
             key={currentIdentity}
             middleEllipsis
-            edgeChars={8}
+            // edgeChars={8}
             highlight='both'
             avatar
           >
@@ -266,23 +266,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       </div>
 
       {/* Form Fields */}
-      <div className='flex-1 px-4 space-y-6 overflow-y-auto'>
-        {/* Password field for seed phrase wallets */}
-        {isSeedPhraseWallet && (
-          <div className='flex flex-col gap-3'>
-            <Text size='sm' dim>
-              Password *
-            </Text>
-            <Input
-              type='password'
-              placeholder='Enter your wallet password'
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className='w-full'
-            />
-          </div>
-        )}
-
+      <div className='flex-1 space-y-6 overflow-y-auto'>
         <SelectField
           label='Type'
           options={KEY_TYPES}
@@ -314,43 +298,58 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
 
       {/* Error Display */}
       {error != null && (
-        <div className='px-4 mb-4'>
-          <ValueCard colorScheme='yellow' className='break-words whitespace-pre-wrap'>
-            <Text color='red'>{error}</Text>
-          </ValueCard>
-        </div>
+        <ValueCard colorScheme='yellow' className='break-words whitespace-pre-wrap'>
+          <Text color='red'>{error}</Text>
+        </ValueCard>
       )}
 
       {/* Info Tooltip */}
-      <div className='px-4 mb-4'>
-        <ValueCard
-          colorScheme='white'
-          className='flex-row items-start gap-3 border-l-2 border-blue-600'
-        >
-          <div className='flex-shrink-0 w-3.5 h-3.5 mt-0.5'>
-            <svg
-              width='14'
-              height='14'
-              viewBox='0 0 14 14'
-              fill='none'
-              xmlns='http://www.w3.org/2000/svg'
-            >
-              <path
-                d='M7 0.333374C3.32 0.333374 0.333344 3.32004 0.333344 7.00004C0.333344 10.68 3.32 13.6667 7 13.6667C10.68 13.6667 13.6667 10.68 13.6667 7.00004C13.6667 3.32004 10.68 0.333374 7 0.333374ZM7.66668 10.3334H6.33334V6.33337H7.66668V10.3334ZM7.66668 5.00004H6.33334V3.66671H7.66668V5.00004Z'
-                fill='currentColor'
-              />
-            </svg>
+      <ValueCard
+        colorScheme='white'
+        className='flex-row items-start gap-3 border-l-2 border-blue-600'
+      >
+        <InfoCircleIcon size={14} className='flex-shrink-0'/>
+        <div className='flex-1'>
+          <Text size='xs' weight='medium'>
+            Some information can&apos;t be changed after adding a key.
+          </Text>
+        </div>
+      </ValueCard>
+
+      <div className='flex flex-col gap-2'>
+        {/* Info for seed phrase wallets */}
+        {isSeedPhraseWallet && (
+          <div className='mb-4'>
+            <ValueCard colorScheme='lightBlue' className='border-l-4 border-blue-500'>
+              <Text size='sm' weight='medium' className='!text-blue-700 mb-2'>
+                Seed Phrase Wallet
+              </Text>
+              <Text size='sm' dim>
+                The key will be derived from your seed phrase using the proper derivation path. You'll need to enter your password to unlock the seed phrase.
+              </Text>
+            </ValueCard>
           </div>
-          <div className='flex-1'>
-            <Text size='xs' weight='medium'>
-              Some information can&apos;t be changed after adding a key.
+        )}
+
+        {/* Password field for seed phrase wallets */}
+        {isSeedPhraseWallet && (
+          <div className='flex flex-col gap-3'>
+            <Text size='sm' dim>
+              Password *
             </Text>
+            <Input
+              type='password'
+              placeholder='Enter your wallet password'
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className='w-full'
+            />
           </div>
-        </ValueCard>
+        )}
       </div>
 
       {/* Create Button */}
-      <div className='p-4 mt-auto'>
+      <div className='mt-auto'>
         <Button
           colorScheme='brand'
           variant='outline'
