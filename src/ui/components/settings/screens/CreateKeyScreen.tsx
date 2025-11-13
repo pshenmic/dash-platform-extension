@@ -266,7 +266,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       </div>
 
       {/* Form Fields */}
-      <div className='flex-1 space-y-6 overflow-y-auto'>
+      <div className='flex-1 space-y-6'>
         <SelectField
           label='Type'
           options={KEY_TYPES}
