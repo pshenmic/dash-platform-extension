@@ -7,6 +7,7 @@ import { WalletType } from '../../../../types'
 import { useExtensionAPI, useSdk } from '../../../hooks'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { hexToBytes } from '../../../../utils'
+import { InfoCard } from '../../common'
 
 export const createKeyScreenConfig: ScreenConfig = {
   id: 'create-key-settings',
@@ -256,12 +257,23 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
           <Identifier
             key={currentIdentity}
             middleEllipsis
-            // edgeChars={8}
+            edgeChars={8}
             highlight='both'
             avatar
           >
             {currentIdentity}
           </Identifier>
+        )}
+        {/* Info for seed phrase wallets */}
+        {isSeedPhraseWallet && (
+          <div className='flex flex-col gap-1 mt-1'>
+            <Text size='sm' weight='medium'>
+              Seed Phrase Wallet
+            </Text>
+            <Text size='sm' dim>
+              The key will be derived from your seed phrase using the proper derivation path. You'll need to enter your password to unlock the seed phrase.
+            </Text>
+          </div>
         )}
       </div>
 
@@ -304,33 +316,18 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       )}
 
       {/* Info Tooltip */}
-      <ValueCard
-        colorScheme='white'
-        className='flex-row items-start gap-3 border-l-2 border-blue-600'
+      <InfoCard
+        className='flex flex-row items-center gap-3'
+        borderColor='black'
+        backgroundColor='light'
       >
-        <InfoCircleIcon size={14} className='flex-shrink-0'/>
-        <div className='flex-1'>
-          <Text size='xs' weight='medium'>
-            Some information can&apos;t be changed after adding a key.
-          </Text>
-        </div>
-      </ValueCard>
+        <InfoCircleIcon size={14} className='flex-shrink-0 text-dash-primary-dark-blue'/>
+        <Text size='sm' weight='medium' className='text-[0.75rem]'>
+          Some information can&apos;t be changed after adding a key.
+        </Text>
+      </InfoCard>
 
       <div className='flex flex-col gap-2'>
-        {/* Info for seed phrase wallets */}
-        {isSeedPhraseWallet && (
-          <div className='mb-4'>
-            <ValueCard colorScheme='lightBlue' className='border-l-4 border-blue-500'>
-              <Text size='sm' weight='medium' className='!text-blue-700 mb-2'>
-                Seed Phrase Wallet
-              </Text>
-              <Text size='sm' dim>
-                The key will be derived from your seed phrase using the proper derivation path. You'll need to enter your password to unlock the seed phrase.
-              </Text>
-            </ValueCard>
-          </div>
-        )}
-
         {/* Password field for seed phrase wallets */}
         {isSeedPhraseWallet && (
           <div className='flex flex-col gap-3'>
@@ -349,7 +346,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       </div>
 
       {/* Create Button */}
-      <div className='mt-auto'>
+      <div className='mt-auto pb-4'>
         <Button
           colorScheme='brand'
           variant='outline'
