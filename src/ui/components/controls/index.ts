@@ -1,4 +1,5 @@
 export { AssetSelectionMenu } from './AssetSelectionMenu'
+export { AssetSelectorBadge } from './AssetSelectorBadge'
 export { AutoSizingInput } from './AutoSizingInput'
 export { ConfirmDialog } from './ConfirmDialog'
 export { NetworkSelector } from './NetworkSelector'
