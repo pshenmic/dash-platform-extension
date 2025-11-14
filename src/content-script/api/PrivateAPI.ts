@@ -35,6 +35,8 @@ import { ExportPrivateKeyHandler } from './private/identities/exportPrivateKey'
 import { RegisterUsernameHandler } from './private/identities/registerUsername'
 import { ImportMasternodeIdentityHandler } from './private/identities/importMasternodeIdentity'
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
+import { CreateIdentityKeyHandler } from './private/identities/createIdentityKey'
+import { ImportPendingKeysHandler } from './private/identities/importPendingKeys'
 
 /**
  * Handlers for a messages within extension context
@@ -91,7 +93,7 @@ export class PrivateAPI {
       [MessagingMethods.GET_AVAILABLE_KEY_PAIRS]: new GetAvailableKeyPairs(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.GET_IDENTITIES]: new GetIdentitiesHandler(identitiesRepository),
       [MessagingMethods.GET_CURRENT_IDENTITY]: new GetCurrentIdentityHandler(walletRepository),
-      [MessagingMethods.APPROVE_STATE_TRANSITION]: new ApproveStateTransitionHandler(stateTransitionsRepository, identitiesRepository, walletRepository, keypairRepository, this.sdk),
+      [MessagingMethods.APPROVE_STATE_TRANSITION]: new ApproveStateTransitionHandler(stateTransitionsRepository, identitiesRepository, walletRepository, keypairRepository, this.storageAdapter, this.sdk),
       [MessagingMethods.GET_STATE_TRANSITION]: new GetStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.REJECT_STATE_TRANSITION]: new RejectStateTransitionHandler(stateTransitionsRepository, walletRepository),
       [MessagingMethods.CREATE_WALLET]: new CreateWalletHandler(walletRepository, this.sdk, this.storageAdapter),
@@ -104,7 +106,9 @@ export class PrivateAPI {
       [MessagingMethods.APPROVE_APP_CONNECT]: new ApproveAppConnectHandler(appConnectRepository, this.storageAdapter),
       [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter),
       [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
-      [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository)
+      [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
+      [MessagingMethods.CREATE_IDENTITY_KEY]: new CreateIdentityKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, this.sdk),
+      [MessagingMethods.IMPORT_PENDING_KEYS]: new ImportPendingKeysHandler(keypairRepository, this.storageAdapter, this.sdk)
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {
