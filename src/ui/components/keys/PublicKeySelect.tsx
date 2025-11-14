@@ -8,6 +8,7 @@ export interface PublicKeyInfo {
   purpose: string
   securityLevel: string
   hash: string
+  disabledAt?: number | null
 }
 
 export interface KeyRequirement {
@@ -37,12 +38,16 @@ export function PublicKeySelect ({
   // Auto-select first compatible key when keys or requirements change
   useEffect(() => {
     if (keys.length > 0) {
-      const compatibleKeys = keys.filter(key => isKeyCompatible(key, keyRequirements))
+      const compatibleKeys = keys.filter(key => 
+        isKeyCompatible(key, keyRequirements) && key.disabledAt == null
+      )
 
       if (compatibleKeys.length > 0) {
         const currentKey = keys.find(key => key.keyId.toString() === value)
 
-        const isCurrentKeyCompatible = (currentKey != null) ? isKeyCompatible(currentKey, keyRequirements) : false
+        const isCurrentKeyCompatible = (currentKey != null) 
+          ? isKeyCompatible(currentKey, keyRequirements) && currentKey.disabledAt == null
+          : false
 
         // Select first compatible key if no key selected or current key is not compatible
         if (value === '' || value == null || !isCurrentKeyCompatible) {
@@ -57,9 +62,10 @@ export function PublicKeySelect ({
     const keyValue = key.keyId.toString()
     const purposeLabel = getPurposeLabel(key.purpose)
     const securityLabel = getSecurityLabel(key.securityLevel)
+    const isDisabled = key.disabledAt != null
 
-    // Check if key is compatible with requirements
-    const isKeyDisabled = !isKeyCompatible(key, keyRequirements)
+    // Check if key is compatible with requirements or disabled
+    const isKeyDisabled = !isKeyCompatible(key, keyRequirements) || isDisabled
 
     return {
       value: keyValue,
@@ -98,6 +104,10 @@ export function PublicKeySelect ({
                 {purposeLabel}
               </Text>
             </ValueCard>
+
+            {isDisabled && (
+              <Text size='sm' dim>disabled</Text>
+            )}
           </div>
         </div>
       )
