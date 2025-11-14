@@ -283,7 +283,7 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CREATE_STATE_TRANSITION, payload)
   }
 
-  async createIdentityKey (identity: string, password: string): Promise<CreateIdentityKeyResponse> {
+  async createIdentityKey (identity: string, password?: string): Promise<CreateIdentityKeyResponse> {
     const payload: CreateIdentityKeyPayload = {
       identity,
       password

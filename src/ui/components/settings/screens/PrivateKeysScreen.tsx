@@ -637,16 +637,14 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
             )}
 
             {/* Create Key Button - Only show for seed phrase wallets */}
-            {isSeedPhraseWallet && (
-              <button
-                onClick={handleCreateKey}
-                className='flex-1 bg-blue-50 hover:bg-blue-100 transition-colors rounded-2xl px-6 py-3'
-              >
-                <span className='text-base font-medium text-blue-600'>
-                  Create New Key
-                </span>
-              </button>
-            )}
+            <button
+              onClick={handleCreateKey}
+              className='flex-1 bg-blue-50 hover:bg-blue-100 transition-colors rounded-2xl px-6 py-3'
+            >
+              <span className='text-base font-medium text-blue-600'>
+                Create New Key
+              </span>
+            </button>
           </div>
         </div>
       )}

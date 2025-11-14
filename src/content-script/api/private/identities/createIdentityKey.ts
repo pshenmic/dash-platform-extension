@@ -43,6 +43,11 @@ export class CreateIdentityKeyHandler implements APIHandler {
         throw new Error('Encrypted mnemonic not set for seedphrase wallet')
       }
 
+      // Check password is provided for seedphrase wallets
+      if (payload.password == null || payload.password.length === 0) {
+        throw new Error('Password is required for seed phrase wallets')
+      }
+
       // Decrypt the mnemonic using the password
       const passwordHash = hash.sha256().update(payload.password).digest('hex')
       const secretKey = PrivateKey.fromHex(passwordHash)
@@ -100,10 +105,6 @@ export class CreateIdentityKeyHandler implements APIHandler {
   validatePayload (payload: CreateIdentityKeyPayload): string | null {
     if (typeof payload.identity !== 'string' || payload.identity.length === 0) {
       return 'Identity identifier must be provided'
-    }
-
-    if (typeof payload.password !== 'string' || payload.password.length === 0) {
-      return 'Password must be provided'
     }
 
     return null

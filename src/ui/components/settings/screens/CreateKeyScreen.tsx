@@ -145,10 +145,11 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       })
 
       // Step 1: Generate/derive private key using the handler
-      // This will either derive from seed phrase (with password) or generate random (keystore)
+      // For seedphrase: derive from seed phrase (requires password)
+      // For keystore: generate random key (no password needed)
       const { privateKey: privateKeyHex, walletType } = await extensionAPI.createIdentityKey(
         currentIdentity,
-        password
+        currentWallet.type === WalletType.seedphrase ? password : undefined
       )
 
       console.log('Private key created for wallet type:', walletType)
