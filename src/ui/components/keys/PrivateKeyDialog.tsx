@@ -84,8 +84,8 @@ export const PrivateKeyDialog: React.FC<PrivateKeyDialogProps> = ({
   if (publicKey == null) return null
 
   return (
-    <Dialog 
-      open={isOpen} 
+    <Dialog
+      open={isOpen}
       onOpenChange={onOpenChange}
       className='w-[390px] max-w-[390px]'
       showCloseButton={false}
@@ -171,26 +171,26 @@ export const PrivateKeyDialog: React.FC<PrivateKeyDialogProps> = ({
               </div>
               )
             : (
-               /* Private Key Display State */
-               <div className='bg-white shadow-[0px_0px_25px_0px_rgba(0,0,0,0.05)] rounded-[20px] p-[15px]'>
-                 <div className='flex items-center justify-between gap-6'>
-                   <Text
-                     size='sm'
-                     weight='medium'
-                     className='break-all flex-1'
-                     monospace
-                   >
-                     {privateKeyData}
-                   </Text>
-                   <CopyButton
-                     text={privateKeyData}
-                     value={privateKeyData}
-                     className='p-[5px] bg-[rgba(12,28,51,0.05)] rounded-[5px] hover:bg-[rgba(12,28,51,0.1)] transition-colors shrink-0'
-                   />
-                 </div>
-               </div>
+              /* Private Key Display State */
+              <div className='bg-white shadow-[0px_0px_25px_0px_rgba(0,0,0,0.05)] rounded-[20px] p-[15px]'>
+                <div className='flex items-center justify-between gap-6'>
+                  <Text
+                    size='sm'
+                    weight='medium'
+                    className='break-all flex-1'
+                    monospace
+                  >
+                    {privateKeyData}
+                  </Text>
+                  <CopyButton
+                    text={privateKeyData}
+                    value={privateKeyData}
+                    className='p-[5px] bg-[rgba(12,28,51,0.05)] rounded-[5px] hover:bg-[rgba(12,28,51,0.1)] transition-colors shrink-0'
+                  />
+                </div>
+              </div>
               )}
-          </div>
+        </div>
 
         {/* Action Button */}
         <Button
@@ -207,4 +207,3 @@ export const PrivateKeyDialog: React.FC<PrivateKeyDialogProps> = ({
     </Dialog>
   )
 }
-

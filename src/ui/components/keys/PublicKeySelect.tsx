@@ -39,14 +39,14 @@ export function PublicKeySelect ({
   // Auto-select first compatible key when keys or requirements change
   useEffect(() => {
     if (keys.length > 0) {
-      const compatibleKeys = keys.filter(key => 
+      const compatibleKeys = keys.filter(key =>
         isKeyCompatible(key, keyRequirements) && key.disabledAt == null
       )
 
       if (compatibleKeys.length > 0) {
         const currentKey = keys.find(key => key.keyId.toString() === value)
 
-        const isCurrentKeyCompatible = (currentKey != null) 
+        const isCurrentKeyCompatible = (currentKey != null)
           ? isKeyCompatible(currentKey, keyRequirements) && currentKey.disabledAt == null
           : false
 

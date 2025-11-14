@@ -103,159 +103,161 @@ const PublicKeyItem: React.FC<{
   const isDisabled = publicKey.disabledAt != null
 
   return (
-  <div className='bg-gray-100 rounded-2xl p-3'>
-    <div
-      className='flex items-center justify-between cursor-pointer'
-      onClick={onToggleExpand}
-      role='button'
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onToggleExpand()
-        }
-      }}
-    >
-      <div className='flex items-center flex-wrap gap-2 flex-1 w-full'>
-        <div className={`flex items-center justify-center w-5 h-5 rounded-full ${isDisabled ? 'bg-red-100' : 'bg-gray-100'}`}>
-          <KeyIcon size={10} className={isDisabled ? 'text-red-600' : 'text-gray-700'} />
-        </div>
-
-        <Text size='sm' weight='medium' className={isDisabled ? 'text-red-600' : 'text-gray-900'}>
-          Key ID: {publicKey.keyId}
-        </Text>
-
-        <div className='flex items-center gap-2'>
-          {isDisabled && (
-            <ValueCard colorScheme='red' size='sm' className='p-2' border={false}>
-              <Text monospace weight='medium' className='!text-[0.75rem] !text-red-600'>
-                DISABLED
-              </Text>
-            </ValueCard>
-          )}
-          <Badge text={publicKey.securityLevel} />
-          <Badge text={publicKey.purpose} />
-        </div>
-      </div>
-      <KeyActions
-        keyId={publicKey.keyId}
-        onDelete={() => onDelete(publicKey.keyId)}
-        onToggleShow={onTogglePrivateKeyVisibility}
-        showDelete={showDelete}
-        isExpanded={isExpanded}
-        isPrivateKeyVisible={isPrivateKeyVisible}
-      />
-    </div>
-
-    {/* Expanded Content */}
-    {isExpanded && (
-      <div className='mt-3'>
-        <ValueCard colorScheme='white' size='md' className='flex-col gap-4 space-y-4'>
-          {/* Type and Read Only Row */}
-          <div className='flex gap-2 w-full'>
-            <ValueCard colorScheme='lightGray' size='sm' className='flex-1 flex-col items-start'>
-              <Text size='sm' dim className='mb-2'>
-                Type:
-              </Text>
-              <Badge text={publicKey.type} />
-            </ValueCard>
-            <ValueCard colorScheme='lightGray' size='sm' className='flex-col items-start w-[125px]'>
-              <Text size='sm' dim className='mb-2'>
-                Read Only:
-              </Text>
-              <ValueCard colorScheme={publicKey.readOnly ? 'yellow' : 'lightBlue'} size='sm' border={false}>
-                <Text weight='medium' className={`!text-[0.75rem] ${publicKey.readOnly ? '!text-red-600' : '!text-blue-600'}`}>
-                  {publicKey.readOnly ? 'True' : 'False'}
-                </Text>
-              </ValueCard>
-            </ValueCard>
+    <div className='bg-gray-100 rounded-2xl p-3'>
+      <div
+        className='flex items-center justify-between cursor-pointer'
+        onClick={onToggleExpand}
+        role='button'
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onToggleExpand()
+          }
+        }}
+      >
+        <div className='flex items-center flex-wrap gap-2 flex-1 w-full'>
+          <div className={`flex items-center justify-center w-5 h-5 rounded-full ${isDisabled ? 'bg-red-100' : 'bg-gray-100'}`}>
+            <KeyIcon size={10} className={isDisabled ? 'text-red-600' : 'text-gray-700'} />
           </div>
 
-          {/* Data and Public Key Hash */}
-          <div className='space-y-4 w-full'>
-            {/* Data (Public Key) */}
-            <div className='flex items-center justify-between'>
-              <Text size='sm' dim>
-                Data:
-              </Text>
-              <Identifier
-                middleEllipsis
-                edgeChars={5}
-                copyButton
-              >
-                {publicKey.data}
-              </Identifier>
+          <Text size='sm' weight='medium' className={isDisabled ? 'text-red-600' : 'text-gray-900'}>
+            Key ID: {publicKey.keyId}
+          </Text>
+
+          <div className='flex items-center gap-2'>
+            {isDisabled && (
+              <ValueCard colorScheme='red' size='sm' className='p-2' border={false}>
+                <Text monospace weight='medium' className='!text-[0.75rem] !text-red-600'>
+                  DISABLED
+                </Text>
+              </ValueCard>
+            )}
+            <Badge text={publicKey.securityLevel} />
+            <Badge text={publicKey.purpose} />
+          </div>
+        </div>
+        <KeyActions
+          keyId={publicKey.keyId}
+          onDelete={() => onDelete(publicKey.keyId)}
+          onToggleShow={onTogglePrivateKeyVisibility}
+          showDelete={showDelete}
+          isExpanded={isExpanded}
+          isPrivateKeyVisible={isPrivateKeyVisible}
+        />
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className='mt-3'>
+          <ValueCard colorScheme='white' size='md' className='flex-col gap-4 space-y-4'>
+            {/* Type and Read Only Row */}
+            <div className='flex gap-2 w-full'>
+              <ValueCard colorScheme='lightGray' size='sm' className='flex-1 flex-col items-start'>
+                <Text size='sm' dim className='mb-2'>
+                  Type:
+                </Text>
+                <Badge text={publicKey.type} />
+              </ValueCard>
+              <ValueCard colorScheme='lightGray' size='sm' className='flex-col items-start w-[125px]'>
+                <Text size='sm' dim className='mb-2'>
+                  Read Only:
+                </Text>
+                <ValueCard colorScheme={publicKey.readOnly ? 'yellow' : 'lightBlue'} size='sm' border={false}>
+                  <Text weight='medium' className={`!text-[0.75rem] ${publicKey.readOnly ? '!text-red-600' : '!text-blue-600'}`}>
+                    {publicKey.readOnly ? 'True' : 'False'}
+                  </Text>
+                </ValueCard>
+              </ValueCard>
             </div>
 
-            {/* Public Key Hash */}
-            <div className='flex items-center justify-between'>
-              <Text size='sm' dim>
-                Public Key Hash:
-              </Text>
-              <Identifier
-                middleEllipsis
-                edgeChars={5}
-                copyButton
-              >
-                {publicKey.hash}
-              </Identifier>
-            </div>
-
-            {/* Private Key - shown when visible */}
-            {isPrivateKeyVisible && privateKeyData != null && (
+            {/* Data and Public Key Hash */}
+            <div className='space-y-4 w-full'>
+              {/* Data (Public Key) */}
               <div className='flex items-center justify-between'>
                 <Text size='sm' dim>
-                  Private Key (WIF):
+                  Data:
                 </Text>
                 <Identifier
                   middleEllipsis
                   edgeChars={5}
                   copyButton
                 >
-                  {privateKeyData}
+                  {publicKey.data}
                 </Identifier>
               </div>
-            )}
 
-            {isPrivateKeyVisible && privateKeyData == null && (
+              {/* Public Key Hash */}
               <div className='flex items-center justify-between'>
                 <Text size='sm' dim>
-                  Private Key (WIF):
+                  Public Key Hash:
                 </Text>
-                <Text size='sm' dim>
-                  Loading...
-                </Text>
+                <Identifier
+                  middleEllipsis
+                  edgeChars={5}
+                  copyButton
+                >
+                  {publicKey.hash}
+                </Identifier>
               </div>
-            )}
-          </div>
-        </ValueCard>
 
-        {/* Disable Public Key Button or Disabled Notice */}
-        <div className='mt-3'>
-          {isDisabled ? (
-            <ValueCard colorScheme='red' className='p-4'>
-              <Text size='sm' weight='medium' className='text-center !text-red-600'>
-                This key is permanently disabled and cannot be re-enabled
-              </Text>
-            </ValueCard>
-          ) : (
-            <Button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDisable(publicKey.keyId)
-              }}
-              variant='solid'
-              colorScheme='red'
-              size='md'
-              className='w-full'
-            >
-              Disable Public Key
-            </Button>
-          )}
+              {/* Private Key - shown when visible */}
+              {isPrivateKeyVisible && privateKeyData != null && (
+                <div className='flex items-center justify-between'>
+                  <Text size='sm' dim>
+                    Private Key (WIF):
+                  </Text>
+                  <Identifier
+                    middleEllipsis
+                    edgeChars={5}
+                    copyButton
+                  >
+                    {privateKeyData}
+                  </Identifier>
+                </div>
+              )}
+
+              {isPrivateKeyVisible && privateKeyData == null && (
+                <div className='flex items-center justify-between'>
+                  <Text size='sm' dim>
+                    Private Key (WIF):
+                  </Text>
+                  <Text size='sm' dim>
+                    Loading...
+                  </Text>
+                </div>
+              )}
+            </div>
+          </ValueCard>
+
+          {/* Disable Public Key Button or Disabled Notice */}
+          <div className='mt-3'>
+            {isDisabled
+              ? (
+                <ValueCard colorScheme='red' className='p-4'>
+                  <Text size='sm' weight='medium' className='text-center !text-red-600'>
+                    This key is permanently disabled and cannot be re-enabled
+                  </Text>
+                </ValueCard>
+                )
+              : (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDisable(publicKey.keyId)
+                  }}
+                  variant='solid'
+                  colorScheme='red'
+                  size='md'
+                  className='w-full'
+                >
+                  Disable Public Key
+                </Button>
+                )}
+          </div>
         </div>
-      </div>
-    )}
-  </div>
+      )}
+    </div>
   )
 }
 
@@ -279,13 +281,13 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   const [privateKeysData, setPrivateKeysData] = useState<Map<number, string>>(new Map())
   const [publicKeys, setPublicKeys] = useState<PublicKey[]>([])
   const [detailsLoading, setDetailsLoading] = useState(false)
-  
+
   // Private Key Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedKeyForDialog, setSelectedKeyForDialog] = useState<number | null>(null)
   const [dialogLoading, setDialogLoading] = useState(false)
   const [dialogError, setDialogError] = useState<string | null>(null)
-  
+
   // Disable Key Dialog state
   const [disableKeyDialogOpen, setDisableKeyDialogOpen] = useState(false)
   const [keyToDisable, setKeyToDisable] = useState<number | null>(null)
@@ -476,10 +478,10 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
       // Get the current identity from the network
       const identity = await sdk.identities.getIdentityByIdentifier(currentIdentity)
-      
+
       // Get the current identity nonce
       const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
-      
+
       // Get the next revision from the identity (current + 1)
       const currentRevision = BigInt(identity.revision)
       const nextRevision = currentRevision + BigInt(1)
@@ -509,7 +511,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       setKeyToDisable(null)
 
       // Redirect to approval page with returnToHome flag
-      navigate(`/approve/${response.stateTransition.hash}`, {
+      void navigate(`/approve/${response.stateTransition.hash}`, {
         state: {
           returnToHome: true
         }
@@ -532,7 +534,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
           errorMessage = 'Network error: Unable to broadcast transaction. Please check your identity state and try again.'
         }
       }
-      
+
       setError(`Failed to create disable key transaction: ${errorMessage}`)
     } finally {
       setDisableKeyLoading(false)
@@ -673,7 +675,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
           if (!open) handleCloseDialog()
         }}
         publicKey={publicKeys.find(k => k.keyId === selectedKeyForDialog) ?? null}
-        onSubmitPassword={(password) => handleSubmitPassword(password)}
+        onSubmitPassword={async (password) => await handleSubmitPassword(password)}
         privateKeyData={selectedKeyForDialog != null ? privateKeysData.get(selectedKeyForDialog) ?? null : null}
         isLoading={dialogLoading}
         error={dialogError}

@@ -50,8 +50,8 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
       for (const [storageKey, value] of Object.entries(allKeys)) {
         if (storageKey.startsWith(pendingKeyPrefix)) {
-          const pendingKeyData = value as any
-          
+          const pendingKeyData = value
+
           const matchingPublicKey = identityPublicKeys.find(
             (pk: any) => pk.getPublicKeyHash() === pendingKeyData.publicKeyHash
           )
@@ -62,7 +62,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
               pendingKeyData.privateKey,
               matchingPublicKey
             )
-            
+
             await this.storageAdapter.remove(storageKey)
           }
         }
@@ -169,7 +169,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
       // Check for pending keys (from keystore wallet key creation) and save them
       const actionType = stateTransitionWASM.getActionType()
-      
+
       if (wallet.type === WalletType.keystore && actionType === 'IdentityUpdate') {
         await this.processPendingKeys(payload.identity)
       }

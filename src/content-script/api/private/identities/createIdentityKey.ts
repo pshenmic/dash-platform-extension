@@ -70,7 +70,7 @@ export class CreateIdentityKeyHandler implements APIHandler {
 
       // Get the identity data to find the identity index
       const identity = await this.identitiesRepository.getByIdentifier(payload.identity)
-      
+
       if (identity?.index == null) {
         throw new Error('Identity index not found. Cannot derive key from seed phrase.')
       }
@@ -82,7 +82,7 @@ export class CreateIdentityKeyHandler implements APIHandler {
 
       // Derive the identity private key
       const derivedHdKey = this.sdk.keyPair.deriveIdentityPrivateKey(hdKey, identity.index, nextKeyIndex, Network[network])
-      
+
       if (derivedHdKey.privateKey == null) {
         throw new Error('Failed to derive private key from seed phrase')
       }
@@ -94,7 +94,7 @@ export class CreateIdentityKeyHandler implements APIHandler {
       // For keystore wallets: generate random private key
       const privateKeyBytes = new Uint8Array(32)
       crypto.getRandomValues(privateKeyBytes)
-      
+
       const privateKeyWASM = PrivateKeyWASM.fromBytes(privateKeyBytes, Network[network])
       privateKeyHex = privateKeyWASM.hex()
 
@@ -103,7 +103,7 @@ export class CreateIdentityKeyHandler implements APIHandler {
         // Store pending private key in storage with metadata
         // It will be saved to KeypairRepository after state transition is confirmed
         const publicKeyHash = privateKeyWASM.getPublicKeyHash()
-        
+
         const pendingKeyData = {
           privateKey: privateKeyHex,
           identity: payload.identity,
@@ -114,7 +114,7 @@ export class CreateIdentityKeyHandler implements APIHandler {
           readOnly: payload.readOnly,
           publicKeyHash
         }
-        
+
         // Store in a temporary storage key that will be used after state transition confirmation
         const pendingKeyStorageKey = `pendingKey_${payload.identity}_${payload.keyId}`
         await this.storageAdapter.set(pendingKeyStorageKey, pendingKeyData)
@@ -135,4 +135,3 @@ export class CreateIdentityKeyHandler implements APIHandler {
     return null
   }
 }
-

@@ -93,7 +93,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
-  
+
   const [keyType, setKeyType] = useState<number>(0)
   const [purpose, setPurpose] = useState<number>(0)
   const [securityLevel, setSecurityLevel] = useState<number>(2)
@@ -136,14 +136,14 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
 
       // Get current keys to determine next key ID
       const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
-      const maxKeyId = identityPublicKeys.reduce((max: number, key: any) => 
+      const maxKeyId = identityPublicKeys.reduce((max: number, key: any) =>
         Math.max(max, key.keyId ?? 0), -1)
       const nextKeyId = maxKeyId + 1
 
       // Step 1: Generate/derive private key using the handler
       // For seedphrase: derive from seed phrase (requires password)
       // For keystore: generate random key and save it (no password needed)
-      const { privateKey: privateKeyHex, walletType } = await extensionAPI.createIdentityKey(
+      const { privateKey: privateKeyHex } = await extensionAPI.createIdentityKey(
         currentIdentity,
         currentWallet.type === WalletType.seedphrase ? password : undefined,
         nextKeyId,
@@ -155,14 +155,13 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
 
       // Step 2: Get the public key data
       const privateKeyWASM = PrivateKeyWASM.fromHex(privateKeyHex, currentWallet.network)
-      const publicKeyBytes = privateKeyWASM.getPublicKey().bytes() // 33 bytes compressed
       const publicKeyHashHex = privateKeyWASM.getPublicKeyHash() // 20 bytes hash as hex string
       const publicKeyHashBytes = hexToBytes(publicKeyHashHex) // Convert to Uint8Array
 
       // Step 3: Get identity data from network
       const identity = await sdk.identities.getIdentityByIdentifier(currentIdentity)
       const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
-      
+
       // Get next revision
       const currentRevision = BigInt(identity.revision)
       const nextRevision = currentRevision + BigInt(1)
@@ -171,10 +170,10 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       // Use public key hash (20 bytes) as data
       const publicKeyToAdd = {
         id: nextKeyId,
-        keyType,       // 0 for ECDSA_SECP256K1
-        purpose,       // 0 for AUTHENTICATION
-        securityLevel, // 2 for HIGH
-        data: publicKeyHashBytes, // 20 bytes public key hash
+        keyType,
+        purpose,
+        securityLevel,
+        data: publicKeyHashBytes,
         readOnly
       }
 
@@ -202,7 +201,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       }
 
       // Step 9: Navigate to approval page
-      navigate(`/approve/${response.stateTransition.hash}`, {
+      void navigate(`/approve/${response.stateTransition.hash}`, {
         state: {
           returnToHome: true,
           disableIdentitySelect: true
@@ -216,7 +215,6 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       setIsCreating(false)
     }
   }
-
 
   const isSeedPhraseWallet = currentWallet?.type === WalletType.seedphrase
 
@@ -295,7 +293,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         borderColor='black'
         backgroundColor='light'
       >
-        <InfoCircleIcon size={14} className='flex-shrink-0 text-dash-primary-dark-blue'/>
+        <InfoCircleIcon size={14} className='flex-shrink-0 text-dash-primary-dark-blue' />
         <Text size='sm' weight='medium' className='text-[0.75rem]'>
           Some information can&apos;t be changed after adding a key.
         </Text>
