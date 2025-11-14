@@ -134,25 +134,24 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       setIsCreating(true)
       setError(null)
 
-      console.log('Creating key with parameters:', {
-        identity: currentIdentity,
-        keyType,
-        purpose,
-        securityLevel,
-        readOnly,
-        network: currentWallet.network,
-        walletType: currentWallet.type
-      })
+      // Get current keys to determine next key ID
+      const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
+      const maxKeyId = identityPublicKeys.reduce((max: number, key: any) => 
+        Math.max(max, key.keyId ?? 0), -1)
+      const nextKeyId = maxKeyId + 1
 
       // Step 1: Generate/derive private key using the handler
       // For seedphrase: derive from seed phrase (requires password)
-      // For keystore: generate random key (no password needed)
+      // For keystore: generate random key and save it (no password needed)
       const { privateKey: privateKeyHex, walletType } = await extensionAPI.createIdentityKey(
         currentIdentity,
-        currentWallet.type === WalletType.seedphrase ? password : undefined
+        currentWallet.type === WalletType.seedphrase ? password : undefined,
+        nextKeyId,
+        keyType,
+        purpose,
+        securityLevel,
+        readOnly
       )
-
-      console.log('Private key created for wallet type:', walletType)
 
       // Step 2: Get the public key data
       const privateKeyWASM = PrivateKeyWASM.fromHex(privateKeyHex, currentWallet.network)
@@ -168,16 +167,6 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       const currentRevision = BigInt(identity.revision)
       const nextRevision = currentRevision + BigInt(1)
 
-      // Get current keys to determine next key ID
-      const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
-      const maxKeyId = identityPublicKeys.reduce((max: number, key: any) => 
-        Math.max(max, key.keyId ?? 0), -1)
-      const nextKeyId = maxKeyId + 1
-
-      console.log('Next key ID will be:', nextKeyId)
-      console.log('Public key bytes (33):', Array.from(publicKeyBytes))
-      console.log('Public key hash bytes (20):', Array.from(publicKeyHashBytes))
-
       // Step 4: Create public key structure for adding
       // Use public key hash (20 bytes) as data
       const publicKeyToAdd = {
@@ -189,11 +178,6 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         readOnly
       }
 
-      console.log('Public key to add:', {
-        ...publicKeyToAdd,
-        data: Array.from(publicKeyHashBytes)
-      })
-
       // Step 5: Create state transition
       const stateTransition = sdk.identities.createStateTransition('update', {
         identityId: currentIdentity,
@@ -203,26 +187,14 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         revision: nextRevision
       })
 
-      console.log('State transition created:', stateTransition)
-      console.log('State transition type:', typeof stateTransition)
-      console.log('State transition addPublicKeys:', (stateTransition as any).addPublicKeys)
-
       // Step 6: Serialize state transition to base64
       const stateTransitionBytes = stateTransition.bytes()
       const stateTransitionBase64 = base64.encode(stateTransitionBytes)
 
       // Step 7: Save state transition to storage
-      // Note: For keystore wallets, the private key should be saved/imported manually
+      // Note: For keystore wallets, the private key has been saved as pending
       // For seedphrase wallets, keys are derived automatically when needed
       const response = await extensionAPI.createStateTransition(stateTransitionBase64)
-
-      console.log('State transition saved:', response.stateTransition)
-      
-      // For keystore wallets, log the private key for manual import
-      if (currentWallet.type === WalletType.keystore) {
-        console.warn('⚠️ IMPORTANT: Save this private key for manual import after transaction confirmation:')
-        console.warn('Private Key:', privateKeyHex)
-      }
 
       // Step 8: Close settings menu
       if (onClose != null) {

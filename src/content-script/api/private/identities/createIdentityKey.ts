@@ -12,16 +12,19 @@ import { PrivateKeyWASM } from 'pshenmic-dpp'
 import type { CreateIdentityKeyPayload } from '../../../../types/messages/payloads/CreateIdentityKeyPayload'
 import type { CreateIdentityKeyResponse } from '../../../../types/messages/response/CreateIdentityKeyResponse'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
+import { KeypairRepository } from '../../../repository/KeypairRepository'
 
 export class CreateIdentityKeyHandler implements APIHandler {
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
+  keypairRepository: KeypairRepository
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
 
-  constructor (walletRepository: WalletRepository, identitiesRepository: IdentitiesRepository, storageAdapter: StorageAdapter, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, identitiesRepository: IdentitiesRepository, keypairRepository: KeypairRepository, storageAdapter: StorageAdapter, sdk: DashPlatformSDK) {
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
+    this.keypairRepository = keypairRepository
     this.storageAdapter = storageAdapter
     this.sdk = sdk
   }
@@ -94,6 +97,28 @@ export class CreateIdentityKeyHandler implements APIHandler {
       
       const privateKeyWASM = PrivateKeyWASM.fromBytes(privateKeyBytes, Network[network])
       privateKeyHex = privateKeyWASM.hex()
+
+      // Save the key immediately for keystore wallets
+      if (payload.keyId !== undefined && payload.keyType !== undefined && payload.purpose !== undefined && payload.securityLevel !== undefined && payload.readOnly !== undefined) {
+        // Store pending private key in storage with metadata
+        // It will be saved to KeypairRepository after state transition is confirmed
+        const publicKeyHash = privateKeyWASM.getPublicKeyHash()
+        
+        const pendingKeyData = {
+          privateKey: privateKeyHex,
+          identity: payload.identity,
+          keyId: payload.keyId,
+          keyType: payload.keyType,
+          purpose: payload.purpose,
+          securityLevel: payload.securityLevel,
+          readOnly: payload.readOnly,
+          publicKeyHash
+        }
+        
+        // Store in a temporary storage key that will be used after state transition confirmation
+        const pendingKeyStorageKey = `pendingKey_${payload.identity}_${payload.keyId}`
+        await this.storageAdapter.set(pendingKeyStorageKey, pendingKeyData)
+      }
     }
 
     return {

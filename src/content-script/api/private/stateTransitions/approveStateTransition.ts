@@ -10,23 +10,66 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionStatus } from '../../../../types/enums/StateTransitionStatus'
 import { Wallet, Identity, WalletType, EventData } from '../../../../types'
+import { StorageAdapter } from '../../../storage/storageAdapter'
 
 export class ApproveStateTransitionHandler implements APIHandler {
   keyPairRepository: KeypairRepository
   stateTransitionsRepository: StateTransitionsRepository
   identitiesRepository: IdentitiesRepository
   walletRepository: WalletRepository
+  storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
 
   constructor (stateTransitionsRepository: StateTransitionsRepository,
     identitiesRepository: IdentitiesRepository,
     walletRepository: WalletRepository,
-    keyPairRepository: KeypairRepository, sdk: DashPlatformSDK) {
+    keyPairRepository: KeypairRepository,
+    storageAdapter: StorageAdapter,
+    sdk: DashPlatformSDK
+  ) {
     this.keyPairRepository = keyPairRepository
     this.stateTransitionsRepository = stateTransitionsRepository
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
+    this.storageAdapter = storageAdapter
     this.sdk = sdk
+  }
+
+  async processPendingKeys (identityId: string): Promise<void> {
+    try {
+      // Wait for the transaction to be processed on chain
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      // Fetch updated identity from network to get the newly added keys
+      const identityWASM = await this.sdk.identities.getIdentityByIdentifier(identityId)
+      const identityPublicKeys = identityWASM.getPublicKeys()
+
+      // Check all potential pending keys for this identity
+      const allKeys = await this.storageAdapter.getAll()
+      const pendingKeyPrefix = `pendingKey_${identityId}_`
+
+      for (const [storageKey, value] of Object.entries(allKeys)) {
+        if (storageKey.startsWith(pendingKeyPrefix)) {
+          const pendingKeyData = value as any
+          
+          const matchingPublicKey = identityPublicKeys.find(
+            (pk: any) => pk.getPublicKeyHash() === pendingKeyData.publicKeyHash
+          )
+
+          if (matchingPublicKey != null) {
+            await this.keyPairRepository.add(
+              pendingKeyData.identity,
+              pendingKeyData.privateKey,
+              matchingPublicKey
+            )
+            
+            await this.storageAdapter.remove(storageKey)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to process pending keys:', error)
+    }
   }
 
   async sign (stateTransitionBase64: string, wallet: Wallet, identity: Identity, keyId: number, password: string): Promise<StateTransitionWASM> {
@@ -123,6 +166,13 @@ export class ApproveStateTransitionHandler implements APIHandler {
       await this.sdk.stateTransitions.broadcast(stateTransitionWASM)
 
       await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.approved, bytesToHex(signature), signaturePublicKeyId)
+
+      // Check for pending keys (from keystore wallet key creation) and save them
+      const actionType = stateTransitionWASM.getActionType()
+      
+      if (wallet.type === WalletType.keystore && actionType === 'IdentityUpdate') {
+        await this.processPendingKeys(payload.identity)
+      }
     } catch (e) {
       console.log('Failed to broadcast transaction', e)
       await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.error)

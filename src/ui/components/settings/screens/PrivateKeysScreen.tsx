@@ -361,6 +361,23 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     }
   }, [error])
 
+  // Auto-import pending keys on mount for keystore wallets
+  useEffect(() => {
+    const autoImportPendingKeys = async (): Promise<void> => {
+      if (currentIdentity == null || currentWallet?.type !== WalletType.keystore) {
+        return
+      }
+
+      try {
+        await extensionAPI.importPendingKeys(currentIdentity)
+      } catch (error) {
+        console.error('Auto-import pending keys failed:', error)
+      }
+    }
+
+    void autoImportPendingKeys()
+  }, [currentIdentity, currentWallet?.type])
+
   const handleToggleExpand = (keyId: number): void => {
     setExpandedKeyId(prev => prev === keyId ? null : keyId)
   }

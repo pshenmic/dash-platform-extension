@@ -47,6 +47,7 @@ import { RequestStateTransitionApprovalPayload } from './messages/payloads/Reque
 import { CreateStateTransitionResponse } from './messages/response/CreateStateTransitionResponse'
 import { CreateIdentityKeyPayload } from './messages/payloads/CreateIdentityKeyPayload'
 import { CreateIdentityKeyResponse } from './messages/response/CreateIdentityKeyResponse'
+import { ImportPendingKeysPayload } from './messages/payloads/ImportPendingKeysPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -283,13 +284,34 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CREATE_STATE_TRANSITION, payload)
   }
 
-  async createIdentityKey (identity: string, password?: string): Promise<CreateIdentityKeyResponse> {
+  async createIdentityKey (
+    identity: string,
+    password?: string,
+    keyId?: number,
+    keyType?: number,
+    purpose?: number,
+    securityLevel?: number,
+    readOnly?: boolean
+  ): Promise<CreateIdentityKeyResponse> {
     const payload: CreateIdentityKeyPayload = {
       identity,
-      password
+      password,
+      keyId,
+      keyType,
+      purpose,
+      securityLevel,
+      readOnly
     }
 
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_KEY, payload)
+  }
+
+  async importPendingKeys (identity: string): Promise<VoidResponse> {
+    const payload: ImportPendingKeysPayload = {
+      identity
+    }
+
+    return await this._rpcCall(MessagingMethods.IMPORT_PENDING_KEYS, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
