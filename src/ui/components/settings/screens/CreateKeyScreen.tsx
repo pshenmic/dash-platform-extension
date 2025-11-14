@@ -231,7 +231,8 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       // Step 9: Navigate to approval page
       navigate(`/approve/${response.stateTransition.hash}`, {
         state: {
-          returnToHome: true
+          returnToHome: true,
+          disableIdentitySelect: true
         }
       })
     } catch (e) {
