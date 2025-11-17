@@ -18,6 +18,8 @@ export function TransferSummaryCard ({
   selectedAsset,
   showWillBeSent = true
 }: TransferSummaryCardProps): React.JSX.Element {
+  const validWillBeSent: boolean = willBeSent != null && willBeSent !== '0'
+
   return (
     <div className='flex flex-col gap-3 p-3 bg-white rounded-[0.9375rem] shadow-[0px_0px_35px_0px_rgba(0,0,0,0.1)]'>
       {/* Fees Row */}
@@ -31,7 +33,7 @@ export function TransferSummaryCard ({
       </div>
 
       {/* Will be sent Row - Only for Credits */}
-      {showWillBeSent && selectedAsset === 'credits' && willBeSent != null && (
+      {showWillBeSent && selectedAsset === 'credits' && validWillBeSent && (
         <div className='flex items-center justify-between w-full'>
           <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50' dim>
             Will be sent:
@@ -43,14 +45,16 @@ export function TransferSummaryCard ({
       )}
 
       {/* Total Amount Row */}
-      <div className='flex items-center justify-between w-full'>
-        <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
-          Total Amount:
-        </Text>
-        <Text size='sm' className='text-dash-primary-dark-blue text-right font-extrabold'>
-          {selectedAsset === 'credits' ? '~' : ''}{total} {unit}
-        </Text>
-      </div>
+      {validWillBeSent && (
+        <div className='flex items-center justify-between w-full'>
+          <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
+            Total Amount:
+          </Text>
+          <Text size='sm' className='text-dash-primary-dark-blue text-right font-extrabold'>
+            {selectedAsset === 'credits' ? '~' : ''}{total} {unit}
+          </Text>
+        </div>
+      )}
     </div>
   )
 }
