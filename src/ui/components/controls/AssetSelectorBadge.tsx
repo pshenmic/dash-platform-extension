@@ -23,7 +23,6 @@ export function AssetSelectorBadge ({
       className='flex items-center gap-3 px-2 py-1 pl-1 rounded-xl bg-[rgba(76,126,255,0.15)] cursor-pointer'
       onClick={onClick}
     >
-      {/* Asset Icon */}
       {selectedAsset === 'credits'
         ? (
           <div className='w-8 h-8 rounded-lg flex items-center justify-center bg-white'>
@@ -39,13 +38,11 @@ export function AssetSelectorBadge ({
           </div>
           )}
 
-      {/* Asset Name */}
       <Text className='text-dash-brand !text-[1.5rem] !font-medium !leading-[1.2]'>
         {getAssetName()}
       </Text>
 
-      {/* Chevron */}
-      <ChevronIcon className='text-dash-brand w-3 h-[0.375rem]' />
+      <ChevronIcon className='text-dash-brand !w-3'/>
     </div>
   )
 }
