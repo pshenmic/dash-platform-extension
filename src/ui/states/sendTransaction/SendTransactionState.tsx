@@ -288,7 +288,7 @@ function SendTransactionState (): React.JSX.Element {
         </div>
 
         {/* Description */}
-        <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50'>
+        <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50' dim>
           You are going to transfer {formState.formData.selectedAsset === 'credits' ? 'credits' : 'tokens'} from your account with this transaction. Carefully check the transaction details before proceeding to the next step.
         </Text>
       </div>
