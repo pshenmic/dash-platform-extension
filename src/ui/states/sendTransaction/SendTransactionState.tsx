@@ -273,15 +273,17 @@ function SendTransactionState (): React.JSX.Element {
           {/* Balance Display */}
           {((formState.formData.selectedAsset === 'credits' && balance !== null) || (formState.formData.selectedAsset !== 'credits' && token != null)) && (
             <div className='flex items-center gap-3'>
-              <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50'>
-                Balance: {formattedBalance} {assetLabel}
-              </Text>
+              <div className='flex gap-1'>
+                <Text className='!text-[0.75rem]' dim>Balance:</Text>
+                <Text weight='bold' className='!text-[0.75rem]'>{formattedBalance}</Text>
+                <Text className='!text-[0.75rem]'>{assetLabel}</Text>
+              </div>
               {calculations.getBalanceUSDValue() !== null && (
-                <div className='px-[0.3125rem] py-0 rounded-[0.3125rem] bg-[rgba(12,28,51,0.05)] flex items-center justify-center'>
-                  <Text size='2xs' weight='light' className='text-dash-primary-dark-blue !text-[0.625rem] !leading-[1.2]'>
+                <ValueCard border={false} size='xs' className='px-[0.313rem] py-[0.156rem]' colorScheme='lightGray'>
+                  <Text size='xs' weight='light' className='text-dash-primary-dark-blue !text-[0.625rem] !leading-[1.2]'>
                     {calculations.getBalanceUSDValue()}
                   </Text>
-                </div>
+                </ValueCard>
               )}
             </div>
           )}
