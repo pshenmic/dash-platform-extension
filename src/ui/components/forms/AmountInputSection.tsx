@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState } from 'react'
 import { Button, ChevronIcon, DashLogo } from 'dash-ui-kit/react'
 import { AutoSizingInput } from '../controls'
 import { parseDecimalInput } from '../../../utils'
-import { QUICK_AMOUNT_BUTTONS } from '../../constants/transaction'
 
 interface AmountInputSectionProps {
   amount: string
@@ -135,22 +134,6 @@ export function AmountInputSection ({
             }
           />
         )}
-      </div>
-
-      {/* Quick Amount Buttons */}
-      <div className='flex gap-2'>
-        {QUICK_AMOUNT_BUTTONS.map((button) => (
-          <Button
-            key={button.label}
-            onClick={() => onQuickAmount(button.value)}
-            variant='solid'
-            colorScheme='lightBlue'
-            size='sm'
-            className='px-2 py-1 !min-h-0 text-[0.75rem] leading-1'
-          >
-            {button.label}
-          </Button>
-        ))}
       </div>
     </div>
   )
