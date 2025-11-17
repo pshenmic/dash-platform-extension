@@ -1,1 +1,1 @@
-export { TransactionSummaryCard } from './TransactionSummaryCard'
+export { TransferSummaryCard } from './TransferSummaryCard'

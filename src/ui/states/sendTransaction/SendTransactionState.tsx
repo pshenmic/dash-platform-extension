@@ -9,7 +9,7 @@ import {
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
 import { AssetSelectionMenu, AssetSelectorBadge } from '../../components/controls'
-import { TransactionSummaryCard } from '../../components/cards'
+import { TransferSummaryCard } from '../../components/cards'
 import { AmountInputSection } from '../../components/forms'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import {
@@ -330,7 +330,7 @@ function SendTransactionState (): React.JSX.Element {
       )}
 
       {/* Transaction Summary Card */}
-      <TransactionSummaryCard
+      <TransferSummaryCard
         fees={calculations.getEstimatedFee()}
         willBeSent={calculations.getWillBeSentAmount()}
         total={calculations.getTotalAmount()}

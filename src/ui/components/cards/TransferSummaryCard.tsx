@@ -1,7 +1,7 @@
 import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 
-interface TransactionSummaryCardProps {
+interface TransferSummaryCardProps {
   fees: string
   willBeSent?: string
   total: string
@@ -10,14 +10,14 @@ interface TransactionSummaryCardProps {
   showWillBeSent?: boolean
 }
 
-export function TransactionSummaryCard ({
+export function TransferSummaryCard ({
   fees,
   willBeSent,
   total,
   unit,
   selectedAsset,
   showWillBeSent = true
-}: TransactionSummaryCardProps): React.JSX.Element {
+}: TransferSummaryCardProps): React.JSX.Element {
   return (
     <div className='flex flex-col gap-3 p-3 bg-white rounded-[0.9375rem] shadow-[0px_0px_35px_0px_rgba(0,0,0,0.1)]'>
       {/* Fees Row */}
