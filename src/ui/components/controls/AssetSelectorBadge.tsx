@@ -42,7 +42,7 @@ export function AssetSelectorBadge ({
         {getAssetName()}
       </Text>
 
-      <ChevronIcon className='text-dash-brand !w-3'/>
+      <ChevronIcon className='text-dash-brand !w-3' />
     </div>
   )
 }
