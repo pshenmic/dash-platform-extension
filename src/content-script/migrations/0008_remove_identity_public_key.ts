@@ -16,21 +16,23 @@ export default async function removeIdentityPublicKey (storageAdapter: StorageAd
     }))).filter(e => e != null)
 
     for (const wallet of wallets) {
-      const walletIdentities = await storageAdapter.get(`identities_${wallet.network}_${wallet.walletId}`) as IdentitiesStoreSchema ?? {}
+      if (wallet.type === 'keystore') {
+        const walletIdentities = await storageAdapter.get(`identities_${wallet.network}_${wallet.walletId}`) as IdentitiesStoreSchema ?? {}
 
-      for (const identityId of Object.keys(walletIdentities)) {
-        const keyPairsSchema = await storageAdapter.get(`keyPairs_${wallet.network}_${wallet.walletId}`) as KeyPairsSchema
+        for (const identityId of Object.keys(walletIdentities)) {
+          const keyPairsSchema = await storageAdapter.get(`keyPairs_${wallet.network}_${wallet.walletId}`) as KeyPairsSchema
 
-        const keyPairs = keyPairsSchema[identityId]
+          const keyPairs = keyPairsSchema[identityId]
 
-        keyPairsSchema[identityId] = keyPairs.map((keyPair) => ({
-          // @ts-expect-error
-          keyId: IdentityPublicKeyWASM.fromBase64(keyPair.identityPublicKey).keyId,
-          pending: keyPair.pending ?? false,
-          encryptedPrivateKey: keyPair.encryptedPrivateKey
-        }))
+          keyPairsSchema[identityId] = keyPairs.map((keyPair) => ({
+            // @ts-expect-error
+            keyId: IdentityPublicKeyWASM.fromBase64(keyPair.identityPublicKey).keyId,
+            pending: keyPair.pending ?? false,
+            encryptedPrivateKey: keyPair.encryptedPrivateKey
+          }))
 
-        await storageAdapter.set(`keyPairs_${wallet.network}_${wallet.walletId}`, keyPairsSchema)
+          await storageAdapter.set(`keyPairs_${wallet.network}_${wallet.walletId}`, keyPairsSchema)
+        }
       }
     }
 

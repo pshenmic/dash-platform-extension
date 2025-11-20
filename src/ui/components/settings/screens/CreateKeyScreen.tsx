@@ -7,7 +7,7 @@ import { WalletType } from '../../../../types'
 import { useExtensionAPI, useSdk } from '../../../hooks'
 import { KeyType, Purpose, SecurityLevel } from 'pshenmic-dpp'
 import { InfoCard } from '../../common'
-import { CreateIdentityPrivateKeyResponse } from "../../../../types/messages/response/CreateIdentityPrivateKeyResponse";
+import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
 import { hexToBytes } from '../../../../utils'
 
 export const createKeyScreenConfig: ScreenConfig = {
