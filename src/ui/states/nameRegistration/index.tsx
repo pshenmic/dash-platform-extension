@@ -321,7 +321,7 @@ const NameRegistrationState: React.FC = () => {
                     </div>
                     <div className='flex items-center gap-1.5'>
                       <Text size='xs' weight='medium'>
-                        {REGULAR_NAME_COST_DASH}
+                        {REGULAR_NAME_COST_DASH.toFixed(3)}
                       </Text>
                       <Text size='xs' color='muted'>
                         <DashLogo size={10} className='!text-dash-primary-dark-blue' />
