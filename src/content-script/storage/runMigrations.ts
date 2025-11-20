@@ -8,6 +8,7 @@ import addIdentityType from '../migrations/0007_add_identity_type'
 import removeIdentityPublicKey from "../migrations/0008_remove_identity_public_key";
 
 import { StorageAdapter } from './storageAdapter'
+import {SCHEMA_VERSION} from "../../constants";
 
 const migrations = [
   initialSchemaMigration,
@@ -23,5 +24,11 @@ const migrations = [
 export default async function runMigrations (storageAdapter: StorageAdapter): Promise<void> {
   for (const migrate of migrations) {
     await migrate(storageAdapter)
+  }
+
+  const schemaVersion =  await storageAdapter.get('schema_version') as number
+
+  if (schemaVersion !== SCHEMA_VERSION) {
+    throw new Error('Incorrect schema version after migrations')
   }
 }
