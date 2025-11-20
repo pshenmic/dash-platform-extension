@@ -30,7 +30,7 @@ export default async function removeIdentityPublicKey (storageAdapter: StorageAd
           encryptedPrivateKey: keyPair.encryptedPrivateKey
         }))
 
-        await storageAdapter.set(`identities_${wallet.network}_${wallet.walletId}`, keyPairsSchema)
+        await storageAdapter.set(`keyPairs_${wallet.network}_${wallet.walletId}`, keyPairsSchema)
       }
     }
 
