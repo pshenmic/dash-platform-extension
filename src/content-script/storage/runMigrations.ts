@@ -16,6 +16,7 @@ const migrations = [
   renameWalletAndKeyPairsMigration,
   addEncryptedMnemonic,
   moveCurrentIdentityToWallet,
+  addIdentityType,
   removeIdentityPublicKey
 ]
 
