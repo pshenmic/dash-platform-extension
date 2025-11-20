@@ -167,12 +167,6 @@ const NameRegistrationState: React.FC = () => {
   }, [])
 
   const getTypeCardOpacity = useCallback((cardType: 'premium' | 'regular') => {
-    if (hoveredCard === cardType) return 'opacity-100'
-    if (hoveredCard != null) {
-      return cardType === 'premium'
-        ? (isContested ? 'opacity-70' : 'opacity-50')
-        : (!isContested ? 'opacity-70' : 'opacity-50')
-    }
     return cardType === 'premium'
       ? (isContested ? 'opacity-100' : 'opacity-50')
       : (!isContested ? 'opacity-100' : 'opacity-50')
@@ -273,11 +267,9 @@ const NameRegistrationState: React.FC = () => {
 
               <div className='flex gap-2 w-full'>
                 <ValueCard
-                  className={`relative items-center justify-between w-full cursor-pointer transition-opacity ${getTypeCardOpacity('premium')}`}
+                  className={`relative items-center justify-between w-full transition-opacity ${getTypeCardOpacity('premium')}`}
                   colorScheme='lightGray'
                   border={false}
-                  onMouseEnter={() => setHoveredCard('premium')}
-                  onMouseLeave={() => setHoveredCard(null)}
                 >
                   <div className='flex flex-col gap-1'>
                     <div className='flex gap-1'>
@@ -304,17 +296,19 @@ const NameRegistrationState: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  <div className='absolute right-1 top-1'>
+                  <div
+                    className='absolute right-1 top-1'
+                    onMouseEnter={() => setHoveredCard('premium')}
+                    onMouseLeave={() => setHoveredCard(null)}
+                  >
                     <InfoCircleIcon className='w-5 h-5 text-gray-400' />
                   </div>
                 </ValueCard>
 
                 <ValueCard
-                  className={`relative items-center justify-between w-full cursor-pointer transition-opacity ${getTypeCardOpacity('regular')}`}
+                  className={`relative items-center justify-between w-full transition-opacity ${getTypeCardOpacity('regular')}`}
                   colorScheme='lightGray'
                   border={false}
-                  onMouseEnter={() => setHoveredCard('regular')}
-                  onMouseLeave={() => setHoveredCard(null)}
                 >
                   <div className='flex flex-col gap-1'>
                     <div className='flex gap-1'>
@@ -341,7 +335,11 @@ const NameRegistrationState: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  <div className='absolute right-1 top-1'>
+                  <div
+                    className='absolute right-1 top-1'
+                    onMouseEnter={() => setHoveredCard('regular')}
+                    onMouseLeave={() => setHoveredCard(null)}
+                  >
                     <InfoCircleIcon className='w-5 h-5 text-gray-400' />
                   </div>
                 </ValueCard>
