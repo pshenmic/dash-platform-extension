@@ -39,4 +39,11 @@ export default async function runMigrations (storageAdapter: StorageAdapter): Pr
 
     throw e
   }
+
+  const schemaVersion =  await storageAdapter.get('schema_version') as number
+
+  if (schemaVersion !== SCHEMA_VERSION) {
+    await restoreBackup(backup, storageAdapter)
+    throw new Error('Incorrect schema version after migrations')
+  }
 }
