@@ -19,9 +19,8 @@ export const createKeyScreenConfig: ScreenConfig = {
 
 // Key type options matching Dash Platform SDK
 const KEY_TYPES = [
-  { id: 'ECDSA_SECP256k1', label: 'ECDSA_SECP256k1', value: 0 },
-  { id: 'ECDSA_SECP256K1', label: 'ECDSA_SECP256K1', value: 1 },
-  { id: 'ECDSA_HASH160', label: 'ECDSA_HASH160', value: 2 }
+  { id: 'ECDSA_SECP256K1', label: 'ECDSA_SECP256K1', value: 0 },
+  { id: 'ECDSA_HASH160', label: 'ECDSA_HASH160', value: 1 }
 ]
 
 // Purpose options
@@ -123,8 +122,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       return
     }
 
-    // For seed phrase wallets, password is required
-    if (currentWallet.type === WalletType.seedphrase && password.trim() === '') {
+    if (password.trim() === '') {
       setError('Password is required for seed phrase wallets')
       return
     }
@@ -133,25 +131,16 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       setIsCreating(true)
       setError(null)
 
-      // Get current keys to determine next key ID
-      // const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
-      // const maxKeyId = identityPublicKeys.reduce((max: number, key: any) =>
-      //   Math.max(max, key.keyId ?? 0), -1)
-      // const nextKeyId = maxKeyId + 1
-
       const publicKey: CreateIdentityPrivateKeyResponse = await extensionAPI.createIdentityPrivateKey(
         currentIdentity,
         password,
         KEY_TYPES[keyType].id
       )
 
-      // Step 3: Get identity data from network
       const identity = await sdk.identities.getIdentityByIdentifier(currentIdentity)
       const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
       const currentRevision = BigInt(identity.revision)
 
-      // Step 4: Create public key structure for adding
-      // Use public key hash (20 bytes) as data
       const publicKeyToAdd = {
         id: publicKey.keyId,
         keyType: KeyType[KEY_TYPES[keyType].id as keyof typeof KeyType],
@@ -161,7 +150,6 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         readOnly
       }
 
-      // Step 5: Create state transition
       const stateTransition = sdk.identities.createStateTransition('update', {
         identityId: currentIdentity,
         disablePublicKeyIds: [],
@@ -170,21 +158,15 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         revision: currentRevision + 1n
       })
 
-      // Step 6: Serialize state transition to base64
       const stateTransitionBytes = stateTransition.bytes()
       const stateTransitionBase64 = base64.encode(stateTransitionBytes)
 
-      // Step 7: Save state transition to storage
-      // Note: For keystore wallets, the private key has been saved as pending
-      // For seedphrase wallets, keys are derived automatically when needed
       const response = await extensionAPI.createStateTransition(stateTransitionBase64)
 
-      // Step 8: Close settings menu
       if (onClose != null) {
         onClose()
       }
 
-      // Step 9: Navigate to approval page
       void navigate(`/approve/${response.stateTransition.hash}`, {
         state: {
           returnToHome: true,
@@ -284,21 +266,19 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       </InfoCard>
 
       <div className='flex flex-col gap-2'>
-        {/* Password field for seed phrase wallets */}
-        {isSeedPhraseWallet && (
-          <div className='flex flex-col gap-3'>
-            <Text size='sm' dim>
-              Password *
-            </Text>
-            <Input
-              type='password'
-              placeholder='Enter your wallet password'
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className='w-full'
-            />
-          </div>
-        )}
+        {/* Password field */}
+        <div className='flex flex-col gap-3'>
+          <Text size='sm' dim>
+            Password *
+          </Text>
+          <Input
+            type='password'
+            placeholder='Enter your wallet password'
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className='w-full'
+          />
+        </div>
       </div>
 
       {/* Create Button */}
