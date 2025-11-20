@@ -1,4 +1,4 @@
-import {KeyType, Purpose, SecurityLevel} from "pshenmic-dpp";
+import { KeyType, Purpose, SecurityLevel } from 'pshenmic-dpp'
 
 export interface KeyPair {
   keyId: number

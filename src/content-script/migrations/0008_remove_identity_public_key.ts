@@ -1,7 +1,7 @@
-import {StorageAdapter} from '../storage/storageAdapter'
-import {IdentitiesStoreSchema, KeyPairsSchema, WalletStoreSchema} from '../storage/storageSchema'
-import {SCHEMA_VERSION} from '../../constants'
-import {IdentityPublicKeyWASM} from "pshenmic-dpp";
+import { StorageAdapter } from '../storage/storageAdapter'
+import { IdentitiesStoreSchema, KeyPairsSchema, WalletStoreSchema } from '../storage/storageSchema'
+import { SCHEMA_VERSION } from '../../constants'
+import { IdentityPublicKeyWASM } from 'pshenmic-dpp'
 
 export default async function removeIdentityPublicKey (storageAdapter: StorageAdapter): Promise<void> {
   const schemaVersion = await storageAdapter.get('schema_version') as number
@@ -16,7 +16,6 @@ export default async function removeIdentityPublicKey (storageAdapter: StorageAd
     }))).filter(e => e != null)
 
     for (const wallet of wallets) {
-
       const walletIdentities = await storageAdapter.get(`identities_${wallet.network}_${wallet.walletId}`) as IdentitiesStoreSchema
 
       for (const identityId of Object.keys(walletIdentities)) {
@@ -25,7 +24,7 @@ export default async function removeIdentityPublicKey (storageAdapter: StorageAd
         const keyPairs = keyPairsSchema[identityId]
 
         keyPairsSchema[identityId] = keyPairs.map((keyPair) => ({
-          // @ts-ignore
+          // @ts-expect-error
           keyId: IdentityPublicKeyWASM.fromBase64(keyPair.identityPublicKey).keyId,
           pending: keyPair.pending ?? false,
           encryptedPrivateKey: keyPair.encryptedPrivateKey

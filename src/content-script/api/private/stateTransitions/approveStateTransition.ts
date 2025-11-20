@@ -135,10 +135,10 @@ export class ApproveStateTransitionHandler implements APIHandler {
       const actionType = stateTransitionWASM.getActionType()
 
       if (wallet.type === WalletType.keystore && actionType === 'IDENTITY_UPDATE') {
-        const {publicKeyIdsToAdd} = IdentityUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
+        const { publicKeyIdsToAdd } = IdentityUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
         const keyPairs = await this.keyPairRepository.getAllByIdentity(stateTransitionWASM.getOwnerId().base58())
         const matchedKeyPairs = keyPairs
-            .filter((keyPair) => publicKeyIdsToAdd.some(publicKeyIdToAdd => publicKeyIdToAdd.keyId === keyPair.keyId))
+          .filter((keyPair) => publicKeyIdsToAdd.some(publicKeyIdToAdd => publicKeyIdToAdd.keyId === keyPair.keyId))
 
         for (const keyPair of matchedKeyPairs) {
           await this.keyPairRepository.unmarkPending(stateTransitionWASM.getOwnerId().base58(), keyPair.keyId)

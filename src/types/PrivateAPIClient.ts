@@ -45,9 +45,8 @@ import { RegisterUsernamePayload } from './messages/payloads/RegisterUsernamePay
 import { ImportMasternodeIdentityPayload } from './messages/payloads/ImportMasternodeIdentityPayload'
 import { RequestStateTransitionApprovalPayload } from './messages/payloads/RequestStateTransitionApprovalPayload'
 import { CreateStateTransitionResponse } from './messages/response/CreateStateTransitionResponse'
-import { CreateIdentityKeyPayload } from './messages/payloads/CreateIdentityKeyPayload'
-import { CreateIdentityKeyResponse } from './messages/response/CreateIdentityKeyResponse'
-import { ImportPendingKeysPayload } from './messages/payloads/ImportPendingKeysPayload'
+import { CreateIdentityPrivateKeyPayload } from './messages/payloads/CreateIdentityPrivateKeyPayload'
+import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIdentityPrivateKeyResponse'
 
 export class PrivateAPIClient {
   constructor () {
@@ -284,30 +283,18 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CREATE_STATE_TRANSITION, payload)
   }
 
-  async createIdentityKey (
-    signingIdentity: string,
-    signingKeyId: number,
+  async createIdentityPrivateKey (
     identity: string,
     password: string,
-    keyType: string,
-    keyId: number,
-    purpose: string,
-    securityLevel: string,
-    readOnly: boolean
-  ): Promise<CreateIdentityKeyResponse> {
-    const payload: CreateIdentityKeyPayload = {
-      signingIdentity,
-      signingKeyId,
+    keyType: string
+  ): Promise<CreateIdentityPrivateKeyResponse> {
+    const payload: CreateIdentityPrivateKeyPayload = {
       identity,
       password,
-      keyId,
-      keyType,
-      purpose,
-      securityLevel,
-      readOnly
+      keyType
     }
 
-    return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_KEY, payload)
+    return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {

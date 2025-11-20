@@ -1,10 +1,10 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import {IdentityPublicKeyWASM, PrivateKeyWASM} from 'pshenmic-dpp'
+import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'pshenmic-dpp'
 import { KeyPair } from '../../types'
 import { KeyPairSchema, KeyPairsSchema } from '../storage/storageSchema'
 import { bytesToHex, hexToBytes } from '../../utils'
 import { encrypt } from 'eciesjs'
-import {DashPlatformSDK} from "dash-platform-sdk";
+import { DashPlatformSDK } from 'dash-platform-sdk'
 
 export class KeypairRepository {
   storageAdapter: StorageAdapter
@@ -125,7 +125,7 @@ export class KeypairRepository {
     return null
   }
 
-  async unmarkPending(identifier: string, keyId: number): Promise<KeyPair | null> {
+  async unmarkPending (identifier: string, keyId: number): Promise<KeyPair | null> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
@@ -138,7 +138,7 @@ export class KeypairRepository {
     const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
 
     const keyPairs = (keyPairsSchema[identifier] ?? []).map(keyPairsSchema => {
-      return {...keyPairsSchema, pending: keyPairsSchema.keyId === keyId ? false : keyPairsSchema.pending}
+      return { ...keyPairsSchema, pending: keyPairsSchema.keyId === keyId ? false : keyPairsSchema.pending }
     })
 
     keyPairsSchema[identifier] = keyPairs
