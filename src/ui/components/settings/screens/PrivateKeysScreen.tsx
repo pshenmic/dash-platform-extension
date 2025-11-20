@@ -402,8 +402,6 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       // Fetch the private key from the extension API using exportPrivateKey
       const response = await extensionAPI.exportPrivateKey(currentIdentity, selectedKeyForDialog, password)
 
-      console.log('Export Private Key Response:', response)
-
       setPrivateKeysData(prev => new Map(prev).set(selectedKeyForDialog, response.wif))
       setVisiblePrivateKeys(prev => new Set(prev).add(selectedKeyForDialog))
     } catch (error) {
@@ -478,16 +476,12 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         revision: nextRevision
       })
 
-      console.log('State transition created:', stateTransition)
-
       // Serialize state transition to base64
       const stateTransitionBytes = stateTransition.bytes()
       const stateTransitionBase64 = base64.encode(stateTransitionBytes)
 
       // Save state transition to storage
       const response = await extensionAPI.createStateTransition(stateTransitionBase64)
-
-      console.log('State transition saved:', response.stateTransition)
 
       // Close dialog
       setDisableKeyDialogOpen(false)
