@@ -70,10 +70,10 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
     let data: Uint8Array = privateKeyWASM.getPublicKey().hash160()
     let publicKeyHash: string
 
-    if (keyType === KeyType[KeyType.ECDSA_HASH160]) {
+    if (KeyType[keyType] === KeyType[KeyType.ECDSA_HASH160]) {
       data = privateKeyWASM.getPublicKey().hash160()
       publicKeyHash = bytesToHex(data)
-    } else if (keyType === KeyType[KeyType.ECDSA_SECP256K1]) {
+    } else if (KeyType[keyType] === KeyType[KeyType.ECDSA_SECP256K1]) {
       data = privateKeyWASM.getPublicKey().bytes()
       publicKeyHash = privateKeyWASM.getPublicKeyHash()
     } else {
