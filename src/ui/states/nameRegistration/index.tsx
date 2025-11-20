@@ -260,8 +260,8 @@ const NameRegistrationState: React.FC = () => {
                 <InfoCircleIcon className='w-[1.625rem] h-[1.625rem] flex-shrink-0 text-gray-400' />
                 <Text size='xs' weight='medium' className='flex-1'>
                   {hoveredCard === 'premium'
-                    ? 'This username falls under the rules of a contested username. Masternodes will vote for your username approval'
-                    : 'This is a regular, non-contested username. It will be registered immediately without masternode voting'}
+                    ? 'This username falls under the rules of a contested username (excludes any number digits except 0 and 1 and under 19 characters). Masternodes will vote for your username approval'
+                    : 'This is a regular, non-contested username and it will be registered immediately for you'}
                 </Text>
               </div>
 
