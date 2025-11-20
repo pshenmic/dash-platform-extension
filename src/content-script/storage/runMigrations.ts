@@ -21,14 +21,22 @@ const migrations = [
   removeIdentityPublicKey
 ]
 
-export default async function runMigrations (storageAdapter: StorageAdapter): Promise<void> {
-  for (const migrate of migrations) {
-    await migrate(storageAdapter)
+const restoreBackup = async (backup: object, storageAdapter: StorageAdapter) => {
+  for (const key of Object.keys(backup)) {
+    await storageAdapter.set(key, backup[key])
   }
+}
 
-  const schemaVersion =  await storageAdapter.get('schema_version') as number
+export default async function runMigrations (storageAdapter: StorageAdapter): Promise<void> {
+  const backup = await storageAdapter.getAll()
 
-  if (schemaVersion !== SCHEMA_VERSION) {
-    throw new Error('Incorrect schema version after migrations')
+  try {
+    for (const migrate of migrations) {
+      await migrate(storageAdapter)
+    }
+  } catch (e) {
+    await restoreBackup(backup, storageAdapter)
+
+    throw e
   }
 }
