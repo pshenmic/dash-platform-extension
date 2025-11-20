@@ -1,4 +1,5 @@
+import {StateTransition} from "../../StateTransition";
+
 export interface CreateIdentityKeyResponse {
-  privateKey: string
-  walletType: string
+  stateTransition: StateTransition
 }

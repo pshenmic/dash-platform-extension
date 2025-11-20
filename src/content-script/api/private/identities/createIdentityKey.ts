@@ -1,135 +1,132 @@
-import { EventData } from '../../../../types/EventData'
-import { APIHandler } from '../../APIHandler'
-import { WalletRepository } from '../../../repository/WalletRepository'
-import { StorageAdapter } from '../../../storage/storageAdapter'
-import { DashPlatformSDK } from 'dash-platform-sdk'
-import { WalletType } from '../../../../types/WalletType'
-import { decrypt, PrivateKey } from 'eciesjs'
-import { bytesToUtf8, hexToBytes } from '../../../../utils'
-import hash from 'hash.js'
-import { Network } from '../../../../types/enums/Network'
-import { PrivateKeyWASM } from 'pshenmic-dpp'
-import type { CreateIdentityKeyPayload } from '../../../../types/messages/payloads/CreateIdentityKeyPayload'
-import type { CreateIdentityKeyResponse } from '../../../../types/messages/response/CreateIdentityKeyResponse'
-import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { KeypairRepository } from '../../../repository/KeypairRepository'
+import {EventData} from '../../../../types'
+import {APIHandler} from '../../APIHandler'
+import {WalletRepository} from '../../../repository/WalletRepository'
+import {StorageAdapter} from '../../../storage/storageAdapter'
+import {DashPlatformSDK} from 'dash-platform-sdk'
+import {deriveSeedphrasePrivateKey, generateRandomHex} from '../../../../utils'
+import {PrivateKeyWASM, SecurityLevel} from 'pshenmic-dpp'
+import type {CreateIdentityKeyPayload} from '../../../../types/messages/payloads/CreateIdentityKeyPayload'
+import {IdentitiesRepository} from '../../../repository/IdentitiesRepository'
+import {KeypairRepository} from '../../../repository/KeypairRepository'
+import {VoidResponse} from "../../../../types/messages/response/VoidResponse";
+import {IdentityPublicKeyInCreation} from "dash-platform-sdk/src/types";
+import {PurposeLabelsInfo, SecurityLabelsInfo} from "../../../../enums";
+import {KeyType, Purpose} from "pshenmic-dpp/pshenmic_dpp";
+import {StateTransitionsRepository} from "../../../repository/StateTransitionsRepository";
 
 export class CreateIdentityKeyHandler implements APIHandler {
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
   keypairRepository: KeypairRepository
+  stateTransitionsRepository: StateTransitionsRepository
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
 
-  constructor (walletRepository: WalletRepository, identitiesRepository: IdentitiesRepository, keypairRepository: KeypairRepository, storageAdapter: StorageAdapter, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, identitiesRepository: IdentitiesRepository, keypairRepository: KeypairRepository, storageAdapter: StorageAdapter, stateTransitionsRepository:StateTransitionsRepository, sdk: DashPlatformSDK) {
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
     this.keypairRepository = keypairRepository
+    this.stateTransitionsRepository = stateTransitionsRepository
     this.storageAdapter = storageAdapter
     this.sdk = sdk
   }
 
-  async handle (event: EventData): Promise<CreateIdentityKeyResponse> {
+  async handle (event: EventData): Promise<VoidResponse> {
     const payload: CreateIdentityKeyPayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
     const network = await this.storageAdapter.get('network') as string
+    const keyType = KeyType[payload.keyType]
+    const purpose = Purpose[payload.purpose]
+    const securityLevel = SecurityLevel[payload.securityLevel]
 
     if (wallet == null) {
       throw new Error('No wallet is chosen')
     }
 
-    let privateKeyHex: string
+    const signingIdentity = await this.identitiesRepository.getByIdentifier(payload.signingIdentity)
 
-    if (wallet.type === WalletType.seedphrase) {
-      // For seed phrase wallets: derive key from seed phrase
-      if (wallet.encryptedMnemonic == null) {
-        throw new Error('Encrypted mnemonic not set for seedphrase wallet')
-      }
-
-      // Check password is provided for seedphrase wallets
-      if (payload.password == null || payload.password.length === 0) {
-        throw new Error('Password is required for seed phrase wallets')
-      }
-
-      // Decrypt the mnemonic using the password
-      const passwordHash = hash.sha256().update(payload.password).digest('hex')
-      const secretKey = PrivateKey.fromHex(passwordHash)
-
-      let mnemonic: string
-      try {
-        mnemonic = bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(wallet.encryptedMnemonic)))
-      } catch (e) {
-        throw new Error('Failed to decrypt mnemonic. Please check your password.')
-      }
-
-      // Convert mnemonic to seed
-      const seed = this.sdk.keyPair.mnemonicToSeed(mnemonic)
-
-      // Convert seed to HDKey
-      const hdKey = this.sdk.keyPair.seedToHdKey(seed, Network[network])
-
-      // Get the identity data to find the identity index
-      const identity = await this.identitiesRepository.getByIdentifier(payload.identity)
-
-      if (identity?.index == null) {
-        throw new Error('Identity index not found. Cannot derive key from seed phrase.')
-      }
-
-      // Get current keys to determine next key index
-      const identityPublicKeys = await this.sdk.identities.getIdentityPublicKeys(payload.identity)
-      const maxKeyId = identityPublicKeys.reduce((max, key) => Math.max(max, key.keyId), -1)
-      const nextKeyIndex = maxKeyId + 1
-
-      // Derive the identity private key
-      const derivedHdKey = this.sdk.keyPair.deriveIdentityPrivateKey(hdKey, identity.index, nextKeyIndex, Network[network])
-
-      if (derivedHdKey.privateKey == null) {
-        throw new Error('Failed to derive private key from seed phrase')
-      }
-
-      // Convert to hex
-      const privateKeyWASM = PrivateKeyWASM.fromBytes(derivedHdKey.privateKey, Network[network])
-      privateKeyHex = privateKeyWASM.hex()
-    } else {
-      // For keystore wallets: generate random private key
-      const privateKeyBytes = new Uint8Array(32)
-      crypto.getRandomValues(privateKeyBytes)
-
-      const privateKeyWASM = PrivateKeyWASM.fromBytes(privateKeyBytes, Network[network])
-      privateKeyHex = privateKeyWASM.hex()
-
-      // Save the key immediately for keystore wallets
-      if (payload.keyId !== undefined && payload.keyType !== undefined && payload.purpose !== undefined && payload.securityLevel !== undefined && payload.readOnly !== undefined) {
-        // Store pending private key in storage with metadata
-        // It will be saved to KeypairRepository after state transition is confirmed
-        const publicKeyHash = privateKeyWASM.getPublicKeyHash()
-
-        const pendingKeyData = {
-          privateKey: privateKeyHex,
-          identity: payload.identity,
-          keyId: payload.keyId,
-          keyType: payload.keyType,
-          purpose: payload.purpose,
-          securityLevel: payload.securityLevel,
-          readOnly: payload.readOnly,
-          publicKeyHash
-        }
-
-        // Store in a temporary storage key that will be used after state transition confirmation
-        const pendingKeyStorageKey = `pendingKey_${payload.identity}_${payload.keyId}`
-        await this.storageAdapter.set(pendingKeyStorageKey, pendingKeyData)
-      }
+    if (signingIdentity == null) {
+      throw new Error('Signing Identity could not be found')
     }
 
+    const identity = await this.identitiesRepository.getByIdentifier(payload.identity)
+
+    if (identity == null) {
+      throw new Error('Identity could not be found')
+    }
+
+    const identityWASM = await this.sdk.identities.getIdentityByIdentifier(payload.signingIdentity)
+
+    const nextKeyId = identityWASM.getPublicKeys().reduce((nextIndex, identityPublicKey) => {
+      if (identityPublicKey.keyId >= nextIndex) {
+        return identityPublicKey.keyId + 1
+      }
+      return nextIndex
+    }, 0)
+
+    let privateKeyWASM: PrivateKeyWASM
+
+    if (wallet.type === 'keystore') {
+      // if keystore - generate new private key and store in the keypair repository
+       privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(40), network)
+
+      await this.keypairRepository.add(identity.identifier, privateKeyWASM.hex(), nextKeyId, true)
+    } else if(wallet.type === 'seedphrase') {
+      // if seedphrase - derive private key of next unused key
+      privateKeyWASM = await deriveSeedphrasePrivateKey(wallet, payload.password, identity.index, nextKeyId, this.sdk)
+    } else {
+      throw new Error("Unknown wallet type")
+    }
+
+    let data: Uint8Array = privateKeyWASM.getPublicKey().hash160()
+
+    if (keyType === KeyType.ECDSA_HASH160) {
+      data = privateKeyWASM.getPublicKey().hash160()
+    }
+
+    if (keyType === KeyType.ECDSA_SECP256K1) {
+      data = privateKeyWASM.getPublicKey().bytes()
+    }
+
+    const identityPublicKeyInCreation: IdentityPublicKeyInCreation = {
+      data,
+      id: 0,
+      keyType,
+      purpose,
+      readOnly: false,
+      securityLevel
+    }
+
+    const stateTransitionWASM =  this.sdk.identities.createStateTransition('update',{
+      addPublicKeys: [identityPublicKeyInCreation]
+    })
+
+    const stateTransition = await this.stateTransitionsRepository.create(stateTransitionWASM)
+
     return {
-      privateKey: privateKeyHex,
-      walletType: wallet.type
+      stateTransition
     }
   }
 
   validatePayload (payload: CreateIdentityKeyPayload): string | null {
     if (typeof payload.identity !== 'string' || payload.identity.length === 0) {
       return 'Identity identifier must be provided'
+    }
+    if (typeof payload.signingIdentity !== 'string' || payload.signingIdentity.length === 0) {
+      return 'Signing identifier must be provided'
+    }
+    if (typeof payload.password !== 'string' || payload.password.length === 0) {
+      return 'Password must be provided'
+    }
+
+    if (Object.keys(SecurityLabelsInfo).indexOf(payload.securityLevel) === -1) {
+      return 'Invalid security level value'
+    }
+    if (Object.keys(PurposeLabelsInfo).indexOf(payload.purpose) === -1) {
+      return 'Invalid purpose value'
+    }
+    if (payload.keyType !== 'ECDSA_SECP256K1' && payload.keyType !== 'ECDSA_HASH160') {
+      return 'Invalid key type value (only ECDSA_SECP256K1 or ECDSA_HASH160 are supported)'
     }
 
     return null

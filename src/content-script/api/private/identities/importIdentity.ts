@@ -57,7 +57,7 @@ export class ImportIdentityHandler implements APIHandler {
         .filter((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
               PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash())
 
-      await this.keypairRepository.add(payload.identity, privateKey, identityPublicKey)
+      await this.keypairRepository.add(payload.identity, privateKey, identityPublicKey.keyId)
     }
 
     await this.identitiesRepository.create(payload.identity, IdentityType.regular)

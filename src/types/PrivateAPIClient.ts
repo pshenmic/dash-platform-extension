@@ -285,15 +285,19 @@ export class PrivateAPIClient {
   }
 
   async createIdentityKey (
+    signingIdentity: string,
+    signingKeyId: number,
     identity: string,
-    password?: string,
-    keyId?: number,
-    keyType?: number,
-    purpose?: number,
-    securityLevel?: number,
-    readOnly?: boolean
+    password: string,
+    keyType: string,
+    keyId: number,
+    purpose: string,
+    securityLevel: string,
+    readOnly: boolean
   ): Promise<CreateIdentityKeyResponse> {
     const payload: CreateIdentityKeyPayload = {
+      signingIdentity,
+      signingKeyId,
       identity,
       password,
       keyId,
@@ -304,14 +308,6 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_KEY, payload)
-  }
-
-  async importPendingKeys (identity: string): Promise<VoidResponse> {
-    const payload: ImportPendingKeysPayload = {
-      identity
-    }
-
-    return await this._rpcCall(MessagingMethods.IMPORT_PENDING_KEYS, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {

@@ -46,7 +46,7 @@ export class ImportMasternodeIdentityHandler implements APIHandler {
     const existingKeyPair = await this.keypairRepository.getByIdentityPublicKey(identity.id.base58(), identityPublicKey)
 
     if (existingKeyPair == null) {
-      await this.keypairRepository.add(identity.id.base58(), privateKeyWASM.hex(), identityPublicKey)
+      await this.keypairRepository.add(identity.id.base58(), privateKeyWASM.hex(), identityPublicKey.keyId)
     }
   }
 

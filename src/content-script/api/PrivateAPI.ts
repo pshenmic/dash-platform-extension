@@ -36,7 +36,6 @@ import { RegisterUsernameHandler } from './private/identities/registerUsername'
 import { ImportMasternodeIdentityHandler } from './private/identities/importMasternodeIdentity'
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
 import { CreateIdentityKeyHandler } from './private/identities/createIdentityKey'
-import { ImportPendingKeysHandler } from './private/identities/importPendingKeys'
 
 /**
  * Handlers for a messages within extension context
@@ -75,7 +74,7 @@ export class PrivateAPI {
   init (): void {
     const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk)
     const walletRepository = new WalletRepository(this.storageAdapter, identitiesRepository)
-    const keypairRepository = new KeypairRepository(this.storageAdapter)
+    const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk)
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
 
@@ -107,8 +106,7 @@ export class PrivateAPI {
       [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter),
       [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
-      [MessagingMethods.CREATE_IDENTITY_KEY]: new CreateIdentityKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, this.sdk),
-      [MessagingMethods.IMPORT_PENDING_KEYS]: new ImportPendingKeysHandler(keypairRepository, this.storageAdapter, this.sdk)
+      [MessagingMethods.CREATE_IDENTITY_KEY]: new CreateIdentityKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {

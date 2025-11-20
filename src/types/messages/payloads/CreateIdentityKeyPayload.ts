@@ -1,10 +1,11 @@
 export interface CreateIdentityKeyPayload {
+  signingIdentity: string
+  signingKeyId: number
   identity: string
-  password?: string // Optional: only required for seedphrase wallets
-  // Public key parameters - needed for keystore wallets to save the key
-  keyId?: number
-  keyType?: number
-  purpose?: number
-  securityLevel?: number
-  readOnly?: boolean
+  password: string
+  keyId: number
+  keyType: string
+  purpose: string
+  securityLevel: string
+  readOnly: boolean
 }
