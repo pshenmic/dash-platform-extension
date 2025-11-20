@@ -5,9 +5,10 @@ import { Text, Button, ValueCard, Identifier, Input, InfoCircleIcon } from 'dash
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { WalletType } from '../../../../types'
 import { useExtensionAPI, useSdk } from '../../../hooks'
-import { PrivateKeyWASM } from 'pshenmic-dpp'
-import { hexToBytes } from '../../../../utils'
+import { KeyType, Purpose, SecurityLevel } from 'pshenmic-dpp'
 import { InfoCard } from '../../common'
+import { CreateIdentityPrivateKeyResponse } from "../../../../types/messages/response/CreateIdentityPrivateKeyResponse";
+import { hexToBytes } from '../../../../utils'
 
 export const createKeyScreenConfig: ScreenConfig = {
   id: 'create-key-settings',
@@ -18,11 +19,9 @@ export const createKeyScreenConfig: ScreenConfig = {
 
 // Key type options matching Dash Platform SDK
 const KEY_TYPES = [
-  { id: 'ECDSA_SECP256K1', label: 'ECDSA_SECP256K1', value: 0 },
-  { id: 'BLS12_381', label: 'BLS_12-381', value: 1 },
-  { id: 'ECDSA_HASH160', label: 'ECDSA_SECP256K1_HASH160', value: 2 },
-  { id: 'BIP13_SCRIPT_HASH', label: 'BIP13', value: 3 },
-  { id: 'EDDSA_25519_HASH160', label: 'EDDSA_25519_HASH160', value: 4 }
+  { id: 'ECDSA_SECP256k1', label: 'ECDSA_SECP256k1', value: 0 },
+  { id: 'ECDSA_SECP256K1', label: 'ECDSA_SECP256K1', value: 1 },
+  { id: 'ECDSA_HASH160', label: 'ECDSA_HASH160', value: 2 }
 ]
 
 // Purpose options
@@ -135,45 +134,30 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       setError(null)
 
       // Get current keys to determine next key ID
-      const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
-      const maxKeyId = identityPublicKeys.reduce((max: number, key: any) =>
-        Math.max(max, key.keyId ?? 0), -1)
-      const nextKeyId = maxKeyId + 1
+      // const identityPublicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
+      // const maxKeyId = identityPublicKeys.reduce((max: number, key: any) =>
+      //   Math.max(max, key.keyId ?? 0), -1)
+      // const nextKeyId = maxKeyId + 1
 
-      // Step 1: Generate/derive private key using the handler
-      // For seedphrase: derive from seed phrase (requires password)
-      // For keystore: generate random key and save it (no password needed)
-      const { privateKey: privateKeyHex } = await extensionAPI.createIdentityKey(
+      const publicKey: CreateIdentityPrivateKeyResponse = await extensionAPI.createIdentityPrivateKey(
         currentIdentity,
-        currentWallet.type === WalletType.seedphrase ? password : undefined,
-        nextKeyId,
-        keyType,
-        purpose,
-        securityLevel,
-        readOnly
+        password,
+        KEY_TYPES[keyType].id
       )
-
-      // Step 2: Get the public key data
-      const privateKeyWASM = PrivateKeyWASM.fromHex(privateKeyHex, currentWallet.network)
-      const publicKeyHashHex = privateKeyWASM.getPublicKeyHash() // 20 bytes hash as hex string
-      const publicKeyHashBytes = hexToBytes(publicKeyHashHex) // Convert to Uint8Array
 
       // Step 3: Get identity data from network
       const identity = await sdk.identities.getIdentityByIdentifier(currentIdentity)
       const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
-
-      // Get next revision
       const currentRevision = BigInt(identity.revision)
-      const nextRevision = currentRevision + BigInt(1)
 
       // Step 4: Create public key structure for adding
       // Use public key hash (20 bytes) as data
       const publicKeyToAdd = {
-        id: nextKeyId,
-        keyType,
-        purpose,
-        securityLevel,
-        data: publicKeyHashBytes,
+        id: publicKey.keyId,
+        keyType: KeyType[KEY_TYPES[keyType].id as keyof typeof KeyType],
+        purpose: purpose as Purpose,
+        securityLevel: securityLevel as SecurityLevel,
+        data: hexToBytes(publicKey.publicKeyData),
         readOnly
       }
 
@@ -183,7 +167,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         disablePublicKeyIds: [],
         addPublicKeys: [publicKeyToAdd],
         identityNonce: identityNonce + 1n,
-        revision: nextRevision
+        revision: currentRevision + 1n
       })
 
       // Step 6: Serialize state transition to base64
