@@ -16,7 +16,7 @@ export default async function removeIdentityPublicKey (storageAdapter: StorageAd
     }))).filter(e => e != null)
 
     for (const wallet of wallets) {
-      const walletIdentities = await storageAdapter.get(`identities_${wallet.network}_${wallet.walletId}`) as IdentitiesStoreSchema
+      const walletIdentities = await storageAdapter.get(`identities_${wallet.network}_${wallet.walletId}`) as IdentitiesStoreSchema ?? {}
 
       for (const identityId of Object.keys(walletIdentities)) {
         const keyPairsSchema = await storageAdapter.get(`keyPairs_${wallet.network}_${wallet.walletId}`) as KeyPairsSchema

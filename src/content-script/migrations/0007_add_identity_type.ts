@@ -16,7 +16,7 @@ export default async function addIdentityType (storageAdapter: StorageAdapter): 
     }))).filter(e => e != null)
 
     for (const wallet of wallets) {
-      const walletIdentities = await storageAdapter.get(`identities_${wallet.network}_${wallet.walletId}`) as IdentitiesStoreSchema
+      const walletIdentities = await storageAdapter.get(`identities_${wallet.network}_${wallet.walletId}`) as IdentitiesStoreSchema ?? {}
 
       for (const identityId of Object.keys(walletIdentities)) {
         let migratedIdentity = walletIdentities[identityId]
