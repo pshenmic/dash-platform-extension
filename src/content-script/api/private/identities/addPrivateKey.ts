@@ -1,5 +1,5 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { EventData } from '../../../../types/EventData'
+import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { IdentifierWASM, PrivateKeyWASM } from 'pshenmic-dpp'
 import { WalletRepository } from '../../../repository/WalletRepository'
@@ -46,7 +46,7 @@ export class AddIdentityPrivateKey implements APIHandler {
 
     // check that such private key not already exists
     const keyPairs = await this.keypairRepository.getAllByIdentity(payload.identity)
-    const [existingKeyPair] = keyPairs.filter(keyPair => keyPair.identityPublicKey.getPublicKeyHash() === publicKeyHash)
+    const [existingKeyPair] = keyPairs.filter(keyPair => keyPair.publicKeyHash === publicKeyHash)
 
     if (existingKeyPair != null) {
       throw new Error('That private key already exists for this identity')
@@ -60,7 +60,7 @@ export class AddIdentityPrivateKey implements APIHandler {
       throw new Error('No Identity Public Key known in network matching this private key')
     }
 
-    await this.keypairRepository.add(payload.identity, privateKey, identityPublicKey)
+    await this.keypairRepository.add(payload.identity, privateKey, identityPublicKey.keyId)
 
     return {}
   }

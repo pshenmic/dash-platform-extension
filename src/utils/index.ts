@@ -62,7 +62,7 @@ export const deriveKeystorePrivateKey = async (wallet: Wallet, password: string,
   const keyPairs = await keyPairRepository.getAllByIdentity(identityId)
 
   const [keyPair] = keyPairs
-    .filter(keyPair => keyPair.identityPublicKey.keyId === keyId)
+    .filter(keyPair => keyPair.keyId === keyId)
 
   if (keyPair == null || keyPair.encryptedPrivateKey == null) {
     throw new Error(`Could not find private key with KeyID ${keyId} for identity ${identityId}`)
