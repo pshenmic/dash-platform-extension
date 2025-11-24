@@ -81,7 +81,7 @@ function SendTransactionState (): React.JSX.Element {
 
       window.history.replaceState({}, document.title)
     }
-  }, [locationState, tokensState.data, formState])
+  }, [locationState, tokensState.data, formState.handleAssetSelect])
 
   // Load balance, tokens and exchange rate on component mount
   useEffect(() => {
