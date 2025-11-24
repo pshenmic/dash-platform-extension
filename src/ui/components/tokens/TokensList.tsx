@@ -68,6 +68,39 @@ function TokensList ({
         const balance = fromBaseUnit(token.balance, token.decimals)
         const isMenuOpen = openMenuTokenId === token.identifier
 
+        const menuItems = [
+          {
+            id: 'view-explorer',
+            content: (
+              <div className='flex items-center gap-2'>
+                <ExternalLinkIcon size={16} />
+                <Text weight='medium' className='!text-[0.75rem]'>View on Explorer</Text>
+              </div>
+            ),
+            onClick: () => {
+              window.open(getTokenExplorerUrl(token.identifier), '_blank', 'noopener,noreferrer')
+              handleCloseMenu()
+            }
+          },
+          {
+            id: 'transfer',
+            content: (
+              <div className='flex items-center gap-2'>
+                <AirplaneIcon size={16} />
+                <Text weight='medium' className='!text-[0.75rem]'>Transfer</Text>
+              </div>
+            ),
+            onClick: () => {
+              handleCloseMenu()
+              void navigate('/send-transaction', {
+                state: {
+                  selectedToken: token.identifier
+                }
+              })
+            }
+          }
+        ]
+
         return (
           <div key={token.identifier} className='relative'>
             <EntityListItem
@@ -105,43 +138,13 @@ function TokensList ({
               <div className='absolute top-1/2 left-full z-50'>
                 <OverlayMenu
                   variant='context-menu'
-                  contentClassName='!translate-x-[-110%] !translate-y-[-50%]'
+                  position={{ top: 0, left: 0 }}
+                  items={menuItems}
+                  contentClassName='!absolute !translate-x-[-110%] !translate-y-[-50%]'
                   size='xl'
                   width={200}
                   showCloseButton
                   onClose={handleCloseMenu}
-                  items={[
-                    {
-                      id: 'view-explorer',
-                      content: (
-                        <div className='flex items-center gap-2'>
-                          <ExternalLinkIcon size={16} />
-                          <Text weight='medium' className='!text-[0.75rem]'>View on Explorer</Text>
-                        </div>
-                      ),
-                      onClick: () => {
-                        window.open(getTokenExplorerUrl(token.identifier), '_blank', 'noopener,noreferrer')
-                        handleCloseMenu()
-                      }
-                    },
-                    {
-                      id: 'transfer',
-                      content: (
-                        <div className='flex items-center gap-2'>
-                          <AirplaneIcon size={16} />
-                          <Text weight='medium' className='!text-[0.75rem]'>Transfer</Text>
-                        </div>
-                      ),
-                      onClick: () => {
-                        handleCloseMenu()
-                        void navigate('/send-transaction', {
-                          state: {
-                            selectedToken: token.identifier
-                          }
-                        })
-                      }
-                    }
-                  ]}
                 />
               </div>
             )}
