@@ -3,4 +3,5 @@ export interface CreateIdentityPrivateKeyResponse {
   keyId: number
   publicKeyData: string
   publicKeyHash: string
+  signature: string
 }

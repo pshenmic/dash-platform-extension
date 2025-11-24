@@ -80,6 +80,8 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       throw new Error(`Unsupported key type ${KeyType[keyType]}`)
     }
 
+    const signature = privateKeyWASM.sign(data)
+
     // const identityPublicKeyInCreation: IdentityPublicKey InCreation = {
     //   data,
     //   id: 0,
@@ -95,7 +97,8 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       identifier: identity.identifier,
       keyId: nextKeyId,
       publicKeyData: bytesToHex(data),
-      publicKeyHash
+      publicKeyHash,
+      signature: bytesToHex(signature)
     }
   }
 
