@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import {
   Button,
   Text,
@@ -33,10 +33,12 @@ import {
 
 function SendTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
+  const location = useLocation()
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
   const { currentNetwork, currentIdentity, setHeaderComponent, allWallets, currentWallet } = useOutletContext<OutletContext>()
+  const locationState = location.state as { selectedToken?: string } | null
   const [isLoading, setIsLoading] = useState(false)
   const [balance, setBalance] = useState<bigint | null>(null)
   const [rate, setRate] = useState<number | null>(null)
@@ -68,6 +70,18 @@ function SendTransactionState (): React.JSX.Element {
     currentNetwork,
     token: getSelectedToken()
   })
+
+  // Set selected token from navigation state
+  useEffect(() => {
+    if (locationState?.selectedToken != null && tokensState.data != null) {
+      const tokenExists = tokensState.data.some(token => token.identifier === locationState.selectedToken)
+      if (tokenExists) {
+        formState.handleAssetSelect(locationState.selectedToken)
+      }
+
+      window.history.replaceState({}, document.title)
+    }
+  }, [locationState, tokensState.data, formState.handleAssetSelect])
 
   // Load balance, tokens and exchange rate on component mount
   useEffect(() => {
