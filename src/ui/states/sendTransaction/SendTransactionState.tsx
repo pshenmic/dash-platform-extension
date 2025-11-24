@@ -44,12 +44,6 @@ function SendTransactionState (): React.JSX.Element {
   const [rate, setRate] = useState<number | null>(null)
   const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
   const [showAssetSelection, setShowAssetSelection] = useState(false)
-  const [selectedRecipient, setSelectedRecipient] = useState<RecipientData | null>(null)
-  const [formData, setFormData] = useState<SendFormData>({
-    recipient: '',
-    amount: '',
-    selectedAsset: locationState?.selectedToken ?? 'credits'
-  })
 
   // Form state hook
   const formState = useSendTransactionForm({
@@ -76,7 +70,6 @@ function SendTransactionState (): React.JSX.Element {
     currentNetwork,
     token: getSelectedToken()
   })
-
 
   // Clear navigation state after it's been read
   useEffect(() => {
