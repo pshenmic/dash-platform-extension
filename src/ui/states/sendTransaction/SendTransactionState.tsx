@@ -71,12 +71,17 @@ function SendTransactionState (): React.JSX.Element {
     token: getSelectedToken()
   })
 
-  // Clear navigation state after it's been read
+  // Set selected token from navigation state
   useEffect(() => {
-    if (locationState?.selectedToken != null) {
+    if (locationState?.selectedToken != null && tokensState.data != null) {
+      const tokenExists = tokensState.data.some(token => token.identifier === locationState.selectedToken)
+      if (tokenExists) {
+        formState.handleAssetSelect(locationState.selectedToken)
+      }
+
       window.history.replaceState({}, document.title)
     }
-  }, [locationState])
+  }, [locationState, tokensState.data, formState])
 
   // Load balance, tokens and exchange rate on component mount
   useEffect(() => {
