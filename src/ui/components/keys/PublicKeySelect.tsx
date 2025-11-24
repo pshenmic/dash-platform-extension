@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { Text, ValueCard, Select, KeyIcon } from 'dash-ui-kit/react'
 import { getPurposeLabel, getSecurityLabel } from '../../../enums'
 import { isKeyCompatible } from '../../../utils'
+import { MissingRequiredKeyWarning } from './MissingRequiredKeyWarning'
 
 export interface PublicKeyInfo {
   keyId: number
@@ -104,35 +105,44 @@ export function PublicKeySelect ({
     }
   })
 
+  // Check if there are any compatible keys
+  const compatibleKeys = keys.filter(key => isKeyCompatible(key, keyRequirements))
+  const hasCompatibleKeys = compatibleKeys.length > 0
+
   return (
     <div className='flex flex-col gap-2.5'>
       <Text size='md' opacity='50'>Choose Signing Key</Text>
       {loading
         ? (
-          <ValueCard colorScheme='lightGray' size='xl'>
+          <ValueCard colorScheme='lightGray' size='xl' className='h-[3.75rem] flex items-center'>
             <Text size='md' opacity='50'>Loading signing keys...</Text>
           </ValueCard>
           )
         : (error != null && error !== '')
             ? (
-              <ValueCard colorScheme='red' size='xl'>
+              <ValueCard colorScheme='red' size='xl' className='h-[3.75rem] flex items-center'>
                 <Text size='md' color='red'>Error loading signing keys: {error}</Text>
               </ValueCard>
               )
             : signingKeyOptions.length > 0
               ? (
-                <Select
-                  value={value ?? undefined}
-                  onChange={onChange}
-                  options={signingKeyOptions}
-                  showArrow
-                  size='xl'
-                  disabled={disabled}
-                  className='py-[0.875rem]'
-                />
+                <>
+                  <Select
+                    value={value ?? undefined}
+                    onChange={onChange}
+                    options={signingKeyOptions}
+                    showArrow
+                    size='xl'
+                    disabled={disabled}
+                    className='py-[0.875rem] h-[3.75rem]'
+                  />
+                  {!hasCompatibleKeys && keyRequirements.length > 0 && (
+                    <MissingRequiredKeyWarning keyRequirements={keyRequirements} />
+                  )}
+                </>
                 )
               : (
-                <ValueCard colorScheme='lightGray' size='xl'>
+                <ValueCard colorScheme='lightGray' size='xl' className='h-[3.75rem] flex items-center'>
                   <Text size='md' opacity='50'>No signing keys available</Text>
                 </ValueCard>
                 )}

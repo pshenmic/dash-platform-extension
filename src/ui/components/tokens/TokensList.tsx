@@ -59,7 +59,7 @@ function TokensList ({
       variant='tight'
       loadingText='Loading tokens...'
       errorText={(error != null && error !== '') ? `Error loading tokens: ${error}` : undefined}
-      emptyText='No tokens found'
+      emptyText='No tokens on this Identity yet'
     >
       {tokens.map((token) => {
         const initials = getTokenInitials(token)

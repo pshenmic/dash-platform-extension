@@ -3,7 +3,7 @@ import { IdentitiesStoreSchema, WalletStoreSchema } from '../storage/storageSche
 import { SCHEMA_VERSION } from '../../constants'
 
 // set all identities to regular, hoping nobody put masternode identities in the extension yet
-export default async function moveCurrentIdentityToWallet (storageAdapter: StorageAdapter): Promise<void> {
+export default async function addIdentityType (storageAdapter: StorageAdapter): Promise<void> {
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
   if (schemaVersion === 6) {
