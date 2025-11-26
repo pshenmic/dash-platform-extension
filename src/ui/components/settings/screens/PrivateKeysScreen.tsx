@@ -464,8 +464,8 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
 
       // Get the next revision from the identity (current + 1)
-      const currentRevision = BigInt(identity.revision)
-      const nextRevision = currentRevision + BigInt(1)
+      const currentRevision = identity.revision
+      const nextRevision = currentRevision + 1n
 
       // Create state transition to disable the public key
       const stateTransition = sdk.identities.createStateTransition('update', {
