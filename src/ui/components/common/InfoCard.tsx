@@ -2,7 +2,7 @@ import React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 
 const infoCardVariants = cva(
-  'rounded-xl p-3 border-l-[2px] shadow-[0_0_75px_0_rgba(0,0,0,0.1)]',
+  'rounded-xl p-3 border-l-[2px] dash-shadow-xl',
   {
     variants: {
       borderColor: {
