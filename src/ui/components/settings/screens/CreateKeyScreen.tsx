@@ -115,7 +115,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
     } catch (e) {
       console.error('Failed to create key:', e)
       const errorMessage = e instanceof Error ? e.message : String(e)
-      setError(`Failed to create key: ${errorMessage}`)
+      setError(errorMessage)
     } finally {
       setIsCreating(false)
     }
@@ -188,7 +188,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       {/* Error Display */}
       {error != null && (
         <ValueCard colorScheme='yellow' className='break-words whitespace-pre-wrap'>
-          <Text color='red'>{error}</Text>
+          <Text color='red'>Failed to create key: {error}</Text>
         </ValueCard>
       )}
 
