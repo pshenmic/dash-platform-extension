@@ -143,11 +143,12 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
 
       const publicKeyToAdd = {
         id: publicKey.keyId,
-        keyType: KeyType[KEY_TYPES[keyType].id as keyof typeof KeyType],
-        purpose: purpose as Purpose,
-        securityLevel: securityLevel as SecurityLevel,
+        keyType: KeyType[KEY_TYPES[keyType].id],
+        purpose: purpose,
+        securityLevel: securityLevel,
         data: hexToBytes(publicKey.publicKeyData),
-        readOnly
+        readOnly,
+        signature: keyType === 0 ? hexToBytes(publicKey.signature) : undefined
       }
 
       const stateTransition = sdk.identities.createStateTransition('update', {
