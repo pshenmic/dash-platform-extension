@@ -10,6 +10,7 @@ import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { PLATFORM_EXPLORER_URLS } from '../../../constants'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -304,9 +305,13 @@ function ApproveTransactionState (): React.JSX.Element {
   if (txHash != null) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>
-          Transaction was successfully broadcasted
-        </h1>
+        <TitleBlock
+          title={<>
+            <span className='font-normal'>Transaction was</span><br />
+            <span className='font-medium'>successfully broadcasted</span>
+          </>}
+          description='You can check the transaction hash below'
+        />
 
         <div className='flex flex-col gap-2.5'>
           <Text size='md' className='opacity-50 font-medium'>Transaction hash</Text>
@@ -389,14 +394,13 @@ function ApproveTransactionState (): React.JSX.Element {
   return (
     <div className='screen-content'>
       <div className='flex flex-col gap-6'>
-        <div className='flex flex-col gap-2.5'>
-          <h1 className='h1-title'>
-            Transaction<br />Approval
-          </h1>
-          <Text size='sm' opacity='50'>
-            Carefully check the transaction details before signing
-          </Text>
-        </div>
+        <TitleBlock
+          title={<>
+            <span>Transaction</span><br />
+            <span>Approval</span>
+          </>}
+          description='Carefully check the transaction details before signing'
+        />
 
         <div className='flex flex-col gap-2.5'>
           <Text size='md' opacity='50'>Transaction Hash</Text>
