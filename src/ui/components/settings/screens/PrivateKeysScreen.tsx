@@ -460,12 +460,9 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       // Get the current identity from the network
       const identity = await sdk.identities.getIdentityByIdentifier(currentIdentity)
 
-      // Get the current identity nonce
+      // Get the current identity nonce and revision
       const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
-
-      // Get the next revision from the identity (current + 1)
-      const currentRevision = identity.revision
-      const nextRevision = currentRevision + 1n
+      const identityRevision = identity.revision
 
       // Create state transition to disable the public key
       const stateTransition = sdk.identities.createStateTransition('update', {
@@ -473,7 +470,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         disablePublicKeyIds: [keyToDisable],
         addPublicKeys: [],
         identityNonce: identityNonce + 1n,
-        revision: nextRevision
+        revision: identityRevision + 1n
       })
 
       // Serialize state transition to base64
