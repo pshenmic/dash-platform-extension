@@ -78,9 +78,10 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
       const currentRevision = BigInt(identity.revision)
 
+      const keyTypeEnum = KeyType[keyType as keyof typeof KeyType]
       const publicKeyToAdd = {
         id: publicKey.keyId,
-        keyType: KeyType[keyType],
+        keyType: keyTypeEnum,
         purpose,
         securityLevel,
         data: hexToBytes(publicKey.publicKeyData),
@@ -147,7 +148,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
               Seed Phrase Wallet
             </Text>
             <Text size='sm' dim>
-              The key will be derived from your seed phrase using the proper derivation path. You'll need to enter your password to unlock the seed phrase.
+              The key will be derived from your seed phrase using the proper derivation path.
             </Text>
           </div>
         )}
@@ -203,20 +204,18 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         </Text>
       </InfoCard>
 
-      <div className='flex flex-col gap-2'>
-        {/* Password field */}
-        <div className='flex flex-col gap-3'>
-          <Text size='sm' dim>
-            Password *
-          </Text>
-          <Input
-            type='password'
-            placeholder='Enter your wallet password'
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className='w-full'
-          />
-        </div>
+      {/* Password field */}
+      <div className='flex flex-col gap-3'>
+        <Text size='sm' dim>
+          Password *
+        </Text>
+        <Input
+          type='password'
+          placeholder='Enter your wallet password'
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className='w-full'
+        />
       </div>
 
       {/* Create Button */}
