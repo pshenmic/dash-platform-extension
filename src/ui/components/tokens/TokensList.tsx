@@ -1,5 +1,6 @@
-import React from 'react'
-import { Text } from 'dash-ui-kit/react'
+import React, { useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Text, OverlayMenu, ExternalLinkIcon, AirplaneIcon } from 'dash-ui-kit/react'
 import { TokenData, NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { getTokenName, fromBaseUnit } from '../../../utils'
 import { PLATFORM_EXPLORER_URLS } from '../../../constants'
@@ -20,6 +21,9 @@ function TokensList ({
   error,
   currentNetwork
 }: TokensListProps): React.JSX.Element {
+  const navigate = useNavigate()
+  const [openMenuTokenId, setOpenMenuTokenId] = useState<string | null>(null)
+
   const getTokenInitials = (token: TokenData): string => {
     const singularName = getTokenName(token.localizations, 'singularForm')
     if (singularName !== '' && singularName != null) {
@@ -38,6 +42,15 @@ function TokensList ({
     return `${explorerBaseUrl}/token/${tokenIdentifier}`
   }
 
+  const handleTokenClick = useCallback((e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>, tokenId: string) => {
+    e.stopPropagation()
+    setOpenMenuTokenId(prevId => prevId === tokenId ? null : tokenId)
+  }, [])
+
+  const handleCloseMenu = useCallback(() => {
+    setOpenMenuTokenId(null)
+  }, [])
+
   return (
     <EntityList
       loading={loading}
@@ -53,43 +66,89 @@ function TokensList ({
         const singularName = getTokenName(token.localizations, 'singularForm') ?? (token.description !== '' ? token.description : 'Unknown Token')
         const pluralName = getTokenName(token.localizations, 'pluralForm') ?? singularName
         const balance = fromBaseUnit(token.balance, token.decimals)
+        const isMenuOpen = openMenuTokenId === token.identifier
+
+        const menuItems = [
+          {
+            id: 'view-explorer',
+            content: (
+              <div className='flex items-center gap-2'>
+                <ExternalLinkIcon size={16} />
+                <Text weight='medium' className='!text-[0.75rem]'>View on Explorer</Text>
+              </div>
+            ),
+            onClick: () => {
+              window.open(getTokenExplorerUrl(token.identifier), '_blank', 'noopener,noreferrer')
+              handleCloseMenu()
+            }
+          },
+          {
+            id: 'transfer',
+            content: (
+              <div className='flex items-center gap-2'>
+                <AirplaneIcon size={16} />
+                <Text weight='medium' className='!text-[0.75rem]'>Transfer</Text>
+              </div>
+            ),
+            onClick: () => {
+              handleCloseMenu()
+              void navigate('/send-transaction', {
+                state: {
+                  selectedToken: token.identifier
+                }
+              })
+            }
+          }
+        ]
 
         return (
-          <EntityListItem
-            key={token.identifier}
-            href={getTokenExplorerUrl(token.identifier)}
-          >
-            <div className='flex items-center gap-3'>
-              <div className='flex items-center justify-center w-[2.438rem] h-[2.438rem] bg-[rgba(12,28,51,0.03)] rounded-full'>
-                <Text
-                  weight='medium'
-                  size='base'
-                  className='text-dash-primary-dark-blue text-center'
-                  style={{ fontSize: '16px', lineHeight: '1.366em' }}
-                >
-                  {initials}
-                </Text>
-              </div>
-
-              <div className='flex items-center gap-2 w-[121px]'>
-                <div className='flex flex-col'>
+          <div key={token.identifier} className='relative'>
+            <EntityListItem
+              onClick={(e) => handleTokenClick(e, token.identifier)}
+            >
+              <div className='flex items-center gap-3'>
+                <div className='flex items-center justify-center w-[2.438rem] h-[2.438rem] bg-[rgba(12,28,51,0.03)] rounded-full'>
                   <Text
                     weight='medium'
-                    size='sm'
-                    className='text-dash-primary-dark-blue'
-                    style={{ fontSize: '14px', lineHeight: '1.366em' }}
+                    className='text-dash-primary-dark-blue text-center text-[1rem] leading-[1.366em]'
                   >
-                    {singularName}
+                    {initials}
                   </Text>
                 </div>
-              </div>
-            </div>
 
-            <div className='flex items-end gap-1 text-dash-primary-dark-blue text-right'>
-              {balance != null ? <BigNumberDisplay className='!font-extrabold !text-[0.875rem]'>{balance}</BigNumberDisplay> : '-'}
-              <Text size='sm'>{pluralName}</Text>
-            </div>
-          </EntityListItem>
+                <div className='flex items-center gap-2 w-[121px]'>
+                  <div className='flex flex-col'>
+                    <Text
+                      weight='medium'
+                      className='text-dash-primary-dark-blue text-[0.875rem] leading-[1.366em]'
+                    >
+                      {singularName}
+                    </Text>
+                  </div>
+                </div>
+              </div>
+
+              <div className='flex items-end gap-1 text-dash-primary-dark-blue text-right'>
+                {balance != null ? <BigNumberDisplay className='!font-extrabold !text-[0.875rem]'>{balance}</BigNumberDisplay> : '-'}
+                <Text size='sm'>{pluralName}</Text>
+              </div>
+            </EntityListItem>
+
+            {isMenuOpen && (
+              <div className='absolute top-1/2 left-full z-50'>
+                <OverlayMenu
+                  variant='context-menu'
+                  position={{ top: 0, left: 0 }}
+                  items={menuItems}
+                  contentClassName='!absolute !translate-x-[-110%] !translate-y-[-50%]'
+                  size='xl'
+                  width={200}
+                  showCloseButton
+                  onClose={handleCloseMenu}
+                />
+              </div>
+            )}
+          </div>
         )
       })}
     </EntityList>

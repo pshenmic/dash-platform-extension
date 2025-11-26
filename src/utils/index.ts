@@ -206,7 +206,8 @@ export const getFaviconUrl = (url: string, size: number = 32): string => {
 
 export const creditsToDash = (credits: number | bigint): number => {
   const numericCredits = typeof credits === 'bigint' ? Number(credits) : credits
-  return numericCredits / 10e10
+  // 1 DASH = 100,000,000,000 credits (10^11)
+  return numericCredits / 1e11
 }
 
 export * from './bigintUtils'

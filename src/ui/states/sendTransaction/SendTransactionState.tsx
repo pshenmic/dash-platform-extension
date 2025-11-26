@@ -1,77 +1,93 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import {
   Button,
   Text,
-  ChevronIcon,
-  Badge,
   Avatar,
   ValueCard,
-  Identifier,
-  BigNumber
+  Identifier
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
-import { AutoSizingInput, AssetSelectionMenu } from '../../components/controls'
+import { AssetSelectionMenu, AssetSelectorBadge } from '../../components/controls'
+import { TransferSummaryCard } from '../../components/cards'
+import { AmountInputSection } from '../../components/forms'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { useExtensionAPI, useAsyncState, useSdk, usePlatformExplorerClient } from '../../hooks'
-import { TitleBlock } from '../../components/layout/TitleBlock'
+import {
+  useExtensionAPI,
+  useAsyncState,
+  useSdk,
+  usePlatformExplorerClient,
+  useSendTransactionForm,
+  useTransactionCalculations
+} from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
 import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
-import type { RecipientSearchResult } from '../../../utils'
+import { toBaseUnit } from '../../../utils'
+import { MIN_CREDIT_TRANSFER } from '../../constants/transaction'
 import {
-  creditsToDashBigInt,
-  fromBaseUnit,
-  parseDecimalInput,
-  toBaseUnit,
-  multiplyBigIntByPercentage
-} from '../../../utils'
-
-interface SendFormData {
-  recipient: string
-  amount: string
-  selectedAsset: string
-}
-
-interface RecipientData {
-  identifier: string
-  name?: string
-}
-
-const QUICK_AMOUNT_BUTTONS = [
-  { label: 'Max', value: 1 },
-  { label: '50%', value: 0.5 },
-  { label: '25%', value: 0.25 }
-]
-
-// Minimum credit transfer amount enforced by the protocol (0.001 DASH)
-const MIN_CREDIT_TRANSFER = 100000n
+  getFormattedBalance,
+  getAssetLabel,
+  getAssetDecimals
+} from '../../../utils/transactionFormatters'
 
 function SendTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
+  const location = useLocation()
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
-  const { currentNetwork, currentIdentity, setHeaderComponent } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentIdentity, setHeaderComponent, allWallets, currentWallet } = useOutletContext<OutletContext>()
+  const locationState = location.state as { selectedToken?: string } | null
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [balance, setBalance] = useState<bigint | null>(null)
   const [rate, setRate] = useState<number | null>(null)
   const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
   const [showAssetSelection, setShowAssetSelection] = useState(false)
-  const [selectedRecipient, setSelectedRecipient] = useState<RecipientData | null>(null)
-  const [formData, setFormData] = useState<SendFormData>({
-    recipient: '',
-    amount: '',
-    selectedAsset: 'credits'
+
+  // Form state hook
+  const formState = useSendTransactionForm({
+    balance,
+    rate,
+    currentNetwork,
+    tokens: tokensState.data ?? []
   })
+
+  // Get selected token helper
+  const getSelectedToken = (): TokenData | undefined => {
+    if (formState.formData.selectedAsset === 'credits') {
+      return undefined
+    }
+    return tokensState.data?.find(token => token.identifier === formState.formData.selectedAsset)
+  }
+
+  // Transaction calculations hook
+  const calculations = useTransactionCalculations({
+    selectedAsset: formState.formData.selectedAsset,
+    amount: formState.formData.amount,
+    balance,
+    rate,
+    currentNetwork,
+    token: getSelectedToken()
+  })
+
+  // Set selected token from navigation state
+  useEffect(() => {
+    if (locationState?.selectedToken != null && tokensState.data != null) {
+      const tokenExists = tokensState.data.some(token => token.identifier === locationState.selectedToken)
+      if (tokenExists) {
+        formState.handleAssetSelect(locationState.selectedToken)
+      }
+
+      window.history.replaceState({}, document.title)
+    }
+  }, [locationState, tokensState.data, formState.handleAssetSelect])
 
   // Load balance, tokens and exchange rate on component mount
   useEffect(() => {
     const loadBalance = async (): Promise<void> => {
       if ((currentIdentity !== null && currentIdentity !== undefined)) {
         try {
-          // Load credits balance (which is the identity balance)
           const identityBalance = await sdk.identities.getIdentityBalance(currentIdentity)
           setBalance(identityBalance)
         } catch (err) {
@@ -92,7 +108,7 @@ function SendTransactionState (): React.JSX.Element {
 
     void loadBalance().catch(e => console.log('loadBalance error:', e))
     void loadRate().catch(e => console.log('loadRate error:', e))
-  }, [currentIdentity, sdk, currentNetwork])
+  }, [currentIdentity, sdk, currentNetwork, platformExplorerClient])
 
   // Load tokens for the current identity
   useEffect(() => {
@@ -103,31 +119,35 @@ function SendTransactionState (): React.JSX.Element {
     }).catch(e => console.log('loadTokens error:', e))
   }, [currentIdentity, currentNetwork, platformExplorerClient, loadTokens])
 
-  // Set header component with balance info
-  useEffect(() => {
-    const hasBalance = (formData.selectedAsset === 'credits' && balance !== null) ||
-      (formData.selectedAsset !== 'credits' && getSelectedToken() != null)
+  // Get wallet name for display
+  const getWalletName = (): string => {
+    if (currentWallet == null || allWallets == null || allWallets.length === 0) return 'Wallet'
 
-    if (hasBalance && currentIdentity !== null) {
+    const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
+    const currentWalletData = availableWallets.find(wallet => wallet.walletId === currentWallet)
+
+    if (currentWalletData == null) return 'Wallet'
+
+    const currentWalletIndex = availableWallets.findIndex(wallet => wallet.walletId === currentWallet)
+    return currentWalletData.label ?? `Wallet_${currentWalletIndex + 1}`
+  }
+
+  // Set header component with identity and wallet info
+  useEffect(() => {
+    if (currentIdentity !== null) {
       setHeaderComponent(
         <ValueCard colorScheme='lightGray' border={false} className='py-[0.5rem] px-[0.625rem]'>
           <div className='flex items-center gap-2'>
             <div className='flex items-center justify-center rounded-full w-[2rem] h-[2rem] bg-[rgba(12,28,51,0.03)]'>
               <Avatar username={currentIdentity} className='w-4 h-4' />
             </div>
-            <div>
+            <div className='flex flex-col gap-1'>
               <Identifier className='text-xs leading-[100%]' highlight='both' middleEllipsis edgeChars={4}>
                 {currentIdentity}
               </Identifier>
-              <div className='flex items-baseline gap-1 leading-[90%]'>
-                <Text size='xs' dim>Balance:</Text>
-                <BigNumber className='text-dash-primary-dark-blue font-medium text-[0.75rem] weight-bold'>
-                  {getFormattedBalance()}
-                </BigNumber>
-                <Text size='xs' weight='bold' className='text-dash-primary-dark-blue opacity-50'>
-                  {getAssetLabel()}
-                </Text>
-              </div>
+              <Text size='xs' dim className='leading-[90%]'>
+                {getWalletName()}
+              </Text>
             </div>
           </div>
         </ValueCard>
@@ -138,114 +158,30 @@ function SendTransactionState (): React.JSX.Element {
     return () => {
       setHeaderComponent(null)
     }
-  }, [balance, rate, formData.selectedAsset, tokensState.data, currentIdentity, setHeaderComponent])
-
-  // Handle recipient selection
-  const handleRecipientSelect = (recipient: RecipientSearchResult): void => {
-    setSelectedRecipient({
-      identifier: recipient.identifier,
-      name: recipient.name
-    })
-    setFormData(prev => ({ ...prev, recipient: recipient.identifier }))
-    setError(null)
-  }
-
-  const getAvailableBalance = (): string => {
-    if (formData.selectedAsset === 'credits' && balance !== null) {
-      return balance.toString()
-    }
-
-    const token = getSelectedToken()
-    if (token != null) {
-      return fromBaseUnit(token.balance, token.decimals)
-    }
-
-    return '0'
-  }
-
-  const getAssetDecimals = (): number => {
-    if (formData.selectedAsset === 'credits') return 0
-
-    const token = getSelectedToken()
-    return token?.decimals ?? 0
-  }
-
-  const handleInputChange = (field: keyof SendFormData, value: string): void => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    setError(null)
-
-    // Reset selected recipient when user manually changes recipient field
-    if (field === 'recipient') {
-      setSelectedRecipient(null)
-    }
-
-    // Validation for amount field
-    if (field === 'amount' && value.trim() !== '') {
-      const availableBalance = getAvailableBalance()
-      const numericValue = Number(value)
-      const numericBalance = Number(availableBalance)
-
-      // Balance validation
-      if (!isNaN(numericValue) && !isNaN(numericBalance) && numericValue > numericBalance) {
-        setError('Amount exceeds available balance')
-        return
-      }
-
-      // Minimum credit transfer validation
-      if (formData.selectedAsset === 'credits') {
-        const amountInCredits = BigInt(Math.floor(numericValue))
-        if (amountInCredits > 0n && amountInCredits < MIN_CREDIT_TRANSFER) {
-          setError(`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`)
-        }
-      }
-    }
-  }
-
-  const handleQuickAmount = (percentage: number): void => {
-    if (formData.selectedAsset === 'credits') {
-      // For credits (no decimals), use simple percentage
-      if (balance !== null && balance > 0n) {
-        const calculatedAmount = multiplyBigIntByPercentage(balance, percentage)
-        // Ensure amount doesn't exceed balance but meets minimum requirement
-        const amount = calculatedAmount < MIN_CREDIT_TRANSFER
-          ? MIN_CREDIT_TRANSFER.toString()
-          : calculatedAmount.toString()
-        setFormData(prev => ({ ...prev, amount }))
-      }
-    } else {
-      // For tokens with decimals - use bigint to avoid precision loss
-      const token = getSelectedToken()
-      if (token != null && BigInt(token.balance) > 0n) {
-        const decimals = token.decimals
-        const calculatedAmountInBaseUnits = multiplyBigIntByPercentage(BigInt(token.balance), percentage)
-        const amount = fromBaseUnit(calculatedAmountInBaseUnits, decimals)
-        setFormData(prev => ({ ...prev, amount }))
-      }
-    }
-  }
+  }, [currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent])
 
   const handleSend = async (): Promise<void> => {
     if ((currentIdentity === null || currentIdentity === undefined)) {
-      setError('No identity selected')
+      formState.setError('No identity selected')
       return
     }
 
     // Validate that recipient is selected from search results
-    if (selectedRecipient === null) {
-      setError('Please select a recipient from search results')
+    if (formState.selectedRecipient === null) {
+      formState.setError('Please select a recipient from search results')
       return
     }
 
     setIsLoading(true)
-    setError(null)
+    formState.setError(null)
 
     try {
-      if (formData.selectedAsset === 'credits') {
-        const amountInCredits = BigInt(Math.floor(Number(formData.amount)))
+      if (formState.formData.selectedAsset === 'credits') {
+        const amountInCredits = BigInt(Math.floor(Number(formState.formData.amount)))
 
         // Validate minimum credit transfer amount
         if (amountInCredits < MIN_CREDIT_TRANSFER) {
-          setError(`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`)
+          formState.setError(`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`)
           return
         }
 
@@ -255,7 +191,7 @@ function SendTransactionState (): React.JSX.Element {
         const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
           identityId: currentIdentity,
           amount: amountInCredits,
-          recipientId: selectedRecipient.identifier,
+          recipientId: formState.selectedRecipient.identifier,
           identityNonce: identityNonce + 1n
         })
 
@@ -277,16 +213,16 @@ function SendTransactionState (): React.JSX.Element {
         // Token transfer
         const token = getSelectedToken()
         if (token == null) {
-          setError('Selected token not found')
+          formState.setError('Selected token not found')
           return
         }
 
         // Convert amount to base units
-        const amountInBaseUnits = toBaseUnit(formData.amount, token.decimals, true) as bigint
+        const amountInBaseUnits = toBaseUnit(formState.formData.amount, token.decimals, true) as bigint
 
         // Check if the converted amount is 0
         if (amountInBaseUnits === 0n) {
-          setError('Amount is too small')
+          formState.setError('Amount is too small')
           return
         }
 
@@ -301,7 +237,7 @@ function SendTransactionState (): React.JSX.Element {
           currentIdentity,
           'transfer',
           {
-            identityId: selectedRecipient.identifier,
+            identityId: formState.selectedRecipient.identifier,
             amount: amountInBaseUnits
           }
         )
@@ -319,219 +255,72 @@ function SendTransactionState (): React.JSX.Element {
       }
     } catch (err) {
       console.error('Transaction creation failed:', err)
-      setError(err instanceof Error ? err.message : 'Transaction creation failed')
+      formState.setError(err instanceof Error ? err.message : 'Transaction creation failed')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const formatUSDValue = (amount: string): string => {
-    if ((rate === null || rate === undefined) || amount === '') return ''
-
-    if (formData.selectedAsset === 'credits') {
-      const creditsAmount = BigInt(Math.floor(Number(amount)))
-      const dashValue = creditsToDashBigInt(creditsAmount)
-      const dashAmount = Number(dashValue)
-      const usdValue = dashAmount * rate
-      return `~$${usdValue.toFixed(2)}`
-    }
-
-    return ''
-  }
-
-  const handleAssetSelect = (asset: string): void => {
-    setFormData(prev => ({ ...prev, selectedAsset: asset, amount: '' }))
-  }
-
-  const getSelectedToken = (): TokenData | undefined => {
-    if (formData.selectedAsset === 'credits') {
-      return undefined
-    }
-    return tokensState.data?.find(token => token.identifier === formData.selectedAsset)
-  }
-
-  const getAssetLabel = (): string => {
-    if (formData.selectedAsset === 'credits') return 'CRDT'
-
-    const token = getSelectedToken()
-    if (token != null) {
-      const singularForm = (token.localizations?.en?.singularForm ?? null) !== null ? token.localizations.en.singularForm : token.identifier
-      return singularForm.toUpperCase().slice(0, 4)
-    }
-
-    return 'N/A'
-  }
-
-  const getAssetIcon = (): React.ReactNode => {
-    if (formData.selectedAsset === 'credits') {
-      return (
-        <span className='text-dash-brand text-[0.6rem] font-medium'>C</span>
-      )
-    }
-
-    const token = getSelectedToken()
-    if (token != null) {
-      return (
-        <Avatar
-          username={token.identifier}
-          className='w-4 h-4'
-        />
-      )
-    }
-
-    return null
-  }
-
-  const getFormattedBalance = (): string => {
-    if (formData.selectedAsset === 'credits' && balance !== null) {
-      return balance.toString()
-    }
-
-    const token = getSelectedToken()
-    if (token != null) {
-      return fromBaseUnit(token.balance, token.decimals)
-    }
-
-    return '0'
-  }
+  const token = getSelectedToken()
+  const formattedBalance = getFormattedBalance(formState.formData.selectedAsset, balance, token)
+  const assetLabel = getAssetLabel(formState.formData.selectedAsset, token)
+  const assetDecimals = getAssetDecimals(formState.formData.selectedAsset, token)
 
   return (
     <div className='screen-content'>
-      <TitleBlock
-        title='Send Transaction'
-        description='Carefully check the transaction details before continuing'
-      />
+      {/* Title Section with Asset Selector */}
+      <div className='flex flex-col gap-6'>
+        <div className='flex flex-col gap-2'>
+          {/* Title and Asset Selector */}
+          <div className='flex items-center gap-[1.125rem]'>
+            <Text className='text-dash-primary-dark-blue !text-[2.5rem] !font-medium !leading-[1.25] tracking-[-0.03em]'>
+              Transfer
+            </Text>
 
-      {/* Amount Input and Asset Selection */}
-      <div className='flex justify-center'>
-        <div className='flex flex-col justify-center items-center gap-[1.125rem] max-w-full'>
-          {/* Amount Input */}
-          <AutoSizingInput
-            containerClassName='flex justify-center max-w-full'
-            className='items-center max-w-full'
-            value={formData.amount}
-            onChange={(value) => handleInputChange('amount', value)}
-            placeholder='0'
-            onChangeFilter={(value) => {
-              const decimals = getAssetDecimals()
-
-              // Parse and validate decimal input
-              const parsed = parseDecimalInput(value, decimals)
-              if (parsed === null) {
-                return formData.amount
-              }
-
-              // Check against available balance
-              if ((parsed !== null && parsed !== undefined) && parsed !== '' && parsed !== '.') {
-                const availableBalance = getAvailableBalance()
-                const numericValue = Number(parsed)
-                const numericBalance = Number(availableBalance)
-
-                if (!isNaN(numericValue) && !isNaN(numericBalance) && numericValue > numericBalance) {
-                  // Set to max balance if exceeds
-                  return availableBalance
-                }
-              }
-
-              return parsed
-            }}
-            rightContent={
-              formData.amount !== '' && (
-                <Text size='sm' className='text-dash-primary-dark-blue opacity-35 ml-2' dim>
-                  {formatUSDValue(formData.amount)}
-                </Text>
-              )
-            }
-          />
-
-          {/* Asset Selection and Quick Buttons */}
-          <div className='flex gap-3'>
-            {/* Asset Selection */}
-            <Badge
-              color='light-gray'
-              variant='flat'
-              size='xxs'
-              className='flex items-center gap-2 w-max cursor-pointer'
+            <AssetSelectorBadge
+              selectedAsset={formState.formData.selectedAsset}
+              token={token}
               onClick={() => setShowAssetSelection(true)}
-            >
-              {formData.selectedAsset === 'credits'
-                ? (
-                  <div className='w-4 h-4 rounded-full flex items-center justify-center bg-[rgba(12,28,51,0.05)]'>
-                    {getAssetIcon()}
-                  </div>
-                  )
-                : (
-                    getAssetIcon()
-                  )}
-              <Text weight='bold' className='text-dash-primary-dark-blue !text-[0.75rem]'>
-                {getAssetLabel()}
-              </Text>
-              <ChevronIcon className='text-dash-primary-dark-blue mr-1 w-2 h-2' />
-            </Badge>
-
-            {/* Quick Amount Buttons */}
-            <div className='flex gap-2'>
-              {QUICK_AMOUNT_BUTTONS.map((button) => (
-                <Button
-                  key={button.label}
-                  onClick={() => handleQuickAmount(button.value)}
-                  variant='solid'
-                  colorScheme='lightBlue'
-                  size='sm'
-                  className='px-2 py-1 !min-h-0 text-[0.75rem] leading-1'
-                >
-                  {button.label}
-                </Button>
-              ))}
-            </div>
+            />
           </div>
+
+          {/* Balance Display */}
+          {((formState.formData.selectedAsset === 'credits' && balance !== null) || (formState.formData.selectedAsset !== 'credits' && token != null)) && (
+            <div className='flex items-center gap-3'>
+              <div className='flex gap-1'>
+                <Text className='!text-[0.75rem]' dim>Balance:</Text>
+                <Text weight='bold' className='!text-[0.75rem]'>{formattedBalance}</Text>
+                <Text className='!text-[0.75rem]'>{assetLabel}</Text>
+              </div>
+              {calculations.getBalanceUSDValue() !== null && (
+                <ValueCard border={false} size='xs' className='px-[0.313rem] py-[0.156rem]' colorScheme='lightGray'>
+                  <Text size='xs' weight='light' className='text-dash-primary-dark-blue !text-[0.625rem] !leading-[1.2]'>
+                    {calculations.getBalanceUSDValue()}
+                  </Text>
+                </ValueCard>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* Description */}
+        <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50' dim>
+          You are going to transfer {formState.formData.selectedAsset === 'credits' ? 'credits' : 'tokens'} from your account with this transaction. Carefully check the transaction details before proceeding to the next step.
+        </Text>
       </div>
 
-      {/* Identity Info */}
-      {/* {(currentIdentity !== null && currentIdentity !== undefined) && (
-        <ValueCard colorScheme='gray' className='flex flex-col items-start gap-3'>
-          <div className='flex items-center justify-between w-full gap-4'>
-            <Text size='sm' dim className='whitespace-nowrap'>
-              From Identity:
-            </Text>
-            <Identifier avatar className='text-sm text-right' highlight='both' linesAdjustment={false}>
-              {currentIdentity}
-            </Identifier>
-          </div>
-
-          <div className='flex items-center justify-between w-full gap-4'>
-            <Text size='sm' dim>
-              Available Balance:
-            </Text>
-            <div className='flex flex-col items-end gap-1'>
-              {(formData.selectedAsset === 'credits' && balance !== null) || (formData.selectedAsset !== 'credits' && getSelectedToken() != null)
-                ? (
-                  <>
-                    <div className='flex items-center gap-1.5'>
-                      <BigNumber className='text-dash-primary-dark-blue font-medium'>
-                        {getFormattedBalance()}
-                      </BigNumber>
-                      <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
-                        {getAssetLabel()}
-                      </Text>
-                    </div>
-                    {getBalanceUSDValue() !== null && (
-                      <Text size='xs' className='text-dash-primary-dark-blue opacity-35'>
-                        {getBalanceUSDValue()}
-                      </Text>
-                    )}
-                  </>
-                  )
-                : (
-                  <Text size='sm' className='text-dash-primary-dark-blue opacity-35'>
-                    Loading...
-                  </Text>
-                  )}
-            </div>
-          </div>
-        </ValueCard>
-      )} */}
+      {/* Amount Input Section */}
+      <AmountInputSection
+        amount={formState.formData.amount}
+        equivalentAmount={formState.equivalentAmount}
+        onAmountChange={formState.handleAmountChange}
+        onEquivalentChange={formState.handleEquivalentChange}
+        onQuickAmount={formState.handleQuickAmount}
+        selectedAsset={formState.formData.selectedAsset}
+        equivalentCurrency={formState.equivalentCurrency}
+        onEquivalentCurrencyChange={formState.handleEquivalentCurrencyChange}
+        assetDecimals={assetDecimals}
+      />
 
       {/* Recipient Input */}
       <div className='flex flex-col gap-2.5'>
@@ -539,20 +328,29 @@ function SendTransactionState (): React.JSX.Element {
           Recipient
         </Text>
         <RecipientSearchInput
-          value={formData.recipient}
-          onChange={(value) => handleInputChange('recipient', value)}
-          onSelect={handleRecipientSelect}
+          value={formState.formData.recipient}
+          onChange={formState.handleRecipientChange}
+          onSelect={formState.handleRecipientSelect}
           currentIdentity={currentIdentity}
           placeholder='Enter recipient identity identifier or name'
         />
       </div>
 
       {/* Error Message */}
-      {(error !== null && error !== undefined) && (
+      {(formState.error !== null && formState.error !== undefined) && (
         <ValueCard colorScheme='yellow'>
-          {error}
+          {formState.error}
         </ValueCard>
       )}
+
+      {/* Transaction Summary Card */}
+      <TransferSummaryCard
+        fees={calculations.getEstimatedFee()}
+        willBeSent={calculations.getWillBeSentAmount()}
+        total={calculations.getTotalAmount()}
+        unit={calculations.getTotalAmountUnit()}
+        selectedAsset={formState.formData.selectedAsset}
+      />
 
       {/* Action Button */}
       <div className='flex flex-col gap-4'>
@@ -563,7 +361,7 @@ function SendTransactionState (): React.JSX.Element {
           onClick={() => {
             handleSend().catch(e => console.log('handleSend error', e))
           }}
-          disabled={isLoading || selectedRecipient === null || formData.amount === ''}
+          disabled={isLoading || formState.selectedRecipient === null || formState.formData.amount === ''}
         >
           {isLoading ? 'Creating Transaction...' : 'Next'}
         </Button>
@@ -573,8 +371,8 @@ function SendTransactionState (): React.JSX.Element {
       <AssetSelectionMenu
         isOpen={showAssetSelection}
         onClose={() => setShowAssetSelection(false)}
-        selectedAsset={formData.selectedAsset}
-        onAssetSelect={handleAssetSelect}
+        selectedAsset={formState.formData.selectedAsset}
+        onAssetSelect={formState.handleAssetSelect}
         creditsBalance={(balance !== null && balance !== undefined) ? balance.toString() : undefined}
         tokens={tokensState.data ?? []}
       />
