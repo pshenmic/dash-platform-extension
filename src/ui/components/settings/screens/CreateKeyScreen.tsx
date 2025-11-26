@@ -9,7 +9,7 @@ import { KeyType } from 'pshenmic-dpp'
 import { InfoCard } from '../../common'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
 import { hexToBytes } from '../../../../utils'
-import { SelectField } from '../components/SelectField'
+import { SelectField } from '../../controls'
 import { KEY_TYPES, PURPOSES, SECURITY_LEVELS, READ_ONLY_OPTIONS } from '../../../constants/keyCreationOptions'
 
 export const createKeyScreenConfig: ScreenConfig = {
