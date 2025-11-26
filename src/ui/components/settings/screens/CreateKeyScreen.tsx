@@ -5,81 +5,18 @@ import { Text, Button, ValueCard, Identifier, Input, InfoCircleIcon } from 'dash
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { WalletType } from '../../../../types'
 import { useExtensionAPI, useSdk } from '../../../hooks'
-import { KeyType, Purpose, SecurityLevel } from 'pshenmic-dpp'
+import { KeyType } from 'pshenmic-dpp'
 import { InfoCard } from '../../common'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
 import { hexToBytes } from '../../../../utils'
+import { SelectField } from '../components/SelectField'
+import { KEY_TYPES, PURPOSES, SECURITY_LEVELS, READ_ONLY_OPTIONS } from '../../../constants/keyCreationOptions'
 
 export const createKeyScreenConfig: ScreenConfig = {
   id: 'create-key-settings',
   title: 'Create Public Key',
   category: 'wallet',
   content: []
-}
-
-// Key type options matching Dash Platform SDK
-const KEY_TYPES = [
-  { id: 'ECDSA_SECP256K1', label: 'ECDSA_SECP256K1', value: 0 },
-  { id: 'ECDSA_HASH160', label: 'ECDSA_HASH160', value: 1 }
-]
-
-// Purpose options
-const PURPOSES = [
-  { id: 'AUTHENTICATION', label: 'Authentication', value: 0 },
-  { id: 'ENCRYPTION', label: 'Encryption', value: 1 },
-  { id: 'DECRYPTION', label: 'Decryption', value: 2 },
-  { id: 'TRANSFER', label: 'Transfer', value: 3 }
-]
-
-// Security level options
-const SECURITY_LEVELS = [
-  { id: 'MASTER', label: 'Master', value: 0 },
-  { id: 'CRITICAL', label: 'Critical', value: 1 },
-  { id: 'HIGH', label: 'High', value: 2 },
-  { id: 'MEDIUM', label: 'Medium', value: 3 }
-]
-
-// Read only options
-const READ_ONLY_OPTIONS = [
-  { id: 'false', label: 'False', value: false },
-  { id: 'true', label: 'True', value: true }
-]
-
-interface SelectFieldProps {
-  label: string
-  options: Array<{ id: string, label: string, value: any }>
-  selectedValue: any
-  onSelect: (value: any) => void
-}
-
-const SelectField: React.FC<SelectFieldProps> = ({ label, options, selectedValue, onSelect }) => {
-  return (
-    <div className='flex flex-col gap-3'>
-      <Text size='sm' dim>
-        {label}
-      </Text>
-      <div className='flex flex-wrap gap-2'>
-        {options.map((option) => {
-          const isSelected = selectedValue === option.value
-          return (
-            <button
-              key={option.id}
-              onClick={() => onSelect(option.value)}
-              className={`
-                px-3 py-2.5 rounded-2xl text-xs font-medium transition-colors
-                ${isSelected
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                }
-              `}
-            >
-              {option.label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
 }
 
 export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
@@ -92,7 +29,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
 
-  const [keyType, setKeyType] = useState<number>(0)
+  const [keyType, setKeyType] = useState<string>('ECDSA_SECP256K1')
   const [purpose, setPurpose] = useState<number>(0)
   const [securityLevel, setSecurityLevel] = useState<number>(2)
   const [readOnly, setReadOnly] = useState<boolean>(false)
@@ -134,7 +71,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       const publicKey: CreateIdentityPrivateKeyResponse = await extensionAPI.createIdentityPrivateKey(
         currentIdentity,
         password,
-        KEY_TYPES[keyType].id
+        keyType
       )
 
       const identity = await sdk.identities.getIdentityByIdentifier(currentIdentity)
@@ -143,12 +80,12 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
 
       const publicKeyToAdd = {
         id: publicKey.keyId,
-        keyType: KeyType[KEY_TYPES[keyType].id],
-        purpose: purpose,
-        securityLevel: securityLevel,
+        keyType: KeyType[keyType],
+        purpose,
+        securityLevel,
         data: hexToBytes(publicKey.publicKeyData),
         readOnly,
-        signature: keyType === 0 ? hexToBytes(publicKey.signature) : undefined
+        signature: keyType === 'ECDSA_SECP256K1' ? hexToBytes(publicKey.signature) : undefined
       }
 
       const stateTransition = sdk.identities.createStateTransition('update', {
