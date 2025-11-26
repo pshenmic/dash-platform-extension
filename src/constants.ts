@@ -12,4 +12,4 @@ export const PLATFORM_EXPLORER_URLS = {
     api: 'https://platform-explorer.pshenmic.dev',
     explorer: 'https://platform-explorer.com'
   }
-} as const
+}
