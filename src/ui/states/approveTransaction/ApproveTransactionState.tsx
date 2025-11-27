@@ -247,7 +247,7 @@ function ApproveTransactionState (): React.JSX.Element {
       ? PLATFORM_EXPLORER_URLS.testnet.explorer
       : PLATFORM_EXPLORER_URLS.mainnet.explorer
 
-    const explorerUrl = `${baseUrl}/transaction/${txHash}`
+    const explorerUrl = `${baseUrl}/transaction/${txHash ?? ''}`
     window.open(explorerUrl, '_blank')
   }
 
@@ -306,10 +306,12 @@ function ApproveTransactionState (): React.JSX.Element {
     return (
       <div className='screen-content'>
         <TitleBlock
-          title={<>
-            <span className='font-normal'>Transaction was</span><br />
-            <span className='font-medium'>successfully broadcasted</span>
-          </>}
+          title={
+            <>
+              <span className='font-normal'>Transaction was</span><br />
+              <span className='font-medium'>successfully broadcasted</span>
+            </>
+          }
           description='You can check the transaction hash below'
         />
 
@@ -327,7 +329,7 @@ function ApproveTransactionState (): React.JSX.Element {
             <div className='flex justify-between gap-2'>
               <Identifier
                 highlight='both'
-                linesAdjustment={true}
+                linesAdjustment
                 className='font-medium flex-grow'
               >
                 {txHash}
@@ -341,7 +343,7 @@ function ApproveTransactionState (): React.JSX.Element {
                   className='!min-h-0 !p-1 w-[1.25rem] h-[1.25rem] rounded-[0.25rem]'
                   onClick={openExplorer}
                 >
-                  <ExternalLinkIcon size={14} className='!text-dash-primary-dark-blue/70 flex-shrink-0'/>
+                  <ExternalLinkIcon size={14} className='!text-dash-primary-dark-blue/70 flex-shrink-0' />
                 </Button>
                 <Button
                   colorScheme='lightGray'
@@ -349,7 +351,7 @@ function ApproveTransactionState (): React.JSX.Element {
                   className='!min-h-0 !p-1 w-[1.25rem] h-[1.25rem] rounded-[0.25rem]'
                   onClick={() => { copyToClipboard(txHash) }}
                 >
-                  <CopyIcon size={14} className='!text-dash-primary-dark-blue/70 flex-shrink-0 -mr-1'/>
+                  <CopyIcon size={14} className='!text-dash-primary-dark-blue/70 flex-shrink-0 -mr-1' />
                 </Button>
               </div>
             </div>
@@ -395,10 +397,12 @@ function ApproveTransactionState (): React.JSX.Element {
     <div className='screen-content'>
       <div className='flex flex-col gap-6'>
         <TitleBlock
-          title={<>
-            <span>Transaction</span><br />
-            <span>Approval</span>
-          </>}
+          title={
+            <>
+              <span>Transaction</span><br />
+              <span>Approval</span>
+            </>
+          }
           description='Carefully check the transaction details before signing'
         />
 
