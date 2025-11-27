@@ -68,7 +68,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       setIsCreating(true)
       setError(null)
 
-      const publicKey: CreateIdentityPrivateKeyResponse = await extensionAPI.createIdentityPrivateKey(
+      const createPrivateKeyResponse: CreateIdentityPrivateKeyResponse = await extensionAPI.createIdentityPrivateKey(
         currentIdentity,
         password,
         keyType
@@ -78,15 +78,25 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
       const currentRevision = BigInt(identity.revision)
 
-      const keyTypeEnum = KeyType[keyType as keyof typeof KeyType]
+      let signature
+
+      if (keyType === 'ECDSA_SECP256K1') {
+        if (createPrivateKeyResponse.signature == null) {
+          return setError('Signature is missing from creating private key response')
+        }
+
+        signature = hexToBytes(createPrivateKeyResponse.signature)
+      }
+
+      const keyTypeEnum = KeyType[keyType]
       const publicKeyToAdd = {
-        id: publicKey.keyId,
+        id: createPrivateKeyResponse.keyId,
         keyType: keyTypeEnum,
         purpose,
         securityLevel,
-        data: hexToBytes(publicKey.publicKeyData),
+        data: hexToBytes(createPrivateKeyResponse.publicKeyData),
         readOnly,
-        signature: keyType === 'ECDSA_SECP256K1' ? hexToBytes(publicKey.signature) : undefined
+        signature
       }
 
       const stateTransition = sdk.identities.createStateTransition('update', {

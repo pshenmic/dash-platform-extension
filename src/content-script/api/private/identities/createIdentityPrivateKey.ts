@@ -4,12 +4,13 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { bytesToHex, deriveSeedphrasePrivateKey, generateRandomHex } from '../../../../utils'
-import { PrivateKeyWASM, KeyType } from 'pshenmic-dpp'
+import { KeyType, PrivateKeyWASM, Purpose, SecurityLevel } from 'pshenmic-dpp'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { CreateIdentityPrivateKeyPayload } from '../../../../types/messages/payloads/CreateIdentityPrivateKeyPayload'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
+import { IdentityPublicKeyInCreation } from 'dash-platform-sdk/src/types'
 
 export class CreateIdentityPrivateKeyHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -53,6 +54,8 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       return nextIndex
     }, 0)
 
+    // const existing = await this.keypairRepository.getByIdentityAndKeyId(identity.identifier, nextKeyId)
+
     let privateKeyWASM: PrivateKeyWASM
 
     if (wallet.type === 'keystore') {
@@ -80,25 +83,35 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       throw new Error(`Unsupported key type ${KeyType[keyType]}`)
     }
 
-    const signature = privateKeyWASM.sign(data)
+    let signature
 
-    // const identityPublicKeyInCreation: IdentityPublicKey InCreation = {
-    //   data,
-    //   id: 0,
-    //   keyType,
-    //   purpose,
-    //   readOnly: false,
-    //   securityLevel
-    // }
-    //
-    // identityPublicKeyInCreation.validatePrivateKey(privateKeyWASM)
+    if (keyType === KeyType[KeyType.ECDSA_SECP256K1]) {
+      const identityPublicKeyInCreation: IdentityPublicKeyInCreation = {
+        data,
+        id: 0,
+        keyType,
+        purpose: Purpose.SYSTEM,
+        readOnly: false,
+        securityLevel: SecurityLevel.MEDIUM
+      }
+
+      const stateTransition = this.sdk.identities.createStateTransition('update', { addPublicKeys: [identityPublicKeyInCreation] })
+      const masterKeyId = 0
+
+      const signerIdentityPublicKey = identityWASM.getPublicKeys()[masterKeyId]
+      const signerPrivateKey = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, masterKeyId, 'password')
+
+      // identityPublicKeyInCreation.validatePrivateKey(privateKeyWASM)
+
+      signature = stateTransition.sign(signerPrivateKey, signerIdentityPublicKey)
+    }
 
     return {
       identifier: identity.identifier,
       keyId: nextKeyId,
       publicKeyData: bytesToHex(data),
       publicKeyHash,
-      signature: bytesToHex(signature)
+      signature: signature != null ? bytesToHex(signature) : undefined
     }
   }
 

@@ -1,8 +1,8 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'pshenmic-dpp'
-import { KeyPair } from '../../types'
+import { Identity, KeyPair, Wallet, WalletType } from '../../types'
 import { KeyPairSchema, KeyPairsSchema } from '../storage/storageSchema'
-import { bytesToHex, hexToBytes } from '../../utils'
+import { bytesToHex, deriveKeystorePrivateKey, deriveSeedphrasePrivateKey, hexToBytes } from '../../utils'
 import { encrypt } from 'eciesjs'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 
@@ -85,6 +85,17 @@ export class KeypairRepository {
     await this.storageAdapter.set(storageKey, keyPairsSchema)
   }
 
+  // derives the private key from seedphrase or gets it from the storage for keypair wallets or throws an error
+  async getPrivateKeyFromWallet (wallet: Wallet, identity: Identity, keyId: number, password: string): Promise<PrivateKeyWASM> {
+    if (wallet.type === WalletType.keystore) {
+      return await deriveKeystorePrivateKey(wallet, password, identity.identifier, keyId, this)
+    } else if (wallet.type === WalletType.seedphrase) {
+      return await deriveSeedphrasePrivateKey(wallet, password, identity.index, keyId, this.sdk)
+    } else {
+      throw new Error('Unsupported wallet type')
+    }
+  }
+
   async getByIdentityPublicKey (identifier: string, identityPublicKey: IdentityPublicKeyWASM): Promise<KeyPair | null> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
@@ -117,6 +128,46 @@ export class KeypairRepository {
         }
       })))
       .filter((keypair) => keypair.publicKeyHash === identityPublicKey.getPublicKeyHash())
+
+    if (keyPair != null) {
+      return keyPair
+    }
+
+    return null
+  }
+
+  async getByIdentityAndKeyId (identifier: string, keyId: number): Promise<KeyPair | null> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `keyPairs_${network}_${walletId}`
+
+    const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
+
+    const keyPairs = keyPairsSchema[identifier]
+
+    if (keyPairs == null || keyPairs.length === 0) {
+      return null
+    }
+
+    const [keyPair] = (await Promise.all(keyPairs
+      .map(async (keyPairSchema: KeyPairSchema) => {
+        const [identityPublicKey] = await this.sdk.identities.getIdentityPublicKeys(identifier, [keyPairSchema.keyId])
+
+        return {
+          keyId: keyPairSchema.keyId,
+          keyType: identityPublicKey.keyTypeNumber,
+          securityLevel: identityPublicKey.securityLevelNumber,
+          purpose: identityPublicKey.purposeNumber,
+          publicKeyHash: identityPublicKey.getPublicKeyHash(),
+          encryptedPrivateKey: keyPairSchema.encryptedPrivateKey
+        }
+      })))
+      .filter((keypair) => keypair.keyId === keyId)
 
     if (keyPair != null) {
       return keyPair
