@@ -60,8 +60,9 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
 
     if (wallet.type === 'keystore') {
       // if keystore - generate new private key and store in the keypair repository
-      privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(40), network)
+      privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), network)
 
+      console.log('111')
       await this.keypairRepository.add(identity.identifier, privateKeyWASM.hex(), nextKeyId, true)
     } else if (wallet.type === 'seedphrase') {
       // if seedphrase - derive private key of next unused key
@@ -73,19 +74,19 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
     let data: Uint8Array = privateKeyWASM.getPublicKey().hash160()
     let publicKeyHash: string
 
-    if (KeyType[keyType] === KeyType[KeyType.ECDSA_HASH160]) {
+    if (keyType === KeyType.ECDSA_HASH160) {
       data = privateKeyWASM.getPublicKey().hash160()
       publicKeyHash = bytesToHex(data)
-    } else if (KeyType[keyType] === KeyType[KeyType.ECDSA_SECP256K1]) {
+    } else if (keyType === KeyType.ECDSA_SECP256K1) {
       data = privateKeyWASM.getPublicKey().bytes()
       publicKeyHash = privateKeyWASM.getPublicKeyHash()
     } else {
-      throw new Error(`Unsupported key type ${KeyType[keyType]}`)
+      throw new Error(`Unsupported key type (${payload.keyType})`)
     }
 
     let signature
 
-    if (keyType === KeyType[KeyType.ECDSA_SECP256K1]) {
+    if (keyType === KeyType.ECDSA_SECP256K1) {
       const identityPublicKeyInCreation: IdentityPublicKeyInCreation = {
         data,
         id: 0,
@@ -95,7 +96,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
         securityLevel: SecurityLevel.MEDIUM
       }
 
-      const stateTransition = this.sdk.identities.createStateTransition('update', { addPublicKeys: [identityPublicKeyInCreation] })
+      const stateTransition = this.sdk.identities.createStateTransition('update', { identityId: identity.identifier, addPublicKeys: [identityPublicKeyInCreation] })
       const masterKeyId = 0
 
       const signerIdentityPublicKey = identityWASM.getPublicKeys()[masterKeyId]
