@@ -57,7 +57,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
     let privateKeyWASM: PrivateKeyWASM
 
     if (wallet.type === 'keystore') {
-      const existing = await this.keypairRepository.getByIdentityAndKeyId(identity.identifier, nextKeyId)
+      const existing = await this.keypairRepository.isExisting(identity.identifier, nextKeyId)
 
       if (existing != null) {
         privateKeyWASM = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, nextKeyId, payload.password)

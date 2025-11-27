@@ -7,4 +7,5 @@ export interface KeyPair {
   purpose: Purpose
   securityLevel: SecurityLevel
   encryptedPrivateKey: string | null
+  pending: boolean
 }

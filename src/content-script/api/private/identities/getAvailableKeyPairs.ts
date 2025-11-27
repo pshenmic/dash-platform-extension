@@ -47,7 +47,11 @@ export class GetAvailableKeyPairs implements APIHandler {
     } else if (wallet.type === 'keystore') {
       const keyPairs = await this.keypairRepository.getAllByIdentity(payload.identity)
 
-      return { keyIds: keyPairs.map(keyPair => keyPair.keyId) }
+      return {
+        keyIds: keyPairs
+          .filter(keyPair => !keyPair.pending)
+          .map(keyPair => keyPair.keyId)
+      }
     } else {
       throw new Error('Unknown wallet type')
     }

@@ -124,7 +124,8 @@ export class KeypairRepository {
           securityLevel: identityPublicKey.securityLevelNumber,
           purpose: identityPublicKey.purposeNumber,
           publicKeyHash: identityPublicKey.getPublicKeyHash(),
-          encryptedPrivateKey: keyPairSchema.encryptedPrivateKey
+          encryptedPrivateKey: keyPairSchema.encryptedPrivateKey,
+          pending: keyPairSchema.pending
         }
       })))
       .filter((keypair) => keypair.publicKeyHash === identityPublicKey.getPublicKeyHash())
@@ -134,6 +135,27 @@ export class KeypairRepository {
     }
 
     return null
+  }
+
+  async isExisting (identifier: string, keyId: number): Promise<boolean> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `keyPairs_${network}_${walletId}`
+
+    const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
+
+    const keyPairs = keyPairsSchema[identifier]
+
+    if (keyPairs == null || keyPairs.length === 0) {
+      return false
+    }
+
+    return keyPairs.some((keypair) => keypair.keyId === keyId)
   }
 
   async getByIdentityAndKeyId (identifier: string, keyId: number): Promise<KeyPair | null> {
@@ -164,7 +186,8 @@ export class KeypairRepository {
           securityLevel: identityPublicKey.securityLevelNumber,
           purpose: identityPublicKey.purposeNumber,
           publicKeyHash: identityPublicKey.getPublicKeyHash(),
-          encryptedPrivateKey: keyPairSchema.encryptedPrivateKey
+          encryptedPrivateKey: keyPairSchema.encryptedPrivateKey,
+          pending: keyPairSchema.pending
         }
       })))
       .filter((keypair) => keypair.keyId === keyId)
@@ -217,17 +240,20 @@ export class KeypairRepository {
       return []
     }
 
-    return await Promise.all(keyPairs.map(async (keyPair) => {
-      const [identityPublicKey] = await this.sdk.identities.getIdentityPublicKeys(identifier, [keyPair.keyId])
+    return await Promise.all(keyPairs
+      .filter(keyPair => !keyPair.pending)
+      .map(async (keyPair) => {
+        const [identityPublicKey] = await this.sdk.identities.getIdentityPublicKeys(identifier, [keyPair.keyId])
 
-      return {
-        keyId: keyPair.keyId,
-        keyType: identityPublicKey.keyTypeNumber,
-        securityLevel: identityPublicKey.securityLevelNumber,
-        purpose: identityPublicKey.purposeNumber,
-        publicKeyHash: identityPublicKey.getPublicKeyHash(),
-        encryptedPrivateKey: keyPair.encryptedPrivateKey
-      }
-    }))
+        return {
+          keyId: keyPair.keyId,
+          keyType: identityPublicKey.keyTypeNumber,
+          securityLevel: identityPublicKey.securityLevelNumber,
+          purpose: identityPublicKey.purposeNumber,
+          publicKeyHash: identityPublicKey.getPublicKeyHash(),
+          encryptedPrivateKey: keyPair.encryptedPrivateKey,
+          pending: keyPair.pending
+        }
+      }))
   }
 }
