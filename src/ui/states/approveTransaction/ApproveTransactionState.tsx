@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
 import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui-kit/react'
-import { Banner } from '../../components/cards'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
+import { Banner } from '../../components/cards'
+import ButtonRow from '../../components/layout/ButtonRow'
 import { useExtensionAPI, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -431,23 +432,19 @@ function ApproveTransactionState (): React.JSX.Element {
             </div>
             )
           : (stateTransitionWASM != null && (
-            <div className='flex gap-2 w-full'>
-              <Button
-                onClick={reject}
-                colorScheme='lightBlue'
-                className='w-1/2'
-              >
-                Reject
-              </Button>
-              <Button
-                onClick={() => { doSign().catch(e => console.log('doSign', e)) }}
-                colorScheme='brand'
-                className='w-1/2'
-                disabled={isSigningInProgress || selectedSigningKey === null}
-              >
-                {isSigningInProgress ? 'Signing...' : 'Sign'}
-              </Button>
-            </div>
+            <ButtonRow
+              leftButton={{
+                text: 'Reject',
+                onClick: reject,
+                colorScheme: 'lightBlue'
+              }}
+              rightButton={{
+                text: isSigningInProgress ? 'Signing...' : 'Sign',
+                onClick: () => { doSign().catch(e => console.log('doSign', e)) },
+                colorScheme: 'brand',
+                disabled: isSigningInProgress || selectedSigningKey === null
+              }}
+            />
             ))}
       </div>
     </div>
