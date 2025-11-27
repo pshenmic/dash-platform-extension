@@ -5,6 +5,7 @@ import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui-kit/
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { Banner } from '../../components/cards'
 import ButtonRow from '../../components/layout/ButtonRow'
+import { TransactionHashBlock } from '../../components/transactions'
 import { useExtensionAPI, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -16,7 +17,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const extensionAPI = useExtensionAPI()
-  const { currentWallet, currentIdentity, setCurrentIdentity, setHeaderConfigOverride } = useOutletContext<OutletContext>()
+  const { currentWallet, currentNetwork, currentIdentity, setCurrentIdentity, setHeaderConfigOverride } = useOutletContext<OutletContext>()
 
   const params = useParams()
 
@@ -294,19 +295,12 @@ function ApproveTransactionState (): React.JSX.Element {
           Transaction was successfully broadcasted
         </h1>
 
-        <div className='flex flex-col gap-2.5'>
-          <Text size='md' className='opacity-50 font-medium'>Transaction hash</Text>
-          <ValueCard colorScheme='lightBlue' size='xl'>
-            <Identifier
-              highlight='both'
-              copyButton
-              ellipsis={false}
-              className='w-full justify-between'
-            >
-              {txHash}
-            </Identifier>
-          </ValueCard>
-        </div>
+        <TransactionHashBlock
+          hash={txHash}
+          network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+          variant='full'
+          showActions
+        />
 
         <div>
           <Button
@@ -356,15 +350,15 @@ function ApproveTransactionState (): React.JSX.Element {
         </div>
 
         <div className='flex flex-col gap-2.5'>
-          <Text size='md' opacity='50'>Transaction Hash</Text>
-          <ValueCard colorScheme='lightGray' size='xl'>
-            <Identifier
-              highlight='both'
-              linesAdjustment={false}
-            >
-              {transactionHash}
-            </Identifier>
-          </ValueCard>
+          {transactionHash != null && (
+            <TransactionHashBlock
+              hash={transactionHash}
+              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+              variant='compact'
+              showActions={false}
+              label='Transaction Hash'
+            />
+          )}
           {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
           {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
           <Banner variant='error' message={transactionDecodeError} />
