@@ -3,9 +3,7 @@ import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import {
   Button,
   Text,
-  Avatar,
-  ValueCard,
-  Identifier
+  ValueCard
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
 import { AssetSelectionMenu, AssetSelectorBadge } from '../../components/controls'
@@ -21,6 +19,7 @@ import {
   useTransactionCalculations
 } from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
+import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
 import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { toBaseUnit } from '../../../utils'
@@ -136,21 +135,7 @@ function SendTransactionState (): React.JSX.Element {
   useEffect(() => {
     if (currentIdentity !== null) {
       setHeaderComponent(
-        <ValueCard colorScheme='lightGray' border={false} className='py-[0.5rem] px-[0.625rem]'>
-          <div className='flex items-center gap-2'>
-            <div className='flex items-center justify-center rounded-full w-[2rem] h-[2rem] bg-[rgba(12,28,51,0.03)]'>
-              <Avatar username={currentIdentity} className='w-4 h-4' />
-            </div>
-            <div className='flex flex-col gap-1'>
-              <Identifier className='text-xs leading-[100%]' highlight='both' middleEllipsis edgeChars={4}>
-                {currentIdentity}
-              </Identifier>
-              <Text size='xs' dim className='leading-[90%]'>
-                {getWalletName()}
-              </Text>
-            </div>
-          </div>
-        </ValueCard>
+        <IdentityHeaderBadge identity={currentIdentity} walletName={getWalletName()} />
       )
     }
 
