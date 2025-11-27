@@ -59,7 +59,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
     if (wallet.type === 'keystore') {
       const existing = await this.keypairRepository.isExisting(identity.identifier, nextKeyId)
 
-      if (existing != null) {
+      if (existing) {
         privateKeyWASM = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, nextKeyId, payload.password)
       } else {
         privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), network)
@@ -103,10 +103,14 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       const stateTransition = this.sdk.identities.createStateTransition('update', { identityId: identity.identifier, addPublicKeys: [identityPublicKeyInCreation], revision: identityWASM.revision + 1n, identityNonce })
       const masterKeyId = 0
 
-      const signerIdentityPublicKey = identityWASM.getPublicKeys()[masterKeyId]
-      const signerPrivateKey = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, masterKeyId, 'password')
+      const masterKeyExists = await this.keypairRepository.isExisting(identity.identifier,masterKeyId)
 
-      // identityPublicKeyInCreation.validatePrivateKey(privateKeyWASM)
+      if (!masterKeyExists) {
+        throw new Error(`Could not find master key (KeyId 0) for Identity ${identity.identifier}`)
+      }
+
+      const signerIdentityPublicKey = identityWASM.getPublicKeys()[masterKeyId]
+      const signerPrivateKey = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, masterKeyId, payload.password)
 
       signature = stateTransition.sign(signerPrivateKey, signerIdentityPublicKey)
     }

@@ -256,4 +256,29 @@ export class KeypairRepository {
         }
       }))
   }
+
+  async getEncryptedPrivateKey (identifier: string, keyId: number): Promise<string> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `keyPairs_${network}_${walletId}`
+
+    const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
+
+    const keyPairs = keyPairsSchema[identifier]
+
+    const [encryptedPrivateKey] = keyPairs
+      .filter(keyPair => keyPair.keyId === keyId)
+      .map((keyPair) => (keyPair.encryptedPrivateKey))
+
+    if (encryptedPrivateKey == null) {
+      throw new Error(`Could not find encrypted key for Identity ${identifier} and KeyID ${keyId}`)
+    }
+
+    return encryptedPrivateKey
+  }
 }
