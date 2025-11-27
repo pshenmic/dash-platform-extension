@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui-kit/react'
+import { Text, Button, Identifier, ValueCard, Input, Select, DocumentIcon, CopyIcon, ExternalLinkIcon } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'pshenmic-dpp'
@@ -9,12 +9,14 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
+import { PLATFORM_EXPLORER_URLS } from '../../../constants'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const extensionAPI = useExtensionAPI()
-  const { currentWallet, currentIdentity, setCurrentIdentity, setHeaderConfigOverride } = useOutletContext<OutletContext>()
+  const { currentWallet, currentIdentity, setCurrentIdentity, setHeaderConfigOverride, currentNetwork } = useOutletContext<OutletContext>()
 
   const params = useParams()
 
@@ -234,6 +236,21 @@ function ApproveTransactionState (): React.JSX.Element {
     )
   }
 
+  const copyToClipboard = (text: string): void => {
+    navigator.clipboard
+      .writeText(text)
+      .catch(err => console.log('Failed to copy to clipboard:', err))
+  }
+
+  const openExplorer = (): void => {
+    const baseUrl = currentNetwork === 'testnet'
+      ? PLATFORM_EXPLORER_URLS.testnet.explorer
+      : PLATFORM_EXPLORER_URLS.mainnet.explorer
+
+    const explorerUrl = `${baseUrl}/transaction/${txHash ?? ''}`
+    window.open(explorerUrl, '_blank')
+  }
+
   const reject = (): void => {
     if (stateTransitionWASM == null) {
       throw new Error('stateTransitionWASM is null')
@@ -288,21 +305,56 @@ function ApproveTransactionState (): React.JSX.Element {
   if (txHash != null) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>
-          Transaction was successfully broadcasted
-        </h1>
+        <TitleBlock
+          title={
+            <>
+              <span className='font-normal'>Transaction was</span><br />
+              <span className='font-medium'>successfully broadcasted</span>
+            </>
+          }
+          description='You can check the transaction hash below'
+        />
 
         <div className='flex flex-col gap-2.5'>
           <Text size='md' className='opacity-50 font-medium'>Transaction hash</Text>
-          <ValueCard colorScheme='lightBlue' size='xl'>
-            <Identifier
-              highlight='both'
-              copyButton
-              ellipsis={false}
-              className='w-full justify-between'
-            >
-              {txHash}
-            </Identifier>
+
+          <ValueCard colorScheme='white' border={false} size='xl' className='dash-shadow-lg flex-col gap-4 items-start'>
+            <div className='flex items-center gap-2'>
+              <div className='flex items-center justify-center h-[1.875rem] w-[1.875rem] rounded-full bg-dash-primary-dark-blue/[0.03]'>
+                <DocumentIcon size={16} className='!text-dash-brand' />
+              </div>
+              <Text size='sm'>Hash</Text>
+            </div>
+
+            <div className='flex justify-between gap-2'>
+              <Identifier
+                highlight='both'
+                linesAdjustment
+                className='font-medium flex-grow'
+              >
+                {txHash}
+              </Identifier>
+
+              {/* Buttons */}
+              <div className='flex items-center gap-2 flex-shrink-0'>
+                <Button
+                  colorScheme='lightGray'
+                  size='sm'
+                  className='!min-h-0 !p-1 w-[1.25rem] h-[1.25rem] rounded-[0.25rem]'
+                  onClick={openExplorer}
+                >
+                  <ExternalLinkIcon size={14} className='!text-dash-primary-dark-blue/70 flex-shrink-0' />
+                </Button>
+                <Button
+                  colorScheme='lightGray'
+                  size='sm'
+                  className='!min-h-0 !p-1 w-[1.25rem] h-[1.25rem] rounded-[0.25rem]'
+                  onClick={() => { copyToClipboard(txHash) }}
+                >
+                  <CopyIcon size={14} className='!text-dash-primary-dark-blue/70 flex-shrink-0 -mr-1' />
+                </Button>
+              </div>
+            </div>
           </ValueCard>
         </div>
 
@@ -344,14 +396,15 @@ function ApproveTransactionState (): React.JSX.Element {
   return (
     <div className='screen-content'>
       <div className='flex flex-col gap-6'>
-        <div className='flex flex-col gap-2.5'>
-          <h1 className='h1-title'>
-            Transaction<br />Approval
-          </h1>
-          <Text size='sm' opacity='50'>
-            Carefully check the transaction details before signing
-          </Text>
-        </div>
+        <TitleBlock
+          title={
+            <>
+              <span>Transaction</span><br />
+              <span>Approval</span>
+            </>
+          }
+          description='Carefully check the transaction details before signing'
+        />
 
         <div className='flex flex-col gap-2.5'>
           <Text size='md' opacity='50'>Transaction Hash</Text>
