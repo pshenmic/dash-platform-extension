@@ -19,4 +19,3 @@ export default function Banner ({ message, variant, className }: BannerProps): R
     </ValueCard>
   )
 }
-
