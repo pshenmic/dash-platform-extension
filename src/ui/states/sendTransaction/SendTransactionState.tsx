@@ -7,7 +7,7 @@ import {
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
 import { AssetSelectionMenu, AssetSelectorBadge } from '../../components/controls'
-import { TransferSummaryCard } from '../../components/cards'
+import { TransferSummaryCard, Banner } from '../../components/cards'
 import { AmountInputSection } from '../../components/forms'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import {
@@ -20,7 +20,6 @@ import {
 } from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
-import { Banner } from '../../components/cards'
 import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { toBaseUnit } from '../../../utils'
