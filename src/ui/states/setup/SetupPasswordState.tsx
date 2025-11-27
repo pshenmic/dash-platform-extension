@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks'
 import { Button, Text, Input } from 'dash-ui-kit/react'
+import { Banner } from '../../components/cards'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 
 export default function SetupPasswordState (): React.JSX.Element {
@@ -82,11 +83,7 @@ export default function SetupPasswordState (): React.JSX.Element {
         />
       </div>
 
-      {error != null && (
-        <div className='text-red-500 text-sm'>
-          {error}
-        </div>
-      )}
+      <Banner variant='error' message={error} />
 
       <Button
         colorScheme='brand'

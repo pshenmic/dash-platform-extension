@@ -4,14 +4,14 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
 import {
   Button,
-  Text,
-  ValueCard
+  Text
 } from 'dash-ui-kit/react'
 import { processPrivateKey, ProcessedPrivateKey } from '../../../utils'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType, NetworkType } from '../../../types'
 import { IdentityPreview } from '../../components/Identities'
 import { TitleBlock } from '../../components/layout/TitleBlock'
+import { Banner } from '../../components/cards'
 import { PrivateKeyInput, type PrivateKeyInputData } from '../../components/keys'
 import { PrivateKeyWASM, IdentityWASM } from 'pshenmic-dpp'
 
@@ -285,10 +285,7 @@ function ImportRegularState (): React.JSX.Element {
           Import Identity
         </Button>
 
-        {error !== null &&
-          <ValueCard colorScheme='yellow' className='break-all'>
-            <Text color='red'>{error}</Text>
-          </ValueCard>}
+        <Banner variant='error' message={error} className='break-all' />
       </div>
     )
   }
@@ -335,10 +332,7 @@ function ImportRegularState (): React.JSX.Element {
         </div>
       </div>
 
-      {error !== null &&
-        <ValueCard colorScheme='yellow' className='break-all'>
-          <Text color='red'>{error}</Text>
-        </ValueCard>}
+      <Banner variant='error' message={error} className='break-all' />
     </div>
   )
 }

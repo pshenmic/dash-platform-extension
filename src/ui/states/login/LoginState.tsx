@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Text, Input } from 'dash-ui-kit/react'
+import { Banner } from '../../components/cards'
 import { useExtensionAPI } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { TitleBlock } from '../../components/layout/TitleBlock'
@@ -65,11 +66,7 @@ function LoginState (): React.JSX.Element {
           />
         </div>
 
-        {error != null && (
-          <div className='text-red-500 text-sm'>
-            {error}
-          </div>
-        )}
+        <Banner variant='error' message={error} />
 
         <Button
           size='xl'

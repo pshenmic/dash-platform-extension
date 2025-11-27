@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
 import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui-kit/react'
+import { Banner } from '../../components/cards'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { useExtensionAPI, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'pshenmic-dpp'
@@ -363,13 +364,9 @@ function ApproveTransactionState (): React.JSX.Element {
               {transactionHash}
             </Identifier>
           </ValueCard>
-          {isLoadingTransaction && <Text size='sm'>Loading transaction...</Text>}
-          {transactionNotFound && <Text size='sm' color='red' weight='bold'>Could not find transaction with hash</Text>}
-          {transactionDecodeError != null && (
-            <Text size='sm' color='red' weight='bold'>
-              Error decoding state transition: {transactionDecodeError}
-            </Text>
-          )}
+          {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
+          {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
+          <Banner variant='error' message={transactionDecodeError} />
         </div>
 
         {/* Choose Identity */}
@@ -416,11 +413,7 @@ function ApproveTransactionState (): React.JSX.Element {
               variant='outlined'
               error={passwordError != null}
             />
-            {passwordError != null && (
-              <Text size='sm' color='red' className='mt-1'>
-                {passwordError}
-              </Text>
-            )}
+            <Banner variant='error' message={passwordError} className='mt-1' />
           </div>
         )}
 

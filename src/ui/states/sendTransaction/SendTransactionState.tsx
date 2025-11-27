@@ -20,6 +20,7 @@ import {
 } from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
+import { Banner } from '../../components/cards'
 import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { toBaseUnit } from '../../../utils'
@@ -322,11 +323,7 @@ function SendTransactionState (): React.JSX.Element {
       </div>
 
       {/* Error Message */}
-      {(formState.error !== null && formState.error !== undefined) && (
-        <ValueCard colorScheme='yellow'>
-          {formState.error}
-        </ValueCard>
-      )}
+      <Banner variant='error' message={formState.error ?? null} />
 
       {/* Transaction Summary Card */}
       <TransferSummaryCard
