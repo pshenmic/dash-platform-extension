@@ -54,16 +54,18 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       return nextIndex
     }, 0)
 
-    // const existing = await this.keypairRepository.getByIdentityAndKeyId(identity.identifier, nextKeyId)
-
     let privateKeyWASM: PrivateKeyWASM
 
     if (wallet.type === 'keystore') {
-      // if keystore - generate new private key and store in the keypair repository
-      privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), network)
+      const existing = await this.keypairRepository.getByIdentityAndKeyId(identity.identifier, nextKeyId)
 
-      console.log('111')
-      await this.keypairRepository.add(identity.identifier, privateKeyWASM.hex(), nextKeyId, true)
+      if (existing != null) {
+        privateKeyWASM = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, nextKeyId, payload.password)
+      } else {
+        privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), network)
+
+        await this.keypairRepository.add(identity.identifier, privateKeyWASM.hex(), nextKeyId, true)
+      }
     } else if (wallet.type === 'seedphrase') {
       // if seedphrase - derive private key of next unused key
       privateKeyWASM = await deriveSeedphrasePrivateKey(wallet, payload.password, identity.index, nextKeyId, this.sdk)
@@ -96,7 +98,9 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
         securityLevel: SecurityLevel.MEDIUM
       }
 
-      const stateTransition = this.sdk.identities.createStateTransition('update', { identityId: identity.identifier, addPublicKeys: [identityPublicKeyInCreation] })
+      const identityNonce = await this.sdk.identities.getIdentityNonce(identity.identifier)
+
+      const stateTransition = this.sdk.identities.createStateTransition('update', { identityId: identity.identifier, addPublicKeys: [identityPublicKeyInCreation], revision: identityWASM.revision + 1n, identityNonce })
       const masterKeyId = 0
 
       const signerIdentityPublicKey = identityWASM.getPublicKeys()[masterKeyId]
