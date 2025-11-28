@@ -7,6 +7,8 @@ import { Banner } from '../../components/cards'
 import ButtonRow from '../../components/layout/ButtonRow'
 import { TransactionHashBlock } from '../../components/transactions'
 import { PasswordField } from '../../components/forms'
+import { FieldLabel } from '../../components/typography'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 import { useExtensionAPI, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -176,7 +178,7 @@ function ApproveTransactionState (): React.JSX.Element {
   if (!hasWallet) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>No Wallet Found</h1>
+        <TitleBlock title='No Wallet Found' showLogo={false} />
 
         <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col items-start gap-2'>
           <Text size='md'>
@@ -209,7 +211,7 @@ function ApproveTransactionState (): React.JSX.Element {
   if (identities.length === 0) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>No Identities Available</h1>
+        <TitleBlock title='No Identities Available' showLogo={false} />
 
         <ValueCard colorScheme='lightGray' border={false} className='flex flex-col items-start gap-4'>
           <Text size='md'>
@@ -292,9 +294,10 @@ function ApproveTransactionState (): React.JSX.Element {
   if (txHash != null) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>
-          Transaction was successfully broadcasted
-        </h1>
+        <TitleBlock 
+          title='Transaction was successfully broadcasted' 
+          showLogo={false} 
+        />
 
         <TransactionHashBlock
           hash={txHash}
@@ -341,14 +344,11 @@ function ApproveTransactionState (): React.JSX.Element {
   return (
     <div className='screen-content'>
       <div className='flex flex-col gap-6'>
-        <div className='flex flex-col gap-2.5'>
-          <h1 className='h1-title'>
-            Transaction<br />Approval
-          </h1>
-          <Text size='sm' opacity='50'>
-            Carefully check the transaction details before signing
-          </Text>
-        </div>
+        <TitleBlock
+          title={<>Transaction<br />Approval</>}
+          description='Carefully check the transaction details before signing'
+          showLogo={false}
+        />
 
         <div className='flex flex-col gap-2.5'>
           {transactionHash != null && (
@@ -368,7 +368,7 @@ function ApproveTransactionState (): React.JSX.Element {
         {/* Choose Identity */}
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <div className='flex flex-col gap-2.5'>
-            <Text size='md' opacity='50'>Choose Identity</Text>
+            <FieldLabel>Choose Identity</FieldLabel>
             <Select
               value={currentIdentity ?? ''}
               onChange={(e: string) => {
