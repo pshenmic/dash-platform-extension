@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { Text, Button, Identifier, ValueCard, Select } from 'dash-ui-kit/react'
+import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { Banner } from '../../components/cards'
 import ButtonRow from '../../components/layout/ButtonRow'
@@ -15,6 +15,7 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
+import { IdentitySelect } from '../../components/identity/IdentitySelect'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -327,20 +328,6 @@ function ApproveTransactionState (): React.JSX.Element {
 
   const transactionHash = params.hash ?? params.txhash
 
-  const identityOptions = identities.map(identifier => ({
-    value: identifier,
-    label: identifier,
-    content: (
-      <Identifier
-        middleEllipsis
-        edgeChars={6}
-        avatar
-      >
-        {identifier}
-      </Identifier>
-    )
-  }))
-
   return (
     <div className='screen-content'>
       <div className='flex flex-col gap-6'>
@@ -369,14 +356,13 @@ function ApproveTransactionState (): React.JSX.Element {
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <div className='flex flex-col gap-2.5'>
             <FieldLabel>Choose Identity</FieldLabel>
-            <Select
+            <IdentitySelect
+              identities={identities}
               value={currentIdentity ?? ''}
-              onChange={(e: string) => {
-                const identity = e
+              onChange={(identity: string) => {
                 setCurrentIdentity(identity)
                 extensionAPI.switchIdentity(identity).catch(err => console.log('Failed to switch identity', err))
               }}
-              options={identityOptions}
               showArrow
               size='xl'
               disabled={disableIdentitySelect}
