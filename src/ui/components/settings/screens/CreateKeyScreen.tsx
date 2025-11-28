@@ -4,13 +4,14 @@ import { base64 } from '@scure/base'
 import { Text, Button, ValueCard, Identifier, Input, InfoCircleIcon } from 'dash-ui-kit/react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { WalletType } from '../../../../types'
-import { useExtensionAPI, useSdk } from '../../../hooks'
+import { useExtensionAPI, useSdk, useSigningKeys } from '../../../hooks'
 import { KeyType } from 'pshenmic-dpp'
 import { InfoCard } from '../../common'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
 import { hexToBytes } from '../../../../utils'
 import { SelectField } from '../../controls'
 import { KEY_TYPES, PURPOSES, SECURITY_LEVELS, READ_ONLY_OPTIONS } from '../../../constants/keyCreationOptions'
+import { PublicKeySelect, type KeyRequirement } from '../../keys'
 
 export const createKeyScreenConfig: ScreenConfig = {
   id: 'create-key-settings',
@@ -36,6 +37,16 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   const [password, setPassword] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const {
+    signingKeys,
+    selectedSigningKey,
+    setSelectedSigningKey,
+    loading: signingKeysLoading,
+    error: signingKeysError
+  } = useSigningKeys({
+    identity: currentIdentity ?? null
+  })
 
   // Clear error after 5 seconds
   useEffect(() => {
@@ -213,6 +224,16 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
           Some information can&apos;t be changed after adding a key.
         </Text>
       </InfoCard>
+
+      {/* Signing Key Selector */}
+      <PublicKeySelect
+        keys={signingKeys}
+        value={selectedSigningKey}
+        onChange={setSelectedSigningKey}
+        loading={signingKeysLoading}
+        error={signingKeysError}
+        keyRequirements={[]}
+      />
 
       {/* Password field */}
       <div className='flex flex-col gap-3'>
