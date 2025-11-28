@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui-kit/react'
+import { Text, Button, Identifier, ValueCard, Select } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { Banner } from '../../components/cards'
 import ButtonRow from '../../components/layout/ButtonRow'
 import { TransactionHashBlock } from '../../components/transactions'
+import { PasswordField } from '../../components/forms'
 import { useExtensionAPI, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -397,19 +398,13 @@ function ApproveTransactionState (): React.JSX.Element {
 
         {/* Password */}
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
-          <div className='flex flex-col gap-2.5'>
-            <Text size='md' opacity='50'>Password</Text>
-            <Input
-              type='password'
-              value={password}
-              onChange={(e: { target: { value: React.SetStateAction<string> } }) => setPassword(e.target.value)}
-              placeholder='Your Password'
-              size='xl'
-              variant='outlined'
-              error={passwordError != null}
-            />
-            <Banner variant='error' message={passwordError} className='mt-1' />
-          </div>
+          <PasswordField
+            value={password}
+            onChange={setPassword}
+            placeholder='Your Password'
+            error={passwordError}
+            variant='outlined'
+          />
         )}
 
         {/* Buttons */}
