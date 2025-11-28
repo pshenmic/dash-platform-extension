@@ -619,25 +619,23 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
           <div className='flex gap-2'>
             {/* Import Button - Only show for keystore wallets */}
             {isKeystoreWallet && (
-              <button
+              <Button
                 onClick={handleImportPrivateKeys}
-                className='flex-1 bg-blue-600 hover:bg-blue-700 transition-colors rounded-2xl px-6 py-3'
+                colorScheme='brand'
+                className='flex-1'
               >
-                <span className='text-base font-medium text-white'>
-                  Import Private Key
-                </span>
-              </button>
+                Import Private Key
+              </Button>
             )}
 
             {/* Create Key Button - Only show for seed phrase wallets */}
-            <button
+            <Button
               onClick={handleCreateKey}
-              className='flex-1 bg-blue-50 hover:bg-blue-100 transition-colors rounded-2xl px-6 py-3'
+              colorScheme='lightBlue'
+              className='flex-1'
             >
-              <span className='text-base font-medium text-blue-600'>
-                Create New Key
-              </span>
-            </button>
+              Create New Key
+            </Button>
           </div>
         </div>
       )}
