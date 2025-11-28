@@ -9,6 +9,7 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
+import { TransactionSuccessScreen } from '../../components/layout/TransactionSuccessScreen'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -287,41 +288,16 @@ function ApproveTransactionState (): React.JSX.Element {
 
   if (txHash != null) {
     return (
-      <div className='screen-content'>
-        <h1 className='h1-title'>
-          Transaction was successfully broadcasted
-        </h1>
-
-        <div className='flex flex-col gap-2.5'>
-          <Text size='md' className='opacity-50 font-medium'>Transaction hash</Text>
-          <ValueCard colorScheme='lightBlue' size='xl'>
-            <Identifier
-              highlight='both'
-              copyButton
-              ellipsis={false}
-              className='w-full justify-between'
-            >
-              {txHash}
-            </Identifier>
-          </ValueCard>
-        </div>
-
-        <div>
-          <Button
-            className='w-full'
-            onClick={() => {
-              if (returnToHome) {
-                void navigate('/')
-              } else {
-                window.close()
-              }
-            }}
-            colorScheme='lightBlue'
-          >
-            Close
-          </Button>
-        </div>
-      </div>
+      <TransactionSuccessScreen
+        txHash={txHash}
+        onClose={() => {
+          if (returnToHome) {
+            void navigate('/')
+          } else {
+            window.close()
+          }
+        }}
+      />
     )
   }
 
