@@ -1,6 +1,7 @@
 import React from 'react'
-import { Input, Text } from 'dash-ui-kit/react'
+import { Input } from 'dash-ui-kit/react'
 import { Banner } from '../cards'
+import { FieldLabel } from '../typography'
 
 interface PasswordFieldProps {
   value: string
@@ -25,9 +26,9 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
 }) => {
   return (
     <div className={`flex flex-col gap-2 ${className ?? ''}`}>
-      <Text dim>
+      <FieldLabel>
         {label}
-      </Text>
+      </FieldLabel>
       <Input
         type='password'
         placeholder={placeholder}
