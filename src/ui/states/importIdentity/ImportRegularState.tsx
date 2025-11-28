@@ -2,10 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useSdk, useExtensionAPI } from '../../hooks'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
-import {
-  Button,
-  Text
-} from 'dash-ui-kit/react'
+import { Button } from 'dash-ui-kit/react'
 import { processPrivateKey, ProcessedPrivateKey } from '../../../utils'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType, NetworkType } from '../../../types'

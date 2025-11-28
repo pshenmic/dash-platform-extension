@@ -295,9 +295,9 @@ function ApproveTransactionState (): React.JSX.Element {
   if (txHash != null) {
     return (
       <div className='screen-content'>
-        <TitleBlock 
-          title='Transaction was successfully broadcasted' 
-          showLogo={false} 
+        <TitleBlock
+          title='Transaction was successfully broadcasted'
+          showLogo={false}
         />
 
         <TransactionHashBlock

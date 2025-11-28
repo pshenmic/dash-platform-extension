@@ -15,7 +15,7 @@ export const FieldLabel: React.FC<FieldLabelProps> = ({
   return (
     <Text dim className={className}>
       {children}
-      {required && <span className='text-red-500 ml-1'>*</span>}
+      {required === true && <span className='text-red-500 ml-1'>*</span>}
     </Text>
   )
 }
