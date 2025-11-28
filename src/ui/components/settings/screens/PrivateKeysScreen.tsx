@@ -534,7 +534,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
   return (
     <div className='flex flex-col h-full'>
-      <div className='px-4 mb-6'>
+      <div className='mb-6'>
         <Text size='sm' dim>
           Manage public keys available for the current identity:
         </Text>
@@ -586,7 +586,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
       {/* Public Keys List */}
       {!keysLoading && !detailsLoading && keysError == null && publicKeys.length > 0 && (
-        <div className='flex-1 px-4 space-y-2.5'>
+        <div className='flex-1 space-y-2.5'>
           {publicKeys.map((publicKey, index) => (
             <PublicKeyItem
               key={`${publicKey.keyId}-${publicKey.hash}`}
@@ -615,7 +615,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
       {/* Action Buttons */}
       {(isKeystoreWallet || isSeedPhraseWallet) && (
-        <div className='p-4 mt-auto'>
+        <div className='mt-auto'>
           <div className='flex gap-2'>
             {/* Import Button - Only show for keystore wallets */}
             {isKeystoreWallet && (
