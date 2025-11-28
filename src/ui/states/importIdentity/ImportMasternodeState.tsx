@@ -17,6 +17,7 @@ import {
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType, type NetworkType } from '../../../types'
 import { TitleBlock } from '../../components/layout/TitleBlock'
+import { FieldLabel } from '../../components/typography'
 import { PrivateKeyInput, type PrivateKeyInputData } from '../../components/keys'
 import { parsePrivateKey } from '../../../utils'
 import { IdentityPreview } from '../../components/Identities'
@@ -463,7 +464,7 @@ function ImportMasternodeState (): React.JSX.Element {
       <div className='flex flex-col gap-[0.875rem]'>
         {/* Pro TX Hash */}
         <div className='flex flex-col gap-2'>
-          <Text dim>Pro TX Hash</Text>
+          <FieldLabel>Pro TX Hash</FieldLabel>
           <Input
             placeholder='Enter Pro TX Hash...'
             value={formData.proTxHash}
@@ -474,7 +475,7 @@ function ImportMasternodeState (): React.JSX.Element {
 
         {/* Owner Key */}
         <div className='flex flex-col gap-2'>
-          <Text dim>Owner Key</Text>
+          <FieldLabel>Owner Key</FieldLabel>
           <PrivateKeyInput
             input={keysData.ownerKey}
             placeholder='Enter Owner Key...'
@@ -485,7 +486,7 @@ function ImportMasternodeState (): React.JSX.Element {
 
         {/* Voting Key */}
         <div className='flex flex-col gap-2'>
-          <Text dim>Voting Key (optional)</Text>
+          <FieldLabel>Voting Key (optional)</FieldLabel>
           <PrivateKeyInput
             input={keysData.votingKey}
             placeholder='Enter Voting Key...'
@@ -496,7 +497,7 @@ function ImportMasternodeState (): React.JSX.Element {
 
         {/* Payout Key */}
         <div className='flex flex-col gap-2'>
-          <Text dim>Payout Key (optional)</Text>
+          <FieldLabel>Payout Key (optional)</FieldLabel>
           <PrivateKeyInput
             input={keysData.payoutKey}
             placeholder='Enter Payout Key...'
