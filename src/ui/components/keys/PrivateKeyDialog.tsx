@@ -185,7 +185,7 @@ export const PrivateKeyDialog: React.FC<PrivateKeyDialogProps> = ({
                   <CopyButton
                     text={privateKeyData}
                     value={privateKeyData}
-                    className='p-[5px] bg-[rgba(12,28,51,0.05)] rounded-[5px] hover:bg-[rgba(12,28,51,0.1)] transition-colors shrink-0'
+                    className='shrink-0'
                   />
                 </div>
               </div>
