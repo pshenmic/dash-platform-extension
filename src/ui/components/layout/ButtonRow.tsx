@@ -1,10 +1,12 @@
 import React from 'react'
 import { Button } from 'dash-ui-kit/react'
 
+type ButtonProps = React.ComponentProps<typeof Button>
+
 interface ButtonConfig {
   text: string
   onClick: () => void
-  colorScheme?: 'brand' | 'mint' | 'gray' | 'red' | 'lightBlue' | 'lightGray'
+  colorScheme?: ButtonProps['colorScheme']
   disabled?: boolean
 }
 
