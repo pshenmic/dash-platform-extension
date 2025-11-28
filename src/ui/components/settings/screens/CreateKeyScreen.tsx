@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { base64 } from '@scure/base'
 import { Text, Button, ValueCard, Identifier, Input, InfoCircleIcon } from 'dash-ui-kit/react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
@@ -7,6 +6,7 @@ import { WalletType } from '../../../../types'
 import { useExtensionAPI, useSdk, useSigningKeys } from '../../../hooks'
 import { KeyType } from 'pshenmic-dpp'
 import { InfoCard } from '../../common'
+import { TransactionSuccessScreen } from '../../layout/TransactionSuccessScreen'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
 import { hexToBytes } from '../../../../utils'
 import { SelectField } from '../../controls'
@@ -26,7 +26,6 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   onBack,
   onClose
 }) => {
-  const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
 
@@ -37,6 +36,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   const [password, setPassword] = useState<string>('')
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<string | null>(null)
 
   const {
     signingKeys,
@@ -71,13 +71,25 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
     }
 
     if (password.trim() === '') {
-      setError('Password is required for seed phrase wallets')
+      setError('Password is required')
+      return
+    }
+
+    if (selectedSigningKey == null) {
+      setError('Please select a signing key')
       return
     }
 
     try {
       setIsCreating(true)
       setError(null)
+
+      // Verify password first
+      const passwordCheck = await extensionAPI.checkPassword(password)
+      if (!passwordCheck.success) {
+        setError('Invalid password')
+        return
+      }
 
       const createPrivateKeyResponse: CreateIdentityPrivateKeyResponse = await extensionAPI.createIdentityPrivateKey(
         currentIdentity,
@@ -93,7 +105,8 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
 
       if (keyType === 'ECDSA_SECP256K1') {
         if (createPrivateKeyResponse.signature == null) {
-          return setError('Signature is missing from creating private key response')
+          setError('Signature is missing from creating private key response')
+          return
         }
 
         signature = hexToBytes(createPrivateKeyResponse.signature)
@@ -121,18 +134,19 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       const stateTransitionBytes = stateTransition.bytes()
       const stateTransitionBase64 = base64.encode(stateTransitionBytes)
 
-      const response = await extensionAPI.createStateTransition(stateTransitionBase64)
+      // Create state transition in storage
+      const createResponse = await extensionAPI.createStateTransition(stateTransitionBase64)
 
-      if (onClose != null) {
-        onClose()
-      }
+      // Sign and broadcast
+      const keyId = Number(selectedSigningKey)
+      const approveResponse = await extensionAPI.approveStateTransition(
+        createResponse.stateTransition.hash,
+        currentIdentity,
+        keyId,
+        password
+      )
 
-      void navigate(`/approve/${response.stateTransition.hash}`, {
-        state: {
-          returnToHome: true,
-          disableIdentitySelect: true
-        }
-      })
+      setTxHash(approveResponse.txHash)
     } catch (e) {
       console.error('Failed to create key:', e)
       const errorMessage = e instanceof Error ? e.message : String(e)
@@ -143,6 +157,22 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   }
 
   const isSeedPhraseWallet = currentWallet?.type === WalletType.seedphrase
+
+  // Success screen after transaction is broadcasted
+  if (txHash != null) {
+    return (
+      <TransactionSuccessScreen
+        txHash={txHash}
+        title='Key Created Successfully'
+        description='Your new public key has been added and the transaction was successfully broadcasted'
+        onClose={() => {
+          if (onClose != null) {
+            onClose()
+          }
+        }}
+      />
+    )
+  }
 
   return (
     <div className='flex flex-col h-full gap-4'>
@@ -232,7 +262,12 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         onChange={setSelectedSigningKey}
         loading={signingKeysLoading}
         error={signingKeysError}
-        keyRequirements={[]}
+        keyRequirements={[
+          {
+            purpose: 'AUTHENTICATION',
+            securityLevel: 'MASTER'
+          }
+        ]}
       />
 
       {/* Password field */}
@@ -254,7 +289,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         <Button
           colorScheme='brand'
           variant='outline'
-          disabled={isCreating || currentIdentity == null || (isSeedPhraseWallet && password.trim() === '')}
+          disabled={isCreating || currentIdentity == null || password.trim() === '' || selectedSigningKey == null}
           className='w-full'
           onClick={() => {
             handleCreateKey().catch(e => console.error('Create key error:', e))
