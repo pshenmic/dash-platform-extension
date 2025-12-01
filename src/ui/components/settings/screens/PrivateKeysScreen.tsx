@@ -533,7 +533,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   const shouldShowDelete = isKeystoreWallet && publicKeys.length > 1
 
   return (
-    <div className='flex flex-col h-full gap-4'>
+    <div className='flex flex-col min-h-full gap-4'>
       <div className='mb-2'>
         <Text size='sm' dim>
           Manage public keys available for the current identity:
