@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Text, Input } from 'dash-ui-kit/react'
+import { Button } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { TitleBlock } from '../../components/layout/TitleBlock'
+import { PasswordField } from '../../components/forms'
 
 function LoginState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -50,26 +51,12 @@ function LoginState (): React.JSX.Element {
       />
 
       <div className='flex flex-col gap-4'>
-        <div className='flex flex-col gap-2 w-full'>
-          <Text dim>
-            Password
-          </Text>
-          <Input
-            type='password'
-            placeholder='Enter password'
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            size='xl'
-            colorScheme='default'
-            className='w-full'
-          />
-        </div>
-
-        {error != null && (
-          <div className='text-red-500 text-sm'>
-            {error}
-          </div>
-        )}
+        <PasswordField
+          value={password}
+          onChange={setPassword}
+          error={error}
+          className='w-full'
+        />
 
         <Button
           size='xl'

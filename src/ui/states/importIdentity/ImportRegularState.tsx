@@ -2,16 +2,14 @@ import React, { useEffect, useState } from 'react'
 import { useSdk, useExtensionAPI } from '../../hooks'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import type { OutletContext } from '../../types/OutletContext'
-import {
-  Button,
-  Text,
-  ValueCard
-} from 'dash-ui-kit/react'
+import { Button } from 'dash-ui-kit/react'
 import { processPrivateKey, ProcessedPrivateKey } from '../../../utils'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { WalletType, NetworkType } from '../../../types'
 import { IdentityPreview } from '../../components/Identities'
 import { TitleBlock } from '../../components/layout/TitleBlock'
+import { Banner } from '../../components/cards'
+import { FieldLabel } from '../../components/typography'
 import { PrivateKeyInput, type PrivateKeyInputData } from '../../components/keys'
 import { PrivateKeyWASM, IdentityWASM } from 'pshenmic-dpp'
 
@@ -285,10 +283,7 @@ function ImportRegularState (): React.JSX.Element {
           Import Identity
         </Button>
 
-        {error !== null &&
-          <ValueCard colorScheme='yellow' className='break-all'>
-            <Text color='red'>{error}</Text>
-          </ValueCard>}
+        <Banner variant='error' message={error} className='break-all' />
       </div>
     )
   }
@@ -302,9 +297,9 @@ function ImportRegularState (): React.JSX.Element {
 
       <div className='flex flex-col gap-[0.875rem]'>
         <div className='mb-6'>
-          <Text dim>
+          <FieldLabel>
             Private Key
-          </Text>
+          </FieldLabel>
 
           <div className='flex flex-col gap-2.5'>
             {privateKeyInputs.map((input, index) => (
@@ -335,10 +330,7 @@ function ImportRegularState (): React.JSX.Element {
         </div>
       </div>
 
-      {error !== null &&
-        <ValueCard colorScheme='yellow' className='break-all'>
-          <Text color='red'>{error}</Text>
-        </ValueCard>}
+      <Banner variant='error' message={error} className='break-all' />
     </div>
   )
 }
