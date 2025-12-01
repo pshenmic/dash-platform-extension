@@ -14,6 +14,7 @@ import { MenuSection } from './MenuSection'
 import { screenConfigs } from './screens/configs'
 import type { MenuSection as MenuSectionType, SettingsScreenProps } from './types'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
+import { NetworkType } from '../../../types'
 
 type ScreenType = 'main' | 'current-wallet' | 'preferences' | 'connected-websites' | 'private-keys' | 'import-private-keys-settings' | 'create-key-settings' | 'security-privacy' | 'help-support' | 'about-dash'
 
@@ -29,7 +30,7 @@ const SCREEN_COMPONENTS: Record<string, React.ComponentType<SettingsScreenProps>
   'about-dash': AboutScreen
 }
 
-const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType, currentNetwork?: string | null }> = ({
+const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }> = ({
   screenType,
   onBack,
   onClose,
@@ -90,7 +91,7 @@ interface SettingsMenuProps {
   isOpen: boolean
   onClose: () => void
   currentIdentity?: string | null
-  currentNetwork?: string | null
+  currentNetwork?: NetworkType | null
   currentWallet?: WalletAccountInfo | null
 }
 
