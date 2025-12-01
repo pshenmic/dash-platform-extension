@@ -533,8 +533,8 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
   const shouldShowDelete = isKeystoreWallet && publicKeys.length > 1
 
   return (
-    <div className='flex flex-col h-full'>
-      <div className='mb-6'>
+    <div className='flex flex-col h-full gap-4'>
+      <div className='mb-2'>
         <Text size='sm' dim>
           Manage public keys available for the current identity:
         </Text>
@@ -552,36 +552,28 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       </div>
 
       {(keysLoading || detailsLoading) && (
-        <div className='px-4 mb-4'>
-          <Text size='md' opacity='50'>Loading public keys...</Text>
-        </div>
+        <Text size='md' opacity='50'>Loading public keys...</Text>
       )}
 
       {/* Error State */}
       {keysError != null && (
-        <div className='px-4 mb-4'>
-          <ValueCard colorScheme='red' size='xl'>
-            <Text size='md' color='red'>Error loading public keys: {keysError}</Text>
-          </ValueCard>
-        </div>
+        <ValueCard colorScheme='red' size='xl'>
+          <Text size='md' color='red'>Error loading public keys: {keysError}</Text>
+        </ValueCard>
       )}
 
       {/* No Identity State */}
       {currentIdentity == null && !keysLoading && !detailsLoading && (
-        <div className='px-4 mb-4'>
-          <ValueCard colorScheme='lightGray' size='xl'>
-            <Text size='md' opacity='50'>No identity selected</Text>
-          </ValueCard>
-        </div>
+        <ValueCard colorScheme='lightGray' size='xl'>
+          <Text size='md' opacity='50'>No identity selected</Text>
+        </ValueCard>
       )}
 
       {/* No Keys State */}
       {!keysLoading && !detailsLoading && keysError == null && currentIdentity != null && publicKeys.length === 0 && (
-        <div className='px-4 mb-4'>
-          <ValueCard colorScheme='lightGray' size='xl'>
-            <Text size='md' opacity='50'>No public keys available for this identity</Text>
-          </ValueCard>
-        </div>
+        <ValueCard colorScheme='lightGray' size='xl'>
+          <Text size='md' opacity='50'>No public keys available for this identity</Text>
+        </ValueCard>
       )}
 
       {/* Public Keys List */}
@@ -606,11 +598,9 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
 
       {/* Delete Error State */}
       {error != null && (
-        <div className='px-4 mb-4'>
-          <ValueCard colorScheme='red' size='xl'>
-            <Text size='md' color='red'>{error}</Text>
-          </ValueCard>
-        </div>
+        <ValueCard colorScheme='red' size='xl'>
+          <Text size='md' color='red'>{error}</Text>
+        </ValueCard>
       )}
 
       {/* Action Buttons */}
