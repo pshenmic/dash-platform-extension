@@ -9,6 +9,8 @@ export { SecuritySettingsScreen } from './screens/SecuritySettingsScreen'
 export { PreferencesScreen } from './screens/PreferencesScreen'
 export { ConnectedWebsitesScreen } from './screens/ConnectedWebsitesScreen'
 export { PrivateKeysScreen } from './screens/PrivateKeysScreen'
+export { ImportPrivateKeysScreen } from './screens/ImportPrivateKeysScreen'
+export { CreateKeyScreen } from './screens/CreateKeyScreen'
 export { HelpSupportScreen } from './screens/HelpSupportScreen'
 export { AboutScreen } from './screens/AboutScreen'
 

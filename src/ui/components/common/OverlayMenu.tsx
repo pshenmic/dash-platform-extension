@@ -52,7 +52,7 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
               <ChevronIcon className='rotate-90' />
             </Button>
           )}
-          <Text size='xl' weight='500' className='text-dash-primary-dark-blue'>
+          <Text size='xl' weight='medium' className='text-dash-primary-dark-blue'>
             {title}
           </Text>
         </div>

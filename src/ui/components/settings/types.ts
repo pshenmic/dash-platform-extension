@@ -1,4 +1,5 @@
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
+import { NetworkType } from '../../../types'
 
 export interface MenuItem {
   id: string
@@ -21,7 +22,7 @@ export interface SettingsScreenProps {
   onClose: () => void
   onItemSelect?: (itemId: string) => void
   currentIdentity?: string | null
-  currentNetwork?: string | null
+  currentNetwork?: NetworkType | null
   currentWallet?: WalletAccountInfo | null
 }
 
