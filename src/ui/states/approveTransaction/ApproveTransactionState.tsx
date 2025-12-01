@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { Text, Button, ValueCard, Input } from 'dash-ui-kit/react'
+import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { Banner } from '../../components/cards'
 import ButtonRow from '../../components/layout/ButtonRow'
@@ -15,8 +15,6 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
-import { PLATFORM_EXPLORER_URLS } from '../../../constants'
-import { TitleBlock } from '../../components/layout/TitleBlock'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
 
 function ApproveTransactionState (): React.JSX.Element {
@@ -241,21 +239,6 @@ function ApproveTransactionState (): React.JSX.Element {
         </div>
       </div>
     )
-  }
-
-  const copyToClipboard = (text: string): void => {
-    navigator.clipboard
-      .writeText(text)
-      .catch(err => console.log('Failed to copy to clipboard:', err))
-  }
-
-  const openExplorer = (): void => {
-    const baseUrl = currentNetwork === 'testnet'
-      ? PLATFORM_EXPLORER_URLS.testnet.explorer
-      : PLATFORM_EXPLORER_URLS.mainnet.explorer
-
-    const explorerUrl = `${baseUrl}/transaction/${txHash ?? ''}`
-    window.open(explorerUrl, '_blank')
   }
 
   const reject = (): void => {
