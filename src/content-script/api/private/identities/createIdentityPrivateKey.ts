@@ -111,12 +111,6 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
 
       const masterKeyId = 0
 
-      const masterKeyExists = await this.keypairRepository.isExisting(identity.identifier,masterKeyId)
-
-      if (!masterKeyExists) {
-        throw new Error(`Could not find master key (KeyId 0) for Identity ${identity.identifier}`)
-      }
-
       const signerIdentityPublicKey = identityWASM.getPublicKeys()[masterKeyId]
       const signerPrivateKey = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, masterKeyId, payload.password)
 
