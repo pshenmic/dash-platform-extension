@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { base64 } from '@scure/base'
-import { Text, Button, ValueCard, Identifier, Input, InfoCircleIcon } from 'dash-ui-kit/react'
+import { Text, Button, Identifier, Input, InfoCircleIcon } from 'dash-ui-kit/react'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { WalletType } from '../../../../types'
 import { useExtensionAPI, useSdk, useSigningKeys } from '../../../hooks'
@@ -11,7 +11,8 @@ import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/res
 import { hexToBytes } from '../../../../utils'
 import { SelectField } from '../../controls'
 import { KEY_TYPES, PURPOSES, SECURITY_LEVELS, READ_ONLY_OPTIONS } from '../../../constants/keyCreationOptions'
-import { PublicKeySelect, type KeyRequirement } from '../../keys'
+import { PublicKeySelect } from '../../keys'
+import Banner from '../../cards/Banner'
 
 export const createKeyScreenConfig: ScreenConfig = {
   id: 'create-key-settings',
@@ -158,21 +159,30 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   }
 
   const isSeedPhraseWallet = currentWallet?.type === WalletType.seedphrase
+  const isKeystoreWallet = currentWallet?.type === WalletType.keystore
 
   // Success screen after transaction is broadcasted
   if (txHash != null) {
     return (
-      <TransactionSuccessScreen
-        txHash={txHash}
-        network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
-        title='Key Created Successfully'
-        description='Your new public key has been added and the transaction was successfully broadcasted'
-        onClose={() => {
-          if (onClose != null) {
-            onClose()
-          }
-        }}
-      />
+      <div className='flex flex-col gap-4'>
+        <TransactionSuccessScreen
+          txHash={txHash}
+          network={(currentNetwork ?? 'testnet')}
+          title='Key Created Successfully'
+          description='Your new public key has been added and the transaction was successfully broadcasted'
+          onClose={() => {
+            if (onClose != null) {
+              onClose()
+            }
+          }}
+        />
+        {isKeystoreWallet && (
+          <Banner
+            variant='info'
+            message='To prevent losing access to this key, make sure to save it in the Private Keys settings'
+          />
+        )}
+      </div>
     )
   }
 
@@ -238,13 +248,6 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         />
       </div>
 
-      {/* Error Display */}
-      {error != null && (
-        <ValueCard colorScheme='yellow' className='break-words whitespace-pre-wrap'>
-          <Text color='red'>Failed to create key: {error}</Text>
-        </ValueCard>
-      )}
-
       {/* Info Tooltip */}
       <InfoCard
         className='flex flex-row items-center gap-3'
@@ -285,6 +288,12 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
           className='w-full'
         />
       </div>
+
+      {/* Error Display */}
+      <Banner
+        variant='error'
+        message={error != null ? `Failed to create key: ${error}` : null}
+      />
 
       {/* Create Button */}
       <div className='mt-auto pb-4'>
