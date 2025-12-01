@@ -98,9 +98,17 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
         securityLevel: SecurityLevel.MEDIUM
       }
 
-      const identityNonce = await this.sdk.identities.getIdentityNonce(identity.identifier)
+      // const identityNonce = await this.sdk.identities.getIdentityNonce(identity.identifier)
 
-      const stateTransition = this.sdk.identities.createStateTransition('update', { identityId: identity.identifier, addPublicKeys: [identityPublicKeyInCreation], revision: identityWASM.revision + 1n, identityNonce })
+      const stateTransition = this.sdk.identities.createStateTransition('update',
+          {
+            identityId: identity.identifier,
+            addPublicKeys: [identityPublicKeyInCreation],
+            revision: identityWASM.revision + 1n,
+            identityNonce: 1n,
+          }
+      )
+
       const masterKeyId = 0
 
       const masterKeyExists = await this.keypairRepository.isExisting(identity.identifier,masterKeyId)
@@ -112,7 +120,9 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       const signerIdentityPublicKey = identityWASM.getPublicKeys()[masterKeyId]
       const signerPrivateKey = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, masterKeyId, payload.password)
 
-      signature = stateTransition.sign(signerPrivateKey, signerIdentityPublicKey)
+      stateTransition.signByPrivateKey(signerPrivateKey, 0, signerIdentityPublicKey.keyType)
+
+      signature = stateTransition.signature
     }
 
     return {
