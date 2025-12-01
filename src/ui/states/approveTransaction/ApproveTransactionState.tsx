@@ -295,40 +295,17 @@ function ApproveTransactionState (): React.JSX.Element {
 
   if (txHash != null) {
     return (
-      <div className='screen-content'>
-        <TitleBlock
-          title={
-            <>
-              <span className='font-normal'>Transaction was</span><br />
-              <span className='font-medium'>successfully broadcasted</span>
-            </>
+      <TransactionSuccessScreen
+        txHash={txHash}
+        network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+        onClose={() => {
+          if (returnToHome) {
+            void navigate('/')
+          } else {
+            window.close()
           }
-          description='You can check the transaction hash below'
-        />
-
-        <TransactionHashBlock
-          hash={txHash}
-          network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
-          variant='full'
-          showActions
-        />
-
-        <div>
-          <Button
-            className='w-full'
-            onClick={() => {
-              if (returnToHome) {
-                void navigate('/')
-              } else {
-                window.close()
-              }
-            }}
-            colorScheme='lightBlue'
-          >
-            Close
-          </Button>
-        </div>
-      </div>
+        }}
+      />
     )
   }
 

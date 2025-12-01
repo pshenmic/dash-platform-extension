@@ -23,6 +23,7 @@ export const createKeyScreenConfig: ScreenConfig = {
 export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   currentIdentity,
   currentWallet,
+  currentNetwork,
   onBack,
   onClose
 }) => {
@@ -163,6 +164,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
     return (
       <TransactionSuccessScreen
         txHash={txHash}
+        network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
         title='Key Created Successfully'
         description='Your new public key has been added and the transaction was successfully broadcasted'
         onClose={() => {

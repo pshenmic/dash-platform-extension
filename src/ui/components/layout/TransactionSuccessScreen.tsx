@@ -1,53 +1,88 @@
 import React from 'react'
-import { Text, Button, ValueCard, Identifier } from 'dash-ui-kit/react'
+import { Button, DocumentIcon, CopyIcon, ExternalLinkIcon, ValueCard, Text, Identifier } from 'dash-ui-kit/react'
+import { TitleBlock } from './TitleBlock'
+import { PLATFORM_EXPLORER_URLS } from '../../../constants'
+import { copyToClipboard } from '../../../utils'
 
 interface TransactionSuccessScreenProps {
   txHash: string
-  title?: string
-  description?: string
+  network: 'testnet' | 'mainnet'
   onClose: () => void
-  closeButtonText?: string
+  title?: React.ReactNode
+  description?: string
 }
 
 export const TransactionSuccessScreen: React.FC<TransactionSuccessScreenProps> = ({
   txHash,
-  title = 'Transaction Successfully Broadcasted',
-  description = 'Your transaction has been successfully broadcasted to the network',
+  network,
   onClose,
-  closeButtonText = 'Close'
+  title,
+  description
 }) => {
-  return (
-    <div className='flex flex-col h-full gap-2.5'>
-      <div className='flex flex-col gap-4 w-full'>
-        <Text size='lg' weight='bold'>
-          {title}
-        </Text>
-        <Text size='sm' dim>
-          {description}
-        </Text>
-      </div>
+  const openExplorer = (): void => {
+    const explorerUrl = PLATFORM_EXPLORER_URLS[network].explorer
+    const url = `${explorerUrl}/transaction/${txHash}`
+    window.open(url, '_blank')
+  }
 
-      <div className='flex flex-col gap-2.5 w-full'>
-        <Text size='md' dim>Transaction Hash</Text>
-        <ValueCard colorScheme='lightBlue' size='xl'>
+  return (
+    <div className='screen-content'>
+      <TitleBlock
+        title={
+          title ?? (
+            <>
+              <span className='font-normal'>Transaction was</span><br />
+              <span className='font-bold'>successfully broadcasted</span>
+            </>
+          )
+        }
+        description={description ?? 'You can check the transaction hash below'}
+      />
+
+      <ValueCard colorScheme='white' border={false} size='xl' className='dash-shadow-lg flex-col gap-4 items-start'>
+        <div className='flex items-center gap-2'>
+          <div className='flex items-center justify-center h-[1.875rem] w-[1.875rem] rounded-full bg-dash-primary-dark-blue/[0.03]'>
+            <DocumentIcon size={16} className='!text-dash-brand' />
+          </div>
+          <Text size='sm'>Hash</Text>
+        </div>
+        <div className='flex justify-between gap-2'>
           <Identifier
             highlight='both'
-            copyButton
-            ellipsis={false}
-            className='w-full justify-between'
+            linesAdjustment
+            className='font-medium flex-grow'
           >
             {txHash}
           </Identifier>
-        </ValueCard>
-      </div>
+          {/* Buttons */}
+          <div className='flex items-center gap-2 flex-shrink-0'>
+            <Button
+              colorScheme='lightGray'
+              size='sm'
+              className='!min-h-0 !p-1 w-[1.25rem] h-[1.25rem] rounded-[0.25rem]'
+              onClick={openExplorer}
+            >
+              <ExternalLinkIcon size={14} className='!text-dash-primary-dark-blue/70 flex-shrink-0' />
+            </Button>
+            <Button
+              colorScheme='lightGray'
+              size='sm'
+              className='!min-h-0 !p-1 w-[1.25rem] h-[1.25rem] rounded-[0.25rem]'
+              onClick={() => { copyToClipboard(txHash) }}
+            >
+              <CopyIcon size={14} className='!text-dash-primary-dark-blue/70 flex-shrink-0 -mr-1' />
+            </Button>
+          </div>
+        </div>
+      </ValueCard>
 
-      <div className='w-full mt-auto'>
+      <div>
         <Button
           className='w-full'
           onClick={onClose}
-          colorScheme='brand'
+          colorScheme='lightBlue'
         >
-          {closeButtonText}
+          Close
         </Button>
       </div>
     </div>
