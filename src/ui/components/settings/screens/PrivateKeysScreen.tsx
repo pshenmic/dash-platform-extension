@@ -125,14 +125,13 @@ const PublicKeyItem: React.FC<{
             Key ID: {publicKey.keyId}
           </Text>
 
+          {isDisabled && (
+            <Text monospace weight='medium' className='!text-[0.75rem] !text-red-600'>
+              DISABLED
+            </Text>
+          )}
+
           <div className='flex items-center gap-2'>
-            {isDisabled && (
-              <ValueCard colorScheme='red' size='sm' className='p-2' border={false}>
-                <Text monospace weight='medium' className='!text-[0.75rem] !text-red-600'>
-                  DISABLED
-                </Text>
-              </ValueCard>
-            )}
             <Badge text={publicKey.securityLevel} />
             <Badge text={publicKey.purpose} />
           </div>
