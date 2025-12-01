@@ -1,21 +1,28 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui-kit/react'
+import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
+import { Banner } from '../../components/cards'
+import ButtonRow from '../../components/layout/ButtonRow'
+import { TransactionHashBlock } from '../../components/transactions'
+import { PasswordField } from '../../components/forms'
+import { FieldLabel } from '../../components/typography'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 import { useExtensionAPI, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
+import { IdentitySelect } from '../../components/identity/IdentitySelect'
 import { TransactionSuccessScreen } from '../../components/layout/TransactionSuccessScreen'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const extensionAPI = useExtensionAPI()
-  const { currentWallet, currentIdentity, setCurrentIdentity, setHeaderConfigOverride } = useOutletContext<OutletContext>()
+  const { currentWallet, currentIdentity, setCurrentIdentity, setHeaderConfigOverride, currentNetwork } = useOutletContext<OutletContext>()
 
   const params = useParams()
 
@@ -173,7 +180,7 @@ function ApproveTransactionState (): React.JSX.Element {
   if (!hasWallet) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>No Wallet Found</h1>
+        <TitleBlock title='No Wallet Found' showLogo={false} />
 
         <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col items-start gap-2'>
           <Text size='md'>
@@ -206,7 +213,7 @@ function ApproveTransactionState (): React.JSX.Element {
   if (identities.length === 0) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>No Identities Available</h1>
+        <TitleBlock title='No Identities Available' showLogo={false} />
 
         <ValueCard colorScheme='lightGray' border={false} className='flex flex-col items-start gap-4'>
           <Text size='md'>
@@ -288,78 +295,80 @@ function ApproveTransactionState (): React.JSX.Element {
 
   if (txHash != null) {
     return (
-      <TransactionSuccessScreen
-        txHash={txHash}
-        onClose={() => {
-          if (returnToHome) {
-            void navigate('/')
-          } else {
-            window.close()
+      <div className='screen-content'>
+        <TitleBlock
+          title={
+            <>
+              <span className='font-normal'>Transaction was</span><br />
+              <span className='font-medium'>successfully broadcasted</span>
+            </>
           }
-        }}
-      />
+          description='You can check the transaction hash below'
+        />
+
+        <TransactionHashBlock
+          hash={txHash}
+          network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+          variant='full'
+          showActions
+        />
+
+        <div>
+          <Button
+            className='w-full'
+            onClick={() => {
+              if (returnToHome) {
+                void navigate('/')
+              } else {
+                window.close()
+              }
+            }}
+            colorScheme='lightBlue'
+          >
+            Close
+          </Button>
+        </div>
+      </div>
     )
   }
 
   const transactionHash = params.hash ?? params.txhash
 
-  const identityOptions = identities.map(identifier => ({
-    value: identifier,
-    label: identifier,
-    content: (
-      <Identifier
-        middleEllipsis
-        edgeChars={6}
-        avatar
-      >
-        {identifier}
-      </Identifier>
-    )
-  }))
-
   return (
     <div className='screen-content'>
       <div className='flex flex-col gap-6'>
-        <div className='flex flex-col gap-2.5'>
-          <h1 className='h1-title'>
-            Transaction<br />Approval
-          </h1>
-          <Text size='sm' opacity='50'>
-            Carefully check the transaction details before signing
-          </Text>
-        </div>
+        <TitleBlock
+          title={<>Transaction<br />Approval</>}
+          description='Carefully check the transaction details before signing'
+          showLogo={false}
+        />
 
         <div className='flex flex-col gap-2.5'>
-          <Text size='md' opacity='50'>Transaction Hash</Text>
-          <ValueCard colorScheme='lightGray' size='xl'>
-            <Identifier
-              highlight='both'
-              linesAdjustment={false}
-            >
-              {transactionHash}
-            </Identifier>
-          </ValueCard>
-          {isLoadingTransaction && <Text size='sm'>Loading transaction...</Text>}
-          {transactionNotFound && <Text size='sm' color='red' weight='bold'>Could not find transaction with hash</Text>}
-          {transactionDecodeError != null && (
-            <Text size='sm' color='red' weight='bold'>
-              Error decoding state transition: {transactionDecodeError}
-            </Text>
+          {transactionHash != null && (
+            <TransactionHashBlock
+              hash={transactionHash}
+              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+              variant='compact'
+              showActions={false}
+              label='Transaction Hash'
+            />
           )}
+          {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
+          {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
+          <Banner variant='error' message={transactionDecodeError} />
         </div>
 
         {/* Choose Identity */}
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <div className='flex flex-col gap-2.5'>
-            <Text size='md' opacity='50'>Choose Identity</Text>
-            <Select
+            <FieldLabel>Choose Identity</FieldLabel>
+            <IdentitySelect
+              identities={identities}
               value={currentIdentity ?? ''}
-              onChange={(e: string) => {
-                const identity = e
+              onChange={(identity: string) => {
                 setCurrentIdentity(identity)
                 extensionAPI.switchIdentity(identity).catch(err => console.log('Failed to switch identity', err))
               }}
-              options={identityOptions}
               showArrow
               size='xl'
               disabled={disableIdentitySelect}
@@ -381,23 +390,13 @@ function ApproveTransactionState (): React.JSX.Element {
 
         {/* Password */}
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
-          <div className='flex flex-col gap-2.5'>
-            <Text size='md' opacity='50'>Password</Text>
-            <Input
-              type='password'
-              value={password}
-              onChange={(e: { target: { value: React.SetStateAction<string> } }) => setPassword(e.target.value)}
-              placeholder='Your Password'
-              size='xl'
-              variant='outlined'
-              error={passwordError != null}
-            />
-            {passwordError != null && (
-              <Text size='sm' color='red' className='mt-1'>
-                {passwordError}
-              </Text>
-            )}
-          </div>
+          <PasswordField
+            value={password}
+            onChange={setPassword}
+            placeholder='Your Password'
+            error={passwordError}
+            variant='outlined'
+          />
         )}
 
         {/* Buttons */}
@@ -414,23 +413,19 @@ function ApproveTransactionState (): React.JSX.Element {
             </div>
             )
           : (stateTransitionWASM != null && (
-            <div className='flex gap-2 w-full'>
-              <Button
-                onClick={reject}
-                colorScheme='lightBlue'
-                className='w-1/2'
-              >
-                Reject
-              </Button>
-              <Button
-                onClick={() => { doSign().catch(e => console.log('doSign', e)) }}
-                colorScheme='brand'
-                className='w-1/2'
-                disabled={isSigningInProgress || selectedSigningKey === null}
-              >
-                {isSigningInProgress ? 'Signing...' : 'Sign'}
-              </Button>
-            </div>
+            <ButtonRow
+              leftButton={{
+                text: 'Reject',
+                onClick: reject,
+                colorScheme: 'lightBlue'
+              }}
+              rightButton={{
+                text: isSigningInProgress ? 'Signing...' : 'Sign',
+                onClick: () => { doSign().catch(e => console.log('doSign', e)) },
+                colorScheme: 'brand',
+                disabled: isSigningInProgress || selectedSigningKey === null
+              }}
+            />
             ))}
       </div>
     </div>
