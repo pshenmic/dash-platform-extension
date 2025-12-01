@@ -322,13 +322,15 @@ function ApproveTransactionState (): React.JSX.Element {
 
         <div className='flex flex-col gap-2.5'>
           {transactionHash != null && (
-            <TransactionHashBlock
-              hash={transactionHash}
-              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
-              variant='compact'
-              showActions={false}
-              label='Transaction Hash'
-            />
+            <div className='flex flex-col gap-2.5'>
+              <Text size='md' dim>Transaction Hash</Text>
+              <TransactionHashBlock
+                hash={transactionHash}
+                network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+                showHeader={false}
+                showExplorerLink={false}
+              />
+            </div>
           )}
           {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
           {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
