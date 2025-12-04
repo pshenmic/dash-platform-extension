@@ -181,8 +181,7 @@ function IdentityRegistrationState (): React.JSX.Element {
           <div className='flex flex-col gap-4'>
             <div className='flex gap-2'>
               <Button
-                variant='outline'
-                colorScheme='brand'
+                colorScheme='lightBlue'
                 className='flex-1'
                 onClick={handleRestart}
               >

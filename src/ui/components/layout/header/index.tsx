@@ -333,9 +333,10 @@ export default function Header (): React.JSX.Element {
         return (
           <div className={`${containerClasses} z-0`}>
             <img
+              key={config.imageType}
               src={useStaticAsset(defaultVariant.src)}
               alt={defaultVariant.alt}
-              className={`relative w-[348px] h-auto max-w-none ${imgClasses}`}
+              className={`relative w-[348px] h-auto max-w-none ${imgClasses} transition-opacity duration-300 ease-in-out`}
             />
           </div>
         )
