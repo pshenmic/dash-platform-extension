@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { Avatar, BigNumber, Button, Dialog, Identifier, PlusIcon, Text, NotActive } from 'dash-ui-kit/react'
+import { Button, Dialog, PlusIcon } from 'dash-ui-kit/react'
 import { type ApiState, WalletType } from '../../../types'
 import { useSdk } from '../../hooks'
 import { useNavigate } from 'react-router-dom'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
+import { IdentityOption } from '../identity'
 
 interface SelectIdentityDialogProps {
   identities: string[]
@@ -70,47 +71,18 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
         <div className='flex flex-col gap-4 -mx-6 overflow-y-auto'>
           <div className='flex flex-col gap-2'>
             {identities.map((identity) => (
-              <div
+              <IdentityOption
                 key={identity}
-                className={`flex items-center gap-3 p-3 border-dash-brand cursor-pointer hover:bg-gray-50 ${
-                  identity === currentIdentity ? 'bg-gray-100 border-l-2' : ''
-                }`}
+                identity={identity}
+                variant='full'
+                selected={identity === currentIdentity}
+                balance={balancesState.data?.[identity] ?? null}
+                loading={balancesState.loading}
+                error={(balancesState.error !== null && balancesState.error !== '') || balancesState.data?.[identity] == null}
                 onClick={() => {
                   handleSelectIdentity(identity)
                 }}
-              >
-                <div className='w-10 h-10'>
-                  <Avatar username={identity} />
-                </div>
-
-                <div className='flex flex-1 items-center gap-2'>
-                  <Identifier
-                    highlight='both'
-                    className='text-sm font-light'
-                    copyButton
-                  >
-                    {identity}
-                  </Identifier>
-                </div>
-
-                <div className='flex flex-col items-end gap-1 text-right shrink-0'>
-                  <Text weight='semibold' size='sm'>
-                    {balancesState.loading
-                      ? 'Loading...'
-                      : (
-                        <>
-                          {((balancesState.error !== null && balancesState.error !== '') || balancesState.data?.[identity] == null)
-                            ? <NotActive>n/a</NotActive>
-                            : <BigNumber>{balancesState.data[identity].toString()}</BigNumber>}
-                          Credits
-                        </>
-                        )}
-                  </Text>
-                  <Text size='xs' className='text-gray-500'>
-                    ~ $0.00
-                  </Text>
-                </div>
-              </div>
+              />
             ))}
           </div>
           <div className='px-6 pb-2'>

@@ -1,14 +1,15 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState, useMemo } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { UsernameInput } from '../../components/names'
-import { Text, Identifier, ValueCard } from 'dash-ui-kit/react'
+import { Text, Identifier, ValueCard, InfoCircleIcon, DashLogo } from 'dash-ui-kit/react'
 import type { LayoutContext } from '../../components/layout/Layout'
 import { useAsyncState, useSdk, usePlatformExplorerClient, useExtensionAPI, useSigningKeys } from '../../hooks'
 import { UsernameStep } from './UsernameStep'
 import { ConfirmationStep } from './ConfirmationStep'
-import type { KeyRequirement } from '../../components/keys'
+import { MissingRequiredKeyWarning, type KeyRequirement } from '../../components/keys'
 import { isKeyCompatible, creditsToDash } from '../../../utils'
+import { CONTESTED_NAME_COST_DASH, REGULAR_NAME_COST_DASH, NAME_SUFFIX } from './constants'
 type Step = 1 | 2
 
 const NameRegistrationState: React.FC = () => {
@@ -32,6 +33,7 @@ const NameRegistrationState: React.FC = () => {
   const [registrationError, setRegistrationError] = useState<string | null>(null)
   const [password, setPassword] = useState<string>('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [hoveredCard, setHoveredCard] = useState<'premium' | 'regular' | null>(null)
   const {
     signingKeys,
     selectedSigningKey,
@@ -68,10 +70,8 @@ const NameRegistrationState: React.FC = () => {
       setRegistrationError(null)
       setPasswordError(null)
 
-      console.log('Starting name registration for:', username)
-
-      // Prepare the full name (add .dash if not present)
-      const fullName = username.includes('.dash') ? username : `${username}.dash`
+      // Prepare the full name (add NAME_SUFFIX if not present)
+      const fullName = username.includes(NAME_SUFFIX) ? username : `${username}${NAME_SUFFIX}`
 
       const passwordCheck = await extensionAPI.checkPassword(password)
       if (!passwordCheck.success) {
@@ -88,16 +88,10 @@ const NameRegistrationState: React.FC = () => {
 
       const keyId = Number(selectedSigningKey)
 
-      console.log('Registering username via extensionAPI:', {
-        fullUsername: fullName,
-        identity: currentIdentity,
-        keyId,
-        isContested
-      })
-
       // Use extensionAPI.registerUsername method
       await extensionAPI.registerUsername(fullName, currentIdentity, keyId, password)
 
+      setPassword('')
       void navigate('/home')
     } catch (error) {
       console.log('Failed to register username:', error)
@@ -124,8 +118,7 @@ const NameRegistrationState: React.FC = () => {
       setIsCheckingBalance(true)
       const balance = await sdk.identities.getIdentityBalance(currentIdentity)
       const dashBalance = creditsToDash(balance)
-      const requiredDash = 0.25
-      setHasSufficientBalance(dashBalance >= requiredDash)
+      setHasSufficientBalance(dashBalance >= CONTESTED_NAME_COST_DASH)
     }
 
     checkBalance()
@@ -140,7 +133,7 @@ const NameRegistrationState: React.FC = () => {
     if (username !== '') {
       const checkNameAvailability = async (): Promise<void> => {
         setIsCheckingAvailability(true)
-        const fullName = username.includes('.dash') ? username : `${username}.dash`
+        const fullName = username.includes(NAME_SUFFIX) ? username : `${username}${NAME_SUFFIX}`
 
         // Check if name is contested
         const contested = sdk.names.testNameContested(fullName)
@@ -173,7 +166,13 @@ const NameRegistrationState: React.FC = () => {
     setSelectedSigningKey(null)
   }, [])
 
-  const NameBlock = useCallback(() => {
+  const getTypeCardOpacity = useCallback((cardType: 'premium' | 'regular') => {
+    return cardType === 'premium'
+      ? (isContested ? 'opacity-100' : 'opacity-50')
+      : (!isContested ? 'opacity-100' : 'opacity-50')
+  }, [hoveredCard, isContested])
+
+  const NameBlock = useMemo(() => {
     switch (currentStep) {
       case 1: return (
         <UsernameInput
@@ -189,12 +188,12 @@ const NameRegistrationState: React.FC = () => {
             {username}
           </Text>
           <Text size='sm' color='blue'>
-            .dash
+            {NAME_SUFFIX}
           </Text>
         </div>
       )
     }
-  }, [currentStep, username, handleUsernameChange, signingKeysLoading, hasCompatibleKeys, keyRequirements, navigate])
+  }, [currentStep, username, handleUsernameChange])
 
   return (
     <div className='flex flex-col h-full min-h-max'>
@@ -209,32 +208,16 @@ const NameRegistrationState: React.FC = () => {
       {(currentStep === 1 && !signingKeysLoading && !hasCompatibleKeys)
         ? (
           <div className='flex-grow'>
-            <ValueCard colorScheme='yellow' size='xl' border={false} className='flex flex-col items-start gap-4'>
-              <Text size='md' weight='medium'>
-                Missing Required Key
-              </Text>
-              <div className='flex flex-col gap-2'>
-                {keyRequirements.map((req, index) => (
-                  <div key={index} className='flex items-center gap-2'>
-                    <ValueCard colorScheme='white' size='sm' className='px-2 py-1'>
-                      <Text size='sm'>{req.purpose}</Text>
-                    </ValueCard>
-                    <ValueCard colorScheme='white' size='sm' className='px-2 py-1'>
-                      <Text size='sm'>{req.securityLevel}</Text>
-                    </ValueCard>
-                  </div>
-                ))}
-              </div>
-              <Text size='sm' className='text-gray-600'>
-                You need to add a private key with the above requirements to register a username.
-              </Text>
-            </ValueCard>
+            <MissingRequiredKeyWarning
+              keyRequirements={keyRequirements}
+              description='You need to add a private key with the above requirements to register a username.'
+            />
           </div>
           )
         : (
           <div className='flex flex-col gap-6 flex-grow'>
             <div className='flex justify-center'>
-              <NameBlock />
+              {NameBlock}
             </div>
 
             <div className='text-center leading-none'>
@@ -253,20 +236,125 @@ const NameRegistrationState: React.FC = () => {
           </div>
           )}
 
-      <div className='flex flex-col gap-4 w-full mt-6'>
+      {currentStep === 1 && ((username.length > 0 && (!isValid || !isAvailable)) || !hasSufficientBalance) && (
+        <ValueCard
+          border={false}
+          className='!text-[0.75rem] dash-shadow-xl text-dash-primary-dark-blue/75 mt-6'
+        >
+          {!hasSufficientBalance
+            ? `Insufficient balance. You need at least ${CONTESTED_NAME_COST_DASH} DASH equivalent in credits to register a username.`
+            : !isValid
+                ? 'Username must be at least 3 characters and contain only letters, numbers, hyphens, and underscores'
+                : 'This username is already taken. Please choose a different one.'}
+        </ValueCard>
+      )}
+
+      <div className='flex flex-col gap-4 w-full mt-6 relative'>
         {currentStep === 1
           ? (
-            <UsernameStep
-              username={username}
-              isContested={isContested}
-              isValid={isValid}
-              isAvailable={isAvailable}
-              isCheckingAvailability={isCheckingAvailability}
-              hasSufficientBalance={hasSufficientBalance}
-              isCheckingBalance={isCheckingBalance}
-              hasCompatibleKeys={hasCompatibleKeys}
-              onRequestUsername={() => setCurrentStep(2)}
-            />
+            <>
+              <div className={`absolute left-0 -top-[70px] w-full flex items-center gap-3 p-3 bg-white rounded-xl border-l-2 border-dash-primary-dark-blue shadow-[0_0_75px_rgba(0,0,0,0.1)] z-10 transition-all duration-200 ${
+                hoveredCard != null ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'
+              }`}
+              >
+                <InfoCircleIcon className='w-[1.625rem] h-[1.625rem] flex-shrink-0 text-gray-400' />
+                <Text size='xs' weight='medium' className='flex-1'>
+                  {hoveredCard === 'premium'
+                    ? `This username falls under the rules of a contested username (excludes any number digits except 0 and 1 and under 19 characters). Masternodes will vote for your username approval (${currentNetwork === 'mainnet' ? '2 weeks' : '1 hour'})`
+                    : 'This is a regular, non-contested username and it will be registered immediately for you'}
+                </Text>
+              </div>
+
+              <div className='flex gap-2 w-full'>
+                <ValueCard
+                  className={`relative items-center justify-between w-full transition-opacity ${getTypeCardOpacity('premium')}`}
+                  colorScheme='lightGray'
+                  border={false}
+                >
+                  <div className='flex flex-col gap-1'>
+                    <div className='flex gap-1'>
+                      <Text size='sm' weight='bold'>
+                        Premium
+                      </Text>
+                      <Text size='sm'>
+                        Name:
+                      </Text>
+                    </div>
+                    <div className='flex items-center gap-1.5'>
+                      <Text size='xs' weight='medium'>
+                        {CONTESTED_NAME_COST_DASH}
+                      </Text>
+                      <Text size='xs' color='muted'>
+                        <DashLogo size={10} className='!text-dash-primary-dark-blue' />
+                      </Text>
+                      {rateState.data != null && (
+                        <ValueCard colorScheme='lightBlue' size='xs' border={false}>
+                          <Text size='xs' color='blue' weight='medium'>
+                            ~ ${(CONTESTED_NAME_COST_DASH * rateState.data).toFixed(2)}
+                          </Text>
+                        </ValueCard>
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    className='absolute right-1 top-1'
+                    onMouseEnter={() => setHoveredCard('premium')}
+                    onMouseLeave={() => setHoveredCard(null)}
+                  >
+                    <InfoCircleIcon className='w-5 h-5 text-gray-400' />
+                  </div>
+                </ValueCard>
+
+                <ValueCard
+                  className={`relative items-center justify-between w-full transition-opacity ${getTypeCardOpacity('regular')}`}
+                  colorScheme='lightGray'
+                  border={false}
+                >
+                  <div className='flex flex-col gap-1'>
+                    <div className='flex gap-1'>
+                      <Text size='sm' weight='bold'>
+                        Regular
+                      </Text>
+                      <Text size='sm'>
+                        Name:
+                      </Text>
+                    </div>
+                    <div className='flex items-center gap-1.5'>
+                      <Text size='xs' weight='medium'>
+                        {REGULAR_NAME_COST_DASH.toFixed(3)}
+                      </Text>
+                      <Text size='xs' color='muted'>
+                        <DashLogo size={10} className='!text-dash-primary-dark-blue' />
+                      </Text>
+                      {rateState.data != null && (
+                        <ValueCard colorScheme='lightBlue' size='xs' border={false}>
+                          <Text size='xs' color='blue' weight='medium'>
+                            ~ ${(REGULAR_NAME_COST_DASH * rateState.data).toFixed(2)}
+                          </Text>
+                        </ValueCard>
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    className='absolute right-1 top-1'
+                    onMouseEnter={() => setHoveredCard('regular')}
+                    onMouseLeave={() => setHoveredCard(null)}
+                  >
+                    <InfoCircleIcon className='w-5 h-5 text-gray-400' />
+                  </div>
+                </ValueCard>
+              </div>
+
+              <UsernameStep
+                isValid={isValid}
+                isAvailable={isAvailable}
+                isCheckingAvailability={isCheckingAvailability}
+                hasSufficientBalance={hasSufficientBalance}
+                isCheckingBalance={isCheckingBalance}
+                hasCompatibleKeys={hasCompatibleKeys}
+                onRequestUsername={() => setCurrentStep(2)}
+              />
+            </>
             )
           : (
             <ConfirmationStep

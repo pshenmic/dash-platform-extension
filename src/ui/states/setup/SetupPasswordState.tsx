@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks'
-import { Button, Text, Input } from 'dash-ui-kit/react'
+import { Button } from 'dash-ui-kit/react'
+import { Banner } from '../../components/cards'
 import { TitleBlock } from '../../components/layout/TitleBlock'
+import { PasswordField } from '../../components/forms'
 
 export default function SetupPasswordState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -57,36 +59,22 @@ export default function SetupPasswordState (): React.JSX.Element {
       />
 
       <div className='flex flex-col gap-2'>
-        <Text dim>
-          Password
-        </Text>
-        <Input
-          type='password'
-          placeholder='Enter password'
+        <PasswordField
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          size='xl'
-          colorScheme='default'
+          onChange={setPassword}
+          label='Password'
+          placeholder='Enter password'
         />
 
-        <Text dim>
-          Confirm Password
-        </Text>
-        <Input
-          type='password'
-          placeholder='Confirm password'
+        <PasswordField
           value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          size='xl'
-          colorScheme='default'
+          onChange={setConfirmPassword}
+          label='Confirm Password'
+          placeholder='Confirm password'
         />
       </div>
 
-      {error != null && (
-        <div className='text-red-500 text-sm'>
-          {error}
-        </div>
-      )}
+      <Banner variant='error' message={error} />
 
       <Button
         colorScheme='brand'
