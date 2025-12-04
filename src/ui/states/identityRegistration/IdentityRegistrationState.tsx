@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Button, Text, CopyButton, Input } from 'dash-ui-kit/react'
+import { Button, Text, CopyButton, Input, ProgressStepBar } from 'dash-ui-kit/react'
 import { TitleBlock } from '../../components/layout/TitleBlock'
+import { FieldLabel } from '../../components/typography'
 import { useStaticAsset } from '../../hooks/useStaticAsset'
 import { QRCodeSVG } from 'qrcode.react'
 import { IdentityPreview } from '../../components/Identities'
@@ -46,19 +47,6 @@ const mockIdentity: IdentityPreviewData = {
 }
 
 const mockPaymentAddress = 'QMfCRPcjXoTnZa9sA9JR2KWgGGDFGDHJDGASFS'
-
-const ProgressSteps: React.FC<{ currentStage: Stage }> = ({ currentStage }) => (
-  <div className='flex gap-2 w-full'>
-    {[1, 2, 3, 4, 5].map((step) => (
-      <div
-        key={step}
-        className={`h-[5px] flex-1 rounded-full transition-colors ${
-          step <= currentStage ? 'bg-blue-600' : 'bg-blue-600/15'
-        }`}
-      />
-    ))}
-  </div>
-)
 
 function IdentityRegistrationState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -128,7 +116,7 @@ function IdentityRegistrationState (): React.JSX.Element {
           >
             Next
           </Button>
-          <ProgressSteps currentStage={stage} />
+          <ProgressStepBar totalSteps={5} currentStep={stage} />
         </div>
       </div>
     )
@@ -166,7 +154,7 @@ function IdentityRegistrationState (): React.JSX.Element {
           >
             Continue To Payment
           </Button>
-          <ProgressSteps currentStage={stage} />
+          <ProgressStepBar totalSteps={5} currentStep={stage} />
         </div>
       </div>
     )
@@ -220,9 +208,9 @@ function IdentityRegistrationState (): React.JSX.Element {
             </Button>
           ) : (
             <div className='flex flex-col gap-2'>
-              <Text dim>
+              <FieldLabel>
                 Transaction Hash
-              </Text>
+              </FieldLabel>
               <Input
                 placeholder='Enter transaction hash'
                 value={transactionHash}
@@ -237,7 +225,7 @@ function IdentityRegistrationState (): React.JSX.Element {
               </Button>
             </div>
           )}
-          <ProgressSteps currentStage={stage} />
+          <ProgressStepBar totalSteps={5} currentStep={stage} />
         </div>
       </div>
     )
@@ -272,7 +260,7 @@ function IdentityRegistrationState (): React.JSX.Element {
           <div className='flex-1' />
 
           <div>
-            <ProgressSteps currentStage={stage} />
+            <ProgressStepBar totalSteps={5} currentStep={stage} />
           </div>
         </div>
       </div>
@@ -304,7 +292,7 @@ function IdentityRegistrationState (): React.JSX.Element {
         >
           Done
         </Button>
-        <ProgressSteps currentStage={stage} />
+        <ProgressStepBar totalSteps={5} currentStep={stage} />
       </div>
     </div>
   )
