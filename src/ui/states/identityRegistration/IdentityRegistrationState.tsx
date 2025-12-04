@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useOutletContext } from 'react-router-dom'
 import { Button, Text, CopyButton, Input, ProgressStepBar } from 'dash-ui-kit/react'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { FieldLabel } from '../../components/typography'
@@ -7,8 +7,12 @@ import { useStaticAsset } from '../../hooks/useStaticAsset'
 import { QRCodeSVG } from 'qrcode.react'
 import { IdentityPreview } from '../../components/Identities'
 import type { IdentityPreviewData } from '../../types'
+import type { LayoutContext } from '../../components/layout/Layout'
 
 type Stage = 1 | 2 | 3 | 4 | 5
+
+// TODO: Replace with actual check from storage
+const hasUnfinishedRegistration = true
 
 const mockIdentity: IdentityPreviewData = {
   id: 'EWNwtGEC1qAbgNgo2UgadmQhB9DaZtB942x8bXgJrPNS',
@@ -51,12 +55,37 @@ const mockPaymentAddress = 'QMfCRPcjXoTnZa9sA9JR2KWgGGDFGDHJDGASFS'
 function IdentityRegistrationState (): React.JSX.Element {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const context = useOutletContext<LayoutContext>()
+  const { setHeaderConfigOverride } = context ?? {}
   const [showManualEntry, setShowManualEntry] = useState(false)
   const [transactionHash, setTransactionHash] = useState('')
   const coinBagelImage = useStaticAsset('coin_bagel.png')
   const coinImage = useStaticAsset('coin.png')
-  
+
   const stage = parseInt(searchParams.get('stage') ?? '1', 10) as Stage
+
+  // Configure header based on current stage
+  useEffect(() => {
+    if (setHeaderConfigOverride == null) return
+
+    if (stage === 1) {
+      setHeaderConfigOverride({
+        imageType: 'app',
+        imageClasses: '-mt-[20%] !w-[412px]',
+        containerClasses: 'absolute top-0 right-0 -mr-[25%]'
+      })
+    } else if (stage === 2 && hasUnfinishedRegistration) {
+      setHeaderConfigOverride({
+        imageType: 'userChain'
+      })
+    } else {
+      setHeaderConfigOverride(null)
+    }
+
+    return () => {
+      setHeaderConfigOverride?.(null)
+    }
+  }, [stage, setHeaderConfigOverride])
 
   // Stage 3: Auto-advance after 5 seconds
   useEffect(() => {
@@ -92,6 +121,15 @@ function IdentityRegistrationState (): React.JSX.Element {
     void navigate('/home')
   }
 
+  const handleRestart = (): void => {
+    // TODO: Clear unfinished registration from storage
+    void navigate('/register-identity?stage=1')
+  }
+
+  const handleContinueRegistration = (): void => {
+    void navigate('/register-identity?stage=3')
+  }
+
   // Stage 1: Introduction (image is in header)
   if (stage === 1) {
     return (
@@ -122,8 +160,49 @@ function IdentityRegistrationState (): React.JSX.Element {
     )
   }
 
-  // Stage 2: Fee information with coin image
+  // Stage 2: Unfinished registration or Fee information
   if (stage === 2) {
+    // Show unfinished registration screen if there's an incomplete registration
+    if (hasUnfinishedRegistration) {
+      return (
+        <div className='flex flex-col h-full'>
+          <div className='pt-[176px]'>
+            <TitleBlock
+              title={<>You Have an<br />Unfinished<br />Registration</>}
+              description='Lets start the identity creation process. A small fee will be taken for the registration. To continue press next.'
+              logoSize='3rem'
+              showLogo
+              containerClassName='mb-0'
+            />
+          </div>
+
+          <div className='flex-1' />
+
+          <div className='flex flex-col gap-4'>
+            <div className='flex gap-2'>
+              <Button
+                variant='outline'
+                colorScheme='brand'
+                className='flex-1'
+                onClick={handleRestart}
+              >
+                Restart
+              </Button>
+              <Button
+                colorScheme='brand'
+                className='flex-1'
+                onClick={handleContinueRegistration}
+              >
+                Continue
+              </Button>
+            </div>
+            <ProgressStepBar totalSteps={5} currentStep={stage} />
+          </div>
+        </div>
+      )
+    }
+
+    // Normal fee information screen
     return (
       <div className='flex flex-col h-full'>
         <TitleBlock
@@ -175,7 +254,7 @@ function IdentityRegistrationState (): React.JSX.Element {
         <div className='mt-6'>
           <div className='bg-dash-primary-dark-blue/[0.04] rounded-3xl p-6 flex gap-6 items-center'>
             <div className='flex-shrink-0'>
-              <QRCodeSVG value='https://dash.org/' fgColor='#4C7EFF' bgColor='transparent' size={100}/>
+              <QRCodeSVG value='https://dash.org/' fgColor='#4C7EFF' bgColor='transparent' size={100} />
             </div>
             <div className='flex flex-col gap-1 flex-1 min-w-0'>
               <div className='flex items-center gap-2'>
@@ -198,33 +277,35 @@ function IdentityRegistrationState (): React.JSX.Element {
         </div>
 
         <div className='flex flex-col gap-4 mt-6'>
-          {!showManualEntry ? (
-            <Button
-              colorScheme='lightBlue'
-              className='w-full'
-              onClick={() => setShowManualEntry(true)}
-            >
-              Enter Manually
-            </Button>
-          ) : (
-            <div className='flex flex-col gap-2'>
-              <FieldLabel>
-                Transaction Hash
-              </FieldLabel>
-              <Input
-                placeholder='Enter transaction hash'
-                value={transactionHash}
-                onChange={(e) => setTransactionHash(e.target.value)}
-              />
+          {!showManualEntry
+            ? (
               <Button
                 colorScheme='lightBlue'
                 className='w-full'
-                onClick={() => void navigate('/register-identity?stage=4')}
+                onClick={() => setShowManualEntry(true)}
               >
-                Confirm
+                Enter Manually
               </Button>
-            </div>
-          )}
+              )
+            : (
+              <div className='flex flex-col gap-2'>
+                <FieldLabel>
+                  Transaction Hash
+                </FieldLabel>
+                <Input
+                  placeholder='Enter transaction hash'
+                  value={transactionHash}
+                  onChange={(e) => setTransactionHash(e.target.value)}
+                />
+                <Button
+                  colorScheme='lightBlue'
+                  className='w-full'
+                  onClick={() => { void navigate('/register-identity?stage=4') }}
+                >
+                  Confirm
+                </Button>
+              </div>
+              )}
           <ProgressStepBar totalSteps={5} currentStep={stage} />
         </div>
       </div>
@@ -299,4 +380,3 @@ function IdentityRegistrationState (): React.JSX.Element {
 }
 
 export default IdentityRegistrationState
-

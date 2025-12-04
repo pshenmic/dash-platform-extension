@@ -39,7 +39,7 @@ const Badge: React.FC<{ text: string }> = ({ text }) => (
   </ValueCard>
 )
 
-const KeyActions: React.FC<{ 
+const KeyActions: React.FC<{
   keyId: number
   onDelete: () => void
   onToggleShow: () => void
@@ -65,11 +65,13 @@ const KeyActions: React.FC<{
       className='!min-h-0 flex items-center justify-center p-1 rounded'
       aria-label={`${isPrivateKeyVisible ? 'Hide' : 'Show'} private key ${keyId}`}
     >
-      {isPrivateKeyVisible ? (
-        <EyeClosedIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
-      ) : (
-        <EyeOpenIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
-      )}
+      {isPrivateKeyVisible
+        ? (
+          <EyeClosedIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
+          )
+        : (
+          <EyeOpenIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
+          )}
     </Button>
     {showDelete && (
       <Button
@@ -85,7 +87,7 @@ const KeyActions: React.FC<{
         <DeleteIcon className='text-dash-primary-dark-blue shrink-0 w-3 h-3' />
       </Button>
     )}
-    <ChevronIcon 
+    <ChevronIcon
       className={`text-dash-primary-dark-blue shrink-0 w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
     />
   </div>
@@ -100,18 +102,18 @@ const PublicKeyItem: React.FC<{
   privateKeyData: string | null
   isPrivateKeyVisible: boolean
   onTogglePrivateKeyVisibility: () => void
-}> = ({ 
-  publicKey, 
-  onDelete, 
+}> = ({
+  publicKey,
+  onDelete,
   showDelete,
-  isExpanded, 
+  isExpanded,
   onToggleExpand,
   privateKeyData,
   isPrivateKeyVisible,
   onTogglePrivateKeyVisibility
 }) => (
   <div className='bg-gray-100 rounded-2xl p-3'>
-    <div 
+    <div
       className='flex items-center justify-between cursor-pointer'
       onClick={onToggleExpand}
       role='button'
@@ -181,7 +183,7 @@ const PublicKeyItem: React.FC<{
               <Identifier
                 middleEllipsis
                 edgeChars={5}
-                copyButton={true}
+                copyButton
               >
                 {publicKey.data}
               </Identifier>
@@ -195,7 +197,7 @@ const PublicKeyItem: React.FC<{
               <Identifier
                 middleEllipsis
                 edgeChars={5}
-                copyButton={true}
+                copyButton
               >
                 {publicKey.hash}
               </Identifier>
@@ -210,7 +212,7 @@ const PublicKeyItem: React.FC<{
                 <Identifier
                   middleEllipsis
                   edgeChars={5}
-                  copyButton={true}
+                  copyButton
                 >
                   {privateKeyData}
                 </Identifier>
@@ -305,8 +307,8 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
               securityLevel: getSecurityLabel(key.securityLevel),
               purpose: getPurposeLabel(key.purpose),
               hash: key.hash,
-              type: sdkKey?.keyType ? String(sdkKey.keyType) : 'Unknown',
-              data: sdkKey?.data ? String(sdkKey.data) : '',
+              type: sdkKey?.keyType != null ? String(sdkKey.keyType) : 'Unknown',
+              data: sdkKey?.data != null ? String(sdkKey.data) : '',
               readOnly: sdkKey?.readOnly ?? false
             }
           })
@@ -314,11 +316,11 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         setPublicKeys(detailedKeys)
       } catch (error) {
         console.error('Failed to load detailed key information:', error)
-        
+
         // Show error to user instead of mock data
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
         setError(`Failed to load key details from SDK: ${errorMessage}`)
-        
+
         // Clear keys list since we don't have complete data
         setPublicKeys([])
       } finally {
@@ -350,7 +352,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     }
 
     const isVisible = visiblePrivateKeys.has(keyId)
-    
+
     if (isVisible) {
       // Hide the private key
       setVisiblePrivateKeys(prev => {
@@ -361,11 +363,11 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
     } else {
       // Show the private key - fetch if not already cached
       setVisiblePrivateKeys(prev => new Set(prev).add(keyId))
-      
+
       if (!privateKeysData.has(keyId)) {
         // Ask for password to export private key
         const password = prompt('Enter your password to view the private key:')
-        
+
         if (password == null || password.trim() === '') {
           // User cancelled or entered empty password
           setVisiblePrivateKeys(prev => {
@@ -379,7 +381,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
         try {
           // Fetch the private key from the extension API using exportPrivateKey
           const response = await extensionAPI.exportPrivateKey(currentIdentity, keyId, password)
-          
+
           console.log('exptor Private Key Response:', response)
 
           setPrivateKeysData(prev => new Map(prev).set(keyId, response.wif))
@@ -387,7 +389,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
           console.error('Failed to fetch private key:', error)
           const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
           setError(`Failed to fetch private key: ${errorMessage}`)
-          
+
           // Remove from visible set if fetch failed
           setVisiblePrivateKeys(prev => {
             const newSet = new Set(prev)

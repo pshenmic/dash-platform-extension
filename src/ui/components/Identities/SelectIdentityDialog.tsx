@@ -115,7 +115,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                 <div>Create identity</div>
               </Button>
             )}
-            </div>
+          </div>
         </div>
       </Dialog>
     </>

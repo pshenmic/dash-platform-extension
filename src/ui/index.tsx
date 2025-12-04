@@ -168,7 +168,7 @@ const App: React.FC = function () {
           element: <PageWithHeader><IdentityRegistrationState /></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'identityRegistrationDynamic'
+              variant: 'identityRegistration'
             }
           }
         },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { cva } from 'class-variance-authority'
-import { useNavigate, useMatches, useOutletContext, useSearchParams } from 'react-router-dom'
+import { useNavigate, useMatches, useOutletContext } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import { ArrowIcon, Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
 import { NetworkSelector } from '../../controls/NetworkSelector'
@@ -21,6 +21,12 @@ const IMAGE_VARIANTS = {
     alt: 'App',
     imgClasses: '-mt-[67%]',
     containerClasses: 'w-[100%] -mr-[55%]'
+  },
+  userChain: {
+    src: 'user-chain.png',
+    alt: 'User Chain',
+    imgClasses: '-mt-[10%] !w-[487px]',
+    containerClasses: 'absolute top-[-43px] -left-[14px] w-full'
   }
 } as const
 
@@ -99,18 +105,8 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
     hideLeftSection: false
   },
 
-  // Identity registration intro with app image
+  // Identity registration with configurable header per stage
   identityRegistration: {
-    hideLeftSection: false,
-    showNetworkRightReadOnly: true,
-    networkDisplayFormat: 'card',
-    imageType: 'app',
-    imageClasses: '-mt-[10%] !w-[412px]',
-    containerClasses: 'absolute top-0 right-0 -mr-[25%]'
-  },
-
-  // Identity registration with dynamic image based on stage
-  identityRegistrationDynamic: {
     hideLeftSection: false
   },
 
@@ -178,7 +174,6 @@ export default function Header (): React.JSX.Element {
   } = context ?? ({} satisfies Partial<LayoutContext>)
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const deepestRoute = [...matches].reverse().find((m): boolean =>
     m.handle?.headerProps != null
@@ -187,27 +182,25 @@ export default function Header (): React.JSX.Element {
   const variantKey = headerProps?.variant
   let variant = variantKey !== null && variantKey !== undefined ? HEADER_VARIANTS[variantKey] : {}
 
-  // Handle dynamic identity registration variant based on stage param
-  if (variantKey === 'identityRegistrationDynamic') {
-    const stage = searchParams.get('stage') ?? '1'
-    if (stage === '1') {
-      // Stage 1: Show app image with network card
+  // Handle identity registration variant
+  if (variantKey === 'identityRegistration') {
+    variant = {
+      ...variant,
+      showNetworkRightReadOnly: true,
+      networkDisplayFormat: 'card'
+    }
+  }
+
+  // Apply header config overrides from outlet context
+  if (headerConfigOverride != null) {
+    if (headerConfigOverride.imageType != null) {
       variant = {
         ...variant,
-        showNetworkRightReadOnly: true,
-        networkDisplayFormat: 'card',
-        imageType: 'app',
-        imageClasses: '-mt-[20%] !w-[412px]',
-        containerClasses: 'absolute top-0 right-0 -mr-[25%]'
-      }
-    } else {
-      variant = {
-        ...variant,
-        showNetworkRightReadOnly: true,
-        networkDisplayFormat: 'card',
+        imageType: headerConfigOverride.imageType,
+        imageClasses: headerConfigOverride.imageClasses,
+        containerClasses: headerConfigOverride.containerClasses
       }
     }
-    // Stages 2-4: No image, just back button (default behavior)
   }
 
   const config = {
@@ -254,7 +247,7 @@ export default function Header (): React.JSX.Element {
       })}
     >
       {!config.hideLeftSection && (
-        <div className='flex items-center gap-2.5'>
+        <div className='flex items-center gap-2.5 relative z-10'>
           {config.showLogo
             ? (
               <img
@@ -275,7 +268,7 @@ export default function Header (): React.JSX.Element {
 
       {/* Network & Wallet Selectors in left side */}
       {config.hideLeftSection && (config.showNetworkSelector || config.showWalletSelector) && (
-        <div className='flex items-center gap-2.5'>
+        <div className='flex items-center gap-2.5 relative z-10'>
           {config.showNetworkSelector && <NetworkSelector onSelect={setCurrentNetwork} currentNetwork={currentNetwork as NetworkType} wallets={allWallets} />}
           {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
         </div>
@@ -293,7 +286,7 @@ export default function Header (): React.JSX.Element {
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           colorScheme='brand'
           size='xl'
-          className='w-12 h-12 p-0'
+          className='w-12 h-12 p-0 relative z-10'
         >
           <BurgerMenuIcon color='white' />
         </Button>
@@ -338,7 +331,7 @@ export default function Header (): React.JSX.Element {
         const imgClasses = config.imageClasses ?? defaultVariant.imgClasses
 
         return (
-          <div className={containerClasses}>
+          <div className={`${containerClasses} z-0`}>
             <img
               src={useStaticAsset(defaultVariant.src)}
               alt={defaultVariant.alt}
