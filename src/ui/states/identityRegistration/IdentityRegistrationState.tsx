@@ -63,12 +63,17 @@ function IdentityRegistrationState (): React.JSX.Element {
   const coinImage = useStaticAsset('coin.png')
 
   const stage = parseInt(searchParams.get('stage') ?? '1', 10) as Stage
+  const hasError = searchParams.get('error') === 'true'
 
   // Configure header based on current stage
   useEffect(() => {
     if (setHeaderConfigOverride == null) return
 
-    if (stage === 1) {
+    if (hasError) {
+      setHeaderConfigOverride({
+        imageType: 'warning'
+      })
+    } else if (stage === 1) {
       setHeaderConfigOverride({
         imageType: 'app',
         imageClasses: '-mt-[20%] !w-[412px]',
@@ -85,7 +90,7 @@ function IdentityRegistrationState (): React.JSX.Element {
     return () => {
       setHeaderConfigOverride?.(null)
     }
-  }, [stage, setHeaderConfigOverride])
+  }, [stage, hasError, setHeaderConfigOverride])
 
   // Stage 3: Auto-advance after 5 seconds
   useEffect(() => {
@@ -128,6 +133,46 @@ function IdentityRegistrationState (): React.JSX.Element {
 
   const handleContinueRegistration = (): void => {
     void navigate('/register-identity?stage=3')
+  }
+
+  const handleReturnBack = (): void => {
+    void navigate('/register-identity?stage=1')
+  }
+
+  // Error state: Show error screen
+  if (hasError) {
+    return (
+      <div className='flex flex-col h-full pt-[90px]'>
+        <TitleBlock
+          title={
+            <>
+              <span className='font-normal'>There Was<br />an</span> Error With<br />Registration
+            </>
+          }
+          description='Please return back to the start of identity registration. An unexpected error occurred while registering identity.'
+          logoSize='3rem'
+          showLogo
+          containerClassName='mb-0'
+        />
+
+        <div className='flex-1' />
+
+        <div className='flex flex-col gap-4'>
+          <Button
+            colorScheme='lightBlue'
+            className='w-full'
+            onClick={handleReturnBack}
+          >
+            Return Back
+          </Button>
+          <ProgressStepBar
+            totalSteps={5}
+            currentStep={stage}
+            color='red'
+          />
+        </div>
+      </div>
+    )
   }
 
   // Stage 1: Introduction (image is in header)
