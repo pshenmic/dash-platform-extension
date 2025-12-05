@@ -27,8 +27,14 @@ const IMAGE_VARIANTS = {
     alt: 'User Chain',
     imgClasses: '-mt-[10%] !w-[487px]',
     containerClasses: 'absolute top-[-43px] -left-[14px] w-full'
+  },
+  warning: {
+    src: 'warning-turn-on.png',
+    alt: 'Warning',
+    imgClasses: '-right-[100px] -top-[100px] !w-[358px]',
+    containerClasses: 'absolute w-full'
   }
-} as const
+}
 
 type ImageVariant = keyof typeof IMAGE_VARIANTS
 
