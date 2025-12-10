@@ -16,6 +16,8 @@ import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
+import { TransactionDetails } from './details'
+import { decodeStateTransition } from '../../../utils/decodeStateTransition'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -44,6 +46,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const [hasWallet, setHasWallet] = useState<boolean>(false)
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
   const [keyRequirements, setKeyRequirements] = useState<KeyRequirement[]>([])
+  const [decodedTransaction, setDecodedTransaction] = useState<any>(null)
 
   const {
     signingKeys,
@@ -122,6 +125,15 @@ function ApproveTransactionState (): React.JSX.Element {
           try {
             const receivedStateTransitionWASM = StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned))
             setStateTransitionWASM(receivedStateTransitionWASM)
+
+            // Decode transaction locally
+            try {
+              const decoded = decodeStateTransition(receivedStateTransitionWASM)
+              setDecodedTransaction(decoded)
+            } catch (decodeError) {
+              console.log('Error decoding transaction locally:', decodeError)
+              setDecodedTransaction(null)
+            }
           } catch (e) {
             console.log('Error decoding state transition:', e)
             setTransactionDecodeError(String(e))
@@ -343,6 +355,8 @@ function ApproveTransactionState (): React.JSX.Element {
         />
 
         <div className='flex flex-col gap-2.5'>
+          {/* Transaction details */}
+
           {transactionHash != null && (
             <TransactionHashBlock
               hash={transactionHash}
@@ -355,6 +369,15 @@ function ApproveTransactionState (): React.JSX.Element {
           {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
           {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
           <Banner variant='error' message={transactionDecodeError} />
+
+          {/* Decoded transaction details */}
+          {decodedTransaction != null && (
+            <TransactionDetails
+              data={decodedTransaction}
+              transactionHash={transactionHash}
+              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+            />
+          )}
         </div>
 
         {/* Choose Identity */}

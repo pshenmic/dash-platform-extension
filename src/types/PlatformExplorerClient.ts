@@ -113,21 +113,4 @@ export class PlatformExplorerClient {
     const explorerUrl = getExplorerUrl(network)
     return `${explorerUrl}/transaction/${transactionHash}`
   }
-
-  async decodeTransaction (base64: string, network: NetworkType = 'testnet'): Promise<any> {
-    const baseUrl = getBaseUrl(network)
-    const response = await fetch(`${baseUrl}/transaction/decode`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ base64 })
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    return await response.json()
-  }
 }
