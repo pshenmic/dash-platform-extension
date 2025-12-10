@@ -5,7 +5,7 @@ import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { WalletType } from '../../../../types'
 import { useExtensionAPI, useSdk, useSigningKeys } from '../../../hooks'
 import { KeyType } from 'pshenmic-dpp'
-import { InfoCard } from '../../common'
+import { InfoCard, OverlayMessage } from '../../common'
 import { TransactionSuccessScreen } from '../../layout/TransactionSuccessScreen'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
 import { hexToBytes } from '../../../../utils'
@@ -187,7 +187,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   }
 
   return (
-    <div className='flex flex-col h-full gap-4'>
+    <div className='flex flex-col h-full gap-4 relative'>
       {/* Header Description */}
       <div className='flex flex-col gap-2 mb-2'>
         <Text size='sm' dim>
@@ -309,6 +309,14 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
           {isCreating ? 'Creating Key...' : 'Create New Key'}
         </Button>
       </div>
+
+      {/* Mainnet Unavailable Message  */}
+      {currentNetwork === 'mainnet' && (
+        <OverlayMessage
+          title='Mainnet Unavailable'
+          message='Mainnet private key generation is not yet available.'
+        />
+      )}
     </div>
   )
 }
