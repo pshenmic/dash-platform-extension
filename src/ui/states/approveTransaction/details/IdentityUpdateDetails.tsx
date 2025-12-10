@@ -1,5 +1,6 @@
 import React from 'react'
-import { Text } from 'dash-ui-kit/react'
+import { Text, ValueCard } from 'dash-ui-kit/react'
+import { TransactionField, TransactionFieldRow } from '../../../components/transactions'
 
 interface IdentityUpdateDetailsProps {
   data: any
@@ -7,41 +8,56 @@ interface IdentityUpdateDetailsProps {
 
 export function IdentityUpdateDetails ({ data }: IdentityUpdateDetailsProps): React.JSX.Element {
   return (
-    <div className='flex flex-col gap-2'>
-      <Text size='md' weight='medium'>Identity Update</Text>
-      <div className='flex flex-col gap-1'>
-        <Text size='sm'>Type: {data.typeString}</Text>
-        <Text size='sm'>Identity ID: {data.identityId}</Text>
-        <Text size='sm'>Revision: {data.revision}</Text>
-        <Text size='sm'>Identity Nonce: {data.identityNonce}</Text>
-        <Text size='sm'>User Fee Increase: {data.userFeeIncrease}</Text>
-        <Text size='sm'>Signature Public Key ID: {data.signaturePublicKeyId}</Text>
-        
-        {data.publicKeysToAdd != null && data.publicKeysToAdd.length > 0 && (
-          <>
-            <Text size='sm' weight='medium'>Public Keys to Add ({data.publicKeysToAdd.length}):</Text>
-            {data.publicKeysToAdd.map((key: any, index: number) => (
-              <div key={index} className='flex flex-col gap-1 ml-4'>
-                <Text size='sm' weight='medium'>Key {index + 1}:</Text>
-                <Text size='sm'>ID: {key.id}</Text>
-                <Text size='sm'>Type: {key.type}</Text>
-                <Text size='sm'>Purpose: {key.purpose}</Text>
-                <Text size='sm'>Security Level: {key.securityLevel}</Text>
-                <Text size='sm'>Read Only: {key.readOnly ? 'Yes' : 'No'}</Text>
-                <Text size='sm'>Data: {key.data}</Text>
-                <Text size='sm'>Public Key Hash: {key.publicKeyHash}</Text>
-              </div>
-            ))}
-          </>
-        )}
+    <div className='flex flex-col gap-2.5'>
+      <TransactionField
+        label='Identity ID:'
+        value={data.identityId}
+        valueType='identifier'
+      />
 
-        {data.publicKeyIdsToDisable != null && data.publicKeyIdsToDisable.length > 0 && (
-          <>
-            <Text size='sm' weight='medium'>Public Key IDs to Disable:</Text>
+      <ValueCard colorScheme='lightGray' size='lg' border={false}>
+        <div className='flex flex-col gap-2.5'>
+          <TransactionFieldRow label='Revision:' value={data.revision} />
+          <TransactionFieldRow label='Identity Nonce:' value={data.identityNonce} />
+          <TransactionFieldRow label='User Fee Increase:' value={data.userFeeIncrease} />
+          <TransactionFieldRow label='Signature Public Key ID:' value={data.signaturePublicKeyId} />
+        </div>
+      </ValueCard>
+
+      {data.publicKeysToAdd != null && data.publicKeysToAdd.length > 0 && (
+        <div className='flex flex-col gap-2.5'>
+          <Text size='sm' weight='medium' className='opacity-50'>Public Keys to Add ({data.publicKeysToAdd.length}):</Text>
+          {data.publicKeysToAdd.map((key: any, index: number) => (
+            <ValueCard key={index} colorScheme='lightGray' size='lg' border={false}>
+              <div className='flex flex-col gap-2.5'>
+                <Text size='sm' weight='medium'>Key {index + 1}</Text>
+                <TransactionFieldRow label='ID:' value={key.id} />
+                <TransactionFieldRow label='Type:' value={key.type} />
+                <TransactionFieldRow label='Purpose:' value={key.purpose} />
+                <TransactionFieldRow label='Security Level:' value={key.securityLevel} />
+                <TransactionFieldRow label='Read Only:' value={key.readOnly ? 'Yes' : 'No'} />
+                <div className='flex flex-col gap-1.5'>
+                  <Text size='sm' className='opacity-50'>Data:</Text>
+                  <Text size='xs' className='break-all font-mono'>{key.data}</Text>
+                </div>
+                <div className='flex flex-col gap-1.5'>
+                  <Text size='sm' className='opacity-50'>Public Key Hash:</Text>
+                  <Text size='xs' className='break-all font-mono'>{key.publicKeyHash}</Text>
+                </div>
+              </div>
+            </ValueCard>
+          ))}
+        </div>
+      )}
+
+      {data.publicKeyIdsToDisable != null && data.publicKeyIdsToDisable.length > 0 && (
+        <ValueCard colorScheme='lightGray' size='lg' border={false}>
+          <div className='flex flex-col gap-1.5'>
+            <Text size='sm' weight='medium' className='opacity-50'>Public Key IDs to Disable:</Text>
             <Text size='sm'>{data.publicKeyIdsToDisable.join(', ')}</Text>
-          </>
-        )}
-      </div>
+          </div>
+        </ValueCard>
+      )}
     </div>
   )
 }

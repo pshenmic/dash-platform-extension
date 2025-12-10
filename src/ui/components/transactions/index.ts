@@ -1,2 +1,5 @@
-export { default as TransactionsList } from './TransactionsList'
 export { default as TransactionHashBlock } from './TransactionHashBlock'
+export { default as TransactionsList } from './TransactionsList'
+export { TransactionField } from './TransactionField'
+export { TransactionFieldRow } from './TransactionFieldRow'
+export { TransactionInfoSection } from './TransactionInfoSection'

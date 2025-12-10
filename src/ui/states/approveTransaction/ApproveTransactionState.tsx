@@ -354,31 +354,19 @@ function ApproveTransactionState (): React.JSX.Element {
           showLogo={false}
         />
 
-        <div className='flex flex-col gap-2.5'>
-          {/* Transaction details */}
+        {/* Transaction details */}
+        {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
+        {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
+        <Banner variant='error' message={transactionDecodeError} />
 
-          {transactionHash != null && (
-            <TransactionHashBlock
-              hash={transactionHash}
-              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
-              variant='compact'
-              showActions={false}
-              label='Transaction Hash'
-            />
-          )}
-          {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
-          {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
-          <Banner variant='error' message={transactionDecodeError} />
-
-          {/* Decoded transaction details */}
-          {decodedTransaction != null && (
-            <TransactionDetails
-              data={decodedTransaction}
-              transactionHash={transactionHash}
-              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
-            />
-          )}
-        </div>
+        {/* Decoded transaction details */}
+        {decodedTransaction != null && (
+          <TransactionDetails
+            data={decodedTransaction}
+            transactionHash={transactionHash}
+            network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+          />
+        )}
 
         {/* Choose Identity */}
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
