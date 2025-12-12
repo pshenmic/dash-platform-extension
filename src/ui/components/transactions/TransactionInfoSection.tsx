@@ -1,6 +1,5 @@
 import React from 'react'
-import { ValueCard, Accordion } from 'dash-ui-kit/react'
-import TransactionHashBlock from './TransactionHashBlock'
+import { ValueCard, Accordion, Text, Identifier } from 'dash-ui-kit/react'
 import { TransactionFieldRow } from './TransactionFieldRow'
 import { TransactionDetailsCard } from './TransactionDetailsCard'
 import { TransactionTypesInfo, type TransactionTypeCode } from '../../../enums/TransactionTypes'
@@ -33,15 +32,18 @@ export function TransactionInfoSection ({
     >
       <div className='flex flex-col gap-2.5'>
         {transactionHash != null && (
-          <TransactionHashBlock
-            hash={transactionHash}
-            network={network}
-            variant='compact'
-            showActions
-            label='Hash'
-            shadow
-            colorScheme='white'
-          />
+          <TransactionDetailsCard title='Hash'>
+            <Identifier
+              highlight='both'
+              copyButton
+              edgeChars={5}
+              middleEllipsis={true}
+              linesAdjustment={false}
+              className='max-w-full !text-[1.25rem]'
+            >
+              {transactionHash}
+            </Identifier>
+          </TransactionDetailsCard>
         )}
 
         <div className='flex gap-2.5'>
@@ -55,22 +57,24 @@ export function TransactionInfoSection ({
           {transactionType != null && (
             <div className='flex-1'>
               <TransactionDetailsCard title='Type:'>
-                {TransactionTypesInfo[transactionType as TransactionTypeCode]?.title ?? transactionType}
+                <Text size='sm'>
+                  {TransactionTypesInfo[transactionType as TransactionTypeCode]?.title ?? transactionType}
+                </Text>
               </TransactionDetailsCard>
             </div>
           )}
         </div>
 
         {blockHash != null && (
-          <TransactionHashBlock
-            hash={blockHash}
-            network={network}
-            variant='compact'
-            showActions
-            label={`Block Hash${blockHeight != null ? ` (Height: ${blockHeight})` : ''}`}
-            shadow
-            colorScheme='white'
-          />
+          <TransactionDetailsCard title={`Block Hash${blockHeight != null ? ` (Height: ${blockHeight})` : ''}`}>
+            <Identifier
+              highlight='both'
+              copyButton
+              ellipsis
+            >
+              {blockHash}
+            </Identifier>
+          </TransactionDetailsCard>
         )}
 
         {(index != null || status != null) && (
