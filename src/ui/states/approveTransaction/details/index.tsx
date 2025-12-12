@@ -59,7 +59,7 @@ export function TransactionDetails ({ data, transactionHash, network = 'testnet'
 
       <Accordion
         title='Details'
-        showSeparator
+        showSeparator={false}
       >
         {renderDetailsContent()}
       </Accordion>
