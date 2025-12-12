@@ -28,7 +28,7 @@ export function TransactionInfoSection ({
   return (
     <Accordion
       title='Transaction Info'
-      showSeparator
+      showSeparator={false}
     >
       <div className='flex flex-col gap-2.5'>
         {transactionHash != null && (
