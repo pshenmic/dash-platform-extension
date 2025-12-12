@@ -92,4 +92,3 @@ export function MasternodeVoteDetails ({ data }: MasternodeVoteDetailsProps): Re
     </div>
   )
 }
-

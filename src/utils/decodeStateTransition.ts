@@ -38,7 +38,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
           const tokenTransitionType = transition.getTransitionType()
           const tokenTransition = transition.getTransition()
 
-          out.action = BatchActionTypeString[tokenTransitionType] ?? `TOKEN_ACTION_${tokenTransitionType}`
+          out.action = BatchActionTypeString[tokenTransitionType] ?? `TOKEN_ACTION_${String(tokenTransitionType)}`
           out.tokenId = tokenTransition.base.tokenId.base58()
           out.identityContractNonce = String(transition.identityContractNonce)
           out.tokenContractPosition = tokenTransition.base.tokenContractPosition
@@ -58,7 +58,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
           }
         } else {
           // Document transition
-          out.action = BatchActionTypeString[transition.actionTypeNumber] ?? `DOCUMENT_ACTION_${transition.actionTypeNumber}`
+          out.action = BatchActionTypeString[transition.actionTypeNumber] ?? `DOCUMENT_ACTION_${String(transition.actionTypeNumber)}`
           out.id = transition.id.base58()
           out.dataContractId = transition.dataContractId.base58()
           out.revision = String(transition.revision)
@@ -215,7 +215,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
       decoded.signature = Buffer.from(stateTransitionWASM.signature ?? []).toString('hex') ?? null
       decoded.documentTypeName = masternodeVoteTransition.vote.votePoll.documentTypeName
       decoded.indexName = masternodeVoteTransition.vote.votePoll.indexName
-      decoded.choice = `${masternodeVoteTransition.vote.resourceVoteChoice.getType()}${towardsIdentity != null ? `(${towardsIdentity})` : ''}`
+      decoded.choice = `${masternodeVoteTransition.vote.resourceVoteChoice.getType()}${towardsIdentity != null ? `(${String(towardsIdentity)})` : ''}`
       decoded.userFeeIncrease = stateTransitionWASM.userFeeIncrease
       decoded.signaturePublicKeyId = stateTransitionWASM.signaturePublicKeyId
       decoded.raw = Buffer.from(stateTransitionWASM.bytes()).toString('hex')
@@ -235,4 +235,3 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
 
   return decoded
 }
-

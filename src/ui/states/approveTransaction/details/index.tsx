@@ -66,4 +66,3 @@ export function TransactionDetails ({ data, transactionHash, network = 'testnet'
     </div>
   )
 }
-
