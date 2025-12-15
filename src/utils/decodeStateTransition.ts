@@ -33,7 +33,6 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
 
         const out: any = {}
 
-        try {
         if (transitionType === 1) {
           // Token transition
           const tokenTransitionType = transition.getTransitionTypeNumber()
@@ -100,7 +99,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
               }
             }
           } catch (e) {
-            // createTransition not available for this action type
+            console.log(e)
           }
 
           try {
@@ -109,15 +108,11 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
               out.data = replaceTransition.data
             }
           } catch (e) {
-            // replaceTransition not available for this action type
+            console.log(e)
           }
         }
 
         return out
-        } catch (error) {
-          console.error('Error decoding transition:', error)
-          throw error
-        }
       })
 
       decoded.userFeeIncrease = stateTransitionWASM.userFeeIncrease
