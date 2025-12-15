@@ -27,21 +27,16 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
     case StateTransitionTypeEnum.BATCH: {
       const batch = BatchTransitionWASM.fromStateTransition(stateTransitionWASM)
 
-      console.log('batch.transitions', batch.transitions)
-
       decoded.transitions = batch.transitions.map((batchedTransition) => {
         const transition = batchedTransition.toTransition()
         const transitionType = transition.__type === 'DocumentTransitionWASM' ? 0 : 1
 
-        console.log('transition', transition)
-        console.log('transitionType', transitionType)
-
         const out: any = {}
 
+        try {
         if (transitionType === 1) {
           // Token transition
           const tokenTransitionType = transition.getTransitionTypeNumber()
-          console.log('tokenTransitionType', tokenTransitionType)
           const tokenTransition = transition.getTransition()
 
           // Map token transition type number (0-10) to batch action type (6-16)
@@ -75,33 +70,54 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
           out.identityContractNonce = String(transition.identityContractNonce)
 
           // Add specific fields based on document action type
-          if (transition.createTransition != null) {
-            out.entropy = Buffer.from(transition.createTransition.entropy).toString('hex')
-            out.data = transition.createTransition.data
-            out.prefundedVotingBalance = transition.createTransition.prefundedVotingBalance
-              ? {
-                  [transition.createTransition.prefundedVotingBalance.indexName]: String(transition.createTransition.prefundedVotingBalance.credits)
+          // Use try-catch for each transition type as WASM objects may throw on property access
+          try {
+            const createTransition = transition.createTransition
+            if (createTransition != null) {
+              if (createTransition.entropy != null) {
+                out.entropy = Buffer.from(createTransition.entropy).toString('hex')
+              }
+              
+              if (createTransition.data != null) {
+                out.data = createTransition.data
+              }
+              
+              if (createTransition.prefundedVotingBalance != null) {
+                out.prefundedVotingBalance = {
+                  [createTransition.prefundedVotingBalance.indexName]: String(createTransition.prefundedVotingBalance.credits)
                 }
-              : null
+              }
 
-            if (transition.createTransition.base.tokenPaymentInfo != null) {
-              const tpi = transition.createTransition.base.tokenPaymentInfo
-              out.tokenPaymentInfo = {
-                paymentTokenContractId: tpi.paymentTokenContractId?.base58() ?? null,
-                tokenContractPosition: tpi.tokenContractPosition,
-                minimumTokenCost: tpi.minimumTokenCost?.toString() ?? null,
-                maximumTokenCost: tpi.maximumTokenCost?.toString() ?? null,
-                gasFeesPaidBy: tpi.gasFeesPaidBy
+              if (createTransition.base?.tokenPaymentInfo != null) {
+                const tpi = createTransition.base.tokenPaymentInfo
+                out.tokenPaymentInfo = {
+                  paymentTokenContractId: tpi.paymentTokenContractId?.base58() ?? null,
+                  tokenContractPosition: tpi.tokenContractPosition,
+                  minimumTokenCost: tpi.minimumTokenCost?.toString() ?? null,
+                  maximumTokenCost: tpi.maximumTokenCost?.toString() ?? null,
+                  gasFeesPaidBy: tpi.gasFeesPaidBy
+                }
               }
             }
+          } catch (e) {
+            // createTransition not available for this action type
           }
 
-          if (transition.replaceTransition != null) {
-            out.data = transition.replaceTransition.data
+          try {
+            const replaceTransition = transition.replaceTransition
+            if (replaceTransition?.data != null) {
+              out.data = replaceTransition.data
+            }
+          } catch (e) {
+            // replaceTransition not available for this action type
           }
         }
 
         return out
+        } catch (error) {
+          console.error('Error decoding transition:', error)
+          throw error
+        }
       })
 
       decoded.userFeeIncrease = stateTransitionWASM.userFeeIncrease
