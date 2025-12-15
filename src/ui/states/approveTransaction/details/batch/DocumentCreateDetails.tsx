@@ -66,7 +66,7 @@ export function DocumentCreateDetails ({ transition }: DocumentCreateDetailsProp
       {transition.data != null && (
         <TransactionDetailsCard title='Data'>
           <div className='relative max-h-[200px] overflow-auto'>
-            <pre className='text-sm font-medium opacity-75 whitespace-pre-wrap break-all'>
+            <pre className='text-dash-primary-dark-blue font-dash-grotesque text-sm font-medium opacity-75 whitespace-pre-wrap break-all'>
               {JSON.stringify(transition.data, null, 2)}
             </pre>
           </div>

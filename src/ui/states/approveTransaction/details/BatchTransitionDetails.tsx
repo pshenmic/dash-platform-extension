@@ -1,7 +1,6 @@
 import React from 'react'
 import { Text, Identifier } from 'dash-ui-kit/react'
 import { TransactionDetailsCard } from '../../../components/transactions'
-import { BatchActions, type BatchActionCode } from '../../../../enums/BatchActions'
 import { TokenTransferDetails, DocumentCreateDetails } from './batch'
 
 interface BatchTransitionDetailsProps {
@@ -29,7 +28,7 @@ export function BatchTransitionDetails ({ data }: BatchTransitionDetailsProps): 
       </TransactionDetailsCard>
 
       <TransactionDetailsCard className='flex-1' title='Public Key ID'>
-        <Text size='lg'>
+        <Text>
           {data.signaturePublicKeyId}
         </Text>
       </TransactionDetailsCard>
@@ -37,14 +36,6 @@ export function BatchTransitionDetails ({ data }: BatchTransitionDetailsProps): 
       {data.transitions != null && data.transitions.length > 0 && (
         data.transitions.map((transition: any, index: number) => (
           <div key={index} className='flex flex-col gap-2.5'>
-            {transition.action != null && (
-              <TransactionDetailsCard title='Action'>
-                <Text size='lg' weight='medium'>
-                  {BatchActions[transition.action as BatchActionCode]?.title ?? transition.action}
-                </Text>
-              </TransactionDetailsCard>
-            )}
-
             {renderTransitionDetails(transition)}
           </div>
         ))
