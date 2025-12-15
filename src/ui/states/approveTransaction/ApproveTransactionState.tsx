@@ -309,37 +309,42 @@ function ApproveTransactionState (): React.JSX.Element {
   if (txHash != null) {
     return (
       <div className='screen-content'>
-        <TitleBlock
-          title={
-            <>
-              <span className='font-normal'>Transaction was</span><br />
-              <span className='font-medium'>successfully broadcasted</span>
-            </>
-          }
-          description='You can check the transaction hash below'
-        />
+        <div className='flex flex-col gap-6'>
+          <TitleBlock
+            title={
+              <>
+                <span className='font-normal'>Transaction was</span><br />
+                <span className='font-medium'>successfully broadcasted</span>
+              </>
+            }
+            description='You can check the transaction details below'
+            showLogo={false}
+          />
 
-        <TransactionHashBlock
-          hash={txHash}
-          network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
-          variant='full'
-          showActions
-        />
+          {/* Transaction details after success */}
+          {decodedTransaction != null && (
+            <TransactionDetails
+              data={decodedTransaction}
+              transactionHash={txHash}
+              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+            />
+          )}
 
-        <div>
-          <Button
-            className='w-full'
-            onClick={() => {
-              if (returnToHome) {
-                void navigate('/')
-              } else {
-                window.close()
-              }
-            }}
-            colorScheme='lightBlue'
-          >
-            Close
-          </Button>
+          <div>
+            <Button
+              className='w-full'
+              onClick={() => {
+                if (returnToHome) {
+                  void navigate('/')
+                } else {
+                  window.close()
+                }
+              }}
+              colorScheme='brand'
+            >
+              Close
+            </Button>
+          </div>
         </div>
       </div>
     )

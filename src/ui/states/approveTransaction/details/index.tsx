@@ -17,7 +17,11 @@ interface TransactionDetailsProps {
   network?: 'testnet' | 'mainnet'
 }
 
-export function TransactionDetails ({ data, transactionHash, network = 'testnet' }: TransactionDetailsProps): React.JSX.Element {
+export function TransactionDetails ({ 
+  data, 
+  transactionHash, 
+  network = 'testnet'
+}: TransactionDetailsProps): React.JSX.Element {
   if (data == null) {
     return <div />
   }
