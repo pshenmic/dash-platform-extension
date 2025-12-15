@@ -11,7 +11,7 @@ export function TransactionDetailsCard ({ title, children, className }: Transact
   return (
     <ValueCard colorScheme='white' size='xl' border={false} className={`dash-shadow-lg ${className ?? ''}`}>
       <div className='flex flex-col gap-2.5 w-full'>
-        <Text size='md' weight='medium' dim>{title}</Text>
+        <Text size='md' dim>{title}</Text>
         {children}
       </div>
     </ValueCard>
