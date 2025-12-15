@@ -298,6 +298,14 @@ function ApproveTransactionState (): React.JSX.Element {
       const keyId = parseInt(selectedSigningKey, 10)
       const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, keyId, password)
 
+      // Update decodedTransaction with the actual signing key ID
+      if (decodedTransaction != null) {
+        setDecodedTransaction({
+          ...decodedTransaction,
+          signaturePublicKeyId: keyId
+        })
+      }
+
       setTxHash(response.txHash)
     } catch (error) {
       setPasswordError(`Signing failed: ${error.toString() as string}`)
@@ -327,6 +335,7 @@ function ApproveTransactionState (): React.JSX.Element {
               data={decodedTransaction}
               transactionHash={txHash}
               network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+              signed={true}
             />
           )}
 
@@ -370,7 +379,6 @@ function ApproveTransactionState (): React.JSX.Element {
         {decodedTransaction != null && (
           <TransactionDetails
             data={decodedTransaction}
-            transactionHash={transactionHash}
             network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
           />
         )}

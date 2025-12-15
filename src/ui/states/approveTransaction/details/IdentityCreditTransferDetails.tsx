@@ -5,6 +5,7 @@ import { TransactionDetailsCard } from '../../../components/transactions'
 import { usePlatformExplorerClient } from '../../../hooks/usePlatformExplorerClient'
 import { creditsToDash } from '../../../../utils'
 import type { OutletContext } from '../../../types'
+import { useTransactionSigned } from './index'
 
 interface IdentityCreditTransferDetailsProps {
   data: any
@@ -12,6 +13,7 @@ interface IdentityCreditTransferDetailsProps {
 
 export function IdentityCreditTransferDetails ({ data }: IdentityCreditTransferDetailsProps): React.JSX.Element {
   const { currentNetwork } = useOutletContext<OutletContext>()
+  const signed = useTransactionSigned()
   const platformClient = usePlatformExplorerClient()
   const [rate, setRate] = useState<number | null>(null)
 
@@ -73,11 +75,13 @@ export function IdentityCreditTransferDetails ({ data }: IdentityCreditTransferD
             {data.identityNonce}
           </Text>
         </TransactionDetailsCard>
-        <TransactionDetailsCard className='flex-1' title='Public Key ID'>
-          <Text size='lg'>
-            {data.signaturePublicKeyId}
-          </Text>
-        </TransactionDetailsCard>
+        {signed && data.signaturePublicKeyId != null && (
+          <TransactionDetailsCard className='flex-1' title='Public Key ID'>
+            <Text size='lg'>
+              {data.signaturePublicKeyId}
+            </Text>
+          </TransactionDetailsCard>
+        )}
       </div>
     </div>
   )

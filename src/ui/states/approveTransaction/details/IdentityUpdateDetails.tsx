@@ -1,12 +1,15 @@
 import React from 'react'
 import { Text, ValueCard, Identifier } from 'dash-ui-kit/react'
 import { TransactionFieldRow, TransactionDetailsCard } from '../../../components/transactions'
+import { useTransactionSigned } from './index'
 
 interface IdentityUpdateDetailsProps {
   data: any
 }
 
 export function IdentityUpdateDetails ({ data }: IdentityUpdateDetailsProps): React.JSX.Element {
+  const signed = useTransactionSigned()
+
   return (
     <div className='flex flex-col gap-2.5'>
       <TransactionDetailsCard title='Identity ID'>
@@ -17,7 +20,9 @@ export function IdentityUpdateDetails ({ data }: IdentityUpdateDetailsProps): Re
         <TransactionFieldRow label='Revision:' value={data.revision} />
         <TransactionFieldRow label='Identity Nonce:' value={data.identityNonce} />
         <TransactionFieldRow label='User Fee Increase:' value={data.userFeeIncrease} />
-        <TransactionFieldRow label='Signature Public Key ID:' value={data.signaturePublicKeyId} />
+        {signed && data.signaturePublicKeyId != null && (
+          <TransactionFieldRow label='Signature Public Key ID:' value={data.signaturePublicKeyId} />
+        )}
       </TransactionDetailsCard>
 
       {data.publicKeysToAdd != null && data.publicKeysToAdd.length > 0 && (

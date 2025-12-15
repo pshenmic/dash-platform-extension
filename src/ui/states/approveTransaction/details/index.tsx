@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { createContext, useContext } from 'react'
 import { Accordion, Text } from 'dash-ui-kit/react'
 import { BatchTransitionDetails } from './BatchTransitionDetails'
 import { IdentityCreateDetails } from './IdentityCreateDetails'
@@ -11,16 +11,23 @@ import { DataContractCreateDetails } from './DataContractCreateDetails'
 import { DataContractUpdateDetails } from './DataContractUpdateDetails'
 import { TransactionInfoSection } from '../../../components/transactions'
 
+// Context for transaction signed state
+const TransactionSignedContext = createContext<boolean>(false)
+
+export const useTransactionSigned = (): boolean => useContext(TransactionSignedContext)
+
 interface TransactionDetailsProps {
   data: any
   transactionHash?: string
   network?: 'testnet' | 'mainnet'
+  signed?: boolean
 }
 
 export function TransactionDetails ({ 
   data, 
   transactionHash, 
-  network = 'testnet'
+  network = 'testnet',
+  signed = false
 }: TransactionDetailsProps): React.JSX.Element {
   if (data == null) {
     return <div />
@@ -54,19 +61,21 @@ export function TransactionDetails ({
   }
 
   return (
-    <div className='flex flex-col gap-2.5'>
-      <TransactionInfoSection
-        transactionHash={transactionHash}
-        network={network}
-        transactionType={data.typeString}
-      />
+    <TransactionSignedContext.Provider value={signed}>
+      <div className='flex flex-col gap-2.5'>
+        <TransactionInfoSection
+          transactionHash={transactionHash}
+          network={network}
+          transactionType={data.typeString}
+        />
 
-      <Accordion
-        title='Details'
-        showSeparator={false}
-      >
-        {renderDetailsContent()}
-      </Accordion>
-    </div>
+        <Accordion
+          title='Details'
+          showSeparator={false}
+        >
+          {renderDetailsContent()}
+        </Accordion>
+      </div>
+    </TransactionSignedContext.Provider>
   )
 }
