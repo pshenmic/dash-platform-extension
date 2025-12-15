@@ -1,6 +1,7 @@
 import React from 'react'
 import { Text, Identifier, BigNumber } from 'dash-ui-kit/react'
 import { TransactionDetailsCard } from '../../../../components/transactions'
+import { BatchActions, type BatchActionCode } from '../../../../../enums/BatchActions'
 
 interface TokenTransferDetailsProps {
   transition: any
@@ -9,6 +10,14 @@ interface TokenTransferDetailsProps {
 export function TokenTransferDetails ({ transition }: TokenTransferDetailsProps): React.JSX.Element {
   return (
     <>
+      {transition.action != null && (
+        <TransactionDetailsCard title='Action'>
+          <Text size='lg' weight='medium'>
+            {BatchActions[transition.action as BatchActionCode]?.title ?? transition.action}
+          </Text>
+        </TransactionDetailsCard>
+      )}
+
       {transition.amount != null && (
         <TransactionDetailsCard title='Amount'>
           <BigNumber className='font-medium'>{transition.amount}</BigNumber>
