@@ -47,7 +47,7 @@ export function IdentityCreditTransferDetails ({ data }: IdentityCreditTransferD
               {data.amount}
             </BigNumber>
             {usdAmount != null && (
-              <Text size='xs' dim>
+              <Text size='xs' className='text-right' dim>
                 ~ ${usdAmount.toFixed(2)}
               </Text>
             )}
