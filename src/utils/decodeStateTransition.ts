@@ -27,18 +27,26 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
     case StateTransitionTypeEnum.BATCH: {
       const batch = BatchTransitionWASM.fromStateTransition(stateTransitionWASM)
 
+      console.log('batch.transitions', batch.transitions)
+
       decoded.transitions = batch.transitions.map((batchedTransition) => {
         const transition = batchedTransition.toTransition()
         const transitionType = transition.__type === 'DocumentTransitionWASM' ? 0 : 1
+
+        console.log('transition', transition)
+        console.log('transitionType', transitionType)
 
         const out: any = {}
 
         if (transitionType === 1) {
           // Token transition
-          const tokenTransitionType = transition.getTransitionType()
+          const tokenTransitionType = transition.getTransitionTypeNumber()
+          console.log('tokenTransitionType', tokenTransitionType)
           const tokenTransition = transition.getTransition()
 
-          out.action = BatchActionTypeString[tokenTransitionType] ?? `TOKEN_ACTION_${String(tokenTransitionType)}`
+          // Map token transition type number (0-10) to batch action type (6-16)
+          const batchActionType = tokenTransitionType + 6
+          out.action = BatchActionTypeString[batchActionType] ?? `TOKEN_${String(tokenTransitionType)}`
           out.tokenId = tokenTransition.base.tokenId.base58()
           out.identityContractNonce = String(transition.identityContractNonce)
           out.tokenContractPosition = tokenTransition.base.tokenContractPosition
@@ -58,6 +66,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
           }
         } else {
           // Document transition
+          // Document action numbers map directly to batch action type (0-5)
           out.action = BatchActionTypeString[transition.actionTypeNumber] ?? `DOCUMENT_ACTION_${String(transition.actionTypeNumber)}`
           out.id = transition.id.base58()
           out.dataContractId = transition.dataContractId.base58()
