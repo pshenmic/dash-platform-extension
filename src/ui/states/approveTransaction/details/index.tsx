@@ -1,14 +1,9 @@
 import React, { createContext, useContext } from 'react'
 import { Accordion, Text } from 'dash-ui-kit/react'
 import { BatchTransitionDetails } from './BatchTransitionDetails'
-import { IdentityCreateDetails } from './IdentityCreateDetails'
 import { IdentityUpdateDetails } from './IdentityUpdateDetails'
 import { IdentityCreditTransferDetails } from './IdentityCreditTransferDetails'
 import { MasternodeVoteDetails } from './MasternodeVoteDetails'
-import { IdentityTopUpDetails } from './IdentityTopUpDetails'
-import { IdentityCreditWithdrawalDetails } from './IdentityCreditWithdrawalDetails'
-import { DataContractCreateDetails } from './DataContractCreateDetails'
-import { DataContractUpdateDetails } from './DataContractUpdateDetails'
 import { TransactionInfoSection } from '../../../components/transactions'
 
 // Context for transaction signed state
