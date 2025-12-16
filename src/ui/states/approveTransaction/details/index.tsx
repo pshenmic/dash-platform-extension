@@ -23,9 +23,9 @@ interface TransactionDetailsProps {
   signed?: boolean
 }
 
-export function TransactionDetails ({ 
-  data, 
-  transactionHash, 
+export function TransactionDetails ({
+  data,
+  transactionHash,
   network = 'testnet',
   signed = false
 }: TransactionDetailsProps): React.JSX.Element {

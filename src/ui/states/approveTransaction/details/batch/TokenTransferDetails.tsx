@@ -95,7 +95,7 @@ export function TokenTransferDetails ({ transition }: TokenTransferDetailsProps)
             </div>
             <div className='flex justify-between'>
               <Text size='sm' color='muted'>Is Proposer:</Text>
-              <Text size='sm'>{transition.groupInfo.actionIsProposer ? 'Yes' : 'No'}</Text>
+              <Text size='sm'>{(transition.groupInfo.actionIsProposer === true) ? 'Yes' : 'No'}</Text>
             </div>
           </div>
         </TransactionDetailsCard>
@@ -103,4 +103,3 @@ export function TokenTransferDetails ({ transition }: TokenTransferDetailsProps)
     </>
   )
 }
-

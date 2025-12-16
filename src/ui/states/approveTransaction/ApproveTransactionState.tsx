@@ -5,7 +5,6 @@ import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { Banner } from '../../components/cards'
 import ButtonRow from '../../components/layout/ButtonRow'
-import { TransactionHashBlock } from '../../components/transactions'
 import { PasswordField } from '../../components/forms'
 import { FieldLabel } from '../../components/typography'
 import { TitleBlock } from '../../components/layout/TitleBlock'
@@ -335,7 +334,7 @@ function ApproveTransactionState (): React.JSX.Element {
               data={decodedTransaction}
               transactionHash={txHash}
               network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
-              signed={true}
+              signed
             />
           )}
 
@@ -358,8 +357,6 @@ function ApproveTransactionState (): React.JSX.Element {
       </div>
     )
   }
-
-  const transactionHash = params.hash ?? params.txhash
 
   return (
     <div className='screen-content'>

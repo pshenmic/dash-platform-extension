@@ -37,7 +37,7 @@ export function TransactionInfoSection ({
               highlight='both'
               copyButton
               edgeChars={5}
-              middleEllipsis={true}
+              middleEllipsis
               linesAdjustment={false}
               className='max-w-full !text-[1.25rem]'
             >

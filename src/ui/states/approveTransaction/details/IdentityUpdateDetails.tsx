@@ -36,7 +36,7 @@ export function IdentityUpdateDetails ({ data }: IdentityUpdateDetailsProps): Re
                   <TransactionFieldRow label='Type:' value={key.type} />
                   <TransactionFieldRow label='Purpose:' value={key.purpose} />
                   <TransactionFieldRow label='Security Level:' value={key.securityLevel} />
-                  <TransactionFieldRow label='Read Only:' value={key.readOnly ? 'Yes' : 'No'} />
+                  <TransactionFieldRow label='Read Only:' value={(key.readOnly === true) ? 'Yes' : 'No'} />
                   <div className='flex flex-col gap-1.5'>
                     <Text size='sm' className='opacity-50'>Data:</Text>
                     <Text size='xs' className='break-all font-mono'>{key.data}</Text>

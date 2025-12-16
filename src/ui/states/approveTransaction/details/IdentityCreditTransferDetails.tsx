@@ -38,7 +38,7 @@ export function IdentityCreditTransferDetails ({ data }: IdentityCreditTransferD
         <div className='flex items-center justify-between gap-2.5 w-full'>
           <div className='flex items-center gap-2.5'>
             <div className='w-[30px] h-[30px] flex items-center justify-center bg-dash-primary-dark-blue/5 rounded-full'>
-              <CreditsIcon /> 
+              <CreditsIcon />
             </div>
             <Text size='sm'>
               Credits

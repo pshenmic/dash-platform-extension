@@ -39,7 +39,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
           const tokenTransition = transition.getTransition()
 
           // Map token transition type number (0-10) to batch action type (6-16)
-          const batchActionType = tokenTransitionType + 6
+          const batchActionType = Number(tokenTransitionType) + 6
           out.action = BatchActionTypeString[batchActionType] ?? `TOKEN_${String(tokenTransitionType)}`
           out.tokenId = tokenTransition.base.tokenId.base58()
           out.identityContractNonce = String(transition.identityContractNonce)
@@ -76,11 +76,11 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
               if (createTransition.entropy != null) {
                 out.entropy = Buffer.from(createTransition.entropy).toString('hex')
               }
-              
+
               if (createTransition.data != null) {
                 out.data = createTransition.data
               }
-              
+
               if (createTransition.prefundedVotingBalance != null) {
                 out.prefundedVotingBalance = {
                   [createTransition.prefundedVotingBalance.indexName]: String(createTransition.prefundedVotingBalance.credits)
@@ -150,7 +150,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
         const { contractBounds } = key
 
         return {
-          contractBounds: contractBounds
+          contractBounds: (contractBounds != null)
             ? {
                 type: contractBounds.contractBoundsType ?? null,
                 id: contractBounds.identifier.base58()
@@ -182,7 +182,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
         const { contractBounds } = key
 
         return {
-          contractBounds: contractBounds
+          contractBounds: (contractBounds != null)
             ? {
                 type: contractBounds.contractBoundsType,
                 id: contractBounds.identifier.base58(),
