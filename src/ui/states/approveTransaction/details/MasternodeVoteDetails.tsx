@@ -1,6 +1,6 @@
 import React from 'react'
-import { Text, ValueCard } from 'dash-ui-kit/react'
-import { TransactionField, TransactionFieldRow } from '../../../components/transactions'
+import { Text, Identifier } from 'dash-ui-kit/react'
+import { TransactionDetailsCard } from '../../../components/transactions'
 
 interface MasternodeVoteDetailsProps {
   data: any
@@ -9,83 +9,79 @@ interface MasternodeVoteDetailsProps {
 export function MasternodeVoteDetails ({ data }: MasternodeVoteDetailsProps): React.JSX.Element {
   return (
     <div className='flex flex-col gap-2.5'>
-      <TransactionField
-        label='Pro TX Hash:'
-        value={data.proTxHash}
-        valueType='identifier'
-      />
+      <TransactionDetailsCard title='Pro TX Hash'>
+        <Identifier className='!text-[1.25rem]' avatar copyButton middleEllipsis edgeChars={5}>
+          {data.proTxHash}
+        </Identifier>
+      </TransactionDetailsCard>
 
-      <TransactionField
-        label='Data Contract:'
-        value={data.contractId}
-        valueType='identifier'
-      />
+      <TransactionDetailsCard title='Data Contract'>
+        <Identifier className='!text-[1.25rem]' avatar copyButton middleEllipsis edgeChars={5}>
+          {data.contractId}
+        </Identifier>
+      </TransactionDetailsCard>
 
-      <ValueCard colorScheme='lightGray' size='lg' border={false}>
-        <div className='flex flex-col gap-2.5'>
-          <TransactionFieldRow label='Document Type:' value={data.documentTypeName} />
-          <TransactionFieldRow label='Index Name:' value={data.indexName} />
-        </div>
-      </ValueCard>
+      <div className='flex gap-2.5'>
+        <TransactionDetailsCard className='flex-1' title='Document Type'>
+          <Text size='sm'>
+            {data.documentTypeName}
+          </Text>
+        </TransactionDetailsCard>
+        <TransactionDetailsCard className='flex-1' title='Index Name'>
+          <Text size='sm'>
+            {data.indexName}
+          </Text>
+        </TransactionDetailsCard>
+      </div>
 
-      <TransactionField
-        label='Voter Identity:'
-        value={data.ownerId}
-        valueType='identifier'
-      />
+      <TransactionDetailsCard title='Voter Identity'>
+        <Identifier className='!text-[1.25rem]' avatar copyButton middleEllipsis edgeChars={5}>
+          {data.ownerId}
+        </Identifier>
+      </TransactionDetailsCard>
 
       {data.choice != null && (
-        <ValueCard colorScheme='lightGray' size='lg' border={false}>
-          <div className='flex flex-col gap-2.5'>
-            <Text size='sm' className='opacity-50'>Choice:</Text>
-            <ValueCard colorScheme='lightGray' size='md' border={false}>
-              <Text size='sm'>{data.choice}</Text>
-            </ValueCard>
-          </div>
-        </ValueCard>
+        <TransactionDetailsCard title='Choice'>
+          <Text size='sm'>
+            {data.choice}
+          </Text>
+        </TransactionDetailsCard>
       )}
 
       {data.indexValues != null && data.indexValues.length > 0 && (
-        <ValueCard colorScheme='lightGray' size='lg' border={false}>
+        <TransactionDetailsCard title='Index Values'>
           <div className='flex flex-col gap-2.5'>
-            <Text size='sm' className='opacity-50'>Index Values:</Text>
-            <ValueCard colorScheme='lightGray' size='md' border={false}>
-              <div className='flex flex-col gap-2.5'>
-                <div className='flex justify-between'>
-                  <Text size='xs' className='opacity-50'>Base 64:</Text>
-                  <Text size='xs' className='opacity-50'>Decoded:</Text>
-                </div>
-                {data.indexValues.map((value: string, index: number) => {
-                  try {
-                    const decoded = Buffer.from(value, 'base64').toString('utf-8')
-                    return (
-                      <div key={index} className='flex justify-between'>
-                        <Text size='sm' weight='medium'>{value}</Text>
-                        <Text size='xs' className='opacity-70'>{decoded}</Text>
-                      </div>
-                    )
-                  } catch {
-                    return (
-                      <Text key={index} size='sm' weight='medium'>{value}</Text>
-                    )
-                  }
-                })}
-              </div>
-            </ValueCard>
+            <div className='flex justify-between'>
+              <Text size='xs' className='opacity-50'>Base 64:</Text>
+              <Text size='xs' className='opacity-50'>Decoded:</Text>
+            </div>
+            {data.indexValues.map((value: string, index: number) => {
+              try {
+                const decoded = Buffer.from(value, 'base64').toString('utf-8')
+                return (
+                  <div key={index} className='flex justify-between'>
+                    <Text size='sm' weight='medium'>{value}</Text>
+                    <Text size='xs' className='opacity-70'>{decoded}</Text>
+                  </div>
+                )
+              } catch {
+                return (
+                  <Text key={index} size='sm' weight='medium'>{value}</Text>
+                )
+              }
+            })}
           </div>
-        </ValueCard>
+        </TransactionDetailsCard>
       )}
 
       {data.modifiedDataIds != null && data.modifiedDataIds.length > 0 && (
-        <div className='flex flex-col gap-1.5'>
-          <Text size='sm' weight='medium' className='opacity-50'>Modified Data IDs:</Text>
+        <div className='flex flex-col gap-2.5'>
           {data.modifiedDataIds.map((id: string, index: number) => (
-            <TransactionField
-              key={index}
-              label={`${index + 1}.`}
-              value={id}
-              valueType='identifier'
-            />
+            <TransactionDetailsCard key={index} title={`Modified Data ID ${index + 1}`}>
+              <Identifier className='!text-[1.25rem]' avatar copyButton middleEllipsis edgeChars={5}>
+                {id}
+              </Identifier>
+            </TransactionDetailsCard>
           ))}
         </div>
       )}
