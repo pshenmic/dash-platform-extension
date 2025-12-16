@@ -1,10 +1,11 @@
 import React from 'react'
 import { Text, Identifier, ValueCard } from 'dash-ui-kit/react'
+import type { DecodedMasternodeVoteTransition } from '../../../../types/DecodedStateTransition'
 import { TransactionDetailsCard } from '../../../components/transactions'
 import { VoteChoiceCard } from '../../../components/cards'
 
 interface MasternodeVoteDetailsProps {
-  data: any
+  data: DecodedMasternodeVoteTransition
 }
 
 export function MasternodeVoteDetails ({ data }: MasternodeVoteDetailsProps): React.JSX.Element {

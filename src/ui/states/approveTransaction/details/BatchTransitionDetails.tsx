@@ -1,11 +1,12 @@
 import React from 'react'
 import { Text, Identifier } from 'dash-ui-kit/react'
+import type { DecodedBatchTransition } from '../../../../types/DecodedStateTransition'
 import { TransactionDetailsCard } from '../../../components/transactions'
 import { TokenTransferDetails, DocumentCreateDetails } from './batch'
 import { useTransactionSigned } from './index'
 
 interface BatchTransitionDetailsProps {
-  data: any
+  data: DecodedBatchTransition
 }
 
 function renderTransitionDetails (transition: any): React.JSX.Element | null {

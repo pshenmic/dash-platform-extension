@@ -1,5 +1,7 @@
 import React, { createContext, useContext } from 'react'
 import { Accordion, Text } from 'dash-ui-kit/react'
+import type { NetworkType } from '../../../../types/NetworkType'
+import type { DecodedStateTransition } from '../../../../types/DecodedStateTransition'
 import { BatchTransitionDetails } from './BatchTransitionDetails'
 import { IdentityUpdateDetails } from './IdentityUpdateDetails'
 import { IdentityCreditTransferDetails } from './IdentityCreditTransferDetails'
@@ -12,9 +14,9 @@ const TransactionSignedContext = createContext<boolean>(false)
 export const useTransactionSigned = (): boolean => useContext(TransactionSignedContext)
 
 interface TransactionDetailsProps {
-  data: any
+  data: DecodedStateTransition
   transactionHash?: string
-  network?: 'testnet' | 'mainnet'
+  network?: NetworkType
   signed?: boolean
 }
 
@@ -38,10 +40,13 @@ export function TransactionDetails ({
         return <IdentityCreditTransferDetails data={data} />
       case 8:
         return <MasternodeVoteDetails data={data} />
-      default:
+      default: {
+        // This should never happen in production as we only decode supported types
+        const unsupportedType = data as { type: number, typeString: string }
         return (
-          <Text size='sm'>Unsupported Transaction Type (Type: {data.type})</Text>
+          <Text size='sm'>Unsupported Transaction Type (Type: {unsupportedType.type})</Text>
         )
+      }
     }
   }
 

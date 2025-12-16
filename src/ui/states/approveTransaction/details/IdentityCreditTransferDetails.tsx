@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Identifier, Text, CreditsIcon, BigNumber } from 'dash-ui-kit/react'
+import type { DecodedIdentityCreditTransferTransition } from '../../../../types/DecodedStateTransition'
 import { TransactionDetailsCard } from '../../../components/transactions'
 import { usePlatformExplorerClient } from '../../../hooks/usePlatformExplorerClient'
 import { creditsToDash } from '../../../../utils'
@@ -8,7 +9,7 @@ import type { OutletContext } from '../../../types'
 import { useTransactionSigned } from './index'
 
 interface IdentityCreditTransferDetailsProps {
-  data: any
+  data: DecodedIdentityCreditTransferTransition
 }
 
 export function IdentityCreditTransferDetails ({ data }: IdentityCreditTransferDetailsProps): React.JSX.Element {

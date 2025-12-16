@@ -26,28 +26,6 @@ export interface DecodedBatchTransition extends BaseDecodedStateTransition {
   }>
 }
 
-export interface DecodedIdentityCreateTransition extends BaseDecodedStateTransition {
-  type: 2
-  typeString: 'IDENTITY_CREATE'
-  identityId: string
-  publicKeys: Array<{
-    id: number
-    type: string
-    purpose: string
-    securityLevel: string
-    readOnly: boolean
-    data: string
-    publicKeyHash: string
-  }>
-}
-
-export interface DecodedIdentityTopUpTransition extends BaseDecodedStateTransition {
-  type: 3
-  typeString: 'IDENTITY_TOP_UP'
-  identityId: string
-  amount: string
-}
-
 export interface DecodedIdentityUpdateTransition extends BaseDecodedStateTransition {
   type: 5
   typeString: 'IDENTITY_UPDATE'
@@ -95,8 +73,6 @@ export interface DecodedMasternodeVoteTransition extends BaseDecodedStateTransit
 
 export type DecodedStateTransition =
   | DecodedBatchTransition
-  | DecodedIdentityCreateTransition
-  | DecodedIdentityTopUpTransition
   | DecodedIdentityUpdateTransition
   | DecodedIdentityCreditTransferTransition
   | DecodedMasternodeVoteTransition

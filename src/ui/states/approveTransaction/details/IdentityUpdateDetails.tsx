@@ -1,10 +1,11 @@
 import React from 'react'
 import { Text, ValueCard, Identifier } from 'dash-ui-kit/react'
+import type { DecodedIdentityUpdateTransition } from '../../../../types/DecodedStateTransition'
 import { TransactionDetailsCard } from '../../../components/transactions'
 import { useTransactionSigned } from './index'
 
 interface IdentityUpdateDetailsProps {
-  data: any
+  data: DecodedIdentityUpdateTransition
 }
 
 export function IdentityUpdateDetails ({ data }: IdentityUpdateDetailsProps): React.JSX.Element {
