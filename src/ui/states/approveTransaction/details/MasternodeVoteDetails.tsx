@@ -1,69 +1,10 @@
 import React from 'react'
 import { Text, Identifier, ValueCard } from 'dash-ui-kit/react'
 import { TransactionDetailsCard } from '../../../components/transactions'
+import { VoteChoiceCard } from '../../../components/cards'
 
 interface MasternodeVoteDetailsProps {
   data: any
-}
-
-interface VoteChoiceProps {
-  choiceStr: string
-}
-
-function transformTypeString (str: string): string {
-  return str.replace(/([A-Z])/g, '_$1').toUpperCase().slice(1)
-}
-
-function VoteChoice ({ choiceStr }: VoteChoiceProps): React.JSX.Element {
-  if (typeof choiceStr !== 'string') {
-    return <Text size='sm'>n/a</Text>
-  }
-
-  const [choice, parameter] = choiceStr.split(/[()]/)
-  const type = transformTypeString(choice)
-
-  const colorScheme: Record<string, 'mint' | 'red' | 'orange' | 'gray'> = {
-    TOWARDS_IDENTITY: 'mint',
-    LOCK: 'red',
-    ABSTAIN: 'orange'
-  }
-
-  if (parameter) {
-    return (
-      <ValueCard
-        className='flex flex-col gap-2.5 !p-4 items-start'
-        colorScheme='white'
-        size='md'
-        border
-      >
-        <Text size='sm' weight='medium'>
-          {choice}
-        </Text>
-        <Identifier
-          className='!text-[1.25rem] w-full'
-          avatar
-          copyButton
-          middleEllipsis
-          edgeChars={5}
-        >
-          {parameter}
-        </Identifier>
-      </ValueCard>
-    )
-  }
-
-  return (
-    <ValueCard
-      className='flex flex-col gap-2.5 !p-4 items-start'
-      colorScheme='white'
-      size='md'
-      border
-    >
-      <Text size='sm' weight='medium'>
-        {choice}
-      </Text>
-    </ValueCard>
-  )
 }
 
 export function MasternodeVoteDetails ({ data }: MasternodeVoteDetailsProps): React.JSX.Element {
@@ -102,7 +43,7 @@ export function MasternodeVoteDetails ({ data }: MasternodeVoteDetailsProps): Re
 
       {data.choice != null && (
         <TransactionDetailsCard title='Choice'>
-          <VoteChoice choiceStr={data.choice} />
+          <VoteChoiceCard choiceStr={data.choice} />
         </TransactionDetailsCard>
       )}
 
