@@ -37,22 +37,12 @@ export function TransactionDetails ({
     switch (data.type) {
       case 1:
         return <BatchTransitionDetails data={data} />
-      case 2:
-        return <IdentityCreateDetails data={data} />
-      case 3:
-        return <IdentityTopUpDetails data={data} />
-      case 4:
-        return <IdentityCreditWithdrawalDetails data={data} />
       case 5:
         return <IdentityUpdateDetails data={data} />
-      case 6:
-        return <DataContractCreateDetails data={data} />
       case 7:
         return <IdentityCreditTransferDetails data={data} />
       case 8:
         return <MasternodeVoteDetails data={data} />
-      case 9:
-        return <DataContractUpdateDetails data={data} />
       default:
         return (
           <Text size='sm'>Unsupported Transaction Type (Type: {data.type})</Text>
