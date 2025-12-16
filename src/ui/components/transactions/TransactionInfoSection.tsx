@@ -1,6 +1,5 @@
 import React from 'react'
-import { ValueCard, Accordion, Text, Identifier } from 'dash-ui-kit/react'
-import { TransactionFieldRow } from './TransactionFieldRow'
+import { Accordion, Text, Identifier } from 'dash-ui-kit/react'
 import { TransactionDetailsCard } from './TransactionDetailsCard'
 import { TransactionTypesInfo, type TransactionTypeCode } from '../../../enums/TransactionTypes'
 
@@ -78,16 +77,22 @@ export function TransactionInfoSection ({
         )}
 
         {(index != null || status != null) && (
-          <ValueCard colorScheme='lightGray' size='lg' border={false}>
-            <div className='flex flex-col gap-2.5'>
-              {index != null && (
-                <TransactionFieldRow label='Index:' value={index} />
-              )}
-              {status != null && (
-                <TransactionFieldRow label='Status:' value={status} />
-              )}
-            </div>
-          </ValueCard>
+          <div className='flex gap-2.5'>
+            {index != null && (
+              <TransactionDetailsCard className='flex-1' title='Index'>
+                <Text size='lg'>
+                  {index}
+                </Text>
+              </TransactionDetailsCard>
+            )}
+            {status != null && (
+              <TransactionDetailsCard className='flex-1' title='Status'>
+                <Text size='lg'>
+                  {status}
+                </Text>
+              </TransactionDetailsCard>
+            )}
+          </div>
         )}
       </div>
     </Accordion>
