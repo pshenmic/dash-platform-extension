@@ -1,6 +1,6 @@
 import React from 'react'
 import { Text, ValueCard, Identifier } from 'dash-ui-kit/react'
-import { TransactionFieldRow, TransactionDetailsCard } from '../../../components/transactions'
+import { TransactionDetailsCard } from '../../../components/transactions'
 import { useTransactionSigned } from './index'
 
 interface IdentityUpdateDetailsProps {
@@ -12,18 +12,39 @@ export function IdentityUpdateDetails ({ data }: IdentityUpdateDetailsProps): Re
 
   return (
     <div className='flex flex-col gap-2.5'>
-      <TransactionDetailsCard title='Identity ID'>
-        <Identifier>{data.identityId}</Identifier>
+      <TransactionDetailsCard title='Identity'>
+        <Identifier className='!text-[1.25rem]' avatar copyButton middleEllipsis edgeChars={5}>
+          {data.identityId}
+        </Identifier>
       </TransactionDetailsCard>
 
-      <TransactionDetailsCard title='Update Details'>
-        <TransactionFieldRow label='Revision:' value={data.revision} />
-        <TransactionFieldRow label='Identity Nonce:' value={data.identityNonce} />
-        <TransactionFieldRow label='User Fee Increase:' value={data.userFeeIncrease} />
+      <div className='flex gap-2.5'>
+        <TransactionDetailsCard className='flex-1' title='Revision'>
+          <Text size='lg'>
+            {data.revision}
+          </Text>
+        </TransactionDetailsCard>
+        <TransactionDetailsCard className='flex-1' title='Identity Nonce'>
+          <Text size='lg'>
+            {data.identityNonce}
+          </Text>
+        </TransactionDetailsCard>
+      </div>
+
+      <div className='flex gap-2.5'>
+        <TransactionDetailsCard className='flex-1' title='User Fee Increase'>
+          <Text size='lg'>
+            {data.userFeeIncrease}
+          </Text>
+        </TransactionDetailsCard>
         {signed && data.signaturePublicKeyId != null && (
-          <TransactionFieldRow label='Signature Public Key ID:' value={data.signaturePublicKeyId} />
+          <TransactionDetailsCard className='flex-1' title='Public Key ID'>
+            <Text size='lg'>
+              {data.signaturePublicKeyId}
+            </Text>
+          </TransactionDetailsCard>
         )}
-      </TransactionDetailsCard>
+      </div>
 
       {data.publicKeysToAdd != null && data.publicKeysToAdd.length > 0 && (
         <TransactionDetailsCard title={`Public Keys to Add (${String(data.publicKeysToAdd.length)})`}>
@@ -32,11 +53,26 @@ export function IdentityUpdateDetails ({ data }: IdentityUpdateDetailsProps): Re
               <ValueCard key={index} colorScheme='lightGray' size='lg' border={false}>
                 <div className='flex flex-col gap-2.5'>
                   <Text size='sm' weight='medium'>Key {index + 1}</Text>
-                  <TransactionFieldRow label='ID:' value={key.id} />
-                  <TransactionFieldRow label='Type:' value={key.type} />
-                  <TransactionFieldRow label='Purpose:' value={key.purpose} />
-                  <TransactionFieldRow label='Security Level:' value={key.securityLevel} />
-                  <TransactionFieldRow label='Read Only:' value={(key.readOnly === true) ? 'Yes' : 'No'} />
+                  <div className='flex justify-between'>
+                    <Text size='sm' className='opacity-50'>ID:</Text>
+                    <Text size='sm'>{key.id}</Text>
+                  </div>
+                  <div className='flex justify-between'>
+                    <Text size='sm' className='opacity-50'>Type:</Text>
+                    <Text size='sm'>{key.type}</Text>
+                  </div>
+                  <div className='flex justify-between'>
+                    <Text size='sm' className='opacity-50'>Purpose:</Text>
+                    <Text size='sm'>{key.purpose}</Text>
+                  </div>
+                  <div className='flex justify-between'>
+                    <Text size='sm' className='opacity-50'>Security Level:</Text>
+                    <Text size='sm'>{key.securityLevel}</Text>
+                  </div>
+                  <div className='flex justify-between'>
+                    <Text size='sm' className='opacity-50'>Read Only:</Text>
+                    <Text size='sm'>{(key.readOnly === true) ? 'Yes' : 'No'}</Text>
+                  </div>
                   <div className='flex flex-col gap-1.5'>
                     <Text size='sm' className='opacity-50'>Data:</Text>
                     <Text size='xs' className='break-all font-mono'>{key.data}</Text>
