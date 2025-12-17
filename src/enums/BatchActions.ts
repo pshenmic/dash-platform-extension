@@ -1,25 +1,36 @@
-// Batch Action Type Enum with automatic reverse mapping
-export enum BatchActionType {
-  // Documents
+// Document Action Enum (maps directly to WASM document action numbers 0-5)
+export enum DocumentActionEnum {
   DOCUMENT_CREATE = 0,
   DOCUMENT_REPLACE = 1,
   DOCUMENT_DELETE = 2,
   DOCUMENT_TRANSFER = 3,
   DOCUMENT_PURCHASE = 4,
-  DOCUMENT_UPDATE_PRICE = 5,
-  // Tokens
-  TOKEN_BURN = 6,
-  TOKEN_MINT = 7,
-  TOKEN_TRANSFER = 8,
-  TOKEN_FREEZE = 9,
-  TOKEN_UNFREEZE = 10,
-  TOKEN_DESTROY_FROZEN_FUNDS = 11,
-  TOKEN_CLAIM = 12,
-  TOKEN_EMERGENCY_ACTION = 13,
-  TOKEN_CONFIG_UPDATE = 14,
-  TOKEN_DIRECT_PURCHASE = 15,
-  TOKEN_SET_PRICE_FOR_DIRECT_PURCHASE = 16
+  DOCUMENT_UPDATE_PRICE = 5
 }
+
+// Token Action Enum (maps directly to WASM token transition type numbers 0-10)
+export enum TokenActionEnum {
+  TOKEN_BURN = 0,
+  TOKEN_MINT = 1,
+  TOKEN_TRANSFER = 2,
+  TOKEN_FREEZE = 3,
+  TOKEN_UNFREEZE = 4,
+  TOKEN_DESTROY_FROZEN_FUNDS = 5,
+  TOKEN_CLAIM = 6,
+  TOKEN_EMERGENCY_ACTION = 7,
+  TOKEN_CONFIG_UPDATE = 8,
+  TOKEN_DIRECT_PURCHASE = 9,
+  TOKEN_SET_PRICE_FOR_DIRECT_PURCHASE = 10
+}
+
+// Combined type for batch actions
+export type BatchActionType = DocumentActionEnum | TokenActionEnum
+
+// Legacy enum for backwards compatibility
+export const BatchActionType = {
+  ...DocumentActionEnum,
+  ...TokenActionEnum
+} as const
 
 // Batch Actions Info with metadata
 export const BatchActions = {

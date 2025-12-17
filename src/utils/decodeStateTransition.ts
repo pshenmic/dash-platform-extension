@@ -5,7 +5,7 @@ import {
   IdentityCreditTransferWASM,
   MasternodeVoteTransitionWASM
 } from 'pshenmic-dpp'
-import { StateTransitionTypeEnum, BatchActionType } from '../enums'
+import { StateTransitionTypeEnum, DocumentActionEnum, TokenActionEnum } from '../enums'
 import type { DecodedStateTransition } from '../types/DecodedStateTransition'
 
 export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM): DecodedStateTransition => {
@@ -26,9 +26,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
           const tokenTransitionType = transition.getTransitionTypeNumber()
           const tokenTransition = transition.getTransition()
 
-          // Map token transition type number (0-10) to batch action type (6-16)
-          const batchActionType = Number(tokenTransitionType) + 6
-          out.action = BatchActionType[batchActionType] ?? `TOKEN_${String(tokenTransitionType)}`
+          out.action = TokenActionEnum[tokenTransitionType] ?? `TOKEN_${String(tokenTransitionType)}`
           out.tokenId = tokenTransition.base.tokenId.base58()
           out.identityContractNonce = String(transition.identityContractNonce)
           out.tokenContractPosition = tokenTransition.base.tokenContractPosition
@@ -48,8 +46,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
           }
         } else {
           // Document transition
-          // Document action numbers map directly to batch action type (0-5)
-          out.action = BatchActionType[transition.actionTypeNumber] ?? `DOCUMENT_ACTION_${String(transition.actionTypeNumber)}`
+          out.action = DocumentActionEnum[transition.actionTypeNumber] ?? `DOCUMENT_ACTION_${String(transition.actionTypeNumber)}`
           out.id = transition.id.base58()
           out.dataContractId = transition.dataContractId.base58()
           out.revision = String(transition.revision)
