@@ -121,21 +121,23 @@ function ApproveTransactionState (): React.JSX.Element {
       extensionAPI
         .getStateTransition(transactionHash)
         .then((stateTransitionResponse: GetStateTransitionResponse) => {
-          try {
-            const receivedStateTransitionWASM = StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned))
-            setStateTransitionWASM(receivedStateTransitionWASM)
+          let receivedStateTransitionWASM: StateTransitionWASM
 
-            // Decode transaction locally
-            try {
-              const decoded = decodeStateTransition(receivedStateTransitionWASM)
-              setDecodedTransaction(decoded)
-            } catch (decodeError) {
-              console.log('Error decoding transaction locally:', decodeError)
-              setDecodedTransaction(null)
-            }
+          try {
+            receivedStateTransitionWASM = StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned))
+            setStateTransitionWASM(receivedStateTransitionWASM)
           } catch (e) {
             console.log('Error decoding state transition:', e)
             setTransactionDecodeError(String(e))
+            return
+          }
+
+          try {
+            const decoded = decodeStateTransition(receivedStateTransitionWASM)
+            setDecodedTransaction(decoded)
+          } catch (decodeError) {
+            console.log('Error decoding transaction locally:', decodeError)
+            setDecodedTransaction(null)
           }
         })
         .catch((error) => {
