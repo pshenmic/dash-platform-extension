@@ -47,8 +47,6 @@ function ApproveTransactionState (): React.JSX.Element {
   const [keyRequirements, setKeyRequirements] = useState<KeyRequirement[]>([])
   const [decodedTransaction, setDecodedTransaction] = useState<any>(null)
 
-  console.log('decodedTransaction', decodedTransaction)
-
   const {
     signingKeys,
     selectedSigningKey,
