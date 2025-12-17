@@ -26,12 +26,6 @@ export enum TokenActionEnum {
 // Combined type for batch actions
 export type BatchActionType = DocumentActionEnum | TokenActionEnum
 
-// Legacy enum for backwards compatibility
-export const BatchActionType = {
-  ...DocumentActionEnum,
-  ...TokenActionEnum
-} as const
-
 // Batch Actions Info with metadata
 export const BatchActions = {
   // Documents
