@@ -5,7 +5,6 @@ import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { Banner } from '../../components/cards'
 import ButtonRow from '../../components/layout/ButtonRow'
-import { TransactionHashBlock } from '../../components/transactions'
 import { PasswordField } from '../../components/forms'
 import { FieldLabel } from '../../components/typography'
 import { TitleBlock } from '../../components/layout/TitleBlock'
@@ -16,6 +15,8 @@ import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
+import { TransactionDetails } from './details'
+import { decodeStateTransition } from '../../../utils/decodeStateTransition'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -44,6 +45,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const [hasWallet, setHasWallet] = useState<boolean>(false)
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
   const [keyRequirements, setKeyRequirements] = useState<KeyRequirement[]>([])
+  const [decodedTransaction, setDecodedTransaction] = useState<any>(null)
 
   const {
     signingKeys,
@@ -119,12 +121,23 @@ function ApproveTransactionState (): React.JSX.Element {
       extensionAPI
         .getStateTransition(transactionHash)
         .then((stateTransitionResponse: GetStateTransitionResponse) => {
+          let receivedStateTransitionWASM: StateTransitionWASM
+
           try {
-            const receivedStateTransitionWASM = StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned))
+            receivedStateTransitionWASM = StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned))
             setStateTransitionWASM(receivedStateTransitionWASM)
           } catch (e) {
             console.log('Error decoding state transition:', e)
             setTransactionDecodeError(String(e))
+            return
+          }
+
+          try {
+            const decoded = decodeStateTransition(receivedStateTransitionWASM)
+            setDecodedTransaction(decoded)
+          } catch (decodeError) {
+            console.log('Error decoding transaction locally:', decodeError)
+            setDecodedTransaction(null)
           }
         })
         .catch((error) => {
@@ -284,6 +297,14 @@ function ApproveTransactionState (): React.JSX.Element {
       const keyId = parseInt(selectedSigningKey, 10)
       const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, keyId, password)
 
+      // Update decodedTransaction with the actual signing key ID
+      if (decodedTransaction != null) {
+        setDecodedTransaction({
+          ...decodedTransaction,
+          signaturePublicKeyId: keyId
+        })
+      }
+
       setTxHash(response.txHash)
     } catch (error) {
       setPasswordError(`Signing failed: ${error.toString() as string}`)
@@ -295,43 +316,47 @@ function ApproveTransactionState (): React.JSX.Element {
   if (txHash != null) {
     return (
       <div className='screen-content'>
-        <TitleBlock
-          title={
-            <>
-              <span className='font-normal'>Transaction was</span><br />
-              <span className='font-medium'>successfully broadcasted</span>
-            </>
-          }
-          description='You can check the transaction hash below'
-        />
+        <div className='flex flex-col gap-6'>
+          <TitleBlock
+            title={
+              <>
+                <span className='font-normal'>Transaction was</span><br />
+                <span className='font-medium'>successfully broadcasted</span>
+              </>
+            }
+            description='You can check the transaction details below'
+            showLogo={false}
+          />
 
-        <TransactionHashBlock
-          hash={txHash}
-          network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
-          variant='full'
-          showActions
-        />
+          {/* Transaction details after success */}
+          {decodedTransaction != null && (
+            <TransactionDetails
+              data={decodedTransaction}
+              transactionHash={txHash}
+              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+              signed
+            />
+          )}
 
-        <div>
-          <Button
-            className='w-full'
-            onClick={() => {
-              if (returnToHome) {
-                void navigate('/')
-              } else {
-                window.close()
-              }
-            }}
-            colorScheme='lightBlue'
-          >
-            Close
-          </Button>
+          <div>
+            <Button
+              className='w-full'
+              onClick={() => {
+                if (returnToHome) {
+                  void navigate('/')
+                } else {
+                  window.close()
+                }
+              }}
+              colorScheme='brand'
+            >
+              Close
+            </Button>
+          </div>
         </div>
       </div>
     )
   }
-
-  const transactionHash = params.hash ?? params.txhash
 
   return (
     <div className='screen-content'>
@@ -342,20 +367,18 @@ function ApproveTransactionState (): React.JSX.Element {
           showLogo={false}
         />
 
-        <div className='flex flex-col gap-2.5'>
-          {transactionHash != null && (
-            <TransactionHashBlock
-              hash={transactionHash}
-              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
-              variant='compact'
-              showActions={false}
-              label='Transaction Hash'
-            />
-          )}
-          {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
-          {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
-          <Banner variant='error' message={transactionDecodeError} />
-        </div>
+        {/* Transaction details */}
+        {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
+        {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
+        <Banner variant='error' message={transactionDecodeError} />
+
+        {/* Decoded transaction details */}
+        {decodedTransaction != null && (
+          <TransactionDetails
+            data={decodedTransaction}
+            network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+          />
+        )}
 
         {/* Choose Identity */}
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
