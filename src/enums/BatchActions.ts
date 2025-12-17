@@ -1,4 +1,3 @@
-// Document Action Enum (maps directly to WASM document action numbers 0-5)
 export enum DocumentActionEnum {
   DOCUMENT_CREATE = 0,
   DOCUMENT_REPLACE = 1,
@@ -8,7 +7,6 @@ export enum DocumentActionEnum {
   DOCUMENT_UPDATE_PRICE = 5
 }
 
-// Token Action Enum (maps directly to WASM token transition type numbers 0-10)
 export enum TokenActionEnum {
   TOKEN_BURN = 0,
   TOKEN_MINT = 1,
@@ -23,7 +21,6 @@ export enum TokenActionEnum {
   TOKEN_SET_PRICE_FOR_DIRECT_PURCHASE = 10
 }
 
-// Combined type for batch actions
 export type BatchActionType = DocumentActionEnum | TokenActionEnum
 
 // Batch Actions Info with metadata
