@@ -54,26 +54,6 @@ export function TokenTransferDetails ({ transition }: TokenTransferDetailsProps)
         </TransactionDetailsCard>
       )}
 
-      {transition.tokenContractPosition != null && (
-        <TransactionDetailsCard title='Token Contract Position'>
-          <Text size='lg'>{transition.tokenContractPosition}</Text>
-        </TransactionDetailsCard>
-      )}
-
-      {transition.historicalDocumentTypeName != null && (
-        <TransactionDetailsCard title='Historical Document Type'>
-          <Text size='lg'>{transition.historicalDocumentTypeName}</Text>
-        </TransactionDetailsCard>
-      )}
-
-      {transition.historicalDocumentId != null && (
-        <TransactionDetailsCard title='Historical Document ID'>
-          <Identifier className='!text-[1.25rem]' avatar copyButton middleEllipsis edgeChars={5}>
-            {transition.historicalDocumentId}
-          </Identifier>
-        </TransactionDetailsCard>
-      )}
-
       {transition.identityContractNonce != null && (
         <TransactionDetailsCard title='Identity Contract Nonce'>
           <Text size='lg'>{transition.identityContractNonce}</Text>
