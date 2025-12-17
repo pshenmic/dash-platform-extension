@@ -63,12 +63,12 @@ export interface DecodedMasternodeVoteTransition extends BaseDecodedStateTransit
   towardsIdentity: string | null
   identityNonce: string
   userFeeIncrease: number
-  modifiedDataIds?: string[]
-  indexValues?: string[]
-  contractId?: string
-  documentTypeName?: string
-  indexName?: string
-  ownerId?: string
+  modifiedDataIds: string[]
+  indexValues: string[]
+  contractId: string
+  documentTypeName: string
+  indexName: string
+  ownerId: string
 }
 
 export type DecodedStateTransition =

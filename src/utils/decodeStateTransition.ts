@@ -174,6 +174,12 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
         towardsIdentity: towardsIdentity ?? null,
         identityNonce: String(masternodeVoteTransition.nonce),
         userFeeIncrease: stateTransitionWASM.userFeeIncrease,
+        indexValues: masternodeVoteTransition.vote.votePoll.indexValues.map((bytes: any) => Buffer.from(bytes).toString('base64')),
+        contractId: masternodeVoteTransition.vote.votePoll.contractId.base58(),
+        modifiedDataIds: masternodeVoteTransition.modifiedDataIds.map((identifier: any) => identifier.base58()),
+        ownerId: stateTransitionWASM.getOwnerId().base58(),
+        documentTypeName: masternodeVoteTransition.vote.votePoll.documentTypeName,
+        indexName: masternodeVoteTransition.vote.votePoll.indexName,
         signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
         signature: Buffer.from(stateTransitionWASM.signature ?? []).toString('hex') ?? null,
         raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
