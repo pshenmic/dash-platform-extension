@@ -1,6 +1,5 @@
 interface BaseDecodedStateTransition {
   type: number
-  typeString: string
   signaturePublicKeyId?: number
   signature?: string | null
   raw?: string
@@ -8,7 +7,6 @@ interface BaseDecodedStateTransition {
 
 export interface DecodedBatchTransition extends BaseDecodedStateTransition {
   type: 1
-  typeString: 'BATCH'
   ownerId: string
   transitions: Array<{
     action: string
@@ -25,7 +23,6 @@ export interface DecodedBatchTransition extends BaseDecodedStateTransition {
 
 export interface DecodedIdentityUpdateTransition extends BaseDecodedStateTransition {
   type: 5
-  typeString: 'IDENTITY_UPDATE'
   identityId: string
   revision: number
   identityNonce: string
@@ -44,7 +41,6 @@ export interface DecodedIdentityUpdateTransition extends BaseDecodedStateTransit
 
 export interface DecodedIdentityCreditTransferTransition extends BaseDecodedStateTransition {
   type: 7
-  typeString: 'IDENTITY_CREDIT_TRANSFER'
   identityNonce: string
   userFeeIncrease: number
   senderId: string
@@ -54,7 +50,6 @@ export interface DecodedIdentityCreditTransferTransition extends BaseDecodedStat
 
 export interface DecodedMasternodeVoteTransition extends BaseDecodedStateTransition {
   type: 8
-  typeString: 'MASTERNODE_VOTE'
   proTxHash: string
   choice: string
   towardsIdentity: string | null

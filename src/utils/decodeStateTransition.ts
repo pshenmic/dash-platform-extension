@@ -95,7 +95,6 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
 
       return {
         type: StateTransitionTypeEnum.BATCH,
-        typeString: 'BATCH',
         ownerId: stateTransitionWASM.getOwnerId().base58(),
         transitions,
         signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
@@ -121,7 +120,6 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
 
       return {
         type: StateTransitionTypeEnum.IDENTITY_UPDATE,
-        typeString: 'IDENTITY_UPDATE',
         identityId: identityUpdateTransition.identityIdentifier.base58(),
         revision: Number(identityUpdateTransition.revision),
         identityNonce: String(identityUpdateTransition.nonce),
@@ -139,7 +137,6 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
 
       return {
         type: StateTransitionTypeEnum.IDENTITY_CREDIT_TRANSFER,
-        typeString: 'IDENTITY_CREDIT_TRANSFER',
         identityNonce: String(identityCreditTransferTransition.nonce),
         userFeeIncrease: identityCreditTransferTransition.userFeeIncrease,
         senderId: identityCreditTransferTransition.senderId.base58(),
@@ -158,7 +155,6 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
 
       return {
         type: StateTransitionTypeEnum.MASTERNODE_VOTE,
-        typeString: 'MASTERNODE_VOTE',
         proTxHash: masternodeVoteTransition.proTxHash.hex(),
         choice: `${masternodeVoteTransition.vote.resourceVoteChoice.getType()}${towardsIdentity != null ? `(${String(towardsIdentity)})` : ''}`,
         towardsIdentity: towardsIdentity ?? null,

@@ -2,6 +2,7 @@ import React, { createContext, useContext } from 'react'
 import { Accordion } from 'dash-ui-kit/react'
 import type { NetworkType } from '../../../../types/NetworkType'
 import type { DecodedStateTransition } from '../../../../types/DecodedStateTransition'
+import { StateTransitionTypeEnum } from '../../../../enums'
 import { BatchTransitionDetails } from './BatchTransitionDetails'
 import { IdentityUpdateDetails } from './IdentityUpdateDetails'
 import { IdentityCreditTransferDetails } from './IdentityCreditTransferDetails'
@@ -49,7 +50,7 @@ export function TransactionDetails ({
               network={network}
               variant='full'
             />
-        )
+            )
           : null
       }
     }
@@ -61,7 +62,7 @@ export function TransactionDetails ({
         <TransactionInfoSection
           transactionHash={transactionHash}
           network={network}
-          transactionType={data.typeString}
+          transactionType={StateTransitionTypeEnum[data.type]}
         />
 
         <Accordion

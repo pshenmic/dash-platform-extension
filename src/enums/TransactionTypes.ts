@@ -1,15 +1,15 @@
-// State Transition Type Enum
-export const StateTransitionTypeEnum = {
-  DATA_CONTRACT_CREATE: 0,
-  BATCH: 1,
-  IDENTITY_CREATE: 2,
-  IDENTITY_TOP_UP: 3,
-  DATA_CONTRACT_UPDATE: 4,
-  IDENTITY_UPDATE: 5,
-  IDENTITY_CREDIT_WITHDRAWAL: 6,
-  IDENTITY_CREDIT_TRANSFER: 7,
-  MASTERNODE_VOTE: 8
-} as const
+// State Transition Type Enum with automatic reverse mapping
+export enum StateTransitionTypeEnum {
+  DATA_CONTRACT_CREATE = 0,
+  BATCH = 1,
+  IDENTITY_CREATE = 2,
+  IDENTITY_TOP_UP = 3,
+  DATA_CONTRACT_UPDATE = 4,
+  IDENTITY_UPDATE = 5,
+  IDENTITY_CREDIT_WITHDRAWAL = 6,
+  IDENTITY_CREDIT_TRANSFER = 7,
+  MASTERNODE_VOTE = 8
+}
 
 // Transaction Types Info with metadata
 export const TransactionTypesInfo = {
