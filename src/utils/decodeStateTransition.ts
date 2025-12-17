@@ -29,10 +29,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
           out.action = TokenActionEnum[tokenTransitionType] ?? `TOKEN_${String(tokenTransitionType)}`
           out.tokenId = tokenTransition.base.tokenId.base58()
           out.identityContractNonce = String(transition.identityContractNonce)
-          out.tokenContractPosition = tokenTransition.base.tokenContractPosition
           out.dataContractId = tokenTransition.base.dataContractId.base58()
-          out.historicalDocumentTypeName = transition.getHistoricalDocumentTypeName()
-          out.historicalDocumentId = transition.getHistoricalDocumentId(stateTransitionWASM.getOwnerId()).base58()
 
           // Add specific fields based on token action type
           if (tokenTransition.amount != null) {
@@ -40,9 +37,6 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
           }
           if (tokenTransition.recipientId != null) {
             out.recipient = tokenTransition.recipientId.base58()
-          }
-          if (tokenTransition.publicNote != null) {
-            out.publicNote = tokenTransition.publicNote
           }
         } else {
           // Document transition
@@ -54,7 +48,6 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
           out.identityContractNonce = String(transition.identityContractNonce)
 
           // Add specific fields based on document action type
-          // Use try-catch for each transition type as WASM objects may throw on property access
           try {
             const createTransition = transition.createTransition
             if (createTransition != null) {
@@ -73,13 +66,13 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
               }
 
               if (createTransition.base?.tokenPaymentInfo != null) {
-                const tpi = createTransition.base.tokenPaymentInfo
+                const tokenPaymentInfo = createTransition.base.tokenPaymentInfo
                 out.tokenPaymentInfo = {
-                  paymentTokenContractId: tpi.paymentTokenContractId?.base58() ?? null,
-                  tokenContractPosition: tpi.tokenContractPosition,
-                  minimumTokenCost: tpi.minimumTokenCost?.toString() ?? null,
-                  maximumTokenCost: tpi.maximumTokenCost?.toString() ?? null,
-                  gasFeesPaidBy: tpi.gasFeesPaidBy
+                  paymentTokenContractId: tokenPaymentInfo.paymentTokenContractId?.base58() ?? null,
+                  tokenContractPosition: tokenPaymentInfo.tokenContractPosition,
+                  minimumTokenCost: tokenPaymentInfo.minimumTokenCost?.toString() ?? null,
+                  maximumTokenCost: tokenPaymentInfo.maximumTokenCost?.toString() ?? null,
+                  gasFeesPaidBy: tokenPaymentInfo.gasFeesPaidBy
                 }
               }
             }

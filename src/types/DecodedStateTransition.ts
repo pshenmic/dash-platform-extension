@@ -14,10 +14,7 @@ export interface DecodedBatchTransition extends BaseDecodedStateTransition {
     action: string
     tokenId?: string
     identityContractNonce?: string
-    tokenContractPosition?: number
     dataContractId?: string
-    historicalDocumentTypeName?: string
-    historicalDocumentId?: string
     amount?: string
     recipientId?: string
     documentId?: string

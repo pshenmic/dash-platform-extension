@@ -32,12 +32,6 @@ export function TokenTransferDetails ({ transition }: TokenTransferDetailsProps)
         </TransactionDetailsCard>
       )}
 
-      {transition.publicNote != null && (
-        <TransactionDetailsCard title='Public Note'>
-          <Text size='lg' className='break-all'>{transition.publicNote}</Text>
-        </TransactionDetailsCard>
-      )}
-
       {transition.tokenId != null && (
         <TransactionDetailsCard title='Token ID'>
           <Identifier className='!text-[1.25rem]' avatar copyButton middleEllipsis edgeChars={5}>

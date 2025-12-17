@@ -49,7 +49,7 @@ export function TransactionDetails ({
               network={network}
               variant='full'
             />
-            )
+        )
           : null
       }
     }
