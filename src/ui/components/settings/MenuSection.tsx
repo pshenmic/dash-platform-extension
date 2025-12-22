@@ -18,7 +18,7 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
         <Text
           dim
           size='sm'
-          weight='500'
+          weight='medium'
           className='text-dash-primary-dark-blue/50'
         >
           {section.title}
