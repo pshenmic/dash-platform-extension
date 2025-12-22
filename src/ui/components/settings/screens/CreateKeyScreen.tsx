@@ -39,6 +39,8 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
+  const [identityNonce, setIdentityNonce] = useState<bigint | null>(null)
+  const [nonceLoading, setNonceLoading] = useState(true)
 
   const {
     signingKeys,
@@ -49,6 +51,19 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
   } = useSigningKeys({
     identity: currentIdentity ?? null
   })
+
+  // Load identity nonce on mount
+  useEffect(() => {
+    if (currentIdentity == null) {
+      setNonceLoading(false)
+      return
+    }
+
+    sdk.identities.getIdentityNonce(currentIdentity)
+      .then(setIdentityNonce)
+      .catch(e => console.error('Failed to load identity nonce:', e))
+      .finally(() => setNonceLoading(false))
+  }, [currentIdentity, sdk])
 
   // Clear error after 5 seconds
   useEffect(() => {
@@ -315,6 +330,14 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         <OverlayMessage
           title='Mainnet Unavailable'
           message='Mainnet private key generation is not yet available.'
+        />
+      )}
+
+      {/* High Nonce Limitation Message */}
+      {!nonceLoading && identityNonce != null && identityNonce > 20n && (
+        <OverlayMessage
+          title='Feature Temporarily Unavailable'
+          message='Creating keys for this identity is temporarily not supported by the extension. We will add this functionality soon.'
         />
       )}
     </div>
