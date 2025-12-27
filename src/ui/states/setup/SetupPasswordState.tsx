@@ -11,23 +11,23 @@ export default function SetupPasswordState (): React.JSX.Element {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const passwordRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null)
 
   const goToPassword = () => {
-      passwordRef.current?.focus();
-      passwordRef.current?.select();
+      passwordRef.current?.focus()
+      passwordRef.current?.select()
   }
 
   const handleSetupPassword = async (): Promise<void> => {
     if (password !== confirmPassword) {
       setError('Passwords do not match')
-      goToPassword();
+      goToPassword()
       return
     }
 
     if (password.length < 6) {
       setError('Password must be at least 6 characters')
-      goToPassword();
+      goToPassword()
       return
     }
 
@@ -39,7 +39,7 @@ export default function SetupPasswordState (): React.JSX.Element {
       void navigate('/login')
     } catch (err) {
       setError((err as Error).toString())
-      goToPassword();
+      goToPassword()
     } finally {
       setIsLoading(false)
     }
