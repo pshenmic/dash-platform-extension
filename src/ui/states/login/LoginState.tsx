@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Text, Input } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks'
@@ -11,10 +11,17 @@ function LoginState (): React.JSX.Element {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const passwordRef = useRef<HTMLInputElement>(null)
+
+  const goToPassword = () => {
+    passwordRef.current?.focus()
+    passwordRef.current?.select()
+  }
 
   const handleLogin = async (): Promise<void> => {
     if (password === '') {
       setError('Password is required')
+      goToPassword()
       return
     }
 
@@ -33,16 +40,24 @@ function LoginState (): React.JSX.Element {
         }
       } else {
         setError('Invalid password')
+        goToPassword()
       }
     } catch (err) {
       setError('Login failed')
+      goToPassword()
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className='flex flex-col'>
+    <form
+      className='flex flex-col'
+      onSubmit={(e) => {
+        e.preventDefault()
+        handleLogin().catch(e => console.log('handleLogin error: ', e))
+      }}
+    >
       <TitleBlock
         title='Welcome Back'
         description='Use the password to unlock your wallet.'
@@ -55,8 +70,10 @@ function LoginState (): React.JSX.Element {
             Password
           </Text>
           <Input
+            ref={passwordRef}
             type='password'
             placeholder='Enter password'
+            autoFocus
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             size='xl'
@@ -72,18 +89,16 @@ function LoginState (): React.JSX.Element {
         )}
 
         <Button
+          type='submit'
           size='xl'
           colorScheme='brand'
-          onClick={() => {
-            handleLogin().catch(e => console.log('handleLogin error: ', e))
-          }}
           disabled={password === '' || isLoading}
           className='w-full'
         >
           {isLoading ? 'Logging in...' : 'Unlock'}
         </Button>
       </div>
-    </div>
+    </form>
   )
 }
 
