@@ -37,4 +37,3 @@ export const OverlayMessage: React.FC<OverlayMessageProps> = ({
     </div>
   )
 }
-

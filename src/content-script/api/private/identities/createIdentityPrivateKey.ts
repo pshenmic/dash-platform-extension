@@ -4,7 +4,7 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { bytesToHex, deriveSeedphrasePrivateKey, generateRandomHex } from '../../../../utils'
-import { KeyType, PrivateKeyWASM, Purpose, SecurityLevel } from 'pshenmic-dpp'
+import { KeyType, PrivateKeyWASM } from 'pshenmic-dpp'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
@@ -95,18 +95,18 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
         keyType,
         purpose: payload.purpose,
         readOnly: payload.readOnly,
-        securityLevel: payload.securityLevel,
+        securityLevel: payload.securityLevel
       }
 
       const identityNonce = await this.sdk.identities.getIdentityNonce(identity.identifier)
 
       const stateTransition = this.sdk.identities.createStateTransition('update',
-          {
-            identityId: identity.identifier,
-            addPublicKeys: [identityPublicKeyInCreation],
-            revision: identityWASM.revision + 1n,
-            identityNonce: identityNonce + 1n,
-          }
+        {
+          identityId: identity.identifier,
+          addPublicKeys: [identityPublicKeyInCreation],
+          revision: identityWASM.revision + 1n,
+          identityNonce: identityNonce + 1n
+        }
       )
 
       // const masterKeyId = 0
