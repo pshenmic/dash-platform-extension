@@ -27,6 +27,7 @@ export const loadSigningKeys = async (
     const keyId = key?.keyId ?? key?.getId?.() ?? null
     const purpose = String(key?.purpose ?? 'UNKNOWN')
     const security = String(key?.securityLevel ?? 'UNKNOWN')
+    const disabledAt = key?.disabledAt != null ? Number(key.disabledAt) : null
     let hash = ''
     try {
       hash = key?.getPublicKeyHash?.() ?? ''
@@ -36,7 +37,8 @@ export const loadSigningKeys = async (
       keyId: keyId ?? 0,
       securityLevel: security,
       purpose,
-      hash
+      hash,
+      disabledAt
     }
   })
 

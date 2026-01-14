@@ -15,7 +15,7 @@ export default function Banner ({ message, variant, className }: BannerProps): R
 
   return (
     <ValueCard colorScheme={colorScheme} className={className ?? ''}>
-      <Text color={textColor}>{message}</Text>
+      <Text color={textColor} className='w-full break-words'>{message}</Text>
     </ValueCard>
   )
 }

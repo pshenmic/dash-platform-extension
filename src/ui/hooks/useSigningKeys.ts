@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useAsyncState } from './useAsyncState'
 import { useSdk } from './useSdk'
 import { useExtensionAPI } from './useExtensionAPI'
@@ -29,6 +29,8 @@ export const useSigningKeys = (options: UseSigningKeysOptions): UseSigningKeysRe
   const extensionAPI = useExtensionAPI()
   const [selectedSigningKey, setSelectedSigningKey] = useState<string | null>(null)
   const [signingKeysState, loadSigningKeys] = useAsyncState<PublicKeyInfo[]>()
+  const loadSigningKeysRef = useRef(loadSigningKeys)
+  loadSigningKeysRef.current = loadSigningKeys
 
   // Load signing keys when dependencies change
   useEffect(() => {
@@ -37,26 +39,28 @@ export const useSigningKeys = (options: UseSigningKeysOptions): UseSigningKeysRe
       return
     }
 
-    loadSigningKeys(async () => await getSigningKeys(sdk, extensionAPI, identity))
+    loadSigningKeysRef.current(async () => await getSigningKeys(sdk, extensionAPI, identity))
       .catch(e => console.log('useSigningKeys error', e))
-  }, [identity, sdk, extensionAPI, loadSigningKeys])
+  }, [identity, sdk, extensionAPI])
+
+  const signingKeys = useMemo(() => signingKeysState.data ?? [], [signingKeysState.data])
 
   // Reset selection when no keys are available
   useEffect(() => {
-    if (signingKeysState.data == null || signingKeysState.data.length === 0) {
+    if (signingKeys.length === 0) {
       setSelectedSigningKey(null)
     }
-  }, [signingKeysState.data])
+  }, [signingKeys])
 
   return {
-    signingKeys: signingKeysState.data ?? [],
+    signingKeys,
     selectedSigningKey,
     setSelectedSigningKey,
     loading: signingKeysState.loading,
     error: signingKeysState.error,
     reload: () => {
       if (identity != null) {
-        loadSigningKeys(async () => await getSigningKeys(sdk, extensionAPI, identity))
+        loadSigningKeysRef.current(async () => await getSigningKeys(sdk, extensionAPI, identity))
           .catch(e => console.log('useSigningKeys reload error', e))
       }
     }
