@@ -91,11 +91,11 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
     if (keyType === KeyType.ECDSA_SECP256K1) {
       const identityPublicKeyInCreation: IdentityPublicKeyInCreation = {
         data,
-        id: 0,
+        id: nextKeyId,
         keyType,
-        purpose: Purpose.SYSTEM,
-        readOnly: false,
-        securityLevel: SecurityLevel.MEDIUM
+        purpose: payload.purpose,
+        readOnly: payload.readOnly,
+        securityLevel: payload.securityLevel,
       }
 
       const identityNonce = await this.sdk.identities.getIdentityNonce(identity.identifier)
