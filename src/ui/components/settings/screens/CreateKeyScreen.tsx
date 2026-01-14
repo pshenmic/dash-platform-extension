@@ -111,7 +111,10 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       const createPrivateKeyResponse: CreateIdentityPrivateKeyResponse = await extensionAPI.createIdentityPrivateKey(
         currentIdentity,
         password,
-        keyType
+        keyType,
+        purpose,
+        securityLevel,
+        readOnly
       )
 
       const identity = await sdk.identities.getIdentityByIdentifier(currentIdentity)
