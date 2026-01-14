@@ -286,12 +286,18 @@ export class PrivateAPIClient {
   async createIdentityPrivateKey (
     identity: string,
     password: string,
-    keyType: string
+    keyType: string,
+    purpose: number,
+    securityLevel: number,
+    readOnly: boolean
   ): Promise<CreateIdentityPrivateKeyResponse> {
     const payload: CreateIdentityPrivateKeyPayload = {
       identity,
       password,
-      keyType
+      keyType,
+      purpose,
+      securityLevel,
+      readOnly
     }
 
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY, payload)
