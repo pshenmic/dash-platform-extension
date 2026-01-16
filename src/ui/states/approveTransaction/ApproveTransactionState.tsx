@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
-import { base64 as base64Decoder } from '@scure/base'
-import { Text, Button, ValueCard } from 'dash-ui-kit/react'
+import { base64 as base64Decoder, hex } from '@scure/base'
+import { Text, Button, ValueCard, Identifier } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { Banner } from '../../components/cards'
 import ButtonRow from '../../components/layout/ButtonRow'
@@ -32,6 +32,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const returnToHome = location.state?.returnToHome === true
 
   const [transactionDecodeError, setTransactionDecodeError] = useState<string | null>(null)
+  const [rawTransactionHex, setRawTransactionHex] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
   const [isLoadingTransaction, setIsLoadingTransaction] = useState<boolean>(false)
   const [transactionNotFound, setTransactionNotFound] = useState<boolean>(false)
@@ -124,7 +125,9 @@ function ApproveTransactionState (): React.JSX.Element {
           let receivedStateTransitionWASM: StateTransitionWASM
 
           try {
-            receivedStateTransitionWASM = StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned))
+            const rawBytes = base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)
+            setRawTransactionHex(hex.encode(rawBytes))
+            receivedStateTransitionWASM = StateTransitionWASM.fromBytes(rawBytes)
             setStateTransitionWASM(receivedStateTransitionWASM)
           } catch (e) {
             console.log('Error decoding state transition:', e)
@@ -306,7 +309,12 @@ function ApproveTransactionState (): React.JSX.Element {
       }
 
       setTxHash(response.txHash)
-    } catch (error) {
+    } catch (error: any) {
+      // Extract signedHex from error payload if available (e.g., broadcast errors)
+      if (error?.payload?.signedHex != null) {
+        setRawTransactionHex(error.payload.signedHex)
+      }
+      
       setPasswordError(`Signing failed: ${error.toString() as string}`)
     } finally {
       setIsSigningInProgress(false)
@@ -419,6 +427,20 @@ function ApproveTransactionState (): React.JSX.Element {
             error={passwordError}
             variant='outlined'
           />
+        )}
+
+        {/* Raw transaction hex when any error occurs */}
+        {(transactionDecodeError != null || passwordError != null) && rawTransactionHex != null && (
+          <div className='flex flex-col gap-2'>
+            <FieldLabel>
+              Transaction Hex
+            </FieldLabel>
+            <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col gap-2'>
+              <Identifier copyButton linesAdjustment={false}>
+                {rawTransactionHex}
+              </Identifier>
+            </ValueCard>
+          </div>
         )}
 
         {/* Buttons */}

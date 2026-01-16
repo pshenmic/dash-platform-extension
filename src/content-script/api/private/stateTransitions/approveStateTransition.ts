@@ -10,6 +10,7 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionStatus } from '../../../../types/enums/StateTransitionStatus'
 import { Wallet, Identity, WalletType, EventData } from '../../../../types'
+import { BroadcastError } from '../../../errors/BroadcastError'
 
 export class ApproveStateTransitionHandler implements APIHandler {
   keyPairRepository: KeypairRepository
@@ -118,6 +119,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
     const signature = stateTransitionWASM.signature
     const signaturePublicKeyId = stateTransitionWASM.signaturePublicKeyId as number
+    const signedHex = stateTransitionWASM.hex()
 
     try {
       await this.sdk.stateTransitions.broadcast(stateTransitionWASM)
@@ -127,7 +129,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       console.log('Failed to broadcast transaction', e)
       await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.error)
 
-      throw e
+      throw new BroadcastError(String(e), signedHex)
     }
 
     return {

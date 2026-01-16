@@ -35,6 +35,7 @@ import { ExportPrivateKeyHandler } from './private/identities/exportPrivateKey'
 import { RegisterUsernameHandler } from './private/identities/registerUsername'
 import { ImportMasternodeIdentityHandler } from './private/identities/importMasternodeIdentity'
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
+import { BroadcastError } from '../errors/BroadcastError'
 
 /**
  * Handlers for a messages within extension context
@@ -136,7 +137,7 @@ export class PrivateAPI {
             context: 'dash-platform-extension',
             type: 'response',
             method,
-            payload: null,
+            payload: e instanceof BroadcastError ? { signedHex: e.signedHex } : null,
             error: e.message
           }
 
