@@ -1,6 +1,6 @@
 import { StateTransitionStatus } from '../../types/enums/StateTransitionStatus'
 import { StorageAdapter } from '../storage/storageAdapter'
-import { StateTransitionWASM } from 'pshenmic-dpp'
+import { StateTransitionWASM } from 'dash-platform-sdk/types'
 import { base64 } from '@scure/base'
 import { StateTransitionsStoreSchema, StateTransitionStoreSchema } from '../storage/storageSchema'
 import { StateTransition } from '../../types'

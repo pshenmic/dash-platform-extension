@@ -4,13 +4,12 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { bytesToHex, deriveSeedphrasePrivateKey, generateRandomHex } from '../../../../utils'
-import { KeyType, PrivateKeyWASM } from 'pshenmic-dpp'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { CreateIdentityPrivateKeyPayload } from '../../../../types/messages/payloads/CreateIdentityPrivateKeyPayload'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
-import { IdentityPublicKeyInCreation } from 'dash-platform-sdk/src/types'
+import { IdentityPublicKeyInCreation, KeyType, PrivateKeyWASM } from 'dash-platform-sdk/types'
 
 export class CreateIdentityPrivateKeyHandler implements APIHandler {
   walletRepository: WalletRepository

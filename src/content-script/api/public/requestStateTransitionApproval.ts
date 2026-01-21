@@ -1,4 +1,3 @@
-import { StateTransitionWASM } from 'pshenmic-dpp'
 import { base64 } from '@scure/base'
 import { APIHandler } from '../APIHandler'
 import { StateTransitionsRepository } from '../../repository/StateTransitionsRepository'
@@ -9,6 +8,7 @@ import {
 import {
   RequestStateTransitionApprovalPayload
 } from '../../../types/messages/payloads/RequestStateTransitionApprovalPayload'
+import { StateTransitionWASM } from 'dash-platform-sdk/types'
 
 export class RequestStateTransitionApprovalHandler implements APIHandler {
   stateTransitionsRepository: StateTransitionsRepository

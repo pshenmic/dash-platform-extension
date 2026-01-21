@@ -1,5 +1,5 @@
-import { StateTransitionWASM } from 'pshenmic-dpp'
-import {hexToBytes, popupWindow, validateHex, wait} from '../utils'
+import { StateTransitionWASM } from 'dash-platform-sdk/types'
+import { hexToBytes, popupWindow, validateHex, wait } from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'
 import { PublicAPIClient } from '../types'
