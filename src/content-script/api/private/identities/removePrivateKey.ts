@@ -36,7 +36,7 @@ export class RemoveIdentityPrivateKeyHandler implements APIHandler {
 
     const keyPairs = await this.keypairRepository.getAllByIdentity(payload.identity)
 
-    if (!keyPairs.some((keyPair) => keyPair.identityPublicKey.keyId === payload.keyId)) {
+    if (!keyPairs.some((keyPair) => keyPair.keyId === payload.keyId)) {
       throw new Error(`Could not find key pair with keyId ${payload.keyId}`)
     }
 

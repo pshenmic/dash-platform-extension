@@ -57,7 +57,7 @@ export const HelpSupportScreen: React.FC<SettingsScreenProps> = () => {
         window.open('https://github.com/dashpay/dash-platform-extension/issues', '_blank')
         break
       case 'discord':
-        window.open('https://discord.gg/dash', '_blank')
+        window.open('https://discordapp.com/invite/PXbUxJB', '_blank')
         break
       default:
         console.log(`Unknown action: ${itemId}`)

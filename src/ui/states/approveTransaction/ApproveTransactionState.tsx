@@ -16,6 +16,7 @@ import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
+import { TransactionSuccessScreen } from '../../components/layout/TransactionSuccessScreen'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -294,40 +295,17 @@ function ApproveTransactionState (): React.JSX.Element {
 
   if (txHash != null) {
     return (
-      <div className='screen-content'>
-        <TitleBlock
-          title={
-            <>
-              <span className='font-normal'>Transaction was</span><br />
-              <span className='font-medium'>successfully broadcasted</span>
-            </>
+      <TransactionSuccessScreen
+        txHash={txHash}
+        network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+        onClose={() => {
+          if (returnToHome) {
+            void navigate('/')
+          } else {
+            window.close()
           }
-          description='You can check the transaction hash below'
-        />
-
-        <TransactionHashBlock
-          hash={txHash}
-          network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
-          variant='full'
-          showActions
-        />
-
-        <div>
-          <Button
-            className='w-full'
-            onClick={() => {
-              if (returnToHome) {
-                void navigate('/')
-              } else {
-                window.close()
-              }
-            }}
-            colorScheme='lightBlue'
-          >
-            Close
-          </Button>
-        </div>
-      </div>
+        }}
+      />
     )
   }
 
@@ -344,13 +322,15 @@ function ApproveTransactionState (): React.JSX.Element {
 
         <div className='flex flex-col gap-2.5'>
           {transactionHash != null && (
-            <TransactionHashBlock
-              hash={transactionHash}
-              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
-              variant='compact'
-              showActions={false}
-              label='Transaction Hash'
-            />
+            <div className='flex flex-col gap-2.5'>
+              <Text size='md' dim>Transaction Hash</Text>
+              <TransactionHashBlock
+                hash={transactionHash}
+                network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+                showHeader={false}
+                showExplorerLink={false}
+              />
+            </div>
           )}
           {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
           {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
