@@ -36,7 +36,7 @@ export default function TransactionHashBlock ({
   }
 
   return (
-    <ValueCard colorScheme={colorScheme} border={false} size='xl' className='dash-shadow-lg flex-col gap-4 items-start'>
+    <ValueCard colorScheme={colorScheme} border={false} size='xl' className={`${shadow ? 'dash-shadow-lg ' : ''}flex-col gap-4 items-start`}>
       {showHeader && (
         <div className='flex items-center gap-2'>
           <div className='flex items-center justify-center h-[1.875rem] w-[1.875rem] rounded-full bg-dash-primary-dark-blue/[0.03]'>
@@ -75,8 +75,7 @@ export default function TransactionHashBlock ({
             >
               <CopyIcon size={14} className='!text-dash-primary-dark-blue/70 flex-shrink-0 -mr-1' />
             </Button>
-          </div>
-        }
+          </div>}
       </div>
     </ValueCard>
   )
