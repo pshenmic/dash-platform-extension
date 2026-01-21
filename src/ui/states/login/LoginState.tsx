@@ -14,7 +14,7 @@ function LoginState (): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false)
   const passwordRef = useRef<HTMLInputElement>(null)
 
-  const goToPassword = () => {
+  const goToPassword = (): void => {
     passwordRef.current?.focus()
     passwordRef.current?.select()
   }
