@@ -1,5 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { BatchTransitionWASM, DataContractUpdateTransitionWASM, StateTransitionWASM } from 'pshenmic-dpp'
+import { BatchTransitionWASM, DataContractUpdateTransitionWASM, IdentityUpdateTransitionWASM, StateTransitionWASM } from 'pshenmic-dpp'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'
@@ -10,6 +10,7 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionStatus } from '../../../../types/enums/StateTransitionStatus'
 import { Wallet, Identity, WalletType, EventData } from '../../../../types'
+import { StorageAdapter } from '../../../storage/storageAdapter'
 import { BroadcastError } from '../../../errors/BroadcastError'
 
 export class ApproveStateTransitionHandler implements APIHandler {
@@ -17,16 +18,21 @@ export class ApproveStateTransitionHandler implements APIHandler {
   stateTransitionsRepository: StateTransitionsRepository
   identitiesRepository: IdentitiesRepository
   walletRepository: WalletRepository
+  storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
 
   constructor (stateTransitionsRepository: StateTransitionsRepository,
     identitiesRepository: IdentitiesRepository,
     walletRepository: WalletRepository,
-    keyPairRepository: KeypairRepository, sdk: DashPlatformSDK) {
+    keyPairRepository: KeypairRepository,
+    storageAdapter: StorageAdapter,
+    sdk: DashPlatformSDK
+  ) {
     this.keyPairRepository = keyPairRepository
     this.stateTransitionsRepository = stateTransitionsRepository
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
+    this.storageAdapter = storageAdapter
     this.sdk = sdk
   }
 
@@ -123,8 +129,23 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
     try {
       await this.sdk.stateTransitions.broadcast(stateTransitionWASM)
+      await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransitionWASM)
 
       await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.approved, bytesToHex(signature), signaturePublicKeyId)
+
+      // Check for pending keys (from keystore wallet key creation) and save them
+      const actionType = stateTransitionWASM.getActionType()
+
+      if (wallet.type === WalletType.keystore && actionType === 'IDENTITY_UPDATE') {
+        const { publicKeyIdsToAdd } = IdentityUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
+        const keyPairs = await this.keyPairRepository.getAllByIdentity(stateTransitionWASM.getOwnerId().base58())
+        const matchedKeyPairs = keyPairs
+          .filter((keyPair) => publicKeyIdsToAdd.some(publicKeyIdToAdd => publicKeyIdToAdd.keyId === keyPair.keyId))
+
+        for (const keyPair of matchedKeyPairs) {
+          await this.keyPairRepository.unmarkPending(stateTransitionWASM.getOwnerId().base58(), keyPair.keyId)
+        }
+      }
     } catch (e) {
       console.log('Failed to broadcast transaction', e)
       await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.error)

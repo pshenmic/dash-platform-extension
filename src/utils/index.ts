@@ -12,6 +12,7 @@ export { formatBigNumber }
 export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
+export { copyToClipboard } from './copyToClipboard'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -60,22 +61,22 @@ export const bytesToUtf8 = (bytes: Uint8Array): string => {
 }
 
 export const deriveKeystorePrivateKey = async (wallet: Wallet, password: string, identityId: string, keyId: number, keyPairRepository: KeypairRepository): Promise<PrivateKeyWASM> => {
-  const keyPairs = await keyPairRepository.getAllByIdentity(identityId)
+  const exists = await keyPairRepository.isExisting(identityId, keyId)
 
-  const [keyPair] = keyPairs
-    .filter(keyPair => keyPair.identityPublicKey.keyId === keyId)
-
-  if (keyPair == null || keyPair.encryptedPrivateKey == null) {
+  if (!exists) {
     throw new Error(`Could not find private key with KeyID ${keyId} for identity ${identityId}`)
   }
+
+  const encryptedPrivateKey = await keyPairRepository.getEncryptedPrivateKey(identityId, keyId)
 
   const passwordHash = hash.sha256().update(password).digest('hex')
 
   let privateKey
 
   try {
-    privateKey = decrypt(passwordHash, hexToBytes(keyPair.encryptedPrivateKey))
+    privateKey = decrypt(passwordHash, hexToBytes(encryptedPrivateKey))
   } catch (e) {
+    console.error(e)
     throw new Error('Failed to decrypt')
   }
 

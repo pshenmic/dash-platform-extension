@@ -4,3 +4,4 @@ dist
 build
 .yarn
 release
+.DS_Store
