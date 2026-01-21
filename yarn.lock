@@ -3716,10 +3716,10 @@ csstype@^3.0.2:
   resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.1.3.tgz#d80ff294d114fb0e6ac500fbf85b60137d7eff81"
   integrity sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==
 
-dash-platform-sdk@1.3.0-dev.11:
-  version "1.3.0-dev.11"
-  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.3.0-dev.11.tgz#683b91093ff8db2c386c148643ec126622487b41"
-  integrity sha512-LnRkVn5ra35Js4srpVsR/mIWkVahT6gXiAwbFDi+P9B6CqrppKa2VX69uXPzsZClTvL18yz+Y7ZqftOVuV9VKg==
+dash-platform-sdk@1.3.0-dev.14:
+  version "1.3.0-dev.14"
+  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.3.0-dev.14.tgz#439506de21e888b130fe910a77866c936001e970"
+  integrity sha512-ZIiR3YD8gjs+8FoCr3bXx5HNCFtfwaUZcItoSHqKT4vJoI9ooxDqESgWZ8aa5AKE7FFpy8cvZS6avRsOIX6N6Q==
   dependencies:
     "@bufbuild/protobuf" "^2.6.0"
     "@protobuf-ts/grpcweb-transport" "^2.11.1"
@@ -3728,7 +3728,7 @@ dash-platform-sdk@1.3.0-dev.11:
     "@scure/bip39" "^2.0.0"
     "@scure/btc-signer" "^2.0.1"
     cbor-x "^1.6.0"
-    pshenmic-dpp "1.1.2-dev.4"
+    pshenmic-dpp "1.1.2-dev.8"
 
 dash-ui-kit@^1.0.93:
   version "1.0.93"
@@ -6814,10 +6814,10 @@ proxy-addr@~2.0.7:
     forwarded "0.2.0"
     ipaddr.js "1.9.1"
 
-pshenmic-dpp@1.1.2-dev.4:
-  version "1.1.2-dev.4"
-  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-1.1.2-dev.4.tgz#481157cb2c10a6347ac2947a3eb765b81d0e4344"
-  integrity sha512-4OdOiVyTA+orOmhXj9+/oht00odUW/GKoLMBRyC9HwtrPPnxtXlaQv1JdPkrgbp4Z6BVxJuBJK7qAKmk+8PKFw==
+pshenmic-dpp@1.1.2-dev.8:
+  version "1.1.2-dev.8"
+  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-1.1.2-dev.8.tgz#ecb15836c6ec9cbc994d7535f360e020f10e2e04"
+  integrity sha512-P3czQ6uJYHr7XJ2OSWUH+FNej7Qpa+bz8Ld7+FtUqjGCBpwK6GTGQy1PDmACT9nP8+DXpFTUGu7Au9u66kvcdA==
   dependencies:
     fflate "^0.8.2"
 

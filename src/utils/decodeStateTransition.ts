@@ -4,7 +4,7 @@ import {
   IdentityUpdateTransitionWASM,
   IdentityCreditTransferWASM,
   MasternodeVoteTransitionWASM
-} from 'dash-platform-sdk/src/types'
+} from 'dash-platform-sdk/types'
 import { StateTransitionTypeEnum, DocumentActionEnum, TokenActionEnum } from '../enums'
 import { DecodedStateTransition } from '../types'
 

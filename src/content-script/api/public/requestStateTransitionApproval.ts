@@ -8,7 +8,7 @@ import {
 import {
   RequestStateTransitionApprovalPayload
 } from '../../../types/messages/payloads/RequestStateTransitionApprovalPayload'
-import { StateTransitionWASM } from 'dash-platform-sdk/src/types'
+import { StateTransitionWASM } from 'dash-platform-sdk/types'
 
 export class RequestStateTransitionApprovalHandler implements APIHandler {
   stateTransitionsRepository: StateTransitionsRepository

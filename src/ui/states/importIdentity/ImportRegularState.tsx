@@ -11,7 +11,7 @@ import { TitleBlock } from '../../components/layout/TitleBlock'
 import { Banner } from '../../components/cards'
 import { FieldLabel } from '../../components/typography'
 import { PrivateKeyInput, type PrivateKeyInputData } from '../../components/keys'
-import { PrivateKeyWASM, IdentityWASM } from 'dash-platform-sdk/src/types'
+import { PrivateKeyWASM, IdentityWASM } from 'dash-platform-sdk/types'
 
 function ImportRegularState (): React.JSX.Element {
   const navigate = useNavigate()

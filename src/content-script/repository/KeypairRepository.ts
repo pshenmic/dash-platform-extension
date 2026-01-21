@@ -1,6 +1,6 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { Identity, KeyPair, Wallet, WalletType } from '../../types'
-import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'dash-platform-sdk/src/types'
+import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { KeyPairSchema, KeyPairsSchema } from '../storage/storageSchema'
 import { bytesToHex, deriveKeystorePrivateKey, deriveSeedphrasePrivateKey, hexToBytes } from '../../utils'
 import { encrypt } from 'eciesjs'

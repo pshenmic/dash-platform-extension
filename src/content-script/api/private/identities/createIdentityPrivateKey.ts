@@ -10,7 +10,7 @@ import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { CreateIdentityPrivateKeyPayload } from '../../../../types/messages/payloads/CreateIdentityPrivateKeyPayload'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
-import { IdentityPublicKeyInCreation } from 'dash-platform-sdk/src/types'
+import { IdentityPublicKeyInCreation } from 'dash-platform-sdk/types'
 
 export class CreateIdentityPrivateKeyHandler implements APIHandler {
   walletRepository: WalletRepository

@@ -21,7 +21,7 @@ import { FieldLabel } from '../../components/typography'
 import { PrivateKeyInput, type PrivateKeyInputData } from '../../components/keys'
 import { parsePrivateKey } from '../../../utils'
 import { IdentityPreview } from '../../components/Identities'
-import { PrivateKeyWASM } from 'dash-platform-sdk/src/types'
+import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 
 type KeyType = 'ownerKey' | 'votingKey' | 'payoutKey'
 

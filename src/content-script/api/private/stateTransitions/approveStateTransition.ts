@@ -1,5 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { BatchTransitionWASM, DataContractUpdateTransitionWASM, StateTransitionWASM, IdentityUpdateTransitionWASM } from 'dash-platform-sdk/src/types'
+import { BatchTransitionWASM, DataContractUpdateTransitionWASM, StateTransitionWASM, IdentityUpdateTransitionWASM } from 'dash-platform-sdk/types'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'
