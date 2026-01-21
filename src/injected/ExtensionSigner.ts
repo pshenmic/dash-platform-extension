@@ -1,5 +1,5 @@
 import { StateTransitionWASM } from 'pshenmic-dpp'
-import { hexToBytes, popupWindow, wait } from '../utils'
+import {hexToBytes, popupWindow, validateHex, wait} from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'
 import { PublicAPIClient } from '../types'
@@ -49,7 +49,25 @@ export class ExtensionSigner {
     return { currentIdentity: response.currentIdentity, identities: response.identities }
   }
 
-  async signAndBroadcast (stateTransitionWASM: StateTransitionWASM): Promise<StateTransitionWASM> {
+  async signAndBroadcast (stateTransition: StateTransitionWASM | string | Uint8Array): Promise<StateTransitionWASM> {
+    let stateTransitionWASM: StateTransitionWASM
+
+    // hex or base64
+    if (typeof stateTransition === 'string') {
+      if (validateHex((stateTransition as string).substring(0, 32))) {
+        stateTransitionWASM = StateTransitionWASM.fromHex(stateTransition as string)
+      } else {
+        stateTransitionWASM = StateTransitionWASM.fromBase64(stateTransition as string)
+      }
+      // Uint8Array (bytes)
+    } else if (typeof stateTransition === 'object' && (stateTransition as Uint8Array) instanceof Uint8Array) {
+      stateTransitionWASM = StateTransitionWASM.fromBytes(stateTransition as Uint8Array)
+    } else if (typeof stateTransition === 'object' && (stateTransition as StateTransitionWASM).__type === 'StateTransitionWASM') {
+      stateTransitionWASM = stateTransition as StateTransitionWASM
+    } else {
+      throw new Error("Unrecognized state transition type, must be StateTransitionWASM or string hex or string base64 or Uint8Array")
+    }
+
     let response: RequestStateTransitionApprovalResponse = await this.publicAPIClient.requestTransactionApproval(base64.encode(stateTransitionWASM.bytes()))
 
     popupWindow(response.redirectUrl, 'approval', window, 430, 600)
