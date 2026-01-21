@@ -4,7 +4,7 @@ import { Text, Button, Identifier, Input, InfoCircleIcon } from 'dash-ui-kit/rea
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { WalletType } from '../../../../types'
 import { useExtensionAPI, useSdk, useSigningKeys } from '../../../hooks'
-import { KeyType } from 'pshenmic-dpp'
+import { KeyType } from 'dash-platform-sdk/types'
 import { InfoCard, OverlayMessage } from '../../common'
 import { TransactionSuccessScreen } from '../../layout/TransactionSuccessScreen'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
