@@ -67,9 +67,11 @@ function LoginState (): React.JSX.Element {
 
       <div className='flex flex-col gap-4'>
         <PasswordField
+          ref={passwordRef}
           value={password}
           onChange={setPassword}
           error={error}
+          autoFocus
           className='w-full'
         />
 

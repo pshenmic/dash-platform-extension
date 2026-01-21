@@ -76,10 +76,12 @@ export default function SetupPasswordState (): React.JSX.Element {
 
       <div className='flex flex-col gap-2'>
         <PasswordField
+          ref={passwordRef}
           value={password}
           onChange={setPassword}
           label='Password'
           placeholder='Enter password'
+          autoFocus
         />
 
         <PasswordField
