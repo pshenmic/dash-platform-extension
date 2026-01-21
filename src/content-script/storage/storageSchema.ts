@@ -1,6 +1,7 @@
 export interface KeyPairSchema {
-  // base64
-  identityPublicKey: string
+  keyId: number
+
+  pending: boolean
 
   // hex
   encryptedPrivateKey: string | null
