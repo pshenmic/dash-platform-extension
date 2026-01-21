@@ -11,6 +11,7 @@ import { KeypairRepository } from '../content-script/repository/KeypairRepositor
 export { formatBigNumber }
 export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
+export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
 
 export const hexToBytes = (hex: string): Uint8Array => {

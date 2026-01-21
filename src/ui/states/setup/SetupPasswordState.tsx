@@ -15,9 +15,9 @@ export default function SetupPasswordState (): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false)
   const passwordRef = useRef<HTMLInputElement>(null)
 
-  const goToPassword = () => {
-      passwordRef.current?.focus()
-      passwordRef.current?.select()
+  const goToPassword = (): void => {
+    passwordRef.current?.focus()
+    passwordRef.current?.select()
   }
 
   const handleSetupPassword = async (): Promise<void> => {
