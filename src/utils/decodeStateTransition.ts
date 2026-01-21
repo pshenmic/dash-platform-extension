@@ -4,9 +4,9 @@ import {
   IdentityUpdateTransitionWASM,
   IdentityCreditTransferWASM,
   MasternodeVoteTransitionWASM
-} from 'pshenmic-dpp'
+} from 'dash-platform-sdk/types'
 import { StateTransitionTypeEnum, DocumentActionEnum, TokenActionEnum } from '../enums'
-import type { DecodedStateTransition } from '../types/DecodedStateTransition'
+import { DecodedStateTransition } from '../types'
 
 export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM): DecodedStateTransition => {
   const type = stateTransitionWASM.getActionTypeNumber()
@@ -93,12 +93,20 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
         return out
       })
 
+      const ownerId = stateTransitionWASM.getOwnerId()
+      if (ownerId == null) {
+        throw new Error('Batch transition requires ownerId')
+      }
+
+      const signature = stateTransitionWASM.signature
+      const signatureHex = signature != null ? Buffer.from(signature).toString('hex') : null
+
       return {
         type: StateTransitionTypeEnum.BATCH,
-        ownerId: stateTransitionWASM.getOwnerId().base58(),
+        ownerId: ownerId.base58(),
         transitions,
         signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
-        signature: Buffer.from(stateTransitionWASM.signature).toString('hex'),
+        signature: signatureHex,
         raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
       }
     }
@@ -135,6 +143,9 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
     case StateTransitionTypeEnum.IDENTITY_CREDIT_TRANSFER: {
       const identityCreditTransferTransition = IdentityCreditTransferWASM.fromStateTransition(stateTransitionWASM)
 
+      const signature = stateTransitionWASM.signature
+      const signatureHex = signature != null ? Buffer.from(signature).toString('hex') : null
+
       return {
         type: StateTransitionTypeEnum.IDENTITY_CREDIT_TRANSFER,
         identityNonce: String(identityCreditTransferTransition.nonce),
@@ -143,7 +154,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
         recipientId: identityCreditTransferTransition.recipientId.base58(),
         amount: String(identityCreditTransferTransition.amount),
         signaturePublicKeyId: identityCreditTransferTransition.signaturePublicKeyId,
-        signature: Buffer.from(stateTransitionWASM.signature)?.toString('hex') ?? null,
+        signature: signatureHex,
         raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
       }
     }
@@ -152,6 +163,14 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
       const masternodeVoteTransition = MasternodeVoteTransitionWASM.fromStateTransition(stateTransitionWASM)
 
       const towardsIdentity = masternodeVoteTransition.vote.resourceVoteChoice.getValue()?.base58()
+
+      const ownerId = stateTransitionWASM.getOwnerId()
+      if (ownerId == null) {
+        throw new Error('Masternode vote transition requires ownerId')
+      }
+
+      const signature = stateTransitionWASM.signature
+      const signatureHex = signature != null ? Buffer.from(signature).toString('hex') : null
 
       return {
         type: StateTransitionTypeEnum.MASTERNODE_VOTE,
@@ -163,11 +182,11 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
         indexValues: masternodeVoteTransition.vote.votePoll.indexValues.map((bytes: any) => Buffer.from(bytes).toString('base64')),
         contractId: masternodeVoteTransition.vote.votePoll.contractId.base58(),
         modifiedDataIds: masternodeVoteTransition.modifiedDataIds.map((identifier: any) => identifier.base58()),
-        ownerId: stateTransitionWASM.getOwnerId().base58(),
+        ownerId: ownerId.base58(),
         documentTypeName: masternodeVoteTransition.vote.votePoll.documentTypeName,
         indexName: masternodeVoteTransition.vote.votePoll.indexName,
         signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
-        signature: Buffer.from(stateTransitionWASM.signature ?? []).toString('hex') ?? null,
+        signature: signatureHex,
         raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
       }
     }

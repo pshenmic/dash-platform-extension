@@ -1,4 +1,4 @@
-import { StateTransitionWASM } from 'pshenmic-dpp'
+import { StateTransitionWASM } from 'dash-platform-sdk/types'
 import { hexToBytes, popupWindow, wait } from '../utils'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'
