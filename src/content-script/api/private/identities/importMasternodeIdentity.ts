@@ -1,7 +1,7 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
-import { PrivateKeyWASM } from 'pshenmic-dpp'
+import { PrivateKeyWASM } from 'dash-platform-sdk/src/types'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { validateHex } from '../../../../utils'

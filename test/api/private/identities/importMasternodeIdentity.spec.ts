@@ -7,7 +7,7 @@ import { StorageAdapter } from '../../../../src/content-script/storage/storageAd
 import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
 import { IdentitiesStoreSchema, KeyPairsSchema } from '../../../../src/content-script/storage/storageSchema'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
-import { PrivateKeyWASM } from 'pshenmic-dpp'
+import { PrivateKeyWASM } from 'dash-platform-sdk/src/types'
 
 describe('import masternode identity', () => {
   let privateAPI: PrivateAPI

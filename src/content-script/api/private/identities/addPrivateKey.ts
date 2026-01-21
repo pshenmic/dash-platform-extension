@@ -1,7 +1,7 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
-import { IdentifierWASM, PrivateKeyWASM } from 'pshenmic-dpp'
+import { PrivateKeyWASM } from 'dash-platform-sdk/src/types'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { validateHex } from '../../../../utils'
@@ -66,10 +66,7 @@ export class AddIdentityPrivateKey implements APIHandler {
   }
 
   validatePayload (payload: AddIdentityPrivateKeyPayload): string | null {
-    try {
-      // eslint-disable-next-line no-new
-      new IdentifierWASM(payload.identity)
-    } catch (e) {
+    if (!this.sdk.utils.validateIdentifier(payload.identity)) {
       return 'Could not decode identity identifier'
     }
 

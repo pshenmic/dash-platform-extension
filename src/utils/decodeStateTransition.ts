@@ -4,9 +4,9 @@ import {
   IdentityUpdateTransitionWASM,
   IdentityCreditTransferWASM,
   MasternodeVoteTransitionWASM
-} from 'pshenmic-dpp'
+} from 'dash-platform-sdk/src/types'
 import { StateTransitionTypeEnum, DocumentActionEnum, TokenActionEnum } from '../enums'
-import type { DecodedStateTransition } from '../types/DecodedStateTransition'
+import { DecodedStateTransition } from '../types'
 
 export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM): DecodedStateTransition => {
   const type = stateTransitionWASM.getActionTypeNumber()
@@ -95,7 +95,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
 
       return {
         type: StateTransitionTypeEnum.BATCH,
-        ownerId: stateTransitionWASM.getOwnerId().base58(),
+        ownerId: stateTransitionWASM.getOwnerId() != null ? stateTransitionWASM.getOwnerId().base58() : null,
         transitions,
         signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
         signature: Buffer.from(stateTransitionWASM.signature).toString('hex'),
