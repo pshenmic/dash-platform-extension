@@ -622,7 +622,6 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
               onClick={handleCreateKey}
               colorScheme='lightBlue'
               className='flex-1'
-              disabled
             >
               Create New Key
             </Button>
