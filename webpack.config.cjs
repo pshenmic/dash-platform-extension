@@ -5,12 +5,13 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = (env, argv) => {
   const mode = argv.mode || 'development'
+  const isProduction = mode === 'production'
 
   return ({
     devtool: 'inline-source-map',
     entry: {
       ui: './src/ui/index.tsx',
-      ...(mode === 'production' && {
+      ...(isProduction && {
         'content-script': './src/content-script/index.ts',
         injectExtension: './src/injected/dashPlatformExtension.ts',
         injectSdk: './src/injected/dashPlatformSdk.ts'
@@ -58,6 +59,41 @@ module.exports = (env, argv) => {
         buffer: require.resolve('buffer')
       }
     },
+    optimization: {
+      minimize: isProduction,
+      splitChunks: {
+        chunks (chunk) {
+          // Only split chunks for UI entry - not for content-script or injected scripts
+          return chunk.name === 'ui'
+        },
+        cacheGroups: {
+          // Critical vendors - React core (loads immediately)
+          vendorsCritical: {
+            test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/,
+            name: 'vendors',
+            priority: 20,
+            enforce: true
+          },
+          // UI Kit - can be lazy loaded
+          vendorsUIKit: {
+            test: /[\\/]node_modules[\\/]dash-ui-kit[\\/]/,
+            name: 'vendor-ui-kit',
+            priority: 15,
+            enforce: true
+          },
+          // All other node_modules
+          commons: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            priority: 5
+          }
+        }
+      },
+      runtimeChunk: false, // Don't create separate runtime chunk for extensions
+      moduleIds: 'deterministic', // Better caching
+      usedExports: true, // Tree shaking
+      sideEffects: true // Honor package.json sideEffects flag
+    },
     plugins: [
       new CopyWebpackPlugin({
         patterns: [
@@ -65,20 +101,17 @@ module.exports = (env, argv) => {
             from: './src/ui/assets',
             to: 'assets',
             toType: 'dir'
-          }
-        ]
-      }),
-      new CopyWebpackPlugin({
-        patterns: [
+          },
           { from: 'manifest.json' }
         ]
       }),
       new HtmlWebpackPlugin({
         filename: 'index.html',
-        template: 'src/ui/index.html'
-      }),
-      new webpack.optimize.LimitChunkCountPlugin({
-        maxChunks: 1
+        template: 'src/ui/index.html',
+        chunks: ['vendors', 'content-script', 'ui'], // Vendors → content-script (PrivateAPI) → UI
+        chunksSortMode: 'manual', // Preserve chunk order as specified
+        inject: 'body',
+        scriptLoading: 'blocking' // Ensure correct load order
       }),
       new webpack.ProvidePlugin({
         Buffer: ['buffer', 'Buffer']
@@ -88,6 +121,11 @@ module.exports = (env, argv) => {
       static: {
         directory: path.resolve(__dirname, 'src/ui')
       }
+    },
+    performance: {
+      hints: isProduction ? 'warning' : false,
+      maxEntrypointSize: 3000000,
+      maxAssetSize: 3000000
     }
   })
 }
