@@ -241,7 +241,7 @@ export class KeypairRepository {
     }
 
     return await Promise.all(keyPairs
-      .filter(keyPair => pending === keyPair.pending)
+      .filter(keyPair => keyPair.pending === pending)
       .map(async (keyPair) => {
         const [identityPublicKey] = await this.sdk.identities.getIdentityPublicKeys(identifier, [keyPair.keyId])
 
