@@ -222,7 +222,7 @@ export class KeypairRepository {
     return null
   }
 
-  async getAllByIdentity (identifier: string): Promise<KeyPair[]> {
+  async getAllByIdentity (identifier: string, pending: boolean = false): Promise<KeyPair[]> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
@@ -241,7 +241,7 @@ export class KeypairRepository {
     }
 
     return await Promise.all(keyPairs
-      .filter(keyPair => !keyPair.pending)
+      .filter(keyPair => keyPair.pending === pending)
       .map(async (keyPair) => {
         const [identityPublicKey] = await this.sdk.identities.getIdentityPublicKeys(identifier, [keyPair.keyId])
 
