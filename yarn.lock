@@ -3716,10 +3716,10 @@ csstype@^3.0.2:
   resolved "https://registry.yarnpkg.com/csstype/-/csstype-3.1.3.tgz#d80ff294d114fb0e6ac500fbf85b60137d7eff81"
   integrity sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==
 
-dash-platform-sdk@1.3.0-dev.14:
-  version "1.3.0-dev.14"
-  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.3.0-dev.14.tgz#439506de21e888b130fe910a77866c936001e970"
-  integrity sha512-ZIiR3YD8gjs+8FoCr3bXx5HNCFtfwaUZcItoSHqKT4vJoI9ooxDqESgWZ8aa5AKE7FFpy8cvZS6avRsOIX6N6Q==
+dash-platform-sdk@1.3.0-dev.15:
+  version "1.3.0-dev.15"
+  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.3.0-dev.15.tgz#f877be7720df576ac788dd0b364a5ca65f7557a8"
+  integrity sha512-0QK5B9zZuCis72nne8P6w/K7S4+JfqnFNOBB5OHNfnm4dHXV7tuciB9DAys3c406GJBTe+hmu2mM79yzMWRFpg==
   dependencies:
     "@bufbuild/protobuf" "^2.6.0"
     "@protobuf-ts/grpcweb-transport" "^2.11.1"
