@@ -437,7 +437,7 @@ function ApproveTransactionState (): React.JSX.Element {
           : (stateTransitionWASM != null && (
             <ButtonRow
               leftButton={{
-                text: 'Reject',
+                text: 'Cancel',
                 onClick: reject,
                 colorScheme: 'lightBlue'
               }}
