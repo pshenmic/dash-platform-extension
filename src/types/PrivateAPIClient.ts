@@ -307,16 +307,20 @@ export class PrivateAPIClient {
     const id = generateRandomHex(8)
 
     return await new Promise((resolve, reject) => {
-      const rejectWithError = (message: string): void => {
+      const rejectWithError = (message: string, errorPayload?: any): void => {
         chrome.runtime.onMessage.removeListener(handleMessage)
 
-        reject(message)
+        const error: any = new Error(message)
+        if (errorPayload != null) {
+          error.payload = errorPayload
+        }
+        reject(error)
       }
 
       const handleMessage = (data: EventData): void => {
         if (data.type === 'response' && data.id === id) {
           if (data.error != null) {
-            return rejectWithError(data.error)
+            return rejectWithError(data.error, data.payload)
           }
 
           chrome.runtime.onMessage.removeListener(handleMessage)

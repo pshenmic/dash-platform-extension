@@ -11,6 +11,7 @@ import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionStatus } from '../../../../types/enums/StateTransitionStatus'
 import { Wallet, Identity, WalletType, EventData } from '../../../../types'
 import { StorageAdapter } from '../../../storage/storageAdapter'
+import { BroadcastError } from '../../../errors/BroadcastError'
 
 export class ApproveStateTransitionHandler implements APIHandler {
   keyPairRepository: KeypairRepository
@@ -135,6 +136,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
     const signature = stateTransitionWASM.signature
     const signaturePublicKeyId = stateTransitionWASM.signaturePublicKeyId as number
+    const signedHex = stateTransitionWASM.hex()
 
     if (signature == null) {
       throw new Error('Signature is missing after signing')
@@ -163,7 +165,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       console.log('Failed to broadcast transaction', e)
       await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.error)
 
-      throw e
+      throw new BroadcastError(String(e), signedHex)
     }
 
     return {
