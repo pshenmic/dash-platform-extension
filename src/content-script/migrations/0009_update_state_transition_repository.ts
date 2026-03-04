@@ -21,24 +21,22 @@ export default async function updateStateTransitionRepository (storageAdapter: S
     }))).filter(e => e != null)
 
     for (const wallet of wallets) {
-      if (wallet.type === 'keystore') {
-        const stateTransitionsStoreSchema = await storageAdapter.get(`stateTransitions_${wallet.network}_${wallet.walletId}`) as StateTransitionsStoreSchema ?? {}
+      const stateTransitionsStoreSchema = await storageAdapter.get(`stateTransitions_${wallet.network}_${wallet.walletId}`) as StateTransitionsStoreSchema ?? {}
 
-        for (const unsignedHash of Object.keys(stateTransitionsStoreSchema)) {
-          stateTransitionsStoreSchema[unsignedHash] = {
-            error: null,
-            signature: stateTransitionsStoreSchema[unsignedHash].signature,
-            signaturePublicKeyId: stateTransitionsStoreSchema[unsignedHash].signaturePublicKeyId,
-            signedHash: null,
-            status: stateTransitionsStoreSchema[unsignedHash].status,
-            unsigned: stateTransitionsStoreSchema[unsignedHash].unsigned,
-            // @ts-expect-error
-            unsignedHash: stateTransitionsStoreSchema[unsignedHash].hash
-          }
+      for (const unsignedHash of Object.keys(stateTransitionsStoreSchema)) {
+        stateTransitionsStoreSchema[unsignedHash] = {
+          error: null,
+          signature: stateTransitionsStoreSchema[unsignedHash].signature,
+          signaturePublicKeyId: stateTransitionsStoreSchema[unsignedHash].signaturePublicKeyId,
+          signedHash: null,
+          status: stateTransitionsStoreSchema[unsignedHash].status,
+          unsigned: stateTransitionsStoreSchema[unsignedHash].unsigned,
+          // @ts-expect-error
+          unsignedHash: stateTransitionsStoreSchema[unsignedHash].hash
         }
-
-        await storageAdapter.set(`stateTransitions_${wallet.network}_${wallet.walletId}`, stateTransitionsStoreSchema)
       }
+
+      await storageAdapter.set(`stateTransitions_${wallet.network}_${wallet.walletId}`, stateTransitionsStoreSchema)
     }
 
     await storageAdapter.set('schema_version', SCHEMA_VERSION)
