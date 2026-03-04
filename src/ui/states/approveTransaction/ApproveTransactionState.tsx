@@ -314,7 +314,7 @@ function ApproveTransactionState (): React.JSX.Element {
       if (error?.payload?.signedHex != null) {
         setRawTransactionHex(error.payload.signedHex)
       }
-      
+
       setPasswordError(`Signing failed: ${error.toString() as string}`)
     } finally {
       setIsSigningInProgress(false)

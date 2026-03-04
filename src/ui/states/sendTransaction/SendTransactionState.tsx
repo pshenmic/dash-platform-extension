@@ -187,7 +187,7 @@ function SendTransactionState (): React.JSX.Element {
         // Create the state transition
         const response = await extensionAPI.createStateTransition(stateTransitionBase64)
 
-        void navigate(`/approve/${response.stateTransition.hash}`, {
+        void navigate(`/approve/${response.stateTransition.unsignedHash}`, {
           state: {
             disableIdentitySelect: true,
             showBackButton: true,
@@ -230,7 +230,7 @@ function SendTransactionState (): React.JSX.Element {
         const stateTransitionBytes = stateTransition.bytes()
         const stateTransitionBase64 = base64.encode(stateTransitionBytes)
         const response = await extensionAPI.createStateTransition(stateTransitionBase64)
-        void navigate(`/approve/${response.stateTransition.hash}`, {
+        void navigate(`/approve/${response.stateTransition.unsignedHash}`, {
           state: {
             disableIdentitySelect: true,
             showBackButton: true,
