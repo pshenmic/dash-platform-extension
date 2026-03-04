@@ -33,7 +33,7 @@ export class StateTransitionsRepository {
     const stateTransitions = (await this.storageAdapter.get(storageKey) ?? {}) as StateTransitionsStoreSchema
 
     if (stateTransitions[unsignedHash] != null) {
-      throw new Error(`State transition with hash ${hash} already exists`)
+      throw new Error(`State transition with hash ${unsignedHash} already exists`)
     }
 
     const stateTransition: StateTransitionStoreSchema = {
@@ -84,7 +84,7 @@ export class StateTransitionsRepository {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
-    const unsingedHash = stateTransitionWASM.hash(true)
+    const unsignedHash = stateTransitionWASM.hash(true)
 
     if (walletId == null) {
       throw new Error('Wallet is not chosen')
@@ -94,11 +94,11 @@ export class StateTransitionsRepository {
 
     const stateTransitions = (await this.storageAdapter.get(storageKey) ?? {}) as StateTransitionsStoreSchema
 
-    if (stateTransitions[unsingedHash] == null) {
-      throw new Error(`State transition with hash ${hash} does not exist`)
+    if (stateTransitions[unsignedHash] == null) {
+      throw new Error(`State transition with hash ${unsignedHash} does not exist`)
     }
 
-    const stateTransition: StateTransitionStoreSchema = stateTransitions[unsingedHash]
+    const stateTransition: StateTransitionStoreSchema = stateTransitions[unsignedHash]
 
     if (status === StateTransitionStatus.approved) {
       const {signature, signaturePublicKeyId} = stateTransitionWASM
@@ -113,8 +113,9 @@ export class StateTransitionsRepository {
     }
 
     stateTransition.status = status
+    stateTransition.error = error ?? null
 
-    stateTransitions[unsingedHash] = stateTransition
+    stateTransitions[unsignedHash] = stateTransition
 
     await this.storageAdapter.set(storageKey, stateTransitions)
 
