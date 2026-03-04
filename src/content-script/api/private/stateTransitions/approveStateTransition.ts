@@ -12,7 +12,7 @@ import { StateTransitionStatus } from '../../../../types/enums/StateTransitionSt
 import { Wallet, Identity, WalletType, EventData } from '../../../../types'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { BroadcastError } from '../../../errors/BroadcastError'
-import { SigningError } from "../../../errors/SigningError";
+import { SigningError } from '../../../errors/SigningError'
 
 export class ApproveStateTransitionHandler implements APIHandler {
   keyPairRepository: KeypairRepository
@@ -127,7 +127,6 @@ export class ApproveStateTransitionHandler implements APIHandler {
     if (stateTransition == null) {
       throw new Error(`Could not find state transition with hash ${payload.hash} for signing`)
     }
-
 
     let stateTransitionWASM
 

@@ -6,7 +6,7 @@ import { validateHex } from '../../../../utils'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { StateTransitionStatus } from '../../../../types/enums/StateTransitionStatus'
-import {StateTransitionWASM} from "dash-platform-sdk/types";
+import { StateTransitionWASM } from 'dash-platform-sdk/types'
 
 export class RejectStateTransitionHandler implements APIHandler {
   stateTransitionsRepository: StateTransitionsRepository

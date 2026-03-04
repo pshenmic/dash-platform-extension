@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
-import { base64 as base64Decoder, hex } from '@scure/base'
+import { base64 as base64Decoder } from '@scure/base'
 import { Text, Button, ValueCard, Identifier } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { Banner } from '../../components/cards'
@@ -370,15 +370,15 @@ function ApproveTransactionState (): React.JSX.Element {
     <div className='screen-content'>
       <div className='flex flex-col gap-6'>
         <TitleBlock
-          title={<>Transaction<br/>Approval</>}
+          title={<>Transaction<br />Approval</>}
           description='Carefully check the transaction details before signing'
           showLogo={false}
         />
 
         {/* Transaction details */}
-        {isLoadingTransaction && <Banner variant='info' message='Loading transaction...'/>}
-        {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash'/>}
-        <Banner variant='error' message={transactionDecodeError}/>
+        {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
+        {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
+        <Banner variant='error' message={transactionDecodeError} />
 
         {/* Decoded transaction details */}
         {decodedTransaction != null && (
@@ -437,7 +437,7 @@ function ApproveTransactionState (): React.JSX.Element {
                 {signingErrorDetails.name}
               </FieldLabel>
               <ValueCard colorScheme='yellow' size='xl' border={false} className='flex flex-col gap-2'>
-                <Text size={'sm'}>
+                <Text size='sm'>
                   {signingErrorDetails.message}
                 </Text>
               </ValueCard>
@@ -447,7 +447,7 @@ function ApproveTransactionState (): React.JSX.Element {
                 <FieldLabel>
                   Transaction Hex
                 </FieldLabel>
-                <ValueCard colorScheme={'lightGray'} size={'xl'} border={false} className='flex flex-col gap-2'>
+                <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col gap-2'>
                   <Identifier copyButton linesAdjustment={false}>
                     {signingErrorDetails.hex}
                   </Identifier>
@@ -469,7 +469,7 @@ function ApproveTransactionState (): React.JSX.Element {
                 Close
               </Button>
             </div>
-          )
+            )
           : (stateTransitionWASM != null && (
             <ButtonRow
               leftButton={{
@@ -486,7 +486,7 @@ function ApproveTransactionState (): React.JSX.Element {
                 disabled: isSigningInProgress || selectedSigningKey === null
               }}
             />
-          ))}
+            ))}
       </div>
     </div>
   )

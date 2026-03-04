@@ -4,7 +4,7 @@ import { StateTransitionWASM } from 'dash-platform-sdk/types'
 import { base64 } from '@scure/base'
 import { StateTransitionsStoreSchema, StateTransitionStoreSchema } from '../storage/storageSchema'
 import { StateTransition } from '../../types'
-import {bytesToHex} from "../../utils";
+import { bytesToHex } from '../../utils'
 
 export class StateTransitionsRepository {
   storageAdapter: StorageAdapter
@@ -101,7 +101,7 @@ export class StateTransitionsRepository {
     const stateTransition: StateTransitionStoreSchema = stateTransitions[unsignedHash]
 
     if (status === StateTransitionStatus.approved) {
-      const {signature, signaturePublicKeyId} = stateTransitionWASM
+      const { signature, signaturePublicKeyId } = stateTransitionWASM
 
       if (signature == null || signaturePublicKeyId == null) {
         throw new Error('Signature is not available after approval')
