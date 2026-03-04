@@ -32,7 +32,6 @@ function ApproveTransactionState (): React.JSX.Element {
   const returnToHome = location.state?.returnToHome === true
 
   const [transactionDecodeError, setTransactionDecodeError] = useState<string | null>(null)
-  const [rawTransactionHex, setRawTransactionHex] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
   const [isLoadingTransaction, setIsLoadingTransaction] = useState<boolean>(false)
   const [transactionNotFound, setTransactionNotFound] = useState<boolean>(false)
@@ -41,6 +40,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const [password, setPassword] = useState<string>('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [isSigningInProgress, setIsSigningInProgress] = useState<boolean>(false)
+  const [signingErrorDetails, setSigningErrorDetails] = useState<{ name: string, message: string, hex: string | null } | null>(null)
   const [isLoadingIdentities, setIsLoadingIdentities] = useState<boolean>(true)
   const [isCheckingWallet, setIsCheckingWallet] = useState<boolean>(true)
   const [hasWallet, setHasWallet] = useState<boolean>(false)
@@ -126,7 +126,6 @@ function ApproveTransactionState (): React.JSX.Element {
 
           try {
             const rawBytes = base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)
-            setRawTransactionHex(hex.encode(rawBytes))
             receivedStateTransitionWASM = StateTransitionWASM.fromBytes(rawBytes)
             setStateTransitionWASM(receivedStateTransitionWASM)
           } catch (e) {
@@ -281,6 +280,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
     setIsSigningInProgress(true)
     setPasswordError(null)
+    setSigningErrorDetails(null)
 
     try {
       if (stateTransitionWASM == null) {
@@ -310,12 +310,11 @@ function ApproveTransactionState (): React.JSX.Element {
 
       setTxHash(response.txHash)
     } catch (error: any) {
-      // Extract signedHex from error payload if available (e.g., broadcast errors)
-      if (error?.payload?.signedHex != null) {
-        setRawTransactionHex(error.payload.signedHex)
-      }
-
-      setPasswordError(`Signing failed: ${error.toString() as string}`)
+      setSigningErrorDetails({
+        name: error?.name ?? 'Error',
+        message: error?.message ?? String(error),
+        hex: error?.payload?.signedHex ?? null
+      })
     } finally {
       setIsSigningInProgress(false)
     }
@@ -370,15 +369,15 @@ function ApproveTransactionState (): React.JSX.Element {
     <div className='screen-content'>
       <div className='flex flex-col gap-6'>
         <TitleBlock
-          title={<>Transaction<br />Approval</>}
+          title={<>Transaction<br/>Approval</>}
           description='Carefully check the transaction details before signing'
           showLogo={false}
         />
 
         {/* Transaction details */}
-        {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
-        {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
-        <Banner variant='error' message={transactionDecodeError} />
+        {isLoadingTransaction && <Banner variant='info' message='Loading transaction...'/>}
+        {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash'/>}
+        <Banner variant='error' message={transactionDecodeError}/>
 
         {/* Decoded transaction details */}
         {decodedTransaction != null && (
@@ -429,18 +428,32 @@ function ApproveTransactionState (): React.JSX.Element {
           />
         )}
 
-        {/* Raw transaction hex when any error occurs */}
-        {(transactionDecodeError != null || passwordError != null) && rawTransactionHex != null && (
-          <div className='flex flex-col gap-2'>
-            <FieldLabel>
-              Transaction Hex
-            </FieldLabel>
-            <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col gap-2'>
-              <Identifier copyButton linesAdjustment={false}>
-                {rawTransactionHex}
-              </Identifier>
-            </ValueCard>
-          </div>
+        {/* Error details */}
+        {signingErrorDetails != null && (
+          <>
+            <div className='flex flex-col gap-2'>
+              <FieldLabel>
+                {signingErrorDetails.name}
+              </FieldLabel>
+              <ValueCard colorScheme='yellow' size='xl' border={false} className='flex flex-col gap-2'>
+                <Text size={'sm'}>
+                  {signingErrorDetails.message}
+                </Text>
+              </ValueCard>
+            </div>
+            {signingErrorDetails.hex != null && (
+              <div className='flex flex-col gap-2'>
+                <FieldLabel>
+                  Transaction Hex
+                </FieldLabel>
+                <ValueCard colorScheme={'lightGray'} size={'xl'} border={false} className='flex flex-col gap-2'>
+                  <Identifier copyButton linesAdjustment={false}>
+                    {signingErrorDetails.hex}
+                  </Identifier>
+                </ValueCard>
+              </div>
+            )}
+          </>
         )}
 
         {/* Buttons */}
@@ -455,7 +468,7 @@ function ApproveTransactionState (): React.JSX.Element {
                 Close
               </Button>
             </div>
-            )
+          )
           : (stateTransitionWASM != null && (
             <ButtonRow
               leftButton={{
@@ -465,12 +478,14 @@ function ApproveTransactionState (): React.JSX.Element {
               }}
               rightButton={{
                 text: isSigningInProgress ? 'Signing...' : 'Sign',
-                onClick: () => { doSign().catch(e => console.log('doSign', e)) },
+                onClick: () => {
+                  doSign().catch(e => console.log('doSign', e))
+                },
                 colorScheme: 'brand',
                 disabled: isSigningInProgress || selectedSigningKey === null
               }}
             />
-            ))}
+          ))}
       </div>
     </div>
   )
