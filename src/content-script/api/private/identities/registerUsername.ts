@@ -1,7 +1,6 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData, WalletType } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
-import { IdentifierWASM } from 'pshenmic-dpp'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { deriveKeystorePrivateKey, deriveSeedphrasePrivateKey } from '../../../../utils'
@@ -52,10 +51,7 @@ export class RegisterUsernameHandler implements APIHandler {
   }
 
   validatePayload (payload: RegisterUsernamePayload): string | null {
-    try {
-      // eslint-disable-next-line no-new
-      new IdentifierWASM(payload.identity)
-    } catch (e) {
+    if (!this.sdk.utils.validateIdentifier(payload.identity)) {
       return 'Could not decode identity identifier'
     }
 

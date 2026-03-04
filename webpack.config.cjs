@@ -7,6 +7,7 @@ module.exports = (env, argv) => {
   const mode = argv.mode || 'development'
 
   return ({
+    devtool: 'inline-source-map',
     entry: {
       ui: './src/ui/index.tsx',
       ...(mode === 'production' && {

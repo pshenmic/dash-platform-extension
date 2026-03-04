@@ -1,5 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { BatchTransitionWASM, DataContractUpdateTransitionWASM, IdentityUpdateTransitionWASM, StateTransitionWASM } from 'pshenmic-dpp'
+import { BatchTransitionWASM, DataContractUpdateTransitionWASM, StateTransitionWASM, IdentityUpdateTransitionWASM } from 'dash-platform-sdk/types'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'
@@ -39,8 +39,14 @@ export class ApproveStateTransitionHandler implements APIHandler {
   async sign (stateTransitionBase64: string, wallet: Wallet, identity: Identity, keyId: number, password: string): Promise<StateTransitionWASM> {
     const stateTransitionWASM = StateTransitionWASM.fromBase64(stateTransitionBase64)
 
+    const ownerId = stateTransitionWASM.getOwnerId()
+
+    if (ownerId == null) {
+      throw new Error('Owner ID is missing from state transition')
+    }
+
     // handle changed owner from approve transaction screen
-    if (stateTransitionWASM.getOwnerId().base58() !== identity.identifier) {
+    if (ownerId.base58() !== identity.identifier) {
       if (stateTransitionWASM.getActionType() === 'IDENTITY_CREATE') {
         throw new Error('Incorrect owner used for IdentityCreate transaction, changing is prohibited')
       }
@@ -122,10 +128,19 @@ export class ApproveStateTransitionHandler implements APIHandler {
     }
 
     const stateTransitionWASM = await this.sign(stateTransition.unsigned, wallet, identity, payload.keyId, payload.password)
+    const ownerId = stateTransitionWASM.getOwnerId()
+
+    if (ownerId == null) {
+      throw new Error('Owner ID is missing from state transition during sign')
+    }
 
     const signature = stateTransitionWASM.signature
     const signaturePublicKeyId = stateTransitionWASM.signaturePublicKeyId as number
     const signedHex = stateTransitionWASM.hex()
+
+    if (signature == null) {
+      throw new Error('Signature is missing after signing')
+    }
 
     try {
       await this.sdk.stateTransitions.broadcast(stateTransitionWASM)
@@ -138,12 +153,12 @@ export class ApproveStateTransitionHandler implements APIHandler {
 
       if (wallet.type === WalletType.keystore && actionType === 'IDENTITY_UPDATE') {
         const { publicKeyIdsToAdd } = IdentityUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
-        const keyPairs = await this.keyPairRepository.getAllByIdentity(stateTransitionWASM.getOwnerId().base58())
+        const keyPairs = await this.keyPairRepository.getAllByIdentity(ownerId.base58(), true)
         const matchedKeyPairs = keyPairs
           .filter((keyPair) => publicKeyIdsToAdd.some(publicKeyIdToAdd => publicKeyIdToAdd.keyId === keyPair.keyId))
 
         for (const keyPair of matchedKeyPairs) {
-          await this.keyPairRepository.unmarkPending(stateTransitionWASM.getOwnerId().base58(), keyPair.keyId)
+          await this.keyPairRepository.unmarkPending(ownerId.base58(), keyPair.keyId)
         }
       }
     } catch (e) {

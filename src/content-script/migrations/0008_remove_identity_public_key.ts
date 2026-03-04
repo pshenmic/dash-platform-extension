@@ -1,7 +1,7 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { IdentitiesStoreSchema, KeyPairsSchema, WalletStoreSchema } from '../storage/storageSchema'
 import { SCHEMA_VERSION } from '../../constants'
-import { IdentityPublicKeyWASM } from 'pshenmic-dpp'
+import { IdentityPublicKeyWASM } from 'dash-platform-sdk/types'
 
 export default async function removeIdentityPublicKey (storageAdapter: StorageAdapter): Promise<void> {
   const schemaVersion = await storageAdapter.get('schema_version') as number

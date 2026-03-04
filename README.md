@@ -24,8 +24,14 @@ interface for developers to integrate their application and create transactions.
 
 ## Versioning
 
-### 1.2.x (WIP)
+### 1.3.x (WIP)
 - Identities Registration from seedphrase
+
+### 1.2.x (WIP)
+- Identity Public Keys management (create new keys)
+- Export private key
+- Details on Transaction Approval screen
+- SDK improvements
 
 ### 1.1.x (in stores)
 - Masternode Identities
