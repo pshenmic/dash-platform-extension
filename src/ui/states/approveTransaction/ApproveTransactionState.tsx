@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { Text, Button, ValueCard, Identifier } from 'dash-ui-kit/react'
+import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { Banner } from '../../components/cards'
 import ButtonRow from '../../components/layout/ButtonRow'
@@ -17,6 +17,7 @@ import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
 import { TransactionDetails } from './details'
 import { decodeStateTransition } from '../../../utils/decodeStateTransition'
+import { SigningErrorDetails } from '../../components/errors'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -431,30 +432,11 @@ function ApproveTransactionState (): React.JSX.Element {
 
         {/* Error details */}
         {signingErrorDetails != null && (
-          <>
-            <div className='flex flex-col gap-2'>
-              <FieldLabel>
-                {signingErrorDetails.name}
-              </FieldLabel>
-              <ValueCard colorScheme='yellow' size='xl' border={false} className='flex flex-col gap-2'>
-                <Text size='sm'>
-                  {signingErrorDetails.message}
-                </Text>
-              </ValueCard>
-            </div>
-            {signingErrorDetails.hex != null && (
-              <div className='flex flex-col gap-2'>
-                <FieldLabel>
-                  Transaction Hex
-                </FieldLabel>
-                <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col gap-2'>
-                  <Identifier copyButton linesAdjustment={false}>
-                    {signingErrorDetails.hex}
-                  </Identifier>
-                </ValueCard>
-              </div>
-            )}
-          </>
+          <SigningErrorDetails
+            name={signingErrorDetails.name}
+            message={signingErrorDetails.message}
+            hex={signingErrorDetails.hex}
+          />
         )}
 
         {/* Buttons */}
