@@ -265,6 +265,9 @@ function ApproveTransactionState (): React.JSX.Element {
   }
 
   const doSign = async (): Promise<void> => {
+    setPasswordError(null)
+    setSigningErrorDetails(null)
+
     if (stateTransitionWASM == null) {
       throw new Error('stateTransitionWASM is null')
     }
@@ -279,8 +282,6 @@ function ApproveTransactionState (): React.JSX.Element {
     }
 
     setIsSigningInProgress(true)
-    setPasswordError(null)
-    setSigningErrorDetails(null)
 
     try {
       if (stateTransitionWASM == null) {
