@@ -47,6 +47,7 @@ import { RequestStateTransitionApprovalPayload } from './messages/payloads/Reque
 import { CreateStateTransitionResponse } from './messages/response/CreateStateTransitionResponse'
 import { CreateIdentityPrivateKeyPayload } from './messages/payloads/CreateIdentityPrivateKeyPayload'
 import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIdentityPrivateKeyResponse'
+import { RequestOneTimeAddressResponse } from './messages/response/RequestOneTimeAddressResponse'
 
 export class PrivateAPIClient {
   constructor () {
@@ -301,6 +302,12 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY, payload)
+  }
+
+  async requestOneTimeAddress (): Promise<string> {
+    const response: RequestOneTimeAddressResponse = await this._rpcCall(MessagingMethods.REQUEST_ONE_TIME_ADDRESS, {})
+
+    return response.address
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {

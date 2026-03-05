@@ -54,3 +54,12 @@ export interface AppConnectStorageSchema {
 export interface AppConnectsStorageSchema {
   [id: string]: AppConnectStorageSchema
 }
+
+export interface OneTimeAddressSchema {
+  address: string
+  encryptedPrivateKey: string
+}
+
+export interface OneTimeAddressesSchema {
+  [address: string]: OneTimeAddressSchema
+}
