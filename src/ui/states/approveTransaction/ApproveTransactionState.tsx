@@ -437,13 +437,13 @@ function ApproveTransactionState (): React.JSX.Element {
           : (stateTransitionWASM != null && (
             <ButtonRow
               leftButton={{
-                text: 'Reject',
+                text: 'Cancel',
                 onClick: reject,
                 colorScheme: 'lightBlue'
               }}
               rightButton={{
                 text: isSigningInProgress ? 'Signing...' : 'Sign',
-                onClick: () => { doSign().catch(e => console.log('doSign', e)) },
+                onClick: () => { void doSign() },
                 colorScheme: 'brand',
                 disabled: isSigningInProgress || selectedSigningKey === null
               }}
