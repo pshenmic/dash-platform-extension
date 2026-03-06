@@ -54,10 +54,10 @@ export class ExtensionSigner {
 
     // hex or base64
     if (typeof stateTransition === 'string') {
-      if (validateHex((stateTransition as string).substring(0, 32))) {
-        stateTransitionWASM = StateTransitionWASM.fromHex(stateTransition as string)
+      if (validateHex((stateTransition).substring(0, 32))) {
+        stateTransitionWASM = StateTransitionWASM.fromHex(stateTransition)
       } else {
-        stateTransitionWASM = StateTransitionWASM.fromBase64(stateTransition as string)
+        stateTransitionWASM = StateTransitionWASM.fromBase64(stateTransition)
       }
       // Uint8Array (bytes)
     } else if (typeof stateTransition === 'object' && (stateTransition as Uint8Array) instanceof Uint8Array) {
@@ -65,7 +65,7 @@ export class ExtensionSigner {
     } else if (typeof stateTransition === 'object' && (stateTransition as StateTransitionWASM).__type === 'StateTransitionWASM') {
       stateTransitionWASM = stateTransition as StateTransitionWASM
     } else {
-      throw new Error("Unrecognized state transition type, must be StateTransitionWASM or string hex or string base64 or Uint8Array")
+      throw new Error('Unrecognized state transition type, must be StateTransitionWASM or string hex or string base64 or Uint8Array')
     }
 
     let response: RequestStateTransitionApprovalResponse = await this.publicAPIClient.requestTransactionApproval(base64.encode(stateTransitionWASM.bytes()))

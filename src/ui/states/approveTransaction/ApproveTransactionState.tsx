@@ -17,6 +17,7 @@ import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
 import { TransactionDetails } from './details'
 import { decodeStateTransition } from '../../../utils/decodeStateTransition'
+import { SigningErrorDetails } from '../../components/errors'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -40,6 +41,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const [password, setPassword] = useState<string>('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [isSigningInProgress, setIsSigningInProgress] = useState<boolean>(false)
+  const [signingErrorDetails, setSigningErrorDetails] = useState<{ name: string, message: string, hex: string | null } | null>(null)
   const [isLoadingIdentities, setIsLoadingIdentities] = useState<boolean>(true)
   const [isCheckingWallet, setIsCheckingWallet] = useState<boolean>(true)
   const [hasWallet, setHasWallet] = useState<boolean>(false)
@@ -124,7 +126,8 @@ function ApproveTransactionState (): React.JSX.Element {
           let receivedStateTransitionWASM: StateTransitionWASM
 
           try {
-            receivedStateTransitionWASM = StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned))
+            const rawBytes = base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)
+            receivedStateTransitionWASM = StateTransitionWASM.fromBytes(rawBytes)
             setStateTransitionWASM(receivedStateTransitionWASM)
           } catch (e) {
             console.log('Error decoding state transition:', e)
@@ -263,6 +266,9 @@ function ApproveTransactionState (): React.JSX.Element {
   }
 
   const doSign = async (): Promise<void> => {
+    setPasswordError(null)
+    setSigningErrorDetails(null)
+
     if (stateTransitionWASM == null) {
       throw new Error('stateTransitionWASM is null')
     }
@@ -277,7 +283,6 @@ function ApproveTransactionState (): React.JSX.Element {
     }
 
     setIsSigningInProgress(true)
-    setPasswordError(null)
 
     try {
       if (stateTransitionWASM == null) {
@@ -306,8 +311,12 @@ function ApproveTransactionState (): React.JSX.Element {
       }
 
       setTxHash(response.txHash)
-    } catch (error) {
-      setPasswordError(`Signing failed: ${error.toString() as string}`)
+    } catch (error: any) {
+      setSigningErrorDetails({
+        name: error?.name ?? 'Error',
+        message: error?.message ?? String(error),
+        hex: error?.payload?.signedHex ?? null
+      })
     } finally {
       setIsSigningInProgress(false)
     }
@@ -418,6 +427,15 @@ function ApproveTransactionState (): React.JSX.Element {
             placeholder='Your Password'
             error={passwordError}
             variant='outlined'
+          />
+        )}
+
+        {/* Error details */}
+        {signingErrorDetails != null && (
+          <SigningErrorDetails
+            name={signingErrorDetails.name}
+            message={signingErrorDetails.message}
+            hex={signingErrorDetails.hex}
           />
         )}
 

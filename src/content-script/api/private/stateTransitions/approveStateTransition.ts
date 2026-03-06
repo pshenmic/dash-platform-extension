@@ -4,13 +4,15 @@ import { StateTransitionsRepository } from '../../../repository/StateTransitions
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'
 import { ApproveStateTransitionPayload } from '../../../../types/messages/payloads/ApproveStateTransitionPayload'
-import { bytesToHex, deriveKeystorePrivateKey, deriveSeedphrasePrivateKey, validateHex, validateIdentifier } from '../../../../utils'
+import { deriveKeystorePrivateKey, deriveSeedphrasePrivateKey, validateHex, validateIdentifier } from '../../../../utils'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionStatus } from '../../../../types/enums/StateTransitionStatus'
 import { Wallet, Identity, WalletType, EventData } from '../../../../types'
 import { StorageAdapter } from '../../../storage/storageAdapter'
+import { BroadcastError } from '../../../errors/BroadcastError'
+import { SigningError } from '../../../errors/SigningError'
 
 export class ApproveStateTransitionHandler implements APIHandler {
   keyPairRepository: KeypairRepository
@@ -126,7 +128,14 @@ export class ApproveStateTransitionHandler implements APIHandler {
       throw new Error(`Could not find state transition with hash ${payload.hash} for signing`)
     }
 
-    const stateTransitionWASM = await this.sign(stateTransition.unsigned, wallet, identity, payload.keyId, payload.password)
+    let stateTransitionWASM
+
+    try {
+      stateTransitionWASM = await this.sign(stateTransition.unsigned, wallet, identity, payload.keyId, payload.password)
+    } catch (e) {
+      throw new SigningError(e.message)
+    }
+
     const ownerId = stateTransitionWASM.getOwnerId()
 
     if (ownerId == null) {
@@ -134,7 +143,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
     }
 
     const signature = stateTransitionWASM.signature
-    const signaturePublicKeyId = stateTransitionWASM.signaturePublicKeyId as number
+    const signedHex = stateTransitionWASM.hex()
 
     if (signature == null) {
       throw new Error('Signature is missing after signing')
@@ -144,7 +153,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       await this.sdk.stateTransitions.broadcast(stateTransitionWASM)
       await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransitionWASM)
 
-      await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.approved, bytesToHex(signature), signaturePublicKeyId)
+      await this.stateTransitionsRepository.update(stateTransitionWASM, StateTransitionStatus.approved)
 
       // Check for pending keys (from keystore wallet key creation) and save them
       const actionType = stateTransitionWASM.getActionType()
@@ -161,13 +170,13 @@ export class ApproveStateTransitionHandler implements APIHandler {
       }
     } catch (e) {
       console.log('Failed to broadcast transaction', e)
-      await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.error)
+      await this.stateTransitionsRepository.update(stateTransitionWASM, StateTransitionStatus.error, e.message)
 
-      throw e
+      throw new BroadcastError(e.message, signedHex)
     }
 
     return {
-      txHash: stateTransitionWASM.hash(true)
+      txHash: stateTransitionWASM.hash(false)
     }
   }
 
