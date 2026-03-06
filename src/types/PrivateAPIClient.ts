@@ -47,6 +47,7 @@ import { RequestStateTransitionApprovalPayload } from './messages/payloads/Reque
 import { CreateStateTransitionResponse } from './messages/response/CreateStateTransitionResponse'
 import { CreateIdentityPrivateKeyPayload } from './messages/payloads/CreateIdentityPrivateKeyPayload'
 import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIdentityPrivateKeyResponse'
+import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -101,6 +102,12 @@ export class PrivateAPIClient {
     const payload: SwitchWalletPayload = { walletId }
 
     return await this._rpcCall(MessagingMethods.SWITCH_WALLET, payload)
+  }
+
+  async removeWallet (walletId: string, password: string): Promise<void> {
+    const payload: RemoveWalletPayload = { walletId, password }
+
+    await this._rpcCall(MessagingMethods.REMOVE_WALLET, payload)
   }
 
   async importIdentity (identity: string, privateKeys: string[]): Promise<void> {
