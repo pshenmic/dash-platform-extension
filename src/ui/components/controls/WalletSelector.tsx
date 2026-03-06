@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { OverlayMenu, PlusIcon, WalletIcon, ValueCard, DeleteIcon, EditIcon, KebabMenuIcon } from 'dash-ui-kit/react'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'
@@ -21,11 +21,27 @@ interface ActiveKebab {
   pos: { top: number, left: number }
 }
 
+const walletLabel = (wallet: WalletAccountInfo, index: number): string =>
+  wallet.label ?? `Wallet_${index + 1}`
+
+const IconWrap: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className='w-4 h-4 flex items-center justify-center'>{children}</div>
+)
+
 export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemoved, currentNetwork, currentWalletId, wallets = [] }) => {
   const navigate = useNavigate()
   const api = useExtensionAPI()
-  const availableWallets = wallets.filter(wallet => wallet.network === currentNetwork)
-  const currentWallet = availableWallets.find(wallet => wallet.walletId === currentWalletId)
+
+  const availableWallets = useMemo(
+    () => wallets.filter(w => w.network === currentNetwork),
+    [wallets, currentNetwork]
+  )
+
+  const currentWalletIndex = useMemo(
+    () => availableWallets.findIndex(w => w.walletId === currentWalletId),
+    [availableWallets, currentWalletId]
+  )
+  const currentWallet = currentWalletIndex >= 0 ? availableWallets[currentWalletIndex] : undefined
 
   const [walletToRemove, setWalletToRemove] = useState<{ wallet: WalletAccountInfo, index: number } | null>(null)
   const [isRemoving, setIsRemoving] = useState(false)
@@ -34,12 +50,17 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
 
   useEffect(() => {
     if (activeKebab == null) return
-
     const close = (): void => setActiveKebab(null)
-
     window.addEventListener('scroll', close, true)
     return () => window.removeEventListener('scroll', close, true)
   }, [activeKebab])
+
+  const handleKebabClick = useCallback((e: React.MouseEvent<HTMLButtonElement>, wallet: WalletAccountInfo, index: number): void => {
+    e.stopPropagation()
+    e.preventDefault()
+    const rect = e.currentTarget.getBoundingClientRect()
+    setActiveKebab({ wallet, index, pos: { top: rect.bottom - 20, left: rect.right - (KEBAB_MENU_WIDTH / 2) - (rect.width / 2) } })
+  }, [])
 
   const handleRemove = async (password?: string): Promise<void> => {
     if (walletToRemove == null || password == null) return
@@ -50,9 +71,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
     try {
       await api.removeWallet(walletToRemove.wallet.walletId, password)
       setWalletToRemove(null)
-      if (currentWalletId === walletToRemove.wallet.walletId) {
-        onSelect?.(null)
-      }
+      if (currentWalletId === walletToRemove.wallet.walletId) onSelect?.(null)
       onRemoved?.()
     } catch (err) {
       setRemoveError(err instanceof Error ? err.message : 'Failed to remove wallet')
@@ -62,36 +81,26 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
     }
   }
 
-  if (currentWalletId == null || availableWallets.length === 0 || (currentWallet == null)) {
-    if (availableWallets.length === 0) {
-      return (
-        <ValueCard
-          size='md'
-          className='flex gap-1 h-12'
-          clickable='true'
-          onClick={() => {
-            void navigate('/choose-wallet-type')
-          }}
-        >
-          <div className='w-4 h-4 flex items-center justify-center'>
-            <PlusIcon className='w-full h-full text-gray-900' />
-          </div>
-          <span className='text-sm font-light text-gray-900'>Add wallet</span>
-        </ValueCard>
-      )
-    }
-
-    return null
+  if (availableWallets.length === 0) {
+    return (
+      <ValueCard
+        size='md'
+        className='flex gap-1 h-12'
+        clickable='true'
+        onClick={() => { void navigate('/choose-wallet-type') }}
+      >
+        <IconWrap><PlusIcon className='w-full h-full text-gray-900' /></IconWrap>
+        <span className='text-sm font-light text-gray-900'>Add wallet</span>
+      </ValueCard>
+    )
   }
 
-  const currentWalletIndex = availableWallets.findIndex(wallet => wallet.walletId === currentWalletId)
+  if (currentWalletId == null || currentWallet == null) return null
 
   const triggerContent = (
     <div className='flex items-center gap-2'>
       <WalletIcon className='!text-dash-primary-dark-blue' size={16} />
-      <span className='text-sm font-medium'>
-        {currentWallet.label ?? `Wallet_${currentWalletIndex + 1}`}
-      </span>
+      <span className='text-sm font-medium'>{walletLabel(currentWallet, currentWalletIndex)}</span>
     </div>
   )
 
@@ -101,22 +110,13 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
       content: (
         <div className='flex items-center justify-between w-full'>
           <div className='flex items-center gap-2'>
-            <div className='w-4 h-4 flex items-center justify-center'>
-              <WalletIcon className='w-full h-full' />
-            </div>
-            <span className='text-sm'>
-              {wallet.label ?? `Wallet_${index + 1}`}
-            </span>
+            <IconWrap><WalletIcon className='w-full h-full' /></IconWrap>
+            <span className='text-sm'>{walletLabel(wallet, index)}</span>
           </div>
           <button
             type='button'
             className='ml-2 px-2 py-1 rounded-md opacity-40 hover:opacity-100 transition-opacity cursor-pointer'
-            onClick={(e) => {
-              e.stopPropagation()
-              e.preventDefault()
-              const rect = e.currentTarget.getBoundingClientRect()
-              setActiveKebab({ wallet, index, pos: { top: rect.bottom - 20, left: rect.right - (KEBAB_MENU_WIDTH / 2) - (rect.width / 2) } })
-            }}
+            onClick={(e) => handleKebabClick(e, wallet, index)}
           >
             <KebabMenuIcon />
           </button>
@@ -128,15 +128,11 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
       id: 'add-wallet',
       content: (
         <div className='flex items-center justify-center gap-2'>
-          <div className='w-4 h-4 flex items-center justify-center'>
-            <PlusIcon color='currentColor' className='w-full h-full' />
-          </div>
+          <IconWrap><PlusIcon color='currentColor' className='w-full h-full' /></IconWrap>
           <span className='text-sm'>Add wallet</span>
         </div>
       ),
-      onClick: () => {
-        void navigate('/choose-wallet-type')
-      }
+      onClick: () => { void navigate('/choose-wallet-type') }
     }
   ]
 
@@ -195,11 +191,9 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
 
       <ConfirmDialog
         open={walletToRemove != null}
-        onOpenChange={(open) => {
-          if (!open) setWalletToRemove(null)
-        }}
+        onOpenChange={(open) => { if (!open) setWalletToRemove(null) }}
         title='Remove Wallet'
-        message={`Remove "${walletToRemove?.wallet.label ?? `Wallet_${(walletToRemove?.index ?? 0) + 1}`}"? This action cannot be undone.`}
+        message={`Remove "${walletToRemove != null ? walletLabel(walletToRemove.wallet, walletToRemove.index) : ''}"? This action cannot be undone.`}
         confirmText='Remove'
         onConfirm={handleRemove}
         passwordRequired
