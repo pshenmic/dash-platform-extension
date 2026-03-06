@@ -65,11 +65,13 @@ describe('remove wallet', () => {
 
     const mockStateTransitions: StateTransitionsStoreSchema = {
       abc123: {
-        hash: 'abc123',
+        unsignedHash: 'abc123',
+        signedHash: null,
         unsigned: 'dGVzdA==',
         signature: null,
         signaturePublicKeyId: null,
-        status: StateTransitionStatus.pending
+        status: StateTransitionStatus.pending,
+        error: null
       }
     }
 
