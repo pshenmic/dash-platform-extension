@@ -5,7 +5,7 @@ import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { WalletType } from '../../../../types'
 import { useExtensionAPI, useSdk, useSigningKeys } from '../../../hooks'
 import { KeyType } from 'dash-platform-sdk/types'
-import { InfoCard, OverlayMessage } from '../../common'
+import { InfoCard } from '../../common'
 import { TransactionSuccessScreen } from '../../layout/TransactionSuccessScreen'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
 import { hexToBytes } from '../../../../utils'
@@ -313,13 +313,6 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         </Button>
       </div>
 
-      {/* Mainnet Unavailable Message  */}
-      {currentNetwork === 'mainnet' && (
-        <OverlayMessage
-          title='Mainnet Unavailable'
-          message='Mainnet private key generation is not yet available.'
-        />
-      )}
     </div>
   )
 }
