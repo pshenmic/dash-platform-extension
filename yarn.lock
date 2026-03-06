@@ -3752,7 +3752,7 @@ dash-platform-sdk@1.3.0-dev.15:
 
 dash-ui-kit@AlexeyTripleA/dash-ui-kit#feat/improve-themes:
   version "2.0.0-dev"
-  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/a378fa38189add225ba3f5c90cac10105eccebcf"
+  resolved "https://codeload.github.com/AlexeyTripleA/dash-ui-kit/tar.gz/1737e6c30cf6fe53e08e9fc7b79e8252dfb3bfe8"
   dependencies:
     "@radix-ui/react-accordion" "^1.2.12"
     "@radix-ui/react-dialog" "^1.1.14"
