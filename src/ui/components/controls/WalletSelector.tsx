@@ -154,7 +154,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
           variant='context-menu'
           position={activeKebab.pos}
           width={KEBAB_MENU_WIDTH}
-          showCloseButton={true}
+          showCloseButton
           closeButtonAlign='center'
           items={[
             {
