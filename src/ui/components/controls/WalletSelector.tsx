@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { OverlayMenu, PlusIcon, WalletIcon, ValueCard, DeleteIcon } from 'dash-ui-kit/react'
+import React, { useState, useEffect } from 'react'
+import { OverlayMenu, PlusIcon, WalletIcon, ValueCard, DeleteIcon, EditIcon, KebabMenuIcon } from 'dash-ui-kit/react'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
@@ -13,6 +13,14 @@ interface WalletSelectorProps {
   wallets?: WalletAccountInfo[]
 }
 
+const KEBAB_MENU_WIDTH = 121
+
+interface ActiveKebab {
+  wallet: WalletAccountInfo
+  index: number
+  pos: { top: number, left: number }
+}
+
 export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemoved, currentNetwork, currentWalletId, wallets = [] }) => {
   const navigate = useNavigate()
   const api = useExtensionAPI()
@@ -22,6 +30,16 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
   const [walletToRemove, setWalletToRemove] = useState<{ wallet: WalletAccountInfo, index: number } | null>(null)
   const [isRemoving, setIsRemoving] = useState(false)
   const [removeError, setRemoveError] = useState<string | null>(null)
+  const [activeKebab, setActiveKebab] = useState<ActiveKebab | null>(null)
+
+  useEffect(() => {
+    if (activeKebab == null) return
+
+    const close = (): void => setActiveKebab(null)
+
+    window.addEventListener('scroll', close, true)
+    return () => window.removeEventListener('scroll', close, true)
+  }, [activeKebab])
 
   const handleRemove = async (password?: string): Promise<void> => {
     if (walletToRemove == null || password == null) return
@@ -92,15 +110,15 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
           </div>
           <button
             type='button'
-            className='ml-2 opacity-40 hover:opacity-100 hover:text-red-500 transition-opacity'
+            className='ml-2 px-2 py-1 rounded-md opacity-40 hover:opacity-100 transition-opacity cursor-pointer'
             onClick={(e) => {
               e.stopPropagation()
               e.preventDefault()
-              setRemoveError(null)
-              setWalletToRemove({ wallet, index })
+              const rect = e.currentTarget.getBoundingClientRect()
+              setActiveKebab({ wallet, index, pos: { top: rect.bottom - 20, left: rect.right - (KEBAB_MENU_WIDTH / 2) - (rect.width / 2) } })
             }}
           >
-            <DeleteIcon className='w-4 h-4' />
+            <KebabMenuIcon />
           </button>
         </div>
       ),
@@ -134,6 +152,46 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
         showItemBorders
         className='!w-44 h-12'
       />
+
+      {activeKebab != null && (
+        <OverlayMenu
+          variant='context-menu'
+          position={activeKebab.pos}
+          width={KEBAB_MENU_WIDTH}
+          showCloseButton={true}
+          closeButtonAlign='center'
+          items={[
+            {
+              id: 'rename',
+              disabled: true,
+              content: (
+                <div className='flex items-center gap-2 py-[2px]'>
+                  <EditIcon size={16} />
+                  <span className='text-sm font-medium'>Rename</span>
+                </div>
+              ),
+              onClick: () => {}
+            },
+            {
+              id: 'delete',
+              content: (
+                <div className='flex items-center gap-2'>
+                  <DeleteIcon size={16} />
+                  <span className='text-sm font-medium'>Delete</span>
+                </div>
+              ),
+              className: 'cursor-pointer bg-dash-red/10 hover:!bg-dash-red/15',
+              onClick: () => {
+                setRemoveError(null)
+                setWalletToRemove({ wallet: activeKebab.wallet, index: activeKebab.index })
+              }
+            }
+          ]}
+          showItemBorders
+          size='sm'
+          onClose={() => setActiveKebab(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={walletToRemove != null}
