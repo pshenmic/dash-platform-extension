@@ -145,7 +145,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
       // Sign and broadcast
       const keyId = Number(selectedSigningKey)
       const approveResponse = await extensionAPI.approveStateTransition(
-        createResponse.stateTransition.hash,
+        createResponse.stateTransition.unsignedHash,
         currentIdentity,
         keyId,
         password
