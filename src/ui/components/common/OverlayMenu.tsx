@@ -8,6 +8,7 @@ interface OverlayMenuProps {
   children: React.ReactNode
   showBackButton?: boolean
   onBack?: () => void
+  showCloseButton?: boolean
 }
 
 export const OverlayMenu: React.FC<OverlayMenuProps> = ({
@@ -16,7 +17,8 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
   title,
   children,
   showBackButton = false,
-  onBack
+  onBack,
+  showCloseButton = true
 }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent): void => {
@@ -57,14 +59,16 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
           </Text>
         </div>
 
-        <Button
-          onClick={onClose}
-          colorScheme='lightGray'
-          size='sm'
-          className='p-3 bg-white/[0.03] rounded-[15px] w-12 h-12'
-        >
-          <CrossIcon />
-        </Button>
+        {showCloseButton && (
+          <Button
+            onClick={onClose}
+            colorScheme='lightGray'
+            size='sm'
+            className='p-3 bg-white/[0.03] rounded-[15px] w-12 h-12'
+          >
+            <CrossIcon />
+          </Button>
+        )}
       </div>
 
       <div className='flex-1 overflow-y-auto px-4 pb-4'>
