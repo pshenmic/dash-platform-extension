@@ -109,7 +109,7 @@ const Layout: FC = () => {
     }
   }, [isApiReady, extensionAPI])
 
-  const handleWalletRemoved = useCallback(async (): Promise<void> => {
+  const reloadWallets = useCallback(async (): Promise<void> => {
     const wallets = await loadWallets()
     const networkWallets = wallets.filter(w => w.network === currentNetwork)
     const stillExists = networkWallets.some(w => w.walletId === currentWallet)
@@ -195,7 +195,7 @@ const Layout: FC = () => {
             currentIdentity,
             setCurrentIdentity: handleIdentityChange,
             allWallets,
-            reloadWallets: handleWalletRemoved,
+            reloadWallets,
             availableIdentities,
             createWallet,
             headerComponent,
