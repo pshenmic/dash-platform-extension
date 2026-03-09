@@ -16,6 +16,7 @@ export interface LayoutContext {
   currentIdentity: string | null
   setCurrentIdentity: (identity: string) => Promise<void>
   allWallets: WalletAccountInfo[]
+  reloadWallets: () => Promise<void>
   availableIdentities: Identity[]
   createWallet: (walletType: any, mnemonic?: string) => Promise<any>
   headerComponent: React.ReactNode
@@ -108,6 +109,19 @@ const Layout: FC = () => {
     }
   }, [isApiReady, extensionAPI])
 
+  const reloadWallets = useCallback(async (): Promise<void> => {
+    const wallets = await loadWallets()
+    const networkWallets = wallets.filter(w => w.network === currentNetwork)
+    const stillExists = networkWallets.some(w => w.walletId === currentWallet)
+    if (!stillExists) {
+      if (networkWallets.length > 0) {
+        await handleWalletChange(networkWallets[0].walletId)
+      } else {
+        setCurrentWallet(null)
+      }
+    }
+  }, [loadWallets, currentNetwork, currentWallet, handleWalletChange])
+
   const createWallet = useCallback(async (walletType: any, mnemonic?: string) => {
     if (!isApiReady) throw new Error('API is not ready')
 
@@ -181,6 +195,7 @@ const Layout: FC = () => {
             currentIdentity,
             setCurrentIdentity: handleIdentityChange,
             allWallets,
+            reloadWallets,
             availableIdentities,
             createWallet,
             headerComponent,
