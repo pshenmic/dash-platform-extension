@@ -75,7 +75,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
       onRemoved?.()
     } catch (err) {
       setRemoveError(err instanceof Error ? err.message : 'Failed to remove wallet')
-      throw err
+      console.log('Failed to remove wallet', err)
     } finally {
       setIsRemoving(false)
     }
