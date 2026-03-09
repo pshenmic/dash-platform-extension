@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { OverlayMenu, PlusIcon, WalletIcon, ValueCard, DeleteIcon, EditIcon, KebabMenuIcon } from 'dash-ui-kit/react'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { useExtensionAPI } from '../../hooks'
 import { ConfirmDialog } from './ConfirmDialog'
+import { RenameWalletDialog } from './RenameWalletDialog'
 
 interface WalletSelectorProps {
   onSelect?: (walletId: string | null) => void
@@ -25,7 +26,7 @@ const walletLabel = (wallet: WalletAccountInfo, index: number): string =>
   wallet.label ?? `Wallet_${index + 1}`
 
 const IconWrap: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className='w-4 h-4 flex items-center justify-center'>{children}</div>
+  <div className='w-4 h-4 flex items-center justify-center flex-shrink-0'>{children}</div>
 )
 
 export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemoved, currentNetwork, currentWalletId, wallets = [] }) => {
@@ -47,6 +48,9 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
   const [isRemoving, setIsRemoving] = useState(false)
   const [removeError, setRemoveError] = useState<string | null>(null)
   const [activeKebab, setActiveKebab] = useState<ActiveKebab | null>(null)
+  const [walletToRename, setWalletToRename] = useState<{ wallet: WalletAccountInfo, index: number } | null>(null)
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [renameError, setRenameError] = useState<string | null>(null)
 
   useEffect(() => {
     if (activeKebab == null) return
@@ -61,6 +65,23 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
     const rect = e.currentTarget.getBoundingClientRect()
     setActiveKebab({ wallet, index, pos: { top: rect.bottom - 20, left: rect.right - (KEBAB_MENU_WIDTH / 2) - (rect.width / 2) } })
   }, [])
+
+  const handleRename = async (newName: string): Promise<void> => {
+    if (walletToRename == null) return
+
+    setIsRenaming(true)
+    setRenameError(null)
+
+    try {
+      await api.setWalletLabel(walletToRename.wallet.walletId, newName)
+      setWalletToRename(null)
+      onRemoved?.()
+    } catch (err) {
+      setRenameError(err instanceof Error ? err.message : 'Failed to rename wallet')
+    } finally {
+      setIsRenaming(false)
+    }
+  }
 
   const handleRemove = async (password?: string): Promise<void> => {
     if (walletToRemove == null || password == null) return
@@ -98,9 +119,9 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
   if (currentWalletId == null || currentWallet == null) return null
 
   const triggerContent = (
-    <div className='flex items-center gap-2'>
-      <WalletIcon className='!text-dash-primary-dark-blue' size={16} />
-      <span className='text-sm font-medium'>{walletLabel(currentWallet, currentWalletIndex)}</span>
+    <div className='flex items-center gap-2 max-w-[120px]'>
+      <WalletIcon className='!text-dash-primary-dark-blue shrink-0' size={16} />
+      <span className='text-sm font-medium truncate max-w-full'>{walletLabel(currentWallet, currentWalletIndex)}</span>
     </div>
   )
 
@@ -108,10 +129,10 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
     ...availableWallets.map((wallet, index) => ({
       id: wallet.walletId,
       content: (
-        <div className='flex items-center justify-between w-full'>
-          <div className='flex items-center gap-2'>
-            <IconWrap><WalletIcon className='w-full h-full' /></IconWrap>
-            <span className='text-sm'>{walletLabel(wallet, index)}</span>
+        <div className='flex items-center justify-between w-full max-w-[140px] min-w-0'>
+          <div className='flex items-center gap-2 min-w-0'>
+            <IconWrap><WalletIcon className='w-full h-full shrink-0' /></IconWrap>
+            <span className='text-sm truncate'>{walletLabel(wallet, index)}</span>
           </div>
           <button
             type='button'
@@ -159,14 +180,16 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
           items={[
             {
               id: 'rename',
-              disabled: true,
               content: (
                 <div className='flex items-center gap-2 py-[2px]'>
                   <EditIcon size={16} />
                   <span className='text-sm font-medium'>Rename</span>
                 </div>
               ),
-              onClick: () => {}
+              onClick: () => {
+                setRenameError(null)
+                setWalletToRename({ wallet: activeKebab.wallet, index: activeKebab.index })
+              }
             },
             {
               id: 'delete',
@@ -188,6 +211,15 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
           onClose={() => setActiveKebab(null)}
         />
       )}
+
+      <RenameWalletDialog
+        open={walletToRename != null}
+        onOpenChange={(open) => { if (!open) setWalletToRename(null) }}
+        currentName={walletToRename != null ? walletLabel(walletToRename.wallet, walletToRename.index) : ''}
+        onRename={handleRename}
+        isLoading={isRenaming}
+        error={renameError}
+      />
 
       <ConfirmDialog
         open={walletToRemove != null}
