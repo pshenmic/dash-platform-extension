@@ -146,7 +146,7 @@ describe('remove wallet', () => {
     await storage.set('currentWalletId', walletId)
 
     await expect(privateAPIClient.removeWallet(walletId, 'wrongpassword'))
-      .rejects.toMatch('Invalid password')
+      .rejects.toThrow('Invalid password')
 
     expect(await storage.get(`wallet_testnet_${walletId}`)).not.toBeNull()
   })
@@ -155,6 +155,6 @@ describe('remove wallet', () => {
     const nonExistentWalletId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
     await expect(privateAPIClient.removeWallet(nonExistentWalletId, password))
-      .rejects.toMatch(`Could not find wallet ${nonExistentWalletId}`)
+      .rejects.toThrow(`Could not find wallet ${nonExistentWalletId}`)
   })
 })
