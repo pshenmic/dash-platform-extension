@@ -152,6 +152,7 @@ export default function Header (): React.JSX.Element {
     setCurrentWallet,
     currentIdentity,
     allWallets,
+    reloadWallets,
     headerComponent,
     headerConfigOverride
   } = context ?? ({} satisfies Partial<LayoutContext>)
@@ -222,7 +223,7 @@ export default function Header (): React.JSX.Element {
               </Button>
               )}
 
-          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
+          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} onRemoved={() => { void reloadWallets?.() }} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
         </div>
       )}
 
@@ -230,7 +231,7 @@ export default function Header (): React.JSX.Element {
       {config.hideLeftSection && (config.showNetworkSelector || config.showWalletSelector) && (
         <div className='flex items-center gap-2.5'>
           {config.showNetworkSelector && <NetworkSelector onSelect={setCurrentNetwork} currentNetwork={currentNetwork as NetworkType} wallets={allWallets} />}
-          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
+          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} onRemoved={() => { void reloadWallets?.() }} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
         </div>
       )}
 
