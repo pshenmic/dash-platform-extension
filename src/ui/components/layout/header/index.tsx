@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches, useOutletContext } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
-import { ArrowIcon, Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
+import { Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
+import { BackButton } from '../../common'
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
 import { SettingsMenu } from '../../settings'
@@ -218,9 +219,7 @@ export default function Header (): React.JSX.Element {
               />
               )
             : (
-              <Button onClick={handleBack} colorScheme='lightGray' className='w-[3rem] h-[3rem]'>
-                <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
-              </Button>
+              <BackButton onClick={handleBack} />
               )}
 
           {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} onRemoved={() => { void reloadWallets?.() }} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
