@@ -1,7 +1,6 @@
 import React from 'react'
-import { Text, ValueCard } from 'dash-ui-kit/react'
+import { Text, ValueCard, CopyButton } from 'dash-ui-kit/react'
 import { FieldLabel } from '../typography'
-import { CopyButton } from 'dash-ui-kit/react'
 
 export interface SigningErrorDetailsProps {
   name: string
