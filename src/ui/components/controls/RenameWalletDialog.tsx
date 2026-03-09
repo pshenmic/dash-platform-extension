@@ -30,9 +30,7 @@ export const RenameWalletDialog: React.FC<RenameWalletDialogProps> = ({
     }
   }, [open, currentName])
 
-  useEffect(() => {
-    setLocalError(error ?? null)
-  }, [error])
+  const displayError = localError ?? error ?? null
 
   const handleConfirm = (): void => {
     const trimmed = newName.trim()
@@ -68,16 +66,16 @@ export const RenameWalletDialog: React.FC<RenameWalletDialogProps> = ({
               value={newName}
               onChange={(e) => {
                 setNewName(e.target.value)
-                setLocalError(null)
+                if (localError != null) setLocalError(null)
               }}
               onKeyDown={handleKeyDown}
               disabled={isLoading}
               className='w-full'
             />
 
-            {localError != null && (
+            {displayError != null && (
               <Text size='sm' className='text-red-600'>
-                {localError}
+                {displayError}
               </Text>
             )}
           </div>
