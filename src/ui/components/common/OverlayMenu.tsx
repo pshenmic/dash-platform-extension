@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
-import { Button, Text, ChevronIcon, CrossIcon } from 'dash-ui-kit/react'
+import { Text } from 'dash-ui-kit/react'
+import { BackButton } from './BackButton'
 
 interface OverlayMenuProps {
   isOpen: boolean
@@ -8,7 +9,6 @@ interface OverlayMenuProps {
   children: React.ReactNode
   showBackButton?: boolean
   onBack?: () => void
-  showCloseButton?: boolean
 }
 
 export const OverlayMenu: React.FC<OverlayMenuProps> = ({
@@ -17,8 +17,7 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
   title,
   children,
   showBackButton = false,
-  onBack,
-  showCloseButton = true
+  onBack
 }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent): void => {
@@ -45,30 +44,12 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
       <div className='flex items-center justify-between p-4'>
         <div className='flex items-center gap-3 flex-1'>
           {showBackButton && (onBack != null) && (
-            <Button
-              onClick={onBack}
-              colorScheme='lightGray'
-              size='sm'
-              className='p-1 w-12 h-12'
-            >
-              <ChevronIcon className='rotate-90' />
-            </Button>
+            <BackButton onClick={onBack} />
           )}
           <Text size='xl' weight='medium' className='text-dash-primary-dark-blue'>
             {title}
           </Text>
         </div>
-
-        {showCloseButton && (
-          <Button
-            onClick={onClose}
-            colorScheme='lightGray'
-            size='sm'
-            className='p-3 bg-white/[0.03] rounded-[15px] w-12 h-12'
-          >
-            <CrossIcon />
-          </Button>
-        )}
       </div>
 
       <div className='flex-1 overflow-y-auto px-4 pb-4'>

@@ -99,6 +99,8 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title='Select an asset'
+      showBackButton
+      onBack={onClose}
     >
       <div className='flex flex-col gap-4'>
         {/* Search Input */}

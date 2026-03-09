@@ -153,7 +153,6 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
       title={currentScreenConfig?.title ?? 'Settings'}
       showBackButton
       onBack={currentScreen !== 'main' ? navigateBack : handleClose}
-      showCloseButton={false}
     >
       <ScreenRenderer
         screenType={currentScreen}
