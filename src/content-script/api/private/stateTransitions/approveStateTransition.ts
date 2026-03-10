@@ -102,7 +102,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       throw new Error(`Could not find Identity Public Key with Key ID ${keyId} in Identity ${identity.identifier}`)
     }
 
-    stateTransitionWASM.sign(privateKeyWASM, identityPublicKey)
+    stateTransitionWASM.sign('asdsad', identityPublicKey)
 
     return stateTransitionWASM
   }
@@ -133,7 +133,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
     try {
       stateTransitionWASM = await this.sign(stateTransition.unsigned, wallet, identity, payload.keyId, payload.password)
     } catch (e) {
-      throw new SigningError(e.message)
+      throw new SigningError(e.message ?? e)
     }
 
     const ownerId = stateTransitionWASM.getOwnerId()
@@ -172,7 +172,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       console.log('Failed to broadcast transaction', e)
       await this.stateTransitionsRepository.update(stateTransitionWASM, StateTransitionStatus.error, e.message)
 
-      throw new BroadcastError(e.message, signedHex)
+      throw new BroadcastError(e.message ?? e, signedHex)
     }
 
     return {
