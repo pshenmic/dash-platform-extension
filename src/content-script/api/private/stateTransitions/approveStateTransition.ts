@@ -102,7 +102,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       throw new Error(`Could not find Identity Public Key with Key ID ${keyId} in Identity ${identity.identifier}`)
     }
 
-    stateTransitionWASM.sign('asdsad', identityPublicKey)
+    stateTransitionWASM.sign(privateKeyWASM, identityPublicKey)
 
     return stateTransitionWASM
   }
