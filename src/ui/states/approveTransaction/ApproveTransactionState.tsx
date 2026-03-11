@@ -162,7 +162,7 @@ function ApproveTransactionState (): React.JSX.Element {
       const purposeRequirements = stateTransitionWASM.getPurposeRequirement()
       const requirements: KeyRequirement[] = []
 
-      const hasTokenTransfer = Array.isArray(decodedTransaction?.transitions) &&
+      const hasTokenTransfer: boolean = Array.isArray(decodedTransaction?.transitions) &&
         decodedTransaction.transitions.some((t: any) => t.action === 'TOKEN_TRANSFER')
 
       if (Array.isArray(purposeRequirements)) {
