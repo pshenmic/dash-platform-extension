@@ -162,6 +162,9 @@ function ApproveTransactionState (): React.JSX.Element {
       const purposeRequirements = stateTransitionWASM.getPurposeRequirement()
       const requirements: KeyRequirement[] = []
 
+      const hasTokenTransfer = Array.isArray(decodedTransaction?.transitions) &&
+        decodedTransaction.transitions.some((t: any) => t.action === 'TOKEN_TRANSFER')
+
       if (Array.isArray(purposeRequirements)) {
         for (const purpose of purposeRequirements) {
           const securityLevel = stateTransitionWASM.getKeyLevelRequirement(purpose)
@@ -170,7 +173,7 @@ function ApproveTransactionState (): React.JSX.Element {
             securityLevel.forEach(level => {
               requirements.push({
                 purpose,
-                securityLevel: level
+                securityLevel: hasTokenTransfer ? 'CRITICAL' : level
               })
             })
           }
@@ -182,7 +185,7 @@ function ApproveTransactionState (): React.JSX.Element {
       console.log('Error extracting key requirements:', error)
       setKeyRequirements([])
     }
-  }, [stateTransitionWASM])
+  }, [stateTransitionWASM, decodedTransaction])
 
   if (isCheckingWallet || isLoadingIdentities) {
     return (
