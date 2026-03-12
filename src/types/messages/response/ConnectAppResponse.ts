@@ -5,4 +5,5 @@ export interface ConnectAppResponse {
   status: 'pending' | 'approved' | 'rejected' | 'error'
   identities: IdentityInfo[]
   currentIdentity: string | null
+  network: string
 }

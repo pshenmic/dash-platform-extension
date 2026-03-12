@@ -5,6 +5,7 @@ import { APIHandler } from '../APIHandler'
 import hash from 'hash.js'
 import { IdentitiesRepository } from '../../repository/IdentitiesRepository'
 import { WalletRepository } from '../../repository/WalletRepository'
+import { StorageAdapter } from '../../storage/storageAdapter'
 
 interface AppConnectRequestPayload {
   url: string
@@ -14,11 +15,13 @@ export class ConnectAppHandler implements APIHandler {
   appConnectRepository: AppConnectRepository
   identitiesRepository: IdentitiesRepository
   walletRepository: WalletRepository
+  storageAdapter: StorageAdapter
 
-  constructor (appConnectRepository: AppConnectRepository, identitiesRepository: IdentitiesRepository, walletRepository: WalletRepository) {
+  constructor (appConnectRepository: AppConnectRepository, identitiesRepository: IdentitiesRepository, walletRepository: WalletRepository, storageAdapter: StorageAdapter) {
     this.appConnectRepository = appConnectRepository
     this.identitiesRepository = identitiesRepository
     this.walletRepository = walletRepository
+    this.storageAdapter = storageAdapter
   }
 
   async handle (event: EventData): Promise<ConnectAppResponse> {
@@ -39,12 +42,14 @@ export class ConnectAppHandler implements APIHandler {
     }
 
     const identities = await this.identitiesRepository.getAll()
+    const network = await this.storageAdapter.get('network') as string
 
     return {
       redirectUrl: chrome.runtime.getURL(`index.html#/connect/${appConnect.id}`),
       status: appConnect.status,
       identities: identities.map(identity => ({ identifier: identity.identifier, type: identity.type, proTxHash: identity.proTxHash })),
-      currentIdentity: wallet.currentIdentity
+      currentIdentity: wallet.currentIdentity,
+      network
     }
   }
 

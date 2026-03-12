@@ -70,7 +70,7 @@ export class PublicAPI {
     this.walletRepository = walletRepository
 
     this.handlers = {
-      [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository, identitiesRepository, walletRepository),
+      [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository, identitiesRepository, walletRepository, this.storageAdapter),
       [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(stateTransitionsRepository)
     }
 

@@ -135,6 +135,19 @@ export class WalletRepository {
     }
   }
 
+  async setLabel (walletId: string, label: string): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const storageKey = `wallet_${network}_${walletId}`
+
+    const walletStoreSchema = await this.storageAdapter.get(storageKey) as WalletStoreSchema
+
+    if (walletStoreSchema == null) {
+      throw new Error(`Could not find wallet ${walletId}`)
+    }
+
+    await this.storageAdapter.set(storageKey, { ...walletStoreSchema, label })
+  }
+
   async switchIdentity (identifier: string): Promise<void> {
     const currentWallet = await this.getCurrent()
     const network = await this.storageAdapter.get('network') as string

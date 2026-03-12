@@ -49,6 +49,7 @@ function NoWalletState (): React.JSX.Element {
         </div>
 
         <Button
+          autoFocus
           colorScheme='brand'
           size='xl'
           onClick={handleImportWallet}

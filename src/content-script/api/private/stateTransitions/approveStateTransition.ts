@@ -1,39 +1,53 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { BatchTransitionWASM, DataContractUpdateTransitionWASM, StateTransitionWASM } from 'pshenmic-dpp'
+import { BatchTransitionWASM, DataContractUpdateTransitionWASM, StateTransitionWASM, IdentityUpdateTransitionWASM } from 'dash-platform-sdk/types'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'
 import { ApproveStateTransitionPayload } from '../../../../types/messages/payloads/ApproveStateTransitionPayload'
-import { bytesToHex, deriveKeystorePrivateKey, deriveSeedphrasePrivateKey, validateHex, validateIdentifier } from '../../../../utils'
+import { deriveKeystorePrivateKey, deriveSeedphrasePrivateKey, validateHex, validateIdentifier } from '../../../../utils'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionStatus } from '../../../../types/enums/StateTransitionStatus'
 import { Wallet, Identity, WalletType, EventData } from '../../../../types'
+import { StorageAdapter } from '../../../storage/storageAdapter'
+import { BroadcastError } from '../../../errors/BroadcastError'
+import { SigningError } from '../../../errors/SigningError'
 
 export class ApproveStateTransitionHandler implements APIHandler {
   keyPairRepository: KeypairRepository
   stateTransitionsRepository: StateTransitionsRepository
   identitiesRepository: IdentitiesRepository
   walletRepository: WalletRepository
+  storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
 
   constructor (stateTransitionsRepository: StateTransitionsRepository,
     identitiesRepository: IdentitiesRepository,
     walletRepository: WalletRepository,
-    keyPairRepository: KeypairRepository, sdk: DashPlatformSDK) {
+    keyPairRepository: KeypairRepository,
+    storageAdapter: StorageAdapter,
+    sdk: DashPlatformSDK
+  ) {
     this.keyPairRepository = keyPairRepository
     this.stateTransitionsRepository = stateTransitionsRepository
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
+    this.storageAdapter = storageAdapter
     this.sdk = sdk
   }
 
   async sign (stateTransitionBase64: string, wallet: Wallet, identity: Identity, keyId: number, password: string): Promise<StateTransitionWASM> {
     const stateTransitionWASM = StateTransitionWASM.fromBase64(stateTransitionBase64)
 
+    const ownerId = stateTransitionWASM.getOwnerId()
+
+    if (ownerId == null) {
+      throw new Error('Owner ID is missing from state transition')
+    }
+
     // handle changed owner from approve transaction screen
-    if (stateTransitionWASM.getOwnerId().base58() !== identity.identifier) {
+    if (ownerId.base58() !== identity.identifier) {
       if (stateTransitionWASM.getActionType() === 'IDENTITY_CREATE') {
         throw new Error('Incorrect owner used for IdentityCreate transaction, changing is prohibited')
       }
@@ -114,24 +128,55 @@ export class ApproveStateTransitionHandler implements APIHandler {
       throw new Error(`Could not find state transition with hash ${payload.hash} for signing`)
     }
 
-    const stateTransitionWASM = await this.sign(stateTransition.unsigned, wallet, identity, payload.keyId, payload.password)
+    let stateTransitionWASM
+
+    try {
+      stateTransitionWASM = await this.sign(stateTransition.unsigned, wallet, identity, payload.keyId, payload.password)
+    } catch (e) {
+      throw new SigningError(e.message ?? e)
+    }
+
+    const ownerId = stateTransitionWASM.getOwnerId()
+
+    if (ownerId == null) {
+      throw new Error('Owner ID is missing from state transition during sign')
+    }
 
     const signature = stateTransitionWASM.signature
-    const signaturePublicKeyId = stateTransitionWASM.signaturePublicKeyId as number
+    const signedHex = stateTransitionWASM.hex()
+
+    if (signature == null) {
+      throw new Error('Signature is missing after signing')
+    }
 
     try {
       await this.sdk.stateTransitions.broadcast(stateTransitionWASM)
+      await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransitionWASM)
 
-      await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.approved, bytesToHex(signature), signaturePublicKeyId)
+      await this.stateTransitionsRepository.update(stateTransitionWASM, StateTransitionStatus.approved)
+
+      // Check for pending keys (from keystore wallet key creation) and save them
+      const actionType = stateTransitionWASM.getActionType()
+
+      if (wallet.type === WalletType.keystore && actionType === 'IDENTITY_UPDATE') {
+        const { publicKeyIdsToAdd } = IdentityUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
+        const keyPairs = await this.keyPairRepository.getAllByIdentity(ownerId.base58(), true)
+        const matchedKeyPairs = keyPairs
+          .filter((keyPair) => publicKeyIdsToAdd.some(publicKeyIdToAdd => publicKeyIdToAdd.keyId === keyPair.keyId))
+
+        for (const keyPair of matchedKeyPairs) {
+          await this.keyPairRepository.unmarkPending(ownerId.base58(), keyPair.keyId)
+        }
+      }
     } catch (e) {
       console.log('Failed to broadcast transaction', e)
-      await this.stateTransitionsRepository.update(stateTransition.hash, StateTransitionStatus.error)
+      await this.stateTransitionsRepository.update(stateTransitionWASM, StateTransitionStatus.error, e.message)
 
-      throw e
+      throw new BroadcastError(e.message ?? e, signedHex)
     }
 
     return {
-      txHash: stateTransitionWASM.hash(true)
+      txHash: stateTransitionWASM.hash(false)
     }
   }
 

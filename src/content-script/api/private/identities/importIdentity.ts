@@ -1,7 +1,7 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
-import { IdentifierWASM, IdentityPublicKeyWASM, PrivateKeyWASM } from 'pshenmic-dpp'
+import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { validateHex } from '../../../../utils'
@@ -57,7 +57,7 @@ export class ImportIdentityHandler implements APIHandler {
         .filter((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
               PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash())
 
-      await this.keypairRepository.add(payload.identity, privateKey, identityPublicKey)
+      await this.keypairRepository.add(payload.identity, privateKey, identityPublicKey.keyId)
     }
 
     await this.identitiesRepository.create(payload.identity, IdentityType.regular)
@@ -66,10 +66,7 @@ export class ImportIdentityHandler implements APIHandler {
   }
 
   validatePayload (payload: ImportIdentityPayload): string | null {
-    try {
-      // eslint-disable-next-line no-new
-      new IdentifierWASM(payload.identity)
-    } catch (e) {
+    if (!this.sdk.utils.validateIdentifier(payload.identity)) {
       return 'Could not decode identity identifier'
     }
 

@@ -1,6 +1,5 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { APIHandler } from '../../APIHandler'
-import { IdentifierWASM } from 'pshenmic-dpp'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
@@ -36,7 +35,7 @@ export class RemoveIdentityPrivateKeyHandler implements APIHandler {
 
     const keyPairs = await this.keypairRepository.getAllByIdentity(payload.identity)
 
-    if (!keyPairs.some((keyPair) => keyPair.identityPublicKey.keyId === payload.keyId)) {
+    if (!keyPairs.some((keyPair) => keyPair.keyId === payload.keyId)) {
       throw new Error(`Could not find key pair with keyId ${payload.keyId}`)
     }
 
@@ -46,10 +45,7 @@ export class RemoveIdentityPrivateKeyHandler implements APIHandler {
   }
 
   validatePayload (payload: RemoveIdentityPrivateKeyPayload): string | null {
-    try {
-      // eslint-disable-next-line no-new
-      new IdentifierWASM(payload.identity)
-    } catch (e) {
+    if (!this.sdk.utils.validateIdentifier(payload.identity)) {
       return 'Could not decode identity identifier'
     }
 

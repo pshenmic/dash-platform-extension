@@ -43,8 +43,12 @@ import { ExportPrivateKeyPayload } from './messages/payloads/ExportPrivateKeyPay
 import { ExportPrivateKeyResponse } from './messages/response/ExportPrivateKeyResponse'
 import { RegisterUsernamePayload } from './messages/payloads/RegisterUsernamePayload'
 import { ImportMasternodeIdentityPayload } from './messages/payloads/ImportMasternodeIdentityPayload'
-import { CreateStateTransitionPayload } from './messages/payloads/CreateStateTransitionPayload'
+import { RequestStateTransitionApprovalPayload } from './messages/payloads/RequestStateTransitionApprovalPayload'
 import { CreateStateTransitionResponse } from './messages/response/CreateStateTransitionResponse'
+import { CreateIdentityPrivateKeyPayload } from './messages/payloads/CreateIdentityPrivateKeyPayload'
+import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIdentityPrivateKeyResponse'
+import { SetWalletLabelPayload } from './messages/payloads/SetWalletLabelPayload'
+import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -99,6 +103,18 @@ export class PrivateAPIClient {
     const payload: SwitchWalletPayload = { walletId }
 
     return await this._rpcCall(MessagingMethods.SWITCH_WALLET, payload)
+  }
+
+  async removeWallet (walletId: string, password: string): Promise<void> {
+    const payload: RemoveWalletPayload = { walletId, password }
+
+    await this._rpcCall(MessagingMethods.REMOVE_WALLET, payload)
+  }
+
+  async setWalletLabel (walletId: string, label: string): Promise<void> {
+    const payload: SetWalletLabelPayload = { walletId, label }
+
+    await this._rpcCall(MessagingMethods.SET_WALLET_LABEL, payload)
   }
 
   async importIdentity (identity: string, privateKeys: string[]): Promise<void> {
@@ -274,27 +290,51 @@ export class PrivateAPIClient {
   }
 
   async createStateTransition (base64: string): Promise<CreateStateTransitionResponse> {
-    const payload: CreateStateTransitionPayload = {
+    const payload: RequestStateTransitionApprovalPayload = {
       base64
     }
 
     return await this._rpcCall(MessagingMethods.CREATE_STATE_TRANSITION, payload)
   }
 
+  async createIdentityPrivateKey (
+    identity: string,
+    password: string,
+    keyType: string,
+    purpose: number,
+    securityLevel: number,
+    readOnly: boolean
+  ): Promise<CreateIdentityPrivateKeyResponse> {
+    const payload: CreateIdentityPrivateKeyPayload = {
+      identity,
+      password,
+      keyType,
+      purpose,
+      securityLevel,
+      readOnly
+    }
+
+    return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY, payload)
+  }
+
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
     const id = generateRandomHex(8)
 
     return await new Promise((resolve, reject) => {
-      const rejectWithError = (message: string): void => {
+      const rejectWithError = (message: string, errorPayload?: any): void => {
         chrome.runtime.onMessage.removeListener(handleMessage)
 
-        reject(message)
+        const error: any = new Error(message)
+        if (errorPayload != null) {
+          error.payload = errorPayload
+        }
+        reject(error)
       }
 
       const handleMessage = (data: EventData): void => {
         if (data.type === 'response' && data.id === id) {
           if (data.error != null) {
-            return rejectWithError(data.error)
+            return rejectWithError(data.error, data.payload)
           }
 
           chrome.runtime.onMessage.removeListener(handleMessage)

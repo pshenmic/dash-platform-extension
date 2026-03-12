@@ -12,9 +12,10 @@ interface PasswordFieldProps {
   className?: string
   variant?: 'outlined' | 'filled'
   colorScheme?: 'default' | 'brand'
+  autoFocus?: boolean
 }
 
-export const PasswordField: React.FC<PasswordFieldProps> = ({
+export const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(({
   value,
   onChange,
   placeholder = 'Enter password',
@@ -22,14 +23,16 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
   label = 'Password',
   className,
   variant,
-  colorScheme = 'default'
-}) => {
+  colorScheme = 'default',
+  autoFocus
+}, ref) => {
   return (
     <div className={`flex flex-col gap-2 ${className ?? ''}`}>
       <FieldLabel>
         {label}
       </FieldLabel>
       <Input
+        ref={ref}
         type='password'
         placeholder={placeholder}
         value={value}
@@ -38,6 +41,7 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
         colorScheme={colorScheme}
         variant={variant}
         error={error != null}
+        autoFocus={autoFocus}
         className='w-full'
       />
       {error != null && (
@@ -45,4 +49,4 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
       )}
     </div>
   )
-}
+})

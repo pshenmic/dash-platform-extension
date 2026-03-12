@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches, useOutletContext } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
-import { ArrowIcon, Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
+import { Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
+import { BackButton } from '../../common'
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
 import { SettingsMenu } from '../../settings'
@@ -175,6 +176,7 @@ export default function Header (): React.JSX.Element {
     setCurrentWallet,
     currentIdentity,
     allWallets,
+    reloadWallets,
     headerComponent,
     headerConfigOverride
   } = context ?? ({} satisfies Partial<LayoutContext>)
@@ -263,12 +265,10 @@ export default function Header (): React.JSX.Element {
               />
               )
             : (
-              <Button onClick={handleBack} colorScheme='lightGray' className='w-[3rem] h-[3rem] backdrop-blur-[12px]'>
-                <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
-              </Button>
+              <BackButton onClick={handleBack} />
               )}
 
-          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
+          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} onRemoved={() => { void reloadWallets?.() }} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
         </div>
       )}
 
@@ -276,7 +276,7 @@ export default function Header (): React.JSX.Element {
       {config.hideLeftSection && (config.showNetworkSelector || config.showWalletSelector) && (
         <div className='flex items-center gap-2.5 relative z-10'>
           {config.showNetworkSelector && <NetworkSelector onSelect={setCurrentNetwork} currentNetwork={currentNetwork as NetworkType} wallets={allWallets} />}
-          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
+          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} onRemoved={() => { void reloadWallets?.() }} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
         </div>
       )}
 

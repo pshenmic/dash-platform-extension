@@ -11,9 +11,9 @@ export const PurposeLabelsInfo = {
     label: 'Decryption',
     description: 'Key used for decryption purposes'
   },
-  MASTER: {
-    label: 'Master',
-    description: 'Master key with full privileges'
+  TRANSFER: {
+    label: 'Transfer',
+    description: 'Key used for transfers'
   }
 }
 

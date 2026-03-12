@@ -1,7 +1,7 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
-import { PrivateKeyWASM } from 'pshenmic-dpp'
+import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { validateHex } from '../../../../utils'
@@ -46,7 +46,7 @@ export class ImportMasternodeIdentityHandler implements APIHandler {
     const existingKeyPair = await this.keypairRepository.getByIdentityPublicKey(identity.id.base58(), identityPublicKey)
 
     if (existingKeyPair == null) {
-      await this.keypairRepository.add(identity.id.base58(), privateKeyWASM.hex(), identityPublicKey)
+      await this.keypairRepository.add(identity.id.base58(), privateKeyWASM.hex(), identityPublicKey.keyId)
     }
   }
 

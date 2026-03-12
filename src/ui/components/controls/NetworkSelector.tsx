@@ -65,7 +65,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, vari
   const items = Object.values(Network).map(network => ({
     id: network,
     content: (
-      <div className='flex items-center gap-1 capitalize'>
+      <div className='flex items-center gap-1 capitalize text-sm'>
         <span>{network}</span>
       </div>
     ),
