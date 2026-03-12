@@ -49,6 +49,7 @@ import { CreateIdentityPrivateKeyPayload } from './messages/payloads/CreateIdent
 import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIdentityPrivateKeyResponse'
 import { SetWalletLabelPayload } from './messages/payloads/SetWalletLabelPayload'
 import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
+import { RequestOneTimeAddressResponse } from './messages/response/RequestOneTimeAddressResponse'
 
 export class PrivateAPIClient {
   constructor () {
@@ -315,6 +316,12 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY, payload)
+  }
+
+  async requestOneTimeAddress (): Promise<string> {
+    const response: RequestOneTimeAddressResponse = await this._rpcCall(MessagingMethods.REQUEST_ONE_TIME_ADDRESS, {})
+
+    return response.address
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
