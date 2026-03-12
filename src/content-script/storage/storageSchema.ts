@@ -38,11 +38,13 @@ export interface StateTransitionsStoreSchema {
 }
 
 export interface StateTransitionStoreSchema {
-  hash: string
+  unsignedHash: string
+  signedHash: string | null
   unsigned: string
   signature: string | null
   signaturePublicKeyId: number | null
   status: string
+  error: string | null
 }
 
 export interface AppConnectStorageSchema {

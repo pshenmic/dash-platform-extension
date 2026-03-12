@@ -484,7 +484,7 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       setKeyToDisable(null)
 
       // Redirect to approval page with returnToHome flag
-      void navigate(`/approve/${response.stateTransition.hash}`, {
+      void navigate(`/approve/${response.stateTransition.unsignedHash}`, {
         state: {
           returnToHome: true
         }

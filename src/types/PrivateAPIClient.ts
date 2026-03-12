@@ -47,6 +47,8 @@ import { RequestStateTransitionApprovalPayload } from './messages/payloads/Reque
 import { CreateStateTransitionResponse } from './messages/response/CreateStateTransitionResponse'
 import { CreateIdentityPrivateKeyPayload } from './messages/payloads/CreateIdentityPrivateKeyPayload'
 import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIdentityPrivateKeyResponse'
+import { SetWalletLabelPayload } from './messages/payloads/SetWalletLabelPayload'
+import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
 import { RequestOneTimeAddressResponse } from './messages/response/RequestOneTimeAddressResponse'
 
 export class PrivateAPIClient {
@@ -102,6 +104,18 @@ export class PrivateAPIClient {
     const payload: SwitchWalletPayload = { walletId }
 
     return await this._rpcCall(MessagingMethods.SWITCH_WALLET, payload)
+  }
+
+  async removeWallet (walletId: string, password: string): Promise<void> {
+    const payload: RemoveWalletPayload = { walletId, password }
+
+    await this._rpcCall(MessagingMethods.REMOVE_WALLET, payload)
+  }
+
+  async setWalletLabel (walletId: string, label: string): Promise<void> {
+    const payload: SetWalletLabelPayload = { walletId, label }
+
+    await this._rpcCall(MessagingMethods.SET_WALLET_LABEL, payload)
   }
 
   async importIdentity (identity: string, privateKeys: string[]): Promise<void> {
@@ -314,16 +328,20 @@ export class PrivateAPIClient {
     const id = generateRandomHex(8)
 
     return await new Promise((resolve, reject) => {
-      const rejectWithError = (message: string): void => {
+      const rejectWithError = (message: string, errorPayload?: any): void => {
         chrome.runtime.onMessage.removeListener(handleMessage)
 
-        reject(message)
+        const error: any = new Error(message)
+        if (errorPayload != null) {
+          error.payload = errorPayload
+        }
+        reject(error)
       }
 
       const handleMessage = (data: EventData): void => {
         if (data.type === 'response' && data.id === id) {
           if (data.error != null) {
-            return rejectWithError(data.error)
+            return rejectWithError(data.error, data.payload)
           }
 
           chrome.runtime.onMessage.removeListener(handleMessage)

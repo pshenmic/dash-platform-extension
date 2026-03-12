@@ -6,6 +6,7 @@ import addEncryptedMnemonic from '../migrations/0005_add_encrypted_mnemonic'
 import moveCurrentIdentityToWallet from '../migrations/0006_move_current_identity_to_wallet'
 import addIdentityType from '../migrations/0007_add_identity_type'
 import removeIdentityPublicKey from '../migrations/0008_remove_identity_public_key'
+import updateStateTransitionRepository from '../migrations/0009_update_state_transition_repository'
 
 import { StorageAdapter } from './storageAdapter'
 import { SCHEMA_VERSION } from '../../constants'
@@ -18,7 +19,8 @@ const migrations = [
   addEncryptedMnemonic,
   moveCurrentIdentityToWallet,
   addIdentityType,
-  removeIdentityPublicKey
+  removeIdentityPublicKey,
+  updateStateTransitionRepository
 ]
 
 const restoreBackup = async (backup: object, storageAdapter: StorageAdapter): Promise<void> => {

@@ -23,6 +23,7 @@ import { ApproveAppConnectHandler } from './private/appConnect/approveAppConnect
 import { RejectAppConnectHandler } from './private/appConnect/rejectAppConnect'
 import { GetIdentitiesHandler } from './private/identities/getIdentities'
 import { ResyncIdentitiesHandler } from './private/wallet/resyncIdentities'
+import { SetWalletLabelHandler } from './private/wallet/setWalletLabel'
 import { ImportIdentityHandler } from './private/identities/importIdentity'
 import { GetAllWalletsHandler } from './private/wallet/getAllWallets'
 import { AddIdentityPrivateKey } from './private/identities/addPrivateKey'
@@ -38,6 +39,8 @@ import { CreateStateTransitionHandler } from './private/stateTransitions/createS
 import { CreateIdentityPrivateKeyHandler } from './private/identities/createIdentityPrivateKey'
 import { OneTimeAddressesRepository } from '../repository/OneTimeAddressesRepository'
 import { RequestOneTimeAddressHandler } from './private/assetLocks/requestOneTimeAddress'
+import { BroadcastError } from '../errors/BroadcastError'
+import { RemoveWalletHandler } from './private/wallet/removeWallet'
 
 /**
  * Handlers for a messages within extension context
@@ -99,9 +102,11 @@ export class PrivateAPI {
       [MessagingMethods.GET_STATE_TRANSITION]: new GetStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.REJECT_STATE_TRANSITION]: new RejectStateTransitionHandler(stateTransitionsRepository, walletRepository),
       [MessagingMethods.CREATE_WALLET]: new CreateWalletHandler(walletRepository, this.sdk, this.storageAdapter),
+      [MessagingMethods.REMOVE_WALLET]: new RemoveWalletHandler(walletRepository, this.storageAdapter),
       [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository, this.storageAdapter),
       [MessagingMethods.SWITCH_NETWORK]: new SwitchNetworkHandler(walletRepository, this.storageAdapter, this.sdk),
       [MessagingMethods.RESYNC_IDENTITIES]: new ResyncIdentitiesHandler(identitiesRepository, walletRepository, this.sdk, this.storageAdapter),
+      [MessagingMethods.SET_WALLET_LABEL]: new SetWalletLabelHandler(walletRepository),
       [MessagingMethods.GET_APP_CONNECT]: new GetAppConnectHandler(appConnectRepository),
       [MessagingMethods.GET_ALL_APP_CONNECTS]: new GetAllAppConnectsHandler(appConnectRepository),
       [MessagingMethods.REMOVE_APP_CONNECT]: new RemoveAppConnectHandler(appConnectRepository),
@@ -142,7 +147,7 @@ export class PrivateAPI {
             context: 'dash-platform-extension',
             type: 'response',
             method,
-            payload: null,
+            payload: e instanceof BroadcastError ? { signedHex: e.signedHex } : null,
             error: e.message
           }
 
