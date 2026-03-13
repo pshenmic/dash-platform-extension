@@ -13,9 +13,6 @@ import type { LayoutContext } from '../../components/layout/Layout'
 
 type Stage = 1 | 2 | 3 | 4 | 5
 
-// TODO: Replace with actual check from storage
-const hasUnfinishedRegistration = true
-
 const mockIdentity: IdentityPreviewData = {
   id: 'EWNwtGEC1qAbgNgo2UgadmQhB9DaZtB942x8bXgJrPNS',
   name: 'test.dash',
@@ -71,6 +68,7 @@ function IdentityRegistrationState (): React.JSX.Element {
   const [paymentAddress, setPaymentAddress] = useState<string | null>(null)
   const [isLoadingAddress, setIsLoadingAddress] = useState(false)
   const [addressError, setAddressError] = useState<string | null>(null)
+  // TODO: Replace with actual check from storage
   const [hasUnfinishedRegistration, setHasUnfinishedRegistration] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
   const [registrationError, setRegistrationError] = useState<string | null>(null)
@@ -156,6 +154,13 @@ function IdentityRegistrationState (): React.JSX.Element {
     fetchAddress().catch((e) => setError(e))
   }, [stage, paymentAddress, extensionAPI])
 
+  // Stage 2: Skip "Unfinished Registration" screen, go directly to payment stage
+  useEffect(() => {
+    if (stage === 2 && hasUnfinishedRegistration) {
+      void navigate('/register-identity?stage=3', { replace: true })
+    }
+  }, [stage, hasUnfinishedRegistration, navigate])
+
   // Stage 4: Process registration after payment confirmation
   useEffect(() => {
     if (stage === 4) {
@@ -198,16 +203,6 @@ function IdentityRegistrationState (): React.JSX.Element {
 
   const handleDone = (): void => {
     void navigate('/home')
-  }
-
-  const handleRestart = useCallback((): void => {
-    setPaymentAddress(null)
-    setHasUnfinishedRegistration(false)
-    void navigate('/register-identity?stage=1')
-  }, [navigate])
-
-  const handleContinueRegistration = (): void => {
-    void navigate('/register-identity?stage=3')
   }
 
   const handleReturnBack = (): void => {
@@ -280,46 +275,8 @@ function IdentityRegistrationState (): React.JSX.Element {
     )
   }
 
-  // Stage 2: Unfinished registration or fee info + password
+  // Stage 2: Fee info + password (unfinished registration redirects to stage 3 via useEffect)
   if (stage === 2) {
-    if (hasUnfinishedRegistration) {
-      return (
-        <div className='flex flex-col h-full'>
-          <div className='pt-[176px]'>
-            <TitleBlock
-              title={<>You Have an<br />Unfinished<br />Registration</>}
-              description='You have a pending identity registration. You can continue from where you left off or restart the process.'
-              logoSize='3rem'
-              showLogo
-              containerClassName='mb-0'
-            />
-          </div>
-
-          <div className='flex-1' />
-
-          <div className='flex flex-col gap-4'>
-            <div className='flex gap-2'>
-              <Button
-                colorScheme='lightBlue'
-                className='flex-1'
-                onClick={handleRestart}
-              >
-                Restart
-              </Button>
-              <Button
-                colorScheme='brand'
-                className='flex-1'
-                onClick={handleContinueRegistration}
-              >
-                Continue
-              </Button>
-            </div>
-            <ProgressStepBar totalSteps={5} currentStep={stage} />
-          </div>
-        </div>
-      )
-    }
-
     return (
       <div className='flex flex-col h-full'>
         <TitleBlock
