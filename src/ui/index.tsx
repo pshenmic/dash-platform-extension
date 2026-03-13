@@ -19,6 +19,7 @@ import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
 import ChooseWalletType from './states/wallet/ChooseWalletType'
 import WalletSuccessfullyCreated from './states/importIdentity/WalletSuccessfullyCreated'
 import NameRegistrationState from './states/nameRegistration'
+import IdentityRegistrationState from './states/identityRegistration/IdentityRegistrationState'
 import './styles/app.pcss'
 
 const App: React.FC = function () {
@@ -159,6 +160,15 @@ const App: React.FC = function () {
           handle: {
             headerProps: {
               variant: 'simple'
+            }
+          }
+        },
+        {
+          path: '/register-identity',
+          element: <PageWithHeader><IdentityRegistrationState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'identityRegistration'
             }
           }
         },
