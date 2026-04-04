@@ -14,6 +14,10 @@ export const PurposeLabelsInfo = {
   TRANSFER: {
     label: 'Transfer',
     description: 'Key used for transfers'
+  },
+  VOTING: {
+    label: 'Voting',
+    description: 'Key used for voting'
   }
 }
 
