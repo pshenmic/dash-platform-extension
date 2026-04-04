@@ -19,7 +19,12 @@ function IdentityRegistrationState (): React.JSX.Element {
   const context = useOutletContext<LayoutContext>()
   const { setHeaderConfigOverride } = context ?? {}
   const extensionAPI = useExtensionAPI()
-  const dashCoreSDK = new DashCoreSDK('https://52.24.124.162:1443')
+  const dashCoreSDK = new DashCoreSDK(
+    {
+      network: 'testnet',
+      dapiUrl: 'https://158.160.14.115:1443'
+      // poolLimit?: number;
+    })
 
   const [showManualEntry, setShowManualEntry] = useState(false)
   const [transactionHash, setTransactionHash] = useState('')
