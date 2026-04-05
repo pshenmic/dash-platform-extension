@@ -27,8 +27,6 @@ function ApproveTransactionState (): React.JSX.Element {
 
   const params = useParams()
 
-  // Check if identity switching should be disabled (e.g., when navigating from SendTransaction)
-  const disableIdentitySelect = location.state?.disableIdentitySelect === true
   const showBackButton = location.state?.showBackButton === true
   const returnToHome = location.state?.returnToHome === true
 
@@ -150,6 +148,22 @@ function ApproveTransactionState (): React.JSX.Element {
         .finally(() => setIsLoadingTransaction(false))
     }
   }, [params.hash, params.txhash])
+
+  // Auto-select identity based on transaction owner
+  useEffect(() => {
+    if (decodedTransaction == null) return
+
+    const txIdentity: string | null =
+      decodedTransaction.ownerId ??
+      decodedTransaction.identityId ??
+      decodedTransaction.senderId ??
+      null
+
+    if (txIdentity == null || txIdentity === currentIdentity) return
+
+    setCurrentIdentity(txIdentity)
+    extensionAPI.switchIdentity(txIdentity).catch(err => console.log('Failed to switch identity', err))
+  }, [decodedTransaction])
 
   // Extract key requirements from state transition
   useEffect(() => {
@@ -392,20 +406,17 @@ function ApproveTransactionState (): React.JSX.Element {
           />
         )}
 
-        {/* Choose Identity */}
+        {/* Identity (read-only, auto-set from transaction) */}
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <div className='flex flex-col gap-2.5'>
-            <FieldLabel>Choose Identity</FieldLabel>
+            <FieldLabel>Identity</FieldLabel>
             <IdentitySelect
               identities={identities}
               value={currentIdentity ?? ''}
-              onChange={(identity: string) => {
-                setCurrentIdentity(identity)
-                extensionAPI.switchIdentity(identity).catch(err => console.log('Failed to switch identity', err))
-              }}
-              showArrow
+              onChange={() => {}}
+              showArrow={false}
               size='xl'
-              disabled={disableIdentitySelect}
+              disabled
             />
           </div>
         )}
