@@ -1,4 +1,5 @@
 import { EventData } from '../../types/EventData'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
@@ -39,6 +40,7 @@ import { CreateStateTransitionHandler } from './private/stateTransitions/createS
 import { CreateIdentityPrivateKeyHandler } from './private/identities/createIdentityPrivateKey'
 import { OneTimeAddressesRepository } from '../repository/OneTimeAddressesRepository'
 import { RequestOneTimeAddressHandler } from './private/assetLocks/requestOneTimeAddress'
+import { RegisterIdentityHandler } from './private/identities/registerIdentity'
 import { BroadcastError } from '../errors/BroadcastError'
 import { RemoveWalletHandler } from './private/wallet/removeWallet'
 
@@ -47,11 +49,21 @@ import { RemoveWalletHandler } from './private/wallet/removeWallet'
  */
 export class PrivateAPI {
   sdk: DashPlatformSDK
+  coreSDK: DashCoreSDK | null
   storageAdapter: StorageAdapter
 
-  constructor (sdk: DashPlatformSDK, storageAdapter: StorageAdapter) {
+  constructor (sdk: DashPlatformSDK, coreSDKOrStorage: DashCoreSDK | StorageAdapter, storageAdapterArg?: StorageAdapter) {
     this.sdk = sdk
-    this.storageAdapter = storageAdapter
+
+    // Support both the new 3-arg signature (sdk, coreSDK, storageAdapter)
+    // and the legacy 2-arg signature (sdk, storageAdapter) used in existing tests.
+    if (storageAdapterArg != null) {
+      this.coreSDK = coreSDKOrStorage as DashCoreSDK
+      this.storageAdapter = storageAdapterArg
+    } else {
+      this.coreSDK = null
+      this.storageAdapter = coreSDKOrStorage as StorageAdapter
+    }
   }
 
   handlers: {
@@ -115,7 +127,18 @@ export class PrivateAPI {
       [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
-      [MessagingMethods.REQUEST_ONE_TIME_ADDRESS]: new RequestOneTimeAddressHandler(oneTimeAddressesRepository)
+      [MessagingMethods.REQUEST_ONE_TIME_ADDRESS]: new RequestOneTimeAddressHandler(oneTimeAddressesRepository),
+      ...(this.coreSDK != null && {
+        [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
+          walletRepository,
+          identitiesRepository,
+          keypairRepository,
+          oneTimeAddressesRepository,
+          this.storageAdapter,
+          this.sdk,
+          this.coreSDK
+        )
+      })
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {

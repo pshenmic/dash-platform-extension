@@ -1,4 +1,4 @@
-import { MESSAGING_TIMEOUT } from '../constants'
+import { MESSAGING_TIMEOUT, REGISTER_IDENTITY_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
@@ -50,6 +50,8 @@ import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIden
 import { SetWalletLabelPayload } from './messages/payloads/SetWalletLabelPayload'
 import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
 import { RequestOneTimeAddressResponse } from './messages/response/RequestOneTimeAddressResponse'
+import { RegisterIdentityPayload } from './messages/payloads/RegisterIdentityPayload'
+import { RegisterIdentityResponse } from './messages/response/RegisterIdentityResponse'
 
 export class PrivateAPIClient {
   constructor () {
@@ -324,7 +326,23 @@ export class PrivateAPIClient {
     return response.address
   }
 
-  async _rpcCall<T>(method: string, payload?: object): Promise<T> {
+  async registerIdentity (
+    paymentAddress: string,
+    paymentTxid: string,
+    password: string,
+    outputIndex?: number
+  ): Promise<RegisterIdentityResponse> {
+    const payload: RegisterIdentityPayload = {
+      paymentAddress,
+      paymentTxid,
+      password,
+      outputIndex
+    }
+
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload, REGISTER_IDENTITY_TIMEOUT)
+  }
+
+  async _rpcCall<T>(method: string, payload?: object, timeout?: number): Promise<T> {
     const id = generateRandomHex(8)
 
     return await new Promise((resolve, reject) => {
@@ -354,7 +372,7 @@ export class PrivateAPIClient {
 
       setTimeout(() => {
         rejectWithError(`Timed out waiting for response of ${method}`)
-      }, MESSAGING_TIMEOUT)
+      }, timeout ?? MESSAGING_TIMEOUT)
 
       const message: EventData = {
         context: 'dash-platform-extension',

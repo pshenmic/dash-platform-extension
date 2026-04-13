@@ -53,6 +53,7 @@ module.exports = (env, argv) => {
       ]
     },
     resolve: {
+      symlinks: false,
       extensions: ['.tsx', '.ts', '.js', '.jsx', '.json'],
       fallback: {
         buffer: require.resolve('buffer')
