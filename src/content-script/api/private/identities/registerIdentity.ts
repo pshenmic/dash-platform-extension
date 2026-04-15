@@ -81,6 +81,7 @@ export class RegisterIdentityHandler implements APIHandler {
     // ── 3. Build asset lock transaction from the payment tx ──────────────────
     const { assetLockTx, assetLockOutputIndex } = await buildAssetLockFromPaymentTx({
       coreSDK: this.coreSDK,
+      network,
       paymentTxid: payload.paymentTxid,
       oneTimeAddress: payload.paymentAddress,
       oneTimePrivateKeyWif,
