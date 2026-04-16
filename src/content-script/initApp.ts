@@ -10,7 +10,6 @@ import { EventData } from '../types'
 import { MessagingMethods } from '../types/enums/MessagingMethods'
 import { injectScript } from '../utils'
 import { Network } from '../types/enums/Network'
-import { CORE_DAPI_URLS } from '../constants'
 
 export async function initApp (): Promise<void> {
   const extensionStorageAdapter = new ExtensionStorageAdapter()
@@ -19,8 +18,7 @@ export async function initApp (): Promise<void> {
   const sdk = new DashPlatformSDK({ network: Network[network] })
 
   const coreSDK = new DashCoreSDK({
-    network: network as 'mainnet' | 'testnet',
-    dapiUrl: CORE_DAPI_URLS[network]
+    network: Network[network],
   })
 
   const privateAPI = new PrivateAPI(sdk, coreSDK, extensionStorageAdapter)
