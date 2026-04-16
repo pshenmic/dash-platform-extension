@@ -2,6 +2,7 @@ import {
   DashCoreSDK,
   ExtraPayload,
   Input,
+  InstantLock,
   Network,
   Output,
   PrivateKey,
@@ -9,7 +10,7 @@ import {
   Transaction,
   TransactionType
 } from 'dash-core-sdk'
-import type { TransactionInputToSign } from 'dash-core-sdk'
+import type { TransactionInputToSign, InstantAssetLockProofParams, ChainAssetLockProofParams } from 'dash-core-sdk'
 import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 import hash from 'hash.js'
 import { decrypt } from 'eciesjs'
@@ -265,44 +266,88 @@ export const buildAssetLockFromPaymentTx = async (
   }
 }
 
-export interface WaitForChainLockResult {
-  txid: string
-  coreChainLockedHeight: number
-}
+export type AssetLockProof = InstantAssetLockProofParams | ChainAssetLockProofParams
 
 /**
- * Polls getTransaction until isChainLocked === true, then returns the block height.
- * Throws with a clear message on timeout.
+ * Waits for the asset lock transaction to receive either an instant lock or a chain lock,
+ * whichever comes first. Returns the appropriate proof params for use with
+ * sdk.identities.createStateTransition('create', { assetLockProof }).
+ *
+ * - Instant lock: arrives within seconds on a healthy network (mainnet / testnet).
+ * - Chain lock: fallback after 2-4 minutes if instant lock is not received.
+ *
+ * Both races run concurrently; the first to resolve wins and the other is abandoned.
  */
-export const waitForAssetLockChainLock = async (
+export const waitForAssetLockProof = async (
   coreSDK: DashCoreSDK,
+  assetLockTx: Transaction,
   txid: string,
+  creditOutputAddress: string,
   pollIntervalMs: number = CHAIN_LOCK_POLL_INTERVAL_MS,
   timeoutMs: number = CHAIN_LOCK_TIMEOUT_MS
-): Promise<WaitForChainLockResult> => {
-  const deadline = Date.now() + timeoutMs
+): Promise<AssetLockProof> => {
+  let settled = false
 
-  while (Date.now() < deadline) {
-    let dapiTx: Awaited<ReturnType<DashCoreSDK['getTransaction']>>
+  // ── Race 1: instant lock via subscription ────────────────────────────────
+  const instantLockRace = async (): Promise<AssetLockProof> => {
+    for await (const event of coreSDK.subscribeToTransactions([creditOutputAddress])) {
+      if (settled) return await Promise.reject(new Error('cancelled'))
 
-    try {
-      dapiTx = await coreSDK.getTransaction(txid)
-    } catch {
-      // Transient error — keep polling
-      await wait(pollIntervalMs)
-      continue
+      if (event.event !== 'instantSendLockMessage') continue
+
+      let instantLock: InstantLock
+      try {
+        instantLock = InstantLock.fromHex(event.data)
+      } catch {
+        continue
+      }
+
+      if (instantLock.txId !== txid) continue
+
+      const proof = coreSDK.createInstantAssetLockProof(assetLockTx, event.data, 0)
+      return coreSDK.toInstantAssetLockProofParams(proof)
     }
 
-    if (dapiTx.isChainLocked) {
-      return { txid, coreChainLockedHeight: dapiTx.height }
-    }
-
-    await wait(pollIntervalMs)
+    return await Promise.reject(new Error('Instant lock subscription ended without result'))
   }
 
-  throw new Error(
-    `Timed out waiting for chain lock on asset lock transaction ${txid}. ` +
-    `Elapsed: ${timeoutMs / 1000}s. The transaction may still be confirmed — ` +
-    'try resuming registration once the network has processed the block.'
-  )
+  // ── Race 2: chain lock via polling ───────────────────────────────────────
+  const chainLockRace = async (): Promise<AssetLockProof> => {
+    const deadline = Date.now() + timeoutMs
+
+    while (Date.now() < deadline) {
+      if (settled) return await Promise.reject(new Error('cancelled'))
+
+      try {
+        const dapiTx = await coreSDK.getTransaction(txid)
+
+        if (dapiTx.isChainLocked) {
+          return {
+            type: 'chainLock' as const,
+            txid,
+            outputIndex: 0,
+            coreChainLockedHeight: dapiTx.height
+          }
+        }
+      } catch {
+        // Transient DAPI error — keep polling
+      }
+
+      await wait(pollIntervalMs)
+    }
+
+    return await Promise.reject(new Error(
+      `Timed out waiting for asset lock proof on transaction ${txid}. ` +
+      `Elapsed: ${timeoutMs / 1000}s. The transaction may still be confirmed — ` +
+      'try resuming registration once the network has processed the block.'
+    ))
+  }
+
+  const result = await Promise.race([
+    instantLockRace(),
+    chainLockRace()
+  ])
+
+  settled = true
+  return result
 }

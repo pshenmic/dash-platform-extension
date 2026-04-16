@@ -14,7 +14,7 @@ import { IdentityType } from '../../../../types/enums/IdentityType'
 import {
   decryptOneTimePrivateKey,
   buildAssetLockFromPaymentTx,
-  waitForAssetLockChainLock
+  waitForAssetLockProof
 } from '../../../services/identityRegistration'
 
 export class RegisterIdentityHandler implements APIHandler {
@@ -51,14 +51,11 @@ export class RegisterIdentityHandler implements APIHandler {
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
-      throw new Error('No wallet is set. Please create or switch to a wallet before registering an identity.')
+      throw new Error('No wallet is chosen')
     }
 
     const network = await this.storageAdapter.get('network') as string
 
-    if (network == null) {
-      throw new Error('Network is not configured')
-    }
 
     // ── 2. Load the one-time address entry and decrypt the private key ───────
     const oneTimeAddressEntry = await this.oneTimeAddressesRepository.getByAddress(payload.paymentAddress)
@@ -79,7 +76,7 @@ export class RegisterIdentityHandler implements APIHandler {
     const oneTimePrivateKeyWif: string = oneTimePrivateKeyWASM.WIF()
 
     // ── 3. Build asset lock transaction from the payment tx ──────────────────
-    const { assetLockTx, assetLockOutputIndex } = await buildAssetLockFromPaymentTx({
+    const { assetLockTx } = await buildAssetLockFromPaymentTx({
       coreSDK: this.coreSDK,
       network,
       paymentTxid: payload.paymentTxid,
@@ -95,10 +92,15 @@ export class RegisterIdentityHandler implements APIHandler {
     console.log('[registerIdentity] Asset lock broadcast result:', broadcastResult)
     console.log('[registerIdentity] Asset lock txid:', assetLockTxid)
 
-    // ── 5. Wait for chain lock ───────────────────────────────────────────────
-    const { coreChainLockedHeight } = await waitForAssetLockChainLock(this.coreSDK, assetLockTxid)
+    // ── 5. Wait for instant lock or chain lock (whichever comes first) ──────
+    const assetLockProof = await waitForAssetLockProof(
+      this.coreSDK,
+      assetLockTx,
+      assetLockTxid,
+      payload.paymentAddress
+    )
 
-    console.log('[registerIdentity] Chain lock height:', coreChainLockedHeight)
+    console.log('[registerIdentity] Asset lock proof type:', assetLockProof.type)
 
     // ── 6. Build the master identity key pair ────────────────────────────────
     const identityPrivateKey = PrivateKeyWASM.fromHex(
@@ -122,16 +124,9 @@ export class RegisterIdentityHandler implements APIHandler {
     // ── 7. Sign the public key in creation ───────────────────────────────────
     // Per dash-platform-sdk protocol: create a temporary transition, sign with the
     // identity key to get its "proof of possession" signature, store it on the key.
-    const chainLockProof = {
-      txid: assetLockTxid,
-      outputIndex: assetLockOutputIndex,
-      coreChainLockedHeight,
-      type: 'chainLock' as const
-    }
-
     let stateTransition = this.sdk.identities.createStateTransition('create', {
       publicKeys: [identityPublicKeyInCreation],
-      assetLockProof: chainLockProof
+      assetLockProof
     })
 
     stateTransition.signByPrivateKey(identityPrivateKey, undefined, KeyType.ECDSA_SECP256K1)
@@ -140,7 +135,7 @@ export class RegisterIdentityHandler implements APIHandler {
     // ── 8. Finalize: re-create with signed keys, sign with asset lock key ────
     stateTransition = this.sdk.identities.createStateTransition('create', {
       publicKeys: [identityPublicKeyInCreation],
-      assetLockProof: chainLockProof
+      assetLockProof
     })
 
     stateTransition.signByPrivateKey(oneTimePrivateKeyWASM, undefined, KeyType.ECDSA_SECP256K1)
