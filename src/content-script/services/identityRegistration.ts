@@ -18,8 +18,8 @@ import { hexToBytes, wait } from '../../utils'
 
 const FEE_PER_BYTE = 1
 const MIN_FEE_RELAY = 1000n
-const CHAIN_LOCK_POLL_INTERVAL_MS = 5000
-const CHAIN_LOCK_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
+const LOCK_POLL_INTERVAL_MS = 5000
+const LOCK_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
 
 /**
  * Decrypts the one-time address private key stored in OneTimeAddressesRepository.
@@ -232,33 +232,47 @@ export const buildAssetLockFromPaymentTx = async (
   }
 
   const paymentOutput = paymentTx.outputs[resolvedOutputIndex]
-  const lockedAmount = paymentOutput.satoshis - MIN_FEE_RELAY
+
+  const utxos = [
+    {
+      txid: paymentTxid,
+      vout: resolvedOutputIndex,
+      satoshis: paymentOutput.satoshis,
+      privateKeyWif: oneTimePrivateKeyWif
+    }
+  ]
+
+  // Build a draft transaction to measure its signed byte size.
+  // Satoshis values are fixed-width (int64) in serialization, so the size
+  // does not depend on the locked amount — the draft gives an accurate estimate.
+  const draftTx = buildAssetLockTransaction({
+    network,
+    utxos,
+    creditOutputs: [{ address: oneTimeAddress, amountSatoshis: MIN_FEE_RELAY }],
+    changeAddress: oneTimeAddress
+  })
+
+  const sizeFee = BigInt(draftTx.bytes().byteLength) * BigInt(FEE_PER_BYTE)
+  const fee = sizeFee > MIN_FEE_RELAY ? sizeFee : MIN_FEE_RELAY
+  const lockedAmount = paymentOutput.satoshis - fee
 
   if (lockedAmount <= 0n) {
     throw new Error(
       `Payment output at index ${resolvedOutputIndex} (${paymentOutput.satoshis} duffs) ` +
-      `is too small to cover the minimum relay fee (${MIN_FEE_RELAY} duffs)`
+      `is too small to cover the transaction fee (${fee} duffs)`
     )
   }
 
-  const assetLockTx = buildAssetLockTransaction({
-    network,
-    utxos: [
-      {
-        txid: paymentTxid,
-        vout: resolvedOutputIndex,
-        satoshis: paymentOutput.satoshis,
-        privateKeyWif: oneTimePrivateKeyWif
-      }
-    ],
-    creditOutputs: [
-      {
-        address: oneTimeAddress,
-        amountSatoshis: lockedAmount
-      }
-    ],
-    changeAddress: oneTimeAddress
-  })
+  // If the size-based fee equals MIN_FEE_RELAY the draft already used the right
+  // locked amount, otherwise rebuild with the corrected value.
+  const assetLockTx = fee === MIN_FEE_RELAY
+    ? draftTx
+    : buildAssetLockTransaction({
+      network,
+      utxos,
+      creditOutputs: [{ address: oneTimeAddress, amountSatoshis: lockedAmount }],
+      changeAddress: oneTimeAddress
+    })
 
   return {
     assetLockTx,
@@ -283,8 +297,8 @@ export const waitForAssetLockProof = async (
   assetLockTx: Transaction,
   txid: string,
   creditOutputAddress: string,
-  pollIntervalMs: number = CHAIN_LOCK_POLL_INTERVAL_MS,
-  timeoutMs: number = CHAIN_LOCK_TIMEOUT_MS
+  pollIntervalMs: number = LOCK_POLL_INTERVAL_MS,
+  timeoutMs: number = LOCK_TIMEOUT_MS
 ): Promise<AssetLockProof> => {
   let settled = false
 
