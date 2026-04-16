@@ -197,7 +197,7 @@ export interface AssetLockBuildResult {
 export const buildAssetLockFromPaymentTx = async (
   options: BuildAssetLockFromPaymentOptions
 ): Promise<AssetLockBuildResult> => {
-  const { coreSDK, network, paymentTxid, oneTimeAddress, oneTimePrivateKeyWif, outputIndex } = options
+  const { coreSDK, paymentTxid, oneTimeAddress, oneTimePrivateKeyWif, outputIndex } = options
 
   // Load the payment transaction from DAPI
   let dapiTx: Awaited<ReturnType<DashCoreSDK['getTransaction']>>
@@ -208,11 +208,18 @@ export const buildAssetLockFromPaymentTx = async (
     throw new Error(`Could not load payment transaction ${paymentTxid}: ${e instanceof Error ? e.message : String(e)}`)
   }
 
-  const paymentTx = Transaction.fromBytes(dapiTx.transaction)
+  const rawTx = dapiTx.transaction as any
+  // Force copy into a plain JS Uint8Array in case rawTx is backed by WASM memory
+  const txBytes = Uint8Array.from(rawTx)
+  console.log('[buildAssetLockFromPaymentTx] txBytes length:', txBytes.byteLength, 'first10:', Array.from(txBytes.slice(0, 10)).map((b: any) => b.toString(16).padStart(2, '0')).join(' '))
+  const paymentTx = Transaction.fromBytes(txBytes)
+  console.log('[buildAssetLockFromPaymentTx] Transaction.fromBytes OK')
 
+  console.log('[buildAssetLockFromPaymentTx] checking hash...')
   if (paymentTx.hash() !== paymentTxid) {
     throw new Error(`Transaction hash mismatch for ${paymentTxid}: transaction data is corrupt`)
   }
+  console.log('[buildAssetLockFromPaymentTx] hash OK')
 
   if (!dapiTx.isInstantLocked && !dapiTx.isChainLocked && dapiTx.confirmations < 1) {
     throw new Error(
@@ -222,8 +229,24 @@ export const buildAssetLockFromPaymentTx = async (
   }
 
   // Locate the output that pays to the one-time address.
-  // The caller should pass outputIndex when known; fallback is index 0.
-  const resolvedOutputIndex: number = outputIndex ?? 0
+  // If outputIndex is provided, use it; otherwise scan outputs for the one
+  // whose P2PKH script matches oneTimeAddress.
+  let resolvedOutputIndex: number
+  if (outputIndex != null) {
+    resolvedOutputIndex = outputIndex
+  } else {
+    console.log('[buildAssetLockFromPaymentTx] detecting output index...')
+    const expectedScriptHex = Output.createP2PKH(0n, oneTimeAddress).script.hex()
+    resolvedOutputIndex = paymentTx.outputs.findIndex(
+      o => o.script.hex() === expectedScriptHex
+    )
+    if (resolvedOutputIndex === -1) {
+      throw new Error(
+        `Could not find output paying to ${oneTimeAddress} in transaction ${paymentTxid}`
+      )
+    }
+  }
+  console.log('[buildAssetLockFromPaymentTx] resolvedOutputIndex:', resolvedOutputIndex)
 
   if (resolvedOutputIndex >= paymentTx.outputs.length) {
     throw new Error(
@@ -232,29 +255,30 @@ export const buildAssetLockFromPaymentTx = async (
   }
 
   const paymentOutput = paymentTx.outputs[resolvedOutputIndex]
+  console.log('[buildAssetLockFromPaymentTx] paymentOutput.satoshis:', paymentOutput.satoshis)
 
-  const utxos = [
-    {
-      txid: paymentTxid,
-      vout: resolvedOutputIndex,
-      satoshis: paymentOutput.satoshis,
-      privateKeyWif: oneTimePrivateKeyWif
-    }
-  ]
+  const privateKey = PrivateKey.fromWIF(oneTimePrivateKeyWif)
+  const lockingScript = Output.createP2PKH(0n, privateKey.getAddress()).script
 
-  // Build a draft transaction to measure its signed byte size.
-  // Satoshis values are fixed-width (int64) in serialization, so the size
-  // does not depend on the locked amount — the draft gives an accurate estimate.
-  const draftTx = buildAssetLockTransaction({
-    network,
-    utxos,
-    creditOutputs: [{ address: oneTimeAddress, amountSatoshis: MIN_FEE_RELAY }],
-    changeAddress: oneTimeAddress
-  })
+  // Build a dummy signed tx to measure byte size for fee calculation.
+  // Amounts are fixed-width (int64) in serialization, so any dummy lockedAmount gives
+  // the exact same byte length as the real tx.
+  const dummyPayloadOutput = Output.createP2PKH(MIN_FEE_RELAY, oneTimeAddress)
+  const dummyTx = new Transaction(
+    [],
+    [Output.createAssetLockBurn(MIN_FEE_RELAY)],
+    undefined,
+    undefined,
+    TransactionType.TRANSACTION_ASSET_LOCK,
+    new ExtraPayload.AssetLockTx(1, 1, [dummyPayloadOutput])
+  )
+  dummyTx.addInput(new Input(paymentTxid, resolvedOutputIndex, new Script(), 0))
+  dummyTx.signInputs([{ inputIndex: 0, privateKey, lockingScript }])
 
-  const sizeFee = BigInt(draftTx.bytes().byteLength) * BigInt(FEE_PER_BYTE)
+  const sizeFee = BigInt(dummyTx.bytes().byteLength) * BigInt(FEE_PER_BYTE)
   const fee = sizeFee > MIN_FEE_RELAY ? sizeFee : MIN_FEE_RELAY
   const lockedAmount = paymentOutput.satoshis - fee
+  console.log('[buildAssetLockFromPaymentTx] dummyTx bytes:', dummyTx.bytes().byteLength, 'fee:', fee, 'lockedAmount:', lockedAmount)
 
   if (lockedAmount <= 0n) {
     throw new Error(
@@ -263,16 +287,21 @@ export const buildAssetLockFromPaymentTx = async (
     )
   }
 
-  // If the size-based fee equals MIN_FEE_RELAY the draft already used the right
-  // locked amount, otherwise rebuild with the corrected value.
-  const assetLockTx = fee === MIN_FEE_RELAY
-    ? draftTx
-    : buildAssetLockTransaction({
-      network,
-      utxos,
-      creditOutputs: [{ address: oneTimeAddress, amountSatoshis: lockedAmount }],
-      changeAddress: oneTimeAddress
-    })
+  // Build final tx with correct lockedAmount and no change output.
+  // The miner fee is implicit: totalInput - lockedAmount = fee.
+  console.log('[buildAssetLockFromPaymentTx] building final asset lock tx...')
+  const payloadOutput = Output.createP2PKH(lockedAmount, oneTimeAddress)
+  const assetLockTx = new Transaction(
+    [],
+    [Output.createAssetLockBurn(lockedAmount)],
+    undefined,
+    undefined,
+    TransactionType.TRANSACTION_ASSET_LOCK,
+    new ExtraPayload.AssetLockTx(1, 1, [payloadOutput])
+  )
+  assetLockTx.addInput(new Input(paymentTxid, resolvedOutputIndex, new Script(), 0))
+  assetLockTx.signInputs([{ inputIndex: 0, privateKey, lockingScript }])
+  console.log('[buildAssetLockFromPaymentTx] final asset lock tx OK, hash:', assetLockTx.hash())
 
   return {
     assetLockTx,

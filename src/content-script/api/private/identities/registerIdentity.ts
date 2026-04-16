@@ -16,6 +16,7 @@ import {
   buildAssetLockFromPaymentTx,
   waitForAssetLockProof
 } from '../../../services/identityRegistration'
+import { wait } from '../../../../utils'
 
 export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -76,6 +77,7 @@ export class RegisterIdentityHandler implements APIHandler {
     const oneTimePrivateKeyWif: string = oneTimePrivateKeyWASM.WIF()
 
     // ── 3. Build asset lock transaction from the payment tx ──────────────────
+    console.log('[registerIdentity] step 3: building asset lock tx...')
     const { assetLockTx } = await buildAssetLockFromPaymentTx({
       coreSDK: this.coreSDK,
       network,
@@ -84,6 +86,7 @@ export class RegisterIdentityHandler implements APIHandler {
       oneTimePrivateKeyWif,
       outputIndex: payload.outputIndex
     })
+    console.log('[registerIdentity] step 3: done')
 
     // ── 4. Broadcast the asset lock transaction ──────────────────────────────
     const broadcastResult = await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
@@ -117,7 +120,7 @@ export class RegisterIdentityHandler implements APIHandler {
       securityLevel: SecurityLevel.MASTER,
       keyType: KeyType.ECDSA_SECP256K1,
       readOnly: false,
-      data: identityPrivateKey.getPublicKey().bytes(),
+      data: Uint8Array.from(identityPrivateKey.getPublicKey().bytes()),
       signature: undefined as Uint8Array | undefined
     }
 
@@ -130,7 +133,12 @@ export class RegisterIdentityHandler implements APIHandler {
     })
 
     stateTransition.signByPrivateKey(identityPrivateKey, undefined, KeyType.ECDSA_SECP256K1)
-    identityPublicKeyInCreation.signature = stateTransition.signature
+    // Force-copy out of WASM memory — the step-7 state transition will be GC'd
+    // after reassignment in step 8, invalidating any WASM-backed Uint8Array it owns.
+    if (stateTransition.signature == null) {
+      throw new Error('signByPrivateKey did not produce a signature for the identity key')
+    }
+    identityPublicKeyInCreation.signature = Uint8Array.from(stateTransition.signature)
 
     // ── 8. Finalize: re-create with signed keys, sign with asset lock key ────
     stateTransition = this.sdk.identities.createStateTransition('create', {
@@ -140,6 +148,8 @@ export class RegisterIdentityHandler implements APIHandler {
 
     stateTransition.signByPrivateKey(oneTimePrivateKeyWASM, undefined, KeyType.ECDSA_SECP256K1)
 
+    console.log('1: ======>', stateTransition.hex())
+
     // ── 9. Derive the new identity identifier ────────────────────────────────
     const identifier = stateTransition.getOwnerId()?.base58()
 
@@ -147,13 +157,44 @@ export class RegisterIdentityHandler implements APIHandler {
       throw new Error('Could not derive identity identifier from state transition')
     }
 
-    // hash(skip_signature: boolean): string — returns a hex string directly
-    const stateTransitionHash: string = stateTransition.hash(false)
-
     console.log('[registerIdentity] Identity identifier:', identifier)
 
-    // ── 10. Broadcast the state transition ───────────────────────────────────
-    await this.sdk.stateTransitions.broadcast(stateTransition)
+    // ── 10. Broadcast the state transition (with retry for chain height race) ──
+    // Chain lock proofs can arrive 1 block ahead of the platform's consensus height.
+    // Recreate the state transition on each attempt: WASM objects can become stale
+    // after a failed broadcast call.
+    const MAX_BROADCAST_RETRIES = 5
+    const BROADCAST_RETRY_DELAY_MS = 15_000
+    for (let attempt = 0; ; attempt++) {
+      // Recreate and re-sign on every attempt (including first) to get a fresh WASM object.
+      console.log(`[registerIdentity] broadcast attempt ${attempt}: creating state transition...`)
+      // stateTransition = this.sdk.identities.createStateTransition('create', {
+      //   publicKeys: [identityPublicKeyInCreation],
+      //   assetLockProof
+      // })
+      // console.log(`[registerIdentity] broadcast attempt ${attempt}: signing...`)
+      // stateTransition.signByPrivateKey(oneTimePrivateKeyWASM, undefined, KeyType.ECDSA_SECP256K1)
+      console.log(`[registerIdentity] broadcast attempt ${attempt}: broadcasting...`)
+      console.log('2: ======>', stateTransition.hex())
+
+      try {
+        await this.sdk.stateTransitions.broadcast(stateTransition)
+        console.log(`[registerIdentity] broadcast attempt ${attempt}: success`)
+        break
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        console.log(`[registerIdentity] broadcast attempt ${attempt}: failed — ${msg}`)
+        if (attempt < MAX_BROADCAST_RETRIES && msg.includes('core chain height')) {
+          console.log(`[registerIdentity] Chain height race, retrying in ${BROADCAST_RETRY_DELAY_MS / 1000}s (attempt ${attempt + 1}/${MAX_BROADCAST_RETRIES})`)
+          await wait(BROADCAST_RETRY_DELAY_MS)
+        } else {
+          throw e
+        }
+      }
+    }
+
+    // hash(skip_signature: boolean): string — computed after successful broadcast
+    const stateTransitionHash: string = stateTransition.hash(false)
 
     // ── 11. Wait for confirmation ────────────────────────────────────────────
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
