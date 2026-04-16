@@ -49,21 +49,13 @@ import { RemoveWalletHandler } from './private/wallet/removeWallet'
  */
 export class PrivateAPI {
   sdk: DashPlatformSDK
-  coreSDK: DashCoreSDK | null
+  coreSDK: DashCoreSDK
   storageAdapter: StorageAdapter
 
-  constructor (sdk: DashPlatformSDK, coreSDKOrStorage: DashCoreSDK | StorageAdapter, storageAdapterArg?: StorageAdapter) {
+  constructor (sdk: DashPlatformSDK, coreSDK: DashCoreSDK, storageAdapter: StorageAdapter) {
     this.sdk = sdk
-
-    // Support both the new 3-arg signature (sdk, coreSDK, storageAdapter)
-    // and the legacy 2-arg signature (sdk, storageAdapter) used in existing tests.
-    if (storageAdapterArg != null) {
-      this.coreSDK = coreSDKOrStorage as DashCoreSDK
-      this.storageAdapter = storageAdapterArg
-    } else {
-      this.coreSDK = null
-      this.storageAdapter = coreSDKOrStorage as StorageAdapter
-    }
+    this.coreSDK = coreSDK
+    this.storageAdapter = storageAdapter
   }
 
   handlers: {
@@ -128,17 +120,15 @@ export class PrivateAPI {
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
       [MessagingMethods.REQUEST_ONE_TIME_ADDRESS]: new RequestOneTimeAddressHandler(oneTimeAddressesRepository),
-      ...(this.coreSDK != null && {
-        [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
-          walletRepository,
-          identitiesRepository,
-          keypairRepository,
-          oneTimeAddressesRepository,
-          this.storageAdapter,
-          this.sdk,
-          this.coreSDK
-        )
-      })
+      [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
+        walletRepository,
+        identitiesRepository,
+        keypairRepository,
+        oneTimeAddressesRepository,
+        this.storageAdapter,
+        this.sdk,
+        this.coreSDK
+      )
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {

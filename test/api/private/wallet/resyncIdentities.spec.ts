@@ -23,7 +23,7 @@ describe('resync identities', () => {
 
     await runMigrations(storage)
 
-    privateAPI = new PrivateAPI(sdk, memoryStorageAdapter)
+    privateAPI = new PrivateAPI(sdk, {} as any, memoryStorageAdapter)
     privateAPIClient = new PrivateAPIClient()
 
     privateAPI.init()

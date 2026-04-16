@@ -20,7 +20,7 @@ describe('setWalletLabel', () => {
     storage = memoryStorageAdapter
     await runMigrations(storage)
 
-    const privateAPI = new PrivateAPI(sdk, memoryStorageAdapter)
+    const privateAPI = new PrivateAPI(sdk, {} as any, memoryStorageAdapter)
     privateAPIClient = new PrivateAPIClient()
 
     privateAPI.init()
