@@ -1,4 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPIClient } from '../../../../src/types/PrivateAPIClient'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
@@ -19,11 +20,12 @@ describe('create wallet', () => {
   beforeEach(async () => {
     const memoryStorageAdapter = new MemoryStorageAdapter()
     sdk = new DashPlatformSDK({ network: 'testnet' })
+    const coreSDK = new DashCoreSDK({ network: 'testnet', dapiUrl: 'http://127.0.0.1:1443' })
 
     storage = memoryStorageAdapter
     await runMigrations(storage)
 
-    privateAPI = new PrivateAPI(sdk, {} as any, memoryStorageAdapter)
+    privateAPI = new PrivateAPI(sdk, coreSDK, memoryStorageAdapter)
     privateAPIClient = new PrivateAPIClient()
 
     privateAPI.init()

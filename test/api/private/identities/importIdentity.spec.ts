@@ -1,4 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateKey } from 'eciesjs'
 import hash from 'hash.js'
 import { PrivateAPIClient, WalletType } from '../../../../src/types'
@@ -16,12 +17,13 @@ describe('switch identity', () => {
 
   beforeEach(async () => {
     const sdk = new DashPlatformSDK({ network: 'testnet' })
+    const coreSDK = new DashCoreSDK({ network: 'testnet', dapiUrl: 'http://127.0.0.1:1443' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter
     await runMigrations(storage)
 
-    privateAPI = new PrivateAPI(sdk, {} as any, memoryStorageAdapter)
+    privateAPI = new PrivateAPI(sdk, coreSDK, memoryStorageAdapter)
     privateAPIClient = new PrivateAPIClient()
 
     privateAPI.init()
