@@ -16,7 +16,7 @@ describe('setWalletLabel', () => {
 
   beforeAll(async () => {
     const sdk = new DashPlatformSDK({ network: 'testnet' })
-    const coreSDK = new DashCoreSDK({ network: 'testnet', dapiUrl: 'http://127.0.0.1:1443' })
+    const coreSDK = new DashCoreSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter
