@@ -327,13 +327,15 @@ export const waitForAssetLockProof = async (
   txid: string,
   creditOutputAddress: string,
   pollIntervalMs: number = LOCK_POLL_INTERVAL_MS,
-  timeoutMs: number = LOCK_TIMEOUT_MS
+  timeoutMs: number = LOCK_TIMEOUT_MS,
+  subscription?: ReturnType<DashCoreSDK['subscribeToTransactions']>
 ): Promise<AssetLockProof> => {
   let settled = false
 
   // ── Race 1: instant lock via subscription ────────────────────────────────
   const instantLockRace = async (): Promise<AssetLockProof> => {
-    for await (const event of coreSDK.subscribeToTransactions([creditOutputAddress])) {
+    const sub = subscription ?? coreSDK.subscribeToTransactions([creditOutputAddress])
+    for await (const event of sub) {
       if (settled) return await Promise.reject(new Error('cancelled'))
 
       if (event.event !== 'instantSendLockMessage') continue

@@ -16,7 +16,7 @@ import {
   buildAssetLockFromPaymentTx,
   waitForAssetLockProof
 } from '../../../services/identityRegistration'
-import { wait } from '../../../../utils'
+import {hexToBytes, wait} from '../../../../utils'
 
 export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -89,8 +89,15 @@ export class RegisterIdentityHandler implements APIHandler {
     console.log('[registerIdentity] step 3: done')
 
     // ── 4. Broadcast the asset lock transaction ──────────────────────────────
-    const broadcastResult = await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
+    // Open the instant lock subscription before broadcasting so we don't miss
+    // an instant lock that arrives before the subscription is established.
     const assetLockTxid = assetLockTx.hash()
+    const instantLockSub = this.coreSDK.subscribeToTransactions(
+      [payload.paymentAddress],
+      [hexToBytes(assetLockTxid)]
+    )
+
+    const broadcastResult = await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
 
     console.log('[registerIdentity] Asset lock broadcast result:', broadcastResult)
     console.log('[registerIdentity] Asset lock txid:', assetLockTxid)
@@ -100,10 +107,16 @@ export class RegisterIdentityHandler implements APIHandler {
       this.coreSDK,
       assetLockTx,
       assetLockTxid,
-      payload.paymentAddress
+      payload.paymentAddress,
+      undefined,
+      undefined,
+      instantLockSub
     )
 
     console.log('[registerIdentity] Asset lock proof type:', assetLockProof.type)
+
+    console.log('[registerIdentity] Waiting 500ms')
+    await wait(500)
 
     // ── 6. Build the master identity key pair ────────────────────────────────
     const identityPrivateKey = PrivateKeyWASM.fromHex(
@@ -183,6 +196,7 @@ export class RegisterIdentityHandler implements APIHandler {
         break
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
+        console.error(e)
         console.log(`[registerIdentity] broadcast attempt ${attempt}: failed — ${msg}`)
         if (attempt < MAX_BROADCAST_RETRIES && msg.includes('core chain height')) {
           console.log(`[registerIdentity] Chain height race, retrying in ${BROADCAST_RETRY_DELAY_MS / 1000}s (attempt ${attempt + 1}/${MAX_BROADCAST_RETRIES})`)

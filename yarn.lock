@@ -3749,9 +3749,9 @@ csstype@^3.0.2:
   resolved "https://registry.npmjs.org/csstype/-/csstype-3.1.3.tgz"
   integrity sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==
 
-"dash-core-sdk@https://github.com/pshenmic/dash-core-sdk#cd541b0f788b66d32be3697a8e4dd155ae7f6ca6":
+"dash-core-sdk@https://github.com/pshenmic/dash-core-sdk#4e536a88a76deccae1a987ad965b0a8b5991de86":
   version "1.1.2"
-  resolved "https://github.com/pshenmic/dash-core-sdk#cd541b0f788b66d32be3697a8e4dd155ae7f6ca6"
+  resolved "https://github.com/pshenmic/dash-core-sdk#4e536a88a76deccae1a987ad965b0a8b5991de86"
   dependencies:
     "@dashevo/x11-hash-js" "^1.0.2"
     "@noble/curves" "^2.0.1"
@@ -3766,10 +3766,10 @@ csstype@^3.0.2:
     typescript "^5.9.2"
     ws "^8.18.3"
 
-dash-platform-sdk@1.3.1:
-  version "1.3.1"
-  resolved "https://registry.npmjs.org/dash-platform-sdk/-/dash-platform-sdk-1.3.1.tgz"
-  integrity sha512-tw03XKDGvyvsI7ey6CvDbvFb71MVqGcRnV83EFF8Fx8tl+azXUc/fjZQiK/aWNAe0a16/sphBKALzgIOl7Z70A==
+dash-platform-sdk@1.3.2-dev.3:
+  version "1.3.2-dev.3"
+  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.3.2-dev.3.tgz#7406cb4b93b3c80aa0f99e4627749e40728ea046"
+  integrity sha512-m1waDIgb+xoTqTIsES9/3tshwv6y3zaRdBYg3R8CLekCZJlOxFkSzk45ekaoEPVfWrG8tES4zlFZ+Q+gdKaQWA==
   dependencies:
     "@bufbuild/protobuf" "^2.6.0"
     "@protobuf-ts/grpcweb-transport" "^2.11.1"
@@ -3778,7 +3778,7 @@ dash-platform-sdk@1.3.1:
     "@scure/bip39" "^2.0.0"
     "@scure/btc-signer" "^2.0.1"
     cbor-x "^1.6.0"
-    pshenmic-dpp "1.1.2-dev.8"
+    pshenmic-dpp "1.1.2-dev.10"
 
 dash-ui-kit@2.1.0-dev:
   version "2.1.0-dev"
@@ -6954,10 +6954,10 @@ proxy-addr@~2.0.7:
     forwarded "0.2.0"
     ipaddr.js "1.9.1"
 
-pshenmic-dpp@1.1.2-dev.8:
-  version "1.1.2-dev.8"
-  resolved "https://registry.npmjs.org/pshenmic-dpp/-/pshenmic-dpp-1.1.2-dev.8.tgz"
-  integrity sha512-P3czQ6uJYHr7XJ2OSWUH+FNej7Qpa+bz8Ld7+FtUqjGCBpwK6GTGQy1PDmACT9nP8+DXpFTUGu7Au9u66kvcdA==
+pshenmic-dpp@1.1.2-dev.10:
+  version "1.1.2-dev.10"
+  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-1.1.2-dev.10.tgz#3abc4ba0f31ac48fafe23bd6f34f2b864daa5eb3"
+  integrity sha512-2S1eF5UjhOrEJ5cLn2YBk2k/TNDFipO2cLDHbpMGOhy//NcoFIPIZfo2l6n01dA0fCOLDpjHa/1smrVABUAGkg==
   dependencies:
     fflate "^0.8.2"
 
