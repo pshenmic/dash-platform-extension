@@ -18,6 +18,14 @@ export const PurposeLabelsInfo = {
   VOTING: {
     label: 'Voting',
     description: 'Key used for voting'
+  },
+  SYSTEM: {
+    label: 'System',
+    description: 'System key'
+  },
+  OWNER: {
+    label: 'Owner',
+    description: 'Key proving masternode ownership'
   }
 }
 
