@@ -105,6 +105,7 @@ export class RegisterIdentityHandler implements APIHandler {
     // ── 5. Wait for instant lock or chain lock (whichever comes first) ──────
     const assetLockProof = await waitForAssetLockProof(
       this.coreSDK,
+      this.sdk,
       assetLockTx,
       assetLockTxid,
       payload.paymentAddress,
@@ -115,8 +116,6 @@ export class RegisterIdentityHandler implements APIHandler {
 
     console.log('[registerIdentity] Asset lock proof type:', assetLockProof.type)
 
-    console.log('[registerIdentity] Waiting 500ms')
-    await wait(500)
 
     // ── 6. Build the master identity key pair ────────────────────────────────
     const identityPrivateKey = PrivateKeyWASM.fromHex(

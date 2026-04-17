@@ -11,6 +11,7 @@ import {
   TransactionType
 } from 'dash-core-sdk'
 import type { TransactionInputToSign, InstantAssetLockProofParams, ChainAssetLockProofParams } from 'dash-core-sdk'
+import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 import hash from 'hash.js'
 import { decrypt } from 'eciesjs'
@@ -323,6 +324,7 @@ export type AssetLockProof = InstantAssetLockProofParams | ChainAssetLockProofPa
  */
 export const waitForAssetLockProof = async (
   coreSDK: DashCoreSDK,
+  platformSDK: DashPlatformSDK,
   assetLockTx: Transaction,
   txid: string,
   creditOutputAddress: string,
@@ -366,12 +368,35 @@ export const waitForAssetLockProof = async (
       try {
         const dapiTx = await coreSDK.getTransaction(txid)
 
+        console.log("isInstantLocked", dapiTx.isInstantLocked);
+        console.log("isChainLocked", dapiTx.isChainLocked);
+
         if (dapiTx.isChainLocked) {
-          return {
-            type: 'chainLock' as const,
-            txid,
-            outputIndex: 0,
-            coreChainLockedHeight: dapiTx.height
+          const requiredPlatformHeight = dapiTx.height
+
+          while (Date.now() < deadline) {
+            if (settled) return await Promise.reject(new Error('cancelled'))
+
+            try {
+              const nodeStatus = await platformSDK.node.status()
+              const latestPlatformHeight = nodeStatus.chain?.coreChainLockedHeight ?? 0
+
+              if (
+                Number.isSafeInteger(latestPlatformHeight) &&
+                latestPlatformHeight >= requiredPlatformHeight
+              ) {
+                return {
+                  type: 'chainLock' as const,
+                  txid,
+                  outputIndex: 0,
+                  coreChainLockedHeight: dapiTx.height
+                }
+              }
+            } catch {
+              // Transient DAPI error — keep polling
+            }
+
+            await wait(pollIntervalMs)
           }
         }
       } catch {
@@ -389,7 +414,7 @@ export const waitForAssetLockProof = async (
   }
 
   const result = await Promise.race([
-    instantLockRace(),
+    // instantLockRace(),
     chainLockRace()
   ])
 
