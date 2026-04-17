@@ -61,10 +61,8 @@ export type PurposeCode = keyof typeof PurposeLabelsInfo
 export type SecurityCode = keyof typeof SecurityLabelsInfo
 
 // Helper functions to get labels
-export const getPurposeLabel = (purpose: string): string => {
-  const purposeKey = purpose as PurposeCode
-  return (purpose !== '' && PurposeLabelsInfo[purposeKey]?.label !== undefined) ? PurposeLabelsInfo[purposeKey].label : 'Master'
-}
+export const getPurposeLabel = (purpose: string): string =>
+  PurposeLabelsInfo[purpose as PurposeCode]?.label ?? purpose ?? 'Unknown'
 
 export const getSecurityLabel = (security: string): string => {
   const securityKey = security as SecurityCode
