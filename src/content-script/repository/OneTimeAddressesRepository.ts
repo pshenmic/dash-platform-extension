@@ -1,21 +1,24 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import { OneTimeAddressSchema, OneTimeAddressesSchema } from '../storage/storageSchema'
+import { IdentitiesStoreSchema, OneTimeAddressSchema, OneTimeAddressesSchema } from '../storage/storageSchema'
 import { encrypt } from 'eciesjs'
-import { bytesToHex, hexToBytes } from '../../utils'
+import { bytesToHex, deriveSeedphraseRegistrationFundingPrivateKey, getNextIdentityIndex, hexToBytes } from '../../utils'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
-import { generateRandomHex } from '../../utils'
+import { WalletRepository } from './WalletRepository'
+import { WalletType } from '../../types/WalletType'
 
 export class OneTimeAddressesRepository {
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
+  walletRepository: WalletRepository
 
-  constructor (storageAdapter: StorageAdapter, sdk: DashPlatformSDK) {
+  constructor (storageAdapter: StorageAdapter, sdk: DashPlatformSDK, walletRepository: WalletRepository) {
     this.storageAdapter = storageAdapter
     this.sdk = sdk
+    this.walletRepository = walletRepository
   }
 
-  async create (): Promise<OneTimeAddressSchema> {
+  async create (password?: string): Promise<OneTimeAddressSchema> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
@@ -29,15 +32,52 @@ export class OneTimeAddressesRepository {
       throw new Error('Password is not set for an extension')
     }
 
-    const privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), network)
-    const address = this.sdk.keyPair.p2pkhAddress(privateKeyWASM.getPublicKey().bytes(), network as Network)
-    const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(privateKeyWASM.hex())))
-
     const storageKey = `oneTimeAddresses_${network}_${walletId}`
 
     const oneTimeAddresses = (await this.storageAdapter.get(storageKey) ?? {}) as OneTimeAddressesSchema
+    const identitiesStorageKey = `identities_${network}_${walletId}`
+    const identities = (await this.storageAdapter.get(identitiesStorageKey) ?? {}) as IdentitiesStoreSchema
+    const nextIdentityIndex = getNextIdentityIndex(Object.values(identities).map((identity) => identity.index))
 
-    const entry: OneTimeAddressSchema = { address, encryptedPrivateKey }
+    const existingEntry = Object.values(oneTimeAddresses).find((entry) =>
+      Number.isSafeInteger(entry.identityIndex) && entry.identityIndex === nextIdentityIndex
+    )
+
+    if (existingEntry != null) {
+      return existingEntry
+    }
+
+    const wallet = await this.walletRepository.getCurrent()
+
+    if (wallet == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    let privateKeyWASM: PrivateKeyWASM
+
+    if (wallet.type === WalletType.seedphrase) {
+      if (typeof password !== 'string' || password.length === 0) {
+        throw new Error('Password is required to derive a deterministic registration address')
+      }
+
+      privateKeyWASM = await deriveSeedphraseRegistrationFundingPrivateKey(
+        wallet,
+        password,
+        nextIdentityIndex,
+        this.sdk
+      )
+    } else {
+      privateKeyWASM = PrivateKeyWASM.fromHex(generateSecureHex(32), network)
+    }
+
+    const address = this.sdk.keyPair.p2pkhAddress(privateKeyWASM.getPublicKey().bytes(), network as Network)
+    const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(privateKeyWASM.hex())))
+
+    const entry: OneTimeAddressSchema = {
+      address,
+      encryptedPrivateKey,
+      identityIndex: nextIdentityIndex
+    }
 
     oneTimeAddresses[address] = entry
 
@@ -60,4 +100,29 @@ export class OneTimeAddressesRepository {
 
     return oneTimeAddresses[address] ?? null
   }
+
+  async removeByAddress (address: string): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `oneTimeAddresses_${network}_${walletId}`
+    const oneTimeAddresses = (await this.storageAdapter.get(storageKey) ?? {}) as OneTimeAddressesSchema
+
+    if (oneTimeAddresses[address] == null) {
+      return
+    }
+
+    delete oneTimeAddresses[address]
+    await this.storageAdapter.set(storageKey, oneTimeAddresses)
+  }
+}
+
+function generateSecureHex (byteLength: number): string {
+  const bytes = new Uint8Array(byteLength)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }

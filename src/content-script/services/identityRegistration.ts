@@ -11,6 +11,7 @@ import {
   TransactionType
 } from 'dash-core-sdk'
 import type { TransactionInputToSign, InstantAssetLockProofParams, ChainAssetLockProofParams } from 'dash-core-sdk'
+import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 import hash from 'hash.js'
 import { decrypt } from 'eciesjs'
@@ -197,7 +198,7 @@ export interface AssetLockBuildResult {
 export const buildAssetLockFromPaymentTx = async (
   options: BuildAssetLockFromPaymentOptions
 ): Promise<AssetLockBuildResult> => {
-  const { coreSDK, network, paymentTxid, oneTimeAddress, oneTimePrivateKeyWif, outputIndex } = options
+  const { coreSDK, paymentTxid, oneTimeAddress, oneTimePrivateKeyWif, outputIndex } = options
 
   // Load the payment transaction from DAPI
   let dapiTx: Awaited<ReturnType<DashCoreSDK['getTransaction']>>
@@ -208,8 +209,10 @@ export const buildAssetLockFromPaymentTx = async (
     throw new Error(`Could not load payment transaction ${paymentTxid}: ${e instanceof Error ? e.message : String(e)}`)
   }
 
-  const paymentTx = Transaction.fromBytes(dapiTx.transaction)
-
+  const rawTx = dapiTx.transaction as any
+  // Force copy into a plain JS Uint8Array in case rawTx is backed by WASM memory
+  const txBytes = Uint8Array.from(rawTx)
+  const paymentTx = Transaction.fromBytes(txBytes)
   if (paymentTx.hash() !== paymentTxid) {
     throw new Error(`Transaction hash mismatch for ${paymentTxid}: transaction data is corrupt`)
   }
@@ -222,8 +225,22 @@ export const buildAssetLockFromPaymentTx = async (
   }
 
   // Locate the output that pays to the one-time address.
-  // The caller should pass outputIndex when known; fallback is index 0.
-  const resolvedOutputIndex: number = outputIndex ?? 0
+  // If outputIndex is provided, use it; otherwise scan outputs for the one
+  // whose P2PKH script matches oneTimeAddress.
+  let resolvedOutputIndex: number
+  if (outputIndex != null) {
+    resolvedOutputIndex = outputIndex
+  } else {
+    const expectedScriptHex = Output.createP2PKH(0n, oneTimeAddress).script.hex()
+    resolvedOutputIndex = paymentTx.outputs.findIndex(
+      o => o.script.hex() === expectedScriptHex
+    )
+    if (resolvedOutputIndex === -1) {
+      throw new Error(
+        `Could not find output paying to ${oneTimeAddress} in transaction ${paymentTxid}`
+      )
+    }
+  }
 
   if (resolvedOutputIndex >= paymentTx.outputs.length) {
     throw new Error(
@@ -233,26 +250,25 @@ export const buildAssetLockFromPaymentTx = async (
 
   const paymentOutput = paymentTx.outputs[resolvedOutputIndex]
 
-  const utxos = [
-    {
-      txid: paymentTxid,
-      vout: resolvedOutputIndex,
-      satoshis: paymentOutput.satoshis,
-      privateKeyWif: oneTimePrivateKeyWif
-    }
-  ]
+  const privateKey = PrivateKey.fromWIF(oneTimePrivateKeyWif)
+  const lockingScript = Output.createP2PKH(0n, privateKey.getAddress()).script
 
-  // Build a draft transaction to measure its signed byte size.
-  // Satoshis values are fixed-width (int64) in serialization, so the size
-  // does not depend on the locked amount — the draft gives an accurate estimate.
-  const draftTx = buildAssetLockTransaction({
-    network,
-    utxos,
-    creditOutputs: [{ address: oneTimeAddress, amountSatoshis: MIN_FEE_RELAY }],
-    changeAddress: oneTimeAddress
-  })
+  // Build a dummy signed tx to measure byte size for fee calculation.
+  // Amounts are fixed-width (int64) in serialization, so any dummy lockedAmount gives
+  // the exact same byte length as the real tx.
+  const dummyPayloadOutput = Output.createP2PKH(MIN_FEE_RELAY, oneTimeAddress)
+  const dummyTx = new Transaction(
+    [],
+    [Output.createAssetLockBurn(MIN_FEE_RELAY)],
+    undefined,
+    undefined,
+    TransactionType.TRANSACTION_ASSET_LOCK,
+    new ExtraPayload.AssetLockTx(1, 1, [dummyPayloadOutput])
+  )
+  dummyTx.addInput(new Input(paymentTxid, resolvedOutputIndex, new Script(), 0))
+  dummyTx.signInputs([{ inputIndex: 0, privateKey, lockingScript }])
 
-  const sizeFee = BigInt(draftTx.bytes().byteLength) * BigInt(FEE_PER_BYTE)
+  const sizeFee = BigInt(dummyTx.bytes().byteLength) * BigInt(FEE_PER_BYTE)
   const fee = sizeFee > MIN_FEE_RELAY ? sizeFee : MIN_FEE_RELAY
   const lockedAmount = paymentOutput.satoshis - fee
 
@@ -263,16 +279,19 @@ export const buildAssetLockFromPaymentTx = async (
     )
   }
 
-  // If the size-based fee equals MIN_FEE_RELAY the draft already used the right
-  // locked amount, otherwise rebuild with the corrected value.
-  const assetLockTx = fee === MIN_FEE_RELAY
-    ? draftTx
-    : buildAssetLockTransaction({
-      network,
-      utxos,
-      creditOutputs: [{ address: oneTimeAddress, amountSatoshis: lockedAmount }],
-      changeAddress: oneTimeAddress
-    })
+  // Build final tx with correct lockedAmount and no change output.
+  // The miner fee is implicit: totalInput - lockedAmount = fee.
+  const payloadOutput = Output.createP2PKH(lockedAmount, oneTimeAddress)
+  const assetLockTx = new Transaction(
+    [],
+    [Output.createAssetLockBurn(lockedAmount)],
+    undefined,
+    undefined,
+    TransactionType.TRANSACTION_ASSET_LOCK,
+    new ExtraPayload.AssetLockTx(1, 1, [payloadOutput])
+  )
+  assetLockTx.addInput(new Input(paymentTxid, resolvedOutputIndex, new Script(), 0))
+  assetLockTx.signInputs([{ inputIndex: 0, privateKey, lockingScript }])
 
   return {
     assetLockTx,
@@ -294,17 +313,20 @@ export type AssetLockProof = InstantAssetLockProofParams | ChainAssetLockProofPa
  */
 export const waitForAssetLockProof = async (
   coreSDK: DashCoreSDK,
+  platformSDK: DashPlatformSDK,
   assetLockTx: Transaction,
   txid: string,
   creditOutputAddress: string,
   pollIntervalMs: number = LOCK_POLL_INTERVAL_MS,
-  timeoutMs: number = LOCK_TIMEOUT_MS
+  timeoutMs: number = LOCK_TIMEOUT_MS,
+  subscription?: ReturnType<DashCoreSDK['subscribeToTransactions']>
 ): Promise<AssetLockProof> => {
   let settled = false
 
   // ── Race 1: instant lock via subscription ────────────────────────────────
   const instantLockRace = async (): Promise<AssetLockProof> => {
-    for await (const event of coreSDK.subscribeToTransactions([creditOutputAddress])) {
+    const sub = subscription ?? coreSDK.subscribeToTransactions([creditOutputAddress])
+    for await (const event of sub) {
       if (settled) return await Promise.reject(new Error('cancelled'))
 
       if (event.event !== 'instantSendLockMessage') continue
@@ -336,11 +358,31 @@ export const waitForAssetLockProof = async (
         const dapiTx = await coreSDK.getTransaction(txid)
 
         if (dapiTx.isChainLocked) {
-          return {
-            type: 'chainLock' as const,
-            txid,
-            outputIndex: 0,
-            coreChainLockedHeight: dapiTx.height
+          const requiredPlatformHeight = dapiTx.height
+
+          while (Date.now() < deadline) {
+            if (settled) return await Promise.reject(new Error('cancelled'))
+
+            try {
+              const nodeStatus = await platformSDK.node.status()
+              const latestPlatformHeight = nodeStatus.chain?.coreChainLockedHeight ?? 0
+
+              if (
+                Number.isSafeInteger(latestPlatformHeight) &&
+                latestPlatformHeight >= requiredPlatformHeight
+              ) {
+                return {
+                  type: 'chainLock' as const,
+                  txid,
+                  outputIndex: 0,
+                  coreChainLockedHeight: dapiTx.height
+                }
+              }
+            } catch {
+              // Transient DAPI error — keep polling
+            }
+
+            await wait(pollIntervalMs)
           }
         }
       } catch {
