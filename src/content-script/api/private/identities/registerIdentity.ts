@@ -24,6 +24,12 @@ import {
   wait
 } from '../../../../utils'
 import { WalletType } from '../../../../types/WalletType'
+import {
+  MAX_BROADCAST_RETRIES,
+  BROADCAST_RETRY_DELAY_MS,
+  TXID_HEX_LENGTH,
+  IDENTITY_MASTER_KEY_BYTE_LENGTH
+} from '../../../../constants'
 
 export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -63,7 +69,6 @@ export class RegisterIdentityHandler implements APIHandler {
     }
 
     const network = await this.storageAdapter.get('network') as string
-
 
     // ── 2. Load the one-time address entry and decrypt the private key ───────
     const oneTimeAddressEntry = await this.oneTimeAddressesRepository.getByAddress(payload.paymentAddress)
@@ -167,7 +172,7 @@ export class RegisterIdentityHandler implements APIHandler {
       ? await deriveSeedphrasePrivateKey(wallet, payload.password, identityIndex, 0, this.sdk)
       : PrivateKeyWASM.fromHex(
         // Generate a random master key for keystore wallets.
-        generateSecureHex(32),
+        generateSecureHex(IDENTITY_MASTER_KEY_BYTE_LENGTH),
         network
       )
 
@@ -214,8 +219,6 @@ export class RegisterIdentityHandler implements APIHandler {
 
     // ── 10. Broadcast the state transition (with retry for chain height race) ──
     // Chain lock proofs can arrive 1 block ahead of the platform's consensus height.
-    const MAX_BROADCAST_RETRIES = 5
-    const BROADCAST_RETRY_DELAY_MS = 15_000
     for (let attempt = 0; ; attempt++) {
       try {
         await this.sdk.stateTransitions.broadcast(stateTransition)
@@ -262,8 +265,8 @@ export class RegisterIdentityHandler implements APIHandler {
       return 'paymentAddress must be provided'
     }
 
-    if (typeof payload.paymentTxid !== 'string' || payload.paymentTxid.length !== 64) {
-      return 'paymentTxid must be a 64-character hex string'
+    if (typeof payload.paymentTxid !== 'string' || payload.paymentTxid.length !== TXID_HEX_LENGTH) {
+      return `paymentTxid must be a ${TXID_HEX_LENGTH}-character hex string`
     }
 
     if (typeof payload.password !== 'string' || payload.password.length === 0) {
@@ -276,7 +279,6 @@ export class RegisterIdentityHandler implements APIHandler {
 
     return null
   }
-
 }
 
 /** Generates cryptographically random hex of the given byte length. */
