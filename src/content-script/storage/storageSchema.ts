@@ -60,6 +60,7 @@ export interface AppConnectsStorageSchema {
 export interface OneTimeAddressSchema {
   address: string
   encryptedPrivateKey: string
+  identityIndex: number
 }
 
 export interface OneTimeAddressesSchema {

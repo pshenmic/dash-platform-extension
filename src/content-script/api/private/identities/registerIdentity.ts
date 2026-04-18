@@ -1,5 +1,5 @@
 import { DashCoreSDK } from 'dash-core-sdk'
-import { KeyType, PrivateKeyWASM, Purpose, SecurityLevel } from 'dash-platform-sdk/types'
+import { KeyType, Network, PrivateKeyWASM, Purpose, SecurityLevel } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
@@ -16,7 +16,14 @@ import {
   buildAssetLockFromPaymentTx,
   waitForAssetLockProof
 } from '../../../services/identityRegistration'
-import {hexToBytes, wait} from '../../../../utils'
+import {
+  deriveSeedphrasePrivateKey,
+  deriveSeedphraseRegistrationFundingPrivateKey,
+  getNextIdentityIndex,
+  hexToBytes,
+  wait
+} from '../../../../utils'
+import { WalletType } from '../../../../types/WalletType'
 
 export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -68,16 +75,61 @@ export class RegisterIdentityHandler implements APIHandler {
       )
     }
 
-    const oneTimePrivateKeyWASM: PrivateKeyWASM = decryptOneTimePrivateKey(
-      oneTimeAddressEntry.encryptedPrivateKey,
-      payload.password,
-      network
-    )
+    const oneTimeIdentityIndex = Number.isSafeInteger(oneTimeAddressEntry.identityIndex) &&
+      oneTimeAddressEntry.identityIndex >= 0
+      ? oneTimeAddressEntry.identityIndex
+      : null
+
+    let oneTimePrivateKeyWASM: PrivateKeyWASM
+    let identityIndex: number
+
+    if (wallet.type === WalletType.seedphrase) {
+      if (oneTimeIdentityIndex == null) {
+        throw new Error(
+          `One-time address ${payload.paymentAddress} has no identityIndex. ` +
+          'Seedphrase wallet registration requires a deterministic one-time address tied to an identity index.'
+        )
+      }
+
+      identityIndex = oneTimeIdentityIndex
+
+      oneTimePrivateKeyWASM = await deriveSeedphraseRegistrationFundingPrivateKey(
+        wallet,
+        payload.password,
+        identityIndex,
+        this.sdk
+      )
+
+      const derivedAddress = this.sdk.keyPair.p2pkhAddress(
+        oneTimePrivateKeyWASM.getPublicKey().bytes(),
+        network as Network
+      )
+
+      if (derivedAddress !== payload.paymentAddress) {
+        throw new Error(
+          `Stored one-time address ${payload.paymentAddress} does not match derived ` +
+          `registration funding address for identity index ${identityIndex}`
+        )
+      }
+    } else {
+      if (oneTimeAddressEntry.encryptedPrivateKey == null || oneTimeAddressEntry.encryptedPrivateKey === '') {
+        throw new Error('Missing encryptedPrivateKey for keystore registration flow')
+      }
+
+      identityIndex = oneTimeIdentityIndex ?? getNextIdentityIndex(
+        (await this.identitiesRepository.getAll()).map((identity) => identity.index)
+      )
+
+      oneTimePrivateKeyWASM = decryptOneTimePrivateKey(
+        oneTimeAddressEntry.encryptedPrivateKey,
+        payload.password,
+        network
+      )
+    }
 
     const oneTimePrivateKeyWif: string = oneTimePrivateKeyWASM.WIF()
 
     // ── 3. Build asset lock transaction from the payment tx ──────────────────
-    console.log('[registerIdentity] step 3: building asset lock tx...')
     const { assetLockTx } = await buildAssetLockFromPaymentTx({
       coreSDK: this.coreSDK,
       network,
@@ -86,7 +138,6 @@ export class RegisterIdentityHandler implements APIHandler {
       oneTimePrivateKeyWif,
       outputIndex: payload.outputIndex
     })
-    console.log('[registerIdentity] step 3: done')
 
     // ── 4. Broadcast the asset lock transaction ──────────────────────────────
     // Open the instant lock subscription before broadcasting so we don't miss
@@ -97,10 +148,7 @@ export class RegisterIdentityHandler implements APIHandler {
       [hexToBytes(assetLockTxid)]
     )
 
-    const broadcastResult = await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
-
-    console.log('[registerIdentity] Asset lock broadcast result:', broadcastResult)
-    console.log('[registerIdentity] Asset lock txid:', assetLockTxid)
+    await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
 
     // ── 5. Wait for instant lock or chain lock (whichever comes first) ──────
     const assetLockProof = await waitForAssetLockProof(
@@ -114,17 +162,14 @@ export class RegisterIdentityHandler implements APIHandler {
       instantLockSub
     )
 
-    console.log('[registerIdentity] Asset lock proof type:', assetLockProof.type)
-
-
     // ── 6. Build the master identity key pair ────────────────────────────────
-    const identityPrivateKey = PrivateKeyWASM.fromHex(
-      // Generate a random key for the identity master key (keystore wallet model).
-      // For seedphrase wallets this would be derived — here we generate a random key
-      // and save it encrypted; users can re-derive later via the export flow.
-      generateSecureHex(32),
-      network
-    )
+    const identityPrivateKey = wallet.type === WalletType.seedphrase
+      ? await deriveSeedphrasePrivateKey(wallet, payload.password, identityIndex, 0, this.sdk)
+      : PrivateKeyWASM.fromHex(
+        // Generate a random master key for keystore wallets.
+        generateSecureHex(32),
+        network
+      )
 
     const identityPublicKeyInCreation = {
       id: 0,
@@ -160,8 +205,6 @@ export class RegisterIdentityHandler implements APIHandler {
 
     stateTransition.signByPrivateKey(oneTimePrivateKeyWASM, undefined, KeyType.ECDSA_SECP256K1)
 
-    console.log('1: ======>', stateTransition.hex())
-
     // ── 9. Derive the new identity identifier ────────────────────────────────
     const identifier = stateTransition.getOwnerId()?.base58()
 
@@ -169,36 +212,17 @@ export class RegisterIdentityHandler implements APIHandler {
       throw new Error('Could not derive identity identifier from state transition')
     }
 
-    console.log('[registerIdentity] Identity identifier:', identifier)
-
     // ── 10. Broadcast the state transition (with retry for chain height race) ──
     // Chain lock proofs can arrive 1 block ahead of the platform's consensus height.
-    // Recreate the state transition on each attempt: WASM objects can become stale
-    // after a failed broadcast call.
     const MAX_BROADCAST_RETRIES = 5
     const BROADCAST_RETRY_DELAY_MS = 15_000
     for (let attempt = 0; ; attempt++) {
-      // Recreate and re-sign on every attempt (including first) to get a fresh WASM object.
-      console.log(`[registerIdentity] broadcast attempt ${attempt}: creating state transition...`)
-      // stateTransition = this.sdk.identities.createStateTransition('create', {
-      //   publicKeys: [identityPublicKeyInCreation],
-      //   assetLockProof
-      // })
-      // console.log(`[registerIdentity] broadcast attempt ${attempt}: signing...`)
-      // stateTransition.signByPrivateKey(oneTimePrivateKeyWASM, undefined, KeyType.ECDSA_SECP256K1)
-      console.log(`[registerIdentity] broadcast attempt ${attempt}: broadcasting...`)
-      console.log('2: ======>', stateTransition.hex())
-
       try {
         await this.sdk.stateTransitions.broadcast(stateTransition)
-        console.log(`[registerIdentity] broadcast attempt ${attempt}: success`)
         break
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
-        console.error(e)
-        console.log(`[registerIdentity] broadcast attempt ${attempt}: failed — ${msg}`)
         if (attempt < MAX_BROADCAST_RETRIES && msg.includes('core chain height')) {
-          console.log(`[registerIdentity] Chain height race, retrying in ${BROADCAST_RETRY_DELAY_MS / 1000}s (attempt ${attempt + 1}/${MAX_BROADCAST_RETRIES})`)
           await wait(BROADCAST_RETRY_DELAY_MS)
         } else {
           throw e
@@ -213,12 +237,15 @@ export class RegisterIdentityHandler implements APIHandler {
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
     // ── 12. Persist identity and keys ────────────────────────────────────────
-    await this.identitiesRepository.create(identifier, IdentityType.regular)
+    await this.identitiesRepository.create(identifier, IdentityType.regular, undefined, identityIndex)
 
-    // Save the identity master key (keyId 0) using addVerified to skip remote validation.
-    // The identity is confirmed on-chain at this point, but we generated the key
-    // randomly so we save it directly without another round-trip.
-    await this.keypairRepository.addVerified(identifier, identityPrivateKey.hex(), 0)
+    // Keystore wallets persist generated private keys in extension storage.
+    // Seedphrase wallets derive keys from the mnemonic and don't store key material.
+    if (wallet.type === WalletType.keystore) {
+      await this.keypairRepository.addVerified(identifier, identityPrivateKey.hex(), 0)
+    }
+
+    await this.oneTimeAddressesRepository.removeByAddress(payload.paymentAddress)
 
     // ── 13. Switch to the new identity ───────────────────────────────────────
     await this.walletRepository.switchIdentity(identifier)
@@ -249,6 +276,7 @@ export class RegisterIdentityHandler implements APIHandler {
 
     return null
   }
+
 }
 
 /** Generates cryptographically random hex of the given byte length. */

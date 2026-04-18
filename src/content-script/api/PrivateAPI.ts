@@ -86,7 +86,7 @@ export class PrivateAPI {
     const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk)
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
-    const oneTimeAddressesRepository = new OneTimeAddressesRepository(this.storageAdapter, this.sdk)
+    const oneTimeAddressesRepository = new OneTimeAddressesRepository(this.storageAdapter, this.sdk, walletRepository)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),

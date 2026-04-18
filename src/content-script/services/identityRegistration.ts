@@ -212,15 +212,10 @@ export const buildAssetLockFromPaymentTx = async (
   const rawTx = dapiTx.transaction as any
   // Force copy into a plain JS Uint8Array in case rawTx is backed by WASM memory
   const txBytes = Uint8Array.from(rawTx)
-  console.log('[buildAssetLockFromPaymentTx] txBytes length:', txBytes.byteLength, 'first10:', Array.from(txBytes.slice(0, 10)).map((b: any) => b.toString(16).padStart(2, '0')).join(' '))
   const paymentTx = Transaction.fromBytes(txBytes)
-  console.log('[buildAssetLockFromPaymentTx] Transaction.fromBytes OK')
-
-  console.log('[buildAssetLockFromPaymentTx] checking hash...')
   if (paymentTx.hash() !== paymentTxid) {
     throw new Error(`Transaction hash mismatch for ${paymentTxid}: transaction data is corrupt`)
   }
-  console.log('[buildAssetLockFromPaymentTx] hash OK')
 
   if (!dapiTx.isInstantLocked && !dapiTx.isChainLocked && dapiTx.confirmations < 1) {
     throw new Error(
@@ -236,7 +231,6 @@ export const buildAssetLockFromPaymentTx = async (
   if (outputIndex != null) {
     resolvedOutputIndex = outputIndex
   } else {
-    console.log('[buildAssetLockFromPaymentTx] detecting output index...')
     const expectedScriptHex = Output.createP2PKH(0n, oneTimeAddress).script.hex()
     resolvedOutputIndex = paymentTx.outputs.findIndex(
       o => o.script.hex() === expectedScriptHex
@@ -247,7 +241,6 @@ export const buildAssetLockFromPaymentTx = async (
       )
     }
   }
-  console.log('[buildAssetLockFromPaymentTx] resolvedOutputIndex:', resolvedOutputIndex)
 
   if (resolvedOutputIndex >= paymentTx.outputs.length) {
     throw new Error(
@@ -256,7 +249,6 @@ export const buildAssetLockFromPaymentTx = async (
   }
 
   const paymentOutput = paymentTx.outputs[resolvedOutputIndex]
-  console.log('[buildAssetLockFromPaymentTx] paymentOutput.satoshis:', paymentOutput.satoshis)
 
   const privateKey = PrivateKey.fromWIF(oneTimePrivateKeyWif)
   const lockingScript = Output.createP2PKH(0n, privateKey.getAddress()).script
@@ -279,7 +271,6 @@ export const buildAssetLockFromPaymentTx = async (
   const sizeFee = BigInt(dummyTx.bytes().byteLength) * BigInt(FEE_PER_BYTE)
   const fee = sizeFee > MIN_FEE_RELAY ? sizeFee : MIN_FEE_RELAY
   const lockedAmount = paymentOutput.satoshis - fee
-  console.log('[buildAssetLockFromPaymentTx] dummyTx bytes:', dummyTx.bytes().byteLength, 'fee:', fee, 'lockedAmount:', lockedAmount)
 
   if (lockedAmount <= 0n) {
     throw new Error(
@@ -290,7 +281,6 @@ export const buildAssetLockFromPaymentTx = async (
 
   // Build final tx with correct lockedAmount and no change output.
   // The miner fee is implicit: totalInput - lockedAmount = fee.
-  console.log('[buildAssetLockFromPaymentTx] building final asset lock tx...')
   const payloadOutput = Output.createP2PKH(lockedAmount, oneTimeAddress)
   const assetLockTx = new Transaction(
     [],
@@ -302,7 +292,6 @@ export const buildAssetLockFromPaymentTx = async (
   )
   assetLockTx.addInput(new Input(paymentTxid, resolvedOutputIndex, new Script(), 0))
   assetLockTx.signInputs([{ inputIndex: 0, privateKey, lockingScript }])
-  console.log('[buildAssetLockFromPaymentTx] final asset lock tx OK, hash:', assetLockTx.hash())
 
   return {
     assetLockTx,
@@ -368,9 +357,6 @@ export const waitForAssetLockProof = async (
       try {
         const dapiTx = await coreSDK.getTransaction(txid)
 
-        console.log("isInstantLocked", dapiTx.isInstantLocked);
-        console.log("isChainLocked", dapiTx.isChainLocked);
-
         if (dapiTx.isChainLocked) {
           const requiredPlatformHeight = dapiTx.height
 
@@ -414,7 +400,7 @@ export const waitForAssetLockProof = async (
   }
 
   const result = await Promise.race([
-    // instantLockRace(),
+    instantLockRace(),
     chainLockRace()
   ])
 

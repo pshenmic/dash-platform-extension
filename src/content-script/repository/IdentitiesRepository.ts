@@ -3,6 +3,7 @@ import { Identity } from '../../types'
 import { IdentitiesStoreSchema, IdentityStoreSchema } from '../storage/storageSchema'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { IdentityType } from '../../types/enums/IdentityType'
+import { getNextIdentityIndex } from '../../utils'
 
 export class IdentitiesRepository {
   storageAdapter: StorageAdapter
@@ -13,7 +14,7 @@ export class IdentitiesRepository {
     this.storageAdapter = storageAdapter
   }
 
-  async create (identifier: string, type: IdentityType, proTxHash?: string): Promise<Identity> {
+  async create (identifier: string, type: IdentityType, proTxHash?: string, explicitIndex?: number): Promise<Identity> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
@@ -29,9 +30,19 @@ export class IdentitiesRepository {
       throw new Error(`Identity with identifier ${identifier} already exists`)
     }
 
-    const index = Object.entries(identities)
-      .map(([, entry]) => (entry.index))
-      .reduce((acc, index) => Math.max(acc, index + 1), 0)
+    const index = explicitIndex ?? getNextIdentityIndex(
+      Object.values(identities).map((entry) => entry.index)
+    )
+
+    if (!Number.isSafeInteger(index) || index < 0) {
+      throw new Error(`Identity index must be a non-negative integer: ${index}`)
+    }
+
+    const indexInUse = Object.values(identities).some((entry) => entry.index === index)
+
+    if (indexInUse) {
+      throw new Error(`Identity index ${index} is already used`)
+    }
 
     const identityStoreSchema: IdentityStoreSchema = {
       index,
