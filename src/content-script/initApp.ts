@@ -17,9 +17,7 @@ export async function initApp (): Promise<void> {
 
   const sdk = new DashPlatformSDK({ network: Network[network] })
 
-  const coreSDK = new DashCoreSDK({
-    network: Network[network],
-  })
+  const coreSDK = new DashCoreSDK({ network: Network[network] })
 
   const privateAPI = new PrivateAPI(sdk, coreSDK, extensionStorageAdapter)
   const publicAPI = new PublicAPI(sdk, extensionStorageAdapter)

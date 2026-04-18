@@ -116,8 +116,9 @@ export class OneTimeAddressesRepository {
       return
     }
 
-    delete oneTimeAddresses[address]
-    await this.storageAdapter.set(storageKey, oneTimeAddresses)
+    const { [address]: _removed, ...nextOneTimeAddresses } = oneTimeAddresses
+
+    await this.storageAdapter.set(storageKey, nextOneTimeAddresses)
   }
 }
 
