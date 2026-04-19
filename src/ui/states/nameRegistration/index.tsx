@@ -10,6 +10,7 @@ import { ConfirmationStep } from './ConfirmationStep'
 import { MissingRequiredKeyWarning, type KeyRequirement } from '../../components/keys'
 import { isKeyCompatible, creditsToDash } from '../../../utils'
 import { CONTESTED_NAME_COST_DASH, REGULAR_NAME_COST_DASH, NAME_SUFFIX } from './constants'
+import { IdentityType } from '../../../types/enums/IdentityType'
 type Step = 1 | 2
 
 const NameRegistrationState: React.FC = () => {
@@ -17,7 +18,11 @@ const NameRegistrationState: React.FC = () => {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
   const [currentStep, setCurrentStep] = useState<Step>(1)
-  const { currentNetwork, currentIdentity } = useOutletContext<LayoutContext>()
+  const { currentNetwork, currentIdentity, availableIdentities } = useOutletContext<LayoutContext>()
+
+  const currentIdentityObj = availableIdentities.find(i => i.identifier === currentIdentity)
+  const isMasternodeIdentity = currentIdentityObj?.type === IdentityType.masternode
+
   const keyRequirements: KeyRequirement[] = [
     { purpose: 'AUTHENTICATION', securityLevel: 'HIGH' }
   ]
@@ -196,7 +201,7 @@ const NameRegistrationState: React.FC = () => {
   }, [currentStep, username, handleUsernameChange])
 
   return (
-    <div className='flex flex-col h-full min-h-max'>
+    <div className='flex flex-col h-full min-h-max relative'>
       <TitleBlock
         title={<>{currentStep === 1 ? 'Create' : 'Confirm'} your<br />Dash Username</>}
         description={currentStep === 1
@@ -247,6 +252,20 @@ const NameRegistrationState: React.FC = () => {
                 ? 'Username must be at least 3 characters and contain only letters, numbers, hyphens, and underscores'
                 : 'This username is already taken. Please choose a different one.'}
         </ValueCard>
+      )}
+
+      {isMasternodeIdentity && (
+        <div className='absolute inset-0 !-left-4 !-right-4 z-50 flex flex-col items-center justify-center rounded-2xl backdrop-blur-sm bg-white/80'>
+          <ValueCard border={false} className='flex flex-col items-center gap-3 text-center max-w-[280px] dash-shadow-xl'>
+            <InfoCircleIcon className='w-8 h-8 text-dash-primary-dark-blue/60 flex-shrink-0' />
+            <Text weight='bold' size='sm'>
+              Name Registration Unavailable
+            </Text>
+            <Text size='xs' dim>
+              Name registration is not available for masternode identities. Please switch to a regular identity to register a username.
+            </Text>
+          </ValueCard>
+        </div>
       )}
 
       <div className='flex flex-col gap-4 w-full mt-6 relative'>
