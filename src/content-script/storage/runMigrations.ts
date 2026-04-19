@@ -7,6 +7,7 @@ import moveCurrentIdentityToWallet from '../migrations/0006_move_current_identit
 import addIdentityType from '../migrations/0007_add_identity_type'
 import removeIdentityPublicKey from '../migrations/0008_remove_identity_public_key'
 import updateStateTransitionRepository from '../migrations/0009_update_state_transition_repository'
+import dropAppConnectStatus from '../migrations/0010_drop_app_connect_status'
 
 import { StorageAdapter } from './storageAdapter'
 import { SCHEMA_VERSION } from '../../constants'
@@ -20,7 +21,8 @@ const migrations = [
   moveCurrentIdentityToWallet,
   addIdentityType,
   removeIdentityPublicKey,
-  updateStateTransitionRepository
+  updateStateTransitionRepository,
+  dropAppConnectStatus
 ]
 
 const restoreBackup = async (backup: object, storageAdapter: StorageAdapter): Promise<void> => {

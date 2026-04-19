@@ -50,7 +50,6 @@ export interface StateTransitionStoreSchema {
 export interface AppConnectStorageSchema {
   id: string
   url: string
-  status: string
 }
 
 export interface AppConnectsStorageSchema {

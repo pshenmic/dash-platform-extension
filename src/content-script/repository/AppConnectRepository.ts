@@ -1,7 +1,6 @@
 import { AppConnect } from '../../types'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { AppConnectsStorageSchema } from '../storage/storageSchema'
-import { AppConnectStatus } from '../../types/enums/AppConnectStatus'
 import hash from 'hash.js'
 
 export class AppConnectRepository {
@@ -22,23 +21,18 @@ export class AppConnectRepository {
 
     const storageKey = `appConnects_${network}_${walletId}`
 
-    const appConnectRequest: AppConnect = {
+    const appConnect: AppConnect = {
       id,
-      status: AppConnectStatus.pending,
       url
     }
 
     const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
 
-    if (appConnects[appConnectRequest.id] != null) {
-      throw new Error('AppConnect with such id already exists')
-    }
-
-    appConnects[appConnectRequest.id] = appConnectRequest
+    appConnects[appConnect.id] = appConnect
 
     await this.storageAdapter.set(storageKey, appConnects)
 
-    return appConnectRequest
+    return appConnect
   }
 
   async getByURL (url: string): Promise<AppConnect | null> {
@@ -59,10 +53,7 @@ export class AppConnectRepository {
       return null
     }
 
-    return {
-      ...appConnects[id],
-      status: AppConnectStatus[appConnects[id].status]
-    }
+    return { ...appConnects[id] }
   }
 
   async getAll (): Promise<AppConnect[]> {
@@ -78,15 +69,14 @@ export class AppConnectRepository {
     const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
 
     return Object.entries(appConnects)
-      .reduce((acc, [id, entry]) =>
-        ([...acc,
-          {
-            id,
-            url: entry.url,
-            status: AppConnectStatus[entry.status]
-          }
-        ]),
-      [])
+      .reduce<AppConnect[]>((acc, [id, entry]) =>
+      ([...acc,
+        {
+          id,
+          url: entry.url
+        }
+      ]),
+    [])
   }
 
   async removeById (id: string): Promise<void> {
@@ -127,9 +117,6 @@ export class AppConnectRepository {
       return null
     }
 
-    return {
-      ...appConnects[id],
-      status: AppConnectStatus[appConnects[id].status]
-    }
+    return { ...appConnects[id] }
   }
 }
