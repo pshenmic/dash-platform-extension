@@ -94,7 +94,7 @@ export const deriveKeystorePrivateKey = async (wallet: Wallet, password: string,
   return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 }
 
-export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: string, identityIndex: number, keyId: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+export const decryptMnemonic = (wallet: Wallet, password: string): string => {
   if (wallet.encryptedMnemonic == null) {
     throw new Error('Missing mnemonic')
   }
@@ -102,19 +102,18 @@ export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: strin
   const passwordHash = hash.sha256().update(password).digest('hex')
   const secretKey = PrivateKey.fromHex(passwordHash)
 
-  let mnemonic
-
   try {
-    mnemonic = bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(wallet.encryptedMnemonic)))
+    return bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(wallet.encryptedMnemonic)))
   } catch (e) {
     throw new Error('Failed to decrypt')
   }
+}
 
-  const seed = await sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
-  const walletHDKey = sdk.keyPair.seedToHdKey(seed, Network[wallet.network as keyof typeof Network])
-
-  const hdKey = sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, identityIndex, keyId, Network[wallet.network])
-  const privateKey = hdKey.privateKey
+export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: string, identityIndex: number, keyId: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+  const network = Network[wallet.network as keyof typeof Network]
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
+  const { privateKey } = sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, identityIndex, keyId, network)
 
   if (privateKey == null) {
     throw new Error('Could not derive private key from wallet hd key')
@@ -123,40 +122,24 @@ export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: strin
   return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 }
 
-export const deriveSeedphraseRegistrationFundingPrivateKey = async (
+export const deriveFundingPrivateKey = async (
   wallet: Wallet,
   password: string,
   identityIndex: number,
   sdk: DashPlatformSDK
 ): Promise<PrivateKeyWASM> => {
-  if (wallet.encryptedMnemonic == null) {
-    throw new Error('Missing mnemonic')
-  }
-
   if (!Number.isSafeInteger(identityIndex) || identityIndex < 0) {
     throw new Error('Identity index must be a non-negative integer')
   }
 
-  const passwordHash = hash.sha256().update(password).digest('hex')
-  const secretKey = PrivateKey.fromHex(passwordHash)
-
-  let mnemonic
-
-  try {
-    mnemonic = bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(wallet.encryptedMnemonic)))
-  } catch (e) {
-    throw new Error('Failed to decrypt')
-  }
-
-  const seed = await sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
-  const walletHDKey = sdk.keyPair.seedToHdKey(seed, Network[wallet.network])
-  const networkIndex = wallet.network === 'mainnet' ? 5 : 1
-  const path = `m/9'/${networkIndex}'/5'/1'/${identityIndex}`
-  const hdKey = await sdk.keyPair.derivePath(walletHDKey, path)
-  const privateKey = hdKey.privateKey
+  const network = Network[wallet.network as keyof typeof Network]
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
+  const coinType = wallet.network === 'mainnet' ? 5 : 1
+  const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, `m/9'/${coinType}'/5'/1'/${identityIndex}`)
 
   if (privateKey == null) {
-    throw new Error('Could not derive registration funding private key from wallet hd key')
+    throw new Error('Could not derive funding private key from wallet hd key')
   }
 
   return PrivateKeyWASM.fromBytes(privateKey, wallet.network)

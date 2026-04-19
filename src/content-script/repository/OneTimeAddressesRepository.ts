@@ -1,7 +1,7 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { IdentitiesStoreSchema, OneTimeAddressSchema, OneTimeAddressesSchema } from '../storage/storageSchema'
 import { encrypt } from 'eciesjs'
-import { bytesToHex, deriveSeedphraseRegistrationFundingPrivateKey, getNextIdentityIndex, hexToBytes } from '../../utils'
+import { bytesToHex, deriveFundingPrivateKey, getNextIdentityIndex, hexToBytes } from '../../utils'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { WalletRepository } from './WalletRepository'
@@ -60,7 +60,7 @@ export class OneTimeAddressesRepository {
         throw new Error('Password is required to derive a deterministic registration address')
       }
 
-      privateKeyWASM = await deriveSeedphraseRegistrationFundingPrivateKey(
+      privateKeyWASM = await deriveFundingPrivateKey(
         wallet,
         password,
         nextIdentityIndex,

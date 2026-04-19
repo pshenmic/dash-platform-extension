@@ -320,8 +320,11 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY, payload)
   }
 
-  async requestOneTimeAddress (): Promise<string> {
-    const response: RequestOneTimeAddressResponse = await this._rpcCall(MessagingMethods.REQUEST_ONE_TIME_ADDRESS, {})
+  async requestOneTimeAddress (password?: string): Promise<string> {
+    const response: RequestOneTimeAddressResponse = await this._rpcCall(
+      MessagingMethods.REQUEST_ONE_TIME_ADDRESS,
+      { password }
+    )
 
     return response.address
   }

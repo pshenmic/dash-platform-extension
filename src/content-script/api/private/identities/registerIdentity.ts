@@ -18,7 +18,7 @@ import {
 } from '../../../services/identityRegistration'
 import {
   deriveSeedphrasePrivateKey,
-  deriveSeedphraseRegistrationFundingPrivateKey,
+  deriveFundingPrivateKey,
   getNextIdentityIndex,
   hexToBytes,
   wait
@@ -98,7 +98,7 @@ export class RegisterIdentityHandler implements APIHandler {
 
       identityIndex = oneTimeIdentityIndex
 
-      oneTimePrivateKeyWASM = await deriveSeedphraseRegistrationFundingPrivateKey(
+      oneTimePrivateKeyWASM = await deriveFundingPrivateKey(
         wallet,
         payload.password,
         identityIndex,
@@ -167,44 +167,60 @@ export class RegisterIdentityHandler implements APIHandler {
       instantLockSub
     )
 
-    // ── 6. Build the master identity key pair ────────────────────────────────
-    const identityPrivateKey = wallet.type === WalletType.seedphrase
-      ? await deriveSeedphrasePrivateKey(wallet, payload.password, identityIndex, 0, this.sdk)
-      : PrivateKeyWASM.fromHex(
-        // Generate a random master key for keystore wallets.
-        generateSecureHex(IDENTITY_MASTER_KEY_BYTE_LENGTH),
-        network
-      )
+    // ── 6. Build all identity key pairs ──────────────────────────────────────
+    // Matches kotlin-platform BlockchainIdentity and js-dash-sdk createIdentityCreateTransition.
+    // All 4 keys are required: without AUTHENTICATION/HIGH the identity cannot sign documents,
+    // without TRANSFER/CRITICAL it cannot send credits, without ENCRYPTION/MEDIUM it cannot
+    // participate in DashPay contact exchange.
+    const KEY_DEFINITIONS = [
+      { id: 0, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.MASTER   },
+      { id: 1, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.HIGH     },
+      { id: 2, purpose: Purpose.ENCRYPTION,     securityLevel: SecurityLevel.MEDIUM   },
+      { id: 3, purpose: Purpose.TRANSFER,       securityLevel: SecurityLevel.CRITICAL },
+    ] as const
 
-    const identityPublicKeyInCreation = {
-      id: 0,
-      purpose: Purpose.AUTHENTICATION,
-      securityLevel: SecurityLevel.MASTER,
-      keyType: KeyType.ECDSA_SECP256K1,
-      readOnly: false,
-      data: Uint8Array.from(identityPrivateKey.getPublicKey().bytes()),
-      signature: undefined as Uint8Array | undefined
+    const identityPrivateKeys: PrivateKeyWASM[] = []
+
+    for (const { id } of KEY_DEFINITIONS) {
+      const privateKey = wallet.type === WalletType.seedphrase
+        ? await deriveSeedphrasePrivateKey(wallet, payload.password, identityIndex, id, this.sdk)
+        : PrivateKeyWASM.fromHex(generateSecureHex(IDENTITY_MASTER_KEY_BYTE_LENGTH), network)
+      identityPrivateKeys.push(privateKey)
     }
 
-    // ── 7. Sign the public key in creation ───────────────────────────────────
-    // Per dash-platform-sdk protocol: create a temporary transition, sign with the
-    // identity key to get its "proof of possession" signature, store it on the key.
+    const identityPublicKeysInCreation = KEY_DEFINITIONS.map(({ id, purpose, securityLevel }, i) => ({
+      id,
+      purpose,
+      securityLevel,
+      keyType: KeyType.ECDSA_SECP256K1,
+      readOnly: false,
+      data: Uint8Array.from(identityPrivateKeys[i].getPublicKey().bytes()),
+      signature: undefined as Uint8Array | undefined
+    }))
+
+    // ── 7. Sign each public key (proof of possession) ────────────────────────
+    // Create one temporary ST with all keys unsigned, then sign with each private
+    // key in turn. Each call to signByPrivateKey overwrites stateTransition.signature
+    // with that key's signature over the same ST hash — copy it out immediately.
+    // The ST hash is identical for every iteration because the public key signature
+    // fields are still undefined at this point (serialized as absent).
     let stateTransition = this.sdk.identities.createStateTransition('create', {
-      publicKeys: [identityPublicKeyInCreation],
+      publicKeys: identityPublicKeysInCreation,
       assetLockProof
     })
 
-    stateTransition.signByPrivateKey(identityPrivateKey, undefined, KeyType.ECDSA_SECP256K1)
-    // Force-copy out of WASM memory — the step-7 state transition will be GC'd
-    // after reassignment in step 8, invalidating any WASM-backed Uint8Array it owns.
-    if (stateTransition.signature == null) {
-      throw new Error('signByPrivateKey did not produce a signature for the identity key')
+    for (let i = 0; i < identityPrivateKeys.length; i++) {
+      stateTransition.signByPrivateKey(identityPrivateKeys[i], undefined, KeyType.ECDSA_SECP256K1)
+      if (stateTransition.signature == null) {
+        throw new Error(`signByPrivateKey did not produce a signature for identity key ${i}`)
+      }
+      // Force-copy out of WASM memory before the next signByPrivateKey overwrites it.
+      identityPublicKeysInCreation[i].signature = Uint8Array.from(stateTransition.signature)
     }
-    identityPublicKeyInCreation.signature = Uint8Array.from(stateTransition.signature)
 
     // ── 8. Finalize: re-create with signed keys, sign with asset lock key ────
     stateTransition = this.sdk.identities.createStateTransition('create', {
-      publicKeys: [identityPublicKeyInCreation],
+      publicKeys: identityPublicKeysInCreation,
       assetLockProof
     })
 
@@ -245,7 +261,9 @@ export class RegisterIdentityHandler implements APIHandler {
     // Keystore wallets persist generated private keys in extension storage.
     // Seedphrase wallets derive keys from the mnemonic and don't store key material.
     if (wallet.type === WalletType.keystore) {
-      await this.keypairRepository.addVerified(identifier, identityPrivateKey.hex(), 0)
+      for (let i = 0; i < identityPrivateKeys.length; i++) {
+        await this.keypairRepository.addVerified(identifier, identityPrivateKeys[i].hex(), i)
+      }
     }
 
     await this.oneTimeAddressesRepository.removeByAddress(payload.paymentAddress)
