@@ -21,8 +21,6 @@ import { RejectStateTransitionPayload } from './messages/payloads/RejectStateTra
 import { generateRandomHex } from '../utils'
 import { GetAppConnectPayload } from './messages/payloads/GetAppConnectPayload'
 import { GetAppConnectResponse } from './messages/response/GetAppConnectResponse'
-import { ApproveAppConnectPayload } from './messages/payloads/ApproveAppConnectPayload'
-import { RejectAppConnectPayload } from './messages/payloads/RejectAppConnectPayload'
 import { AppConnect } from './AppConnect'
 import { GetIdentitiesResponse } from './messages/response/GetIdentitiesResponse'
 import { Identity } from './Identity'
@@ -260,22 +258,6 @@ export class PrivateAPIClient {
     }
 
     await this._rpcCall(MessagingMethods.REMOVE_APP_CONNECT, payload)
-  }
-
-  async approveAppConnect (id: string): Promise<void> {
-    const payload: ApproveAppConnectPayload = {
-      id
-    }
-
-    await this._rpcCall(MessagingMethods.APPROVE_APP_CONNECT, payload)
-  }
-
-  async rejectAppConnect (id: string): Promise<void> {
-    const payload: RejectAppConnectPayload = {
-      id
-    }
-
-    await this._rpcCall(MessagingMethods.REJECT_APP_CONNECT, payload)
   }
 
   async registerUsername (fullUsername: string, identity: string, keyId: number, password: string): Promise<void> {

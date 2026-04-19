@@ -19,8 +19,6 @@ import { CheckPasswordHandler } from './private/extension/checkPassword'
 import { SwitchIdentityHandler } from './private/wallet/switchIdentity'
 import { AppConnectRepository } from '../repository/AppConnectRepository'
 import { GetAppConnectHandler } from './private/appConnect/getAppConnect'
-import { ApproveAppConnectHandler } from './private/appConnect/approveAppConnect'
-import { RejectAppConnectHandler } from './private/appConnect/rejectAppConnect'
 import { GetIdentitiesHandler } from './private/identities/getIdentities'
 import { ResyncIdentitiesHandler } from './private/wallet/resyncIdentities'
 import { SetWalletLabelHandler } from './private/wallet/setWalletLabel'
@@ -107,8 +105,6 @@ export class PrivateAPI {
       [MessagingMethods.GET_APP_CONNECT]: new GetAppConnectHandler(appConnectRepository),
       [MessagingMethods.GET_ALL_APP_CONNECTS]: new GetAllAppConnectsHandler(appConnectRepository),
       [MessagingMethods.REMOVE_APP_CONNECT]: new RemoveAppConnectHandler(appConnectRepository),
-      [MessagingMethods.APPROVE_APP_CONNECT]: new ApproveAppConnectHandler(appConnectRepository, this.storageAdapter),
-      [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter),
       [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk)

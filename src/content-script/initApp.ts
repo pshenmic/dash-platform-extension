@@ -4,7 +4,6 @@ import { PrivateAPI } from './api/PrivateAPI'
 import { PublicAPI } from './api/PublicAPI'
 import hash from 'hash.js'
 import { AppConnectStorageSchema } from './storage/storageSchema'
-import { AppConnectStatus } from '../types/enums/AppConnectStatus'
 import { EventData } from '../types'
 import { MessagingMethods } from '../types/enums/MessagingMethods'
 import { injectScript } from '../utils'
@@ -39,9 +38,9 @@ export async function initApp (): Promise<void> {
     }
 
     const id = hash.sha256().update(origin).digest('hex').substring(0, 6)
-    const appConnect = appConnects[id] as AppConnectStorageSchema
+    const appConnect = appConnects[id] as AppConnectStorageSchema | undefined
 
-    if (appConnect == null || appConnect.status !== AppConnectStatus.approved) {
+    if (appConnect == null) {
       return
     }
 
@@ -51,7 +50,7 @@ export async function initApp (): Promise<void> {
   const handleMessage = (event: MessageEvent): void => {
     const data: EventData = event.data
 
-    if (data?.type !== 'response' && data?.method !== MessagingMethods.CONNECT_APP && data?.payload?.status !== 'approved') {
+    if (data?.type !== 'response' || data?.method !== MessagingMethods.CONNECT_APP || data?.error != null) {
       return
     }
 
