@@ -42,8 +42,8 @@ export class PublicAPI {
 
     const appConnect = await this.appConnectRepository.getByURL(origin)
 
-    // check that origin exists in appConnect
-    if (method !== MessagingMethods.CONNECT_APP && (appConnect == null || appConnect.status !== 'approved')) {
+    // check that origin exists in appConnect (presence = approved)
+    if (method !== MessagingMethods.CONNECT_APP && appConnect == null) {
       throw new Error(`Application on url ${origin} is not authorized`)
     }
 

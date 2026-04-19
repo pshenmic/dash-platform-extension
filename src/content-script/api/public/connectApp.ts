@@ -6,10 +6,13 @@ import hash from 'hash.js'
 import { IdentitiesRepository } from '../../repository/IdentitiesRepository'
 import { WalletRepository } from '../../repository/WalletRepository'
 import { StorageAdapter } from '../../storage/storageAdapter'
+import { MESSAGING_TIMEOUT } from '../../../constants'
 
 interface AppConnectRequestPayload {
   url: string
 }
+
+const POPUP_CLOSED_POLL_INTERVAL_MS = 300
 
 export class ConnectAppHandler implements APIHandler {
   appConnectRepository: AppConnectRepository
@@ -26,8 +29,7 @@ export class ConnectAppHandler implements APIHandler {
 
   async handle (event: EventData): Promise<ConnectAppResponse> {
     const payload: AppConnectRequestPayload = event.payload
-
-    const id = hash.sha256().update(payload.url).digest('hex').substring(0, 6)
+    const requestId = event.id
 
     const wallet = await this.walletRepository.getCurrent()
 
@@ -35,26 +37,80 @@ export class ConnectAppHandler implements APIHandler {
       throw new Error('No wallet loaded in the extension')
     }
 
-    let appConnect = await this.appConnectRepository.getById(id)
+    const existing = await this.appConnectRepository.getByURL(payload.url)
 
-    if (appConnect == null) {
-      appConnect = await this.appConnectRepository.create(payload.url)
+    if (existing != null) {
+      return await this.buildResponse(wallet.currentIdentity)
     }
 
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string
+    const storageKey = `appConnects_${network}_${walletId}`
+    const id = hash.sha256().update(payload.url).digest('hex').substring(0, 6)
+
+    const redirectUrl = chrome.runtime.getURL(`index.html#/connect/${requestId}?url=${encodeURIComponent(payload.url)}`)
+    const popup = window.open(redirectUrl, 'connectApp', 'popup, width=430, height=600')
+
+    return await new Promise<ConnectAppResponse>((resolve, reject) => {
+      let settled = false
+
+      const cleanup = (): void => {
+        chrome.storage.onChanged.removeListener(onStorageChange)
+        clearInterval(closedCheck)
+        clearTimeout(timeoutHandle)
+      }
+
+      const onStorageChange = (changes: Record<string, chrome.storage.StorageChange>, area: string): void => {
+        if (settled) return
+        if (area !== 'local') return
+        const change = changes[storageKey]
+        if (change?.newValue == null) return
+        const record = (change.newValue as Record<string, unknown>)[id]
+        if (record == null) return
+
+        settled = true
+        cleanup()
+        this.buildResponse(wallet.currentIdentity)
+          .then(resolve)
+          .catch(reject)
+      }
+
+      const closedCheck = setInterval(() => {
+        if (settled) return
+        if (popup == null || popup.closed) {
+          settled = true
+          cleanup()
+          reject(new Error('App connection was rejected'))
+        }
+      }, POPUP_CLOSED_POLL_INTERVAL_MS)
+
+      const timeoutHandle = setTimeout(() => {
+        if (settled) return
+        settled = true
+        cleanup()
+        reject(new Error('Timed out waiting for app connect approval'))
+      }, MESSAGING_TIMEOUT)
+
+      chrome.storage.onChanged.addListener(onStorageChange)
+    })
+  }
+
+  private async buildResponse (currentIdentity: string | null): Promise<ConnectAppResponse> {
     const identities = await this.identitiesRepository.getAll()
     const network = await this.storageAdapter.get('network') as string
 
     return {
-      redirectUrl: chrome.runtime.getURL(`index.html#/connect/${appConnect.id}`),
-      status: appConnect.status,
-      identities: identities.map(identity => ({ identifier: identity.identifier, type: identity.type, proTxHash: identity.proTxHash })),
-      currentIdentity: wallet.currentIdentity,
+      identities: identities.map(identity => ({
+        identifier: identity.identifier,
+        type: identity.type,
+        proTxHash: identity.proTxHash
+      })),
+      currentIdentity,
       network
     }
   }
 
   validatePayload (payload: AppConnectRequestPayload): null | string {
-    // check it is a string
     if (typeof payload?.url !== 'string') {
       return 'Url is missing'
     }
