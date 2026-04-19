@@ -7,7 +7,6 @@ import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
 import { AppConnectsStorageSchema } from '../../../../src/content-script/storage/storageSchema'
-import { AppConnectStatus } from '../../../../src/types/enums/AppConnectStatus'
 
 describe('app connects', () => {
   let privateAPI: PrivateAPI
@@ -48,19 +47,18 @@ describe('app connects', () => {
     await privateAPIClient.importIdentity(identity, [privateKey])
 
     const mockAppConnects: AppConnectsStorageSchema = {
-      mockId1: { id: 'mockId1', url: 'http://localhost:8080', status: AppConnectStatus.approved },
-      mockId2: { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected }
+      mockId1: { id: 'mockId1', url: 'http://localhost:8080' },
+      mockId2: { id: 'mockId2', url: 'https://google.com' }
     }
 
     await storage.set(`appConnects_testnet_${walletId}`, mockAppConnects)
 
     let appConnects = await privateAPIClient.getAllAppConnects()
 
-    let expectedAppConnects = [{
-      id: 'mockId1',
-      url: 'http://localhost:8080',
-      status: AppConnectStatus.approved
-    }, { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected }]
+    let expectedAppConnects = [
+      { id: 'mockId1', url: 'http://localhost:8080' },
+      { id: 'mockId2', url: 'https://google.com' }
+    ]
 
     expect(appConnects).toStrictEqual(expectedAppConnects)
 
@@ -68,7 +66,7 @@ describe('app connects', () => {
 
     appConnects = await privateAPIClient.getAllAppConnects()
 
-    expectedAppConnects = [{ id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected }]
+    expectedAppConnects = [{ id: 'mockId2', url: 'https://google.com' }]
 
     expect(appConnects).toStrictEqual(expectedAppConnects)
   })
