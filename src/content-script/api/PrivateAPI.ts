@@ -119,6 +119,13 @@ export class PrivateAPI {
 
       const { id, method } = data
 
+      // Silent skip for methods not registered in this instance.
+      // Other listeners (e.g. popup's own PrivateAPI for popup-scoped handlers)
+      // will handle their own methods.
+      if (this.handlers[method] == null) {
+        return
+      }
+
       this.handleMessage(data)
         .then((result: any) => {
           const message: EventData = {
