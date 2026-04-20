@@ -6,6 +6,7 @@ import hash from 'hash.js'
 import { IdentitiesRepository } from '../../repository/IdentitiesRepository'
 import { WalletRepository } from '../../repository/WalletRepository'
 import { StorageAdapter } from '../../storage/storageAdapter'
+import { AppConnectStatus } from '../../../types/enums/AppConnectStatus'
 
 interface AppConnectRequestPayload {
   url: string
@@ -36,6 +37,22 @@ export class ConnectAppHandler implements APIHandler {
     }
 
     let appConnect = await this.appConnectRepository.getById(id)
+
+    // todo remove after events system
+    if (appConnect?.status === AppConnectStatus.rejected) {
+      await this.appConnectRepository.removeById(id)
+
+      const identities = await this.identitiesRepository.getAll()
+      const network = await this.storageAdapter.get('network') as string
+
+      return {
+        redirectUrl: '',
+        status: AppConnectStatus.rejected,
+        identities: identities.map(identity => ({ identifier: identity.identifier, type: identity.type, proTxHash: identity.proTxHash })),
+        currentIdentity: wallet.currentIdentity,
+        network
+      }
+    }
 
     if (appConnect == null) {
       appConnect = await this.appConnectRepository.create(payload.url)
