@@ -41,17 +41,7 @@ export class ConnectAppHandler implements APIHandler {
     // todo remove after events system
     if (appConnect?.status === AppConnectStatus.rejected) {
       await this.appConnectRepository.removeById(id)
-
-      const identities = await this.identitiesRepository.getAll()
-      const network = await this.storageAdapter.get('network') as string
-
-      return {
-        redirectUrl: '',
-        status: AppConnectStatus.rejected,
-        identities: identities.map(identity => ({ identifier: identity.identifier, type: identity.type, proTxHash: identity.proTxHash })),
-        currentIdentity: wallet.currentIdentity,
-        network
-      }
+      appConnect = null
     }
 
     if (appConnect == null) {
