@@ -1,21 +1,17 @@
-import React, { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { Text, Button, Heading, ValueCard } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import ButtonRow from '../../components/layout/ButtonRow'
 import { TitleBlock } from '../../components/layout/TitleBlock'
-import { ExtensionStorageAdapter } from '../../../content-script/storage/extensionStorageAdapter'
-import { AppConnectRepository } from '../../../content-script/repository/AppConnectRepository'
 import { getFaviconUrl } from '../../../utils'
 import './appConnect.state.css'
 
 function AppConnectState (): React.JSX.Element {
+  const extensionAPI = useExtensionAPI()
   const [searchParams] = useSearchParams()
   const url = searchParams.get('url')
-
-  const appConnectRepository = useMemo(() => {
-    return new AppConnectRepository(new ExtensionStorageAdapter())
-  }, [])
 
   const [error, setError] = useState<string | null>(null)
   const [processingStatus, setProcessingStatus] = useState<'approving' | 'rejecting' | null>(null)
@@ -25,7 +21,7 @@ function AppConnectState (): React.JSX.Element {
 
     setProcessingStatus('approving')
     try {
-      await appConnectRepository.create(url)
+      await extensionAPI.approveAppConnect(url)
       window.close()
     } catch (e) {
       console.log('Error during approval:', e)

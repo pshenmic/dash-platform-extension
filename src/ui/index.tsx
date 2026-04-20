@@ -19,7 +19,10 @@ import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
 import ChooseWalletType from './states/wallet/ChooseWalletType'
 import WalletSuccessfullyCreated from './states/importIdentity/WalletSuccessfullyCreated'
 import NameRegistrationState from './states/nameRegistration'
+import { initPopupMessaging } from './popupMessaging'
 import './styles/app.pcss'
+
+initPopupMessaging()
 
 const App: React.FC = function () {
   const router = createHashRouter([
