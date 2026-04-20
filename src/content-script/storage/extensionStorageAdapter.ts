@@ -15,7 +15,7 @@ export class ExtensionStorageAdapter implements StorageAdapter {
     return retrieved[key]
   }
 
-  set = async (key: string, value: object | string | number): Promise<void> => {
+  set = async (key: string, value: object | string | number | null): Promise<void> => {
     await chrome.storage.local.set({ [key]: value })
   }
 

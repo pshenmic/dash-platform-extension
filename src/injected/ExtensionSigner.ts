@@ -7,7 +7,6 @@ import { base64 } from '@scure/base'
 import {
   RequestStateTransitionApprovalResponse
 } from '../types/messages/response/RequestStateTransitionApprovalResponse'
-import { ConnectAppResponse } from '../types/messages/response/ConnectAppResponse'
 import { WalletInfo } from '../types/WalletInfo'
 
 export class ExtensionSigner {
@@ -20,31 +19,7 @@ export class ExtensionSigner {
   async connect (): Promise<WalletInfo> {
     const url = window.location.origin
 
-    let response: ConnectAppResponse = await this.publicAPIClient.connectApp(url)
-
-    if (response.status === 'pending') {
-      popupWindow(response.redirectUrl, 'connectApp', window, 430, 600)
-    }
-
-    const startTimestamp = new Date()
-
-    while (response.status === StateTransitionStatus.pending) {
-      await wait(500)
-
-      if (new Date().getTime() - startTimestamp.getTime() > MESSAGING_TIMEOUT) {
-        throw new Error('Failed to receive state transition signing approval due timeout')
-      }
-
-      response = await this.publicAPIClient.connectApp(url)
-    }
-
-    if (response.status === 'error') {
-      throw new Error('An error occurred while connecting app')
-    }
-
-    if (response.status === 'rejected') {
-      throw new Error('App connection was rejected')
-    }
+    const response = await this.publicAPIClient.connectApp(url)
 
     return { currentIdentity: response.currentIdentity, identities: response.identities }
   }

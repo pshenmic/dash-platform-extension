@@ -12,7 +12,6 @@ import {
 import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
-import { AppConnectStatus } from '../../../../src/types/enums/AppConnectStatus'
 import { StateTransitionStatus } from '../../../../src/types/enums/StateTransitionStatus'
 
 describe('remove wallet', () => {
@@ -76,7 +75,7 @@ describe('remove wallet', () => {
     }
 
     const mockAppConnects: AppConnectsStorageSchema = {
-      mockId1: { id: 'mockId1', url: 'http://localhost:8080', status: AppConnectStatus.approved }
+      mockId1: { id: 'mockId1', url: 'http://localhost:8080' }
     }
 
     await storage.set(`identities_testnet_${walletId}`, mockIdentities)
