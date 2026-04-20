@@ -133,7 +133,7 @@ export const buildAssetLockFromPaymentTx = async (
   const dummyPayloadOutput = Output.createP2PKH(MIN_FEE_RELAY, oneTimeAddress)
   const dummyTx = new Transaction(
     [],
-    [Output.createAssetLockBurn(MIN_FEE_RELAY)],
+    [Output.createAssetLock(MIN_FEE_RELAY)],
     undefined,
     undefined,
     TransactionType.TRANSACTION_ASSET_LOCK,
@@ -158,7 +158,7 @@ export const buildAssetLockFromPaymentTx = async (
   const payloadOutput = Output.createP2PKH(lockedAmount, oneTimeAddress)
   const assetLockTx = new Transaction(
     [],
-    [Output.createAssetLockBurn(lockedAmount)],
+    [Output.createAssetLock(lockedAmount)],
     undefined,
     undefined,
     TransactionType.TRANSACTION_ASSET_LOCK,
@@ -214,7 +214,7 @@ export const waitForAssetLockProof = async (
 
       if (instantLock.txId !== txid) continue
 
-      const proof = coreSDK.createInstantAssetLockProof(assetLockTx, event.data, 0)
+      const proof = coreSDK.createInstantAssetLockProof(assetLockTx, instantLock, 0)
       return coreSDK.toInstantAssetLockProofParams(proof)
     }
 
