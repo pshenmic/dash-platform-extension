@@ -5,6 +5,7 @@ import {
   InstantLock,
   Output,
   PrivateKey,
+  Script,
   Transaction,
   TransactionType
 } from 'dash-core-sdk'
@@ -133,7 +134,7 @@ export const buildAssetLockFromPaymentTx = async (
   const dummyPayloadOutput = Output.createP2PKH(MIN_FEE_RELAY, oneTimeAddress)
   const dummyTx = new Transaction(
     [],
-    [Output.createAssetLock(MIN_FEE_RELAY)],
+    [new Output(MIN_FEE_RELAY, Script.fromASM('OP_RETURN OP_0'))],
     undefined,
     undefined,
     TransactionType.TRANSACTION_ASSET_LOCK,
@@ -158,7 +159,7 @@ export const buildAssetLockFromPaymentTx = async (
   const payloadOutput = Output.createP2PKH(lockedAmount, oneTimeAddress)
   const assetLockTx = new Transaction(
     [],
-    [Output.createAssetLock(lockedAmount)],
+    [new Output(lockedAmount, Script.fromASM('OP_RETURN OP_0'))],
     undefined,
     undefined,
     TransactionType.TRANSACTION_ASSET_LOCK,
@@ -214,8 +215,7 @@ export const waitForAssetLockProof = async (
 
       if (instantLock.txId !== txid) continue
 
-      const proof = coreSDK.createInstantAssetLockProof(assetLockTx, instantLock, 0)
-      return coreSDK.toInstantAssetLockProofParams(proof)
+      return coreSDK.utils.createAssetLockProof({ transaction: assetLockTx, instantLock, outputIndex: 0 }) as InstantAssetLockProofParams
     }
 
     return await Promise.reject(new Error('Instant lock subscription ended without result'))
