@@ -9,7 +9,8 @@ import {
   Transaction,
   TransactionType
 } from 'dash-core-sdk'
-import type { InstantAssetLockProofParams, ChainAssetLockProofParams } from 'dash-core-sdk'
+import { utils } from 'dash-core-sdk'
+import type { InstantAssetLockProofParams, ChainAssetLockProofParams } from 'dash-core-sdk/src/utils.js'
 import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 import hash from 'hash.js'
@@ -215,7 +216,7 @@ export const waitForAssetLockProof = async (
 
       if (instantLock.txId !== txid) continue
 
-      return coreSDK.utils.createAssetLockProof({ transaction: assetLockTx, instantLock, outputIndex: 0 }) as InstantAssetLockProofParams
+      return utils.createAssetLockProof({ transaction: assetLockTx, instantLock, outputIndex: 0 }) as InstantAssetLockProofParams
     }
 
     return await Promise.reject(new Error('Instant lock subscription ended without result'))
@@ -250,12 +251,7 @@ export const waitForAssetLockProof = async (
                 Number.isSafeInteger(latestPlatformHeight) &&
                 latestPlatformHeight >= requiredPlatformHeight
               ) {
-                return {
-                  type: 'chainLock' as const,
-                  txid,
-                  outputIndex: 0,
-                  coreChainLockedHeight: dapiTx.height
-                }
+                return utils.createAssetLockProof({ transaction: assetLockTx, coreChainLockedHeight: dapiTx.height, outputIndex: 0 }) as ChainAssetLockProofParams
               }
             } catch {
               // Transient DAPI error — keep polling
