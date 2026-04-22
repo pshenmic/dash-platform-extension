@@ -1,7 +1,7 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { IdentitiesStoreSchema, OneTimeAddressSchema, OneTimeAddressesSchema } from '../storage/storageSchema'
 import { encrypt } from 'eciesjs'
-import { bytesToHex, deriveFundingPrivateKey, getNextIdentityIndex, hexToBytes } from '../../utils'
+import { bytesToHex, deriveFundingPrivateKey, findNextFreeIdentityIndex, getNextIdentityIndex, hexToBytes } from '../../utils'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { WalletRepository } from './WalletRepository'
@@ -32,27 +32,19 @@ export class OneTimeAddressesRepository {
       throw new Error('Password is not set for an extension')
     }
 
-    const storageKey = `oneTimeAddresses_${network}_${walletId}`
-
-    const oneTimeAddresses = (await this.storageAdapter.get(storageKey) ?? {}) as OneTimeAddressesSchema
-    const identitiesStorageKey = `identities_${network}_${walletId}`
-    const identities = (await this.storageAdapter.get(identitiesStorageKey) ?? {}) as IdentitiesStoreSchema
-    const nextIdentityIndex = getNextIdentityIndex(Object.values(identities).map((identity) => identity.index))
-
-    const existingEntry = Object.values(oneTimeAddresses).find((entry) =>
-      Number.isSafeInteger(entry.identityIndex) && entry.identityIndex === nextIdentityIndex
-    )
-
-    if (existingEntry != null) {
-      return existingEntry
-    }
-
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
       throw new Error('Wallet is not chosen')
     }
 
+    const storageKey = `oneTimeAddresses_${network}_${walletId}`
+    const oneTimeAddresses = (await this.storageAdapter.get(storageKey) ?? {}) as OneTimeAddressesSchema
+    const identitiesStorageKey = `identities_${network}_${walletId}`
+    const identities = (await this.storageAdapter.get(identitiesStorageKey) ?? {}) as IdentitiesStoreSchema
+    const localIndices = Object.values(identities).map((identity) => identity.index)
+
+    let identityIndex: number
     let privateKeyWASM: PrivateKeyWASM
 
     if (wallet.type === WalletType.seedphrase) {
@@ -60,27 +52,33 @@ export class OneTimeAddressesRepository {
         throw new Error('Password is required to derive a deterministic registration address')
       }
 
-      privateKeyWASM = await deriveFundingPrivateKey(
-        wallet,
-        password,
-        nextIdentityIndex,
-        this.sdk
+      identityIndex = await findNextFreeIdentityIndex(wallet, password, localIndices, this.sdk)
+
+      const existingEntry = Object.values(oneTimeAddresses).find((entry) =>
+        Number.isSafeInteger(entry.identityIndex) && entry.identityIndex === identityIndex
       )
+
+      if (existingEntry != null) return existingEntry
+
+      privateKeyWASM = await deriveFundingPrivateKey(wallet, password, identityIndex, this.sdk)
     } else {
+      identityIndex = getNextIdentityIndex(localIndices)
+
+      const existingEntry = Object.values(oneTimeAddresses).find((entry) =>
+        Number.isSafeInteger(entry.identityIndex) && entry.identityIndex === identityIndex
+      )
+
+      if (existingEntry != null) return existingEntry
+
       privateKeyWASM = PrivateKeyWASM.fromHex(generateSecureHex(32), network)
     }
 
     const address = this.sdk.keyPair.p2pkhAddress(privateKeyWASM.getPublicKey().bytes(), network as Network)
     const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(privateKeyWASM.hex())))
 
-    const entry: OneTimeAddressSchema = {
-      address,
-      encryptedPrivateKey,
-      identityIndex: nextIdentityIndex
-    }
+    const entry: OneTimeAddressSchema = { address, encryptedPrivateKey, identityIndex }
 
     oneTimeAddresses[address] = entry
-
     await this.storageAdapter.set(storageKey, oneTimeAddresses)
 
     return entry

@@ -54,6 +54,28 @@ export const getNextIdentityIndex = (existingIndices: number[]): number => {
   return candidate
 }
 
+export const findNextFreeIdentityIndex = async (
+  wallet: Wallet,
+  password: string,
+  existingLocalIndices: number[],
+  sdk: DashPlatformSDK
+): Promise<number> => {
+  let candidate = getNextIdentityIndex(existingLocalIndices)
+
+  while (true) {
+    const privateKey = await deriveSeedphrasePrivateKey(wallet, password, candidate, 0, sdk)
+    const pkh = privateKey.getPublicKeyHash()
+
+    const existing =
+      await sdk.identities.getIdentityByPublicKeyHash(pkh).catch(() => null) ??
+      await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh).catch(() => null)
+
+    if (existing == null) return candidate
+
+    candidate++
+  }
+}
+
 export const validateIdentifier = (str: string): boolean => {
   try {
     const bytes = base58.decode(str)

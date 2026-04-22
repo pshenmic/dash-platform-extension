@@ -109,7 +109,21 @@ export class RegisterIdentityHandler implements APIHandler {
 
     const oneTimePrivateKeyWif: string = oneTimePrivateKeyWASM.WIF()
 
-    // ── 3. Build asset lock transaction from the payment tx ──────────────────
+    // ── 3. Guard: verify the identity index is not already registered on-chain ─
+    const authKey = await deriveSeedphrasePrivateKey(wallet, payload.password, identityIndex, 0, this.sdk)
+    const pkh = authKey.getPublicKeyHash()
+    const existingIdentity =
+      await this.sdk.identities.getIdentityByPublicKeyHash(pkh).catch(() => null) ??
+      await this.sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh).catch(() => null)
+
+    if (existingIdentity != null) {
+      throw new Error(
+        `Identity at index ${identityIndex} is already registered on platform (identifier: ${existingIdentity.id.base58()}). ` +
+        'Run "Resync identities" to import it into the extension.'
+      )
+    }
+
+    // ── 4. Build asset lock transaction from the payment tx ──────────────────
     const { assetLockTx } = await buildAssetLockFromPaymentTx({
       coreSDK: this.coreSDK,
       network,
