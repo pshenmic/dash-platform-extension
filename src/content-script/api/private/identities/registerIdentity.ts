@@ -1,5 +1,5 @@
 import { DashCoreSDK } from 'dash-core-sdk'
-import { KeyType, Network, PrivateKeyWASM, Purpose, SecurityLevel } from 'dash-platform-sdk/types'
+import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
@@ -14,19 +14,19 @@ import { IdentityType } from '../../../../types/enums/IdentityType'
 import {
   decryptOneTimePrivateKey,
   buildAssetLockFromPaymentTx,
-  waitForAssetLockProof
+  waitForAssetLockProof,
+  buildIdentityCreateTransition,
+  IDENTITY_KEY_DEFINITIONS
 } from '../../../services/identityRegistration'
+import { broadcastStateTransitionWithRetry } from '../../../services/stateTransitions'
 import {
   deriveSeedphrasePrivateKey,
   deriveFundingPrivateKey,
   getNextIdentityIndex,
-  hexToBytes,
-  wait
+  hexToBytes
 } from '../../../../utils'
 import { WalletType } from '../../../../types/WalletType'
 import {
-  MAX_BROADCAST_RETRIES,
-  BROADCAST_RETRY_DELAY_MS,
   TXID_HEX_LENGTH,
   IDENTITY_MASTER_KEY_BYTE_LENGTH
 } from '../../../../constants'
@@ -167,64 +167,23 @@ export class RegisterIdentityHandler implements APIHandler {
       instantLockSub
     )
 
-    // ── 6. Build all identity key pairs ──────────────────────────────────────
-    // Matches kotlin-platform BlockchainIdentity and js-dash-sdk createIdentityCreateTransition.
-    // All 4 keys are required: without AUTHENTICATION/HIGH the identity cannot sign documents,
-    // without TRANSFER/CRITICAL it cannot send credits, without ENCRYPTION/MEDIUM it cannot
-    // participate in DashPay contact exchange.
-    const KEY_DEFINITIONS = [
-      { id: 0, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.MASTER   },
-      { id: 1, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.HIGH     },
-      { id: 2, purpose: Purpose.ENCRYPTION,     securityLevel: SecurityLevel.MEDIUM   },
-      { id: 3, purpose: Purpose.TRANSFER,       securityLevel: SecurityLevel.CRITICAL },
-    ] as const
-
+    // ── 6. Derive/generate all identity key pairs ────────────────────────────
     const identityPrivateKeys: PrivateKeyWASM[] = []
 
-    for (const { id } of KEY_DEFINITIONS) {
+    for (const { id } of IDENTITY_KEY_DEFINITIONS) {
       const privateKey = wallet.type === WalletType.seedphrase
         ? await deriveSeedphrasePrivateKey(wallet, payload.password, identityIndex, id, this.sdk)
         : PrivateKeyWASM.fromHex(generateSecureHex(IDENTITY_MASTER_KEY_BYTE_LENGTH), network)
       identityPrivateKeys.push(privateKey)
     }
 
-    const identityPublicKeysInCreation = KEY_DEFINITIONS.map(({ id, purpose, securityLevel }, i) => ({
-      id,
-      purpose,
-      securityLevel,
-      keyType: KeyType.ECDSA_SECP256K1,
-      readOnly: false,
-      data: Uint8Array.from(identityPrivateKeys[i].getPublicKey().bytes()),
-      signature: undefined as Uint8Array | undefined
-    }))
-
-    // ── 7. Sign each public key (proof of possession) ────────────────────────
-    // Create one temporary ST with all keys unsigned, then sign with each private
-    // key in turn. Each call to signByPrivateKey overwrites stateTransition.signature
-    // with that key's signature over the same ST hash — copy it out immediately.
-    // The ST hash is identical for every iteration because the public key signature
-    // fields are still undefined at this point (serialized as absent).
-    let stateTransition = this.sdk.identities.createStateTransition('create', {
-      publicKeys: identityPublicKeysInCreation,
-      assetLockProof
-    })
-
-    for (let i = 0; i < identityPrivateKeys.length; i++) {
-      stateTransition.signByPrivateKey(identityPrivateKeys[i], undefined, KeyType.ECDSA_SECP256K1)
-      if (stateTransition.signature == null) {
-        throw new Error(`signByPrivateKey did not produce a signature for identity key ${i}`)
-      }
-      // Force-copy out of WASM memory before the next signByPrivateKey overwrites it.
-      identityPublicKeysInCreation[i].signature = Uint8Array.from(stateTransition.signature)
-    }
-
-    // ── 8. Finalize: re-create with signed keys, sign with asset lock key ────
-    stateTransition = this.sdk.identities.createStateTransition('create', {
-      publicKeys: identityPublicKeysInCreation,
-      assetLockProof
-    })
-
-    stateTransition.signByPrivateKey(oneTimePrivateKeyWASM, undefined, KeyType.ECDSA_SECP256K1)
+    // ── 7-8. Build and sign identity create state transition ─────────────────
+    const stateTransition = buildIdentityCreateTransition(
+      identityPrivateKeys,
+      oneTimePrivateKeyWASM,
+      assetLockProof,
+      this.sdk
+    )
 
     // ── 9. Derive the new identity identifier ────────────────────────────────
     const identifier = stateTransition.getOwnerId()?.base58()
@@ -234,20 +193,7 @@ export class RegisterIdentityHandler implements APIHandler {
     }
 
     // ── 10. Broadcast the state transition (with retry for chain height race) ──
-    // Chain lock proofs can arrive 1 block ahead of the platform's consensus height.
-    for (let attempt = 0; ; attempt++) {
-      try {
-        await this.sdk.stateTransitions.broadcast(stateTransition)
-        break
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e)
-        if (attempt < MAX_BROADCAST_RETRIES && msg.includes('core chain height')) {
-          await wait(BROADCAST_RETRY_DELAY_MS)
-        } else {
-          throw e
-        }
-      }
-    }
+    await broadcastStateTransitionWithRetry(this.sdk, stateTransition)
 
     // hash(skip_signature: boolean): string — computed after successful broadcast
     const stateTransitionHash: string = stateTransition.hash(false)
