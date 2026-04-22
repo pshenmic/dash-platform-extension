@@ -5,36 +5,28 @@ import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { OneTimeAddressesRepository } from '../../../repository/OneTimeAddressesRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { RegisterIdentityPayload } from '../../../../types/messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from '../../../../types/messages/response/RegisterIdentityResponse'
 import { IdentityType } from '../../../../types/enums/IdentityType'
 import {
-  decryptOneTimePrivateKey,
   buildAssetLockFromPaymentTx,
   waitForAssetLockProof,
   buildIdentityCreateTransition,
   IDENTITY_KEY_DEFINITIONS
 } from '../../../services/identityRegistration'
-import { broadcastStateTransitionWithRetry } from '../../../services/stateTransitions'
 import {
   deriveSeedphrasePrivateKey,
   deriveFundingPrivateKey,
-  getNextIdentityIndex,
   hexToBytes
 } from '../../../../utils'
 import { WalletType } from '../../../../types/WalletType'
-import {
-  TXID_HEX_LENGTH,
-  IDENTITY_MASTER_KEY_BYTE_LENGTH
-} from '../../../../constants'
+import { TXID_HEX_LENGTH } from '../../../../constants'
 
 export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
-  keypairRepository: KeypairRepository
   oneTimeAddressesRepository: OneTimeAddressesRepository
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
@@ -43,7 +35,6 @@ export class RegisterIdentityHandler implements APIHandler {
   constructor (
     walletRepository: WalletRepository,
     identitiesRepository: IdentitiesRepository,
-    keypairRepository: KeypairRepository,
     oneTimeAddressesRepository: OneTimeAddressesRepository,
     storageAdapter: StorageAdapter,
     sdk: DashPlatformSDK,
@@ -51,7 +42,6 @@ export class RegisterIdentityHandler implements APIHandler {
   ) {
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
-    this.keypairRepository = keypairRepository
     this.oneTimeAddressesRepository = oneTimeAddressesRepository
     this.storageAdapter = storageAdapter
     this.sdk = sdk
@@ -85,50 +75,35 @@ export class RegisterIdentityHandler implements APIHandler {
       ? oneTimeAddressEntry.identityIndex
       : null
 
-    let oneTimePrivateKeyWASM: PrivateKeyWASM
-    let identityIndex: number
+    if (wallet.type !== WalletType.seedphrase) {
+      throw new Error('Identity registration is only supported for seedphrase wallets')
+    }
 
-    if (wallet.type === WalletType.seedphrase) {
-      if (oneTimeIdentityIndex == null) {
-        throw new Error(
-          `One-time address ${payload.paymentAddress} has no identityIndex. ` +
-          'Seedphrase wallet registration requires a deterministic one-time address tied to an identity index.'
-        )
-      }
-
-      identityIndex = oneTimeIdentityIndex
-
-      oneTimePrivateKeyWASM = await deriveFundingPrivateKey(
-        wallet,
-        payload.password,
-        identityIndex,
-        this.sdk
+    if (oneTimeIdentityIndex == null) {
+      throw new Error(
+        `One-time address ${payload.paymentAddress} has no identityIndex. ` +
+        'Seedphrase wallet registration requires a deterministic one-time address tied to an identity index.'
       )
+    }
 
-      const derivedAddress = this.sdk.keyPair.p2pkhAddress(
-        oneTimePrivateKeyWASM.getPublicKey().bytes(),
-        network as Network
-      )
+    const identityIndex = oneTimeIdentityIndex
 
-      if (derivedAddress !== payload.paymentAddress) {
-        throw new Error(
-          `Stored one-time address ${payload.paymentAddress} does not match derived ` +
-          `registration funding address for identity index ${identityIndex}`
-        )
-      }
-    } else {
-      if (oneTimeAddressEntry.encryptedPrivateKey == null || oneTimeAddressEntry.encryptedPrivateKey === '') {
-        throw new Error('Missing encryptedPrivateKey for keystore registration flow')
-      }
+    const oneTimePrivateKeyWASM: PrivateKeyWASM = await deriveFundingPrivateKey(
+      wallet,
+      payload.password,
+      identityIndex,
+      this.sdk
+    )
 
-      identityIndex = oneTimeIdentityIndex ?? getNextIdentityIndex(
-        (await this.identitiesRepository.getAll()).map((identity) => identity.index)
-      )
+    const derivedAddress = this.sdk.keyPair.p2pkhAddress(
+      oneTimePrivateKeyWASM.getPublicKey().bytes(),
+      network as Network
+    )
 
-      oneTimePrivateKeyWASM = decryptOneTimePrivateKey(
-        oneTimeAddressEntry.encryptedPrivateKey,
-        payload.password,
-        network
+    if (derivedAddress !== payload.paymentAddress) {
+      throw new Error(
+        `Stored one-time address ${payload.paymentAddress} does not match derived ` +
+        `registration funding address for identity index ${identityIndex}`
       )
     }
 
@@ -167,14 +142,13 @@ export class RegisterIdentityHandler implements APIHandler {
       instantLockSub
     )
 
-    // ── 6. Derive/generate all identity key pairs ────────────────────────────
+    // ── 6. Derive all identity key pairs ─────────────────────────────────────
     const identityPrivateKeys: PrivateKeyWASM[] = []
 
     for (const { id } of IDENTITY_KEY_DEFINITIONS) {
-      const privateKey = wallet.type === WalletType.seedphrase
-        ? await deriveSeedphrasePrivateKey(wallet, payload.password, identityIndex, id, this.sdk)
-        : PrivateKeyWASM.fromHex(generateSecureHex(IDENTITY_MASTER_KEY_BYTE_LENGTH), network)
-      identityPrivateKeys.push(privateKey)
+      identityPrivateKeys.push(
+        await deriveSeedphrasePrivateKey(wallet, payload.password, identityIndex, id, this.sdk)
+      )
     }
 
     // ── 7-8. Build and sign identity create state transition ─────────────────
@@ -192,8 +166,8 @@ export class RegisterIdentityHandler implements APIHandler {
       throw new Error('Could not derive identity identifier from state transition')
     }
 
-    // ── 10. Broadcast the state transition (with retry for chain height race) ──
-    await broadcastStateTransitionWithRetry(this.sdk, stateTransition)
+    // ── 10. Broadcast the state transition ──────────────────────────────────
+    await this.sdk.stateTransitions.broadcast(stateTransition)
 
     // hash(skip_signature: boolean): string — computed after successful broadcast
     const stateTransitionHash: string = stateTransition.hash(false)
@@ -201,16 +175,8 @@ export class RegisterIdentityHandler implements APIHandler {
     // ── 11. Wait for confirmation ────────────────────────────────────────────
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
-    // ── 12. Persist identity and keys ────────────────────────────────────────
+    // ── 12. Persist identity ─────────────────────────────────────────────────
     await this.identitiesRepository.create(identifier, IdentityType.regular, undefined, identityIndex)
-
-    // Keystore wallets persist generated private keys in extension storage.
-    // Seedphrase wallets derive keys from the mnemonic and don't store key material.
-    if (wallet.type === WalletType.keystore) {
-      for (let i = 0; i < identityPrivateKeys.length; i++) {
-        await this.keypairRepository.addVerified(identifier, identityPrivateKeys[i].hex(), i)
-      }
-    }
 
     await this.oneTimeAddressesRepository.removeByAddress(payload.paymentAddress)
 
@@ -219,7 +185,6 @@ export class RegisterIdentityHandler implements APIHandler {
 
     return {
       identifier,
-      assetLockTxid,
       stateTransitionHash
     }
   }
@@ -245,9 +210,3 @@ export class RegisterIdentityHandler implements APIHandler {
   }
 }
 
-/** Generates cryptographically random hex of the given byte length. */
-function generateSecureHex (byteLength: number): string {
-  const bytes = new Uint8Array(byteLength)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
-}

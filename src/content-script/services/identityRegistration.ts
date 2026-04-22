@@ -7,60 +7,22 @@ import {
   PrivateKey,
   Script,
   Transaction,
-  TransactionType
+  TransactionType,
+  utils
 } from 'dash-core-sdk'
-import { utils } from 'dash-core-sdk'
 import type { InstantAssetLockProofParams, ChainAssetLockProofParams } from 'dash-core-sdk/src/utils.js'
+import type { BuildAssetLockFromPaymentOptions, AssetLockBuildResult, AssetLockProof } from '../../types/AssetLock'
 import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { KeyType, Purpose, SecurityLevel, PrivateKeyWASM, StateTransitionWASM } from 'dash-platform-sdk/types'
-import hash from 'hash.js'
-import { decrypt } from 'eciesjs'
-import { hexToBytes, wait } from '../../utils'
+import { wait } from '../../utils'
 import {
-  FEE_PER_BYTE,
   MIN_FEE_RELAY,
   LOCK_POLL_INTERVAL_MS,
   LOCK_TIMEOUT_MS,
   MIN_PAYMENT_TX_CONFIRMATIONS
 } from '../../constants'
 
-/**
- * Decrypts the one-time address private key stored in OneTimeAddressesRepository.
- * Uses the same scheme as deriveKeystorePrivateKey: sha256(password) as the decryption key.
- */
-export const decryptOneTimePrivateKey = (
-  encryptedPrivateKey: string,
-  password: string,
-  network: string
-): PrivateKeyWASM => {
-  const passwordHash = hash.sha256().update(password).digest('hex')
-
-  let privateKeyBytes: Uint8Array
-
-  try {
-    privateKeyBytes = decrypt(passwordHash, hexToBytes(encryptedPrivateKey))
-  } catch {
-    throw new Error('Failed to decrypt one-time private key: incorrect password or corrupted key')
-  }
-
-  return PrivateKeyWASM.fromBytes(privateKeyBytes, network)
-}
-
 // ── Payment tx → asset lock ───────────────────────────────────────────────────
-
-export interface BuildAssetLockFromPaymentOptions {
-  coreSDK: DashCoreSDK
-  network: string
-  paymentTxid: string
-  oneTimeAddress: string
-  oneTimePrivateKeyWif: string
-  outputIndex?: number
-}
-
-export interface AssetLockBuildResult {
-  assetLockTx: Transaction
-  assetLockOutputIndex: number
-}
 
 /**
  * Builds an asset lock transaction from a payment transaction.
@@ -76,19 +38,11 @@ export const buildAssetLockFromPaymentTx = async (
 ): Promise<AssetLockBuildResult> => {
   const { coreSDK, paymentTxid, oneTimeAddress, oneTimePrivateKeyWif, outputIndex } = options
 
-  // Load the payment transaction from DAPI
-  let dapiTx: Awaited<ReturnType<DashCoreSDK['getTransaction']>>
-
-  try {
-    dapiTx = await coreSDK.getTransaction(paymentTxid)
-  } catch (e) {
+  const dapiTx = await coreSDK.getTransaction(paymentTxid).catch((e: unknown) => {
     throw new Error(`Could not load payment transaction ${paymentTxid}: ${e instanceof Error ? e.message : String(e)}`)
-  }
+  })
 
-  const rawTx = dapiTx.transaction as any
-  // Force copy into a plain JS Uint8Array in case rawTx is backed by WASM memory
-  const txBytes = Uint8Array.from(rawTx)
-  const paymentTx = Transaction.fromBytes(txBytes)
+  const paymentTx = Transaction.fromBytes(Uint8Array.from(dapiTx.transaction))
   if (paymentTx.hash() !== paymentTxid) {
     throw new Error(`Transaction hash mismatch for ${paymentTxid}: transaction data is corrupt`)
   }
@@ -128,35 +82,15 @@ export const buildAssetLockFromPaymentTx = async (
 
   const privateKey = PrivateKey.fromWIF(oneTimePrivateKeyWif)
   const lockingScript = Output.createP2PKH(0n, privateKey.getAddress()).script
-
-  // Build a dummy signed tx to measure byte size for fee calculation.
-  // Amounts are fixed-width (int64) in serialization, so any dummy lockedAmount gives
-  // the exact same byte length as the real tx.
-  const dummyPayloadOutput = Output.createP2PKH(MIN_FEE_RELAY, oneTimeAddress)
-  const dummyTx = new Transaction(
-    [],
-    [new Output(MIN_FEE_RELAY, Script.fromASM('OP_RETURN OP_0'))],
-    undefined,
-    undefined,
-    TransactionType.TRANSACTION_ASSET_LOCK,
-    new ExtraPayload.AssetLockTx(1, 1, [dummyPayloadOutput])
-  )
-  dummyTx.addInput(new Input(paymentTxid, resolvedOutputIndex, lockingScript, 0))
-  dummyTx.sign(privateKey)
-
-  const sizeFee = BigInt(dummyTx.bytes().byteLength) * BigInt(FEE_PER_BYTE)
-  const fee = sizeFee > MIN_FEE_RELAY ? sizeFee : MIN_FEE_RELAY
-  const lockedAmount = paymentOutput.satoshis - fee
+  const lockedAmount = paymentOutput.satoshis - MIN_FEE_RELAY
 
   if (lockedAmount <= 0n) {
     throw new Error(
       `Payment output at index ${resolvedOutputIndex} (${paymentOutput.satoshis} duffs) ` +
-      `is too small to cover the transaction fee (${fee} duffs)`
+      `is too small to cover the transaction fee (${MIN_FEE_RELAY} duffs)`
     )
   }
 
-  // Build final tx with correct lockedAmount and no change output.
-  // The miner fee is implicit: totalInput - lockedAmount = fee.
   const payloadOutput = Output.createP2PKH(lockedAmount, oneTimeAddress)
   const assetLockTx = new Transaction(
     [],
@@ -174,8 +108,6 @@ export const buildAssetLockFromPaymentTx = async (
     assetLockOutputIndex: 0 // single credit output → always index 0 in the asset lock payload
   }
 }
-
-export type AssetLockProof = InstantAssetLockProofParams | ChainAssetLockProofParams
 
 /**
  * Waits for the asset lock transaction to receive either an instant lock or a chain lock,

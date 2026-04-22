@@ -15,46 +15,6 @@ export class KeypairRepository {
     this.sdk = sdk
   }
 
-  /**
-   * Saves a private key for an identity that has just been created on-chain.
-   * Skips the remote public key validation that `add(pending=false)` would do,
-   * because the identity's keys are already known to be correct (we signed the
-   * state transition ourselves) and calling getIdentityPublicKeys immediately
-   * after broadcast may race with propagation.
-   */
-  async addVerified (identity: string, privateKeyHex: string, keyId: number): Promise<void> {
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
-
-    if (passwordPublicKey == null) {
-      throw new Error('Password is not set for an extension')
-    }
-
-    const storageKey = `keyPairs_${network}_${walletId}`
-    const keyPairsSchema = (await this.storageAdapter.get(storageKey) ?? {}) as KeyPairsSchema
-
-    let keyPairs: KeyPairSchema[] = keyPairsSchema[identity] ?? []
-
-    const keyPairSchema: KeyPairSchema = {
-      encryptedPrivateKey: bytesToHex(encrypt(passwordPublicKey, hexToBytes(privateKeyHex))),
-      keyId,
-      pending: false
-    }
-
-    keyPairs = keyPairs.filter(kp => kp.keyId !== keyId) // deduplicate
-    keyPairs.push(keyPairSchema)
-
-    keyPairsSchema[identity] = keyPairs
-
-    await this.storageAdapter.set(storageKey, keyPairsSchema)
-  }
-
   async add (identity: string, privateKey: string, keyId: number, pending: boolean = false): Promise<void> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null

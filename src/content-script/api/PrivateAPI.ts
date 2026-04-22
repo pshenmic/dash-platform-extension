@@ -123,7 +123,6 @@ export class PrivateAPI {
       [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
         walletRepository,
         identitiesRepository,
-        keypairRepository,
         oneTimeAddressesRepository,
         this.storageAdapter,
         this.sdk,
