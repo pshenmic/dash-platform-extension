@@ -22,8 +22,9 @@ export class ExtensionSigner {
 
     let response: ConnectAppResponse = await this.publicAPIClient.connectApp(url)
 
+    let popupRef: Window | null = null
     if (response.status === 'pending') {
-      popupWindow(response.redirectUrl, 'connectApp', window, 430, 600)
+      popupRef = popupWindow(response.redirectUrl, 'connectApp', window, 430, 600)
     }
 
     const startTimestamp = new Date()
@@ -36,6 +37,12 @@ export class ExtensionSigner {
       }
 
       response = await this.publicAPIClient.connectApp(url)
+
+      // Checked after the handler poll so Approve/Reject status transitions
+      // resolve through the normal path first.
+      if (response.status === StateTransitionStatus.pending && popupRef?.closed === true) {
+        throw new Error('App connection was rejected')
+      }
     }
 
     if (response.status === 'error') {
