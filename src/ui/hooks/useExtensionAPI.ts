@@ -6,6 +6,6 @@ export const useExtensionAPI = (): PrivateAPIClient => {
   if (privateAPIClient == null) {
     privateAPIClient = new PrivateAPIClient()
   }
-(window as any).privateAPI = privateAPIClient
+
   return privateAPIClient
 }
