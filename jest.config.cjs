@@ -9,6 +9,6 @@ module.exports = {
     // dash-core-sdk only exports an ESM entry ("import" condition).
     // Jest uses require() so it cannot resolve via the exports map;
     // point it directly at the dist entry so Babel can transform it.
-    '^dash-core-sdk$': '<rootDir>/node_modules/dash-core-sdk/dist/index.js'
+    '^dash-core-sdk$': '<rootDir>/node_modules/dash-core-sdk/index.js'
   }
 }
