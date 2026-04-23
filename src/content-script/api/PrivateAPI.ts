@@ -39,7 +39,7 @@ import { ImportMasternodeIdentityHandler } from './private/identities/importMast
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
 import { CreateIdentityPrivateKeyHandler } from './private/identities/createIdentityPrivateKey'
 import { IdentityRegistrationFundingAddressesRepository } from '../repository/IdentityRegistrationFundingAddressesRepository'
-import { RequestIdentityRegistrationFundingAddressHandler } from './private/assetLocks/requestIdentityRegistrationFundingAddress'
+import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
 import { BroadcastError } from '../errors/BroadcastError'
 import { RemoveWalletHandler } from './private/wallet/removeWallet'
@@ -119,7 +119,7 @@ export class PrivateAPI {
       [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
-      [MessagingMethods.REQUEST_IDENTITY_REGISTRATION_FUNDING_ADDRESS]: new RequestIdentityRegistrationFundingAddressHandler(fundingAddressesRepository, walletRepository, identitiesRepository, this.storageAdapter, this.sdk),
+      [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: new RequestAssetLockFundingAddressHandler(fundingAddressesRepository, walletRepository, identitiesRepository, this.storageAdapter, this.sdk),
       [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
         walletRepository,
         identitiesRepository,

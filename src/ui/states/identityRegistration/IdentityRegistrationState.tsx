@@ -100,7 +100,7 @@ function IdentityRegistrationState (): React.JSX.Element {
       setAddressError(null)
 
       try {
-        const address = await extensionAPI.requestOneTimeAddress()
+        const { address } = await extensionAPI.requestAssetLockFundingAddress()
         setPaymentAddress(address)
       } catch (e) {
         setAddressError(e instanceof Error ? e.message : 'Failed to generate payment address')

@@ -7,13 +7,13 @@ import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { IdentityRegistrationFundingAddressesRepository } from '../../../repository/IdentityRegistrationFundingAddressesRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { IdentityRegistrationFundingAddressSchema } from '../../../storage/storageSchema'
-import { RequestIdentityRegistrationFundingAddressResponse } from '../../../../types/messages/response/RequestIdentityRegistrationFundingAddressResponse'
-import { RequestIdentityRegistrationFundingAddressPayload } from '../../../../types/messages/payloads/RequestIdentityRegistrationFundingAddressPayload'
+import { RequestAssetLockFundingAddressResponse } from '../../../../types/messages/response/RequestAssetLockFundingAddressResponse'
+import { RequestAssetLockFundingAddressPayload } from '../../../../types/messages/payloads/RequestAssetLockFundingAddressPayload'
 import { WalletType } from '../../../../types/WalletType'
 import { bytesToHex, deriveFundingPrivateKey, findNextFreeIdentityIndex, hexToBytes } from '../../../../utils'
 import { encrypt } from 'eciesjs'
 
-export class RequestIdentityRegistrationFundingAddressHandler implements APIHandler {
+export class RequestAssetLockFundingAddressHandler implements APIHandler {
   fundingAddressesRepository: IdentityRegistrationFundingAddressesRepository
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
@@ -34,8 +34,8 @@ export class RequestIdentityRegistrationFundingAddressHandler implements APIHand
     this.sdk = sdk
   }
 
-  async handle (event: EventData): Promise<RequestIdentityRegistrationFundingAddressResponse> {
-    const payload = (event.payload ?? {}) as RequestIdentityRegistrationFundingAddressPayload
+  async handle (event: EventData): Promise<RequestAssetLockFundingAddressResponse> {
+    const payload = (event.payload ?? {}) as RequestAssetLockFundingAddressPayload
 
     const wallet = await this.walletRepository.getCurrent()
     if (wallet == null) throw new Error('Wallet is not chosen')
@@ -59,7 +59,7 @@ export class RequestIdentityRegistrationFundingAddressHandler implements APIHand
 
     const existingEntry = await this.fundingAddressesRepository.findByIdentityIndex(identityIndex)
     if (existingEntry != null && !existingEntry.used) {
-      return { address: existingEntry.address, identityIndex }
+      return { address: existingEntry.address }
     }
 
     const privateKeyWASM = await deriveFundingPrivateKey(wallet, payload.password, identityIndex, this.sdk)
@@ -69,10 +69,10 @@ export class RequestIdentityRegistrationFundingAddressHandler implements APIHand
     const entry: IdentityRegistrationFundingAddressSchema = { address, encryptedPrivateKey, identityIndex, used: false }
     await this.fundingAddressesRepository.save(entry)
 
-    return { address, identityIndex }
+    return { address }
   }
 
-  validatePayload (payload: RequestIdentityRegistrationFundingAddressPayload): null | string {
+  validatePayload (payload: RequestAssetLockFundingAddressPayload): null | string {
     if (payload?.password != null && typeof payload.password !== 'string') {
       return 'password must be a string'
     }
