@@ -216,10 +216,10 @@ export const waitForAssetLockProof = async (
 }
 
 export const IDENTITY_KEY_DEFINITIONS = [
-  { id: 0, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.MASTER   },
-  { id: 1, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.HIGH     },
-  { id: 2, purpose: Purpose.ENCRYPTION,     securityLevel: SecurityLevel.MEDIUM   },
-  { id: 3, purpose: Purpose.TRANSFER,       securityLevel: SecurityLevel.CRITICAL },
+  { id: 0, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.MASTER },
+  { id: 1, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.HIGH },
+  { id: 2, purpose: Purpose.ENCRYPTION, securityLevel: SecurityLevel.MEDIUM },
+  { id: 3, purpose: Purpose.TRANSFER, securityLevel: SecurityLevel.CRITICAL }
 ] as const
 
 /**
