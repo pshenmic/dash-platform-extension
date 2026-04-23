@@ -30,13 +30,13 @@ import {
  * Steps:
  *  1. Fetch and verify the payment tx (hash must match txid)
  *  2. Confirm it's locked (instant/chain) or confirmed (≥1 confirmation)
- *  3. Find the output paying to the one-time address (by outputIndex or index 0)
+ *  3. Find the output paying to the funding address (by outputIndex or index 0)
  *  4. Build asset lock tx via DashCoreSDK.createAssetLockTransaction (Core primitive)
  */
 export const buildAssetLockFromPaymentTx = async (
   options: BuildAssetLockFromPaymentOptions
 ): Promise<AssetLockBuildResult> => {
-  const { coreSDK, paymentTxid, oneTimeAddress, oneTimePrivateKeyWif, outputIndex } = options
+  const { coreSDK, paymentTxid, fundingAddress, fundingPrivateKeyWif, outputIndex } = options
 
   const dapiTx = await coreSDK.getTransaction(paymentTxid).catch((e: unknown) => {
     throw new Error(`Could not load payment transaction ${paymentTxid}: ${e instanceof Error ? e.message : String(e)}`)
@@ -54,20 +54,20 @@ export const buildAssetLockFromPaymentTx = async (
     )
   }
 
-  // Locate the output that pays to the one-time address.
+  // Locate the output that pays to the funding address.
   // If outputIndex is provided, use it; otherwise scan outputs for the one
-  // whose P2PKH script matches oneTimeAddress.
+  // whose P2PKH script matches fundingAddress.
   let resolvedOutputIndex: number
   if (outputIndex != null) {
     resolvedOutputIndex = outputIndex
   } else {
-    const expectedScriptHex = Output.createP2PKH(0n, oneTimeAddress).script.hex()
+    const expectedScriptHex = Output.createP2PKH(0n, fundingAddress).script.hex()
     resolvedOutputIndex = paymentTx.outputs.findIndex(
       o => o.script.hex() === expectedScriptHex
     )
     if (resolvedOutputIndex === -1) {
       throw new Error(
-        `Could not find output paying to ${oneTimeAddress} in transaction ${paymentTxid}`
+        `Could not find output paying to ${fundingAddress} in transaction ${paymentTxid}`
       )
     }
   }
@@ -80,7 +80,7 @@ export const buildAssetLockFromPaymentTx = async (
 
   const paymentOutput = paymentTx.outputs[resolvedOutputIndex]
 
-  const privateKey = PrivateKey.fromWIF(oneTimePrivateKeyWif)
+  const privateKey = PrivateKey.fromWIF(fundingPrivateKeyWif)
   const lockingScript = Output.createP2PKH(0n, privateKey.getAddress()).script
   const lockedAmount = paymentOutput.satoshis - MIN_FEE_RELAY
 
@@ -91,7 +91,7 @@ export const buildAssetLockFromPaymentTx = async (
     )
   }
 
-  const payloadOutput = Output.createP2PKH(lockedAmount, oneTimeAddress)
+  const payloadOutput = Output.createP2PKH(lockedAmount, fundingAddress)
   const assetLockTx = new Transaction(
     [],
     [new Output(lockedAmount, Script.fromASM('OP_RETURN OP_0'))],
@@ -228,7 +228,7 @@ export const IDENTITY_KEY_DEFINITIONS = [
  * Two-pass signing:
  *  1. Sign with each identity key to produce proof-of-possession signatures.
  *     Each signByPrivateKey overwrites the same WASM memory — copy out immediately.
- *  2. Re-create the ST with signed keys, then sign with the funding (one-time) key.
+ *  2. Re-create the ST with signed keys, then sign with the funding key.
  */
 export const buildIdentityCreateTransition = (
   identityPrivateKeys: PrivateKeyWASM[],

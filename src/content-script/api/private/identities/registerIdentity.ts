@@ -5,7 +5,7 @@ import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { OneTimeAddressesRepository } from '../../../repository/OneTimeAddressesRepository'
+import { IdentityRegistrationFundingAddressesRepository } from '../../../repository/IdentityRegistrationFundingAddressesRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { RegisterIdentityPayload } from '../../../../types/messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from '../../../../types/messages/response/RegisterIdentityResponse'
@@ -27,7 +27,7 @@ import { TXID_HEX_LENGTH } from '../../../../constants'
 export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
-  oneTimeAddressesRepository: OneTimeAddressesRepository
+  fundingAddressesRepository: IdentityRegistrationFundingAddressesRepository
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
@@ -35,14 +35,14 @@ export class RegisterIdentityHandler implements APIHandler {
   constructor (
     walletRepository: WalletRepository,
     identitiesRepository: IdentitiesRepository,
-    oneTimeAddressesRepository: OneTimeAddressesRepository,
+    fundingAddressesRepository: IdentityRegistrationFundingAddressesRepository,
     storageAdapter: StorageAdapter,
     sdk: DashPlatformSDK,
     coreSDK: DashCoreSDK
   ) {
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
-    this.oneTimeAddressesRepository = oneTimeAddressesRepository
+    this.fundingAddressesRepository = fundingAddressesRepository
     this.storageAdapter = storageAdapter
     this.sdk = sdk
     this.coreSDK = coreSDK
@@ -58,58 +58,48 @@ export class RegisterIdentityHandler implements APIHandler {
       throw new Error('No wallet is chosen')
     }
 
-    const network = await this.storageAdapter.get('network') as string
-
-    // ── 2. Load the one-time address entry and decrypt the private key ───────
-    const oneTimeAddressEntry = await this.oneTimeAddressesRepository.getByAddress(payload.paymentAddress)
-
-    if (oneTimeAddressEntry == null) {
-      throw new Error(
-        `One-time address ${payload.paymentAddress} not found. ` +
-        'It may belong to a different wallet or network.'
-      )
-    }
-
-    const oneTimeIdentityIndex = Number.isSafeInteger(oneTimeAddressEntry.identityIndex) &&
-      oneTimeAddressEntry.identityIndex >= 0
-      ? oneTimeAddressEntry.identityIndex
-      : null
-
     if (wallet.type !== WalletType.seedphrase) {
       throw new Error('Identity registration is only supported for seedphrase wallets')
     }
 
-    if (oneTimeIdentityIndex == null) {
+    const network = await this.storageAdapter.get('network') as string
+
+    // ── 2. Load the funding address entry ────────────────────────────────────
+    const fundingAddressEntry = await this.fundingAddressesRepository.getByAddress(payload.paymentAddress)
+
+    if (fundingAddressEntry == null) {
       throw new Error(
-        `One-time address ${payload.paymentAddress} has no identityIndex. ` +
-        'Seedphrase wallet registration requires a deterministic one-time address tied to an identity index.'
+        `Funding address ${payload.paymentAddress} not found. ` +
+        'It may belong to a different wallet or network.'
       )
     }
 
-    const identityIndex = oneTimeIdentityIndex
+    if (fundingAddressEntry.used) {
+      throw new Error(`Funding address ${payload.paymentAddress} has already been used for registration`)
+    }
 
-    const oneTimePrivateKeyWASM: PrivateKeyWASM = await deriveFundingPrivateKey(
-      wallet,
-      payload.password,
-      identityIndex,
-      this.sdk
-    )
+    const identityIndex = fundingAddressEntry.identityIndex
+
+    if (!Number.isSafeInteger(identityIndex) || identityIndex < 0) {
+      throw new Error(`Funding address ${payload.paymentAddress} has an invalid identityIndex (${identityIndex})`)
+    }
+
+    // ── 3. Derive and verify the funding private key ─────────────────────────
+    const fundingPrivateKeyWASM = await deriveFundingPrivateKey(wallet, payload.password, identityIndex, this.sdk)
 
     const derivedAddress = this.sdk.keyPair.p2pkhAddress(
-      oneTimePrivateKeyWASM.getPublicKey().bytes(),
+      fundingPrivateKeyWASM.getPublicKey().bytes(),
       network as Network
     )
 
     if (derivedAddress !== payload.paymentAddress) {
       throw new Error(
-        `Stored one-time address ${payload.paymentAddress} does not match derived ` +
-        `registration funding address for identity index ${identityIndex}`
+        `Stored funding address ${payload.paymentAddress} does not match derived ` +
+        `address for identity index ${identityIndex}`
       )
     }
 
-    const oneTimePrivateKeyWif: string = oneTimePrivateKeyWASM.WIF()
-
-    // ── 3. Guard: verify the identity index is not already registered on-chain ─
+    // ── 4. Guard: verify the identity index is not already registered on-chain ─
     const authKey = await deriveSeedphrasePrivateKey(wallet, payload.password, identityIndex, 0, this.sdk)
     const pkh = authKey.getPublicKeyHash()
     const existingIdentity =
@@ -123,17 +113,17 @@ export class RegisterIdentityHandler implements APIHandler {
       )
     }
 
-    // ── 4. Build asset lock transaction from the payment tx ──────────────────
+    // ── 5. Build asset lock transaction from the payment tx ──────────────────
     const { assetLockTx } = await buildAssetLockFromPaymentTx({
       coreSDK: this.coreSDK,
       network,
       paymentTxid: payload.paymentTxid,
-      oneTimeAddress: payload.paymentAddress,
-      oneTimePrivateKeyWif,
+      fundingAddress: payload.paymentAddress,
+      fundingPrivateKeyWif: fundingPrivateKeyWASM.WIF(),
       outputIndex: payload.outputIndex
     })
 
-    // ── 4. Broadcast the asset lock transaction ──────────────────────────────
+    // ── 6. Broadcast the asset lock transaction ──────────────────────────────
     // Open the instant lock subscription before broadcasting so we don't miss
     // an instant lock that arrives before the subscription is established.
     const assetLockTxid = assetLockTx.hash()
@@ -144,7 +134,7 @@ export class RegisterIdentityHandler implements APIHandler {
 
     await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
 
-    // ── 5. Wait for instant lock or chain lock (whichever comes first) ──────
+    // ── 7. Wait for instant lock or chain lock (whichever comes first) ──────
     const assetLockProof = await waitForAssetLockProof(
       this.coreSDK,
       this.sdk,
@@ -156,7 +146,7 @@ export class RegisterIdentityHandler implements APIHandler {
       instantLockSub
     )
 
-    // ── 6. Derive all identity key pairs ─────────────────────────────────────
+    // ── 8. Derive all identity key pairs ─────────────────────────────────────
     const identityPrivateKeys: PrivateKeyWASM[] = []
 
     for (const { id } of IDENTITY_KEY_DEFINITIONS) {
@@ -165,36 +155,32 @@ export class RegisterIdentityHandler implements APIHandler {
       )
     }
 
-    // ── 7-8. Build and sign identity create state transition ─────────────────
+    // ── 9. Build and sign identity create state transition ───────────────────
     const stateTransition = buildIdentityCreateTransition(
       identityPrivateKeys,
-      oneTimePrivateKeyWASM,
+      fundingPrivateKeyWASM,
       assetLockProof,
       this.sdk
     )
 
-    // ── 9. Derive the new identity identifier ────────────────────────────────
+    // ── 10. Derive the new identity identifier ───────────────────────────────
     const identifier = stateTransition.getOwnerId()?.base58()
 
     if (identifier == null || identifier === '') {
       throw new Error('Could not derive identity identifier from state transition')
     }
 
-    // ── 10. Broadcast the state transition ──────────────────────────────────
+    // ── 11. Broadcast the state transition ──────────────────────────────────
     await this.sdk.stateTransitions.broadcast(stateTransition)
 
-    // hash(skip_signature: boolean): string — computed after successful broadcast
     const stateTransitionHash: string = stateTransition.hash(false)
 
-    // ── 11. Wait for confirmation ────────────────────────────────────────────
+    // ── 12. Wait for confirmation ───────────────────────────────────────────
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
-    // ── 12. Persist identity ─────────────────────────────────────────────────
+    // ── 13. Persist identity, mark funding address as used, switch identity ─
     await this.identitiesRepository.create(identifier, IdentityType.regular, undefined, identityIndex)
-
-    await this.oneTimeAddressesRepository.removeByAddress(payload.paymentAddress)
-
-    // ── 13. Switch to the new identity ───────────────────────────────────────
+    await this.fundingAddressesRepository.markAsUsed(payload.paymentAddress)
     await this.walletRepository.switchIdentity(identifier)
 
     return {
@@ -223,4 +209,3 @@ export class RegisterIdentityHandler implements APIHandler {
     return null
   }
 }
-

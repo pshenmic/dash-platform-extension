@@ -1,0 +1,82 @@
+import { DashPlatformSDK } from 'dash-platform-sdk'
+import { Network } from 'dash-platform-sdk/types'
+import { EventData } from '../../../../types'
+import { APIHandler } from '../../APIHandler'
+import { WalletRepository } from '../../../repository/WalletRepository'
+import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
+import { IdentityRegistrationFundingAddressesRepository } from '../../../repository/IdentityRegistrationFundingAddressesRepository'
+import { StorageAdapter } from '../../../storage/storageAdapter'
+import { IdentityRegistrationFundingAddressSchema } from '../../../storage/storageSchema'
+import { RequestIdentityRegistrationFundingAddressResponse } from '../../../../types/messages/response/RequestIdentityRegistrationFundingAddressResponse'
+import { RequestIdentityRegistrationFundingAddressPayload } from '../../../../types/messages/payloads/RequestIdentityRegistrationFundingAddressPayload'
+import { WalletType } from '../../../../types/WalletType'
+import { bytesToHex, deriveFundingPrivateKey, findNextFreeIdentityIndex, hexToBytes } from '../../../../utils'
+import { encrypt } from 'eciesjs'
+
+export class RequestIdentityRegistrationFundingAddressHandler implements APIHandler {
+  fundingAddressesRepository: IdentityRegistrationFundingAddressesRepository
+  walletRepository: WalletRepository
+  identitiesRepository: IdentitiesRepository
+  storageAdapter: StorageAdapter
+  sdk: DashPlatformSDK
+
+  constructor (
+    fundingAddressesRepository: IdentityRegistrationFundingAddressesRepository,
+    walletRepository: WalletRepository,
+    identitiesRepository: IdentitiesRepository,
+    storageAdapter: StorageAdapter,
+    sdk: DashPlatformSDK
+  ) {
+    this.fundingAddressesRepository = fundingAddressesRepository
+    this.walletRepository = walletRepository
+    this.identitiesRepository = identitiesRepository
+    this.storageAdapter = storageAdapter
+    this.sdk = sdk
+  }
+
+  async handle (event: EventData): Promise<RequestIdentityRegistrationFundingAddressResponse> {
+    const payload = (event.payload ?? {}) as RequestIdentityRegistrationFundingAddressPayload
+
+    const wallet = await this.walletRepository.getCurrent()
+    if (wallet == null) throw new Error('Wallet is not chosen')
+
+    if (wallet.type !== WalletType.seedphrase) {
+      throw new Error('Identity registration is only supported for seedphrase wallets')
+    }
+
+    if (typeof payload.password !== 'string' || payload.password.length === 0) {
+      throw new Error('Password is required to derive a deterministic registration address')
+    }
+
+    const network = await this.storageAdapter.get('network') as string
+    const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
+    if (passwordPublicKey == null) throw new Error('Password is not set for an extension')
+
+    const identities = await this.identitiesRepository.getAll()
+    const localIndices = identities.map((identity) => identity.index)
+
+    const identityIndex = await findNextFreeIdentityIndex(wallet, payload.password, localIndices, this.sdk)
+
+    const existingEntry = await this.fundingAddressesRepository.findByIdentityIndex(identityIndex)
+    if (existingEntry != null && !existingEntry.used) {
+      return { address: existingEntry.address, identityIndex }
+    }
+
+    const privateKeyWASM = await deriveFundingPrivateKey(wallet, payload.password, identityIndex, this.sdk)
+    const address = this.sdk.keyPair.p2pkhAddress(privateKeyWASM.getPublicKey().bytes(), network as Network)
+    const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(privateKeyWASM.hex())))
+
+    const entry: IdentityRegistrationFundingAddressSchema = { address, encryptedPrivateKey, identityIndex, used: false }
+    await this.fundingAddressesRepository.save(entry)
+
+    return { address, identityIndex }
+  }
+
+  validatePayload (payload: RequestIdentityRegistrationFundingAddressPayload): null | string {
+    if (payload?.password != null && typeof payload.password !== 'string') {
+      return 'password must be a string'
+    }
+
+    return null
+  }
+}

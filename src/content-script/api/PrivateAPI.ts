@@ -38,8 +38,8 @@ import { RegisterUsernameHandler } from './private/identities/registerUsername'
 import { ImportMasternodeIdentityHandler } from './private/identities/importMasternodeIdentity'
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
 import { CreateIdentityPrivateKeyHandler } from './private/identities/createIdentityPrivateKey'
-import { OneTimeAddressesRepository } from '../repository/OneTimeAddressesRepository'
-import { RequestOneTimeAddressHandler } from './private/assetLocks/requestOneTimeAddress'
+import { IdentityRegistrationFundingAddressesRepository } from '../repository/IdentityRegistrationFundingAddressesRepository'
+import { RequestIdentityRegistrationFundingAddressHandler } from './private/assetLocks/requestIdentityRegistrationFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
 import { BroadcastError } from '../errors/BroadcastError'
 import { RemoveWalletHandler } from './private/wallet/removeWallet'
@@ -86,7 +86,7 @@ export class PrivateAPI {
     const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk)
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
-    const oneTimeAddressesRepository = new OneTimeAddressesRepository(this.storageAdapter, this.sdk, walletRepository)
+    const fundingAddressesRepository = new IdentityRegistrationFundingAddressesRepository(this.storageAdapter)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
@@ -119,11 +119,11 @@ export class PrivateAPI {
       [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
-      [MessagingMethods.REQUEST_ONE_TIME_ADDRESS]: new RequestOneTimeAddressHandler(oneTimeAddressesRepository),
+      [MessagingMethods.REQUEST_IDENTITY_REGISTRATION_FUNDING_ADDRESS]: new RequestIdentityRegistrationFundingAddressHandler(fundingAddressesRepository, walletRepository, identitiesRepository, this.storageAdapter, this.sdk),
       [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
         walletRepository,
         identitiesRepository,
-        oneTimeAddressesRepository,
+        fundingAddressesRepository,
         this.storageAdapter,
         this.sdk,
         this.coreSDK

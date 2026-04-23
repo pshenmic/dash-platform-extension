@@ -49,7 +49,7 @@ import { CreateIdentityPrivateKeyPayload } from './messages/payloads/CreateIdent
 import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIdentityPrivateKeyResponse'
 import { SetWalletLabelPayload } from './messages/payloads/SetWalletLabelPayload'
 import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
-import { RequestOneTimeAddressResponse } from './messages/response/RequestOneTimeAddressResponse'
+import { RequestIdentityRegistrationFundingAddressResponse } from './messages/response/RequestIdentityRegistrationFundingAddressResponse'
 import { RegisterIdentityPayload } from './messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from './messages/response/RegisterIdentityResponse'
 
@@ -320,12 +320,15 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY, payload)
   }
 
-  async requestOneTimeAddress (password?: string): Promise<string> {
-    const response: RequestOneTimeAddressResponse = await this._rpcCall(
-      MessagingMethods.REQUEST_ONE_TIME_ADDRESS,
+  async requestIdentityRegistrationFundingAddress (password?: string): Promise<RequestIdentityRegistrationFundingAddressResponse> {
+    return await this._rpcCall(
+      MessagingMethods.REQUEST_IDENTITY_REGISTRATION_FUNDING_ADDRESS,
       { password }
     )
+  }
 
+  async requestOneTimeAddress (password?: string): Promise<string> {
+    const response = await this.requestIdentityRegistrationFundingAddress(password)
     return response.address
   }
 

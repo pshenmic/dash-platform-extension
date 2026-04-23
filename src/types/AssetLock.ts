@@ -5,8 +5,8 @@ export interface BuildAssetLockFromPaymentOptions {
   coreSDK: DashCoreSDK
   network: string
   paymentTxid: string
-  oneTimeAddress: string
-  oneTimePrivateKeyWif: string
+  fundingAddress: string
+  fundingPrivateKeyWif: string
   outputIndex?: number
 }
 
