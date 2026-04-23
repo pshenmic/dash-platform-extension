@@ -5,7 +5,7 @@ import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { IdentityRegistrationFundingAddressesRepository } from '../../../repository/IdentityRegistrationFundingAddressesRepository'
+import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { RegisterIdentityPayload } from '../../../../types/messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from '../../../../types/messages/response/RegisterIdentityResponse'
@@ -27,7 +27,7 @@ import { TXID_HEX_LENGTH } from '../../../../constants'
 export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
-  fundingAddressesRepository: IdentityRegistrationFundingAddressesRepository
+  fundingAddressesRepository: AssetLockFundingAddressesRepository
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
@@ -35,7 +35,7 @@ export class RegisterIdentityHandler implements APIHandler {
   constructor (
     walletRepository: WalletRepository,
     identitiesRepository: IdentitiesRepository,
-    fundingAddressesRepository: IdentityRegistrationFundingAddressesRepository,
+    fundingAddressesRepository: AssetLockFundingAddressesRepository,
     storageAdapter: StorageAdapter,
     sdk: DashPlatformSDK,
     coreSDK: DashCoreSDK

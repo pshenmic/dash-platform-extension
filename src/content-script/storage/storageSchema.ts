@@ -57,13 +57,13 @@ export interface AppConnectsStorageSchema {
   [id: string]: AppConnectStorageSchema
 }
 
-export interface IdentityRegistrationFundingAddressSchema {
+export interface AssetLockFundingAddressSchema {
   address: string
   encryptedPrivateKey: string
   identityIndex: number
   used: boolean
 }
 
-export interface IdentityRegistrationFundingAddressesSchema {
-  [address: string]: IdentityRegistrationFundingAddressSchema
+export interface AssetLockFundingAddressesSchema {
+  [address: string]: AssetLockFundingAddressSchema
 }

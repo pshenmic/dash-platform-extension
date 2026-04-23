@@ -4,9 +4,9 @@ import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { IdentityRegistrationFundingAddressesRepository } from '../../../repository/IdentityRegistrationFundingAddressesRepository'
+import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
-import { IdentityRegistrationFundingAddressSchema } from '../../../storage/storageSchema'
+import { AssetLockFundingAddressSchema } from '../../../storage/storageSchema'
 import { RequestAssetLockFundingAddressResponse } from '../../../../types/messages/response/RequestAssetLockFundingAddressResponse'
 import { RequestAssetLockFundingAddressPayload } from '../../../../types/messages/payloads/RequestAssetLockFundingAddressPayload'
 import { WalletType } from '../../../../types/WalletType'
@@ -14,14 +14,14 @@ import { bytesToHex, deriveFundingPrivateKey, findNextFreeIdentityIndex, hexToBy
 import { encrypt } from 'eciesjs'
 
 export class RequestAssetLockFundingAddressHandler implements APIHandler {
-  fundingAddressesRepository: IdentityRegistrationFundingAddressesRepository
+  fundingAddressesRepository: AssetLockFundingAddressesRepository
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
 
   constructor (
-    fundingAddressesRepository: IdentityRegistrationFundingAddressesRepository,
+    fundingAddressesRepository: AssetLockFundingAddressesRepository,
     walletRepository: WalletRepository,
     identitiesRepository: IdentitiesRepository,
     storageAdapter: StorageAdapter,
@@ -66,7 +66,7 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
     const address = this.sdk.keyPair.p2pkhAddress(privateKeyWASM.getPublicKey().bytes(), network as Network)
     const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(privateKeyWASM.hex())))
 
-    const entry: IdentityRegistrationFundingAddressSchema = { address, encryptedPrivateKey, identityIndex, used: false }
+    const entry: AssetLockFundingAddressSchema = { address, encryptedPrivateKey, identityIndex, used: false }
     await this.fundingAddressesRepository.save(entry)
 
     return { address }

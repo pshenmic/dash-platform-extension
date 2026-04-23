@@ -38,7 +38,7 @@ import { RegisterUsernameHandler } from './private/identities/registerUsername'
 import { ImportMasternodeIdentityHandler } from './private/identities/importMasternodeIdentity'
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
 import { CreateIdentityPrivateKeyHandler } from './private/identities/createIdentityPrivateKey'
-import { IdentityRegistrationFundingAddressesRepository } from '../repository/IdentityRegistrationFundingAddressesRepository'
+import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFundingAddressesRepository'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
 import { BroadcastError } from '../errors/BroadcastError'
@@ -86,7 +86,7 @@ export class PrivateAPI {
     const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk)
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
-    const fundingAddressesRepository = new IdentityRegistrationFundingAddressesRepository(this.storageAdapter)
+    const fundingAddressesRepository = new AssetLockFundingAddressesRepository(this.storageAdapter)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
