@@ -11,87 +11,84 @@ import {
   utils
 } from 'dash-core-sdk'
 import type { InstantAssetLockProofParams, ChainAssetLockProofParams } from 'dash-core-sdk/src/utils.js'
-import type { BuildAssetLockFromPaymentOptions, AssetLockBuildResult, AssetLockProof } from '../../types/AssetLock'
+import type { BuildAssetLockFromFundingTxOptions, AssetLockBuildResult, AssetLockProof } from '../types/AssetLock'
 import type { DashPlatformSDK } from 'dash-platform-sdk'
-import { KeyType, Purpose, SecurityLevel, PrivateKeyWASM, StateTransitionWASM } from 'dash-platform-sdk/types'
-import { wait } from '../../utils'
+import { wait } from './index'
 import {
   MIN_FEE_RELAY,
   LOCK_POLL_INTERVAL_MS,
   LOCK_TIMEOUT_MS,
-  MIN_PAYMENT_TX_CONFIRMATIONS
-} from '../../constants'
-
-// ── Payment tx → asset lock ───────────────────────────────────────────────────
+  MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS
+} from '../constants'
 
 /**
- * Builds an asset lock transaction from a payment transaction.
+ * Builds an asset lock transaction from an asset lock funding transaction.
  *
  * Steps:
- *  1. Fetch and verify the payment tx (hash must match txid)
+ *  1. Fetch and verify the funding tx (hash must match txid)
  *  2. Confirm it's locked (instant/chain) or confirmed (≥1 confirmation)
- *  3. Find the output paying to the funding address (by outputIndex or index 0)
+ *  3. Find the output paying to the asset lock funding address (by outputIndex or scan)
  *  4. Build asset lock tx via DashCoreSDK.createAssetLockTransaction (Core primitive)
  */
-export const buildAssetLockFromPaymentTx = async (
-  options: BuildAssetLockFromPaymentOptions
+export const buildAssetLockFromFundingTx = async (
+  options: BuildAssetLockFromFundingTxOptions
 ): Promise<AssetLockBuildResult> => {
-  const { coreSDK, paymentTxid, fundingAddress, fundingPrivateKeyWif, outputIndex } = options
+  const { coreSDK, assetLockFundingTxid, assetLockFundingAddress, assetLockFundingPrivateKeyWif, outputIndex } = options
 
-  const dapiTx = await coreSDK.getTransaction(paymentTxid).catch((e: unknown) => {
-    throw new Error(`Could not load payment transaction ${paymentTxid}: ${e instanceof Error ? e.message : String(e)}`)
+  const dapiTx = await coreSDK.getTransaction(assetLockFundingTxid).catch((e: unknown) => {
+    throw new Error(`Could not load asset lock funding transaction ${assetLockFundingTxid}: ${e instanceof Error ? e.message : String(e)}`)
   })
 
-  const paymentTx = Transaction.fromBytes(Uint8Array.from(dapiTx.transaction))
-  if (paymentTx.hash() !== paymentTxid) {
-    throw new Error(`Transaction hash mismatch for ${paymentTxid}: transaction data is corrupt`)
+  const fundingTx = Transaction.fromBytes(Uint8Array.from(dapiTx.transaction))
+  if (fundingTx.hash() !== assetLockFundingTxid) {
+    throw new Error(`Transaction hash mismatch for ${assetLockFundingTxid}: transaction data is corrupt`)
   }
 
-  if (!dapiTx.isInstantLocked && !dapiTx.isChainLocked && dapiTx.confirmations < MIN_PAYMENT_TX_CONFIRMATIONS) {
+  if (!dapiTx.isInstantLocked && !dapiTx.isChainLocked && dapiTx.confirmations < MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS) {
     throw new Error(
-      `Payment transaction ${paymentTxid} is not locked or confirmed yet. ` +
+      `Asset lock funding transaction ${assetLockFundingTxid} is not locked or confirmed yet. ` +
       'Please wait for an instant lock or at least one confirmation before proceeding.'
     )
   }
 
-  // Locate the output that pays to the funding address.
+  // Locate the output that pays to the asset lock funding address.
   // If outputIndex is provided, use it; otherwise scan outputs for the one
-  // whose P2PKH script matches fundingAddress.
+  // whose P2PKH script matches assetLockFundingAddress.
   let resolvedOutputIndex: number
   if (outputIndex != null) {
     resolvedOutputIndex = outputIndex
   } else {
-    const expectedScriptHex = Output.createP2PKH(0n, fundingAddress).script.hex()
-    resolvedOutputIndex = paymentTx.outputs.findIndex(
+    const expectedScriptHex = Output.createP2PKH(0n, assetLockFundingAddress).script.hex()
+    resolvedOutputIndex = fundingTx.outputs.findIndex(
       o => o.script.hex() === expectedScriptHex
     )
     if (resolvedOutputIndex === -1) {
       throw new Error(
-        `Could not find output paying to ${fundingAddress} in transaction ${paymentTxid}`
+        `Could not find output paying to ${assetLockFundingAddress} in transaction ${assetLockFundingTxid}`
       )
     }
   }
 
-  if (resolvedOutputIndex >= paymentTx.outputs.length) {
+  if (resolvedOutputIndex >= fundingTx.outputs.length) {
     throw new Error(
-      `outputIndex ${resolvedOutputIndex} is out of range (transaction has ${paymentTx.outputs.length} outputs)`
+      `outputIndex ${resolvedOutputIndex} is out of range (transaction has ${fundingTx.outputs.length} outputs)`
     )
   }
 
-  const paymentOutput = paymentTx.outputs[resolvedOutputIndex]
+  const fundingOutput = fundingTx.outputs[resolvedOutputIndex]
 
-  const privateKey = PrivateKey.fromWIF(fundingPrivateKeyWif)
+  const privateKey = PrivateKey.fromWIF(assetLockFundingPrivateKeyWif)
   const lockingScript = Output.createP2PKH(0n, privateKey.getAddress()).script
-  const lockedAmount = paymentOutput.satoshis - MIN_FEE_RELAY
+  const lockedAmount = fundingOutput.satoshis - MIN_FEE_RELAY
 
   if (lockedAmount <= 0n) {
     throw new Error(
-      `Payment output at index ${resolvedOutputIndex} (${paymentOutput.satoshis} duffs) ` +
+      `Asset lock funding output at index ${resolvedOutputIndex} (${fundingOutput.satoshis} duffs) ` +
       `is too small to cover the transaction fee (${MIN_FEE_RELAY} duffs)`
     )
   }
 
-  const payloadOutput = Output.createP2PKH(lockedAmount, fundingAddress)
+  const payloadOutput = Output.createP2PKH(lockedAmount, assetLockFundingAddress)
   const assetLockTx = new Transaction(
     [],
     [new Output(lockedAmount, Script.fromASM('OP_RETURN OP_0'))],
@@ -100,7 +97,7 @@ export const buildAssetLockFromPaymentTx = async (
     TransactionType.TRANSACTION_ASSET_LOCK,
     new ExtraPayload.AssetLockTx(1, 1, [payloadOutput])
   )
-  assetLockTx.addInput(new Input(paymentTxid, resolvedOutputIndex, lockingScript, 0))
+  assetLockTx.addInput(new Input(assetLockFundingTxid, resolvedOutputIndex, lockingScript, 0))
   assetLockTx.sign(privateKey)
 
   return {
@@ -213,58 +210,4 @@ export const waitForAssetLockProof = async (
 
   settled = true
   return result
-}
-
-export const IDENTITY_KEY_DEFINITIONS = [
-  { id: 0, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.MASTER },
-  { id: 1, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.HIGH },
-  { id: 2, purpose: Purpose.ENCRYPTION, securityLevel: SecurityLevel.MEDIUM },
-  { id: 3, purpose: Purpose.TRANSFER, securityLevel: SecurityLevel.CRITICAL }
-] as const
-
-/**
- * Builds and signs an identity create state transition.
- *
- * Two-pass signing:
- *  1. Sign with each identity key to produce proof-of-possession signatures.
- *     Each signByPrivateKey overwrites the same WASM memory — copy out immediately.
- *  2. Re-create the ST with signed keys, then sign with the funding key.
- */
-export const buildIdentityCreateTransition = (
-  identityPrivateKeys: PrivateKeyWASM[],
-  fundingPrivateKey: PrivateKeyWASM,
-  assetLockProof: AssetLockProof,
-  sdk: DashPlatformSDK
-): StateTransitionWASM => {
-  const identityPublicKeysInCreation = IDENTITY_KEY_DEFINITIONS.map(({ id, purpose, securityLevel }, i) => ({
-    id,
-    purpose,
-    securityLevel,
-    keyType: KeyType.ECDSA_SECP256K1,
-    readOnly: false,
-    data: Uint8Array.from(identityPrivateKeys[i].getPublicKey().bytes()),
-    signature: undefined as Uint8Array | undefined
-  }))
-
-  let stateTransition = sdk.identities.createStateTransition('create', {
-    publicKeys: identityPublicKeysInCreation,
-    assetLockProof
-  })
-
-  for (let i = 0; i < identityPrivateKeys.length; i++) {
-    stateTransition.signByPrivateKey(identityPrivateKeys[i], undefined, KeyType.ECDSA_SECP256K1)
-    if (stateTransition.signature == null) {
-      throw new Error(`signByPrivateKey did not produce a signature for identity key ${i}`)
-    }
-    identityPublicKeysInCreation[i].signature = Uint8Array.from(stateTransition.signature)
-  }
-
-  stateTransition = sdk.identities.createStateTransition('create', {
-    publicKeys: identityPublicKeysInCreation,
-    assetLockProof
-  })
-
-  stateTransition.signByPrivateKey(fundingPrivateKey, undefined, KeyType.ECDSA_SECP256K1)
-
-  return stateTransition
 }

@@ -328,14 +328,14 @@ export class PrivateAPIClient {
   }
 
   async registerIdentity (
-    paymentAddress: string,
-    paymentTxid: string,
+    assetLockFundingAddress: string,
+    assetLockFundingTxid: string,
     password: string,
     outputIndex?: number
   ): Promise<RegisterIdentityResponse> {
     const payload: RegisterIdentityPayload = {
-      paymentAddress,
-      paymentTxid,
+      assetLockFundingAddress,
+      assetLockFundingTxid,
       password,
       outputIndex
     }

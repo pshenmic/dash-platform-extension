@@ -30,7 +30,7 @@ function IdentityRegistrationState (): React.JSX.Element {
   const [transactionHash, setTransactionHash] = useState('')
   const [password, setPassword] = useState('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
-  const [paymentAddress, setPaymentAddress] = useState<string | null>(null)
+  const [fundingAddress, setFundingAddress] = useState<string | null>(null)
   const [isLoadingAddress, setIsLoadingAddress] = useState(false)
   const [addressError, setAddressError] = useState<string | null>(null)
   const [hasUnfinishedRegistration, setHasUnfinishedRegistration] = useState(false)
@@ -51,15 +51,15 @@ function IdentityRegistrationState (): React.JSX.Element {
 
   useEffect(() => {
     const waitForPayment = async (): Promise<void> => {
-      if (paymentAddress != null) {
-        console.log('await for payment on address', paymentAddress)
-        const paymentRes = await dashCoreSDK.waitForPayment(paymentAddress)
+      if (fundingAddress != null) {
+        console.log('await for payment on address', fundingAddress)
+        const paymentRes = await dashCoreSDK.waitForPayment(fundingAddress)
         console.log('paymentRes', paymentRes)
       }
     }
 
     waitForPayment().catch((e) => setError(e))
-  }, [paymentAddress])
+  }, [fundingAddress])
 
   useEffect(() => {
     const checkPendingRegistration = async (): Promise<void> => {
@@ -93,7 +93,7 @@ function IdentityRegistrationState (): React.JSX.Element {
 
   useEffect(() => {
     if (stage !== 3) return
-    if (paymentAddress != null) return
+    if (fundingAddress != null) return
 
     const fetchAddress = async (): Promise<void> => {
       setIsLoadingAddress(true)
@@ -101,16 +101,16 @@ function IdentityRegistrationState (): React.JSX.Element {
 
       try {
         const { address } = await extensionAPI.requestAssetLockFundingAddress()
-        setPaymentAddress(address)
+        setFundingAddress(address)
       } catch (e) {
-        setAddressError(e instanceof Error ? e.message : 'Failed to generate payment address')
+        setAddressError(e instanceof Error ? e.message : 'Failed to generate funding address')
       } finally {
         setIsLoadingAddress(false)
       }
     }
 
     fetchAddress().catch((e) => setError(e))
-  }, [stage, paymentAddress, extensionAPI])
+  }, [stage, fundingAddress, extensionAPI])
 
   useEffect(() => {
     if (stage === 2 && hasUnfinishedRegistration) {
@@ -199,7 +199,7 @@ function IdentityRegistrationState (): React.JSX.Element {
       <Stage3Payment
         stage={stage}
         isLoadingAddress={isLoadingAddress}
-        paymentAddress={paymentAddress}
+        fundingAddress={fundingAddress}
         addressError={addressError}
         showManualEntry={showManualEntry}
         transactionHash={transactionHash}

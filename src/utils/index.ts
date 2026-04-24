@@ -144,7 +144,7 @@ export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: strin
   return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 }
 
-export const deriveFundingPrivateKey = async (
+export const deriveIdentityRegistrationKey = async (
   wallet: Wallet,
   password: string,
   identityIndex: number,
@@ -161,7 +161,7 @@ export const deriveFundingPrivateKey = async (
   const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, `m/9'/${coinType}'/5'/1'/${identityIndex}`)
 
   if (privateKey == null) {
-    throw new Error('Could not derive funding private key from wallet hd key')
+    throw new Error('Could not derive identity registration key from wallet hd key')
   }
 
   return PrivateKeyWASM.fromBytes(privateKey, wallet.network)

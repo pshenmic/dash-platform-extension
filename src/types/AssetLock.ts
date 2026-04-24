@@ -1,12 +1,12 @@
 import type { DashCoreSDK, Transaction } from 'dash-core-sdk'
 import type { InstantAssetLockProofParams, ChainAssetLockProofParams } from 'dash-core-sdk/src/utils.js'
 
-export interface BuildAssetLockFromPaymentOptions {
+export interface BuildAssetLockFromFundingTxOptions {
   coreSDK: DashCoreSDK
   network: string
-  paymentTxid: string
-  fundingAddress: string
-  fundingPrivateKeyWif: string
+  assetLockFundingTxid: string
+  assetLockFundingAddress: string
+  assetLockFundingPrivateKeyWif: string
   outputIndex?: number
 }
 

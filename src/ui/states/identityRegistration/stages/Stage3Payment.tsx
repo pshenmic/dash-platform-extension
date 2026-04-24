@@ -7,7 +7,7 @@ import { QRCodeSVG } from 'qrcode.react'
 interface Stage3PaymentProps {
   stage: number
   isLoadingAddress: boolean
-  paymentAddress: string | null
+  fundingAddress: string | null
   addressError: string | null
   showManualEntry: boolean
   transactionHash: string
@@ -19,7 +19,7 @@ interface Stage3PaymentProps {
 export function Stage3Payment ({
   stage,
   isLoadingAddress,
-  paymentAddress,
+  fundingAddress,
   addressError,
   showManualEntry,
   transactionHash,
@@ -48,7 +48,7 @@ export function Stage3Payment ({
                 )
               : (
                 <QRCodeSVG
-                  value={paymentAddress ?? ''}
+                  value={fundingAddress ?? ''}
                   fgColor='#4C7EFF'
                   bgColor='transparent'
                   size={100}
@@ -68,11 +68,11 @@ export function Stage3Payment ({
                       weight='medium'
                       className='text-dash-primary-dark-blue leading-[1.366em] tracking-[-0.01em] break-all'
                     >
-                      {isLoadingAddress ? 'Generating address…' : (paymentAddress ?? '')}
+                      {isLoadingAddress ? 'Generating address…' : (fundingAddress ?? '')}
                     </Text>
-                    {paymentAddress != null && !isLoadingAddress && (
+                    {fundingAddress != null && !isLoadingAddress && (
                       <div className='flex-shrink-0'>
-                        <CopyButton text={paymentAddress} />
+                        <CopyButton text={fundingAddress} />
                       </div>
                     )}
                   </div>
@@ -109,7 +109,7 @@ export function Stage3Payment ({
                 className='w-full'
                 disabled={
                   transactionHash.trim().length !== 64 ||
-                  paymentAddress == null
+                  fundingAddress == null
                 }
                 onClick={onConfirmPayment}
               >

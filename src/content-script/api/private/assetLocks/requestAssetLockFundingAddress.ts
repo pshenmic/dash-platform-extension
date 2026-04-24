@@ -10,24 +10,24 @@ import { AssetLockFundingAddressSchema } from '../../../storage/storageSchema'
 import { RequestAssetLockFundingAddressResponse } from '../../../../types/messages/response/RequestAssetLockFundingAddressResponse'
 import { RequestAssetLockFundingAddressPayload } from '../../../../types/messages/payloads/RequestAssetLockFundingAddressPayload'
 import { WalletType } from '../../../../types/WalletType'
-import { bytesToHex, deriveFundingPrivateKey, findNextFreeIdentityIndex, hexToBytes } from '../../../../utils'
+import { bytesToHex, deriveIdentityRegistrationKey, findNextFreeIdentityIndex, hexToBytes } from '../../../../utils'
 import { encrypt } from 'eciesjs'
 
 export class RequestAssetLockFundingAddressHandler implements APIHandler {
-  fundingAddressesRepository: AssetLockFundingAddressesRepository
+  assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
 
   constructor (
-    fundingAddressesRepository: AssetLockFundingAddressesRepository,
+    assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository,
     walletRepository: WalletRepository,
     identitiesRepository: IdentitiesRepository,
     storageAdapter: StorageAdapter,
     sdk: DashPlatformSDK
   ) {
-    this.fundingAddressesRepository = fundingAddressesRepository
+    this.assetLockFundingAddressesRepository = assetLockFundingAddressesRepository
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
     this.storageAdapter = storageAdapter
@@ -57,17 +57,17 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
 
     const identityIndex = await findNextFreeIdentityIndex(wallet, payload.password, localIndices, this.sdk)
 
-    const existingEntry = await this.fundingAddressesRepository.findByIdentityIndex(identityIndex)
+    const existingEntry = await this.assetLockFundingAddressesRepository.findByIdentityIndex(identityIndex)
     if (existingEntry != null && !existingEntry.used) {
       return { address: existingEntry.address }
     }
 
-    const privateKeyWASM = await deriveFundingPrivateKey(wallet, payload.password, identityIndex, this.sdk)
-    const address = this.sdk.keyPair.p2pkhAddress(privateKeyWASM.getPublicKey().bytes(), network as Network)
-    const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(privateKeyWASM.hex())))
+    const identityRegistrationKey = await deriveIdentityRegistrationKey(wallet, payload.password, identityIndex, this.sdk)
+    const address = this.sdk.keyPair.p2pkhAddress(identityRegistrationKey.getPublicKey().bytes(), network as Network)
+    const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(identityRegistrationKey.hex())))
 
     const entry: AssetLockFundingAddressSchema = { address, encryptedPrivateKey, identityIndex, used: false }
-    await this.fundingAddressesRepository.save(entry)
+    await this.assetLockFundingAddressesRepository.save(entry)
 
     return { address }
   }
