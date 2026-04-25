@@ -5,7 +5,6 @@ import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { RegisterIdentityPayload } from '../../../../types/messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from '../../../../types/messages/response/RegisterIdentityResponse'
@@ -15,6 +14,7 @@ import { IDENTITY_KEY_DEFINITIONS, buildIdentityCreateTransition } from '../../.
 import {
   deriveSeedphrasePrivateKey,
   deriveIdentityRegistrationKey,
+  findIdentityIndexForRegistrationAddress,
   hexToBytes
 } from '../../../../utils'
 import { WalletType } from '../../../../types/WalletType'
@@ -23,7 +23,6 @@ import { TXID_HEX_LENGTH } from '../../../../constants'
 export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
-  assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
@@ -31,14 +30,12 @@ export class RegisterIdentityHandler implements APIHandler {
   constructor (
     walletRepository: WalletRepository,
     identitiesRepository: IdentitiesRepository,
-    assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository,
     storageAdapter: StorageAdapter,
     sdk: DashPlatformSDK,
     coreSDK: DashCoreSDK
   ) {
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
-    this.assetLockFundingAddressesRepository = assetLockFundingAddressesRepository
     this.storageAdapter = storageAdapter
     this.sdk = sdk
     this.coreSDK = coreSDK
@@ -60,29 +57,26 @@ export class RegisterIdentityHandler implements APIHandler {
 
     const network = await this.storageAdapter.get('network') as string
 
-    // ── 2. Load the asset lock funding address entry ────────────────────────
-    const assetLockFundingAddressEntry = await this.assetLockFundingAddressesRepository.getByAddress(payload.assetLockFundingAddress)
+    // ── 2. Scan HD registration funding path to find identity index ─────────
+    // Per DIP-0013 the registration funding key path m/9'/coinType'/5'/1'/index
+    // has a non-hardened leaf, so we can enumerate addresses from the seed and
+    // match against the user-supplied address without storing any key material.
+    const identities = await this.identitiesRepository.getAll()
+    const maxIndex = Math.max(100, identities.length + 10)
 
-    if (assetLockFundingAddressEntry == null) {
-      throw new Error(
-        `Asset lock funding address ${payload.assetLockFundingAddress} not found. ` +
-        'It may belong to a different wallet or network.'
-      )
-    }
+    const identityIndex = await findIdentityIndexForRegistrationAddress(
+      wallet,
+      payload.password,
+      payload.assetLockFundingAddress,
+      network,
+      this.sdk,
+      maxIndex
+    )
 
-    if (assetLockFundingAddressEntry.used) {
-      throw new Error(`Asset lock funding address ${payload.assetLockFundingAddress} has already been used for registration`)
-    }
-
-    const identityIndex = assetLockFundingAddressEntry.identityIndex
-
-    if (!Number.isSafeInteger(identityIndex) || identityIndex < 0) {
-      throw new Error(`Asset lock funding address ${payload.assetLockFundingAddress} has an invalid identityIndex (${identityIndex})`)
-    }
-
-    // ── 3. Derive and verify the identity registration key ──────────────────
+    // ── 3. Derive the registration key (on-demand, never stored) ────────────
     const identityRegistrationKey = await deriveIdentityRegistrationKey(wallet, payload.password, identityIndex, this.sdk)
 
+    // Sanity-check: derived address must match the supplied one
     const derivedAddress = this.sdk.keyPair.p2pkhAddress(
       identityRegistrationKey.getPublicKey().bytes(),
       network as Network
@@ -90,8 +84,8 @@ export class RegisterIdentityHandler implements APIHandler {
 
     if (derivedAddress !== payload.assetLockFundingAddress) {
       throw new Error(
-        `Stored asset lock funding address ${payload.assetLockFundingAddress} does not match derived ` +
-        `address for identity index ${identityIndex}`
+        `Derived address for identity index ${identityIndex} does not match the provided ` +
+        `asset lock funding address ${payload.assetLockFundingAddress}`
       )
     }
 
@@ -174,9 +168,8 @@ export class RegisterIdentityHandler implements APIHandler {
     // ── 12. Wait for confirmation ───────────────────────────────────────────
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
-    // ── 13. Persist identity, mark asset lock funding address as used, switch identity ─
+    // ── 13. Persist identity and switch to it ───────────────────────────────
     await this.identitiesRepository.create(identifier, IdentityType.regular, undefined, identityIndex)
-    await this.assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
     await this.walletRepository.switchIdentity(identifier)
 
     return {

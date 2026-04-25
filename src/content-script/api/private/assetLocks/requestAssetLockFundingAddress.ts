@@ -4,30 +4,24 @@ import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
-import { AssetLockFundingAddressSchema } from '../../../storage/storageSchema'
 import { RequestAssetLockFundingAddressResponse } from '../../../../types/messages/response/RequestAssetLockFundingAddressResponse'
 import { RequestAssetLockFundingAddressPayload } from '../../../../types/messages/payloads/RequestAssetLockFundingAddressPayload'
 import { WalletType } from '../../../../types/WalletType'
-import { bytesToHex, deriveIdentityRegistrationKey, findNextFreeIdentityIndex, hexToBytes } from '../../../../utils'
-import { encrypt } from 'eciesjs'
+import { deriveIdentityRegistrationKey, findNextFreeIdentityIndex } from '../../../../utils'
 
 export class RequestAssetLockFundingAddressHandler implements APIHandler {
-  assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
 
   constructor (
-    assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository,
     walletRepository: WalletRepository,
     identitiesRepository: IdentitiesRepository,
     storageAdapter: StorageAdapter,
     sdk: DashPlatformSDK
   ) {
-    this.assetLockFundingAddressesRepository = assetLockFundingAddressesRepository
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
     this.storageAdapter = storageAdapter
@@ -49,25 +43,15 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
     }
 
     const network = await this.storageAdapter.get('network') as string
-    const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
-    if (passwordPublicKey == null) throw new Error('Password is not set for an extension')
 
     const identities = await this.identitiesRepository.getAll()
     const localIndices = identities.map((identity) => identity.index)
 
+    // on-chain scan to find the next free identity index
     const identityIndex = await findNextFreeIdentityIndex(wallet, payload.password, localIndices, this.sdk)
-
-    const existingEntry = await this.assetLockFundingAddressesRepository.findByIdentityIndex(identityIndex)
-    if (existingEntry != null && !existingEntry.used) {
-      return { address: existingEntry.address }
-    }
 
     const identityRegistrationKey = await deriveIdentityRegistrationKey(wallet, payload.password, identityIndex, this.sdk)
     const address = this.sdk.keyPair.p2pkhAddress(identityRegistrationKey.getPublicKey().bytes(), network as Network)
-    const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(identityRegistrationKey.hex())))
-
-    const entry: AssetLockFundingAddressSchema = { address, encryptedPrivateKey, identityIndex, used: false }
-    await this.assetLockFundingAddressesRepository.save(entry)
 
     return { address }
   }
