@@ -16,7 +16,8 @@ import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
 import { TransactionDetails } from './details'
-import { decodeStateTransition } from '../../../utils/decodeStateTransition'
+import { decodeStateTransition, isKeyCompatible } from '../../../utils'
+import { StateTransitionTypeEnum } from '../../../enums/TransactionTypes'
 import { SigningErrorDetails } from '../../components/errors'
 
 function ApproveTransactionState (): React.JSX.Element {
@@ -155,6 +156,12 @@ function ApproveTransactionState (): React.JSX.Element {
   useEffect(() => {
     if (stateTransitionWASM == null) {
       setKeyRequirements([])
+      return
+    }
+
+    // Withdrawal requires a Transfer/Critical key
+    if (stateTransitionWASM.getActionTypeNumber() === StateTransitionTypeEnum.IDENTITY_CREDIT_WITHDRAWAL) {
+      setKeyRequirements([{ purpose: 'TRANSFER', securityLevel: 'CRITICAL' }])
       return
     }
 
