@@ -5,7 +5,7 @@ import {
   Text,
   ValueCard,
   Avatar,
-  DashLogo
+  CreditsIcon
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -319,10 +319,10 @@ function WithdrawState (): React.JSX.Element {
 
             <div className='flex items-center gap-3 px-2 py-1 pl-1 rounded-xl bg-[rgba(76,126,255,0.15)]'>
               <div className='w-8 h-8 rounded-lg flex items-center justify-center bg-white'>
-                <DashLogo className='w-5 h-5' />
+                <CreditsIcon />
               </div>
               <Text className='text-dash-brand !text-[1.5rem] !font-medium !leading-[1.2]'>
-                Dash
+                Credits
               </Text>
             </div>
           </div>
