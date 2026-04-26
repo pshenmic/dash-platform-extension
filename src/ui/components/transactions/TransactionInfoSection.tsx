@@ -93,7 +93,7 @@ export function TransactionInfoSection ({
             )}
             {status != null && (
               <TransactionDetailsCard className='flex-1' title='Status:'>
-                <Text className='!text-[1.25rem] !font-medium text-dash-brand font-["Space_Grotesk"]'>
+                <Text className='!text-[1.25rem] !font-medium text-dash-brand font-dash-grotesque'>
                   {status}
                 </Text>
               </TransactionDetailsCard>

@@ -89,7 +89,7 @@ export function IdentityCreditWithdrawalDetails ({ data }: IdentityCreditWithdra
       {/* Signature Public Key Id — only when signed */}
       {signed && data.signaturePublicKeyId != null && (
         <TransactionDetailsCard title='Signature Public Key Id:'>
-          <Text className='!text-[1.25rem] !font-medium text-dash-primary-dark-blue font-["Space_Grotesk"]'>
+          <Text className='!text-[1.25rem] !font-medium text-dash-primary-dark-blue font-dash-grotesque'>
             {data.signaturePublicKeyId}
           </Text>
         </TransactionDetailsCard>
