@@ -16,7 +16,7 @@ import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
 import { TransactionDetails } from './details'
-import { decodeStateTransition, isKeyCompatible } from '../../../utils'
+import { decodeStateTransition } from '../../../utils'
 import { StateTransitionTypeEnum } from '../../../enums/TransactionTypes'
 import { SigningErrorDetails } from '../../components/errors'
 
