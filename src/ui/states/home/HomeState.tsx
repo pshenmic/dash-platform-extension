@@ -200,8 +200,8 @@ function HomeState (): React.JSX.Element {
         }}
         rightButton={{
           text: 'Withdraw',
-          onClick: () => {},
-          disabled: true
+          onClick: () => { void navigate('/withdrawal') },
+          disabled: currentIdentity === null || balanceState.data === null
         }}
       />
 
