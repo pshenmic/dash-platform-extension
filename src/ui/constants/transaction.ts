@@ -3,6 +3,10 @@
 // Minimum credit transfer amount enforced by the protocol (0.001 DASH)
 export const MIN_CREDIT_TRANSFER = 100000n
 
+// Credit withdrawal limits enforced by the protocol
+export const MIN_CREDIT_WITHDRAWAL = 190000n
+export const MAX_CREDIT_WITHDRAWAL = 50000000000000n
+
 // Estimated fees by network and asset type
 export const ESTIMATED_FEES = {
   testnet: {
