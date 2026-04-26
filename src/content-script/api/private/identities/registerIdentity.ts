@@ -1,10 +1,13 @@
 import { DashCoreSDK } from 'dash-core-sdk'
 import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { PrivateKey, decrypt } from 'eciesjs'
+import hash from 'hash.js'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
+import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { RegisterIdentityPayload } from '../../../../types/messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from '../../../../types/messages/response/RegisterIdentityResponse'
@@ -14,7 +17,7 @@ import { IDENTITY_KEY_DEFINITIONS, buildIdentityCreateTransition } from '../../.
 import {
   deriveSeedphrasePrivateKey,
   deriveIdentityRegistrationKey,
-  findIdentityIndexForRegistrationAddress,
+  findNextFreeIdentityIndex,
   hexToBytes
 } from '../../../../utils'
 import { WalletType } from '../../../../types/WalletType'
@@ -23,6 +26,7 @@ import { TXID_HEX_LENGTH } from '../../../../constants'
 export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
+  assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
@@ -30,12 +34,14 @@ export class RegisterIdentityHandler implements APIHandler {
   constructor (
     walletRepository: WalletRepository,
     identitiesRepository: IdentitiesRepository,
+    assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository,
     storageAdapter: StorageAdapter,
     sdk: DashPlatformSDK,
     coreSDK: DashCoreSDK
   ) {
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
+    this.assetLockFundingAddressesRepository = assetLockFundingAddressesRepository
     this.storageAdapter = storageAdapter
     this.sdk = sdk
     this.coreSDK = coreSDK
@@ -57,63 +63,64 @@ export class RegisterIdentityHandler implements APIHandler {
 
     const network = await this.storageAdapter.get('network') as string
 
-    // ── 2. Scan HD registration funding path to find identity index ─────────
-    // Per DIP-0013 the registration funding key path m/9'/coinType'/5'/1'/index
-    // has a non-hardened leaf, so we can enumerate addresses from the seed and
-    // match against the user-supplied address without storing any key material.
+    // ── 2. Load the asset lock funding address entry ────────────────────────
+    const assetLockFundingAddressEntry = await this.assetLockFundingAddressesRepository.getByAddress(payload.assetLockFundingAddress)
+
+    if (assetLockFundingAddressEntry == null) {
+      throw new Error(
+        `Asset lock funding address ${payload.assetLockFundingAddress} not found. ` +
+        'It may belong to a different wallet or network.'
+      )
+    }
+
+    if (assetLockFundingAddressEntry.used) {
+      throw new Error(`Asset lock funding address ${payload.assetLockFundingAddress} has already been used for registration`)
+    }
+
+    // ── 3. Decrypt the funding private key (signs the asset lock tx input) ──
+    const passwordHash = hash.sha256().update(payload.password).digest('hex')
+    const secretKey = PrivateKey.fromHex(passwordHash)
+
+    let fundingKeyBytes: Uint8Array
+    try {
+      fundingKeyBytes = decrypt(secretKey.toHex(), hexToBytes(assetLockFundingAddressEntry.encryptedPrivateKey))
+    } catch {
+      throw new Error('Failed to decrypt asset lock funding key — wrong password or corrupted entry')
+    }
+
+    const fundingPrivateKey = PrivateKeyWASM.fromBytes(fundingKeyBytes, wallet.network)
+
+    // ── 4. Find the next free identity index on-chain ───────────────────────
+    // Always resolved from the network to guarantee correctness even when local
+    // state is stale (e.g. identities registered on another device).
     const identities = await this.identitiesRepository.getAll()
-    const maxIndex = Math.max(100, identities.length + 10)
+    const localIndices = identities.map((identity) => identity.index)
+    const identityIndex = await findNextFreeIdentityIndex(wallet, payload.password, localIndices, this.sdk)
 
-    const identityIndex = await findIdentityIndexForRegistrationAddress(
-      wallet,
-      payload.password,
-      payload.assetLockFundingAddress,
-      network,
-      this.sdk,
-      maxIndex
-    )
-
-    // ── 3. Derive the registration key (on-demand, never stored) ────────────
+    // ── 5. Derive the registration key at the free identity index ───────────
+    // This key signs IdentityCreateTransition and owns the asset lock credit
+    // output. Stateless: derived from seed at registration time, never stored.
     const identityRegistrationKey = await deriveIdentityRegistrationKey(wallet, payload.password, identityIndex, this.sdk)
-
-    // Sanity-check: derived address must match the supplied one
-    const derivedAddress = this.sdk.keyPair.p2pkhAddress(
+    const creditOutputAddress = this.sdk.keyPair.p2pkhAddress(
       identityRegistrationKey.getPublicKey().bytes(),
       network as Network
     )
 
-    if (derivedAddress !== payload.assetLockFundingAddress) {
-      throw new Error(
-        `Derived address for identity index ${identityIndex} does not match the provided ` +
-        `asset lock funding address ${payload.assetLockFundingAddress}`
-      )
-    }
-
-    // ── 4. Guard: verify the identity index is not already registered on-chain ─
-    const authKey = await deriveSeedphrasePrivateKey(wallet, payload.password, identityIndex, 0, this.sdk)
-    const pkh = authKey.getPublicKeyHash()
-    const existingIdentity =
-      await this.sdk.identities.getIdentityByPublicKeyHash(pkh).catch(() => null) ??
-      await this.sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh).catch(() => null)
-
-    if (existingIdentity != null) {
-      throw new Error(
-        `Identity at index ${identityIndex} is already registered on platform (identifier: ${existingIdentity.id.base58()}). ` +
-        'Run "Resync identities" to import it into the extension.'
-      )
-    }
-
-    // ── 5. Build asset lock transaction from the asset lock funding tx ──────
+    // ── 6. Build asset lock transaction ─────────────────────────────────────
+    // Input: spends UTXO at funding address (signed by funding key from repo).
+    // Credit output: P2PKH to creditOutputAddress (= identity registration key
+    // address), so the IdentityCreateTransition signature matches per DIP-0011.
     const { assetLockTx } = await buildAssetLockFromFundingTx({
       coreSDK: this.coreSDK,
       network,
       assetLockFundingTxid: payload.assetLockFundingTxid,
       assetLockFundingAddress: payload.assetLockFundingAddress,
-      assetLockFundingPrivateKeyWif: identityRegistrationKey.WIF(),
+      assetLockFundingPrivateKeyWif: fundingPrivateKey.WIF(),
+      creditOutputAddress,
       outputIndex: payload.outputIndex
     })
 
-    // ── 6. Broadcast the asset lock transaction ──────────────────────────────
+    // ── 7. Broadcast the asset lock transaction ──────────────────────────────
     // Open the instant lock subscription before broadcasting so we don't miss
     // an instant lock that arrives before the subscription is established.
     const assetLockTxid = assetLockTx.hash()
@@ -124,19 +131,16 @@ export class RegisterIdentityHandler implements APIHandler {
 
     await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
 
-    // ── 7. Wait for instant lock or chain lock (whichever comes first) ──────
+    // ── 8. Wait for instant lock or chain lock (whichever comes first) ──────
     const assetLockProof = await waitForAssetLockProof(
       this.coreSDK,
       this.sdk,
       assetLockTx,
       assetLockTxid,
-      payload.assetLockFundingAddress,
-      undefined,
-      undefined,
       instantLockSub
     )
 
-    // ── 8. Derive all identity key pairs ─────────────────────────────────────
+    // ── 9. Derive all identity key pairs ─────────────────────────────────────
     const identityPrivateKeys: PrivateKeyWASM[] = []
 
     for (const { id } of IDENTITY_KEY_DEFINITIONS) {
@@ -145,7 +149,7 @@ export class RegisterIdentityHandler implements APIHandler {
       )
     }
 
-    // ── 9. Build and sign identity create state transition ───────────────────
+    // ── 10. Build and sign identity create state transition ───────────────────
     const stateTransition = buildIdentityCreateTransition(
       identityPrivateKeys,
       identityRegistrationKey,
@@ -153,23 +157,24 @@ export class RegisterIdentityHandler implements APIHandler {
       this.sdk
     )
 
-    // ── 10. Derive the new identity identifier ───────────────────────────────
+    // ── 11. Derive the new identity identifier ───────────────────────────────
     const identifier = stateTransition.getOwnerId()?.base58()
 
     if (identifier == null || identifier === '') {
       throw new Error('Could not derive identity identifier from state transition')
     }
 
-    // ── 11. Broadcast the state transition ──────────────────────────────────
+    // ── 12. Broadcast the state transition ──────────────────────────────────
     await this.sdk.stateTransitions.broadcast(stateTransition)
 
     const stateTransitionHash: string = stateTransition.hash(false)
 
-    // ── 12. Wait for confirmation ───────────────────────────────────────────
+    // ── 13. Wait for confirmation ───────────────────────────────────────────
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
-    // ── 13. Persist identity and switch to it ───────────────────────────────
+    // ── 14. Persist identity, mark funding address as used, switch identity ─
     await this.identitiesRepository.create(identifier, IdentityType.regular, undefined, identityIndex)
+    await this.assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
     await this.walletRepository.switchIdentity(identifier)
 
     return {

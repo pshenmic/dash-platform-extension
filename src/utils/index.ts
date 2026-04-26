@@ -144,26 +144,6 @@ export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: strin
   return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 }
 
-export const findIdentityIndexForRegistrationAddress = async (
-  wallet: Wallet,
-  password: string,
-  targetAddress: string,
-  network: string,
-  sdk: DashPlatformSDK,
-  maxIndex: number = 100
-): Promise<number> => {
-  for (let i = 0; i <= maxIndex; i++) {
-    const key = await deriveIdentityRegistrationKey(wallet, password, i, sdk)
-    const address = sdk.keyPair.p2pkhAddress(key.getPublicKey().bytes(), network as Network)
-    if (address === targetAddress) return i
-  }
-
-  throw new Error(
-    `Address ${targetAddress} does not match any registration funding address within the first ${maxIndex} identity indices. ` +
-    'It may belong to a different wallet or network.'
-  )
-}
-
 export const deriveIdentityRegistrationKey = async (
   wallet: Wallet,
   password: string,

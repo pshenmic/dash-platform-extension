@@ -28,12 +28,22 @@ import {
  *  1. Fetch and verify the funding tx (hash must match txid)
  *  2. Confirm it's locked (instant/chain) or confirmed (≥1 confirmation)
  *  3. Find the output paying to the asset lock funding address (by outputIndex or scan)
- *  4. Build asset lock tx via DashCoreSDK.createAssetLockTransaction (Core primitive)
+ *  4. Build asset lock tx: input from funding address, credit output to creditOutputAddress
+ *
+ * The funding key only signs the input. The credit output address is independent —
+ * it must correspond to the key that will sign the IdentityCreateTransition (DIP-0011).
  */
 export const buildAssetLockFromFundingTx = async (
   options: BuildAssetLockFromFundingTxOptions
 ): Promise<AssetLockBuildResult> => {
-  const { coreSDK, assetLockFundingTxid, assetLockFundingAddress, assetLockFundingPrivateKeyWif, outputIndex } = options
+  const {
+    coreSDK,
+    assetLockFundingTxid,
+    assetLockFundingAddress,
+    assetLockFundingPrivateKeyWif,
+    creditOutputAddress,
+    outputIndex
+  } = options
 
   const dapiTx = await coreSDK.getTransaction(assetLockFundingTxid).catch((e: unknown) => {
     throw new Error(`Could not load asset lock funding transaction ${assetLockFundingTxid}: ${e instanceof Error ? e.message : String(e)}`)
@@ -77,8 +87,8 @@ export const buildAssetLockFromFundingTx = async (
 
   const fundingOutput = fundingTx.outputs[resolvedOutputIndex]
 
-  const privateKey = PrivateKey.fromWIF(assetLockFundingPrivateKeyWif)
-  const lockingScript = Output.createP2PKH(0n, privateKey.getAddress()).script
+  const fundingPrivateKey = PrivateKey.fromWIF(assetLockFundingPrivateKeyWif)
+  const lockingScript = Output.createP2PKH(0n, fundingPrivateKey.getAddress()).script
   const lockedAmount = fundingOutput.satoshis - MIN_FEE_RELAY
 
   if (lockedAmount <= 0n) {
@@ -88,17 +98,17 @@ export const buildAssetLockFromFundingTx = async (
     )
   }
 
-  const payloadOutput = Output.createP2PKH(lockedAmount, assetLockFundingAddress)
+  const creditOutput = Output.createP2PKH(lockedAmount, creditOutputAddress)
   const assetLockTx = new Transaction(
     [],
     [new Output(lockedAmount, Script.fromASM('OP_RETURN OP_0'))],
     undefined,
     undefined,
     TransactionType.TRANSACTION_ASSET_LOCK,
-    new ExtraPayload.AssetLockTx(1, 1, [payloadOutput])
+    new ExtraPayload.AssetLockTx(1, 1, [creditOutput])
   )
   assetLockTx.addInput(new Input(assetLockFundingTxid, resolvedOutputIndex, lockingScript, 0))
-  assetLockTx.sign(privateKey)
+  assetLockTx.sign(fundingPrivateKey)
 
   return {
     assetLockTx,
@@ -121,17 +131,15 @@ export const waitForAssetLockProof = async (
   platformSDK: DashPlatformSDK,
   assetLockTx: Transaction,
   txid: string,
-  creditOutputAddress: string,
+  subscription: ReturnType<DashCoreSDK['subscribeToTransactions']>,
   pollIntervalMs: number = LOCK_POLL_INTERVAL_MS,
-  timeoutMs: number = LOCK_TIMEOUT_MS,
-  subscription?: ReturnType<DashCoreSDK['subscribeToTransactions']>
+  timeoutMs: number = LOCK_TIMEOUT_MS
 ): Promise<AssetLockProof> => {
   let settled = false
 
   // ── Race 1: instant lock via subscription ────────────────────────────────
   const instantLockRace = async (): Promise<AssetLockProof> => {
-    const sub = subscription ?? coreSDK.subscribeToTransactions([creditOutputAddress])
-    for await (const event of sub) {
+    for await (const event of subscription) {
       if (settled) return await Promise.reject(new Error('cancelled'))
 
       if (event.event !== 'instantSendLockMessage') continue

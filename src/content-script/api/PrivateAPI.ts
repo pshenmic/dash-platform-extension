@@ -38,6 +38,7 @@ import { RegisterUsernameHandler } from './private/identities/registerUsername'
 import { ImportMasternodeIdentityHandler } from './private/identities/importMasternodeIdentity'
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
 import { CreateIdentityPrivateKeyHandler } from './private/identities/createIdentityPrivateKey'
+import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFundingAddressesRepository'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
 import { BroadcastError } from '../errors/BroadcastError'
@@ -85,6 +86,7 @@ export class PrivateAPI {
     const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk)
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
+    const assetLockFundingAddressesRepository = new AssetLockFundingAddressesRepository(this.storageAdapter)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
@@ -117,10 +119,11 @@ export class PrivateAPI {
       [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
-      [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: new RequestAssetLockFundingAddressHandler(walletRepository, identitiesRepository, this.storageAdapter, this.sdk),
+      [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: new RequestAssetLockFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, this.storageAdapter, this.sdk),
       [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
         walletRepository,
         identitiesRepository,
+        assetLockFundingAddressesRepository,
         this.storageAdapter,
         this.sdk,
         this.coreSDK
