@@ -167,6 +167,40 @@ export const deriveIdentityRegistrationKey = async (
   return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 }
 
+/**
+ * Derives an asset lock funding key per DIP-0013 Top Up Funding Keys (sub-feature 2'),
+ * unbound variant — "usable for any identity".
+ *
+ * Path: m/9'/coinType'/5'/2'/0'/fundingIndex
+ *
+ * Used to generate generic funding addresses where the user deposits DASH to
+ * be later consumed by an asset lock transaction. Decoupled from any identity
+ * index — the registration key for IdentityCreateTransition is derived
+ * separately at the on-chain free identityIndex via deriveIdentityRegistrationKey.
+ */
+export const deriveAssetLockFundingKey = async (
+  wallet: Wallet,
+  password: string,
+  fundingIndex: number,
+  sdk: DashPlatformSDK
+): Promise<PrivateKeyWASM> => {
+  if (!Number.isSafeInteger(fundingIndex) || fundingIndex < 0) {
+    throw new Error('Funding index must be a non-negative integer')
+  }
+
+  const network = Network[wallet.network as keyof typeof Network]
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
+  const coinType = wallet.network === 'mainnet' ? 5 : 1
+  const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, `m/9'/${coinType}'/5'/2'/0'/${fundingIndex}`)
+
+  if (privateKey == null) {
+    throw new Error('Could not derive asset lock funding key from wallet hd key')
+  }
+
+  return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+}
+
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {
   const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
 

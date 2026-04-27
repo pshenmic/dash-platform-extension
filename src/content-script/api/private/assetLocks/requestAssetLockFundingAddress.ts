@@ -9,7 +9,7 @@ import { AssetLockFundingAddressSchema } from '../../../storage/storageSchema'
 import { RequestAssetLockFundingAddressResponse } from '../../../../types/messages/response/RequestAssetLockFundingAddressResponse'
 import { RequestAssetLockFundingAddressPayload } from '../../../../types/messages/payloads/RequestAssetLockFundingAddressPayload'
 import { WalletType } from '../../../../types/WalletType'
-import { bytesToHex, deriveIdentityRegistrationKey, hexToBytes } from '../../../../utils'
+import { bytesToHex, deriveAssetLockFundingKey, hexToBytes } from '../../../../utils'
 import { encrypt } from 'eciesjs'
 
 export class RequestAssetLockFundingAddressHandler implements APIHandler {
@@ -62,9 +62,9 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
     const allEntries = await this.assetLockFundingAddressesRepository.getAll()
     const fundingIndex = allEntries.length
 
-    const fundingPrivateKey = await deriveIdentityRegistrationKey(wallet, payload.password, fundingIndex, this.sdk)
-    const address = this.sdk.keyPair.p2pkhAddress(fundingPrivateKey.getPublicKey().bytes(), network as Network)
-    const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(fundingPrivateKey.hex())))
+    const assetLockFundingPrivateKey = await deriveAssetLockFundingKey(wallet, payload.password, fundingIndex, this.sdk)
+    const address = this.sdk.keyPair.p2pkhAddress(assetLockFundingPrivateKey.getPublicKey().bytes(), network as Network)
+    const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(assetLockFundingPrivateKey.hex())))
 
     const entry: AssetLockFundingAddressSchema = { address, encryptedPrivateKey, used: false }
     await this.assetLockFundingAddressesRepository.save(entry)
