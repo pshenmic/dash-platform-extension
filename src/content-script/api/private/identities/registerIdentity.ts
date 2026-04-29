@@ -1,5 +1,5 @@
 import { DashCoreSDK } from 'dash-core-sdk'
-import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
+import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKey, decrypt } from 'eciesjs'
 import hash from 'hash.js'
@@ -16,7 +16,6 @@ import { buildAssetLockFromFundingTx, waitForAssetLockProof } from '../../../../
 import { IDENTITY_KEY_DEFINITIONS, buildIdentityCreateTransition } from '../../../../utils/identityRegistration'
 import {
   deriveSeedphrasePrivateKey,
-  deriveIdentityRegistrationKey,
   findNextFreeIdentityIndex,
   hexToBytes
 } from '../../../../utils'
@@ -77,7 +76,12 @@ export class RegisterIdentityHandler implements APIHandler {
       throw new Error(`Asset lock funding address ${payload.assetLockFundingAddress} has already been used for registration`)
     }
 
-    // ── 3. Decrypt the funding private key (signs the asset lock tx input) ──
+    // ── 3. Decrypt the one-time funding key ─────────────────────────────────
+    // Per DIP-0011 the registration key (signs IdentityCreateTransition and
+    // owns the asset lock credit output) must be single-use. The key was
+    // generated as random 256-bit at requestAssetLockFundingAddress time and
+    // serves three roles: signs the asset lock tx input, owns the credit
+    // output, signs the IdentityCreateTransition.
     const passwordHash = hash.sha256().update(payload.password).digest('hex')
     const secretKey = PrivateKey.fromHex(passwordHash)
 
@@ -88,39 +92,28 @@ export class RegisterIdentityHandler implements APIHandler {
       throw new Error('Failed to decrypt asset lock funding key — wrong password or corrupted entry')
     }
 
-    const fundingPrivateKey = PrivateKeyWASM.fromBytes(fundingKeyBytes, wallet.network)
+    const oneTimePrivateKey = PrivateKeyWASM.fromBytes(fundingKeyBytes, wallet.network)
 
     // ── 4. Find the next free identity index on-chain ───────────────────────
-    // Always resolved from the network to guarantee correctness even when local
-    // state is stale (e.g. identities registered on another device).
+    // Used only for deriving identity keys (master/high/encryption/transfer).
+    // The identity is recoverable from seed via auth key on-chain lookup,
+    // independent of the one-time registration key.
     const identities = await this.identitiesRepository.getAll()
     const localIndices = identities.map((identity) => identity.index)
     const identityIndex = await findNextFreeIdentityIndex(wallet, payload.password, localIndices, this.sdk)
 
-    // ── 5. Derive the registration key at the free identity index ───────────
-    // This key signs IdentityCreateTransition and owns the asset lock credit
-    // output. Stateless: derived from seed at registration time, never stored.
-    const identityRegistrationKey = await deriveIdentityRegistrationKey(wallet, payload.password, identityIndex, this.sdk)
-    const creditOutputAddress = this.sdk.keyPair.p2pkhAddress(
-      identityRegistrationKey.getPublicKey().bytes(),
-      network as Network
-    )
-
-    // ── 6. Build asset lock transaction ─────────────────────────────────────
-    // Input: spends UTXO at funding address (signed by funding key from repo).
-    // Credit output: P2PKH to creditOutputAddress (= identity registration key
-    // address), so the IdentityCreateTransition signature matches per DIP-0011.
+    // ── 5. Build asset lock transaction ─────────────────────────────────────
+    // Input + credit output both use the one-time funding address.
     const { assetLockTx } = await buildAssetLockFromFundingTx({
       coreSDK: this.coreSDK,
       network,
       assetLockFundingTxid: payload.assetLockFundingTxid,
       assetLockFundingAddress: payload.assetLockFundingAddress,
-      assetLockFundingPrivateKeyWif: fundingPrivateKey.WIF(),
-      creditOutputAddress,
+      assetLockFundingPrivateKeyWif: oneTimePrivateKey.WIF(),
       outputIndex: payload.outputIndex
     })
 
-    // ── 7. Broadcast the asset lock transaction ──────────────────────────────
+    // ── 6. Broadcast the asset lock transaction ──────────────────────────────
     // Open the instant lock subscription before broadcasting so we don't miss
     // an instant lock that arrives before the subscription is established.
     const assetLockTxid = assetLockTx.hash()
@@ -131,7 +124,7 @@ export class RegisterIdentityHandler implements APIHandler {
 
     await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
 
-    // ── 8. Wait for instant lock or chain lock (whichever comes first) ──────
+    // ── 7. Wait for instant lock or chain lock (whichever comes first) ──────
     const assetLockProof = await waitForAssetLockProof(
       this.coreSDK,
       this.sdk,
@@ -140,7 +133,7 @@ export class RegisterIdentityHandler implements APIHandler {
       instantLockSub
     )
 
-    // ── 9. Derive all identity key pairs ─────────────────────────────────────
+    // ── 8. Derive all identity key pairs (HD-derived for recoverability) ────
     const identityPrivateKeys: PrivateKeyWASM[] = []
 
     for (const { id } of IDENTITY_KEY_DEFINITIONS) {
@@ -149,30 +142,31 @@ export class RegisterIdentityHandler implements APIHandler {
       )
     }
 
-    // ── 10. Build and sign identity create state transition ───────────────────
+    // ── 9. Build and sign identity create state transition ──────────────────
+    // Signed by the one-time funding key (= asset lock credit output owner).
     const stateTransition = buildIdentityCreateTransition(
       identityPrivateKeys,
-      identityRegistrationKey,
+      oneTimePrivateKey,
       assetLockProof,
       this.sdk
     )
 
-    // ── 11. Derive the new identity identifier ───────────────────────────────
+    // ── 10. Derive the new identity identifier ──────────────────────────────
     const identifier = stateTransition.getOwnerId()?.base58()
 
     if (identifier == null || identifier === '') {
       throw new Error('Could not derive identity identifier from state transition')
     }
 
-    // ── 12. Broadcast the state transition ──────────────────────────────────
+    // ── 11. Broadcast the state transition ──────────────────────────────────
     await this.sdk.stateTransitions.broadcast(stateTransition)
 
     const stateTransitionHash: string = stateTransition.hash(false)
 
-    // ── 13. Wait for confirmation ───────────────────────────────────────────
+    // ── 12. Wait for confirmation ───────────────────────────────────────────
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
-    // ── 14. Persist identity, mark funding address as used, switch identity ─
+    // ── 13. Persist identity, mark funding address as used, switch identity ─
     await this.identitiesRepository.create(identifier, IdentityType.regular, undefined, identityIndex)
     await this.assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
     await this.walletRepository.switchIdentity(identifier)

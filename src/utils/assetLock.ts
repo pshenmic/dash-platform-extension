@@ -28,10 +28,10 @@ import {
  *  1. Fetch and verify the funding tx (hash must match txid)
  *  2. Confirm it's locked (instant/chain) or confirmed (≥1 confirmation)
  *  3. Find the output paying to the asset lock funding address (by outputIndex or scan)
- *  4. Build asset lock tx: input from funding address, credit output to creditOutputAddress
+ *  4. Build asset lock tx: input + credit output both bound to the funding address
  *
- * The funding key only signs the input. The credit output address is independent —
- * it must correspond to the key that will sign the IdentityCreateTransition (DIP-0011).
+ * The funding key is single-use per DIP-0011: it signs the input, owns the
+ * credit output, and later signs the IdentityCreateTransition.
  */
 export const buildAssetLockFromFundingTx = async (
   options: BuildAssetLockFromFundingTxOptions
@@ -41,7 +41,6 @@ export const buildAssetLockFromFundingTx = async (
     assetLockFundingTxid,
     assetLockFundingAddress,
     assetLockFundingPrivateKeyWif,
-    creditOutputAddress,
     outputIndex
   } = options
 
@@ -98,7 +97,7 @@ export const buildAssetLockFromFundingTx = async (
     )
   }
 
-  const creditOutput = Output.createP2PKH(lockedAmount, creditOutputAddress)
+  const creditOutput = Output.createP2PKH(lockedAmount, assetLockFundingAddress)
   const assetLockTx = new Transaction(
     [],
     [new Output(lockedAmount, Script.fromASM('OP_RETURN OP_0'))],
