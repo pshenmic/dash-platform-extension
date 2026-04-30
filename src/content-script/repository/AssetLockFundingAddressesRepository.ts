@@ -24,6 +24,7 @@ export class AssetLockFundingAddressesRepository {
    * output) must only be used once — random generation guarantees this.
    */
   async create (): Promise<AssetLockFundingAddressSchema> {
+    const storageKey = await this.getStorageKey()
     const network = await this.storageAdapter.get('network') as string
 
     const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
@@ -34,20 +35,17 @@ export class AssetLockFundingAddressesRepository {
     const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(privateKeyWASM.hex())))
 
     const entry: AssetLockFundingAddressSchema = { address, encryptedPrivateKey, used: false }
-    await this.save(entry)
+    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
+    addresses[entry.address] = entry
+
+    await this.storageAdapter.set(storageKey, addresses)
 
     return entry
   }
 
-  async save (entry: AssetLockFundingAddressSchema): Promise<void> {
-    const { storageKey, addresses } = await this.load()
-
-    addresses[entry.address] = entry
-    await this.storageAdapter.set(storageKey, addresses)
-  }
-
   async markAsUsed (address: string): Promise<void> {
-    const { storageKey, addresses } = await this.load()
+    const storageKey = await this.getStorageKey()
+    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
 
     if (addresses[address] == null) return
 
@@ -56,20 +54,18 @@ export class AssetLockFundingAddressesRepository {
   }
 
   async getByAddress (address: string): Promise<AssetLockFundingAddressSchema | null> {
-    const { addresses } = await this.load()
+    const storageKey = await this.getStorageKey()
+    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
 
     return addresses[address] ?? null
   }
 
-  private async load (): Promise<{ storageKey: string, addresses: AssetLockFundingAddressesSchema }> {
+  private async getStorageKey (): Promise<string> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
     if (walletId == null) throw new Error('Wallet is not chosen')
 
-    const storageKey = `assetLockFundingAddresses_${network}_${walletId}`
-    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
-
-    return { storageKey, addresses }
+    return `assetLockFundingAddresses_${network}_${walletId}`
   }
 }

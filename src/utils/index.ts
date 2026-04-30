@@ -43,7 +43,7 @@ export const generateWalletId = (): string => {
 
 export const generateRandomHex = (size: number): string => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')
 
-export const getNextIdentityIndex = (existingIndices: number[]): number => {
+export const findNextLocalIdentityIndex = (existingIndices: number[]): number => {
   const occupied = new Set(existingIndices.filter((index) => Number.isSafeInteger(index) && index >= 0))
   let candidate = 0
 
@@ -52,28 +52,6 @@ export const getNextIdentityIndex = (existingIndices: number[]): number => {
   }
 
   return candidate
-}
-
-export const findNextFreeIdentityIndex = async (
-  wallet: Wallet,
-  password: string,
-  existingLocalIndices: number[],
-  sdk: DashPlatformSDK
-): Promise<number> => {
-  let candidate = getNextIdentityIndex(existingLocalIndices)
-
-  while (true) {
-    const privateKey = await deriveSeedphrasePrivateKey(wallet, password, candidate, 0, sdk)
-    const pkh = privateKey.getPublicKeyHash()
-
-    const existing =
-      await sdk.identities.getIdentityByPublicKeyHash(pkh).catch(() => null) ??
-      await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh).catch(() => null)
-
-    if (existing == null) return candidate
-
-    candidate++
-  }
 }
 
 export const validateIdentifier = (str: string): boolean => {
@@ -131,7 +109,7 @@ export const decryptMnemonic = (wallet: Wallet, password: string): string => {
   }
 }
 
-export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: string, identityIndex: number, keyId: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+export const deriveIdentityPrivateKey = async (wallet: Wallet, password: string, identityIndex: number, keyId: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
   const network = Network[wallet.network as keyof typeof Network]
   const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
   const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)

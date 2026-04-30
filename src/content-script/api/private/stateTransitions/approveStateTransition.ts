@@ -4,7 +4,7 @@ import { StateTransitionsRepository } from '../../../repository/StateTransitions
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'
 import { ApproveStateTransitionPayload } from '../../../../types/messages/payloads/ApproveStateTransitionPayload'
-import { deriveKeystorePrivateKey, deriveSeedphrasePrivateKey, validateHex, validateIdentifier } from '../../../../utils'
+import { deriveKeystorePrivateKey, deriveIdentityPrivateKey, validateHex, validateIdentifier } from '../../../../utils'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
@@ -89,7 +89,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
     if (wallet.type === WalletType.keystore) {
       privateKeyWASM = await deriveKeystorePrivateKey(wallet, password, identity.identifier, keyId, this.keyPairRepository)
     } else if (wallet.type === WalletType.seedphrase) {
-      privateKeyWASM = await deriveSeedphrasePrivateKey(wallet, password, identity.index, keyId, this.sdk)
+      privateKeyWASM = await deriveIdentityPrivateKey(wallet, password, identity.index, keyId, this.sdk)
     } else {
       throw new Error('Unsupported wallet type')
     }

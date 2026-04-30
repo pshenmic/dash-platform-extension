@@ -1,4 +1,4 @@
-import { MESSAGING_TIMEOUT, REGISTER_IDENTITY_TIMEOUT } from '../constants'
+import { MESSAGING_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
@@ -330,17 +330,15 @@ export class PrivateAPIClient {
   async registerIdentity (
     assetLockFundingAddress: string,
     assetLockFundingTxid: string,
-    password: string,
-    outputIndex?: number
+    password: string
   ): Promise<RegisterIdentityResponse> {
     const payload: RegisterIdentityPayload = {
       assetLockFundingAddress,
       assetLockFundingTxid,
-      password,
-      outputIndex
+      password
     }
 
-    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload, REGISTER_IDENTITY_TIMEOUT)
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object, timeout?: number): Promise<T> {

@@ -15,8 +15,8 @@ import { IdentityType } from '../../../../types/enums/IdentityType'
 import { buildAssetLockFromFundingTx, waitForAssetLockProof } from '../../../../utils/assetLock'
 import { IDENTITY_KEY_DEFINITIONS, buildIdentityCreateTransition } from '../../../../utils/identityRegistration'
 import {
-  deriveSeedphrasePrivateKey,
-  findNextFreeIdentityIndex,
+  deriveIdentityPrivateKey,
+  findNextLocalIdentityIndex,
   hexToBytes
 } from '../../../../utils'
 import { WalletType } from '../../../../types/WalletType'
@@ -60,8 +60,6 @@ export class RegisterIdentityHandler implements APIHandler {
       throw new Error('Identity registration is only supported for seedphrase wallets')
     }
 
-    const network = await this.storageAdapter.get('network') as string
-
     // ── 2. Load the asset lock funding address entry ────────────────────────
     const assetLockFundingAddressEntry = await this.assetLockFundingAddressesRepository.getByAddress(payload.assetLockFundingAddress)
 
@@ -97,21 +95,34 @@ export class RegisterIdentityHandler implements APIHandler {
     // ── 4. Find the next free identity index on-chain ───────────────────────
     // Used only for deriving identity keys (master/high/encryption/transfer).
     // The identity is recoverable from seed via auth key on-chain lookup,
-    // independent of the one-time asset lock funding key.
+    // independent of the one-time asset lock funding key. We scan past the
+    // next locally-free index to skip indices whose derived auth key is
+    // already registered on-chain (e.g. same seedphrase used elsewhere).
     const identities = await this.identitiesRepository.getAll()
     const localIndices = identities.map((identity) => identity.index)
-    const identityIndex = await findNextFreeIdentityIndex(wallet, payload.password, localIndices, this.sdk)
+    let identityIndex = findNextLocalIdentityIndex(localIndices)
+
+    while (true) {
+      const authPrivateKey = await deriveIdentityPrivateKey(wallet, payload.password, identityIndex, 0, this.sdk)
+      const pkh = authPrivateKey.getPublicKeyHash()
+
+      const existing =
+        await this.sdk.identities.getIdentityByPublicKeyHash(pkh).catch(() => null) ??
+        await this.sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh).catch(() => null)
+
+      if (existing == null) break
+
+      identityIndex++
+    }
 
     // ── 5. Build asset lock transaction ─────────────────────────────────────
     // Input + credit output both use the one-time funding address.
-    const { assetLockTx } = await buildAssetLockFromFundingTx({
-      coreSDK: this.coreSDK,
-      network,
-      assetLockFundingTxid: payload.assetLockFundingTxid,
-      assetLockFundingAddress: payload.assetLockFundingAddress,
-      assetLockFundingPrivateKeyWif: assetLockFundingPrivateKey.WIF(),
-      outputIndex: payload.outputIndex
-    })
+    const { assetLockTx } = await buildAssetLockFromFundingTx(
+      this.coreSDK,
+      payload.assetLockFundingTxid,
+      payload.assetLockFundingAddress,
+      assetLockFundingPrivateKey.WIF()
+    )
 
     // ── 6. Broadcast the asset lock transaction ──────────────────────────────
     // Open the instant lock subscription before broadcasting so we don't miss
@@ -138,7 +149,7 @@ export class RegisterIdentityHandler implements APIHandler {
 
     for (const { id } of IDENTITY_KEY_DEFINITIONS) {
       identityPrivateKeys.push(
-        await deriveSeedphrasePrivateKey(wallet, payload.password, identityIndex, id, this.sdk)
+        await deriveIdentityPrivateKey(wallet, payload.password, identityIndex, id, this.sdk)
       )
     }
 
@@ -167,7 +178,7 @@ export class RegisterIdentityHandler implements APIHandler {
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
     // ── 13. Persist identity, mark funding address as used, switch identity ─
-    await this.identitiesRepository.create(identifier, IdentityType.regular, undefined, identityIndex)
+    await this.identitiesRepository.create(identifier, IdentityType.regular, identityIndex)
     await this.assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
     await this.walletRepository.switchIdentity(identifier)
 
@@ -188,10 +199,6 @@ export class RegisterIdentityHandler implements APIHandler {
 
     if (typeof payload.password !== 'string' || payload.password.length === 0) {
       return 'password must be provided'
-    }
-
-    if (payload.outputIndex != null && (!Number.isSafeInteger(payload.outputIndex) || payload.outputIndex < 0)) {
-      return 'outputIndex must be a non-negative integer'
     }
 
     return null

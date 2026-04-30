@@ -3,7 +3,7 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { bytesToHex, deriveSeedphrasePrivateKey, generateRandomHex } from '../../../../utils'
+import { bytesToHex, deriveIdentityPrivateKey, generateRandomHex } from '../../../../utils'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
@@ -67,7 +67,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       }
     } else if (wallet.type === 'seedphrase') {
       // if seedphrase - derive private key of next unused key
-      privateKeyWASM = await deriveSeedphrasePrivateKey(wallet, payload.password, identity.index, nextKeyId, this.sdk)
+      privateKeyWASM = await deriveIdentityPrivateKey(wallet, payload.password, identity.index, nextKeyId, this.sdk)
     } else {
       throw new Error('Unknown wallet type')
     }

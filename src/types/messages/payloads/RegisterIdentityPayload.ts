@@ -5,9 +5,4 @@ export interface RegisterIdentityPayload {
   assetLockFundingTxid: string
   /** Extension password used to decrypt the asset lock funding private key */
   password: string
-  /**
-   * Optional: index of the funding output in the asset lock funding transaction.
-   * When omitted the handler scans outputs for a P2PKH script matching assetLockFundingAddress.
-   */
-  outputIndex?: number
 }

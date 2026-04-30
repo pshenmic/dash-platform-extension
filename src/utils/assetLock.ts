@@ -11,8 +11,9 @@ import {
   utils
 } from 'dash-core-sdk'
 import type { InstantAssetLockProofParams, ChainAssetLockProofParams } from 'dash-core-sdk/src/utils.js'
-import type { BuildAssetLockFromFundingTxOptions, AssetLockBuildResult, AssetLockProof } from '../types/AssetLock'
 import type { DashPlatformSDK } from 'dash-platform-sdk'
+import type { AssetLockBuildResult } from '../types/AssetLockBuildResult'
+import type { AssetLockProof } from '../types/AssetLockProof'
 import { wait } from './index'
 import {
   MIN_FEE_RELAY,
@@ -27,23 +28,18 @@ import {
  * Steps:
  *  1. Fetch and verify the funding tx (hash must match txid)
  *  2. Confirm it's locked (instant/chain) or confirmed (≥1 confirmation)
- *  3. Find the output paying to the asset lock funding address (by outputIndex or scan)
+ *  3. Find the output paying to the asset lock funding address
  *  4. Build asset lock tx: input + credit output both bound to the funding address
  *
  * The funding key is single-use per DIP-0011: it signs the input, owns the
  * credit output, and later signs the IdentityCreateTransition.
  */
 export const buildAssetLockFromFundingTx = async (
-  options: BuildAssetLockFromFundingTxOptions
+  coreSDK: DashCoreSDK,
+  assetLockFundingTxid: string,
+  assetLockFundingAddress: string,
+  assetLockFundingPrivateKeyWif: string
 ): Promise<AssetLockBuildResult> => {
-  const {
-    coreSDK,
-    assetLockFundingTxid,
-    assetLockFundingAddress,
-    assetLockFundingPrivateKeyWif,
-    outputIndex
-  } = options
-
   const dapiTx = await coreSDK.getTransaction(assetLockFundingTxid).catch((e: unknown) => {
     throw new Error(`Could not load asset lock funding transaction ${assetLockFundingTxid}: ${e instanceof Error ? e.message : String(e)}`)
   })
@@ -60,27 +56,14 @@ export const buildAssetLockFromFundingTx = async (
     )
   }
 
-  // Locate the output that pays to the asset lock funding address.
-  // If outputIndex is provided, use it; otherwise scan outputs for the one
-  // whose P2PKH script matches assetLockFundingAddress.
-  let resolvedOutputIndex: number
-  if (outputIndex != null) {
-    resolvedOutputIndex = outputIndex
-  } else {
-    const expectedScriptHex = Output.createP2PKH(0n, assetLockFundingAddress).script.hex()
-    resolvedOutputIndex = fundingTx.outputs.findIndex(
-      o => o.script.hex() === expectedScriptHex
-    )
-    if (resolvedOutputIndex === -1) {
-      throw new Error(
-        `Could not find output paying to ${assetLockFundingAddress} in transaction ${assetLockFundingTxid}`
-      )
-    }
-  }
+  const expectedScriptHex = Output.createP2PKH(0n, assetLockFundingAddress).script.hex()
+  const resolvedOutputIndex = fundingTx.outputs.findIndex(
+    o => o.script.hex() === expectedScriptHex
+  )
 
-  if (resolvedOutputIndex >= fundingTx.outputs.length) {
+  if (resolvedOutputIndex === -1) {
     throw new Error(
-      `outputIndex ${resolvedOutputIndex} is out of range (transaction has ${fundingTx.outputs.length} outputs)`
+      `Could not find output paying to ${assetLockFundingAddress} in transaction ${assetLockFundingTxid}`
     )
   }
 
@@ -189,15 +172,15 @@ export const waitForAssetLockProof = async (
               ) {
                 return utils.createAssetLockProof({ transaction: assetLockTx, coreChainLockedHeight: dapiTx.height, outputIndex: 0 }) as ChainAssetLockProofParams
               }
-            } catch {
-              // Transient DAPI error — keep polling
+            } catch (e) {
+              console.warn('Failed to fetch Platform node status while waiting for asset lock proof', e)
             }
 
             await wait(pollIntervalMs)
           }
         }
-      } catch {
-        // Transient DAPI error — keep polling
+      } catch (e) {
+        console.warn(`Failed to fetch asset lock transaction ${txid} while waiting for proof`, e)
       }
 
       await wait(pollIntervalMs)
