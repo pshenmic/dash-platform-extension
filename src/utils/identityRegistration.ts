@@ -2,14 +2,16 @@ import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { KeyType, Purpose, SecurityLevel, PrivateKeyWASM, StateTransitionWASM } from 'dash-platform-sdk/types'
 import type { AssetLockProof } from '../types/AssetLockProof'
 
+// Protocol limits IdentityCreateTransition to 6 public keys. AUTH MEDIUM is
+// dropped (used only for routine background transitions, can be added later
+// via IdentityUpdateTransition); MASTER/CRITICAL/HIGH cover the common path.
 export const IDENTITY_KEY_DEFINITIONS = [
   { id: 0, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.MASTER, keyType: KeyType.ECDSA_SECP256K1 },
   { id: 1, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.CRITICAL, keyType: KeyType.ECDSA_SECP256K1 },
   { id: 2, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.HIGH, keyType: KeyType.ECDSA_SECP256K1 },
-  { id: 3, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.MEDIUM, keyType: KeyType.ECDSA_SECP256K1 },
-  { id: 4, purpose: Purpose.ENCRYPTION, securityLevel: SecurityLevel.HIGH, keyType: KeyType.ECDSA_SECP256K1 },
-  { id: 5, purpose: Purpose.DECRYPTION, securityLevel: SecurityLevel.MEDIUM, keyType: KeyType.ECDSA_SECP256K1 },
-  { id: 6, purpose: Purpose.TRANSFER, securityLevel: SecurityLevel.CRITICAL, keyType: KeyType.ECDSA_SECP256K1 }
+  { id: 3, purpose: Purpose.ENCRYPTION, securityLevel: SecurityLevel.MEDIUM, keyType: KeyType.ECDSA_SECP256K1 },
+  { id: 4, purpose: Purpose.DECRYPTION, securityLevel: SecurityLevel.MEDIUM, keyType: KeyType.ECDSA_SECP256K1 },
+  { id: 5, purpose: Purpose.TRANSFER, securityLevel: SecurityLevel.CRITICAL, keyType: KeyType.ECDSA_SECP256K1 }
 ] as const
 
 const getPublicKeyData = (privateKey: PrivateKeyWASM, keyType: KeyType): Uint8Array => {
