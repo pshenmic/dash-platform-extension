@@ -86,8 +86,8 @@ export const buildAssetLockFromFundingTx = async (
 
   const fundingOutput = fundingTx.outputs[resolvedOutputIndex]
 
-  const fundingPrivateKey = PrivateKey.fromWIF(assetLockFundingPrivateKeyWif)
-  const lockingScript = Output.createP2PKH(0n, fundingPrivateKey.getAddress()).script
+  const assetLockFundingPrivateKey = PrivateKey.fromWIF(assetLockFundingPrivateKeyWif)
+  const lockingScript = Output.createP2PKH(0n, assetLockFundingPrivateKey.getAddress()).script
   const lockedAmount = fundingOutput.satoshis - MIN_FEE_RELAY
 
   if (lockedAmount <= 0n) {
@@ -107,7 +107,7 @@ export const buildAssetLockFromFundingTx = async (
     new ExtraPayload.AssetLockTx(1, 1, [creditOutput])
   )
   assetLockTx.addInput(new Input(assetLockFundingTxid, resolvedOutputIndex, lockingScript, 0))
-  assetLockTx.sign(fundingPrivateKey)
+  assetLockTx.sign(assetLockFundingPrivateKey)
 
   return {
     assetLockTx,

@@ -85,19 +85,19 @@ export class RegisterIdentityHandler implements APIHandler {
     const passwordHash = hash.sha256().update(payload.password).digest('hex')
     const secretKey = PrivateKey.fromHex(passwordHash)
 
-    let fundingKeyBytes: Uint8Array
+    let assetLockFundingKeyBytes: Uint8Array
     try {
-      fundingKeyBytes = decrypt(secretKey.toHex(), hexToBytes(assetLockFundingAddressEntry.encryptedPrivateKey))
+      assetLockFundingKeyBytes = decrypt(secretKey.toHex(), hexToBytes(assetLockFundingAddressEntry.encryptedPrivateKey))
     } catch {
       throw new Error('Failed to decrypt asset lock funding key — wrong password or corrupted entry')
     }
 
-    const oneTimePrivateKey = PrivateKeyWASM.fromBytes(fundingKeyBytes, wallet.network)
+    const assetLockFundingPrivateKey = PrivateKeyWASM.fromBytes(assetLockFundingKeyBytes, wallet.network)
 
     // ── 4. Find the next free identity index on-chain ───────────────────────
     // Used only for deriving identity keys (master/high/encryption/transfer).
     // The identity is recoverable from seed via auth key on-chain lookup,
-    // independent of the one-time registration key.
+    // independent of the one-time asset lock funding key.
     const identities = await this.identitiesRepository.getAll()
     const localIndices = identities.map((identity) => identity.index)
     const identityIndex = await findNextFreeIdentityIndex(wallet, payload.password, localIndices, this.sdk)
@@ -109,7 +109,7 @@ export class RegisterIdentityHandler implements APIHandler {
       network,
       assetLockFundingTxid: payload.assetLockFundingTxid,
       assetLockFundingAddress: payload.assetLockFundingAddress,
-      assetLockFundingPrivateKeyWif: oneTimePrivateKey.WIF(),
+      assetLockFundingPrivateKeyWif: assetLockFundingPrivateKey.WIF(),
       outputIndex: payload.outputIndex
     })
 
@@ -146,7 +146,7 @@ export class RegisterIdentityHandler implements APIHandler {
     // Signed by the one-time funding key (= asset lock credit output owner).
     const stateTransition = buildIdentityCreateTransition(
       identityPrivateKeys,
-      oneTimePrivateKey,
+      assetLockFundingPrivateKey,
       assetLockProof,
       this.sdk
     )

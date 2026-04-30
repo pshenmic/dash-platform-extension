@@ -3,11 +3,23 @@ import { KeyType, Purpose, SecurityLevel, PrivateKeyWASM, StateTransitionWASM } 
 import type { AssetLockProof } from '../types/AssetLock'
 
 export const IDENTITY_KEY_DEFINITIONS = [
-  { id: 0, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.MASTER },
-  { id: 1, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.HIGH },
-  { id: 2, purpose: Purpose.ENCRYPTION, securityLevel: SecurityLevel.MEDIUM },
-  { id: 3, purpose: Purpose.TRANSFER, securityLevel: SecurityLevel.CRITICAL }
+  { id: 0, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.MASTER, keyType: KeyType.ECDSA_SECP256K1 },
+  { id: 1, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.HIGH, keyType: KeyType.ECDSA_SECP256K1 },
+  { id: 2, purpose: Purpose.ENCRYPTION, securityLevel: SecurityLevel.MEDIUM, keyType: KeyType.ECDSA_SECP256K1 },
+  { id: 3, purpose: Purpose.TRANSFER, securityLevel: SecurityLevel.CRITICAL, keyType: KeyType.ECDSA_SECP256K1 }
 ] as const
+
+const getPublicKeyData = (privateKey: PrivateKeyWASM, keyType: KeyType): Uint8Array => {
+  if (keyType === KeyType.ECDSA_HASH160) {
+    return Uint8Array.from(privateKey.getPublicKey().hash160())
+  }
+
+  if (keyType === KeyType.ECDSA_SECP256K1) {
+    return Uint8Array.from(privateKey.getPublicKey().bytes())
+  }
+
+  throw new Error(`Unsupported identity key type ${keyType}`)
+}
 
 /**
  * Builds and signs an identity create state transition.
@@ -23,13 +35,13 @@ export const buildIdentityCreateTransition = (
   assetLockProof: AssetLockProof,
   sdk: DashPlatformSDK
 ): StateTransitionWASM => {
-  const identityPublicKeysInCreation = IDENTITY_KEY_DEFINITIONS.map(({ id, purpose, securityLevel }, i) => ({
+  const identityPublicKeysInCreation = IDENTITY_KEY_DEFINITIONS.map(({ id, purpose, securityLevel, keyType }, i) => ({
     id,
     purpose,
     securityLevel,
-    keyType: KeyType.ECDSA_SECP256K1,
+    keyType,
     readOnly: false,
-    data: Uint8Array.from(identityPrivateKeys[i].getPublicKey().bytes()),
+    data: getPublicKeyData(identityPrivateKeys[i], keyType),
     signature: undefined as Uint8Array | undefined
   }))
 
@@ -39,7 +51,7 @@ export const buildIdentityCreateTransition = (
   })
 
   for (let i = 0; i < identityPrivateKeys.length; i++) {
-    stateTransition.signByPrivateKey(identityPrivateKeys[i], undefined, KeyType.ECDSA_SECP256K1)
+    stateTransition.signByPrivateKey(identityPrivateKeys[i], undefined, IDENTITY_KEY_DEFINITIONS[i].keyType)
     if (stateTransition.signature == null) {
       throw new Error(`signByPrivateKey did not produce a signature for identity key ${i}`)
     }

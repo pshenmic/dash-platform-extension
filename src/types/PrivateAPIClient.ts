@@ -320,10 +320,10 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY, payload)
   }
 
-  async requestAssetLockFundingAddress (password?: string): Promise<RequestAssetLockFundingAddressResponse> {
+  async requestAssetLockFundingAddress (): Promise<RequestAssetLockFundingAddressResponse> {
     return await this._rpcCall(
       MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS,
-      { password }
+      {}
     )
   }
 

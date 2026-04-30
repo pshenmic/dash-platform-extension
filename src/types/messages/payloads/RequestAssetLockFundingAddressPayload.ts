@@ -1,3 +1,1 @@
-export interface RequestAssetLockFundingAddressPayload {
-  password?: string
-}
+export interface RequestAssetLockFundingAddressPayload {}

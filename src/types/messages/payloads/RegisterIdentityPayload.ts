@@ -3,7 +3,7 @@ export interface RegisterIdentityPayload {
   assetLockFundingAddress: string
   /** Txid of the asset lock funding transaction that paid to the address */
   assetLockFundingTxid: string
-  /** Extension password used to derive the identity registration key */
+  /** Extension password used to decrypt the asset lock funding private key */
   password: string
   /**
    * Optional: index of the funding output in the asset lock funding transaction.
