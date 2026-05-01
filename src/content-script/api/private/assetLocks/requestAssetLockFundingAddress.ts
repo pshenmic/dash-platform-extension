@@ -35,6 +35,7 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
     }
 
     const existingUnused = await this.assetLockFundingAddressesRepository.findUnused()
+    
     if (existingUnused != null) {
       return { address: existingUnused.address }
     }
