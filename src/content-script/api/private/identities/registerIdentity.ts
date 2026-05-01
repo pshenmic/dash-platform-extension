@@ -12,7 +12,8 @@ import { StorageAdapter } from '../../../storage/storageAdapter'
 import { RegisterIdentityPayload } from '../../../../types/messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from '../../../../types/messages/response/RegisterIdentityResponse'
 import { IdentityType } from '../../../../types/enums/IdentityType'
-import { buildAssetLockFromFundingTx, waitForAssetLockProof } from '../../../../utils/assetLock'
+import { buildAssetLockFromFundingTx } from '../../../../utils/buildAssetLockFromFundingTx'
+import { waitForAssetLockProof } from '../../../../utils/waitForAssetLockProof'
 import { IDENTITY_KEY_DEFINITIONS, buildIdentityCreateTransition } from '../../../../utils/identityRegistration'
 import {
   deriveIdentityPrivateKey,

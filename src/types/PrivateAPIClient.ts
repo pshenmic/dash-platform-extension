@@ -341,7 +341,7 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload)
   }
 
-  async _rpcCall<T>(method: string, payload?: object, timeout?: number): Promise<T> {
+  async _rpcCall<T>(method: string, payload?: object): Promise<T> {
     const id = generateRandomHex(8)
 
     return await new Promise((resolve, reject) => {
@@ -371,7 +371,7 @@ export class PrivateAPIClient {
 
       setTimeout(() => {
         rejectWithError(`Timed out waiting for response of ${method}`)
-      }, timeout ?? MESSAGING_TIMEOUT)
+      }, MESSAGING_TIMEOUT)
 
       const message: EventData = {
         context: 'dash-platform-extension',

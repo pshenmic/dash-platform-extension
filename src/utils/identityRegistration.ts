@@ -14,18 +14,6 @@ export const IDENTITY_KEY_DEFINITIONS = [
   { id: 5, purpose: Purpose.TRANSFER, securityLevel: SecurityLevel.CRITICAL, keyType: KeyType.ECDSA_SECP256K1 }
 ] as const
 
-const getPublicKeyData = (privateKey: PrivateKeyWASM, keyType: KeyType): Uint8Array => {
-  if (keyType === KeyType.ECDSA_HASH160) {
-    return Uint8Array.from(privateKey.getPublicKey().hash160())
-  }
-
-  if (keyType === KeyType.ECDSA_SECP256K1) {
-    return Uint8Array.from(privateKey.getPublicKey().bytes())
-  }
-
-  throw new Error(`Unsupported identity key type ${keyType}`)
-}
-
 /**
  * Builds and signs an identity create state transition.
  *
@@ -46,7 +34,7 @@ export const buildIdentityCreateTransition = (
     securityLevel,
     keyType,
     readOnly: false,
-    data: getPublicKeyData(identityPrivateKeys[i], keyType),
+    data: Uint8Array.from(identityPrivateKeys[i].getPublicKey().bytes()),
     signature: undefined as Uint8Array | undefined
   }))
 

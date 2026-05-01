@@ -1,102 +1,17 @@
 import {
   DashCoreSDK,
-  ExtraPayload,
-  Input,
   InstantLock,
-  Output,
-  PrivateKey,
-  Script,
   Transaction,
-  TransactionType,
   utils
 } from 'dash-core-sdk'
 import type { InstantAssetLockProofParams, ChainAssetLockProofParams } from 'dash-core-sdk/src/utils.js'
 import type { DashPlatformSDK } from 'dash-platform-sdk'
-import type { AssetLockBuildResult } from '../types/AssetLockBuildResult'
 import type { AssetLockProof } from '../types/AssetLockProof'
 import { wait } from './index'
 import {
-  MIN_FEE_RELAY,
   LOCK_POLL_INTERVAL_MS,
-  LOCK_TIMEOUT_MS,
-  MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS
+  LOCK_TIMEOUT_MS
 } from '../constants'
-
-/**
- * Builds an asset lock transaction from an asset lock funding transaction.
- *
- * Steps:
- *  1. Fetch and verify the funding tx (hash must match txid)
- *  2. Confirm it's locked (instant/chain) or confirmed (≥1 confirmation)
- *  3. Find the output paying to the asset lock funding address
- *  4. Build asset lock tx: input + credit output both bound to the funding address
- *
- * The funding key is single-use per DIP-0011: it signs the input, owns the
- * credit output, and later signs the IdentityCreateTransition.
- */
-export const buildAssetLockFromFundingTx = async (
-  coreSDK: DashCoreSDK,
-  assetLockFundingTxid: string,
-  assetLockFundingAddress: string,
-  assetLockFundingPrivateKeyWif: string
-): Promise<AssetLockBuildResult> => {
-  const dapiTx = await coreSDK.getTransaction(assetLockFundingTxid).catch((e: unknown) => {
-    throw new Error(`Could not load asset lock funding transaction ${assetLockFundingTxid}: ${e instanceof Error ? e.message : String(e)}`)
-  })
-
-  const fundingTx = Transaction.fromBytes(Uint8Array.from(dapiTx.transaction))
-  if (fundingTx.hash() !== assetLockFundingTxid) {
-    throw new Error(`Transaction hash mismatch for ${assetLockFundingTxid}: transaction data is corrupt`)
-  }
-
-  if (!dapiTx.isInstantLocked && !dapiTx.isChainLocked && dapiTx.confirmations < MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS) {
-    throw new Error(
-      `Asset lock funding transaction ${assetLockFundingTxid} is not locked or confirmed yet. ` +
-      'Please wait for an instant lock or at least one confirmation before proceeding.'
-    )
-  }
-
-  const expectedScriptHex = Output.createP2PKH(0n, assetLockFundingAddress).script.hex()
-  const resolvedOutputIndex = fundingTx.outputs.findIndex(
-    o => o.script.hex() === expectedScriptHex
-  )
-
-  if (resolvedOutputIndex === -1) {
-    throw new Error(
-      `Could not find output paying to ${assetLockFundingAddress} in transaction ${assetLockFundingTxid}`
-    )
-  }
-
-  const fundingOutput = fundingTx.outputs[resolvedOutputIndex]
-
-  const assetLockFundingPrivateKey = PrivateKey.fromWIF(assetLockFundingPrivateKeyWif)
-  const lockingScript = Output.createP2PKH(0n, assetLockFundingPrivateKey.getAddress()).script
-  const lockedAmount = fundingOutput.satoshis - MIN_FEE_RELAY
-
-  if (lockedAmount <= 0n) {
-    throw new Error(
-      `Asset lock funding output at index ${resolvedOutputIndex} (${fundingOutput.satoshis} duffs) ` +
-      `is too small to cover the transaction fee (${MIN_FEE_RELAY} duffs)`
-    )
-  }
-
-  const creditOutput = Output.createP2PKH(lockedAmount, assetLockFundingAddress)
-  const assetLockTx = new Transaction(
-    [],
-    [new Output(lockedAmount, Script.fromASM('OP_RETURN OP_0'))],
-    undefined,
-    undefined,
-    TransactionType.TRANSACTION_ASSET_LOCK,
-    new ExtraPayload.AssetLockTx(1, 1, [creditOutput])
-  )
-  assetLockTx.addInput(new Input(assetLockFundingTxid, resolvedOutputIndex, lockingScript, 0))
-  assetLockTx.sign(assetLockFundingPrivateKey)
-
-  return {
-    assetLockTx,
-    assetLockOutputIndex: 0 // single credit output → always index 0 in the asset lock payload
-  }
-}
 
 /**
  * Waits for the asset lock transaction to receive either an instant lock or a chain lock,
@@ -119,7 +34,7 @@ export const waitForAssetLockProof = async (
 ): Promise<AssetLockProof> => {
   let settled = false
 
-  // ── Race 1: instant lock via subscription ────────────────────────────────
+  // Race 1: instant lock via subscription
   const instantLockRace = async (): Promise<AssetLockProof> => {
     for await (const event of subscription) {
       if (settled) return await Promise.reject(new Error('cancelled'))
@@ -141,7 +56,7 @@ export const waitForAssetLockProof = async (
     return await Promise.reject(new Error('Instant lock subscription ended without result'))
   }
 
-  // ── Race 2: chain lock via polling ───────────────────────────────────────
+  // Race 2: chain lock via polling
   // RPC polling is used instead of an event subscription because chain lock
   // events may be missed (late subscription, dropped connection, evonode that
   // never emitted the event for this tx). Polling getTransaction guarantees
@@ -188,7 +103,7 @@ export const waitForAssetLockProof = async (
 
     return await Promise.reject(new Error(
       `Timed out waiting for asset lock proof on transaction ${txid}. ` +
-      `Elapsed: ${timeoutMs / 1000}s. The transaction may still be confirmed — ` +
+      `Elapsed: ${timeoutMs / 1000}s. The transaction may still be confirmed - ` +
       'try resuming registration once the network has processed the block.'
     ))
   }
