@@ -41,7 +41,9 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
     }
 
     const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
-    if (passwordPublicKey == null) throw new Error('Password is not set for an extension')
+    if (passwordPublicKey == null) {
+      throw new Error('Password is not set for an extension')
+    }
 
     const privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), wallet.network)
     const address = this.sdk.keyPair.p2pkhAddress(privateKeyWASM.getPublicKey().bytes(), wallet.network as Network)
