@@ -14,6 +14,7 @@ export class AssetLockFundingAddressesRepository {
   async create (entry: AssetLockFundingAddressSchema): Promise<AssetLockFundingAddressSchema> {
     const storageKey = await this.getStorageKey()
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
+
     addresses[entry.address] = entry
 
     await this.storageAdapter.set(storageKey, addresses)
