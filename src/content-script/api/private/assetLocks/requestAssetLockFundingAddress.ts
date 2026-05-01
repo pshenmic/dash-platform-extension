@@ -30,7 +30,14 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
   async handle (_event: EventData): Promise<RequestAssetLockFundingAddressResponse> {
     const wallet = await this.walletRepository.getCurrent()
 
-    if (wallet == null) throw new Error('Wallet is not chosen')
+    if (wallet == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const existingUnused = await this.assetLockFundingAddressesRepository.findUnused()
+    if (existingUnused != null) {
+      return { address: existingUnused.address }
+    }
 
     const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
     if (passwordPublicKey == null) throw new Error('Password is not set for an extension')

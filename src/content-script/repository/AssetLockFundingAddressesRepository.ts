@@ -40,6 +40,13 @@ export class AssetLockFundingAddressesRepository {
     return addresses[address] ?? null
   }
 
+  async findUnused (): Promise<AssetLockFundingAddressSchema | null> {
+    const storageKey = await this.getStorageKey()
+    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
+
+    return Object.values(addresses).find(entry => !entry.used) ?? null
+  }
+
   private async getStorageKey (): Promise<string> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
