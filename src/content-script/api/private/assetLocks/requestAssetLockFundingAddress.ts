@@ -41,6 +41,7 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
     }
 
     const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
+    
     if (passwordPublicKey == null) {
       throw new Error('Password is not set for an extension')
     }
