@@ -4,7 +4,7 @@ import { APIHandler } from '../../APIHandler'
 import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
-import { validateHex } from '../../../../utils'
+import { findNextLocalIdentityIndex, validateHex } from '../../../../utils'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ImportIdentityPayload } from '../../../../types/messages/payloads/ImportIdentityPayload'
@@ -60,7 +60,10 @@ export class ImportIdentityHandler implements APIHandler {
       await this.keypairRepository.add(payload.identity, privateKey, identityPublicKey.keyId)
     }
 
-    await this.identitiesRepository.create(payload.identity, IdentityType.regular)
+    const identities = await this.identitiesRepository.getAll()
+    const index = findNextLocalIdentityIndex(identities.map((identity) => identity.index))
+
+    await this.identitiesRepository.create(payload.identity, IdentityType.regular, index)
 
     return {}
   }

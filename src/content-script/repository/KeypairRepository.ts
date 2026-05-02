@@ -2,7 +2,7 @@ import { StorageAdapter } from '../storage/storageAdapter'
 import { Identity, KeyPair, Wallet, WalletType } from '../../types'
 import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { KeyPairSchema, KeyPairsSchema } from '../storage/storageSchema'
-import { bytesToHex, deriveKeystorePrivateKey, deriveSeedphrasePrivateKey, hexToBytes } from '../../utils'
+import { bytesToHex, deriveKeystorePrivateKey, deriveIdentityPrivateKey, hexToBytes } from '../../utils'
 import { encrypt } from 'eciesjs'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 
@@ -90,7 +90,7 @@ export class KeypairRepository {
     if (wallet.type === WalletType.keystore) {
       return await deriveKeystorePrivateKey(wallet, password, identity.identifier, keyId, this)
     } else if (wallet.type === WalletType.seedphrase) {
-      return await deriveSeedphrasePrivateKey(wallet, password, identity.index, keyId, this.sdk)
+      return await deriveIdentityPrivateKey(wallet, password, identity.index, keyId, this.sdk)
     } else {
       throw new Error('Unsupported wallet type')
     }

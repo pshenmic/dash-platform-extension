@@ -1,4 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPIClient } from '../../../../src/types/PrivateAPIClient'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
@@ -16,12 +17,13 @@ describe('get all wallets', () => {
 
   beforeEach(async () => {
     const sdk = new DashPlatformSDK({ network: 'testnet' })
+    const coreSDK = new DashCoreSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter
     await runMigrations(storage)
 
-    privateAPI = new PrivateAPI(sdk, memoryStorageAdapter)
+    privateAPI = new PrivateAPI(sdk, coreSDK, memoryStorageAdapter)
     privateAPIClient = new PrivateAPIClient()
 
     privateAPI.init()

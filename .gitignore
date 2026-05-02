@@ -5,3 +5,4 @@ build
 .yarn
 release
 .DS_Store
+package-lock.json

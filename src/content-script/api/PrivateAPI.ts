@@ -1,4 +1,5 @@
 import { EventData } from '../../types/EventData'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
@@ -37,8 +38,9 @@ import { RegisterUsernameHandler } from './private/identities/registerUsername'
 import { ImportMasternodeIdentityHandler } from './private/identities/importMasternodeIdentity'
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
 import { CreateIdentityPrivateKeyHandler } from './private/identities/createIdentityPrivateKey'
-import { OneTimeAddressesRepository } from '../repository/OneTimeAddressesRepository'
-import { RequestOneTimeAddressHandler } from './private/assetLocks/requestOneTimeAddress'
+import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFundingAddressesRepository'
+import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
+import { RegisterIdentityHandler } from './private/identities/registerIdentity'
 import { BroadcastError } from '../errors/BroadcastError'
 import { RemoveWalletHandler } from './private/wallet/removeWallet'
 
@@ -47,10 +49,12 @@ import { RemoveWalletHandler } from './private/wallet/removeWallet'
  */
 export class PrivateAPI {
   sdk: DashPlatformSDK
+  coreSDK: DashCoreSDK
   storageAdapter: StorageAdapter
 
-  constructor (sdk: DashPlatformSDK, storageAdapter: StorageAdapter) {
+  constructor (sdk: DashPlatformSDK, coreSDK: DashCoreSDK, storageAdapter: StorageAdapter) {
     this.sdk = sdk
+    this.coreSDK = coreSDK
     this.storageAdapter = storageAdapter
   }
 
@@ -82,7 +86,7 @@ export class PrivateAPI {
     const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk)
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
-    const oneTimeAddressesRepository = new OneTimeAddressesRepository(this.storageAdapter, this.sdk)
+    const assetLockFundingAddressesRepository = new AssetLockFundingAddressesRepository(this.storageAdapter)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
@@ -115,7 +119,15 @@ export class PrivateAPI {
       [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
-      [MessagingMethods.REQUEST_ONE_TIME_ADDRESS]: new RequestOneTimeAddressHandler(oneTimeAddressesRepository)
+      [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: new RequestAssetLockFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, this.sdk, this.storageAdapter),
+      [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
+        walletRepository,
+        identitiesRepository,
+        assetLockFundingAddressesRepository,
+        this.storageAdapter,
+        this.sdk,
+        this.coreSDK
+      )
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {
