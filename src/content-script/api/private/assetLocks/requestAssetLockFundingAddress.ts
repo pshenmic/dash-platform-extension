@@ -35,13 +35,13 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
     }
 
     const existingUnused = await this.assetLockFundingAddressesRepository.findUnused()
-    
+
     if (existingUnused != null) {
       return { address: existingUnused.address }
     }
 
     const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
-    
+
     if (passwordPublicKey == null) {
       throw new Error('Password is not set for an extension')
     }

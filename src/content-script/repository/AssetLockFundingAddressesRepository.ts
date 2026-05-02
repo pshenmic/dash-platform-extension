@@ -31,7 +31,7 @@ export class AssetLockFundingAddressesRepository {
     }
 
     addresses[address] = { ...addresses[address], used: true }
-    
+
     await this.storageAdapter.set(storageKey, addresses)
   }
 
