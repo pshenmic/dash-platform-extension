@@ -35,10 +35,12 @@ function IdentityRegistrationState (): React.JSX.Element {
   const coinBagelImage = useStaticAsset('coin_bagel.png')
   const coinImage = useStaticAsset('coin.png')
 
-  const stage = parseInt(searchParams.get('stage') ?? '1', 10) as Stage
+  const rawStage = parseInt(searchParams.get('stage') ?? '1', 10)
+  const stage = (rawStage >= 1 && rawStage <= 5 ? rawStage : 1) as Stage
   const hasError = searchParams.get('error') === 'true'
 
   const runRegistration = useCallback(async (address: string, txid: string, pwd: string): Promise<void> => {
+    void navigate('/register-identity?stage=4')
     setIsRegistering(true)
     setError(null)
 
@@ -70,14 +72,6 @@ function IdentityRegistrationState (): React.JSX.Element {
   }, [extensionAPI, sdk, navigate])
 
   useEffect(() => {
-    const checkPendingRegistration = async (): Promise<void> => {
-      // TODO: add check pending registration
-    }
-
-    void checkPendingRegistration()
-  }, [extensionAPI])
-
-  useEffect(() => {
     if (fundingAddress == null || stage !== 3) return
 
     let cancelled = false
@@ -87,7 +81,6 @@ function IdentityRegistrationState (): React.JSX.Element {
         const { txid } = await coreSDK.waitForPayment(fundingAddress)
         if (cancelled) return
         setTransactionHash(txid)
-        void navigate('/register-identity?stage=4')
         await runRegistration(fundingAddress, txid, password)
       } catch (e) {
         if (!cancelled) console.error('waitForPayment failed:', e)
@@ -97,7 +90,7 @@ function IdentityRegistrationState (): React.JSX.Element {
     detectPayment().catch(console.error)
 
     return () => { cancelled = true }
-  }, [fundingAddress, stage, coreSDK, navigate, runRegistration, password])
+  }, [fundingAddress, stage, coreSDK, runRegistration, password])
 
   useEffect(() => {
     if (setHeaderConfigOverride == null) return
@@ -171,7 +164,6 @@ function IdentityRegistrationState (): React.JSX.Element {
   const handleConfirmPayment = (): void => {
     if (transactionHash.trim() === '' || fundingAddress == null) return
     runRegistration(fundingAddress, transactionHash, password).catch(console.error)
-    void navigate('/register-identity?stage=4')
   }
 
   const handleDone = (): void => {

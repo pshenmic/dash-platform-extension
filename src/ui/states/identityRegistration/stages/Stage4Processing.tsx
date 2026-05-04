@@ -11,7 +11,7 @@ interface Stage4ProcessingProps {
 export function Stage4Processing ({ stage, coinBagelImage, isRegistering }: Stage4ProcessingProps): React.JSX.Element {
   return (
     <div className='flex flex-col h-full relative'>
-      <div className='absolute right-[-1rem] top-[100%] w-full h-[240px] overflow-hidden pointer-events-none translate-y-[-40%] translate-y-[-100%]'>
+      <div className='absolute right-[-1rem] top-[100%] w-full h-[240px] overflow-hidden pointer-events-none translate-y-[-100%]'>
         <img src={coinBagelImage} alt='' className='w-[552px] h-[513px] object-cover object-left' />
       </div>
       <div
