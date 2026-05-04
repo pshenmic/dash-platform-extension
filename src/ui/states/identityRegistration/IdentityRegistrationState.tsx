@@ -65,7 +65,7 @@ function IdentityRegistrationState (): React.JSX.Element {
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Registration failed'
       setRegistrationError(message)
-      void navigate('/register-identity?error=true')
+      void navigate('/register-identity?stage=4&error=true', { replace: true })
     } finally {
       setIsRegistering(false)
     }
@@ -174,7 +174,10 @@ function IdentityRegistrationState (): React.JSX.Element {
   }
 
   const handleReturnBack = (): void => {
-    void navigate('/register-identity?stage=1')
+    setFundingAddress(null)
+    setTransactionHash('')
+    setShowManualEntry(false)
+    void navigate('/register-identity?stage=2', { replace: true })
   }
 
   if (hasError) {
