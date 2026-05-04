@@ -27,7 +27,7 @@ function IdentityRegistrationState (): React.JSX.Element {
   const [password, setPassword] = useState('')
   const [fundingAddress, setFundingAddress] = useState<string | null>(null)
   const [isLoadingAddress, setIsLoadingAddress] = useState(false)
-  const [hasUnfinishedRegistration, setHasUnfinishedRegistration] = useState(false)
+  const [hasUnfinishedRegistration] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [registeredIdentity, setRegisteredIdentity] = useState<IdentityPreviewData | null>(null)
@@ -145,7 +145,7 @@ function IdentityRegistrationState (): React.JSX.Element {
     void navigate('/register-identity?stage=2')
   }
 
-  const handleProceedToPayment = async () => {
+  const handleProceedToPayment = async (): Promise<void> => {
     if (password.trim() === '') {
       setError('Password is required to proceed')
       return
@@ -203,7 +203,7 @@ function IdentityRegistrationState (): React.JSX.Element {
           setPassword(value)
           setError(null)
         }}
-        onProceedToPayment={handleProceedToPayment}
+        onProceedToPayment={() => { handleProceedToPayment().catch(console.error) }}
       />
     )
   }
