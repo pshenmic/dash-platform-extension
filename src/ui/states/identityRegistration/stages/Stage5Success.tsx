@@ -4,49 +4,13 @@ import { TitleBlock } from '../../../components/layout/TitleBlock'
 import { IdentityPreview } from '../../../components/Identities'
 import type { IdentityPreviewData } from '../../../types'
 
-const mockIdentity: IdentityPreviewData = {
-  id: 'EWNwtGEC1qAbgNgo2UgadmQhB9DaZtB942x8bXgJrPNS',
-  name: 'test.dash',
-  balance: '0.5',
-  publicKeys: [
-    {
-      keyId: 0,
-      purpose: 'AUTHENTICATION',
-      securityLevel: 'MASTER',
-      type: 'ECDSA_SECP256K1',
-      isAvailable: true
-    },
-    {
-      keyId: 1,
-      purpose: 'AUTHENTICATION',
-      securityLevel: 'CRITICAL',
-      type: 'ECDSA_SECP256K1',
-      isAvailable: true
-    },
-    {
-      keyId: 2,
-      purpose: 'AUTHENTICATION',
-      securityLevel: 'HIGH',
-      type: 'ECDSA_SECP256K1',
-      isAvailable: true
-    },
-    {
-      keyId: 3,
-      purpose: 'ENCRYPTION',
-      securityLevel: 'MEDIUM',
-      type: 'ECDSA_SECP256K1',
-      isAvailable: true
-    }
-  ]
-}
-
 interface Stage5SuccessProps {
   stage: number
-  registeredIdentifier: string | null
+  identity: IdentityPreviewData | null
   onDone: () => void
 }
 
-export function Stage5Success ({ stage, registeredIdentifier, onDone }: Stage5SuccessProps): React.JSX.Element {
+export function Stage5Success ({ stage, identity, onDone }: Stage5SuccessProps): React.JSX.Element {
   return (
     <div className='flex flex-col h-full'>
       <TitleBlock
@@ -57,9 +21,9 @@ export function Stage5Success ({ stage, registeredIdentifier, onDone }: Stage5Su
         containerClassName='mb-0'
       />
 
-      {registeredIdentifier != null && (
+      {identity != null && (
         <div className='mt-3'>
-          <IdentityPreview identity={mockIdentity} />
+          <IdentityPreview identity={identity} />
         </div>
       )}
 
