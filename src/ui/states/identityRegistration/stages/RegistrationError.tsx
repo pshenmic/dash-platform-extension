@@ -5,11 +5,10 @@ import { TitleBlock } from '../../../components/layout/TitleBlock'
 interface RegistrationErrorProps {
   stage: number
   registrationError: string | null
-  recoverable: boolean
   onReturnBack: () => void
 }
 
-export function RegistrationError ({ stage, registrationError, recoverable, onReturnBack }: RegistrationErrorProps): React.JSX.Element {
+export function RegistrationError ({ stage, registrationError, onReturnBack }: RegistrationErrorProps): React.JSX.Element {
   return (
     <div className='flex flex-col h-full pt-[90px]'>
       <TitleBlock
@@ -32,7 +31,7 @@ export function RegistrationError ({ stage, registrationError, recoverable, onRe
           className='w-full'
           onClick={onReturnBack}
         >
-          {recoverable ? 'Try Again' : 'Start Over'}
+          Return Back
         </Button>
         <ProgressStepBar
           totalSteps={5}
