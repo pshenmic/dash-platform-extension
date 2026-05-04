@@ -27,7 +27,7 @@ export function Stage2Fee ({
         description='Identity registration on Dash Platform requires a small network fee. This one-time payment covers the cost of storing your identity on the blockchain.'
         logoSize='3rem'
         showLogo
-        containerClassName='mb-0'
+        containerClassName='!mb-0'
       />
 
       <div className='flex-1 flex items-center justify-center relative'>
