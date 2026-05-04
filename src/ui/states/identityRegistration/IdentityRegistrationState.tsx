@@ -25,13 +25,11 @@ function IdentityRegistrationState (): React.JSX.Element {
   const [showManualEntry, setShowManualEntry] = useState(false)
   const [transactionHash, setTransactionHash] = useState('')
   const [password, setPassword] = useState('')
-  const [passwordError, setPasswordError] = useState<string | null>(null)
   const [fundingAddress, setFundingAddress] = useState<string | null>(null)
   const [isLoadingAddress, setIsLoadingAddress] = useState(false)
-  const [addressError, setAddressError] = useState<string | null>(null)
   const [hasUnfinishedRegistration, setHasUnfinishedRegistration] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
-  const [registrationError, setRegistrationError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [registeredIdentity, setRegisteredIdentity] = useState<IdentityPreviewData | null>(null)
 
   const coinBagelImage = useStaticAsset('coin_bagel.png')
@@ -42,7 +40,7 @@ function IdentityRegistrationState (): React.JSX.Element {
 
   const runRegistration = useCallback(async (address: string, txid: string, pwd: string): Promise<void> => {
     setIsRegistering(true)
-    setRegistrationError(null)
+    setError(null)
 
     try {
       const { identifier } = await extensionAPI.registerIdentity(address, txid, pwd)
@@ -64,7 +62,7 @@ function IdentityRegistrationState (): React.JSX.Element {
       void navigate('/register-identity?stage=5')
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Registration failed'
-      setRegistrationError(message)
+      setError(message)
       void navigate('/register-identity?stage=4&error=true', { replace: true })
     } finally {
       setIsRegistering(false)
@@ -129,13 +127,13 @@ function IdentityRegistrationState (): React.JSX.Element {
 
     const fetchAddress = async (): Promise<void> => {
       setIsLoadingAddress(true)
-      setAddressError(null)
+      setError(null)
 
       try {
         const { address } = await extensionAPI.requestAssetLockFundingAddress()
         setFundingAddress(address)
       } catch (e) {
-        setAddressError(e instanceof Error ? e.message : 'Failed to generate funding address')
+        setError(e instanceof Error ? e.message : 'Failed to generate funding address')
       } finally {
         setIsLoadingAddress(false)
       }
@@ -154,12 +152,19 @@ function IdentityRegistrationState (): React.JSX.Element {
     void navigate('/register-identity?stage=2')
   }
 
-  const handleProceedToPayment = (): void => {
+  const handleProceedToPayment = async () => {
     if (password.trim() === '') {
-      setPasswordError('Password is required to proceed')
+      setError('Password is required to proceed')
       return
     }
-    setPasswordError(null)
+
+    const passwordCheck = await extensionAPI.checkPassword(password)
+    if (!passwordCheck.success) {
+      setError('Invalid password')
+      return
+    }
+
+    setError(null)
     void navigate('/register-identity?stage=3')
   }
 
@@ -177,14 +182,15 @@ function IdentityRegistrationState (): React.JSX.Element {
     setFundingAddress(null)
     setTransactionHash('')
     setShowManualEntry(false)
-    void navigate('/register-identity?stage=2', { replace: true })
+    setError(null)
+    void navigate('/register-identity?stage=3', { replace: true })
   }
 
   if (hasError) {
     return (
       <RegistrationError
         stage={stage}
-        registrationError={registrationError}
+        registrationError={error}
         onReturnBack={handleReturnBack}
       />
     )
@@ -200,10 +206,10 @@ function IdentityRegistrationState (): React.JSX.Element {
         stage={stage}
         coinImage={coinImage}
         password={password}
-        passwordError={passwordError}
+        passwordError={error}
         onPasswordChange={(value) => {
           setPassword(value)
-          setPasswordError(null)
+          setError(null)
         }}
         onProceedToPayment={handleProceedToPayment}
       />
@@ -216,7 +222,7 @@ function IdentityRegistrationState (): React.JSX.Element {
         stage={stage}
         isLoadingAddress={isLoadingAddress}
         fundingAddress={fundingAddress}
-        addressError={addressError}
+        addressError={error}
         showManualEntry={showManualEntry}
         transactionHash={transactionHash}
         onShowManualEntry={() => setShowManualEntry(true)}
