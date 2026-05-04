@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams, useOutletContext } from 'react-router-dom'
-import { useStaticAsset } from '../../hooks/useStaticAsset'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { DashCoreSDK, Transaction } from 'dash-core-sdk'
+import { useSdk, useExtensionAPI, useStaticAsset } from '../../hooks'
+import { useCoreSDK } from '../../hooks/useCoreSDK'
 import type { LayoutContext } from '../../components/layout/Layout'
+import type { IdentityPreviewData, PublicKeyData } from '../../types'
 import { RegistrationError } from './stages/RegistrationError'
 import { Stage1Intro } from './stages/Stage1Intro'
 import { Stage2Fee } from './stages/Stage2Fee'
@@ -19,12 +19,8 @@ function IdentityRegistrationState (): React.JSX.Element {
   const context = useOutletContext<LayoutContext>()
   const { setHeaderConfigOverride } = context ?? {}
   const extensionAPI = useExtensionAPI()
-  const dashCoreSDK = new DashCoreSDK(
-    {
-      network: 'testnet',
-      dapiUrl: 'https://158.160.14.115:1443'
-      // poolLimit?: number;
-    })
+  const sdk = useSdk()
+  const coreSDK = useCoreSDK()
 
   const [showManualEntry, setShowManualEntry] = useState(false)
   const [transactionHash, setTransactionHash] = useState('')
@@ -36,8 +32,7 @@ function IdentityRegistrationState (): React.JSX.Element {
   const [hasUnfinishedRegistration, setHasUnfinishedRegistration] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
   const [registrationError, setRegistrationError] = useState<string | null>(null)
-  const [registeredIdentifier, setRegisteredIdentifier] = useState<string | null>(null)
-  const [error, setError] = useState('')
+  const [registeredIdentity, setRegisteredIdentity] = useState<IdentityPreviewData | null>(null)
 
   const coinBagelImage = useStaticAsset('coin_bagel.png')
   const coinImage = useStaticAsset('coin.png')
@@ -45,21 +40,36 @@ function IdentityRegistrationState (): React.JSX.Element {
   const stage = parseInt(searchParams.get('stage') ?? '1', 10) as Stage
   const hasError = searchParams.get('error') === 'true'
 
-  if (error !== '') {
-    console.log('error', error)
-  }
+  const runRegistration = useCallback(async (address: string, txid: string, pwd: string): Promise<void> => {
+    setIsRegistering(true)
+    setRegistrationError(null)
 
-  useEffect(() => {
-    const waitForPayment = async (): Promise<void> => {
-      if (fundingAddress != null) {
-        console.log('await for payment on address', fundingAddress)
-        const paymentRes = await dashCoreSDK.waitForPayment(fundingAddress)
-        console.log('paymentRes', paymentRes)
-      }
+    try {
+      const { identifier } = await extensionAPI.registerIdentity(address, txid, pwd)
+
+      const [balance, keys] = await Promise.all([
+        sdk.identities.getIdentityBalance(identifier),
+        sdk.identities.getIdentityPublicKeys(identifier)
+      ])
+
+      const publicKeys: PublicKeyData[] = keys.map(key => ({
+        keyId: key.keyId,
+        purpose: key.purpose,
+        securityLevel: key.securityLevel,
+        type: key.keyType,
+        isAvailable: key.disabledAt == null
+      }))
+
+      setRegisteredIdentity({ id: identifier, balance: balance.toString(), publicKeys })
+      void navigate('/register-identity?stage=5')
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Registration failed'
+      setRegistrationError(message)
+      void navigate('/register-identity?error=true')
+    } finally {
+      setIsRegistering(false)
     }
-
-    waitForPayment().catch((e) => setError(e))
-  }, [fundingAddress])
+  }, [extensionAPI, sdk, navigate])
 
   useEffect(() => {
     const checkPendingRegistration = async (): Promise<void> => {
@@ -68,6 +78,28 @@ function IdentityRegistrationState (): React.JSX.Element {
 
     void checkPendingRegistration()
   }, [extensionAPI])
+
+  useEffect(() => {
+    if (fundingAddress == null || stage !== 3) return
+
+    let cancelled = false
+
+    const detectPayment = async (): Promise<void> => {
+      try {
+        const { txid } = await coreSDK.waitForPayment(fundingAddress)
+        if (cancelled) return
+        setTransactionHash(txid)
+        void navigate('/register-identity?stage=4')
+        await runRegistration(fundingAddress, txid, password)
+      } catch (e) {
+        if (!cancelled) console.error('waitForPayment failed:', e)
+      }
+    }
+
+    detectPayment().catch(console.error)
+
+    return () => { cancelled = true }
+  }, [fundingAddress, stage, coreSDK, navigate, runRegistration, password])
 
   useEffect(() => {
     if (setHeaderConfigOverride == null) return
@@ -109,7 +141,7 @@ function IdentityRegistrationState (): React.JSX.Element {
       }
     }
 
-    fetchAddress().catch((e) => setError(e))
+    fetchAddress().catch(console.error)
   }, [stage, fundingAddress, extensionAPI])
 
   useEffect(() => {
@@ -117,16 +149,6 @@ function IdentityRegistrationState (): React.JSX.Element {
       void navigate('/register-identity?stage=3', { replace: true })
     }
   }, [stage, hasUnfinishedRegistration, navigate])
-
-  useEffect(() => {
-    if (stage === 4) {
-      const timer = setTimeout(() => {
-        void navigate('/register-identity?stage=5')
-      }, 5000)
-
-      return () => clearTimeout(timer)
-    }
-  }, [stage, navigate])
 
   const handleNext = (): void => {
     void navigate('/register-identity?stage=2')
@@ -142,17 +164,8 @@ function IdentityRegistrationState (): React.JSX.Element {
   }
 
   const handleConfirmPayment = (): void => {
-    if (transactionHash.trim() === '') return
-
-    const register = async (): Promise<void> => {
-      const getTransactionRes = await dashCoreSDK.getTransaction(transactionHash)
-      console.log('getTransactionRes', getTransactionRes)
-      console.log('getTransactionRes?.transaction', getTransactionRes?.transaction)
-      const coreTransaction = Transaction.fromBytes(getTransactionRes?.transaction)
-      console.log('coreTransaction', coreTransaction)
-    }
-
-    register().catch((e) => setError(e))
+    if (transactionHash.trim() === '' || fundingAddress == null) return
+    runRegistration(fundingAddress, transactionHash, password).catch(console.error)
     void navigate('/register-identity?stage=4')
   }
 
@@ -223,7 +236,7 @@ function IdentityRegistrationState (): React.JSX.Element {
   return (
     <Stage5Success
       stage={stage}
-      registeredIdentifier={registeredIdentifier}
+      identity={registeredIdentity}
       onDone={handleDone}
     />
   )
