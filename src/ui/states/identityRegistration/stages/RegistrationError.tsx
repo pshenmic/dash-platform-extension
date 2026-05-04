@@ -5,10 +5,11 @@ import { TitleBlock } from '../../../components/layout/TitleBlock'
 interface RegistrationErrorProps {
   stage: number
   registrationError: string | null
+  recoverable: boolean
   onReturnBack: () => void
 }
 
-export function RegistrationError ({ stage, registrationError, onReturnBack }: RegistrationErrorProps): React.JSX.Element {
+export function RegistrationError ({ stage, registrationError, recoverable, onReturnBack }: RegistrationErrorProps): React.JSX.Element {
   return (
     <div className='flex flex-col h-full pt-[90px]'>
       <TitleBlock
@@ -20,7 +21,7 @@ export function RegistrationError ({ stage, registrationError, onReturnBack }: R
         description={registrationError ?? 'An unexpected error occurred while registering identity.'}
         logoSize='3rem'
         showLogo
-        containerClassName='mb-0'
+        containerClassName='!mb-0'
       />
 
       <div className='flex-1' />
@@ -31,7 +32,7 @@ export function RegistrationError ({ stage, registrationError, onReturnBack }: R
           className='w-full'
           onClick={onReturnBack}
         >
-          Return Back
+          {recoverable ? 'Try Again' : 'Start Over'}
         </Button>
         <ProgressStepBar
           totalSteps={5}
