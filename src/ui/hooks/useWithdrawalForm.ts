@@ -102,11 +102,22 @@ export function useWithdrawalForm (
 
         const creditsAmount = Math.floor(dashValue * 1e11)
         setFormData(prev => ({ ...prev, amount: creditsAmount.toString() }))
+
+        const amountBigInt = BigInt(creditsAmount)
+        if (amountBigInt > 0n && amountBigInt < MIN_CREDIT_WITHDRAWAL) {
+          setError(`Minimum withdrawal amount is ${MIN_CREDIT_WITHDRAWAL.toLocaleString()} credits`)
+        } else if (amountBigInt > MAX_CREDIT_WITHDRAWAL) {
+          setError(`Maximum withdrawal amount is ${MAX_CREDIT_WITHDRAWAL.toLocaleString()} credits`)
+        } else {
+          setError(null)
+        }
       } else {
         setFormData(prev => ({ ...prev, amount: '' }))
+        setError(null)
       }
     } else {
       setFormData(prev => ({ ...prev, amount: '' }))
+      setError(null)
     }
   }, [equivalentCurrency, rate])
 
