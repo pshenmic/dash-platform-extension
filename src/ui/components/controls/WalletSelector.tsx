@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { OverlayMenu, PlusIcon, WalletIcon, ValueCard, DeleteIcon, EditIcon, KebabMenuIcon } from 'dash-ui-kit/react'
+import { OverlayMenu, PlusIcon, WalletIcon, KeyIcon, ValueCard, DeleteIcon, EditIcon, KebabMenuIcon } from 'dash-ui-kit/react'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks'
@@ -24,6 +24,14 @@ interface ActiveKebab {
 
 const walletLabel = (wallet: WalletAccountInfo, index: number): string =>
   wallet.label ?? `Wallet_${index + 1}`
+
+const WalletTypeIcon: React.FC<{ wallet: WalletAccountInfo, size?: number, className?: string }> = ({ wallet, size, className }) => (
+  <div style={{ width: size, height: size }} className={`flex items-center justify-center flex-shrink-0 ${className ?? ''}`}>
+    {wallet.type === 'keystore'
+      ? <KeyIcon size={13} color='currentColor' />
+      : <WalletIcon size={16} color='currentColor' />}
+  </div>
+)
 
 const IconWrap: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className='w-4 h-4 flex items-center justify-center flex-shrink-0'>{children}</div>
@@ -120,7 +128,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
 
   const triggerContent = (
     <div className='flex items-center gap-2 max-w-[120px]'>
-      <WalletIcon className='!text-dash-primary-dark-blue shrink-0' size={16} />
+      <WalletTypeIcon wallet={currentWallet} className='!text-dash-primary-dark-blue shrink-0' size={16} />
       <span className='text-sm font-medium truncate max-w-full'>{walletLabel(currentWallet, currentWalletIndex)}</span>
     </div>
   )
@@ -131,7 +139,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
       content: (
         <div className='flex items-center justify-between w-full max-w-[140px] min-w-0'>
           <div className='flex items-center gap-2 min-w-0'>
-            <IconWrap><WalletIcon className='w-full h-full shrink-0' /></IconWrap>
+            <WalletTypeIcon wallet={wallet} size={16} />
             <span className='text-sm truncate'>{walletLabel(wallet, index)}</span>
           </div>
           <button
