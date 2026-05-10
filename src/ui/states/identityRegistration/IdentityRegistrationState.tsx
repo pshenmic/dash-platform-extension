@@ -162,8 +162,11 @@ function IdentityRegistrationState (): React.JSX.Element {
   }
 
   const handleConfirmPayment = (): void => {
-    if (transactionHash.trim() === '' || fundingAddress == null) return
-    runRegistration(fundingAddress, transactionHash, password).catch(console.error)
+    if (password.trim() === '') {
+      void navigate('/register-identity?stage=2', { replace: true })
+      return
+    }
+    runRegistration(fundingAddress!, transactionHash, password).catch(console.error)
   }
 
   const handleDone = (): void => {
@@ -171,11 +174,15 @@ function IdentityRegistrationState (): React.JSX.Element {
   }
 
   const handleReturnBack = (): void => {
-    setFundingAddress(null)
     setTransactionHash('')
     setShowManualEntry(false)
     setError(null)
-    void navigate('/register-identity?stage=3', { replace: true })
+
+    if (password.trim() === '') {
+      void navigate('/register-identity?stage=2', { replace: true })
+    } else {
+      void navigate('/register-identity?stage=3', { replace: true })
+    }
   }
 
   if (hasError) {
