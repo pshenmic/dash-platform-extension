@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { OverlayMenu, PlusIcon, WalletIcon, KeyIcon, ValueCard, DeleteIcon, EditIcon, KebabMenuIcon } from 'dash-ui-kit/react'
+import { OverlayMenu, PlusIcon, WalletIcon, KeyIcon, ValueCard, DeleteIcon, EditIcon, KebabMenuIcon, Tooltip } from 'dash-ui-kit/react'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks'
@@ -25,13 +25,18 @@ interface ActiveKebab {
 const walletLabel = (wallet: WalletAccountInfo, index: number): string =>
   wallet.label ?? `Wallet_${index + 1}`
 
-const WalletTypeIcon: React.FC<{ wallet: WalletAccountInfo, size?: number, className?: string }> = ({ wallet, size, className }) => (
-  <div style={{ width: size, height: size }} className={`flex items-center justify-center flex-shrink-0 ${className ?? ''}`}>
-    {wallet.type === 'keystore'
-      ? <KeyIcon size={13} color='currentColor' />
-      : <WalletIcon size={16} color='currentColor' />}
-  </div>
-)
+const WalletTypeIcon: React.FC<{ wallet: WalletAccountInfo, size?: number, className?: string }> = ({ wallet, size, className }) => {
+  const isKeystore = wallet.type === 'keystore'
+  return (
+    <Tooltip content={isKeystore ? 'Key Store' : 'Seed Phrase'} side='top' sideOffset={4}>
+      <div style={{ width: size, height: size }} className={`flex items-center justify-center flex-shrink-0 ${className ?? ''}`}>
+        {isKeystore
+          ? <KeyIcon size={13} color='currentColor' />
+          : <WalletIcon size={size} color='currentColor' />}
+      </div>
+    </Tooltip>
+  )
+}
 
 const IconWrap: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className='w-4 h-4 flex items-center justify-center flex-shrink-0'>{children}</div>
