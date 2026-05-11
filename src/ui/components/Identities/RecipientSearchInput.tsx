@@ -132,6 +132,7 @@ export function RecipientSearchInput ({
               value={displayValue}
               onChange={handleInputChange}
               placeholder={placeholder}
+              spellCheck={false}
               className='flex-1 text-sm font-light text-dash-primary-dark-blue outline-none bg-transparent font-dash-grotesque'
             />
 
