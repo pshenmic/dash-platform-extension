@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button, Input, Text, CopyButton, ProgressStepBar } from 'dash-ui-kit/react'
 import { TitleBlock } from '../../../components/layout/TitleBlock'
 import { FieldLabel } from '../../../components/typography'
@@ -27,6 +27,13 @@ export function Stage3Payment ({
   onTransactionHashChange,
   onConfirmPayment
 }: Stage3PaymentProps): React.JSX.Element {
+  const [paymentReady, setPaymentReady] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPaymentReady(true), 10000)
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <div className='flex flex-col h-full'>
       <TitleBlock
@@ -85,38 +92,40 @@ export function Stage3Payment ({
         </div>
       </div>
 
-      <div className='flex flex-col gap-4 mt-6'>
-        {!showManualEntry
-          ? (
-            <Button
-              colorScheme='lightBlue'
-              className='w-full'
-              onClick={onShowManualEntry}
-            >
-              I made a payment
-            </Button>
-            )
-          : (
-            <div className='flex flex-col gap-2'>
-              <FieldLabel>Transaction ID (txid)</FieldLabel>
-              <Input
-                placeholder='64-character transaction hash'
-                value={transactionHash}
-                onChange={(e) => onTransactionHashChange(e.target.value)}
-              />
+      <div className={`flex flex-col gap-4 ${paymentReady ? 'mt-6' : 'mt-auto'}`}>
+        {paymentReady && (
+          !showManualEntry
+            ? (
               <Button
-                colorScheme='brand'
+                colorScheme='lightBlue'
                 className='w-full'
-                disabled={
-                  transactionHash.trim().length !== 64 ||
-                  fundingAddress == null
-                }
-                onClick={onConfirmPayment}
+                onClick={onShowManualEntry}
               >
-                Confirm
+                I made a payment
               </Button>
-            </div>
-            )}
+              )
+            : (
+              <div className='flex flex-col gap-2'>
+                <FieldLabel>Transaction ID (txid)</FieldLabel>
+                <Input
+                  placeholder='64-character transaction hash'
+                  value={transactionHash}
+                  onChange={(e) => onTransactionHashChange(e.target.value)}
+                />
+                <Button
+                  colorScheme='brand'
+                  className='w-full'
+                  disabled={
+                    transactionHash.trim().length !== 64 ||
+                    fundingAddress == null
+                  }
+                  onClick={onConfirmPayment}
+                >
+                  Confirm
+                </Button>
+              </div>
+              )
+        )}
         <ProgressStepBar totalSteps={5} currentStep={stage} />
       </div>
     </div>
