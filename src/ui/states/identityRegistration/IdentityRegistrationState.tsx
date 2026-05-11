@@ -166,7 +166,8 @@ function IdentityRegistrationState (): React.JSX.Element {
       void navigate('/register-identity?stage=2', { replace: true })
       return
     }
-    runRegistration(fundingAddress!, transactionHash, password).catch(console.error)
+    if (fundingAddress == null) return
+    runRegistration(fundingAddress, transactionHash, password).catch(console.error)
   }
 
   const handleDone = (): void => {
