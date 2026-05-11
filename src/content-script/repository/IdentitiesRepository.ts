@@ -109,6 +109,27 @@ export class IdentitiesRepository {
       ))
   }
 
+  async remove (identifier: string): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `identities_${network}_${walletId}`
+
+    const identities = (await this.storageAdapter.get(storageKey) ?? {}) as IdentitiesStoreSchema
+
+    if (identities[identifier] == null) {
+      return
+    }
+
+    const { [identifier]: _removed, ...rest } = identities
+
+    await this.storageAdapter.set(storageKey, rest)
+  }
+
   async getByIdentifier (identifier: string): Promise<Identity | null> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null

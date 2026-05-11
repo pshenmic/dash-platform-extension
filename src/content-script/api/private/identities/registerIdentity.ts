@@ -20,6 +20,7 @@ import {
   findNextLocalIdentityIndex,
   hexToBytes
 } from '../../../../utils'
+import { isStateTransitionAlreadyInChainError } from '../../../../utils/isStateTransitionAlreadyInChainError'
 import { WalletType } from '../../../../types/WalletType'
 import { TXID_HEX_LENGTH } from '../../../../constants'
 
@@ -124,7 +125,8 @@ export class RegisterIdentityHandler implements APIHandler {
     }
 
     // ── 5. Build asset lock transaction ─────────────────────────────────────
-    // Input + credit output both use the one-time funding address.
+    // Input + credit output both use the one-time funding address. The build
+    // is deterministic so the same inputs produce the same txid on retry.
     const { assetLockTx } = await buildAssetLockFromFundingTx(
       this.coreSDK,
       payload.assetLockFundingTxid,
@@ -132,16 +134,33 @@ export class RegisterIdentityHandler implements APIHandler {
       assetLockFundingPrivateKey.WIF()
     )
 
-    // ── 6. Broadcast the asset lock transaction ──────────────────────────────
-    // Open the instant lock subscription before broadcasting so we don't miss
-    // an instant lock that arrives before the subscription is established.
     const assetLockTxid = assetLockTx.hash()
+
+    if (
+      assetLockFundingAddressEntry.assetLockTxid != null &&
+      assetLockFundingAddressEntry.assetLockTxid !== assetLockTxid
+    ) {
+      throw new Error(
+        `Asset lock funding address ${payload.assetLockFundingAddress} is already broadcasted ` +
+        `with a different asset lock txid (${assetLockFundingAddressEntry.assetLockTxid})`
+      )
+    }
+
+    // ── 6. Broadcast the asset lock transaction (skip if already broadcast) ─
+    // The instant lock subscription is opened in both fresh and recovery modes
+    // because waitForAssetLockProof needs it to receive instant lock events
+    // for txs that are not yet chain-locked.
     const instantLockSub = this.coreSDK.subscribeToTransactions(
       [payload.assetLockFundingAddress],
       [hexToBytes(assetLockTxid)]
     )
 
-    await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
+    if (assetLockFundingAddressEntry.assetLockTxid == null) {
+      await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
+      // Persist the broadcasted txid before any further work so a crash leaves
+      // a recoverable record of the L1-committed asset lock.
+      await this.assetLockFundingAddressesRepository.markAsBroadcasted(payload.assetLockFundingAddress, assetLockTxid)
+    }
 
     // ── 7. Wait for instant lock or chain lock (whichever comes first) ──────
     const assetLockProof = await waitForAssetLockProof(
@@ -177,16 +196,43 @@ export class RegisterIdentityHandler implements APIHandler {
       throw new Error('Could not derive identity identifier from state transition')
     }
 
-    // ── 11. Broadcast the state transition ──────────────────────────────────
-    await this.sdk.stateTransitions.broadcast(stateTransition)
-
     const stateTransitionHash: string = stateTransition.hash(false)
 
-    // ── 12. Wait for confirmation ───────────────────────────────────────────
-    await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+    // ── 11. Persist identity in repo before broadcasting the state transition.
+    // If the broadcast fails with a non-idempotent error we roll back this
+    // record so the local state never contains a phantom identity. If the
+    // identifier is already present (e.g. previous attempt reached this step),
+    // we treat it as recovery and skip the create.
+    const existingIdentity = await this.identitiesRepository.getByIdentifier(identifier)
+    let wasJustCreated = false
 
-    // ── 13. Persist identity, mark funding address as used, switch identity ─
-    await this.identitiesRepository.create(identifier, IdentityType.regular, identityIndex)
+    if (existingIdentity == null) {
+      await this.identitiesRepository.create(identifier, IdentityType.regular, identityIndex)
+      wasJustCreated = true
+    }
+
+    // ── 12. Broadcast the state transition ──────────────────────────────────
+    let alreadyOnPlatform = false
+
+    try {
+      await this.sdk.stateTransitions.broadcast(stateTransition)
+    } catch (e) {
+      if (isStateTransitionAlreadyInChainError(e)) {
+        alreadyOnPlatform = true
+      } else {
+        if (wasJustCreated) {
+          await this.identitiesRepository.remove(identifier)
+        }
+        throw e
+      }
+    }
+
+    // ── 13. Wait for confirmation (skip if Platform already had the ST) ─────
+    if (!alreadyOnPlatform) {
+      await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+    }
+
+    // ── 14. Mark funding address as used and switch identity ────────────────
     await this.assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
     await this.walletRepository.switchIdentity(identifier)
 

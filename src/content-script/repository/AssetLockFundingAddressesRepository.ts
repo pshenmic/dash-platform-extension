@@ -62,6 +62,35 @@ export class AssetLockFundingAddressesRepository {
     await this.storageAdapter.set(storageKey, addresses)
   }
 
+  async markAsBroadcasted (address: string, assetLockTxid: string): Promise<void> {
+    const storageKey = await this.getStorageKey()
+    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
+
+    const entry = addresses[address]
+
+    if (entry == null) {
+      throw new Error(`Asset lock funding address ${address} not found`)
+    }
+
+    if (entry.used) {
+      throw new Error(`Asset lock funding address ${address} has already been used`)
+    }
+
+    if (entry.assetLockTxid != null && entry.assetLockTxid !== assetLockTxid) {
+      throw new Error(
+        `Asset lock funding address ${address} is already broadcasted with txid ${entry.assetLockTxid}`
+      )
+    }
+
+    if (entry.assetLockTxid === assetLockTxid) {
+      return
+    }
+
+    addresses[address] = { ...entry, assetLockTxid }
+
+    await this.storageAdapter.set(storageKey, addresses)
+  }
+
   async getByAddress (address: string): Promise<AssetLockFundingAddressSchema | null> {
     const storageKey = await this.getStorageKey()
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
@@ -73,7 +102,9 @@ export class AssetLockFundingAddressesRepository {
     const storageKey = await this.getStorageKey()
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
 
-    return Object.values(addresses).find(entry => !entry.used && entry.claimedForIdentityId == null) ?? null
+    return Object.values(addresses).find(
+      entry => !entry.used && entry.claimedForIdentityId == null && entry.assetLockTxid == null
+    ) ?? null
   }
 
   private async getStorageKey (): Promise<string> {

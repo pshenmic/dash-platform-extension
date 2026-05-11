@@ -114,10 +114,14 @@ describe('TopUpIdentityHandler', () => {
         address: assetLockFundingAddress,
         encryptedPrivateKey,
         used: false,
-        claimedForIdentityId: null
+        claimedForIdentityId: null,
+        assetLockTxid: null
       })),
       markAsClaimed: jest.fn(async () => {
         order.push('claim')
+      }),
+      markAsBroadcasted: jest.fn(async () => {
+        order.push('markBroadcasted')
       }),
       markAsUsed: jest.fn(async () => {
         order.push('markUsed')
@@ -214,6 +218,7 @@ describe('TopUpIdentityHandler', () => {
       'claim',
       'subscribe',
       'l1Broadcast',
+      'markBroadcasted',
       'waitProof',
       'platformBroadcast',
       'platformWait',
@@ -335,6 +340,39 @@ describe('TopUpIdentityHandler', () => {
 
     expect(assetLockFundingAddressesRepository.markAsClaimed).toHaveBeenCalledWith(assetLockFundingAddress, identityId)
     expect(assetLockFundingAddressesRepository.markAsUsed).not.toHaveBeenCalled()
+  })
+
+  test('skips Core broadcast on recovery when assetLockTxid already saved', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
+      address: assetLockFundingAddress,
+      encryptedPrivateKey,
+      used: false,
+      claimedForIdentityId: identityId,
+      assetLockTxid
+    })
+
+    await handle()
+
+    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
+    expect(coreSDK.subscribeToTransactions).toHaveBeenCalled()
+    expect(waitForAssetLockProofMock).toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
+  })
+
+  test('rejects when entry has assetLockTxid different from rebuilt asset lock txid', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
+      address: assetLockFundingAddress,
+      encryptedPrivateKey,
+      used: false,
+      claimedForIdentityId: identityId,
+      assetLockTxid: 'c'.repeat(64)
+    })
+
+    await expect(handle()).rejects.toThrow(/already broadcasted with a different asset lock txid/)
+
+    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsClaimed).not.toHaveBeenCalled()
   })
 })
 
@@ -541,5 +579,134 @@ describe('AssetLockFundingAddressesRepository top-up claim support', () => {
         claimedForIdentityId: 'identity'
       }
     })
+  })
+
+  test('findUnused skips entries with assetLockTxid set', async () => {
+    await storage.set(storageKey, {
+      broadcasted: {
+        address: 'broadcasted',
+        encryptedPrivateKey: 'k',
+        used: false,
+        claimedForIdentityId: null,
+        assetLockTxid: 'a'.repeat(64)
+      },
+      available: {
+        address: 'available',
+        encryptedPrivateKey: 'k',
+        used: false,
+        claimedForIdentityId: null,
+        assetLockTxid: null
+      }
+    })
+
+    await expect(repository.findUnused()).resolves.toEqual({
+      address: 'available',
+      encryptedPrivateKey: 'k',
+      used: false,
+      claimedForIdentityId: null,
+      assetLockTxid: null
+    })
+  })
+
+  test('markAsBroadcasted fails for missing entry', async () => {
+    await storage.set(storageKey, {})
+
+    await expect(repository.markAsBroadcasted('missing', 'a'.repeat(64))).rejects.toThrow(
+      'Asset lock funding address missing not found'
+    )
+  })
+
+  test('markAsBroadcasted fails for used entry', async () => {
+    await storage.set(storageKey, {
+      address: { address: 'address', encryptedPrivateKey: 'k', used: true, assetLockTxid: null }
+    })
+
+    await expect(repository.markAsBroadcasted('address', 'a'.repeat(64))).rejects.toThrow(
+      'Asset lock funding address address has already been used'
+    )
+  })
+
+  test('markAsBroadcasted fails when txid mismatches', async () => {
+    await storage.set(storageKey, {
+      address: { address: 'address', encryptedPrivateKey: 'k', used: false, assetLockTxid: 'a'.repeat(64) }
+    })
+
+    await expect(repository.markAsBroadcasted('address', 'b'.repeat(64))).rejects.toThrow(
+      /is already broadcasted with txid/
+    )
+  })
+
+  test('markAsBroadcasted is idempotent for the same txid', async () => {
+    const txid = 'a'.repeat(64)
+    await storage.set(storageKey, {
+      address: { address: 'address', encryptedPrivateKey: 'k', used: false, assetLockTxid: txid }
+    })
+
+    await repository.markAsBroadcasted('address', txid)
+
+    await expect(storage.get(storageKey)).resolves.toEqual({
+      address: { address: 'address', encryptedPrivateKey: 'k', used: false, assetLockTxid: txid }
+    })
+  })
+
+  test('markAsBroadcasted sets txid for fresh entry', async () => {
+    const txid = 'a'.repeat(64)
+    await storage.set(storageKey, {
+      address: { address: 'address', encryptedPrivateKey: 'k', used: false }
+    })
+
+    await repository.markAsBroadcasted('address', txid)
+
+    await expect(storage.get(storageKey)).resolves.toEqual({
+      address: { address: 'address', encryptedPrivateKey: 'k', used: false, assetLockTxid: txid }
+    })
+  })
+
+  test('markAsUsed preserves assetLockTxid', async () => {
+    const txid = 'a'.repeat(64)
+    await storage.set(storageKey, {
+      address: { address: 'address', encryptedPrivateKey: 'k', used: false, assetLockTxid: txid }
+    })
+
+    await repository.markAsUsed('address')
+
+    await expect(storage.get(storageKey)).resolves.toEqual({
+      address: { address: 'address', encryptedPrivateKey: 'k', used: true, assetLockTxid: txid }
+    })
+  })
+})
+
+describe('IdentitiesRepository remove', () => {
+  const storageKey = 'identities_testnet_wallet1'
+
+  let storage: TestStorageAdapter
+
+  beforeEach(async () => {
+    storage = new TestStorageAdapter()
+    await storage.set('network', 'testnet')
+    await storage.set('currentWalletId', 'wallet1')
+  })
+
+  test('removes existing identity by identifier', async () => {
+    await storage.set(storageKey, {
+      idA: { identifier: 'idA', index: 0, label: null, proTxHash: null, type: 'regular' },
+      idB: { identifier: 'idB', index: 1, label: null, proTxHash: null, type: 'regular' }
+    })
+
+    const { IdentitiesRepository } = await import('../../../../src/content-script/repository/IdentitiesRepository')
+    const repo = new IdentitiesRepository(storage, {} as any)
+
+    await repo.remove('idA')
+
+    await expect(storage.get(storageKey)).resolves.toEqual({
+      idB: { identifier: 'idB', index: 1, label: null, proTxHash: null, type: 'regular' }
+    })
+  })
+
+  test('remove is a no-op for missing identifier', async () => {
+    const { IdentitiesRepository } = await import('../../../../src/content-script/repository/IdentitiesRepository')
+    const repo = new IdentitiesRepository(storage, {} as any)
+
+    await expect(repo.remove('missing')).resolves.toBeUndefined()
   })
 })

@@ -62,6 +62,7 @@ export interface AssetLockFundingAddressSchema {
   encryptedPrivateKey: string
   used: boolean
   claimedForIdentityId?: string | null
+  assetLockTxid?: string | null
 }
 
 export interface AssetLockFundingAddressesSchema {

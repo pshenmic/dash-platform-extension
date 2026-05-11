@@ -86,6 +86,8 @@ export class TopUpIdentityHandler implements APIHandler {
 
     const assetLockFundingPrivateKey = PrivateKeyWASM.fromBytes(assetLockFundingKeyBytes, wallet.network)
 
+    // Build asset lock transaction. The build is deterministic so the same
+    // inputs produce the same txid on retry.
     const { assetLockTx } = await buildAssetLockFromFundingTx(
       this.coreSDK,
       payload.assetLockFundingTxid,
@@ -93,15 +95,34 @@ export class TopUpIdentityHandler implements APIHandler {
       assetLockFundingPrivateKey.WIF()
     )
 
+    const assetLockTxid = assetLockTx.hash()
+
+    if (
+      assetLockFundingAddressEntry.assetLockTxid != null &&
+      assetLockFundingAddressEntry.assetLockTxid !== assetLockTxid
+    ) {
+      throw new Error(
+        `Asset lock funding address ${payload.assetLockFundingAddress} is already broadcasted ` +
+        `with a different asset lock txid (${assetLockFundingAddressEntry.assetLockTxid})`
+      )
+    }
+
     await this.assetLockFundingAddressesRepository.markAsClaimed(payload.assetLockFundingAddress, payload.identityId)
 
-    const assetLockTxid = assetLockTx.hash()
+    // The instant lock subscription is opened in both fresh and recovery modes
+    // because waitForAssetLockProof needs it to receive instant lock events
+    // for txs that are not yet chain-locked.
     const instantLockSub = this.coreSDK.subscribeToTransactions(
       [payload.assetLockFundingAddress],
       [hexToBytes(assetLockTxid)]
     )
 
-    await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
+    if (assetLockFundingAddressEntry.assetLockTxid == null) {
+      await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
+      // Persist the broadcasted txid before any further work so a crash leaves
+      // a recoverable record of the L1-committed asset lock.
+      await this.assetLockFundingAddressesRepository.markAsBroadcasted(payload.assetLockFundingAddress, assetLockTxid)
+    }
 
     const assetLockProof = await waitForAssetLockProof(
       this.coreSDK,
