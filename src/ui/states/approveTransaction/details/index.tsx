@@ -6,6 +6,7 @@ import { StateTransitionTypeEnum } from '../../../../enums'
 import { BatchTransitionDetails } from './BatchTransitionDetails'
 import { IdentityUpdateDetails } from './IdentityUpdateDetails'
 import { IdentityCreditTransferDetails } from './IdentityCreditTransferDetails'
+import { IdentityCreditWithdrawalDetails } from './IdentityCreditWithdrawalDetails'
 import { MasternodeVoteDetails } from './MasternodeVoteDetails'
 import { TransactionInfoSection } from '../../../components/transactions'
 import TransactionHashBlock from '../../../components/transactions/TransactionHashBlock'
@@ -38,6 +39,8 @@ export function TransactionDetails ({
         return <BatchTransitionDetails data={data} />
       case 5:
         return <IdentityUpdateDetails data={data} />
+      case 6:
+        return <IdentityCreditWithdrawalDetails data={data} />
       case 7:
         return <IdentityCreditTransferDetails data={data} />
       case 8:

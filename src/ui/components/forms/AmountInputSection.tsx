@@ -64,7 +64,7 @@ export function AmountInputSection ({
           sizing='fill'
           containerClassName='flex-1 min-w-0'
           className='flex items-center gap-2 px-3 py-1 border-0 border-b border-solid border-[rgba(12,28,51,0.15)] rounded-xl'
-          inputClassName='text-dash-primary-dark-blue font-["Space_Grotesk"] font-bold text-[2rem] leading-[1.2] placeholder:text-[rgba(12,28,51,0.2)]'
+          inputClassName='text-dash-primary-dark-blue font-dash-grotesque font-bold text-[2rem] leading-[1.2] placeholder:text-[rgba(12,28,51,0.2)]'
           onChangeFilter={(value) => {
             const parsed = parseDecimalInput(value, assetDecimals)
             return parsed ?? amount
@@ -92,7 +92,7 @@ export function AmountInputSection ({
             sizing='auto'
             containerClassName='flex-shrink-0 max-w-[40%]'
             className='flex items-center gap-2 px-2 pl-2 py-1 border-0 border-b border-solid border-[rgba(12,28,51,0.15)] rounded-xl h-8'
-            inputClassName='text-dash-primary-dark-blue opacity-35 font-["Space_Grotesk"] font-medium text-[1rem] leading-[1.2] placeholder:text-[rgba(12,28,51,0.2)]'
+            inputClassName='text-dash-primary-dark-blue opacity-35 font-dash-grotesque font-medium text-[1rem] leading-[1.2] placeholder:text-[rgba(12,28,51,0.2)]'
             minWidth={48}
             onChangeFilter={(value) => {
               const decimals = equivalentCurrency === 'dash' ? 8 : 2
