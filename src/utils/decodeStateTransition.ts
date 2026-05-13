@@ -3,9 +3,11 @@ import {
   BatchTransitionWASM,
   IdentityUpdateTransitionWASM,
   IdentityCreditTransferWASM,
-  MasternodeVoteTransitionWASM
+  MasternodeVoteTransitionWASM,
+  DataContractUpdateTransitionWASM
 } from 'dash-platform-sdk/types'
 import { IdentityCreditWithdrawalTransitionWASM } from 'pshenmic-dpp'
+import { DataContractCreateTransitionWASM, PlatformVersionWASM } from 'pshenmic-dpp'
 import { StateTransitionTypeEnum, DocumentActionEnum, TokenActionEnum } from '../enums'
 import { DecodedStateTransition } from '../types'
 
@@ -188,6 +190,82 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
         indexName: masternodeVoteTransition.vote.votePoll.indexName,
         signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
         signature: signatureHex,
+        raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
+      }
+    }
+
+    case StateTransitionTypeEnum.DATA_CONTRACT_CREATE: {
+      const transition = DataContractCreateTransitionWASM.fromStateTransition(stateTransitionWASM)
+      const dataContract = transition.getDataContract(PlatformVersionWASM.PLATFORM_V9)
+      const config = dataContract.getConfig()
+      const groupsKeys = Object.keys(dataContract.groups ?? {})
+      const signatureCreate = stateTransitionWASM.signature
+      const signatureCreateHex = signatureCreate != null ? Buffer.from(signatureCreate).toString('hex') : null
+
+      return {
+        type: StateTransitionTypeEnum.DATA_CONTRACT_CREATE,
+        identityNonce: String(transition.identityNonce),
+        userFeeIncrease: stateTransitionWASM.userFeeIncrease,
+        dataContractId: dataContract.id.base58(),
+        ownerId: dataContract.ownerId.base58(),
+        version: dataContract.version,
+        schema: dataContract.getSchemas(),
+        tokens: dataContract.tokens ?? {},
+        groups: groupsKeys.map((key) => ({
+          position: Number(key),
+          members: dataContract.groups[key].members,
+          requiredPower: dataContract.groups[key].requiredPower
+        })),
+        internalConfig: {
+          canBeDeleted: config.canBeDeleted,
+          readonly: config.readonly,
+          keepsHistory: config.keepsHistory,
+          documentsKeepHistoryContractDefault: config.documentsKeepHistoryContractDefault,
+          documentsMutableContractDefault: config.documentsMutableContractDefault,
+          documentsCanBeDeletedContractDefault: config.documentsCanBeDeletedContractDefault,
+          requiresIdentityDecryptionBoundedKey: config.requiresIdentityDecryptionBoundedKey ?? null,
+          requiresIdentityEncryptionBoundedKey: config.requiresIdentityEncryptionBoundedKey ?? null
+        },
+        signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
+        signature: signatureCreateHex,
+        raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
+      }
+    }
+
+    case StateTransitionTypeEnum.DATA_CONTRACT_UPDATE: {
+      const transition = DataContractUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
+      const dataContract = transition.getDataContract(null, PlatformVersionWASM.PLATFORM_V9)
+      const config = dataContract.getConfig()
+      const groupsKeys = Object.keys(dataContract.groups ?? {})
+      const signatureUpdate = stateTransitionWASM.signature
+      const signatureUpdateHex = signatureUpdate != null ? Buffer.from(signatureUpdate).toString('hex') : null
+
+      return {
+        type: StateTransitionTypeEnum.DATA_CONTRACT_UPDATE,
+        identityContractNonce: String(transition.identityContractNonce),
+        userFeeIncrease: stateTransitionWASM.userFeeIncrease,
+        dataContractId: dataContract.id.base58(),
+        ownerId: dataContract.ownerId.base58(),
+        version: dataContract.version,
+        schema: dataContract.getSchemas(),
+        tokens: dataContract.tokens ?? {},
+        groups: groupsKeys.map((key) => ({
+          position: Number(key),
+          members: dataContract.groups[key].members,
+          requiredPower: dataContract.groups[key].requiredPower
+        })),
+        internalConfig: {
+          canBeDeleted: config.canBeDeleted,
+          readonly: config.readonly,
+          keepsHistory: config.keepsHistory,
+          documentsKeepHistoryContractDefault: config.documentsKeepHistoryContractDefault,
+          documentsMutableContractDefault: config.documentsMutableContractDefault,
+          documentsCanBeDeletedContractDefault: config.documentsCanBeDeletedContractDefault,
+          requiresIdentityDecryptionBoundedKey: config.requiresIdentityDecryptionBoundedKey ?? null,
+          requiresIdentityEncryptionBoundedKey: config.requiresIdentityEncryptionBoundedKey ?? null
+        },
+        signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
+        signature: signatureUpdateHex,
         raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
       }
     }
