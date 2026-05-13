@@ -16,7 +16,7 @@ export default function NoIdentities ({ walletType }: NoIdentitiesProps): React.
         title={walletType === 'seedphrase'
           ? <>You <Text weight='bold' color='blue' className='!text-[size:inherit] !leading-[inherit]'>Don't Have any Identities</Text> yet</>
           : <>You <Text weight='bold' color='blue' className='!text-[size:inherit] !leading-[inherit]'>Don't Have any Identities</Text> imported yet</>}
-        buttonText={walletType === 'seedphrase' ? 'Create identity' : 'Add an identity'}
+        buttonText={walletType === 'seedphrase' ? 'Register identity' : 'Import identity'}
         onButtonClick={() => {
           void navigate(walletType === 'seedphrase' ? '/register-identity' : '/select-import-type')
         }}

@@ -42,7 +42,7 @@ export const TitleBlock: React.FC<TitleBlockProps> = ({
       </Heading>
 
       {description !== null && description !== undefined && description !== '' && (
-        <div className='!leading-tight break-all'>
+        <div className='!leading-tight break-words'>
           <Text size='sm' dim>
             {description}
           </Text>
