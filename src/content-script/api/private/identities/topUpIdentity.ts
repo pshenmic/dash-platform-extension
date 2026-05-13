@@ -64,16 +64,6 @@ export class TopUpIdentityHandler implements APIHandler {
       throw new Error(`Asset lock funding address ${payload.assetLockFundingAddress} has already been used`)
     }
 
-    if (
-      assetLockFundingAddressEntry.claimedForIdentityId != null &&
-      assetLockFundingAddressEntry.claimedForIdentityId !== payload.identityId
-    ) {
-      throw new Error(
-        `Asset lock funding address ${payload.assetLockFundingAddress} is already claimed for identity ` +
-        `${assetLockFundingAddressEntry.claimedForIdentityId}`
-      )
-    }
-
     const passwordHash = hash.sha256().update(payload.password).digest('hex')
     const secretKey = PrivateKey.fromHex(passwordHash)
 
@@ -106,8 +96,6 @@ export class TopUpIdentityHandler implements APIHandler {
         `with a different asset lock txid (${assetLockFundingAddressEntry.assetLockTxid})`
       )
     }
-
-    await this.assetLockFundingAddressesRepository.markAsClaimed(payload.assetLockFundingAddress, payload.identityId)
 
     // The instant lock subscription is opened in both fresh and recovery modes
     // because waitForAssetLockProof needs it to receive instant lock events

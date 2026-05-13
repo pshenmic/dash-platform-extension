@@ -2,7 +2,6 @@ import { PrivateKey, encrypt } from 'eciesjs'
 import hash from 'hash.js'
 import { KeyType, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { TopUpIdentityHandler } from '../../../../src/content-script/api/private/identities/topUpIdentity'
-import { RegisterIdentityHandler } from '../../../../src/content-script/api/private/identities/registerIdentity'
 import { AssetLockFundingAddressesRepository } from '../../../../src/content-script/repository/AssetLockFundingAddressesRepository'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
 import { bytesToHex, hexToBytes } from '../../../../src/utils'
@@ -44,7 +43,6 @@ class TestStorageAdapter implements StorageAdapter {
 
 describe('TopUpIdentityHandler', () => {
   const identityId = 'HT3pUBM1Uv2mKgdPEN1gxa7A4PdsvNY89aJbdSKQb5wR'
-  const otherIdentityId = 'B7kcE1juMBWEWkuYRJhVdAE2e6RaevrGxRsa1DrLCpQH'
   const assetLockFundingAddress = 'yZPSYxHnNEc6TyZJx6AUrHkAZJcFgp5H9j'
   const assetLockFundingTxid = 'a'.repeat(64)
   const assetLockTxid = 'b'.repeat(64)
@@ -114,12 +112,8 @@ describe('TopUpIdentityHandler', () => {
         address: assetLockFundingAddress,
         encryptedPrivateKey,
         used: false,
-        claimedForIdentityId: null,
         assetLockTxid: null
       })),
-      markAsClaimed: jest.fn(async () => {
-        order.push('claim')
-      }),
       markAsBroadcasted: jest.fn(async () => {
         order.push('markBroadcasted')
       }),
@@ -211,11 +205,14 @@ describe('TopUpIdentityHandler', () => {
       KeyType.ECDSA_SECP256K1
     )
     expect(coreSDK.broadcastTransaction).toHaveBeenCalledWith(assetLockTx.bytes())
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted).toHaveBeenCalledWith(
+      assetLockFundingAddress,
+      assetLockTxid
+    )
     expect(sdk.stateTransitions.broadcast).toHaveBeenCalledWith(stateTransition)
     expect(sdk.stateTransitions.waitForStateTransitionResult).toHaveBeenCalledWith(stateTransition)
     expect(order).toEqual([
       'build',
-      'claim',
       'subscribe',
       'l1Broadcast',
       'markBroadcasted',
@@ -231,7 +228,7 @@ describe('TopUpIdentityHandler', () => {
 
     await expect(handle()).rejects.toThrow(`Identity ${identityId} does not belong to the current wallet`)
 
-    expect(assetLockFundingAddressesRepository.markAsClaimed).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
     expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
   })
@@ -241,7 +238,7 @@ describe('TopUpIdentityHandler', () => {
 
     await expect(handle()).rejects.toThrow(`Asset lock funding address ${assetLockFundingAddress} not found`)
 
-    expect(assetLockFundingAddressesRepository.markAsClaimed).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
@@ -250,33 +247,16 @@ describe('TopUpIdentityHandler', () => {
       address: assetLockFundingAddress,
       encryptedPrivateKey,
       used: true,
-      claimedForIdentityId: null
+      assetLockTxid: null
     })
 
     await expect(handle()).rejects.toThrow(`Asset lock funding address ${assetLockFundingAddress} has already been used`)
 
-    expect(assetLockFundingAddressesRepository.markAsClaimed).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
-  test('rejects funding address claimed for another identity', async () => {
-    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
-      address: assetLockFundingAddress,
-      encryptedPrivateKey,
-      used: false,
-      claimedForIdentityId: otherIdentityId
-    })
-
-    await expect(handle()).rejects.toThrow(
-      `Asset lock funding address ${assetLockFundingAddress} is already claimed for identity ${otherIdentityId}`
-    )
-
-    expect(buildAssetLockFromFundingTxMock).not.toHaveBeenCalled()
-    expect(assetLockFundingAddressesRepository.markAsClaimed).not.toHaveBeenCalled()
-    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
-  })
-
-  test('rejects wrong password without claiming or broadcasting', async () => {
+  test('rejects wrong password without broadcasting', async () => {
     await expect(handler.handle({
       context: 'dash-platform-extension',
       id: 'id',
@@ -290,17 +270,17 @@ describe('TopUpIdentityHandler', () => {
       }
     })).rejects.toThrow('Failed to decrypt asset lock funding key - wrong password or corrupted entry')
 
-    expect(assetLockFundingAddressesRepository.markAsClaimed).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
-  test('does not claim when asset-lock tx build fails', async () => {
+  test('does not broadcast when asset-lock tx build fails', async () => {
     const error = new Error('bad funding tx')
     buildAssetLockFromFundingTxMock.mockRejectedValueOnce(error)
 
     await expect(handle()).rejects.toThrow(error)
 
-    expect(assetLockFundingAddressesRepository.markAsClaimed).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
@@ -338,7 +318,10 @@ describe('TopUpIdentityHandler', () => {
 
     await expect(handle()).rejects.toThrow('platform rejected transition')
 
-    expect(assetLockFundingAddressesRepository.markAsClaimed).toHaveBeenCalledWith(assetLockFundingAddress, identityId)
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted).toHaveBeenCalledWith(
+      assetLockFundingAddress,
+      assetLockTxid
+    )
     expect(assetLockFundingAddressesRepository.markAsUsed).not.toHaveBeenCalled()
   })
 
@@ -347,7 +330,6 @@ describe('TopUpIdentityHandler', () => {
       address: assetLockFundingAddress,
       encryptedPrivateKey,
       used: false,
-      claimedForIdentityId: identityId,
       assetLockTxid
     })
 
@@ -365,83 +347,17 @@ describe('TopUpIdentityHandler', () => {
       address: assetLockFundingAddress,
       encryptedPrivateKey,
       used: false,
-      claimedForIdentityId: identityId,
       assetLockTxid: 'c'.repeat(64)
     })
 
     await expect(handle()).rejects.toThrow(/already broadcasted with a different asset lock txid/)
 
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
-    expect(assetLockFundingAddressesRepository.markAsClaimed).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
   })
 })
 
-describe('RegisterIdentityHandler claimed funding guard', () => {
-  test('rejects claimed funding address before L1 or Platform work', async () => {
-    const assetLockFundingAddress = 'yZPSYxHnNEc6TyZJx6AUrHkAZJcFgp5H9j'
-    const claimedForIdentityId = 'HT3pUBM1Uv2mKgdPEN1gxa7A4PdsvNY89aJbdSKQb5wR'
-    const coreSDK = {
-      broadcastTransaction: jest.fn()
-    }
-    const sdk = {
-      identities: {
-        getIdentityByPublicKeyHash: jest.fn(),
-        getIdentityByNonUniquePublicKeyHash: jest.fn()
-      },
-      stateTransitions: {
-        broadcast: jest.fn()
-      }
-    }
-    const handler = new RegisterIdentityHandler(
-      {
-        getCurrent: jest.fn(async () => ({
-          walletId: 'wallet1',
-          type: WalletType.seedphrase,
-          network: 'testnet',
-          label: null,
-          encryptedMnemonic: 'encryptedMnemonic',
-          seedHash: 'seedHash',
-          currentIdentity: null
-        }))
-      } as any,
-      {
-        getAll: jest.fn(async () => [])
-      } as any,
-      {
-        getByAddress: jest.fn(async () => ({
-          address: assetLockFundingAddress,
-          encryptedPrivateKey: 'encryptedPrivateKey',
-          used: false,
-          claimedForIdentityId
-        }))
-      } as any,
-      {} as any,
-      sdk as any,
-      coreSDK as any
-    )
-
-    await expect(handler.handle({
-      context: 'dash-platform-extension',
-      id: 'id',
-      method: 'REGISTER_IDENTITY',
-      type: 'request',
-      payload: {
-        assetLockFundingAddress,
-        assetLockFundingTxid: 'a'.repeat(64),
-        password: 'test'
-      }
-    })).rejects.toThrow(
-      `Asset lock funding address ${assetLockFundingAddress} is already claimed for a pending top-up ` +
-      `(identity ${claimedForIdentityId}) and cannot be used for registration`
-    )
-
-    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
-    expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
-    expect(sdk.identities.getIdentityByPublicKeyHash).not.toHaveBeenCalled()
-  })
-})
-
-describe('AssetLockFundingAddressesRepository top-up claim support', () => {
+describe('AssetLockFundingAddressesRepository broadcast support', () => {
   const storageKey = 'assetLockFundingAddresses_testnet_wallet1'
 
   let storage: TestStorageAdapter
@@ -454,147 +370,18 @@ describe('AssetLockFundingAddressesRepository top-up claim support', () => {
     repository = new AssetLockFundingAddressesRepository(storage)
   })
 
-  test('findUnused skips claimed entries', async () => {
-    await storage.set(storageKey, {
-      claimed: {
-        address: 'claimed',
-        encryptedPrivateKey: 'encryptedPrivateKey',
-        used: false,
-        claimedForIdentityId: 'identity'
-      },
-      available: {
-        address: 'available',
-        encryptedPrivateKey: 'encryptedPrivateKey',
-        used: false,
-        claimedForIdentityId: null
-      }
-    })
-
-    await expect(repository.findUnused()).resolves.toEqual({
-      address: 'available',
-      encryptedPrivateKey: 'encryptedPrivateKey',
-      used: false,
-      claimedForIdentityId: null
-    })
-  })
-
-  test('markAsClaimed fails for missing entry', async () => {
-    await storage.set(storageKey, {})
-
-    await expect(repository.markAsClaimed('missing', 'identity')).rejects.toThrow(
-      'Asset lock funding address missing not found'
-    )
-  })
-
-  test('markAsClaimed fails for used entry', async () => {
-    await storage.set(storageKey, {
-      address: {
-        address: 'address',
-        encryptedPrivateKey: 'encryptedPrivateKey',
-        used: true,
-        claimedForIdentityId: null
-      }
-    })
-
-    await expect(repository.markAsClaimed('address', 'identity')).rejects.toThrow(
-      'Asset lock funding address address has already been used'
-    )
-  })
-
-  test('markAsClaimed fails when claimed for another identity', async () => {
-    await storage.set(storageKey, {
-      address: {
-        address: 'address',
-        encryptedPrivateKey: 'encryptedPrivateKey',
-        used: false,
-        claimedForIdentityId: 'otherIdentity'
-      }
-    })
-
-    await expect(repository.markAsClaimed('address', 'identity')).rejects.toThrow(
-      'Asset lock funding address address is already claimed for identity otherIdentity'
-    )
-  })
-
-  test('markAsClaimed is idempotent for the same identity', async () => {
-    await storage.set(storageKey, {
-      address: {
-        address: 'address',
-        encryptedPrivateKey: 'encryptedPrivateKey',
-        used: false,
-        claimedForIdentityId: 'identity'
-      }
-    })
-
-    await repository.markAsClaimed('address', 'identity')
-
-    await expect(storage.get(storageKey)).resolves.toEqual({
-      address: {
-        address: 'address',
-        encryptedPrivateKey: 'encryptedPrivateKey',
-        used: false,
-        claimedForIdentityId: 'identity'
-      }
-    })
-  })
-
-  test('markAsClaimed claims unclaimed entry', async () => {
-    await storage.set(storageKey, {
-      address: {
-        address: 'address',
-        encryptedPrivateKey: 'encryptedPrivateKey',
-        used: false
-      }
-    })
-
-    await repository.markAsClaimed('address', 'identity')
-
-    await expect(storage.get(storageKey)).resolves.toEqual({
-      address: {
-        address: 'address',
-        encryptedPrivateKey: 'encryptedPrivateKey',
-        used: false,
-        claimedForIdentityId: 'identity'
-      }
-    })
-  })
-
-  test('markAsUsed preserves claimedForIdentityId', async () => {
-    await storage.set(storageKey, {
-      address: {
-        address: 'address',
-        encryptedPrivateKey: 'encryptedPrivateKey',
-        used: false,
-        claimedForIdentityId: 'identity'
-      }
-    })
-
-    await repository.markAsUsed('address')
-
-    await expect(storage.get(storageKey)).resolves.toEqual({
-      address: {
-        address: 'address',
-        encryptedPrivateKey: 'encryptedPrivateKey',
-        used: true,
-        claimedForIdentityId: 'identity'
-      }
-    })
-  })
-
   test('findUnused skips entries with assetLockTxid set', async () => {
     await storage.set(storageKey, {
       broadcasted: {
         address: 'broadcasted',
         encryptedPrivateKey: 'k',
         used: false,
-        claimedForIdentityId: null,
         assetLockTxid: 'a'.repeat(64)
       },
       available: {
         address: 'available',
         encryptedPrivateKey: 'k',
         used: false,
-        claimedForIdentityId: null,
         assetLockTxid: null
       }
     })
@@ -603,7 +390,6 @@ describe('AssetLockFundingAddressesRepository top-up claim support', () => {
       address: 'available',
       encryptedPrivateKey: 'k',
       used: false,
-      claimedForIdentityId: null,
       assetLockTxid: null
     })
   })

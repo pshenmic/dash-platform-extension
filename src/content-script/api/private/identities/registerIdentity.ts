@@ -76,13 +76,6 @@ export class RegisterIdentityHandler implements APIHandler {
       throw new Error(`Asset lock funding address ${payload.assetLockFundingAddress} has already been used for registration`)
     }
 
-    if (assetLockFundingAddressEntry.claimedForIdentityId != null) {
-      throw new Error(
-        `Asset lock funding address ${payload.assetLockFundingAddress} is already claimed for a pending top-up ` +
-        `(identity ${assetLockFundingAddressEntry.claimedForIdentityId}) and cannot be used for registration`
-      )
-    }
-
     // ── 3. Decrypt the one-time funding key ─────────────────────────────────
     // Per DIP-0011 the registration key (signs IdentityCreateTransition and
     // owns the asset lock credit output) must be single-use. The key was

@@ -109,7 +109,6 @@ describe('RegisterIdentityHandler', () => {
         address: assetLockFundingAddress,
         encryptedPrivateKey,
         used: false,
-        claimedForIdentityId: null,
         assetLockTxid: null
       })),
       markAsBroadcasted: jest.fn(async () => {
@@ -224,7 +223,6 @@ describe('RegisterIdentityHandler', () => {
       address: assetLockFundingAddress,
       encryptedPrivateKey,
       used: false,
-      claimedForIdentityId: null,
       assetLockTxid
     })
 
@@ -243,26 +241,10 @@ describe('RegisterIdentityHandler', () => {
       address: assetLockFundingAddress,
       encryptedPrivateKey,
       used: false,
-      claimedForIdentityId: null,
       assetLockTxid: 'c'.repeat(64)
     })
 
     await expect(handle()).rejects.toThrow(/already broadcasted with a different asset lock txid/)
-
-    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
-    expect(identitiesRepository.create).not.toHaveBeenCalled()
-  })
-
-  test('rejects funding address claimed for pending top-up', async () => {
-    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
-      address: assetLockFundingAddress,
-      encryptedPrivateKey,
-      used: false,
-      claimedForIdentityId: 'someOtherIdentity',
-      assetLockTxid: null
-    })
-
-    await expect(handle()).rejects.toThrow(/is already claimed for a pending top-up/)
 
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
     expect(identitiesRepository.create).not.toHaveBeenCalled()
@@ -273,7 +255,6 @@ describe('RegisterIdentityHandler', () => {
       address: assetLockFundingAddress,
       encryptedPrivateKey,
       used: true,
-      claimedForIdentityId: null,
       assetLockTxid: null
     })
 
