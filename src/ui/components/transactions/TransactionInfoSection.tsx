@@ -38,56 +38,62 @@ export function TransactionInfoSection ({
               edgeChars={5}
               middleEllipsis
               linesAdjustment={false}
-              className='max-w-full !text-[1.25rem]'
+              className='max-w-full !text-[1.25rem] flex-1'
             >
               {transactionHash}
             </Identifier>
           </TransactionDetailsCard>
         )}
 
-        <div className='flex gap-2.5'>
-          {timestamp != null && (
-            <div className='flex-1'>
-              <TransactionDetailsCard title='Timestamp:'>
-                {timestamp}
+        {/* Timestamp + Type */}
+        {(timestamp != null || transactionType != null) && (
+          <div className='flex gap-2.5'>
+            {timestamp != null && (
+              <TransactionDetailsCard className='flex-1' title='Timestamp:'>
+                <Text className='!text-[0.875rem] !font-medium text-dash-primary-dark-blue'>
+                  {timestamp}
+                </Text>
               </TransactionDetailsCard>
-            </div>
-          )}
-          {transactionType != null && (
-            <div className='flex-1'>
-              <TransactionDetailsCard title='Type:'>
-                <Text size='sm'>
+            )}
+            {transactionType != null && (
+              <TransactionDetailsCard className='flex-1' title='Type:'>
+                <Text className='!text-[0.875rem] !font-medium text-dash-primary-dark-blue'>
                   {TransactionTypesInfo[transactionType as TransactionTypeCode]?.title ?? transactionType}
                 </Text>
               </TransactionDetailsCard>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
+        {/* Block Hash */}
         {blockHash != null && (
           <TransactionDetailsCard title={`Block Hash${blockHeight != null ? ` (Height: ${blockHeight})` : ''}`}>
             <Identifier
               highlight='both'
               copyButton
-              ellipsis
+              middleEllipsis
+              edgeChars={5}
+              linesAdjustment={false}
+              className='!text-[1.25rem] flex-1'
             >
               {blockHash}
             </Identifier>
           </TransactionDetailsCard>
         )}
 
+        {/* Index + Status */}
         {(index != null || status != null) && (
           <div className='flex gap-2.5'>
             {index != null && (
-              <TransactionDetailsCard className='flex-1' title='Index'>
-                <Text size='lg'>
+              <TransactionDetailsCard className='flex-1' title='Index:'>
+                <Text className='!text-[0.875rem] !font-medium text-dash-primary-dark-blue'>
                   {index}
                 </Text>
               </TransactionDetailsCard>
             )}
             {status != null && (
-              <TransactionDetailsCard className='flex-1' title='Status'>
-                <Text size='lg'>
+              <TransactionDetailsCard className='flex-1' title='Status:'>
+                <Text className='!text-[1.25rem] !font-medium text-dash-brand font-dash-grotesque'>
                   {status}
                 </Text>
               </TransactionDetailsCard>

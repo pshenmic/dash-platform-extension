@@ -6,6 +6,7 @@ import {
   MasternodeVoteTransitionWASM,
   DataContractUpdateTransitionWASM
 } from 'dash-platform-sdk/types'
+import { IdentityCreditWithdrawalTransitionWASM } from 'pshenmic-dpp'
 import { DataContractCreateTransitionWASM, PlatformVersionWASM } from 'pshenmic-dpp'
 import { StateTransitionTypeEnum, DocumentActionEnum, TokenActionEnum } from '../enums'
 import { DecodedStateTransition } from '../types'
@@ -265,6 +266,36 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
         },
         signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
         signature: signatureUpdateHex,
+        raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
+      }
+    }
+
+    case StateTransitionTypeEnum.IDENTITY_CREDIT_WITHDRAWAL: {
+      const withdrawalTransition = IdentityCreditWithdrawalTransitionWASM.fromStateTransition(stateTransitionWASM)
+
+      const signature = stateTransitionWASM.signature
+      const signatureHex = signature != null ? Buffer.from(signature).toString('hex') : null
+
+      let outputScript: string | null = null
+      try {
+        const script = withdrawalTransition.outputScript
+        if (script != null) {
+          outputScript = Buffer.from(script.bytes()).toString('hex')
+        }
+      } catch (e) {
+        console.error('[decodeStateTransition] Failed to decode outputScript:', e)
+      }
+
+      return {
+        type: StateTransitionTypeEnum.IDENTITY_CREDIT_WITHDRAWAL,
+        identityId: withdrawalTransition.identityId.base58(),
+        identityNonce: String(withdrawalTransition.nonce),
+        amount: String(withdrawalTransition.amount),
+        pooling: withdrawalTransition.pooling,
+        outputScript,
+        userFeeIncrease: withdrawalTransition.userFeeIncrease,
+        signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
+        signature: signatureHex,
         raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
       }
     }

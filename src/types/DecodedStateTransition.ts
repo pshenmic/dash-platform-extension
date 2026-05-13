@@ -100,6 +100,16 @@ export interface DecodedDataContractUpdateTransition extends BaseDecodedStateTra
   internalConfig: DataContractInternalConfig
 }
 
+export interface DecodedIdentityCreditWithdrawalTransition extends BaseDecodedStateTransition {
+  type: 6
+  identityId: string
+  identityNonce: string
+  amount: string
+  pooling: string
+  outputScript: string | null
+  userFeeIncrease: number
+}
+
 export type DecodedStateTransition =
   | DecodedBatchTransition
   | DecodedIdentityUpdateTransition
@@ -107,3 +117,4 @@ export type DecodedStateTransition =
   | DecodedMasternodeVoteTransition
   | DecodedDataContractCreateTransition
   | DecodedDataContractUpdateTransition
+  | DecodedIdentityCreditWithdrawalTransition

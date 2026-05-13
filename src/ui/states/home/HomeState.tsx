@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import NoIdentities from './NoIdentities'
 import NoWallets from './NoWallets'
@@ -9,6 +9,7 @@ import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { usePlatformExplorerClient, type TransactionData, type NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { type TokenData } from '../../../types'
+import { IdentityType } from '../../../types/enums/IdentityType'
 import type { OutletContext } from '../../types/OutletContext'
 import { TransactionsList } from '../../components/transactions'
 import { TokensList } from '../../components/tokens'
@@ -22,7 +23,7 @@ function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
-  const { currentNetwork, currentWallet, currentIdentity, setCurrentIdentity, allWallets } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentWallet, currentIdentity, setCurrentIdentity, allWallets, availableIdentities } = useOutletContext<OutletContext>()
   const [identities, setIdentities] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [transactionsState, loadTransactions] = useAsyncState<TransactionData[]>()
@@ -30,6 +31,18 @@ function HomeState (): React.JSX.Element {
   const [namesState, loadNames] = useAsyncState<NameData[]>()
   const [balanceState, loadBalance] = useAsyncState<bigint>()
   const [rateState, loadRate] = useAsyncState<number>()
+  const [activeTab, setActiveTab] = useState('transactions')
+
+  const isMasternodeIdentity = useMemo(() => {
+    const identity = availableIdentities.find(i => i.identifier === currentIdentity)
+    return identity?.type === IdentityType.masternode
+  }, [availableIdentities, currentIdentity])
+
+  useEffect(() => {
+    if (isMasternodeIdentity && activeTab === 'names') {
+      setActiveTab('transactions')
+    }
+  }, [isMasternodeIdentity, activeTab])
 
   useEffect(() => {
     const loadIdentities = async (): Promise<void> => {
@@ -200,8 +213,8 @@ function HomeState (): React.JSX.Element {
         }}
         rightButton={{
           text: 'Withdraw',
-          onClick: () => {},
-          disabled: true
+          onClick: () => { void navigate('/withdrawal') },
+          disabled: currentIdentity === null || balanceState.data === null
         }}
       />
 
@@ -210,7 +223,8 @@ function HomeState (): React.JSX.Element {
         className='relative z-5  flex flex-col flex-grow gap-6 -mx-[0.875rem] -mb-[0.875rem] !rounded-b-none p-4 dash-shadow-lg'
       >
         <Tabs
-          defaultValue='transactions'
+          value={activeTab}
+          onValueChange={setActiveTab}
           items={[
             {
               value: 'transactions',
@@ -241,6 +255,7 @@ function HomeState (): React.JSX.Element {
             {
               value: 'names',
               label: 'Names',
+              disabled: isMasternodeIdentity,
               content: (
                 <NamesList
                   names={namesState.data ?? []}

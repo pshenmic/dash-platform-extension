@@ -181,13 +181,24 @@ export function useSendTransactionForm ({
 
         const creditsAmount = Math.floor(dashValue * 10e10)
         setFormData(prev => ({ ...prev, amount: creditsAmount.toString() }))
+
+        if (formData.selectedAsset === 'credits') {
+          const amountBigInt = BigInt(creditsAmount)
+          if (amountBigInt > 0n && amountBigInt < MIN_CREDIT_TRANSFER) {
+            setError(`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`)
+          } else {
+            setError(null)
+          }
+        }
       } else {
         setFormData(prev => ({ ...prev, amount: '' }))
+        setError(null)
       }
     } else if (parsed === '' || parsed === '.') {
       setFormData(prev => ({ ...prev, amount: '' }))
+      setError(null)
     }
-  }, [equivalentCurrency, rate])
+  }, [equivalentCurrency, rate, formData.selectedAsset])
 
   const handleQuickAmount = useCallback((percentage: number): void => {
     if (formData.selectedAsset === 'credits') {

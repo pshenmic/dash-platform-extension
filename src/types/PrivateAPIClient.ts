@@ -49,6 +49,9 @@ import { CreateIdentityPrivateKeyPayload } from './messages/payloads/CreateIdent
 import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIdentityPrivateKeyResponse'
 import { SetWalletLabelPayload } from './messages/payloads/SetWalletLabelPayload'
 import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
+import { RequestAssetLockFundingAddressResponse } from './messages/response/RequestAssetLockFundingAddressResponse'
+import { RegisterIdentityPayload } from './messages/payloads/RegisterIdentityPayload'
+import { RegisterIdentityResponse } from './messages/response/RegisterIdentityResponse'
 
 export class PrivateAPIClient {
   constructor () {
@@ -315,6 +318,27 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY, payload)
+  }
+
+  async requestAssetLockFundingAddress (): Promise<RequestAssetLockFundingAddressResponse> {
+    return await this._rpcCall(
+      MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS,
+      {}
+    )
+  }
+
+  async registerIdentity (
+    assetLockFundingAddress: string,
+    assetLockFundingTxid: string,
+    password: string
+  ): Promise<RegisterIdentityResponse> {
+    const payload: RegisterIdentityPayload = {
+      assetLockFundingAddress,
+      assetLockFundingTxid,
+      password
+    }
+
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
