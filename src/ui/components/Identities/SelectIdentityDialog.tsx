@@ -112,7 +112,7 @@ function SelectIdentityDialog ({ identities, currentIdentity, onSelectIdentity, 
                 }}
               >
                 <PlusIcon />
-                <div>Create identity</div>
+                <div>Register identity</div>
               </Button>
             )}
           </div>

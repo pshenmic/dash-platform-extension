@@ -63,8 +63,19 @@ export interface DecodedMasternodeVoteTransition extends BaseDecodedStateTransit
   ownerId: string
 }
 
+export interface DecodedIdentityCreditWithdrawalTransition extends BaseDecodedStateTransition {
+  type: 6
+  identityId: string
+  identityNonce: string
+  amount: string
+  pooling: string
+  outputScript: string | null
+  userFeeIncrease: number
+}
+
 export type DecodedStateTransition =
   | DecodedBatchTransition
   | DecodedIdentityUpdateTransition
   | DecodedIdentityCreditTransferTransition
   | DecodedMasternodeVoteTransition
+  | DecodedIdentityCreditWithdrawalTransition
