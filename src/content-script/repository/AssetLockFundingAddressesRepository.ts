@@ -75,7 +75,9 @@ export class AssetLockFundingAddressesRepository {
     const storageKey = await this.getStorageKey()
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
 
-    return Object.values(addresses).find(entry => !entry.used && entry.assetLockTxid == null) ?? null
+    return Object.values(addresses).find(
+      entry => !entry.used && entry.assetLockTxid == null
+    ) ?? null
   }
 
   private async getStorageKey (): Promise<string> {

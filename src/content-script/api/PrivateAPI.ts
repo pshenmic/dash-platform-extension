@@ -43,6 +43,7 @@ import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requ
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
 import { BroadcastError } from '../errors/BroadcastError'
 import { RemoveWalletHandler } from './private/wallet/removeWallet'
+import { TopUpIdentityHandler } from './private/identities/topUpIdentity'
 
 /**
  * Handlers for a messages within extension context
@@ -120,14 +121,8 @@ export class PrivateAPI {
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
       [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: new RequestAssetLockFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, this.sdk, this.storageAdapter),
-      [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
-        walletRepository,
-        identitiesRepository,
-        assetLockFundingAddressesRepository,
-        this.storageAdapter,
-        this.sdk,
-        this.coreSDK
-      )
+      [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(walletRepository, identitiesRepository, assetLockFundingAddressesRepository, this.storageAdapter, this.sdk, this.coreSDK),
+      [MessagingMethods.TOP_UP_IDENTITY]: new TopUpIdentityHandler(walletRepository, identitiesRepository, assetLockFundingAddressesRepository, this.sdk, this.coreSDK)
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {

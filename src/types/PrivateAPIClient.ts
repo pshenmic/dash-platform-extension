@@ -52,6 +52,8 @@ import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
 import { RequestAssetLockFundingAddressResponse } from './messages/response/RequestAssetLockFundingAddressResponse'
 import { RegisterIdentityPayload } from './messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from './messages/response/RegisterIdentityResponse'
+import { TopUpIdentityPayload } from './messages/payloads/TopUpIdentityPayload'
+import { TopUpIdentityResponse } from './messages/response/TopUpIdentityResponse'
 
 export class PrivateAPIClient {
   constructor () {
@@ -339,6 +341,22 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload)
+  }
+
+  async topUpIdentity (
+    identityId: string,
+    assetLockFundingAddress: string,
+    assetLockFundingTxid: string,
+    password: string
+  ): Promise<TopUpIdentityResponse> {
+    const payload: TopUpIdentityPayload = {
+      identityId,
+      assetLockFundingAddress,
+      assetLockFundingTxid,
+      password
+    }
+
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
