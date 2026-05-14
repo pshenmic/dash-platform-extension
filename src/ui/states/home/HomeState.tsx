@@ -3,7 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import NoIdentities from './NoIdentities'
 import NoWallets from './NoWallets'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
-import { Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs, RefreshIcon } from 'dash-ui-kit/react'
+import { Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs, RefreshIcon, EyeOpenIcon, EyeClosedIcon } from 'dash-ui-kit/react'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -32,6 +32,7 @@ function HomeState (): React.JSX.Element {
   const [balanceState, loadBalance] = useAsyncState<bigint>()
   const [rateState, loadRate] = useAsyncState<number>()
   const [activeTab, setActiveTab] = useState('transactions')
+  const [hideBalance, setHideBalance] = useState(false)
 
   const isMasternodeIdentity = useMemo(() => {
     const identity = availableIdentities.find(i => i.identifier === currentIdentity)
@@ -176,6 +177,15 @@ function HomeState (): React.JSX.Element {
               Balance:
             </Text>
             <button
+              onClick={() => { setHideBalance(prev => !prev) }}
+              className='w-6 h-6 flex items-center justify-center rounded-[5px] bg-[rgba(12,28,51,0.05)] cursor-pointer hover:bg-[rgba(12,28,51,0.1)] active:bg-[rgba(12,28,51,0.15)] transition-colors mt-[5px]'
+              aria-label={hideBalance ? 'Show balance' : 'Hide balance'}
+            >
+              {hideBalance
+                ? <EyeClosedIcon size={12} className='text-[#0C1C33]' />
+                : <EyeOpenIcon size={12} className='text-[#0C1C33]' />}
+            </button>
+            <button
               onClick={() => { void refreshData() }}
               disabled={balanceState.loading || transactionsState.loading}
               className='w-6 h-6 flex items-center justify-center rounded-[5px] bg-[rgba(12,28,51,0.05)] cursor-pointer hover:bg-[rgba(12,28,51,0.1)] active:bg-[rgba(12,28,51,0.15)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-[5px]'
@@ -189,29 +199,33 @@ function HomeState (): React.JSX.Element {
           </div>
           <span>
             {balanceState.loading
-                ? (
-                  <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                    <span className='text-gray-500'>...</span>
-                  </Text>
-                  )
-                : (balanceState.error != null && balanceState.error !== '')
+              ? (
+                <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
+                  <span className='text-gray-500'>...</span>
+                </Text>
+                )
+              : (balanceState.error != null && balanceState.error !== '')
+                  ? (
+                    <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
+                      <span className='text-red-500'>Error</span>
+                    </Text>
+                    )
+                  : balanceState.data !== null && balanceState.data !== undefined && !Number.isNaN(Number(balanceState.data))
                     ? (
                       <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                        <span className='text-red-500'>Error</span>
+                        {hideBalance
+                          ? <span className='text-dash-brand'>••••••</span>
+                          : (
+                            <BigNumber className='!text-dash-brand gap-2'>
+                              {balanceState.data.toString()}
+                            </BigNumber>
+                            )}
                       </Text>
                       )
-                    : balanceState.data !== null && balanceState.data !== undefined && !Number.isNaN(Number(balanceState.data))
-                      ? (
-                        <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                          <BigNumber className='!text-dash-brand gap-2'>
-                            {balanceState.data.toString()}
-                          </BigNumber>
-                        </Text>
-                        )
-                      : <NotActive>N/A</NotActive>}
+                    : <NotActive>N/A</NotActive>}
           </span>
 
-          <BalanceInfo balanceState={balanceState} rateState={rateState} />
+          <BalanceInfo balanceState={balanceState} rateState={rateState} hideAmounts={hideBalance} />
         </div>
       </div>
 
@@ -248,6 +262,7 @@ function HomeState (): React.JSX.Element {
                   rate={rateState.data}
                   currentNetwork={currentNetwork as NetworkType}
                   getTransactionExplorerUrl={platformExplorerClient.getTransactionExplorerUrl}
+                  hideAmounts={hideBalance}
                 />
               )
             },
