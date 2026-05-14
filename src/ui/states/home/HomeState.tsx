@@ -3,7 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import NoIdentities from './NoIdentities'
 import NoWallets from './NoWallets'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
-import { Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs } from 'dash-ui-kit/react'
+import { Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs, RefreshIcon, EyeOpenIcon, EyeClosedIcon } from 'dash-ui-kit/react'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -32,6 +32,13 @@ function HomeState (): React.JSX.Element {
   const [balanceState, loadBalance] = useAsyncState<bigint>()
   const [rateState, loadRate] = useAsyncState<number>()
   const [activeTab, setActiveTab] = useState('transactions')
+  const [hideBalance, setHideBalance] = useState(false)
+
+  useEffect(() => {
+    extensionAPI.getSettings()
+      .then(settings => { setHideBalance(settings.hideBalance) })
+      .catch(e => console.log('getSettings error', e))
+  }, [extensionAPI])
 
   const isMasternodeIdentity = useMemo(() => {
     const identity = availableIdentities.find(i => i.identifier === currentIdentity)
@@ -66,45 +73,45 @@ function HomeState (): React.JSX.Element {
       .catch(e => console.log('loadIdentities error', e))
   }, [currentNetwork, currentWallet, extensionAPI])
 
-  // Load Balance and Transactions by Identity
-  useEffect(() => {
-    const loadData = async (): Promise<void> => {
-      if (currentIdentity === null) return
+  const refreshData = async (): Promise<void> => {
+    if (currentIdentity === null) return
 
-      const sdkNetwork = sdk.getNetwork()
-      if (currentNetwork !== sdkNetwork) {
-        return
-      }
-
-      const currentWalletInfo = allWallets.find(wallet => wallet.walletId === currentWallet)
-      if ((currentWalletInfo != null) && currentWalletInfo.network !== currentNetwork) {
-        return
-      }
-
-      const storageIdentities = await extensionAPI.getIdentities()
-      const currentIdentityExists = storageIdentities.some(identity => identity.identifier === currentIdentity)
-      if (!currentIdentityExists) {
-        return
-      }
-
-      loadBalance(async () => {
-        return await sdk.identities.getIdentityBalance(currentIdentity)
-      }).catch(e => console.log('loadBalance error', e))
-
-      loadTransactions(async () => {
-        return await platformExplorerClient.fetchTransactions(currentIdentity, currentNetwork as NetworkType, 'desc')
-      }).catch(e => console.log('loadTransactions error', e))
-
-      loadTokens(async () => {
-        return await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
-      }).catch(e => console.log('loadTokens error:', e))
-
-      loadNames(async () => {
-        return await fetchNames(sdk, platformExplorerClient, currentIdentity, currentNetwork as NetworkType)
-      }).catch(e => console.log('loadNames error:', e))
+    const sdkNetwork = sdk.getNetwork()
+    if (currentNetwork !== sdkNetwork) {
+      return
     }
 
-    loadData().catch(e => console.log('loadData error:', e))
+    const currentWalletInfo = allWallets.find(wallet => wallet.walletId === currentWallet)
+    if ((currentWalletInfo != null) && currentWalletInfo.network !== currentNetwork) {
+      return
+    }
+
+    const storageIdentities = await extensionAPI.getIdentities()
+    const currentIdentityExists = storageIdentities.some(identity => identity.identifier === currentIdentity)
+    if (!currentIdentityExists) {
+      return
+    }
+
+    loadBalance(async () => {
+      return await sdk.identities.getIdentityBalance(currentIdentity)
+    }).catch(e => console.log('loadBalance error', e))
+
+    loadTransactions(async () => {
+      return await platformExplorerClient.fetchTransactions(currentIdentity, currentNetwork as NetworkType, 'desc')
+    }).catch(e => console.log('loadTransactions error', e))
+
+    loadTokens(async () => {
+      return await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
+    }).catch(e => console.log('loadTokens error:', e))
+
+    loadNames(async () => {
+      return await fetchNames(sdk, platformExplorerClient, currentIdentity, currentNetwork as NetworkType)
+    }).catch(e => console.log('loadNames error:', e))
+  }
+
+  // Load Balance and Transactions by Identity
+  useEffect(() => {
+    refreshData().catch(e => console.log('loadData error:', e))
   }, [
     currentIdentity,
     currentNetwork,
@@ -171,36 +178,64 @@ function HomeState (): React.JSX.Element {
 
       <div className='flex flex-col gap-4 w-full'>
         <div className='flex flex-col gap-[0.625rem]'>
-          <div className='flex flex-col'>
+          <div className='flex items-center gap-2'>
             <Text className='!text-[2.25rem] text-dash-primary-dark-blue !leading-[100%]'>
               Balance:
             </Text>
-            <span>
-              {balanceState.loading
-                ? (
-                  <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                    <span className='text-gray-500'>...</span>
-                  </Text>
-                  )
-                : (balanceState.error != null && balanceState.error !== '')
+            <button
+              onClick={() => {
+                const next = !hideBalance
+                setHideBalance(next)
+                extensionAPI.setSettings(next).catch(e => console.log('setSettings error', e))
+              }}
+              className='w-6 h-6 flex items-center justify-center rounded-[5px] bg-[rgba(12,28,51,0.05)] cursor-pointer hover:bg-[rgba(12,28,51,0.1)] active:bg-[rgba(12,28,51,0.15)] transition-colors mt-[5px]'
+              aria-label={hideBalance ? 'Show balance' : 'Hide balance'}
+            >
+              {hideBalance
+                ? <EyeClosedIcon size={12} className='text-[#0C1C33]' />
+                : <EyeOpenIcon size={12} className='text-[#0C1C33]' />}
+            </button>
+            <button
+              onClick={() => { void refreshData() }}
+              disabled={balanceState.loading || transactionsState.loading}
+              className='w-6 h-6 flex items-center justify-center rounded-[5px] bg-[rgba(12,28,51,0.05)] cursor-pointer hover:bg-[rgba(12,28,51,0.1)] active:bg-[rgba(12,28,51,0.15)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-[5px]'
+              aria-label='Refresh data'
+            >
+              <RefreshIcon
+                size={12}
+                className={(balanceState.loading || transactionsState.loading) ? 'animate-spin text-gray-400' : 'text-[#0C1C33]'}
+              />
+            </button>
+          </div>
+          <span>
+            {balanceState.loading
+              ? (
+                <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
+                  <span className='text-gray-500'>...</span>
+                </Text>
+                )
+              : (balanceState.error != null && balanceState.error !== '')
+                  ? (
+                    <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
+                      <span className='text-red-500'>Error</span>
+                    </Text>
+                    )
+                  : balanceState.data !== null && balanceState.data !== undefined && !Number.isNaN(Number(balanceState.data))
                     ? (
                       <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                        <span className='text-red-500'>Error</span>
+                        {hideBalance
+                          ? <span className='text-dash-brand'>••••••</span>
+                          : (
+                            <BigNumber className='!text-dash-brand gap-2'>
+                              {balanceState.data.toString()}
+                            </BigNumber>
+                            )}
                       </Text>
                       )
-                    : balanceState.data !== null && balanceState.data !== undefined && !Number.isNaN(Number(balanceState.data))
-                      ? (
-                        <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                          <BigNumber className='!text-dash-brand gap-2'>
-                            {balanceState.data.toString()}
-                          </BigNumber>
-                        </Text>
-                        )
-                      : <NotActive>N/A</NotActive>}
-            </span>
-          </div>
+                    : <NotActive>N/A</NotActive>}
+          </span>
 
-          <BalanceInfo balanceState={balanceState} rateState={rateState} />
+          <BalanceInfo balanceState={balanceState} rateState={rateState} hideAmounts={hideBalance} />
         </div>
       </div>
 
@@ -237,6 +272,7 @@ function HomeState (): React.JSX.Element {
                   rate={rateState.data}
                   currentNetwork={currentNetwork as NetworkType}
                   getTransactionExplorerUrl={platformExplorerClient.getTransactionExplorerUrl}
+                  hideAmounts={hideBalance}
                 />
               )
             },

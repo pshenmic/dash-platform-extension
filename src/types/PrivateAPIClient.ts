@@ -52,6 +52,8 @@ import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
 import { RequestAssetLockFundingAddressResponse } from './messages/response/RequestAssetLockFundingAddressResponse'
 import { RegisterIdentityPayload } from './messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from './messages/response/RegisterIdentityResponse'
+import { GetSettingsResponse } from './messages/response/GetSettingsResponse'
+import { SetSettingsPayload } from './messages/payloads/SetSettingsPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -339,6 +341,18 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload)
+  }
+
+  async getSettings (): Promise<GetSettingsResponse> {
+    const payload: EmptyPayload = {}
+
+    return await this._rpcCall(MessagingMethods.GET_SETTINGS, payload)
+  }
+
+  async setSettings (hideBalance: boolean): Promise<void> {
+    const payload: SetSettingsPayload = { hideBalance }
+
+    await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
