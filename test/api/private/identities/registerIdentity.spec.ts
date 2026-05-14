@@ -26,7 +26,8 @@ jest.mock('../../../../src/utils', () => {
   const actual = jest.requireActual('../../../../src/utils')
   return {
     ...actual,
-    deriveIdentityPrivateKey: jest.fn()
+    deriveIdentityPrivateKey: jest.fn(),
+    deriveIdentityRegistrationKey: jest.fn()
   }
 })
 
@@ -34,7 +35,7 @@ const buildAssetLockFromFundingTxMock = buildAssetLockFromFundingTx as jest.Mock
 const waitForAssetLockProofMock = waitForAssetLockProof as jest.MockedFunction<typeof waitForAssetLockProof>
 
 const { buildIdentityCreateTransition } = jest.requireMock('../../../../src/utils/identityRegistration')
-const { deriveIdentityPrivateKey } = jest.requireMock('../../../../src/utils')
+const { deriveIdentityPrivateKey, deriveIdentityRegistrationKey } = jest.requireMock('../../../../src/utils')
 
 describe('RegisterIdentityHandler', () => {
   const identifier = 'HT3pUBM1Uv2mKgdPEN1gxa7A4PdsvNY89aJbdSKQb5wR'
@@ -136,6 +137,9 @@ describe('RegisterIdentityHandler', () => {
         getIdentityByPublicKeyHash: jest.fn(async () => null),
         getIdentityByNonUniquePublicKeyHash: jest.fn(async () => null)
       },
+      keyPair: {
+        p2pkhAddress: jest.fn(() => 'yRegistrationAddress')
+      },
       stateTransitions: {
         broadcast: jest.fn(async () => {
           order.push('platformBroadcast')
@@ -157,6 +161,10 @@ describe('RegisterIdentityHandler', () => {
     })
 
     deriveIdentityPrivateKey.mockImplementation(async () => {
+      return PrivateKeyWASM.fromHex('3ca33236ab14f6df6cf87fcbb0551544fee7dcf4f251557af02c175725764a5a', 'testnet')
+    })
+
+    deriveIdentityRegistrationKey.mockImplementation(async () => {
       return PrivateKeyWASM.fromHex('3ca33236ab14f6df6cf87fcbb0551544fee7dcf4f251557af02c175725764a5a', 'testnet')
     })
 
