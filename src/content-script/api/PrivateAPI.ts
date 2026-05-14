@@ -43,6 +43,9 @@ import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requ
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
 import { BroadcastError } from '../errors/BroadcastError'
 import { RemoveWalletHandler } from './private/wallet/removeWallet'
+import { WalletSettingsRepository } from '../repository/WalletSettingsRepository'
+import { GetSettingsHandler } from './private/settings/getSettings'
+import { SetSettingsHandler } from './private/settings/setSettings'
 
 /**
  * Handlers for a messages within extension context
@@ -87,6 +90,7 @@ export class PrivateAPI {
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
     const assetLockFundingAddressesRepository = new AssetLockFundingAddressesRepository(this.storageAdapter)
+    const walletSettingsRepository = new WalletSettingsRepository(this.storageAdapter)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
@@ -127,7 +131,9 @@ export class PrivateAPI {
         this.storageAdapter,
         this.sdk,
         this.coreSDK
-      )
+      ),
+      [MessagingMethods.GET_SETTINGS]: new GetSettingsHandler(walletSettingsRepository),
+      [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository)
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {
