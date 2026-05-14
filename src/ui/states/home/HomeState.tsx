@@ -34,6 +34,12 @@ function HomeState (): React.JSX.Element {
   const [activeTab, setActiveTab] = useState('transactions')
   const [hideBalance, setHideBalance] = useState(false)
 
+  useEffect(() => {
+    extensionAPI.getSettings()
+      .then(settings => { setHideBalance(settings.hideBalance) })
+      .catch(e => console.log('getSettings error', e))
+  }, [extensionAPI])
+
   const isMasternodeIdentity = useMemo(() => {
     const identity = availableIdentities.find(i => i.identifier === currentIdentity)
     return identity?.type === IdentityType.masternode
@@ -177,7 +183,11 @@ function HomeState (): React.JSX.Element {
               Balance:
             </Text>
             <button
-              onClick={() => { setHideBalance(prev => !prev) }}
+              onClick={() => {
+                const next = !hideBalance
+                setHideBalance(next)
+                extensionAPI.setSettings(next).catch(e => console.log('setSettings error', e))
+              }}
               className='w-6 h-6 flex items-center justify-center rounded-[5px] bg-[rgba(12,28,51,0.05)] cursor-pointer hover:bg-[rgba(12,28,51,0.1)] active:bg-[rgba(12,28,51,0.15)] transition-colors mt-[5px]'
               aria-label={hideBalance ? 'Show balance' : 'Hide balance'}
             >
