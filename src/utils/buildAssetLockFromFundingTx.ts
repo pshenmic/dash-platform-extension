@@ -22,20 +22,22 @@ import {
  *  2. Confirm it's locked (instant/chain) or confirmed (>=1 confirmation)
  *  3. Aggregate ALL outputs paying to the asset lock funding address
  *  4. Build asset lock tx: one input per matching output, single credit
- *     output for the summed amount minus a fixed fee
+ *     output directed to creditOutputAddress
  *
  * Multiple matching outputs can occur when the sender's wallet uses coin
  * selection that produces several outputs to the same destination address
  * (e.g. dust). Ignoring extras would silently lose funds.
  *
- * The funding key is single-use per DIP-0011: it signs every input, owns
- * the credit output, and later signs the IdentityCreateTransition.
+ * The funding key signs every input. The credit output is owned by a
+ * separate key (per DIP-0013): the identity registration or top-up key
+ * derived from the wallet seed. That key later signs the Platform ST.
  */
 export const buildAssetLockFromFundingTx = async (
   coreSDK: DashCoreSDK,
   assetLockFundingTxid: string,
   assetLockFundingAddress: string,
-  assetLockFundingPrivateKeyWif: string
+  assetLockFundingPrivateKeyWif: string,
+  creditOutputAddress: string
 ): Promise<AssetLockBuildResult> => {
   const dapiTx = await coreSDK.getTransaction(assetLockFundingTxid).catch((e: unknown) => {
     throw new Error(`Could not load asset lock funding transaction ${assetLockFundingTxid}: ${e instanceof Error ? e.message : String(e)}`)
@@ -77,7 +79,7 @@ export const buildAssetLockFromFundingTx = async (
 
   const assetLockFundingPrivateKey = PrivateKey.fromWIF(assetLockFundingPrivateKeyWif)
   const lockingScript = Output.createP2PKH(0n, assetLockFundingPrivateKey.getAddress()).script
-  const creditOutput = Output.createP2PKH(lockedAmount, assetLockFundingAddress)
+  const creditOutput = Output.createP2PKH(lockedAmount, creditOutputAddress)
 
   const assetLockTx = new Transaction(
     [],

@@ -109,6 +109,19 @@ export const decryptMnemonic = (wallet: Wallet, password: string): string => {
   }
 }
 
+export const deriveIdentityRegistrationKey = async (wallet: Wallet, password: string, identityIndex: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+  const coinType = wallet.network === 'mainnet' ? 5 : 1
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, wallet.network as any)
+  const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, `m/9'/${coinType}'/5'/1'/${identityIndex}`)
+
+  if (privateKey == null) {
+    throw new Error('Could not derive identity registration key from wallet hd key')
+  }
+
+  return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+}
+
 export const deriveIdentityPrivateKey = async (wallet: Wallet, password: string, identityIndex: number, keyId: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
   const network = Network[wallet.network as keyof typeof Network]
   const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
