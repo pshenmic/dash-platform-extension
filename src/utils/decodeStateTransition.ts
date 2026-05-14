@@ -6,8 +6,7 @@ import {
   MasternodeVoteTransitionWASM,
   DataContractUpdateTransitionWASM
 } from 'dash-platform-sdk/types'
-import { IdentityCreditWithdrawalTransitionWASM } from 'pshenmic-dpp'
-import { DataContractCreateTransitionWASM, PlatformVersionWASM } from 'pshenmic-dpp'
+import { IdentityCreditWithdrawalTransitionWASM, DataContractCreateTransitionWASM, PlatformVersionWASM } from 'pshenmic-dpp'
 import { StateTransitionTypeEnum, DocumentActionEnum, TokenActionEnum } from '../enums'
 import { DecodedStateTransition } from '../types'
 
