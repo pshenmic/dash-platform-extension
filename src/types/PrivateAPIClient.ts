@@ -54,6 +54,8 @@ import { RegisterIdentityPayload } from './messages/payloads/RegisterIdentityPay
 import { RegisterIdentityResponse } from './messages/response/RegisterIdentityResponse'
 import { TopUpIdentityPayload } from './messages/payloads/TopUpIdentityPayload'
 import { TopUpIdentityResponse } from './messages/response/TopUpIdentityResponse'
+import { GetSettingsResponse } from './messages/response/GetSettingsResponse'
+import { SetSettingsPayload } from './messages/payloads/SetSettingsPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -357,6 +359,18 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload)
+  }
+
+  async getSettings (): Promise<GetSettingsResponse> {
+    const payload: EmptyPayload = {}
+
+    return await this._rpcCall(MessagingMethods.GET_SETTINGS, payload)
+  }
+
+  async setSettings (hideBalance: boolean): Promise<void> {
+    const payload: SetSettingsPayload = { hideBalance }
+
+    await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {

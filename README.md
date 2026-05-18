@@ -24,16 +24,20 @@ interface for developers to integrate their application and create transactions.
 
 ## Versioning
 
-### 1.3.x (WIP)
-- Identities Registration from seedphrase
+### 1.4.x (WIP)
+- Platform Addresses support
 
-### 1.2.x (WIP)
+### 1.3.x (Current)
+- Identities Registration
+- Withdrawals to Dash Core
+
+### 1.2.x
 - Identity Public Keys management (create new keys)
 - Export private key
 - Details on Transaction Approval screen
 - SDK improvements
 
-### 1.1.x (in stores)
+### 1.1.x
 - Masternode Identities
 - Credits / Token transfers
 

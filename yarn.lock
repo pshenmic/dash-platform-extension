@@ -3781,10 +3781,10 @@ dash-platform-sdk@1.3.2-dev.3:
     cbor-x "^1.6.0"
     pshenmic-dpp "1.1.2-dev.10"
 
-dash-ui-kit@2.1.1:
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/dash-ui-kit/-/dash-ui-kit-2.1.1.tgz#62a5e6db897b1e1f21f24a10885a4e7aa0cd6326"
-  integrity sha512-7wpDNnv21Zp2y7XzkSrkE5m3kd3yA2Kb3nVXuP0JRRr7f/SLL1QD5rA7i7y0Oi2Hw9pZmgQEXSVXohYQcSEmcg==
+dash-ui-kit@2.1.2:
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/dash-ui-kit/-/dash-ui-kit-2.1.2.tgz#4698da2d909e5e44695e107d95423e3538992529"
+  integrity sha512-ys1aRjTpm7fVkkinGN/5TO7jSrCKi5jbiY8G4OiB3xkieJqw4/y7LO6Np94qP6V8bWYF0dOA6sCfufQ37hi2OA==
   dependencies:
     "@radix-ui/react-accordion" "^1.2.12"
     "@radix-ui/react-dialog" "^1.1.14"
