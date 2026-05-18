@@ -128,16 +128,6 @@ export function Stage2Payment ({
               </div>
               )
         )}
-        {!paymentReady && (
-          <Button
-            variant='outline'
-            colorScheme='gray'
-            className='w-full'
-            onClick={onBack}
-          >
-            Back
-          </Button>
-        )}
         <ProgressStepBar totalSteps={4} currentStep={stage} />
       </div>
     </div>
