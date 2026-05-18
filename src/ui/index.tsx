@@ -21,6 +21,7 @@ import ChooseWalletType from './states/wallet/ChooseWalletType'
 import WalletSuccessfullyCreated from './states/importIdentity/WalletSuccessfullyCreated'
 import NameRegistrationState from './states/nameRegistration'
 import IdentityRegistrationState from './states/identityRegistration/IdentityRegistrationState'
+import TopUpIdentityState from './states/topup/TopUpIdentityState'
 import './styles/app.pcss'
 
 const App: React.FC = function () {
@@ -170,6 +171,15 @@ const App: React.FC = function () {
           handle: {
             headerProps: {
               variant: 'identityRegistration'
+            }
+          }
+        },
+        {
+          path: '/topup-identity',
+          element: <PageWithHeader><TopUpIdentityState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'simple'
             }
           }
         },
