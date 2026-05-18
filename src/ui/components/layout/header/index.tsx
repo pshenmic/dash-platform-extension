@@ -20,7 +20,7 @@ const IMAGE_VARIANTS = {
   coin: {
     src: 'coin.png',
     alt: 'Dash coin',
-    imgClasses: '-mt-[15%] !w-[450px]',
+    imgClasses: '-mt-[15%] !w-[450px] [mask-image:linear-gradient(to_bottom,transparent_20%,black_70%)]',
     containerClasses: 'absolute -top-[90%] -right-[32%] flex justify-center'
   },
   app: {
