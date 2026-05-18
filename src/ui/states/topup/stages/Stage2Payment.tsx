@@ -1,0 +1,145 @@
+import React, { useState, useEffect } from 'react'
+import { Button, Input, Text, CopyButton, ProgressStepBar } from 'dash-ui-kit/react'
+import { TitleBlock } from '../../../components/layout/TitleBlock'
+import { FieldLabel } from '../../../components/typography'
+import { QRCodeSVG } from 'qrcode.react'
+
+interface Stage2PaymentProps {
+  stage: number
+  isLoadingAddress: boolean
+  fundingAddress: string | null
+  addressError: string | null
+  showManualEntry: boolean
+  transactionHash: string
+  onShowManualEntry: () => void
+  onTransactionHashChange: (value: string) => void
+  onConfirmPayment: () => void
+  onBack: () => void
+}
+
+export function Stage2Payment ({
+  stage,
+  isLoadingAddress,
+  fundingAddress,
+  addressError,
+  showManualEntry,
+  transactionHash,
+  onShowManualEntry,
+  onTransactionHashChange,
+  onConfirmPayment,
+  onBack
+}: Stage2PaymentProps): React.JSX.Element {
+  const [paymentReady, setPaymentReady] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPaymentReady(true), 10000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  return (
+    <div className='flex flex-col h-full'>
+      <TitleBlock
+        title='Waiting for Payment'
+        description="Your private keys are stored securely and never leave this device. Send any desired amount to the address below and we'll do the top-up process for you."
+        logoSize='3rem'
+        showLogo
+        containerClassName='mb-0'
+      />
+
+      <div className='mt-6'>
+        <div className='bg-dash-primary-dark-blue/[0.04] rounded-3xl p-6 flex gap-6 items-center'>
+          <div className='flex-shrink-0'>
+            {isLoadingAddress
+              ? (
+                <div className='w-[100px] h-[100px] flex items-center justify-center'>
+                  <Text size='xs' dim>Loading...</Text>
+                </div>
+                )
+              : (
+                <QRCodeSVG
+                  value={fundingAddress ?? ''}
+                  fgColor='#4C7EFF'
+                  bgColor='transparent'
+                  size={100}
+                />
+                )}
+          </div>
+          <div className='flex flex-col gap-1 flex-1 min-w-0'>
+            {addressError != null
+              ? (
+                <Text size='sm' className='text-red-500 break-all'>{addressError}</Text>
+                )
+              : (
+                <>
+                  <div className='flex items-center gap-2'>
+                    <Text
+                      size='sm'
+                      weight='medium'
+                      className='text-dash-primary-dark-blue leading-[1.366em] tracking-[-0.01em] break-all'
+                    >
+                      {isLoadingAddress ? 'Generating address…' : (fundingAddress ?? '')}
+                    </Text>
+                    {fundingAddress != null && !isLoadingAddress && (
+                      <div className='flex-shrink-0'>
+                        <CopyButton text={fundingAddress} />
+                      </div>
+                    )}
+                  </div>
+                  <Text className='text-xs' dim>
+                    You can send any amount convenient for you (over 0.1 Dash). We are ready to accept a transfer at any time!
+                  </Text>
+                </>
+                )}
+          </div>
+        </div>
+      </div>
+
+      <div className={`flex flex-col gap-4 ${paymentReady ? 'mt-6' : 'mt-auto'}`}>
+        {paymentReady && (
+          !showManualEntry
+            ? (
+              <Button
+                colorScheme='lightBlue'
+                className='w-full'
+                onClick={onShowManualEntry}
+              >
+                Enter Manually
+              </Button>
+              )
+            : (
+              <div className='flex flex-col gap-2'>
+                <FieldLabel>Transaction Hash</FieldLabel>
+                <Input
+                  placeholder='Enter the Transaction Hash'
+                  value={transactionHash}
+                  onChange={(e) => onTransactionHashChange(e.target.value)}
+                />
+                <Button
+                  colorScheme='brand'
+                  className='w-full'
+                  disabled={
+                    transactionHash.trim().length !== 64 ||
+                    fundingAddress == null
+                  }
+                  onClick={onConfirmPayment}
+                >
+                  Confirm
+                </Button>
+              </div>
+              )
+        )}
+        {!paymentReady && (
+          <Button
+            variant='outline'
+            colorScheme='gray'
+            className='w-full'
+            onClick={onBack}
+          >
+            Back
+          </Button>
+        )}
+        <ProgressStepBar totalSteps={4} currentStep={stage} />
+      </div>
+    </div>
+  )
+}
