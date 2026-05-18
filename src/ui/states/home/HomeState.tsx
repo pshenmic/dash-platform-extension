@@ -247,7 +247,7 @@ function HomeState (): React.JSX.Element {
         </Button>
         <Button
           className='flex-1'
-          disabled={currentIdentity === null}
+          disabled={currentIdentity === null || balanceState.data === null}
           onClick={() => { void navigate('/topup-identity') }}
         >
           Top Up
