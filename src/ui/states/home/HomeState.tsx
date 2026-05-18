@@ -3,7 +3,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom'
 import NoIdentities from './NoIdentities'
 import NoWallets from './NoWallets'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
-import { Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs } from 'dash-ui-kit/react'
+import { Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs, Button } from 'dash-ui-kit/react'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -16,8 +16,6 @@ import { TokensList } from '../../components/tokens'
 import { NamesList, type NameData } from '../../components/names'
 import { BalanceInfo } from '../../components/data'
 import { fetchNames } from '../../../utils'
-import ButtonRow from '../../components/layout/ButtonRow'
-
 function HomeState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
@@ -204,19 +202,29 @@ function HomeState (): React.JSX.Element {
         </div>
       </div>
 
-      <ButtonRow
-        leftButton={{
-          text: 'Send',
-          onClick: () => { void navigate('/send-transaction') },
-          colorScheme: 'brand',
-          disabled: currentIdentity === null || balanceState.data === null
-        }}
-        rightButton={{
-          text: 'Withdraw',
-          onClick: () => { void navigate('/withdrawal') },
-          disabled: currentIdentity === null || balanceState.data === null
-        }}
-      />
+      <div className='flex gap-2 w-full'>
+        <Button
+          className='flex-1'
+          disabled={currentIdentity === null || balanceState.data === null}
+          onClick={() => { void navigate('/send-transaction') }}
+        >
+          Send
+        </Button>
+        <Button
+          className='flex-1'
+          disabled={currentIdentity === null}
+          onClick={() => { void navigate('/topup-identity') }}
+        >
+          Top Up
+        </Button>
+        <Button
+          className='flex-1'
+          disabled={currentIdentity === null || balanceState.data === null}
+          onClick={() => { void navigate('/withdrawal') }}
+        >
+          Withdraw
+        </Button>
+      </div>
 
       <ValueCard
         border={false}
