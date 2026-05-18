@@ -63,6 +63,43 @@ export interface DecodedMasternodeVoteTransition extends BaseDecodedStateTransit
   ownerId: string
 }
 
+interface DataContractInternalConfig {
+  canBeDeleted: boolean
+  readonly: boolean
+  keepsHistory: boolean
+  documentsKeepHistoryContractDefault: boolean
+  documentsMutableContractDefault: boolean
+  documentsCanBeDeletedContractDefault: boolean
+  requiresIdentityDecryptionBoundedKey: number | null
+  requiresIdentityEncryptionBoundedKey: number | null
+}
+
+export interface DecodedDataContractCreateTransition extends BaseDecodedStateTransition {
+  type: 0
+  identityNonce: string
+  userFeeIncrease: number
+  dataContractId: string
+  ownerId: string
+  version: number
+  schema: any
+  tokens: any
+  groups: Array<{ position: number, members: any, requiredPower: number }>
+  internalConfig: DataContractInternalConfig
+}
+
+export interface DecodedDataContractUpdateTransition extends BaseDecodedStateTransition {
+  type: 4
+  identityContractNonce: string
+  userFeeIncrease: number
+  dataContractId: string
+  ownerId: string
+  version: number
+  schema: any
+  tokens: any
+  groups: Array<{ position: number, members: any, requiredPower: number }>
+  internalConfig: DataContractInternalConfig
+}
+
 export interface DecodedIdentityCreditWithdrawalTransition extends BaseDecodedStateTransition {
   type: 6
   identityId: string
@@ -78,4 +115,6 @@ export type DecodedStateTransition =
   | DecodedIdentityUpdateTransition
   | DecodedIdentityCreditTransferTransition
   | DecodedMasternodeVoteTransition
+  | DecodedDataContractCreateTransition
+  | DecodedDataContractUpdateTransition
   | DecodedIdentityCreditWithdrawalTransition

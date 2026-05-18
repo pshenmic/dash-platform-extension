@@ -17,6 +17,7 @@ import { waitForAssetLockProof } from '../../../../utils/waitForAssetLockProof'
 import { IDENTITY_KEY_DEFINITIONS, buildIdentityCreateTransition } from '../../../../utils/identityRegistration'
 import {
   deriveIdentityPrivateKey,
+  deriveIdentityRegistrationKey,
   findNextLocalIdentityIndex,
   hexToBytes
 } from '../../../../utils'
@@ -77,11 +78,9 @@ export class RegisterIdentityHandler implements APIHandler {
     }
 
     // ── 3. Decrypt the one-time funding key ─────────────────────────────────
-    // Per DIP-0011 the registration key (signs IdentityCreateTransition and
-    // owns the asset lock credit output) must be single-use. The key was
-    // generated as random 256-bit at requestAssetLockFundingAddress time and
-    // serves three roles: signs the asset lock tx input, owns the credit
-    // output, signs the IdentityCreateTransition.
+    // The funding key signs the asset lock tx inputs only. Credit output
+    // ownership and Platform ST signing are handled by identityRegistrationKey
+    // derived in step 5 (DIP-0013).
     const passwordHash = hash.sha256().update(payload.password).digest('hex')
     const secretKey = PrivateKey.fromHex(passwordHash)
 
@@ -117,14 +116,21 @@ export class RegisterIdentityHandler implements APIHandler {
       identityIndex++
     }
 
-    // ── 5. Build asset lock transaction ─────────────────────────────────────
-    // Input + credit output both use the one-time funding address. The build
-    // is deterministic so the same inputs produce the same txid on retry.
+    // ── 5. Derive identity registration key (DIP-0013 path 5'/1'/index) ────
+    // This key owns the asset lock credit output and signs the
+    // IdentityCreateTransition. Derived from seed — recoverable without storage.
+    const identityRegistrationKey = await deriveIdentityRegistrationKey(wallet, payload.password, identityIndex, this.sdk)
+    const creditOutputAddress = this.sdk.keyPair.p2pkhAddress(identityRegistrationKey.getPublicKey().bytes(), wallet.network as any)
+
+    // ── 6. Build asset lock transaction ─────────────────────────────────────
+    // Inputs are signed by the one-time funding key. Credit output goes to
+    // creditOutputAddress (registration key). Build is deterministic on retry.
     const { assetLockTx } = await buildAssetLockFromFundingTx(
       this.coreSDK,
       payload.assetLockFundingTxid,
       payload.assetLockFundingAddress,
-      assetLockFundingPrivateKey.WIF()
+      assetLockFundingPrivateKey.WIF(),
+      creditOutputAddress
     )
 
     const assetLockTxid = assetLockTx.hash()
@@ -139,7 +145,7 @@ export class RegisterIdentityHandler implements APIHandler {
       )
     }
 
-    // ── 6. Broadcast the asset lock transaction (skip if already broadcast) ─
+    // ── 7. Broadcast the asset lock transaction (skip if already broadcast) ─
     // The instant lock subscription is opened in both fresh and recovery modes
     // because waitForAssetLockProof needs it to receive instant lock events
     // for txs that are not yet chain-locked.
@@ -155,7 +161,7 @@ export class RegisterIdentityHandler implements APIHandler {
       await this.assetLockFundingAddressesRepository.markAsBroadcasted(payload.assetLockFundingAddress, assetLockTxid)
     }
 
-    // ── 7. Wait for instant lock or chain lock (whichever comes first) ──────
+    // ── 8. Wait for instant lock or chain lock (whichever comes first) ──────
     const assetLockProof = await waitForAssetLockProof(
       this.coreSDK,
       this.sdk,
@@ -164,7 +170,7 @@ export class RegisterIdentityHandler implements APIHandler {
       instantLockSub
     )
 
-    // ── 8. Derive all identity key pairs (HD-derived for recoverability) ────
+    // ── 9. Derive all identity key pairs (HD-derived for recoverability) ────
     const identityPrivateKeys: PrivateKeyWASM[] = []
 
     for (const { id } of IDENTITY_KEY_DEFINITIONS) {
@@ -173,16 +179,17 @@ export class RegisterIdentityHandler implements APIHandler {
       )
     }
 
-    // ── 9. Build and sign identity create state transition ──────────────────
-    // Signed by the one-time funding key (= asset lock credit output owner).
+    // ── 10. Build and sign identity create state transition ─────────────────
+    // Signed by the identity registration key (DIP-0013) which owns the credit
+    // output. The funding key is not used for Platform signing.
     const stateTransition = buildIdentityCreateTransition(
       identityPrivateKeys,
-      assetLockFundingPrivateKey,
+      identityRegistrationKey,
       assetLockProof,
       this.sdk
     )
 
-    // ── 10. Derive the new identity identifier ──────────────────────────────
+    // ── 11. Derive the new identity identifier ──────────────────────────────
     const identifier = stateTransition.getOwnerId()?.base58()
 
     if (identifier == null || identifier === '') {
@@ -191,7 +198,7 @@ export class RegisterIdentityHandler implements APIHandler {
 
     const stateTransitionHash: string = stateTransition.hash(false)
 
-    // ── 11. Persist identity in repo before broadcasting the state transition.
+    // ── 12. Persist identity in repo before broadcasting the state transition.
     // If the broadcast fails with a non-idempotent error we roll back this
     // record so the local state never contains a phantom identity. If the
     // identifier is already present (e.g. previous attempt reached this step),
@@ -204,7 +211,7 @@ export class RegisterIdentityHandler implements APIHandler {
       wasJustCreated = true
     }
 
-    // ── 12. Broadcast the state transition ──────────────────────────────────
+    // ── 13. Broadcast the state transition ──────────────────────────────────
     let alreadyOnPlatform = false
 
     try {
@@ -220,12 +227,12 @@ export class RegisterIdentityHandler implements APIHandler {
       }
     }
 
-    // ── 13. Wait for confirmation (skip if Platform already had the ST) ─────
+    // ── 14. Wait for confirmation (skip if Platform already had the ST) ─────
     if (!alreadyOnPlatform) {
       await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
     }
 
-    // ── 14. Mark funding address as used and switch identity ────────────────
+    // ── 15. Mark funding address as used and switch identity ────────────────
     await this.assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
     await this.walletRepository.switchIdentity(identifier)
 

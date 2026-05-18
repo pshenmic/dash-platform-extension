@@ -67,3 +67,7 @@ export interface AssetLockFundingAddressSchema {
 export interface AssetLockFundingAddressesSchema {
   [address: string]: AssetLockFundingAddressSchema
 }
+
+export interface WalletSettingsStoreSchema {
+  hideBalance: boolean
+}
