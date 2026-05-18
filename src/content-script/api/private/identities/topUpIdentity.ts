@@ -78,7 +78,7 @@ export class TopUpIdentityHandler implements APIHandler {
 
     // Build asset lock transaction. The build is deterministic so the same
     // inputs produce the same txid on retry.
-    const { assetLockTx } = await buildAssetLockFromFundingTx(
+    const { assetLockTx, lockedAmount } = await buildAssetLockFromFundingTx(
       this.coreSDK,
       payload.assetLockFundingTxid,
       payload.assetLockFundingAddress,
@@ -143,7 +143,8 @@ export class TopUpIdentityHandler implements APIHandler {
 
     return {
       identityId: payload.identityId,
-      stateTransitionHash
+      stateTransitionHash,
+      topUpAmount: lockedAmount * 1000n
     }
   }
 

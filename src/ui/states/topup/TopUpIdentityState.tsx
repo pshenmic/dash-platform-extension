@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams, useOutletContext } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks'
 import { useCoreSDK } from '../../hooks/useCoreSDK'
+import { usePlatformExplorerClient, type NetworkType } from '../../hooks/usePlatformExplorerApi'
 import type { LayoutContext } from '../../components/layout/Layout'
 import { Stage1Intro } from './stages/Stage1Intro'
 import { Stage2Payment } from './stages/Stage2Payment'
@@ -14,7 +15,7 @@ type Stage = 1 | 2 | 3 | 4
 interface TopUpResult {
   identityId: string
   stateTransitionHash: string
-  topUpAmount: bigint | null
+  topUpAmount: bigint
   date: Date
 }
 
@@ -22,9 +23,17 @@ function TopUpIdentityState (): React.JSX.Element {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const context = useOutletContext<LayoutContext>()
-  const { currentIdentity, setHeaderConfigOverride } = context ?? {}
+  const { currentIdentity, setHeaderConfigOverride, currentNetwork } = context ?? {}
   const extensionAPI = useExtensionAPI()
   const coreSDK = useCoreSDK()
+  const platformExplorerClient = usePlatformExplorerClient()
+  const [dashRate, setDashRate] = useState<number | null>(null)
+
+  useEffect(() => {
+    platformExplorerClient.fetchRate(currentNetwork as NetworkType)
+      .then(rate => setDashRate(rate))
+      .catch(() => {})
+  }, [currentNetwork, platformExplorerClient])
 
   const [password, setPassword] = useState('')
   const [fundingAddress, setFundingAddress] = useState<string | null>(null)
@@ -62,7 +71,7 @@ function TopUpIdentityState (): React.JSX.Element {
       setTopUpResult({
         identityId: result.identityId,
         stateTransitionHash: result.stateTransitionHash,
-        topUpAmount: null,
+        topUpAmount: result.topUpAmount,
         date: new Date()
       })
       void navigate('/topup-identity?stage=4')
@@ -210,6 +219,7 @@ function TopUpIdentityState (): React.JSX.Element {
     <Stage4Success
       stage={stage}
       result={topUpResult}
+      dashRate={dashRate}
       onDone={handleDone}
     />
   )
