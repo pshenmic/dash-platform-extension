@@ -134,8 +134,7 @@ export class PrivateAPI {
         this.coreSDK
       ),
       [MessagingMethods.GET_SETTINGS]: new GetSettingsHandler(walletSettingsRepository),
-      [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository)
-      [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(walletRepository, identitiesRepository, assetLockFundingAddressesRepository, this.storageAdapter, this.sdk, this.coreSDK),
+      [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository),
       [MessagingMethods.TOP_UP_IDENTITY]: new TopUpIdentityHandler(walletRepository, identitiesRepository, assetLockFundingAddressesRepository, this.sdk, this.coreSDK)
     }
 
