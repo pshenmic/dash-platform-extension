@@ -179,7 +179,7 @@ const App: React.FC = function () {
           element: <PageWithHeader><TopUpIdentityState /></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'simple'
+              variant: 'topupIdentity'
             }
           }
         },

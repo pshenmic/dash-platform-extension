@@ -4,7 +4,7 @@ import { Identity, WalletType } from '../../types'
 
 export interface HeaderConfigOverride {
   showBackButton?: boolean
-  imageType?: 'coins' | 'app' | 'userChain' | 'warning'
+  imageType?: 'coins' | 'app' | 'userChain' | 'warning' | 'coin'
   imageClasses?: string
   containerClasses?: string
 }

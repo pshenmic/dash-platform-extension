@@ -22,7 +22,7 @@ function TopUpIdentityState (): React.JSX.Element {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const context = useOutletContext<LayoutContext>()
-  const { currentIdentity } = context ?? {}
+  const { currentIdentity, setHeaderConfigOverride } = context ?? {}
   const extensionAPI = useExtensionAPI()
   const coreSDK = useCoreSDK()
 
@@ -38,6 +38,18 @@ function TopUpIdentityState (): React.JSX.Element {
   const rawStage = parseInt(searchParams.get('stage') ?? '1', 10)
   const stage = (rawStage >= 1 && rawStage <= 4 ? rawStage : 1) as Stage
   const hasError = searchParams.get('error') === 'true'
+
+  useEffect(() => {
+    if (setHeaderConfigOverride == null) return
+
+    if (stage === 1 && !hasError) {
+      setHeaderConfigOverride({ imageType: 'coin' })
+    } else {
+      setHeaderConfigOverride(null)
+    }
+
+    return () => { setHeaderConfigOverride?.(null) }
+  }, [stage, hasError, setHeaderConfigOverride])
 
   const runTopUp = useCallback(async (address: string, txid: string, pwd: string): Promise<void> => {
     if (currentIdentity == null) return

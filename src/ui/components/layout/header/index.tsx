@@ -17,6 +17,12 @@ const IMAGE_VARIANTS = {
     imgClasses: 'max-w -mt-[22%]',
     containerClasses: 'w-[100%] -mr-[55%]'
   },
+  coin: {
+    src: 'coin.png',
+    alt: 'Dash coin',
+    imgClasses: '-mt-[15%] !w-[450px]',
+    containerClasses: 'absolute -top-[90%] -right-[32%] flex justify-center'
+  },
   app: {
     src: 'app.png',
     alt: 'App',
@@ -115,6 +121,13 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
   // Identity registration with configurable header per stage
   identityRegistration: {
     hideLeftSection: false
+  },
+
+  // Top-up identity with network badge and configurable image per stage
+  topupIdentity: {
+    hideLeftSection: false,
+    showNetworkRightReadOnly: true,
+    networkDisplayFormat: 'card' as const
   },
 
   // Minimal header with just logo
