@@ -82,7 +82,8 @@ export class TopUpIdentityHandler implements APIHandler {
       this.coreSDK,
       payload.assetLockFundingTxid,
       payload.assetLockFundingAddress,
-      assetLockFundingPrivateKey.WIF()
+      assetLockFundingPrivateKey.WIF(),
+      payload.assetLockFundingAddress
     )
 
     const assetLockTxid = assetLockTx.hash()
