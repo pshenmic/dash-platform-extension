@@ -7,6 +7,7 @@ import { Stage1Intro } from './stages/Stage1Intro'
 import { Stage2Payment } from './stages/Stage2Payment'
 import { Stage3Processing } from './stages/Stage3Processing'
 import { Stage4Success } from './stages/Stage4Success'
+import { TopUpError } from './stages/TopUpError'
 
 type Stage = 1 | 2 | 3 | 4
 
@@ -31,18 +32,17 @@ function TopUpIdentityState (): React.JSX.Element {
   const [addressError, setAddressError] = useState<string | null>(null)
   const [transactionHash, setTransactionHash] = useState('')
   const [showManualEntry, setShowManualEntry] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [topUpResult, setTopUpResult] = useState<TopUpResult | null>(null)
 
   const rawStage = parseInt(searchParams.get('stage') ?? '1', 10)
   const stage = (rawStage >= 1 && rawStage <= 4 ? rawStage : 1) as Stage
+  const hasError = searchParams.get('error') === 'true'
 
   const runTopUp = useCallback(async (address: string, txid: string, pwd: string): Promise<void> => {
     if (currentIdentity == null) return
 
     void navigate('/topup-identity?stage=3')
-    setIsProcessing(true)
     setError(null)
 
     try {
@@ -58,8 +58,6 @@ function TopUpIdentityState (): React.JSX.Element {
       const message = e instanceof Error ? e.message : 'Top-up failed'
       setError(message)
       void navigate('/topup-identity?stage=3&error=true', { replace: true })
-    } finally {
-      setIsProcessing(false)
     }
   }, [extensionAPI, navigate, currentIdentity])
 
@@ -143,6 +141,23 @@ function TopUpIdentityState (): React.JSX.Element {
     }
   }
 
+  const handleErrorReturn = (): void => {
+    setTransactionHash('')
+    setShowManualEntry(false)
+    setError(null)
+    void navigate('/topup-identity?stage=2', { replace: true })
+  }
+
+  if (hasError) {
+    return (
+      <TopUpError
+        stage={stage}
+        error={error}
+        onReturnBack={handleErrorReturn}
+      />
+    )
+  }
+
   if (stage === 1) {
     return (
       <Stage1Intro
@@ -176,14 +191,7 @@ function TopUpIdentityState (): React.JSX.Element {
   }
 
   if (stage === 3) {
-    return (
-      <Stage3Processing
-        stage={stage}
-        isProcessing={isProcessing}
-        error={error}
-        onRetry={handleBack}
-      />
-    )
+    return <Stage3Processing stage={stage} />
   }
 
   return (
