@@ -6,7 +6,7 @@ import { WalletAccountInfo } from '../../../types/messages/response/GetAllWallet
 import { GetStatusResponse } from '../../../types/messages/response/GetStatusResponse'
 import { NetworkType, EventData, Identity } from '../../../types'
 import type { HeaderConfigOverride } from '../../types'
-import LoadingScreen from './LoadingScreen'
+import LoadingScreen from './screens/LoadingScreen'
 
 export interface LayoutContext {
   currentNetwork: NetworkType
