@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams, useOutletContext } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks'
 import { useCoreSDK } from '../../hooks/useCoreSDK'
-import { usePlatformExplorerClient, type NetworkType } from '../../hooks/usePlatformExplorerApi'
+import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerApi'
 import type { LayoutContext } from '../../components/layout/Layout'
 import { Stage1Intro } from './stages/Stage1Intro'
 import { Stage2Payment } from './stages/Stage2Payment'
@@ -30,7 +30,7 @@ function TopUpIdentityState (): React.JSX.Element {
   const [dashRate, setDashRate] = useState<number | null>(null)
 
   useEffect(() => {
-    platformExplorerClient.fetchRate(currentNetwork as NetworkType)
+    platformExplorerClient.fetchRate(currentNetwork)
       .then(rate => setDashRate(rate))
       .catch(() => {})
   }, [currentNetwork, platformExplorerClient])
