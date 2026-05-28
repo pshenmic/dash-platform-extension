@@ -91,7 +91,7 @@ export const deriveKeystorePrivateKey = async (wallet: Wallet, password: string,
     throw new Error('Failed to decrypt')
   }
 
-  return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+  return PrivateKeyWASM.fromBytes(privateKey, wallet.network as 'mainnet' | 'testnet')
 }
 
 export const decryptMnemonic = (wallet: Wallet, password: string): string => {
@@ -119,7 +119,7 @@ export const deriveIdentityRegistrationKey = async (wallet: Wallet, password: st
     throw new Error('Could not derive identity registration key from wallet hd key')
   }
 
-  return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+  return PrivateKeyWASM.fromBytes(privateKey, wallet.network as 'mainnet' | 'testnet')
 }
 
 export const deriveIdentityPrivateKey = async (wallet: Wallet, password: string, identityIndex: number, keyId: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
@@ -132,7 +132,7 @@ export const deriveIdentityPrivateKey = async (wallet: Wallet, password: string,
     throw new Error('Could not derive private key from wallet hd key')
   }
 
-  return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+  return PrivateKeyWASM.fromBytes(privateKey, wallet.network as 'mainnet' | 'testnet')
 }
 
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {

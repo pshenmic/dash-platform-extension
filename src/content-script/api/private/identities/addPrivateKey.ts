@@ -1,7 +1,7 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
-import { PrivateKeyWASM } from 'dash-platform-sdk/types'
+import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { validateHex } from '../../../../utils'
@@ -35,7 +35,7 @@ export class AddIdentityPrivateKey implements APIHandler {
       throw new Error('Adding private key only possible in keystore wallet mode')
     }
 
-    const publicKeyHash = PrivateKeyWASM.fromHex(payload.privateKey, wallet.network).getPublicKeyHash()
+    const publicKeyHash = PrivateKeyWASM.fromHex(payload.privateKey, wallet.network as Network).getPublicKeyHash()
 
     // check identity exists
     const identity = await this.identitiesRepository.getByIdentifier(payload.identity)

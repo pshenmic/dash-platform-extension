@@ -9,7 +9,7 @@ import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { CreateIdentityPrivateKeyPayload } from '../../../../types/messages/payloads/CreateIdentityPrivateKeyPayload'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
-import { IdentityPublicKeyInCreation, KeyType, PrivateKeyWASM } from 'dash-platform-sdk/types'
+import { IdentityPublicKeyInCreation, KeyType, Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
 
 export class CreateIdentityPrivateKeyHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -32,7 +32,11 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
     const payload: CreateIdentityPrivateKeyPayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
     const network = await this.storageAdapter.get('network') as string
-    const keyType = KeyType[payload.keyType]
+    // KeyType is a const enum in SDK 1.4 — dynamic lookup `KeyType[name]` is
+    // forbidden by TS, so map the validated payload value explicitly.
+    const keyType: KeyType = payload.keyType === 'ECDSA_SECP256K1'
+      ? KeyType.ECDSA_SECP256K1
+      : KeyType.ECDSA_HASH160
 
     if (wallet == null) {
       throw new Error('No wallet is chosen')
@@ -61,7 +65,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       if (existing) {
         privateKeyWASM = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, nextKeyId, payload.password)
       } else {
-        privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), network)
+        privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), network as Network)
 
         await this.keypairRepository.add(identity.identifier, privateKeyWASM.hex(), nextKeyId, true)
       }
@@ -113,7 +117,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       // const signerIdentityPublicKey = identityWASM.getPublicKeys()[masterKeyId]
       // const signerPrivateKey = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, masterKeyId, payload.password)
 
-      stateTransition.signByPrivateKey(privateKeyWASM, 0, payload.keyType)
+      stateTransition.signByPrivateKey(privateKeyWASM, 0, keyType)
 
       signature = stateTransition.signature
     }

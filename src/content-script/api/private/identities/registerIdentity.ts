@@ -1,5 +1,5 @@
 import { DashCoreSDK } from 'dash-core-sdk'
-import { PrivateKeyWASM } from 'dash-platform-sdk/types'
+import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKey, decrypt } from 'eciesjs'
 import hash from 'hash.js'
@@ -91,7 +91,7 @@ export class RegisterIdentityHandler implements APIHandler {
       throw new Error('Failed to decrypt asset lock funding key — wrong password or corrupted entry')
     }
 
-    const assetLockFundingPrivateKey = PrivateKeyWASM.fromBytes(assetLockFundingKeyBytes, wallet.network)
+    const assetLockFundingPrivateKey = PrivateKeyWASM.fromBytes(assetLockFundingKeyBytes, wallet.network as Network)
 
     // ── 4. Find the next free identity index on-chain ───────────────────────
     // Used only for deriving identity keys (master/high/encryption/transfer).

@@ -1,7 +1,7 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
-import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'dash-platform-sdk/types'
+import { IdentityPublicKeyWASM, Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { findNextLocalIdentityIndex, validateHex } from '../../../../utils'
@@ -48,14 +48,14 @@ export class ImportIdentityHandler implements APIHandler {
     if (!privateKeys
       .every(privateKey => identityPublicKeysWASM
         .some((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
-                PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash()))) {
+                PrivateKeyWASM.fromHex(privateKey, wallet.network as Network).getPublicKeyHash()))) {
       throw new Error('One or more private keys does not match to any of known identity\'s public keys')
     }
 
     for (const privateKey of privateKeys) {
       const [identityPublicKey] = identityPublicKeysWASM
         .filter((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
-              PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash())
+              PrivateKeyWASM.fromHex(privateKey, wallet.network as Network).getPublicKeyHash())
 
       await this.keypairRepository.add(payload.identity, privateKey, identityPublicKey.keyId)
     }
