@@ -34,6 +34,9 @@
     "react-router-dom": "^7.6.0",
     "sha256": "^0.2.0"
   },
+  "resolutions": {
+    "pshenmic-dpp": "2.0.0-dev.17"
+  },
   "devDependencies": {
     "@babel/core": "^7.23.5",
     "@babel/plugin-transform-modules-commonjs": "^7.27.1",
