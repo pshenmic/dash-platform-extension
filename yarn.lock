@@ -1023,6 +1023,14 @@
   resolved "https://registry.npmjs.org/@ecies/ciphers/-/ciphers-0.2.4.tgz"
   integrity sha512-t+iX+Wf5nRKyNzk8dviW3Ikb/280+aEJAnw9YXvCp2tYGPSkMki+NRY+8aNLmVFv3eNtMdvViPNOPxS8SZNP+w==
 
+"@emnapi/core@1.9.0":
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/@emnapi/core/-/core-1.9.0.tgz#4a54213b208fcf288cce25076c74e0f7613e6100"
+  integrity sha512-0DQ98G9ZQZOxfUcQn1waV2yS8aWdZ6kJMbYCJB3oUBecjWYO1fqJ+a1DRfPF3O5JEkwqwP1A9QEN/9mYm2Yd0w==
+  dependencies:
+    "@emnapi/wasi-threads" "1.2.0"
+    tslib "^2.4.0"
+
 "@emnapi/core@^1.5.0":
   version "1.9.2"
   resolved "https://registry.yarnpkg.com/@emnapi/core/-/core-1.9.2.tgz#3870265ecffc7352d01ead62d8d83d8358a2d034"
@@ -1031,10 +1039,24 @@
     "@emnapi/wasi-threads" "1.2.1"
     tslib "^2.4.0"
 
+"@emnapi/runtime@1.9.0":
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/@emnapi/runtime/-/runtime-1.9.0.tgz#91c54a6e77c36154c125e873409472e2b70efd5b"
+  integrity sha512-QN75eB0IH2ywSpRpNddCRfQIhmJYBCJ1x5Lb3IscKAL8bMnVAKnRg8dCoXbHzVLLH7P38N2Z3mtulB7W0J0FKw==
+  dependencies:
+    tslib "^2.4.0"
+
 "@emnapi/runtime@^1.5.0":
   version "1.9.2"
   resolved "https://registry.yarnpkg.com/@emnapi/runtime/-/runtime-1.9.2.tgz#8b469a3db160817cadb1de9050211a9d1ea84fa2"
   integrity sha512-3U4+MIWHImeyu1wnmVygh5WlgfYDtyf0k8AbLhMFxOipihf6nrWC4syIm/SwEeec0mNSafiiNnMJwbza/Is6Lw==
+  dependencies:
+    tslib "^2.4.0"
+
+"@emnapi/wasi-threads@1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@emnapi/wasi-threads/-/wasi-threads-1.2.0.tgz#a19d9772cc3d195370bf6e2a805eec40aa75e18e"
+  integrity sha512-N10dEJNSsUx41Z6pZsXU8FjPjpBEplgH24sfkmITrBED1/U2Esum9F3lfLrMjKHHjmi557zQn7kR9R+XWXu5Rg==
   dependencies:
     tslib "^2.4.0"
 
@@ -3767,10 +3789,10 @@ dash-core-sdk@1.1.3-dev.1:
     typescript "^5.9.2"
     ws "^8.18.3"
 
-dash-platform-sdk@1.3.2-dev.3:
-  version "1.3.2-dev.3"
-  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.3.2-dev.3.tgz#7406cb4b93b3c80aa0f99e4627749e40728ea046"
-  integrity sha512-m1waDIgb+xoTqTIsES9/3tshwv6y3zaRdBYg3R8CLekCZJlOxFkSzk45ekaoEPVfWrG8tES4zlFZ+Q+gdKaQWA==
+dash-platform-sdk@1.4.0-dev.11:
+  version "1.4.0-dev.11"
+  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.4.0-dev.11.tgz#bd31332073f4720a61278a6e57dea9aba5673776"
+  integrity sha512-NF4F0DcM9Vl7sVtU7a1q/+YZ4yZ6UG12FIPF8uJJYySnr8FbrStF4F6etOnX9H8TsiSkKGLjdpfCO8hTPIzHMw==
   dependencies:
     "@bufbuild/protobuf" "^2.6.0"
     "@protobuf-ts/grpcweb-transport" "^2.11.1"
@@ -3779,7 +3801,7 @@ dash-platform-sdk@1.3.2-dev.3:
     "@scure/bip39" "^2.0.0"
     "@scure/btc-signer" "^2.0.1"
     cbor-x "^1.6.0"
-    pshenmic-dpp "1.1.2-dev.10"
+    pshenmic-dpp "2.0.0-dev.16"
 
 dash-ui-kit@2.1.2:
   version "2.1.2"
@@ -6956,11 +6978,14 @@ proxy-addr@~2.0.7:
     forwarded "0.2.0"
     ipaddr.js "1.9.1"
 
-pshenmic-dpp@1.1.2-dev.10:
-  version "1.1.2-dev.10"
-  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-1.1.2-dev.10.tgz#3abc4ba0f31ac48fafe23bd6f34f2b864daa5eb3"
-  integrity sha512-2S1eF5UjhOrEJ5cLn2YBk2k/TNDFipO2cLDHbpMGOhy//NcoFIPIZfo2l6n01dA0fCOLDpjHa/1smrVABUAGkg==
+pshenmic-dpp@2.0.0-dev.16:
+  version "2.0.0-dev.16"
+  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-2.0.0-dev.16.tgz#c1e58554c02cd764377e80cf464ba82a6fae483b"
+  integrity sha512-oCqdMUAsYNj23RiG2xC7Mz60kdnVWlyUlJ42NvhTPEeTmlotB/OCLsKpBLubGC/B6ge6z26kH66Ae4ShW/NniQ==
   dependencies:
+    "@emnapi/core" "1.9.0"
+    "@emnapi/runtime" "1.9.0"
+    "@tybys/wasm-util" "^0.10.1"
     fflate "^0.8.2"
 
 punycode@^2.1.0:
