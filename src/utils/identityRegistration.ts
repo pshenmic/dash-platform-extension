@@ -1,17 +1,27 @@
 import type { DashPlatformSDK } from 'dash-platform-sdk'
-import { KeyType, Purpose, SecurityLevel, PrivateKeyWASM, StateTransitionWASM } from 'dash-platform-sdk/types'
+import { PrivateKeyWASM, StateTransitionWASM } from 'dash-platform-sdk/types'
 import type { AssetLockProof } from '../types/AssetLockProof'
 
+// Numeric literals instead of `Purpose.AUTHENTICATION` etc. because SDK 1.4
+// re-exports these as `const enum` — webpack inlines them at build time, but
+// ts-jest sees the imported binding as `undefined` at runtime. The literal
+// numbers ARE the const-enum values (Purpose.AUTHENTICATION = 0 etc.), so
+// assignability to the `Purpose | SecurityLevel | KeyType` field types holds.
+//
+// Purpose:        AUTHENTICATION = 0, ENCRYPTION = 1, DECRYPTION = 2, TRANSFER = 3
+// SecurityLevel:  MASTER = 0, CRITICAL = 1, HIGH = 2, MEDIUM = 3
+// KeyType:        ECDSA_SECP256K1 = 0
+//
 // Protocol limits IdentityCreateTransition to 6 public keys. AUTH MEDIUM is
 // dropped (used only for routine background transitions, can be added later
 // via IdentityUpdateTransition); MASTER/CRITICAL/HIGH cover the common path.
 export const IDENTITY_KEY_DEFINITIONS = [
-  { id: 0, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.MASTER, keyType: KeyType.ECDSA_SECP256K1 },
-  { id: 1, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.CRITICAL, keyType: KeyType.ECDSA_SECP256K1 },
-  { id: 2, purpose: Purpose.AUTHENTICATION, securityLevel: SecurityLevel.HIGH, keyType: KeyType.ECDSA_SECP256K1 },
-  { id: 3, purpose: Purpose.ENCRYPTION, securityLevel: SecurityLevel.MEDIUM, keyType: KeyType.ECDSA_SECP256K1 },
-  { id: 4, purpose: Purpose.DECRYPTION, securityLevel: SecurityLevel.MEDIUM, keyType: KeyType.ECDSA_SECP256K1 },
-  { id: 5, purpose: Purpose.TRANSFER, securityLevel: SecurityLevel.CRITICAL, keyType: KeyType.ECDSA_SECP256K1 }
+  { id: 0, purpose: 0, securityLevel: 0, keyType: 0 }, // AUTH + MASTER
+  { id: 1, purpose: 0, securityLevel: 1, keyType: 0 }, // AUTH + CRITICAL
+  { id: 2, purpose: 0, securityLevel: 2, keyType: 0 }, // AUTH + HIGH
+  { id: 3, purpose: 1, securityLevel: 3, keyType: 0 }, // ENCRYPTION + MEDIUM
+  { id: 4, purpose: 2, securityLevel: 3, keyType: 0 }, // DECRYPTION + MEDIUM
+  { id: 5, purpose: 3, securityLevel: 1, keyType: 0 } // TRANSFER + CRITICAL
 ] as const
 
 /**
@@ -56,7 +66,7 @@ export const buildIdentityCreateTransition = (
     assetLockProof
   })
 
-  stateTransition.signByPrivateKey(identityRegistrationKey, undefined, KeyType.ECDSA_SECP256K1)
+  stateTransition.signByPrivateKey(identityRegistrationKey, undefined, 0) // ECDSA_SECP256K1
 
   return stateTransition
 }
