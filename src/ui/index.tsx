@@ -9,7 +9,7 @@ import StartState from './states/start/StartState'
 import SetupPasswordState from './states/setup/SetupPasswordState'
 import LoginState from './states/login/LoginState'
 import CreateWalletState from './states/wallet/CreateWalletState'
-import NoWalletState from './states/wallet/NoWalletState'
+import SelectNetworkState from './states/wallet/SelectNetworkState'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 import AppConnectState from './states/appConnect/AppConnectState'
 import SendTransactionState from './states/sendTransaction/SendTransactionState'
@@ -18,6 +18,8 @@ import Layout from './components/layout/Layout'
 import PageWithHeader from './components/layout/PageWithHeader'
 import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
 import ChooseWalletType from './states/wallet/ChooseWalletType'
+import AddWalletState from './states/wallet/AddWalletState'
+import CreateSeedWalletState from './states/wallet/CreateSeedWalletState'
 import WalletSuccessfullyCreated from './states/importIdentity/WalletSuccessfullyCreated'
 import NameRegistrationState from './states/nameRegistration'
 import IdentityRegistrationState from './states/identityRegistration/IdentityRegistrationState'
@@ -48,6 +50,24 @@ const App: React.FC = function () {
           }
         },
         {
+          path: '/add-wallet',
+          element: <PageWithHeader><AddWalletState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'landing'
+            }
+          }
+        },
+        {
+          path: '/create-seed-wallet',
+          element: <PageWithHeader><CreateSeedWalletState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'seedImport'
+            }
+          }
+        },
+        {
           path: '/import-seed-phrase',
           element: <PageWithHeader><ImportSeedPhrase /></PageWithHeader>,
           handle: {
@@ -58,7 +78,7 @@ const App: React.FC = function () {
         },
         {
           path: '/no-wallet',
-          element: <PageWithHeader><NoWalletState /></PageWithHeader>,
+          element: <PageWithHeader><SelectNetworkState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'landing'
