@@ -117,8 +117,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         signature = hexToBytes(createPrivateKeyResponse.signature)
       }
 
-      // KeyType is a const enum in SDK 1.4 — dynamic lookup `KeyType[name]` is
-      // forbidden by TS, so map the validated string value explicitly.
+      // Map explicitly — KeyType is a const enum, no dynamic `KeyType[name]` indexing.
       const keyTypeEnum: KeyType = keyType === 'ECDSA_SECP256K1'
         ? KeyType.ECDSA_SECP256K1
         : KeyType.ECDSA_HASH160

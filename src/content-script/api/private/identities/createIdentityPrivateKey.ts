@@ -32,8 +32,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
     const payload: CreateIdentityPrivateKeyPayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
     const network = await this.storageAdapter.get('network') as string
-    // KeyType is a const enum in SDK 1.4 — dynamic lookup `KeyType[name]` is
-    // forbidden by TS, so map the validated payload value explicitly.
+    // Map explicitly — KeyType is a const enum, no dynamic `KeyType[name]` indexing.
     const keyType: KeyType = payload.keyType === 'ECDSA_SECP256K1'
       ? KeyType.ECDSA_SECP256K1
       : KeyType.ECDSA_HASH160
