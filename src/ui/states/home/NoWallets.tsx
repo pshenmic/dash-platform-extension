@@ -11,7 +11,7 @@ export default function NoWallets (): React.JSX.Element {
       <EmptyState
         title={<>You <Text weight='bold' color='blue' className='!text-[size:inherit] !leading-[inherit]'>Don't Have any wallets</Text> in this network</>}
         buttonText='Add a wallet'
-        onButtonClick={() => { void navigate('/add-wallet') }}
+        onButtonClick={() => { void navigate('/welcome') }}
       />
     </div>
   )

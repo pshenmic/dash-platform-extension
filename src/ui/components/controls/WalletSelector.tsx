@@ -121,7 +121,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
         size='md'
         className='flex gap-1 h-12'
         clickable='true'
-        onClick={() => { void navigate('/add-wallet', { state: { mode: 'add' } }) }}
+        onClick={() => { void navigate('/welcome') }}
       >
         <IconWrap><PlusIcon className='w-full h-full text-gray-900' /></IconWrap>
         <span className='text-sm font-light text-gray-900'>Add wallet</span>
@@ -166,7 +166,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
           <span className='text-sm'>Add wallet</span>
         </div>
       ),
-      onClick: () => { void navigate('/add-wallet', { state: { mode: 'add' } }) }
+      onClick: () => { void navigate('/welcome') }
     }
   ]
 
