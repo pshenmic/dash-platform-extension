@@ -1,6 +1,5 @@
-import React from 'react'
-import { Text, Identifier, ValueCard, BigNumber } from 'dash-ui-kit/react'
-import { WebIcon } from 'dash-ui-kit/react'
+import React, { useState } from 'react'
+import { Text, Identifier, BigNumber, ExternalLinkIcon, CopyIcon, Tooltip } from 'dash-ui-kit/react'
 
 export interface AddressData {
   keyId: number
@@ -15,49 +14,80 @@ interface AddressItemProps {
   explorerUrl: string
 }
 
-export const AddressItem: React.FC<AddressItemProps> = ({ item, explorerUrl }) => (
-  <div className='bg-gray-100 rounded-2xl p-3 flex items-center justify-between gap-3'>
-    <div className='flex flex-col gap-1 min-w-0 flex-1'>
-      <div className='flex items-center gap-1.5'>
-        <Identifier
-          middleEllipsis
-          edgeChars={5}
-          copyButton
-          avatar
-        >
-          {item.address}
-        </Identifier>
-        <a
-          href={explorerUrl}
-          target='_blank'
-          rel='noreferrer'
-          className='flex items-center justify-center w-5 h-5 rounded-[5px] bg-white/80 hover:bg-white transition-colors shrink-0'
-          aria-label='View in explorer'
-        >
-          <WebIcon size={10} className='text-dash-primary-dark-blue' />
-        </a>
-      </div>
+const ICON_CLASS = 'flex items-center justify-center p-[3px] bg-[rgba(12,28,51,0.05)] rounded-[5px] shrink-0 hover:bg-[rgba(12,28,51,0.1)] transition-colors cursor-pointer'
+const ICON_COLOR = 'text-[rgba(12,28,51,0.5)]'
 
-      {item.loading
-        ? (
-          <Text size='sm' dim>Loading...</Text>
-          )
-        : (
-          <Text size='sm' dim>
-            Transactions: <span className='font-semibold text-dash-primary-dark-blue'>{item.totalTxs ?? 0}</span>
-          </Text>
-          )}
+export const AddressItem: React.FC<AddressItemProps> = ({ item, explorerUrl }) => {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = (): void => {
+    navigator.clipboard.writeText(item.address).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+
+  return (
+  <div className='rounded-[15px] p-3 flex flex-row items-center justify-between gap-4 bg-[rgba(12,28,51,0.03)]'>
+    {/* Left: address + transactions */}
+    <div className='flex flex-row items-center gap-2 flex-1 min-w-0'>
+      <div className='flex flex-col gap-0.5 min-w-0'>
+        <div className='flex items-center gap-2'>
+          <Identifier
+            avatar
+            middleEllipsis
+            edgeChars={5}
+          >
+            {item.address}
+          </Identifier>
+
+          <Tooltip
+            content='Copied!'
+            side='top'
+            sideOffset={4}
+            open={copied}
+            onOpenChange={(open) => { if (!open) setCopied(false) }}
+          >
+            <button
+              onClick={handleCopy}
+              className={ICON_CLASS}
+              aria-label='Copy address'
+            >
+              <span className='w-[14px] h-[14px] flex items-center justify-center overflow-hidden'>
+                <CopyIcon size={14} className={ICON_COLOR} />
+              </span>
+            </button>
+          </Tooltip>
+
+          <a
+            href={explorerUrl}
+            target='_blank'
+            rel='noreferrer'
+            className={ICON_CLASS}
+            aria-label='View in explorer'
+          >
+            <ExternalLinkIcon size={14} className={ICON_COLOR} />
+          </a>
+        </div>
+
+        {item.loading
+          ? <Text size='sm' dim>Loading...</Text>
+          : (
+            <Text size='sm' dim>
+              Transactions: <span className='font-extrabold text-dash-primary-dark-blue'>{item.totalTxs ?? 0}</span>
+            </Text>
+            )}
+      </div>
     </div>
 
+    {/* Right: balance */}
     <div className='flex flex-col items-end gap-0.5 shrink-0'>
       {item.loading
-        ? (
-          <Text size='sm' dim>...</Text>
-          )
+        ? <Text size='sm' dim>...</Text>
         : item.balance != null
           ? (
             <>
-              <Text size='sm' weight='medium' monospace className='text-dash-primary-dark-blue text-right'>
+              <Text size='sm' weight='medium' monospace className='text-dash-primary-dark-blue'>
                 <BigNumber className='!text-[0.75rem] gap-1'>
                   {item.balance}
                 </BigNumber>
@@ -65,9 +95,8 @@ export const AddressItem: React.FC<AddressItemProps> = ({ item, explorerUrl }) =
               <Text className='!text-[0.7rem]' dim>Credits</Text>
             </>
             )
-          : (
-            <Text size='sm' dim>N/A</Text>
-            )}
+          : <Text size='sm' dim>n/a</Text>}
     </div>
   </div>
-)
+  )
+}
