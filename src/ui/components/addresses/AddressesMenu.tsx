@@ -5,6 +5,7 @@ import { AddressItem, type AddressData } from './AddressItem'
 import { useSdk } from '../../hooks/useSdk'
 import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
 import type { NetworkType } from '../../../types'
+import { CoreScriptWASM, NetworkWASM } from 'pshenmic-dpp'
 
 interface AddressesMenuProps {
   isOpen: boolean
@@ -28,6 +29,16 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
   useEffect(() => {
     if (!isOpen || currentIdentity == null) return
 
+    const networkEnum = currentNetwork === 'mainnet' ? NetworkWASM.Mainnet : NetworkWASM.Testnet
+
+    const hexToBase58Address = (hexHash: string): string => {
+      const bytes = new Uint8Array(hexHash.length / 2)
+      for (let i = 0; i < hexHash.length; i += 2) {
+        bytes[i / 2] = parseInt(hexHash.substring(i, i + 2), 16)
+      }
+      return CoreScriptWASM.newP2PKH(bytes).toAddress(networkEnum)
+    }
+
     const loadAddresses = async (): Promise<void> => {
       setIsLoading(true)
       setError(null)
@@ -40,7 +51,10 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
             const keyId = key?.keyId ?? key?.getId?.() ?? 0
             let address = ''
             try {
-              address = key?.getPublicKeyHash?.() ?? ''
+              const hexHash: string = key?.getPublicKeyHash?.() ?? ''
+              if (hexHash !== '') {
+                address = hexToBase58Address(hexHash)
+              }
             } catch {}
 
             return {
