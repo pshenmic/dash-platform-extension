@@ -17,6 +17,7 @@ import { NamesList, type NameData } from '../../components/names'
 import { BalanceInfo } from '../../components/data'
 import { fetchNames } from '../../../utils'
 import ButtonRow from '../../components/layout/ButtonRow'
+import { AddressesMenu } from '../../components/addresses'
 
 function HomeState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -33,6 +34,7 @@ function HomeState (): React.JSX.Element {
   const [rateState, loadRate] = useAsyncState<number>()
   const [activeTab, setActiveTab] = useState('transactions')
   const [hideBalance, setHideBalance] = useState(false)
+  const [isAddressesOpen, setIsAddressesOpen] = useState(false)
 
   useEffect(() => {
     extensionAPI.getSettings()
@@ -246,11 +248,23 @@ function HomeState (): React.JSX.Element {
           colorScheme: 'brand',
           disabled: currentIdentity === null || balanceState.data === null
         }}
-        rightButton={{
+        middleButton={{
           text: 'Withdraw',
           onClick: () => { void navigate('/withdrawal') },
           disabled: currentIdentity === null || balanceState.data === null
         }}
+        rightButton={{
+          text: 'Addresses',
+          onClick: () => setIsAddressesOpen(true),
+          disabled: currentIdentity === null
+        }}
+      />
+
+      <AddressesMenu
+        isOpen={isAddressesOpen}
+        onClose={() => setIsAddressesOpen(false)}
+        currentIdentity={currentIdentity}
+        currentNetwork={currentNetwork as NetworkType}
       />
 
       <ValueCard
