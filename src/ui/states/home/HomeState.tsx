@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useNavigate, useOutletContext, Navigate } from 'react-router-dom'
 import NoIdentities from './NoIdentities'
 import NoWallets from './NoWallets'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
@@ -23,7 +23,7 @@ function HomeState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
-  const { currentNetwork, currentWallet, currentIdentity, setCurrentIdentity, allWallets, availableIdentities } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentWallet, currentIdentity, setCurrentIdentity, allWallets, hasAnyWallet, availableIdentities } = useOutletContext<OutletContext>()
   const [identities, setIdentities] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [transactionsState, loadTransactions] = useAsyncState<TransactionData[]>()
@@ -135,6 +135,10 @@ function HomeState (): React.JSX.Element {
 
   if (isLoading) {
     return <LoadingScreen message='Loading wallet data...' />
+  }
+
+  if (!hasAnyWallet) {
+    return <Navigate to='/welcome' replace />
   }
 
   // Check if there are wallets available in the current network
