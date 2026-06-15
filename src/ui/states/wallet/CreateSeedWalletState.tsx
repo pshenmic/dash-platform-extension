@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useNavigate, useSearchParams, useOutletContext } from 'react-router-dom'
+import { useNavigate, useSearchParams, useOutletContext, Navigate } from 'react-router-dom'
 import { generateMnemonic } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
@@ -72,6 +72,10 @@ function CreateSeedWalletState (): React.JSX.Element {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (stage === 2 && blankIndices.size === 0) {
+    return <Navigate to='/create-seed-wallet?stage=1' replace />
   }
 
   if (stage === 2) {
