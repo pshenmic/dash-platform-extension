@@ -50,6 +50,8 @@ import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIden
 import { SetWalletLabelPayload } from './messages/payloads/SetWalletLabelPayload'
 import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
 import { RequestAssetLockFundingAddressResponse } from './messages/response/RequestAssetLockFundingAddressResponse'
+import { RequestTopUpFundingAddressResponse } from './messages/response/RequestTopUpFundingAddressResponse'
+import { RequestTopUpFundingAddressPayload } from './messages/payloads/RequestTopUpFundingAddressPayload'
 import { RegisterIdentityPayload } from './messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from './messages/response/RegisterIdentityResponse'
 import { TopUpIdentityPayload } from './messages/payloads/TopUpIdentityPayload'
@@ -328,6 +330,15 @@ export class PrivateAPIClient {
     return await this._rpcCall(
       MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS,
       {}
+    )
+  }
+
+  async requestTopUpFundingAddress (password: string): Promise<RequestTopUpFundingAddressResponse> {
+    const payload: RequestTopUpFundingAddressPayload = { password }
+
+    return await this._rpcCall(
+      MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS,
+      payload
     )
   }
 

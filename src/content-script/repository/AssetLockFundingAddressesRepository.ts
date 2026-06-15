@@ -1,7 +1,8 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import {
   AssetLockFundingAddressSchema,
-  AssetLockFundingAddressesSchema
+  AssetLockFundingAddressesSchema,
+  AssetLockFundingPurpose
 } from '../storage/storageSchema'
 
 export class AssetLockFundingAddressesRepository {
@@ -71,12 +72,12 @@ export class AssetLockFundingAddressesRepository {
     return addresses[address] ?? null
   }
 
-  async findUnused (): Promise<AssetLockFundingAddressSchema | null> {
+  async findUnused (purpose: AssetLockFundingPurpose = 'registration'): Promise<AssetLockFundingAddressSchema | null> {
     const storageKey = await this.getStorageKey()
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
 
     return Object.values(addresses).find(
-      entry => !entry.used && entry.assetLockTxid == null
+      entry => !entry.used && entry.assetLockTxid == null && (entry.purpose ?? 'registration') === purpose
     ) ?? null
   }
 
