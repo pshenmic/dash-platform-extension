@@ -39,7 +39,7 @@ export function Stage2VerifyPhrase ({ mnemonic, wordCount, blankIndices, isLoadi
       </div>
 
       <div className='mb-4'>
-        <div className='grid grid-cols-3 gap-2'>
+        <div className='grid grid-cols-3 gap-2.5'>
           {words.map((word, i) => {
             if (blankIndices.has(i)) {
               return (
@@ -55,10 +55,14 @@ export function Stage2VerifyPhrase ({ mnemonic, wordCount, blankIndices, isLoadi
             }
 
             return (
-              <div key={i} className='flex items-center gap-2 px-3 py-2.5 border border-[rgba(12,28,51,0.35)] rounded-xl'>
-                <span className='text-sm text-[rgba(12,28,51,0.35)] shrink-0'>{i + 1}.</span>
-                <span className='text-sm font-medium text-[#0C1C33]'>{word}</span>
-              </div>
+              <Input
+                key={i}
+                size='md'
+                value={word}
+                prefix={`${i + 1}.`}
+                readOnly
+                className='pointer-events-none'
+              />
             )
           })}
         </div>

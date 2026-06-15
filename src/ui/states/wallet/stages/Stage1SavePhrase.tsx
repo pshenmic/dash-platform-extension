@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Button, Switch, Tooltip, ProgressStepBar } from 'dash-ui-kit/react'
+import { Button, Input, Switch, Tooltip, ProgressStepBar } from 'dash-ui-kit/react'
 import { TitleBlock } from '../../../components/layout/TitleBlock'
 import { SeedPhraseSecurityNotice } from '../SeedPhraseSecurityNotice'
 
@@ -13,15 +13,6 @@ interface Props {
   wordCount: 12 | 24
   onWordCountChange: (count: 12 | 24) => void
   onContinue: () => void
-}
-
-function SeedWordPill ({ index, word }: { index: number, word: string }): React.JSX.Element {
-  return (
-    <div className='flex items-center gap-2 px-3 py-2.5 border border-[rgba(12,28,51,0.35)] rounded-xl'>
-      <span className='text-sm text-[rgba(12,28,51,0.35)] shrink-0'>{index + 1}.</span>
-      <span className='text-sm font-medium text-[#0C1C33]'>{word}</span>
-    </div>
-  )
 }
 
 export function Stage1SavePhrase ({ mnemonic, wordCount, onWordCountChange, onContinue }: Props): React.JSX.Element {
@@ -53,9 +44,16 @@ export function Stage1SavePhrase ({ mnemonic, wordCount, onWordCountChange, onCo
       </div>
 
       <div className='mb-4'>
-        <div className='grid grid-cols-3 gap-2'>
+        <div className='grid grid-cols-3 gap-2.5'>
           {mnemonic.map((word, i) => (
-            <SeedWordPill key={i} index={i} word={word} />
+            <Input
+              key={i}
+              size='md'
+              value={word}
+              prefix={`${i + 1}.`}
+              readOnly
+              className='pointer-events-none'
+            />
           ))}
         </div>
       </div>
