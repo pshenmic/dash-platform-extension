@@ -44,7 +44,7 @@ function ChooseWalletType (): React.JSX.Element {
   const walletOptions: WalletOption[] = [
     {
       id: 'seedphrase',
-      label: 'Create ',
+      label: 'Import ',
       boldLabel: 'Seed Phrase',
       description: 'Seed Phrase is a row of random words that include encrypted information about your wallet.',
       icon: <ProtectedMessageIcon />,
@@ -52,7 +52,7 @@ function ChooseWalletType (): React.JSX.Element {
     },
     {
       id: 'keystore',
-      label: 'Create ',
+      label: 'Import ',
       boldLabel: 'Private Key',
       description: 'Private Key is a unique string of characters that allows access to your wallet.',
       icon: <KeyIcon />,
