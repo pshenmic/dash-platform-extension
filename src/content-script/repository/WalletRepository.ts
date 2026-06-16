@@ -1,6 +1,5 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import { bytesToHex, generateWalletId, utf8ToBytes } from '../../utils'
-import { Network } from '../../types/enums/Network'
+import { bytesToHex, generateWalletId, toNetworkType, utf8ToBytes } from '../../utils'
 import { WalletStoreSchema } from '../storage/storageSchema'
 import { WalletType } from '../../types/WalletType'
 import { Wallet } from '../../types/Wallet'
@@ -48,9 +47,11 @@ export class WalletRepository {
       seedHash = hash.sha256().update(mnemonic).digest('hex')
     }
 
+    const network = toNetworkType(currentNetwork)
+
     const walletSchema: WalletStoreSchema = {
       label: null,
-      network: Network[currentNetwork],
+      network,
       type: walletType,
       walletId,
       encryptedMnemonic,
@@ -60,7 +61,7 @@ export class WalletRepository {
 
     await this.storageAdapter.set(storageKey, walletSchema)
 
-    return { ...walletSchema, type: WalletType[walletType] }
+    return { ...walletSchema, type: WalletType[walletType], network }
   }
 
   async getCurrent (): Promise<Wallet | null> {
@@ -84,7 +85,7 @@ export class WalletRepository {
     return {
       walletId: walletStoreSchema.walletId,
       type: WalletType[walletStoreSchema.type],
-      network: Network[network],
+      network: toNetworkType(network),
       label: walletStoreSchema.label,
       encryptedMnemonic: walletStoreSchema.encryptedMnemonic,
       seedHash: walletStoreSchema.seedHash,
@@ -104,7 +105,7 @@ export class WalletRepository {
         {
           walletId: walletStoreSchema.walletId,
           type: WalletType[walletStoreSchema.type],
-          network: Network[walletStoreSchema.network],
+          network: toNetworkType(walletStoreSchema.network),
           label: walletStoreSchema.label,
           encryptedMnemonic: walletStoreSchema.encryptedMnemonic,
           seedHash: walletStoreSchema.seedHash,
@@ -132,7 +133,7 @@ export class WalletRepository {
     return {
       walletId: walletStoreSchema.walletId,
       type: WalletType[walletStoreSchema.type],
-      network: Network[walletStoreSchema.network],
+      network: toNetworkType(walletStoreSchema.network),
       label: walletStoreSchema.label,
       encryptedMnemonic: walletStoreSchema.encryptedMnemonic,
       seedHash: walletStoreSchema.seedHash,

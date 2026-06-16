@@ -2,7 +2,7 @@ import { StorageAdapter } from '../storage/storageAdapter'
 import { Identity, KeyPair, Wallet, WalletType } from '../../types'
 import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { KeyPairSchema, KeyPairsSchema } from '../storage/storageSchema'
-import { bytesToHex, deriveKeystorePrivateKey, deriveIdentityPrivateKey, hexToBytes } from '../../utils'
+import { bytesToHex, deriveKeystorePrivateKey, deriveIdentityPrivateKey, hexToBytes, toNetworkLike } from '../../utils'
 import { encrypt } from 'eciesjs'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 
@@ -26,7 +26,7 @@ export class KeypairRepository {
     if (!pending) {
       const [identityPublicKey] = await this.sdk.identities.getIdentityPublicKeys(identity, [keyId])
 
-      if (PrivateKeyWASM.fromHex(privateKey, network).getPublicKeyHash() !== identityPublicKey.getPublicKeyHash()) {
+      if (PrivateKeyWASM.fromHex(privateKey, toNetworkLike(network)).getPublicKeyHash() !== identityPublicKey.getPublicKeyHash()) {
         throw new Error('Private key does not match Identity Public Key')
       }
     }

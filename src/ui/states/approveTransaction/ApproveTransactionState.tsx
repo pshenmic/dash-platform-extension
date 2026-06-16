@@ -16,7 +16,7 @@ import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
 import { TransactionDetails } from './details'
-import { decodeStateTransition } from '../../../utils'
+import { decodeStateTransition, toPurposeLike } from '../../../utils'
 import { StateTransitionTypeEnum } from '../../../enums/TransactionTypes'
 import { SigningErrorDetails } from '../../components/errors'
 
@@ -188,7 +188,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
       if (Array.isArray(purposeRequirements)) {
         for (const purpose of purposeRequirements) {
-          const securityLevel = stateTransitionWASM.getKeyLevelRequirement(purpose)
+          const securityLevel = stateTransitionWASM.getKeyLevelRequirement(toPurposeLike(purpose))
 
           if (Array.isArray(securityLevel)) {
             securityLevel.forEach(level => {

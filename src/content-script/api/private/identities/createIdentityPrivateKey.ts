@@ -3,7 +3,7 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { bytesToHex, deriveIdentityPrivateKey, generateRandomHex } from '../../../../utils'
+import { bytesToHex, deriveIdentityPrivateKey, generateRandomHex, parseKeyType, toKeyTypeLike, toNetworkLike } from '../../../../utils'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
@@ -32,7 +32,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
     const payload: CreateIdentityPrivateKeyPayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
     const network = await this.storageAdapter.get('network') as string
-    const keyType = KeyType[payload.keyType]
+    const keyType = parseKeyType(payload.keyType)
 
     if (wallet == null) {
       throw new Error('No wallet is chosen')
@@ -61,7 +61,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       if (existing) {
         privateKeyWASM = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, nextKeyId, payload.password)
       } else {
-        privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), network)
+        privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), toNetworkLike(network))
 
         await this.keypairRepository.add(identity.identifier, privateKeyWASM.hex(), nextKeyId, true)
       }
@@ -113,7 +113,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       // const signerIdentityPublicKey = identityWASM.getPublicKeys()[masterKeyId]
       // const signerPrivateKey = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, masterKeyId, payload.password)
 
-      stateTransition.signByPrivateKey(privateKeyWASM, 0, payload.keyType)
+      stateTransition.signByPrivateKey(privateKeyWASM, 0, toKeyTypeLike(payload.keyType))
 
       signature = stateTransition.signature
     }
