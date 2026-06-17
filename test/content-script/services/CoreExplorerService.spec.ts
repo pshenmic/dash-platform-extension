@@ -44,6 +44,14 @@ describe('CoreExplorerService', () => {
 
       await expect(service.getAddressInfo('yAddr', 'testnet')).rejects.toThrow('HTTP 500')
     })
+
+    it('parses malformed numeric fields defensively without throwing', async () => {
+      mockResponse({ json: { txCount: 'oops', balance: 'abc', received: null, sent: '42' } })
+
+      const info = await service.getAddressInfo('yMalformed', 'testnet')
+
+      expect(info).toEqual({ txCount: 0, balance: 0n, received: 0n, sent: 42n })
+    })
   })
 
   describe('isAddressUsed', () => {

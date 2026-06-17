@@ -18,6 +18,26 @@ const getBaseUrl = (network: NetworkType = 'testnet'): string => {
   return CORE_EXPLORER_URLS[network].api
 }
 
+// dashscan returns amounts as integer strings (or null). Parse defensively so a
+// malformed/changed field degrades to 0 instead of throwing an opaque RangeError.
+const toBigInt = (value: unknown): bigint => {
+  if (value == null) {
+    return 0n
+  }
+
+  try {
+    return BigInt(value as string | number)
+  } catch {
+    return 0n
+  }
+}
+
+const toCount = (value: unknown): number => {
+  const count = Number(value ?? 0)
+
+  return Number.isFinite(count) ? count : 0
+}
+
 /**
  * Reads L1 (Dash Core) address state from the dashscan REST API.
  *
@@ -44,10 +64,10 @@ export class CoreExplorerService {
     const data = await response.json()
 
     return {
-      txCount: Number(data.txCount ?? 0),
-      balance: BigInt(data.balance ?? 0),
-      received: BigInt(data.received ?? 0),
-      sent: BigInt(data.sent ?? 0)
+      txCount: toCount(data.txCount),
+      balance: toBigInt(data.balance),
+      received: toBigInt(data.received),
+      sent: toBigInt(data.sent)
     }
   }
 
@@ -78,8 +98,8 @@ export class CoreExplorerService {
 
     return resultSet.map((utxo) => ({
       txid: utxo.prevTxHash,
-      vout: Number(utxo.vOutIndex),
-      amount: BigInt(utxo.amount ?? 0)
+      vout: toCount(utxo.vOutIndex),
+      amount: toBigInt(utxo.amount)
     }))
   }
 }
