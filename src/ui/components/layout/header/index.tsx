@@ -62,6 +62,15 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
     imageClasses: '!w-[110%] -mt-[67%] right-[7%]'
   },
 
+  // Welcome screen — no wallets yet, network selector in top-right
+  welcome: {
+    hideLeftSection: true,
+    imageType: 'coins',
+    imageClasses: '!w-[110%] -mt-[67%] right-[7%]',
+    showNetworkRightSelector: true,
+    networkDisplayFormat: 'card'
+  },
+
   // Import/setup screens with centered image
   onboarding: {
     hideLeftSection: false,

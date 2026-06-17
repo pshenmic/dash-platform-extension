@@ -97,7 +97,7 @@ export class PrivateAPI {
     const coreExplorer = new CoreExplorerService()
 
     this.handlers = {
-      [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter),
+      [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter, walletRepository),
       [MessagingMethods.SETUP_PASSWORD]: new SetupPasswordHandler(this.storageAdapter),
       [MessagingMethods.CHECK_PASSWORD]: new CheckPasswordHandler(this.storageAdapter),
       [MessagingMethods.SWITCH_IDENTITY]: new SwitchIdentityHandler(identitiesRepository, walletRepository),

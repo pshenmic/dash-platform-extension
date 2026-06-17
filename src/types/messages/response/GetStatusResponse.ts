@@ -3,4 +3,5 @@ export interface GetStatusResponse {
   currentWalletId: string | null
   passwordSet: boolean
   ready: boolean
+  hasAnyWallet: boolean
 }

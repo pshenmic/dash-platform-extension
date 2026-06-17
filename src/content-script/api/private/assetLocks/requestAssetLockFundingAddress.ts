@@ -4,7 +4,7 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
 import { RequestAssetLockFundingAddressResponse } from '../../../../types/messages/response/RequestAssetLockFundingAddressResponse'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
+import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { encrypt } from 'eciesjs'
 import { bytesToHex, generateRandomHex, hexToBytes } from '../../../../utils'
@@ -47,7 +47,7 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
     }
 
     const privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), wallet.network)
-    const address = this.sdk.keyPair.p2pkhAddress(privateKeyWASM.getPublicKey().bytes(), wallet.network as Network)
+    const address = this.sdk.keyPair.p2pkhAddress(privateKeyWASM.getPublicKey().bytes(), wallet.network)
     const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(privateKeyWASM.hex())))
 
     await this.assetLockFundingAddressesRepository.create({

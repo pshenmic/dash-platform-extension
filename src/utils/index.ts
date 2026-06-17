@@ -112,7 +112,7 @@ export const decryptMnemonic = (wallet: Wallet, password: string): string => {
 export const deriveIdentityRegistrationKey = async (wallet: Wallet, password: string, identityIndex: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
   const coinType = wallet.network === 'mainnet' ? 5 : 1
   const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
-  const walletHDKey = sdk.keyPair.seedToHdKey(seed, wallet.network as any)
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, wallet.network)
   const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, `m/9'/${coinType}'/5'/1'/${identityIndex}`)
 
   if (privateKey == null) {
