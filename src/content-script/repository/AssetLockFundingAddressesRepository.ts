@@ -72,13 +72,17 @@ export class AssetLockFundingAddressesRepository {
     return addresses[address] ?? null
   }
 
-  async findUnused (purpose: AssetLockFundingPurpose = 'registration'): Promise<AssetLockFundingAddressSchema | null> {
+  async findAllUnused (purpose: AssetLockFundingPurpose = 'registration'): Promise<AssetLockFundingAddressSchema[]> {
     const storageKey = await this.getStorageKey()
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
 
-    return Object.values(addresses).find(
+    return Object.values(addresses).filter(
       entry => !entry.used && entry.assetLockTxid == null && (entry.purpose ?? 'registration') === purpose
-    ) ?? null
+    )
+  }
+
+  async findUnused (purpose: AssetLockFundingPurpose = 'registration'): Promise<AssetLockFundingAddressSchema | null> {
+    return (await this.findAllUnused(purpose))[0] ?? null
   }
 
   private async getStorageKey (): Promise<string> {

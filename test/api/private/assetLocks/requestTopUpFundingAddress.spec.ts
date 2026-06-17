@@ -8,11 +8,12 @@ jest.mock('../../../../src/utils', () => {
   const actual = jest.requireActual('../../../../src/utils')
   return {
     ...actual,
-    deriveIdentityTopUpKey: jest.fn()
+    deriveWalletHdKey: jest.fn(),
+    deriveTopUpKeyFromHdKey: jest.fn()
   }
 })
 
-const { deriveIdentityTopUpKey } = jest.requireMock('../../../../src/utils')
+const { deriveWalletHdKey, deriveTopUpKeyFromHdKey } = jest.requireMock('../../../../src/utils')
 
 describe('RequestTopUpFundingAddressHandler', () => {
   const password = 'test'
@@ -29,17 +30,19 @@ describe('RequestTopUpFundingAddressHandler', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Each derived key is distinguishable by its single-byte public key, which
-    // p2pkhAddress maps to `yTopUpAddr<index>`.
-    deriveIdentityTopUpKey.mockImplementation(async (_wallet: any, _password: string, index: number) => ({
+    // The wallet HD root is built once; each derived child key is distinguishable
+    // by its single-byte public key, which p2pkhAddress maps to `yTopUpAddr<index>`.
+    deriveWalletHdKey.mockReturnValue({ hd: true })
+    deriveTopUpKeyFromHdKey.mockImplementation(async (_hdKey: any, _network: string, index: number) => ({
       getPublicKey: () => ({ bytes: () => Uint8Array.of(index) }),
       hex: () => 'ab'.repeat(32)
     }))
 
     assetLockFundingAddressesRepository = {
-      findUnused: jest.fn(async () => null),
+      findAllUnused: jest.fn(async () => []),
       getByAddress: jest.fn(async () => null),
-      create: jest.fn(async (entry: any) => entry)
+      create: jest.fn(async (entry: any) => entry),
+      markAsUsed: jest.fn(async () => {})
     }
 
     walletRepository = {
@@ -55,7 +58,10 @@ describe('RequestTopUpFundingAddressHandler', () => {
     }
 
     coreExplorer = {
-      isAddressUsed: jest.fn(async () => false)
+      isAddressUsed: jest.fn(async () => false),
+      // Defaults model a never-seen address: no history, no UTXOs.
+      getAddressInfo: jest.fn(async () => null),
+      getAddressUtxos: jest.fn(async () => [])
     }
 
     sdk = {
@@ -94,15 +100,66 @@ describe('RequestTopUpFundingAddressHandler', () => {
     expect(assetLockFundingAddressesRepository.create.mock.calls[0][0].encryptedPrivateKey).toEqual(expect.any(String))
   })
 
-  it('reuses a pending top-up funding address without scanning', async () => {
-    assetLockFundingAddressesRepository.findUnused.mockResolvedValueOnce({ address: 'yPending' })
+  it('reuses a pending address with no on-chain history (awaiting deposit)', async () => {
+    assetLockFundingAddressesRepository.findAllUnused.mockResolvedValueOnce([{ address: 'yPending' }])
 
     const result = await handler.handle({ payload: { password } } as any)
 
     expect(result).toEqual({ address: 'yPending' })
-    expect(assetLockFundingAddressesRepository.findUnused).toHaveBeenCalledWith('topUp')
-    expect(deriveIdentityTopUpKey).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.findAllUnused).toHaveBeenCalledWith('topUp')
+    expect(deriveWalletHdKey).not.toHaveBeenCalled()
+    expect(deriveTopUpKeyFromHdKey).not.toHaveBeenCalled()
     expect(assetLockFundingAddressesRepository.create).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsUsed).not.toHaveBeenCalled()
+  })
+
+  it('reuses a pending address that still holds a deposit (history + UTXO)', async () => {
+    assetLockFundingAddressesRepository.findAllUnused.mockResolvedValueOnce([{ address: 'yDeposited' }])
+    coreExplorer.getAddressInfo.mockResolvedValueOnce({ txCount: 1, balance: 1000n, received: 1000n, sent: 0n })
+    coreExplorer.getAddressUtxos.mockResolvedValueOnce([{ txid: 'aa', vout: 0, amount: 1000n }])
+
+    const result = await handler.handle({ payload: { password } } as any)
+
+    expect(result).toEqual({ address: 'yDeposited' })
+    expect(assetLockFundingAddressesRepository.markAsUsed).not.toHaveBeenCalled()
+    expect(deriveTopUpKeyFromHdKey).not.toHaveBeenCalled()
+  })
+
+  it('discards a pending address consumed on L1 (history, no UTXO) and gap-scans for a fresh index', async () => {
+    assetLockFundingAddressesRepository.findAllUnused.mockResolvedValueOnce([{
+      address: 'yConsumed', index: 0, purpose: 'topUp', used: false
+    }])
+    coreExplorer.getAddressInfo.mockResolvedValueOnce({ txCount: 2, balance: 0n, received: 1000n, sent: 1000n })
+    coreExplorer.getAddressUtxos.mockResolvedValueOnce([])
+
+    const result = await handler.handle({ payload: { password } } as any)
+
+    expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith('yConsumed')
+    expect(result).toEqual({ address: 'yTopUpAddr0' })
+    expect(assetLockFundingAddressesRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ address: 'yTopUpAddr0', index: 0, purpose: 'topUp', used: false })
+    )
+  })
+
+  it('retires consumed pending entries and reuses the first live one (multiple pending)', async () => {
+    assetLockFundingAddressesRepository.findAllUnused.mockResolvedValueOnce([
+      { address: 'yConsumed' },
+      { address: 'yLive' }
+    ])
+    coreExplorer.getAddressInfo
+      .mockResolvedValueOnce({ txCount: 2, balance: 0n, received: 1000n, sent: 1000n }) // yConsumed
+      .mockResolvedValueOnce(null) // yLive — never seen
+    coreExplorer.getAddressUtxos
+      .mockResolvedValueOnce([]) // yConsumed — no UTXO
+      .mockResolvedValueOnce([]) // yLive
+
+    const result = await handler.handle({ payload: { password } } as any)
+
+    expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith('yConsumed')
+    expect(assetLockFundingAddressesRepository.markAsUsed).not.toHaveBeenCalledWith('yLive')
+    expect(result).toEqual({ address: 'yLive' })
+    expect(assetLockFundingAddressesRepository.create).not.toHaveBeenCalled()
+    expect(deriveWalletHdKey).not.toHaveBeenCalled()
   })
 
   it('skips indexes already claimed by a local entry', async () => {
