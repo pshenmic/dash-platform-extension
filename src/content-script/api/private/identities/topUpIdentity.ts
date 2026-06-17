@@ -77,12 +77,16 @@ export class TopUpIdentityHandler implements APIHandler {
     const assetLockFundingPrivateKey = PrivateKeyWASM.fromBytes(assetLockFundingKeyBytes, wallet.network)
 
     // Build asset lock transaction. The build is deterministic so the same
-    // inputs produce the same txid on retry.
+    // inputs produce the same txid on retry. For a top-up the funding key both
+    // funds the asset lock and owns the credit output (it signs the top-up
+    // state transition below), so the credit output goes back to the funding
+    // address — unlike registration, where a separate derived key owns it.
     const { assetLockTx } = await buildAssetLockFromFundingTx(
       this.coreSDK,
       payload.assetLockFundingTxid,
       payload.assetLockFundingAddress,
-      assetLockFundingPrivateKey.WIF()
+      assetLockFundingPrivateKey.WIF(),
+      payload.assetLockFundingAddress
     )
 
     const assetLockTxid = assetLockTx.hash()

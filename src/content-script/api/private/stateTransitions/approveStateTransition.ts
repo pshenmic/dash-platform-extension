@@ -61,7 +61,6 @@ export class ApproveStateTransitionHandler implements APIHandler {
         if (stateTransitionWASM.getActionType() === 'DATA_CONTRACT_UPDATE') {
           const dataContractUpdateTransitionWASM = DataContractUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
 
-          // @ts-expect-error
           dataContractId = dataContractUpdateTransitionWASM.getDataContract().id
         }
 

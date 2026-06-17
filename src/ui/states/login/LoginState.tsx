@@ -34,10 +34,10 @@ function LoginState (): React.JSX.Element {
       if (result.success) {
         const status = await extensionAPI.getStatus()
 
-        if (status.currentWalletId != null) {
-          void navigate('/home')
+        if (!status.hasAnyWallet) {
+          void navigate('/welcome')
         } else {
-          void navigate('/no-wallet')
+          void navigate('/home')
         }
       } else {
         setError('Invalid password')

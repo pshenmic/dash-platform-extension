@@ -6,6 +6,7 @@ import { bytesToHex, hexToBytes } from '../../../../src/utils'
 import { buildAssetLockFromFundingTx } from '../../../../src/utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../src/utils/waitForAssetLockProof'
 import { WalletType } from '../../../../src/types'
+import { IDENTITY_INDEX_SCAN_LIMIT } from '../../../../src/constants'
 
 jest.mock('../../../../src/utils/buildAssetLockFromFundingTx', () => ({
   buildAssetLockFromFundingTx: jest.fn()
@@ -191,6 +192,21 @@ describe('RegisterIdentityHandler', () => {
       }
     })
   }
+
+  test('aborts the index scan on a non-not-found error instead of treating it as a free index', async () => {
+    sdk.identities.getIdentityByPublicKeyHash.mockRejectedValueOnce(new Error('Metadata not found'))
+
+    await expect(handle()).rejects.toThrow('Metadata not found')
+    expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
+  })
+
+  test('throws when no free identity index is found within the scan limit', async () => {
+    sdk.identities.getIdentityByPublicKeyHash.mockResolvedValue({ id: { base58: () => 'x' } })
+
+    await expect(handle()).rejects.toThrow(/Could not find a free identity index/)
+    expect(sdk.identities.getIdentityByPublicKeyHash).toHaveBeenCalledTimes(IDENTITY_INDEX_SCAN_LIMIT)
+    expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
+  })
 
   test('registers identity with full happy-path flow', async () => {
     const result = await handle()
