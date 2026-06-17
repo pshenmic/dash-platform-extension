@@ -14,6 +14,11 @@ export const TXID_HEX_LENGTH = 64
 // against L1 address usage when picking the next unused funding address.
 export const TOPUP_FUNDING_GAP_LIMIT = 20
 
+// Upper bound for scanning identity indexes on-chain when picking the next free
+// index for a new identity registration. Bounds the work and prevents an
+// unbounded loop if every probed index keeps reporting a registered identity.
+export const IDENTITY_INDEX_SCAN_LIMIT = 20
+
 // dashscan (L1 / Dash Core) REST API — source of address usage and UTXOs for
 // the top-up funding gap-scan. Mirrors the testnet-prefixed host scheme of
 // PLATFORM_EXPLORER_URLS.
