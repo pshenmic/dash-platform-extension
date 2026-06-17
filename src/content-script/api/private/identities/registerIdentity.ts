@@ -19,8 +19,7 @@ import {
   deriveIdentityPrivateKey,
   deriveIdentityRegistrationKey,
   findNextLocalIdentityIndex,
-  hexToBytes,
-  toNetworkLike
+  hexToBytes
 } from '../../../../utils'
 import { isStateTransitionAlreadyInChainError } from '../../../../utils/isStateTransitionAlreadyInChainError'
 import { WalletType } from '../../../../types/WalletType'
@@ -92,7 +91,7 @@ export class RegisterIdentityHandler implements APIHandler {
       throw new Error('Failed to decrypt asset lock funding key — wrong password or corrupted entry')
     }
 
-    const assetLockFundingPrivateKey = PrivateKeyWASM.fromBytes(assetLockFundingKeyBytes, toNetworkLike(wallet.network))
+    const assetLockFundingPrivateKey = PrivateKeyWASM.fromBytes(assetLockFundingKeyBytes, wallet.network)
 
     // ── 4. Find the next free identity index on-chain ───────────────────────
     // Used only for deriving identity keys (master/high/encryption/transfer).

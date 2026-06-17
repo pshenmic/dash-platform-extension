@@ -7,7 +7,7 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { encrypt } from 'eciesjs'
-import { bytesToHex, generateRandomHex, hexToBytes, toNetworkLike, toSdkNetwork } from '../../../../utils'
+import { bytesToHex, generateRandomHex, hexToBytes } from '../../../../utils'
 
 export class RequestAssetLockFundingAddressHandler implements APIHandler {
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
@@ -46,8 +46,8 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
       throw new Error('Password is not set for an extension')
     }
 
-    const privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), toNetworkLike(wallet.network))
-    const address = this.sdk.keyPair.p2pkhAddress(privateKeyWASM.getPublicKey().bytes(), toSdkNetwork(wallet.network))
+    const privateKeyWASM = PrivateKeyWASM.fromHex(generateRandomHex(64), wallet.network)
+    const address = this.sdk.keyPair.p2pkhAddress(privateKeyWASM.getPublicKey().bytes(), wallet.network)
     const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(privateKeyWASM.hex())))
 
     await this.assetLockFundingAddressesRepository.create({

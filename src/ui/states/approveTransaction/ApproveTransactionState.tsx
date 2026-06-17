@@ -10,13 +10,14 @@ import { FieldLabel } from '../../components/typography'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { useExtensionAPI, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'dash-platform-sdk/types'
+import type { PurposeLike } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
 import { TransactionDetails } from './details'
-import { decodeStateTransition, toPurposeLike } from '../../../utils'
+import { decodeStateTransition } from '../../../utils'
 import { StateTransitionTypeEnum } from '../../../enums/TransactionTypes'
 import { SigningErrorDetails } from '../../components/errors'
 
@@ -188,7 +189,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
       if (Array.isArray(purposeRequirements)) {
         for (const purpose of purposeRequirements) {
-          const securityLevel = stateTransitionWASM.getKeyLevelRequirement(toPurposeLike(purpose))
+          const securityLevel = stateTransitionWASM.getKeyLevelRequirement(purpose as PurposeLike)
 
           if (Array.isArray(securityLevel)) {
             securityLevel.forEach(level => {

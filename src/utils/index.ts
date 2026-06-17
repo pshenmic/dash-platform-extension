@@ -7,14 +7,12 @@ import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
 import { decrypt, PrivateKey } from 'eciesjs'
 import { KeypairRepository } from '../content-script/repository/KeypairRepository'
-import { toNetworkLike, toSdkNetwork } from './sdkTypes'
 
 export { formatBigNumber }
 export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
-export { toNetworkType, toNetworkLike, toSdkNetwork, parseKeyType, toKeyTypeLike, toPurposeLike } from './sdkTypes'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -93,7 +91,7 @@ export const deriveKeystorePrivateKey = async (wallet: Wallet, password: string,
     throw new Error('Failed to decrypt')
   }
 
-  return PrivateKeyWASM.fromBytes(privateKey, toNetworkLike(wallet.network))
+  return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 }
 
 export const decryptMnemonic = (wallet: Wallet, password: string): string => {
@@ -114,14 +112,14 @@ export const decryptMnemonic = (wallet: Wallet, password: string): string => {
 export const deriveIdentityRegistrationKey = async (wallet: Wallet, password: string, identityIndex: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
   const coinType = wallet.network === 'mainnet' ? 5 : 1
   const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
-  const walletHDKey = sdk.keyPair.seedToHdKey(seed, toSdkNetwork(wallet.network))
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, wallet.network)
   const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, `m/9'/${coinType}'/5'/1'/${identityIndex}`)
 
   if (privateKey == null) {
     throw new Error('Could not derive identity registration key from wallet hd key')
   }
 
-  return PrivateKeyWASM.fromBytes(privateKey, toNetworkLike(wallet.network))
+  return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 }
 
 export const deriveIdentityPrivateKey = async (wallet: Wallet, password: string, identityIndex: number, keyId: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
@@ -134,7 +132,7 @@ export const deriveIdentityPrivateKey = async (wallet: Wallet, password: string,
     throw new Error('Could not derive private key from wallet hd key')
   }
 
-  return PrivateKeyWASM.fromBytes(privateKey, toNetworkLike(wallet.network))
+  return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 }
 
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {

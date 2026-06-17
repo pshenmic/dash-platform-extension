@@ -4,8 +4,9 @@ import { Text, Button, Identifier, Input, InfoCircleIcon } from 'dash-ui-kit/rea
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import { WalletType } from '../../../../types'
 import { useExtensionAPI, useSdk, useSigningKeys } from '../../../hooks'
-import { hexToBytes, parseKeyType } from '../../../../utils'
+import { KeyType } from 'dash-platform-sdk/types'
 import { InfoCard } from '../../common'
+import { hexToBytes } from '../../../../utils'
 import { TransactionSuccessScreen } from '../../layout/TransactionSuccessScreen'
 import { CreateIdentityPrivateKeyResponse } from '../../../../types/messages/response/CreateIdentityPrivateKeyResponse'
 import { SelectField } from '../../controls'
@@ -116,7 +117,7 @@ export const CreateKeyScreen: React.FC<SettingsScreenProps> = ({
         signature = hexToBytes(createPrivateKeyResponse.signature)
       }
 
-      const keyTypeEnum = parseKeyType(keyType)
+      const keyTypeEnum = KeyType[keyType]
       const publicKeyToAdd = {
         id: createPrivateKeyResponse.keyId,
         keyType: keyTypeEnum,

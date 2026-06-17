@@ -4,7 +4,7 @@ import { APIHandler } from '../../APIHandler'
 import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
-import { findNextLocalIdentityIndex, validateHex, toNetworkLike } from '../../../../utils'
+import { findNextLocalIdentityIndex, validateHex } from '../../../../utils'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ImportIdentityPayload } from '../../../../types/messages/payloads/ImportIdentityPayload'
@@ -48,14 +48,14 @@ export class ImportIdentityHandler implements APIHandler {
     if (!privateKeys
       .every(privateKey => identityPublicKeysWASM
         .some((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
-                PrivateKeyWASM.fromHex(privateKey, toNetworkLike(wallet.network)).getPublicKeyHash()))) {
+                PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash()))) {
       throw new Error('One or more private keys does not match to any of known identity\'s public keys')
     }
 
     for (const privateKey of privateKeys) {
       const [identityPublicKey] = identityPublicKeysWASM
         .filter((identityPublicKey: IdentityPublicKeyWASM) => identityPublicKey.getPublicKeyHash() ===
-              PrivateKeyWASM.fromHex(privateKey, toNetworkLike(wallet.network)).getPublicKeyHash())
+              PrivateKeyWASM.fromHex(privateKey, wallet.network).getPublicKeyHash())
 
       await this.keypairRepository.add(payload.identity, privateKey, identityPublicKey.keyId)
     }
