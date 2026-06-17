@@ -7,7 +7,7 @@ export function SeedPhraseSecurityNotice (): React.JSX.Element {
       <div className='flex items-center gap-3'>
         <AttentionCircleIcon size={26} className='shrink-0 text-dash-primary-dark-blue/40' />
         <Text size='xs'>
-          <span className='font-extrabold'>DO NOT share your recovery phrase with ANYONE.</span><br/>
+          <span className='font-extrabold'>DO NOT share your recovery phrase with ANYONE.</span><br />
           Anyone with your recovery phrase can have full control over your assets. Please stay vigilant against phishing attacks at all times.
         </Text>
       </div>

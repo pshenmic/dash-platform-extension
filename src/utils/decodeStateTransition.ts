@@ -24,9 +24,9 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
         if (transition instanceof TokenTransitionWASM) {
           const tokenTransitionType = transition.getTransitionTypeNumber()
           const tokenTransition = transition.getTransition() as {
-            base: { tokenId: { base58(): string }, dataContractId: { base58(): string } }
+            base: { tokenId: { base58: () => string }, dataContractId: { base58: () => string } }
             amount?: bigint
-            recipientId?: { base58(): string }
+            recipientId?: { base58: () => string }
           }
 
           out.action = TokenActionEnum[tokenTransitionType] ?? `TOKEN_${String(tokenTransitionType)}`
@@ -41,7 +41,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
             out.recipient = tokenTransition.recipientId.base58()
           }
         } else {
-          const documentTransition = transition as DocumentTransitionWASM
+          const documentTransition = transition
 
           out.action = DocumentActionEnum[documentTransition.actionTypeNumber] ?? `DOCUMENT_ACTION_${String(documentTransition.actionTypeNumber)}`
           out.id = documentTransition.id.base58()
