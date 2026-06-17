@@ -1,9 +1,9 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { bytesToHex, generateWalletId, utf8ToBytes } from '../../utils'
-import { Network } from '../../types/enums/Network'
 import { WalletStoreSchema } from '../storage/storageSchema'
 import { WalletType } from '../../types/WalletType'
 import { Wallet } from '../../types/Wallet'
+import { NetworkType } from '../../types/NetworkType'
 import { IdentitiesRepository } from './IdentitiesRepository'
 import { encrypt } from 'eciesjs'
 import hash from 'hash.js'
@@ -48,9 +48,11 @@ export class WalletRepository {
       seedHash = hash.sha256().update(mnemonic).digest('hex')
     }
 
+    const network = currentNetwork as NetworkType
+
     const walletSchema: WalletStoreSchema = {
       label: null,
-      network: Network[currentNetwork],
+      network,
       type: walletType,
       walletId,
       encryptedMnemonic,
@@ -60,7 +62,7 @@ export class WalletRepository {
 
     await this.storageAdapter.set(storageKey, walletSchema)
 
-    return { ...walletSchema, type: WalletType[walletType] }
+    return { ...walletSchema, type: WalletType[walletType], network }
   }
 
   async getCurrent (): Promise<Wallet | null> {
@@ -84,7 +86,7 @@ export class WalletRepository {
     return {
       walletId: walletStoreSchema.walletId,
       type: WalletType[walletStoreSchema.type],
-      network: Network[network],
+      network: network as NetworkType,
       label: walletStoreSchema.label,
       encryptedMnemonic: walletStoreSchema.encryptedMnemonic,
       seedHash: walletStoreSchema.seedHash,
@@ -104,13 +106,18 @@ export class WalletRepository {
         {
           walletId: walletStoreSchema.walletId,
           type: WalletType[walletStoreSchema.type],
-          network: Network[walletStoreSchema.network],
+          network: walletStoreSchema.network as NetworkType,
           label: walletStoreSchema.label,
           encryptedMnemonic: walletStoreSchema.encryptedMnemonic,
           seedHash: walletStoreSchema.seedHash,
           currentIdentity: walletStoreSchema.currentIdentity
         }
       ))
+  }
+
+  async hasAnyWallet (): Promise<boolean> {
+    const walletIds = (await this.storageAdapter.get('wallets')) as string[] | null
+    return (walletIds ?? []).length > 0
   }
 
   async getById (walletId: string): Promise<Wallet | null> {
@@ -127,7 +134,7 @@ export class WalletRepository {
     return {
       walletId: walletStoreSchema.walletId,
       type: WalletType[walletStoreSchema.type],
-      network: Network[walletStoreSchema.network],
+      network: walletStoreSchema.network as NetworkType,
       label: walletStoreSchema.label,
       encryptedMnemonic: walletStoreSchema.encryptedMnemonic,
       seedHash: walletStoreSchema.seedHash,

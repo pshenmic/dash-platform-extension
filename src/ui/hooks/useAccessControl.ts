@@ -45,7 +45,7 @@ export function useAccessControl (config: Partial<AccessControlConfig> = {}): Ac
 
         // Check wallet requirement
         if (finalConfig.requireWallet === true && (status.currentWalletId == null || status.currentWalletId === '')) {
-          void navigate('/no-wallet')
+          void navigate('/home')
           setState({ isLoading: false, isAuthenticated: false, error: null })
           return
         }

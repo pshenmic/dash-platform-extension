@@ -1,5 +1,5 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import { Identity, KeyPair, Wallet, WalletType } from '../../types'
+import { Identity, KeyPair, NetworkType, Wallet, WalletType } from '../../types'
 import { IdentityPublicKeyWASM, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { KeyPairSchema, KeyPairsSchema } from '../storage/storageSchema'
 import { bytesToHex, deriveKeystorePrivateKey, deriveIdentityPrivateKey, hexToBytes } from '../../utils'
@@ -16,7 +16,7 @@ export class KeypairRepository {
   }
 
   async add (identity: string, privateKey: string, keyId: number, pending: boolean = false): Promise<void> {
-    const network = await this.storageAdapter.get('network') as string
+    const network = await this.storageAdapter.get('network') as NetworkType
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
     if (walletId == null) {
