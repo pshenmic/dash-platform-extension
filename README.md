@@ -26,6 +26,8 @@ interface for developers to integrate their application and create transactions.
 
 ### 1.4.x (WIP)
 - Platform Addresses support
+- Shielded Transfers support
+- Dash Core support
 
 ### 1.3.x (Current)
 - Identities Registration
