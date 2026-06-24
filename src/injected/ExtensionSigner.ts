@@ -69,8 +69,8 @@ export class ExtensionSigner {
       // Uint8Array (bytes)
     } else if (typeof stateTransition === 'object' && (stateTransition as Uint8Array) instanceof Uint8Array) {
       stateTransitionWASM = StateTransitionWASM.fromBytes(stateTransition as Uint8Array)
-    } else if (typeof stateTransition === 'object' && (stateTransition as StateTransitionWASM).__type === 'StateTransitionWASM') {
-      stateTransitionWASM = stateTransition as StateTransitionWASM
+    } else if (stateTransition instanceof StateTransitionWASM) {
+      stateTransitionWASM = stateTransition
     } else {
       throw new Error('Unrecognized state transition type, must be StateTransitionWASM or string hex or string base64 or Uint8Array')
     }

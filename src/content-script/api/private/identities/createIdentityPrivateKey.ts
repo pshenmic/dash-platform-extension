@@ -1,4 +1,4 @@
-import { EventData } from '../../../../types'
+import { EventData, NetworkType } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
@@ -31,7 +31,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
   async handle (event: EventData): Promise<CreateIdentityPrivateKeyResponse> {
     const payload: CreateIdentityPrivateKeyPayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
-    const network = await this.storageAdapter.get('network') as string
+    const network = await this.storageAdapter.get('network') as NetworkType
     const keyType = KeyType[payload.keyType]
 
     if (wallet == null) {
@@ -113,7 +113,7 @@ export class CreateIdentityPrivateKeyHandler implements APIHandler {
       // const signerIdentityPublicKey = identityWASM.getPublicKeys()[masterKeyId]
       // const signerPrivateKey = await this.keypairRepository.getPrivateKeyFromWallet(wallet, identity, masterKeyId, payload.password)
 
-      stateTransition.signByPrivateKey(privateKeyWASM, 0, payload.keyType)
+      stateTransition.signByPrivateKey(privateKeyWASM, 0, keyType)
 
       signature = stateTransition.signature
     }
