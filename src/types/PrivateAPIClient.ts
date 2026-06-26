@@ -8,6 +8,10 @@ import { SetupPasswordPayload } from './messages/payloads/SetupPasswordPayload'
 import { VoidResponse } from './messages/response/VoidResponse'
 import { SwitchIdentityPayload } from './messages/payloads/SwitchIdentityPayload'
 import { EmptyPayload } from './messages/payloads/EmptyPayload'
+import { GetPlatformAddressesPayload } from './messages/payloads/GetPlatformAddressesPayload'
+import { GetPlatformAddressesResponse } from './messages/response/GetPlatformAddressesResponse'
+import { GetPlatformAddressesInfosPayload } from './messages/payloads/GetPlatformAddressesInfosPayload'
+import { GetPlatformAddressesInfosResponse, PlatformAddressBalance } from './messages/response/GetPlatformAddressesInfosResponse'
 import { CheckPasswordResponse } from './messages/response/CheckPasswordResponse'
 import { CheckPasswordPayload } from './messages/payloads/CheckPasswordPayload'
 import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
@@ -382,6 +386,22 @@ export class PrivateAPIClient {
     const payload: SetSettingsPayload = { hideBalance }
 
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
+  }
+
+  async getPlatformAddresses (password: string, account?: number, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
+    const payload: GetPlatformAddressesPayload = { password, account, count }
+
+    const response: GetPlatformAddressesResponse = await this._rpcCall(MessagingMethods.GET_PLATFORM_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  async getPlatformAddressesInfos (addresses: string[]): Promise<PlatformAddressBalance[]> {
+    const payload: GetPlatformAddressesInfosPayload = { addresses }
+
+    const response: GetPlatformAddressesInfosResponse = await this._rpcCall(MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS, payload)
+
+    return response.infos
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {

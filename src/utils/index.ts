@@ -1,8 +1,16 @@
-import { base58 } from '@scure/base'
+import { base58, bech32m } from '@scure/base'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
+import {
+  BECH32M_CHAR_LIMIT,
+  PLATFORM_ADDRESS_COIN_TYPE,
+  PLATFORM_ADDRESS_FEATURE,
+  PLATFORM_ADDRESS_HRP,
+  PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS,
+  PLATFORM_ADDRESS_P2PKH_TYPE_BYTE
+} from '../constants'
 import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
 import { decrypt, PrivateKey } from 'eciesjs'
@@ -166,6 +174,48 @@ export const deriveIdentityPrivateKey = async (wallet: Wallet, password: string,
   }
 
   return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+}
+
+export interface PlatformAddressEntry {
+  address: string
+  derivationPath: string
+  index: number
+}
+
+const encodePlatformP2PKH = (pubKeyHashHex: string, network: NetworkType): string => {
+  const payload = Uint8Array.from([PLATFORM_ADDRESS_P2PKH_TYPE_BYTE, ...hexToBytes(pubKeyHashHex)])
+  return bech32m.encode(PLATFORM_ADDRESS_HRP[network], bech32m.toWords(payload), BECH32M_CHAR_LIMIT)
+}
+
+// Derive `count` transparent P2PKH platform addresses from a seedphrase wallet,
+// at DIP-17 m/9'/coin'/17'/account'/keyClass'/index. The address is the Bech32m
+// (DIP-18) encoding of `typeByte || Hash160(pubkey)` — the same pubkey hash Core
+// uses, re-encoded with the platform HRP.
+export const derivePlatformAddresses = async (wallet: Wallet, password: string, account: number, count: number, sdk: DashPlatformSDK): Promise<PlatformAddressEntry[]> => {
+  if (wallet.type !== 'seedphrase') {
+    throw new Error('Platform addresses can only be derived from a seedphrase wallet')
+  }
+
+  const networkType = wallet.network
+  const network = Network[networkType as keyof typeof Network]
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
+  const coinType = PLATFORM_ADDRESS_COIN_TYPE[networkType]
+
+  const entries: PlatformAddressEntry[] = []
+  for (let index = 0; index < count; index++) {
+    const derivationPath = `m/9'/${coinType}'/${PLATFORM_ADDRESS_FEATURE}'/${account}'/${PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS}'/${index}`
+    const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, derivationPath)
+
+    if (privateKey == null) {
+      throw new Error(`Could not derive platform address key at ${derivationPath}`)
+    }
+
+    const pubKeyHashHex = PrivateKeyWASM.fromBytes(privateKey, networkType).getPublicKeyHash()
+    entries.push({ address: encodePlatformP2PKH(pubKeyHashHex, networkType), derivationPath, index })
+  }
+
+  return entries
 }
 
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {

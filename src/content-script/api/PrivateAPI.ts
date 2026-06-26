@@ -49,6 +49,8 @@ import { TopUpIdentityHandler } from './private/identities/topUpIdentity'
 import { WalletSettingsRepository } from '../repository/WalletSettingsRepository'
 import { GetSettingsHandler } from './private/settings/getSettings'
 import { SetSettingsHandler } from './private/settings/setSettings'
+import { GetPlatformAddressesHandler } from './private/wallet/getPlatformAddresses'
+import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
 
 /**
  * Handlers for a messages within extension context
@@ -145,7 +147,9 @@ export class PrivateAPI {
         this.coreSDK
       ),
       [MessagingMethods.GET_SETTINGS]: new GetSettingsHandler(walletSettingsRepository),
-      [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository)
+      [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository),
+      [MessagingMethods.GET_PLATFORM_ADDRESSES]: new GetPlatformAddressesHandler(walletRepository, this.sdk),
+      [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk)
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {

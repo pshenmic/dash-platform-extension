@@ -31,6 +31,23 @@ export const CORE_EXPLORER_URLS = {
   }
 }
 
+// ── DIP-17 transparent platform payment addresses ────────────────────────────
+// Derived at m/9'/coin'/17'/account'/keyClass'/index; keyClass 0 = clear funds.
+// DIP-18 Bech32m encodes `typeByte || Hash160(pubkey)` with a network HRP.
+export const PLATFORM_ADDRESS_FEATURE = 17
+export const PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS = 0
+export const PLATFORM_ADDRESS_DEFAULT_COUNT = 20
+export const PLATFORM_ADDRESS_P2PKH_TYPE_BYTE = 0xb0
+export const BECH32M_CHAR_LIMIT = 1023
+export const PLATFORM_ADDRESS_COIN_TYPE = {
+  testnet: 1,
+  mainnet: 5
+}
+export const PLATFORM_ADDRESS_HRP = {
+  testnet: 'tdash',
+  mainnet: 'dash'
+}
+
 export const PLATFORM_EXPLORER_URLS = {
   testnet: {
     api: 'https://testnet.platform-explorer.pshenmic.dev',
