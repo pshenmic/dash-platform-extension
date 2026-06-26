@@ -50,8 +50,12 @@ import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIden
 import { SetWalletLabelPayload } from './messages/payloads/SetWalletLabelPayload'
 import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
 import { RequestAssetLockFundingAddressResponse } from './messages/response/RequestAssetLockFundingAddressResponse'
+import { RequestTopUpFundingAddressResponse } from './messages/response/RequestTopUpFundingAddressResponse'
+import { RequestTopUpFundingAddressPayload } from './messages/payloads/RequestTopUpFundingAddressPayload'
 import { RegisterIdentityPayload } from './messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from './messages/response/RegisterIdentityResponse'
+import { TopUpIdentityPayload } from './messages/payloads/TopUpIdentityPayload'
+import { TopUpIdentityResponse } from './messages/response/TopUpIdentityResponse'
 import { GetSettingsResponse } from './messages/response/GetSettingsResponse'
 import { SetSettingsPayload } from './messages/payloads/SetSettingsPayload'
 
@@ -329,6 +333,15 @@ export class PrivateAPIClient {
     )
   }
 
+  async requestTopUpFundingAddress (password: string): Promise<RequestTopUpFundingAddressResponse> {
+    const payload: RequestTopUpFundingAddressPayload = { password }
+
+    return await this._rpcCall(
+      MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS,
+      payload
+    )
+  }
+
   async registerIdentity (
     assetLockFundingAddress: string,
     assetLockFundingTxid: string,
@@ -341,6 +354,22 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload)
+  }
+
+  async topUpIdentity (
+    identityId: string,
+    assetLockFundingAddress: string,
+    assetLockFundingTxid: string,
+    password: string
+  ): Promise<TopUpIdentityResponse> {
+    const payload: TopUpIdentityPayload = {
+      identityId,
+      assetLockFundingAddress,
+      assetLockFundingTxid,
+      password
+    }
+
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload)
   }
 
   async getSettings (): Promise<GetSettingsResponse> {

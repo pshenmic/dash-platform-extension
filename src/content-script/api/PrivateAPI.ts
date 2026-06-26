@@ -39,10 +39,13 @@ import { ImportMasternodeIdentityHandler } from './private/identities/importMast
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
 import { CreateIdentityPrivateKeyHandler } from './private/identities/createIdentityPrivateKey'
 import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFundingAddressesRepository'
+import { CoreExplorerService } from '../services/CoreExplorerService'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
+import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
 import { BroadcastError } from '../errors/BroadcastError'
 import { RemoveWalletHandler } from './private/wallet/removeWallet'
+import { TopUpIdentityHandler } from './private/identities/topUpIdentity'
 import { WalletSettingsRepository } from '../repository/WalletSettingsRepository'
 import { GetSettingsHandler } from './private/settings/getSettings'
 import { SetSettingsHandler } from './private/settings/setSettings'
@@ -91,6 +94,7 @@ export class PrivateAPI {
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
     const assetLockFundingAddressesRepository = new AssetLockFundingAddressesRepository(this.storageAdapter)
     const walletSettingsRepository = new WalletSettingsRepository(this.storageAdapter)
+    const coreExplorer = new CoreExplorerService()
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter, walletRepository),
@@ -124,11 +128,19 @@ export class PrivateAPI {
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
       [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: new RequestAssetLockFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, this.sdk, this.storageAdapter),
+      [MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS]: new RequestTopUpFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, coreExplorer, this.sdk, this.storageAdapter),
       [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
         walletRepository,
         identitiesRepository,
         assetLockFundingAddressesRepository,
         this.storageAdapter,
+        this.sdk,
+        this.coreSDK
+      ),
+      [MessagingMethods.TOP_UP_IDENTITY]: new TopUpIdentityHandler(
+        walletRepository,
+        identitiesRepository,
+        assetLockFundingAddressesRepository,
         this.sdk,
         this.coreSDK
       ),
