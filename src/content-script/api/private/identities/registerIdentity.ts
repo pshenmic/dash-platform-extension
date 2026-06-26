@@ -22,8 +22,9 @@ import {
   hexToBytes
 } from '../../../../utils'
 import { isStateTransitionAlreadyInChainError } from '../../../../utils/isStateTransitionAlreadyInChainError'
+import { isIdentityNotFoundError } from '../../../../utils/isIdentityNotFoundError'
 import { WalletType } from '../../../../types/WalletType'
-import { TXID_HEX_LENGTH } from '../../../../constants'
+import { TXID_HEX_LENGTH, IDENTITY_INDEX_SCAN_LIMIT } from '../../../../constants'
 
 export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -101,19 +102,27 @@ export class RegisterIdentityHandler implements APIHandler {
     // already registered on-chain (e.g. same seedphrase used elsewhere).
     const identities = await this.identitiesRepository.getAll()
     const localIndices = identities.map((identity) => identity.index)
-    let identityIndex = findNextLocalIdentityIndex(localIndices)
+    const startIndex = findNextLocalIdentityIndex(localIndices)
+    const scanLimit = startIndex + IDENTITY_INDEX_SCAN_LIMIT
 
-    while (true) {
+    let identityIndex = startIndex
+    let foundFreeIndex = false
+
+    while (identityIndex < scanLimit) {
       const authPrivateKey = await deriveIdentityPrivateKey(wallet, payload.password, identityIndex, 0, this.sdk)
-      const pkh = authPrivateKey.getPublicKeyHash()
 
-      const existing =
-        await this.sdk.identities.getIdentityByPublicKeyHash(pkh).catch(() => null) ??
-        await this.sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh).catch(() => null)
-
-      if (existing == null) break
+      if (!(await this.isIdentityRegistered(authPrivateKey.getPublicKeyHash()))) {
+        foundFreeIndex = true
+        break
+      }
 
       identityIndex++
+    }
+
+    if (!foundFreeIndex) {
+      throw new Error(
+        `Could not find a free identity index within ${IDENTITY_INDEX_SCAN_LIMIT} indexes from ${startIndex}`
+      )
     }
 
     // ── 5. Derive identity registration key (DIP-0013 path 5'/1'/index) ────
@@ -240,6 +249,32 @@ export class RegisterIdentityHandler implements APIHandler {
       identifier,
       stateTransitionHash
     }
+  }
+
+  // Returns whether an identity is already registered on-chain for this auth
+  // key public key hash. Only a genuine "not found" (from both the unique and
+  // non-unique lookups) counts as a free index; any other error (network /
+  // DAPI / proof) is rethrown so a transient failure is never mistaken for a
+  // free index and used to register a colliding key.
+  private async isIdentityRegistered (pkh: string): Promise<boolean> {
+    const lookups = [
+      async () => await this.sdk.identities.getIdentityByPublicKeyHash(pkh),
+      async () => await this.sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh)
+    ]
+
+    for (const lookup of lookups) {
+      try {
+        if ((await lookup()) != null) {
+          return true
+        }
+      } catch (e) {
+        if (!isIdentityNotFoundError(e)) {
+          throw e
+        }
+      }
+    }
+
+    return false
   }
 
   validatePayload (payload: RegisterIdentityPayload): string | null {

@@ -8,6 +8,10 @@ import { SetupPasswordPayload } from './messages/payloads/SetupPasswordPayload'
 import { VoidResponse } from './messages/response/VoidResponse'
 import { SwitchIdentityPayload } from './messages/payloads/SwitchIdentityPayload'
 import { EmptyPayload } from './messages/payloads/EmptyPayload'
+import { GetPlatformAddressesPayload } from './messages/payloads/GetPlatformAddressesPayload'
+import { GetPlatformAddressesResponse } from './messages/response/GetPlatformAddressesResponse'
+import { GetPlatformAddressesInfosPayload } from './messages/payloads/GetPlatformAddressesInfosPayload'
+import { GetPlatformAddressesInfosResponse, PlatformAddressBalance } from './messages/response/GetPlatformAddressesInfosResponse'
 import { CheckPasswordResponse } from './messages/response/CheckPasswordResponse'
 import { CheckPasswordPayload } from './messages/payloads/CheckPasswordPayload'
 import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
@@ -50,8 +54,12 @@ import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIden
 import { SetWalletLabelPayload } from './messages/payloads/SetWalletLabelPayload'
 import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
 import { RequestAssetLockFundingAddressResponse } from './messages/response/RequestAssetLockFundingAddressResponse'
+import { RequestTopUpFundingAddressResponse } from './messages/response/RequestTopUpFundingAddressResponse'
+import { RequestTopUpFundingAddressPayload } from './messages/payloads/RequestTopUpFundingAddressPayload'
 import { RegisterIdentityPayload } from './messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from './messages/response/RegisterIdentityResponse'
+import { TopUpIdentityPayload } from './messages/payloads/TopUpIdentityPayload'
+import { TopUpIdentityResponse } from './messages/response/TopUpIdentityResponse'
 import { GetSettingsResponse } from './messages/response/GetSettingsResponse'
 import { SetSettingsPayload } from './messages/payloads/SetSettingsPayload'
 
@@ -329,6 +337,15 @@ export class PrivateAPIClient {
     )
   }
 
+  async requestTopUpFundingAddress (password: string): Promise<RequestTopUpFundingAddressResponse> {
+    const payload: RequestTopUpFundingAddressPayload = { password }
+
+    return await this._rpcCall(
+      MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS,
+      payload
+    )
+  }
+
   async registerIdentity (
     assetLockFundingAddress: string,
     assetLockFundingTxid: string,
@@ -343,6 +360,22 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload)
   }
 
+  async topUpIdentity (
+    identityId: string,
+    assetLockFundingAddress: string,
+    assetLockFundingTxid: string,
+    password: string
+  ): Promise<TopUpIdentityResponse> {
+    const payload: TopUpIdentityPayload = {
+      identityId,
+      assetLockFundingAddress,
+      assetLockFundingTxid,
+      password
+    }
+
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload)
+  }
+
   async getSettings (): Promise<GetSettingsResponse> {
     const payload: EmptyPayload = {}
 
@@ -353,6 +386,22 @@ export class PrivateAPIClient {
     const payload: SetSettingsPayload = { hideBalance }
 
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
+  }
+
+  async getPlatformAddresses (password: string, account?: number, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
+    const payload: GetPlatformAddressesPayload = { password, account, count }
+
+    const response: GetPlatformAddressesResponse = await this._rpcCall(MessagingMethods.GET_PLATFORM_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  async getPlatformAddressesInfos (addresses: string[]): Promise<PlatformAddressBalance[]> {
+    const payload: GetPlatformAddressesInfosPayload = { addresses }
+
+    const response: GetPlatformAddressesInfosResponse = await this._rpcCall(MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS, payload)
+
+    return response.infos
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {
