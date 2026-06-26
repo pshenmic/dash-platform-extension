@@ -129,6 +129,6 @@ export class PlatformExplorerClient {
 
   getAddressExplorerUrl (address: string, network: NetworkType = 'testnet'): string {
     const explorerUrl = getExplorerUrl(network)
-    return `${explorerUrl}/address/${address}`
+    return `${explorerUrl}/platformAddress/${address}`
   }
 }
