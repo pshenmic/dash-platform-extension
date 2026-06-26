@@ -5,7 +5,7 @@ import { AddressItem, type AddressData } from './AddressItem'
 import { useSdk } from '../../hooks/useSdk'
 import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
 import type { NetworkType } from '../../../types'
-import { CoreScriptWASM, NetworkWASM } from 'pshenmic-dpp'
+import { NetworkWASM, PlatformAddressWASM } from 'pshenmic-dpp'
 
 interface AddressesMenuProps {
   isOpen: boolean
@@ -31,12 +31,17 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
 
     const networkEnum = currentNetwork === 'mainnet' ? NetworkWASM.Mainnet : NetworkWASM.Testnet
 
-    const hexToBase58Address = (hexHash: string): string => {
-      const bytes = new Uint8Array(hexHash.length / 2)
+    // Builds a P2PKH PlatformAddress from a public key hash. The serialized
+    // form is [variant byte][20-byte hash], where variant 0 = P2PKH.
+    const platformAddressFromHash = (hexHash: string): PlatformAddressWASM => {
+      const hash = new Uint8Array(hexHash.length / 2)
       for (let i = 0; i < hexHash.length; i += 2) {
-        bytes[i / 2] = parseInt(hexHash.substring(i, i + 2), 16)
+        hash[i / 2] = parseInt(hexHash.substring(i, i + 2), 16)
       }
-      return CoreScriptWASM.newP2PKH(bytes).toAddress(networkEnum)
+      const bytes = new Uint8Array(hash.length + 1)
+      bytes[0] = 0
+      bytes.set(hash, 1)
+      return PlatformAddressWASM.fromBytes(bytes)
     }
 
     const loadAddresses = async (): Promise<void> => {
@@ -46,44 +51,48 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
       try {
         const publicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
 
-        const initialAddresses: AddressData[] = publicKeys
+        const entries = publicKeys
           .map((key: any) => {
             const keyId = key?.keyId ?? key?.getId?.() ?? 0
-            let address = ''
             try {
               const hexHash: string = key?.getPublicKeyHash?.() ?? ''
-              if (hexHash !== '') {
-                address = hexToBase58Address(hexHash)
+              if (hexHash === '') return null
+              const platformAddress = platformAddressFromHash(hexHash)
+              const data: AddressData = {
+                keyId,
+                address: platformAddress.toBech32m(networkEnum),
+                balance: null,
+                totalTxs: null,
+                loading: true
               }
-            } catch {}
-
-            return {
-              keyId,
-              address,
-              balance: null,
-              totalTxs: null,
-              loading: true
+              return { data, platformAddress }
+            } catch {
+              return null
             }
           })
-          .filter((item: AddressData) => item.address !== '')
+          .filter((entry): entry is { data: AddressData, platformAddress: PlatformAddressWASM } => entry !== null)
 
-        setAddresses(initialAddresses)
+        setAddresses(entries.map((entry) => entry.data))
         setIsLoading(false)
 
-        const network = (currentNetwork ?? 'testnet') as NetworkType
+        const network = currentNetwork ?? 'testnet'
 
         const enriched = await Promise.all(
-          initialAddresses.map(async (item) => {
-            try {
-              const data = await platformExplorerClient.fetchAddress(item.address, network)
-              return {
-                ...item,
-                balance: data.balance ?? null,
-                totalTxs: data.totalTxs ?? 0,
-                loading: false
-              }
-            } catch {
-              return { ...item, loading: false }
+          entries.map(async ({ data, platformAddress }) => {
+            const [balanceResult, txsResult] = await Promise.allSettled([
+              sdk.platformAddresses.getAddressInfo(platformAddress),
+              platformExplorerClient.fetchAddress(data.address, network)
+            ])
+
+            return {
+              ...data,
+              balance: balanceResult.status === 'fulfilled'
+                ? balanceResult.value.balance.toString()
+                : null,
+              totalTxs: txsResult.status === 'fulfilled'
+                ? txsResult.value.totalTxs ?? 0
+                : null,
+              loading: false
             }
           })
         )
@@ -147,7 +156,7 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
                 item={item}
                 explorerUrl={platformExplorerClient.getAddressExplorerUrl(
                   item.address,
-                  (currentNetwork ?? 'testnet') as NetworkType
+                  currentNetwork ?? 'testnet'
                 )}
               />
             ))}
