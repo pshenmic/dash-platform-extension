@@ -146,6 +146,10 @@ function HomeState (): React.JSX.Element {
   // Check if there are wallets available in the current network
   const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
 
+  // Platform addresses are derived from the wallet seed, so the feature is only
+  // available for seedphrase wallets.
+  const isSeedphraseWallet = allWallets.find(wallet => wallet.walletId === currentWallet)?.type === 'seedphrase'
+
   if (availableWallets.length === 0) {
     return <NoWallets />
   }
@@ -260,14 +264,14 @@ function HomeState (): React.JSX.Element {
         rightButton={{
           text: 'Addresses',
           onClick: () => setIsAddressesOpen(true),
-          disabled: currentIdentity === null
+          disabled: !isSeedphraseWallet
         }}
       />
 
       <AddressesMenu
         isOpen={isAddressesOpen}
         onClose={() => setIsAddressesOpen(false)}
-        currentIdentity={currentIdentity}
+        currentWallet={currentWallet}
         currentNetwork={currentNetwork as NetworkType}
       />
 

@@ -1,115 +1,107 @@
 import React, { useEffect, useState } from 'react'
 import { OverlayMenu } from '../common'
-import { Text, ValueCard } from 'dash-ui-kit/react'
+import { Text, Button, ValueCard } from 'dash-ui-kit/react'
+import { PasswordField } from '../forms'
 import { AddressItem, type AddressData } from './AddressItem'
-import { useSdk } from '../../hooks/useSdk'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
 import type { NetworkType } from '../../../types'
-import { NetworkWASM, PlatformAddressWASM } from 'pshenmic-dpp'
 
 interface AddressesMenuProps {
   isOpen: boolean
   onClose: () => void
-  currentIdentity?: string | null
+  currentWallet?: string | null
   currentNetwork?: NetworkType | null
 }
 
 export const AddressesMenu: React.FC<AddressesMenuProps> = ({
   isOpen,
   onClose,
-  currentIdentity,
+  currentWallet,
   currentNetwork
 }) => {
-  const sdk = useSdk()
+  const extensionAPI = useExtensionAPI()
   const platformExplorerClient = usePlatformExplorerClient()
+  const [password, setPassword] = useState('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
   const [addresses, setAddresses] = useState<AddressData[]>([])
+  const [hasLoaded, setHasLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isOpen || currentIdentity == null) return
+    setAddresses([])
+    setHasLoaded(false)
+    setError(null)
+  }, [currentWallet, currentNetwork])
 
-    const networkEnum = currentNetwork === 'mainnet' ? NetworkWASM.Mainnet : NetworkWASM.Testnet
-
-    // Builds a P2PKH PlatformAddress from a public key hash. The serialized
-    // form is [variant byte][20-byte hash], where variant 0 = P2PKH.
-    const platformAddressFromHash = (hexHash: string): PlatformAddressWASM => {
-      const hash = new Uint8Array(hexHash.length / 2)
-      for (let i = 0; i < hexHash.length; i += 2) {
-        hash[i / 2] = parseInt(hexHash.substring(i, i + 2), 16)
-      }
-      const bytes = new Uint8Array(hash.length + 1)
-      bytes[0] = 0
-      bytes.set(hash, 1)
-      return PlatformAddressWASM.fromBytes(bytes)
+  const loadAddresses = async (): Promise<void> => {
+    if (password === '') {
+      setPasswordError('Password must be provided')
+      return
     }
 
-    const loadAddresses = async (): Promise<void> => {
-      setIsLoading(true)
-      setError(null)
+    setIsLoading(true)
+    setPasswordError(null)
+    setError(null)
 
-      try {
-        const publicKeys = await sdk.identities.getIdentityPublicKeys(currentIdentity)
-
-        const entries = publicKeys
-          .map((key: any) => {
-            const keyId = key?.keyId ?? key?.getId?.() ?? 0
-            try {
-              const hexHash: string = key?.getPublicKeyHash?.() ?? ''
-              if (hexHash === '') return null
-              const platformAddress = platformAddressFromHash(hexHash)
-              const data: AddressData = {
-                keyId,
-                address: platformAddress.toBech32m(networkEnum),
-                balance: null,
-                totalTxs: null,
-                loading: true
-              }
-              return { data, platformAddress }
-            } catch {
-              return null
-            }
-          })
-          .filter((entry): entry is { data: AddressData, platformAddress: PlatformAddressWASM } => entry !== null)
-
-        setAddresses(entries.map((entry) => entry.data))
+    try {
+      const passwordCheck = await extensionAPI.checkPassword(password)
+      if (!passwordCheck.success) {
+        setPasswordError('Invalid password')
         setIsLoading(false)
-
-        const network = currentNetwork ?? 'testnet'
-
-        const enriched = await Promise.all(
-          entries.map(async ({ data, platformAddress }) => {
-            const [balanceResult, txsResult] = await Promise.allSettled([
-              sdk.platformAddresses.getAddressInfo(platformAddress),
-              platformExplorerClient.fetchAddress(data.address, network)
-            ])
-
-            return {
-              ...data,
-              balance: balanceResult.status === 'fulfilled'
-                ? balanceResult.value.balance.toString()
-                : null,
-              totalTxs: txsResult.status === 'fulfilled'
-                ? txsResult.value.totalTxs ?? 0
-                : null,
-              loading: false
-            }
-          })
-        )
-
-        setAddresses(enriched)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load addresses')
-        setIsLoading(false)
+        return
       }
-    }
 
-    void loadAddresses()
-  }, [isOpen, currentIdentity, currentNetwork, sdk, platformExplorerClient])
+      const derived = await extensionAPI.getPlatformAddresses(password)
+      setPassword('')
+
+      const initial: AddressData[] = derived.map((entry) => ({
+        index: entry.index,
+        derivationPath: entry.derivationPath,
+        address: entry.address,
+        balance: null,
+        totalTxs: null,
+        loading: true
+      }))
+
+      setAddresses(initial)
+      setHasLoaded(true)
+      setIsLoading(false)
+
+      const network = currentNetwork ?? 'testnet'
+
+      const [infos, txCounts] = await Promise.all([
+        extensionAPI.getPlatformAddressesInfos(initial.map((item) => item.address)),
+        Promise.all(initial.map(async (item) => {
+          try {
+            const data = await platformExplorerClient.fetchAddress(item.address, network)
+            return data.totalTxs ?? 0
+          } catch {
+            return null
+          }
+        }))
+      ])
+
+      const balanceByAddress = new Map(infos.map((info) => [info.address, info.balance]))
+
+      setAddresses(initial.map((item, i) => ({
+        ...item,
+        balance: balanceByAddress.get(item.address) ?? null,
+        totalTxs: txCounts[i],
+        loading: false
+      })))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load addresses')
+      setIsLoading(false)
+    }
+  }
 
   const handleClose = (): void => {
-    setAddresses([])
-    setError(null)
+    // Clear only the password-entry state; keep the cached addresses so
+    // reopening the menu does not require the password again.
+    setPassword('')
+    setPasswordError(null)
     onClose()
   }
 
@@ -126,8 +118,22 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
           Your Platform Addresses. It is recommended to use different addresses for each transaction.
         </Text>
 
-        {isLoading && (
-          <Text size='sm' dim>Loading addresses...</Text>
+        {!hasLoaded && (
+          <div className='flex flex-col gap-4'>
+            <PasswordField
+              value={password}
+              onChange={(value) => { setPassword(value); setPasswordError(null) }}
+              error={passwordError}
+              autoFocus
+            />
+            <Button
+              colorScheme='brand'
+              onClick={() => { void loadAddresses() }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Loading...' : 'Show Addresses'}
+            </Button>
+          </div>
         )}
 
         {error != null && (
@@ -136,13 +142,7 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
           </ValueCard>
         )}
 
-        {currentIdentity == null && !isLoading && (
-          <ValueCard colorScheme='lightGray' size='xl'>
-            <Text size='sm' dim>No identity selected</Text>
-          </ValueCard>
-        )}
-
-        {!isLoading && error == null && addresses.length === 0 && currentIdentity != null && (
+        {hasLoaded && error == null && addresses.length === 0 && (
           <ValueCard colorScheme='lightGray' size='xl'>
             <Text size='sm' dim>No addresses available</Text>
           </ValueCard>
@@ -152,7 +152,7 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
           <div className='flex flex-col gap-2'>
             {addresses.map((item) => (
               <AddressItem
-                key={`${item.keyId}-${item.address}`}
+                key={`${item.index}-${item.address}`}
                 item={item}
                 explorerUrl={platformExplorerClient.getAddressExplorerUrl(
                   item.address,
