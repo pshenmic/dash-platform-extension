@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { OverlayMenu } from '../common'
-import { Text, Button, ValueCard } from 'dash-ui-kit/react'
+import { Text, Button, ValueCard, Tabs } from 'dash-ui-kit/react'
 import { PasswordField } from '../forms'
 import { AddressItem, type AddressData } from './AddressItem'
+import { ShieldedAddresses } from './ShieldedAddresses'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
 import type { NetworkType } from '../../../types'
@@ -31,6 +32,7 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
   const [hasLoaded, setHasLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState('transparent')
   const loadingRef = useRef(false)
 
   useEffect(() => {
@@ -143,6 +145,66 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
     onClose()
   }
 
+  const transparentContent = (
+    <div className='flex flex-col gap-4 pt-4'>
+      <Text size='sm' dim>
+        Your Platform Addresses. It is recommended to use different addresses for each transaction.
+      </Text>
+
+      {needsPassword && (
+        <div className='flex flex-col gap-4'>
+          <Text size='sm' dim>
+            Enter your password once to enable platform addresses for this wallet.
+          </Text>
+          <PasswordField
+            value={password}
+            onChange={(value) => { setPassword(value); setPasswordError(null) }}
+            error={passwordError}
+            autoFocus
+          />
+          <Button
+            colorScheme='brand'
+            onClick={() => { void initialize() }}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Loading...' : 'Enable Addresses'}
+          </Button>
+        </div>
+      )}
+
+      {isLoading && !needsPassword && (
+        <Text size='sm' dim>Loading addresses...</Text>
+      )}
+
+      {error != null && (
+        <ValueCard colorScheme='red' size='xl'>
+          <Text size='sm' color='red'>{error}</Text>
+        </ValueCard>
+      )}
+
+      {hasLoaded && error == null && addresses.length === 0 && (
+        <ValueCard colorScheme='lightGray' size='xl'>
+          <Text size='sm' dim>No addresses available</Text>
+        </ValueCard>
+      )}
+
+      {addresses.length > 0 && (
+        <div className='flex flex-col gap-2'>
+          {addresses.map((item) => (
+            <AddressItem
+              key={`${item.index}-${item.address}`}
+              item={item}
+              explorerUrl={platformExplorerClient.getAddressExplorerUrl(
+                item.address,
+                currentNetwork ?? 'testnet'
+              )}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <OverlayMenu
       isOpen={isOpen}
@@ -151,63 +213,22 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
       showBackButton
       onBack={handleClose}
     >
-      <div className='flex flex-col gap-4'>
-        <Text size='sm' dim>
-          Your Platform Addresses. It is recommended to use different addresses for each transaction.
-        </Text>
-
-        {needsPassword && (
-          <div className='flex flex-col gap-4'>
-            <Text size='sm' dim>
-              Enter your password once to enable platform addresses for this wallet.
-            </Text>
-            <PasswordField
-              value={password}
-              onChange={(value) => { setPassword(value); setPasswordError(null) }}
-              error={passwordError}
-              autoFocus
-            />
-            <Button
-              colorScheme='brand'
-              onClick={() => { void initialize() }}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Loading...' : 'Enable Addresses'}
-            </Button>
-          </div>
-        )}
-
-        {isLoading && !needsPassword && (
-          <Text size='sm' dim>Loading addresses...</Text>
-        )}
-
-        {error != null && (
-          <ValueCard colorScheme='red' size='xl'>
-            <Text size='sm' color='red'>{error}</Text>
-          </ValueCard>
-        )}
-
-        {hasLoaded && error == null && addresses.length === 0 && (
-          <ValueCard colorScheme='lightGray' size='xl'>
-            <Text size='sm' dim>No addresses available</Text>
-          </ValueCard>
-        )}
-
-        {addresses.length > 0 && (
-          <div className='flex flex-col gap-2'>
-            {addresses.map((item) => (
-              <AddressItem
-                key={`${item.index}-${item.address}`}
-                item={item}
-                explorerUrl={platformExplorerClient.getAddressExplorerUrl(
-                  item.address,
-                  currentNetwork ?? 'testnet'
-                )}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        items={[
+          {
+            value: 'transparent',
+            label: 'Transparent',
+            content: transparentContent
+          },
+          {
+            value: 'shielded',
+            label: 'Shielded',
+            content: <ShieldedAddresses />
+          }
+        ]}
+      />
     </OverlayMenu>
   )
 }
