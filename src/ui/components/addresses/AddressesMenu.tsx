@@ -89,16 +89,17 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
     setError(null)
 
     try {
-      const derived = await extensionAPI.getPlatformAddresses()
+      const initialized = await extensionAPI.isPlatformAccountInitialized()
+      if (!initialized) {
+        setNeedsPassword(true)
+        return
+      }
+
       setNeedsPassword(false)
+      const derived = await extensionAPI.getPlatformAddresses()
       await populate(derived)
     } catch (err) {
-      const message = err instanceof Error ? err.message : ''
-      if (message.includes('not initialized')) {
-        setNeedsPassword(true)
-      } else {
-        setError(message !== '' ? message : 'Failed to load addresses')
-      }
+      setError(err instanceof Error ? err.message : 'Failed to load addresses')
     } finally {
       setIsLoading(false)
       loadingRef.current = false
