@@ -1426,6 +1426,13 @@
   dependencies:
     "@noble/hashes" "2.0.1"
 
+"@noble/curves@2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@noble/curves/-/curves-2.2.0.tgz#981be3aadc3bbfbcdb245e78cc97aa6f759246c2"
+  integrity sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ==
+  dependencies:
+    "@noble/hashes" "2.2.0"
+
 "@noble/curves@^1.9.1":
   version "1.9.7"
   resolved "https://registry.npmjs.org/@noble/curves/-/curves-1.9.7.tgz"
@@ -1442,6 +1449,11 @@
   version "2.0.1"
   resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-2.0.1.tgz"
   integrity sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw==
+
+"@noble/hashes@2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-2.2.0.tgz#22da1d16a469954fce877055d559900a6c73b63b"
+  integrity sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==
 
 "@noble/secp256k1@^3.0.0":
   version "3.0.0"
@@ -2179,6 +2191,11 @@
   resolved "https://registry.npmjs.org/@scure/base/-/base-2.0.0.tgz"
   integrity sha512-3E1kpuZginKkek01ovG8krQ0Z44E3DHPjc5S2rjJw9lZn3KSQOs8S7wqikF/AH7iRanHypj85uGyxk0XAyC37w==
 
+"@scure/base@2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@scure/base/-/base-2.2.0.tgz#1311378ed247df6d58f8eb8941921965e97e5747"
+  integrity sha512-b8XEupJibegiXV+tDUseI8oLQc8ei3d/4Jkb2RpbHh3MfE054ov3uIz2dhFkB3FI8iwYkEh0gGCApkrYggkPNg==
+
 "@scure/base@^1.2.4", "@scure/base@~1.2.5":
   version "1.2.6"
   resolved "https://registry.npmjs.org/@scure/base/-/base-1.2.6.tgz"
@@ -2192,6 +2209,15 @@
     "@noble/curves" "2.0.1"
     "@noble/hashes" "2.0.1"
     "@scure/base" "2.0.0"
+
+"@scure/bip32@^2.0.1":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@scure/bip32/-/bip32-2.2.0.tgz#8b1b470f4079843df36a472f5e103c3bd9c11f7c"
+  integrity sha512-zFr7t2F+a9+5tB7QbarF2HQNYrgjCNaoLAupZdKkrFMYMozJf5zqH2WJCQibMzm1qQ0QogrxVGO3qXfQDYMaQg==
+  dependencies:
+    "@noble/curves" "2.2.0"
+    "@noble/hashes" "2.2.0"
+    "@scure/base" "2.2.0"
 
 "@scure/bip39@^1.6.0":
   version "1.6.0"
@@ -3786,10 +3812,10 @@ dash-core-sdk@1.1.3-dev.1:
     typescript "^5.9.2"
     ws "^8.18.3"
 
-dash-platform-sdk@1.4.0-dev.17:
-  version "1.4.0-dev.17"
-  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.4.0-dev.17.tgz#f6a7423858a23783f6232dfc59069cafb568a5b3"
-  integrity sha512-OnpDqQ63z09ij5K+EH7m1Es7L3zgzhH1kcPW4ftEcQ4QURyhGwhySdSc6oW5/iay+jyVIOLpyp3BkNXr/CPj4w==
+dash-platform-sdk@1.5.0-dev.1:
+  version "1.5.0-dev.1"
+  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.5.0-dev.1.tgz#f7644f5c5443b8eb8b8578c71ecb86aea9382d1c"
+  integrity sha512-CSOq7fTPLtVMa4Y4CHevdTZHytDoeOUYJscU3wQxwbBtYky+mxjtAiJ5fK4j0rvn5KfX4pQdLu2AHEhxWP45KQ==
   dependencies:
     "@bufbuild/protobuf" "^2.6.0"
     "@protobuf-ts/grpcweb-transport" "^2.11.1"
@@ -3798,7 +3824,7 @@ dash-platform-sdk@1.4.0-dev.17:
     "@scure/bip39" "^2.0.0"
     "@scure/btc-signer" "^2.0.1"
     cbor-x "^1.6.0"
-    pshenmic-dpp "2.0.0-dev.20"
+    pshenmic-dpp "2.0.0-dev.22"
 
 dash-ui-kit@2.1.5:
   version "2.1.5"
@@ -6980,10 +7006,10 @@ proxy-addr@~2.0.7:
     forwarded "0.2.0"
     ipaddr.js "1.9.1"
 
-pshenmic-dpp@2.0.0-dev.20:
-  version "2.0.0-dev.20"
-  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-2.0.0-dev.20.tgz#45b30ae6b214630ce7bd518d274506b6cc29b4a0"
-  integrity sha512-ZjytCJvdiUPyGX4PhBreGHXxKgzJR/FkG6F0FrUBCptb5ixqPscm+zsRHsB7bFEf+yfBoMr2NMEKI+LTZ5h9sg==
+pshenmic-dpp@2.0.0-dev.22:
+  version "2.0.0-dev.22"
+  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-2.0.0-dev.22.tgz#19ce213ca2ae20df5a1e846d9b08b625c0e5b972"
+  integrity sha512-maB6DGEHhnF6yFFjaeLIe0j6HNz2YtBcd+MDxkm+WNA66ufujAyP5ZK9FbPvvX7hFjMT1wdcv8VLzbw7vEaRTg==
   dependencies:
     "@emnapi/core" "1.9.0"
     "@emnapi/runtime" "1.9.0"
