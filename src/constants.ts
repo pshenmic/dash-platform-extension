@@ -56,6 +56,15 @@ export const PLATFORM_ADDRESS_HD_VERSIONS = {
   mainnet: { private: 0x0488ade4, public: 0x0488b21e }
 }
 
+// ── Shielded (Orchard) addresses ─────────────────────────────────────────────
+// Orchard receiving addresses derive via ZIP-32 m/32'/coinType'/account' (the
+// SDK owns the path); diversifierIndex selects a distinct diversified address
+// sharing the account's viewing key.
+export const SHIELDED_ADDRESS_DEFAULT_COUNT = 5
+// Page size when paging the shielded note set; mirrors the SDK's
+// SHIELDED_MAX_NOTES_PER_QUERY gRPC limit.
+export const SHIELDED_NOTES_PAGE_SIZE = 8192
+
 export const PLATFORM_EXPLORER_URLS = {
   testnet: {
     api: 'https://testnet.platform-explorer.pshenmic.dev',

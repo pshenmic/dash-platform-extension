@@ -1,7 +1,7 @@
 import { base58, bech32m } from '@scure/base'
 import { HDKey } from '@scure/bip32'
-import { PublicKeyWASM } from 'pshenmic-dpp'
-import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'dash-platform-sdk/types'
+import { PublicKeyWASM, RecoveredNoteWASM } from 'pshenmic-dpp'
+import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
@@ -12,7 +12,8 @@ import {
   PLATFORM_ADDRESS_HD_VERSIONS,
   PLATFORM_ADDRESS_HRP,
   PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS,
-  PLATFORM_ADDRESS_P2PKH_TYPE_BYTE
+  PLATFORM_ADDRESS_P2PKH_TYPE_BYTE,
+  SHIELDED_NOTES_PAGE_SIZE
 } from '../constants'
 import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
@@ -240,6 +241,84 @@ export const derivePlatformAddresses = async (wallet: Wallet, password: string, 
   const xpub = await derivePlatformAccountXpub(wallet, password, account, sdk)
 
   return derivePlatformAddressesFromXpub(xpub, wallet.network, account, count)
+}
+
+export interface ShieldedAddressEntry {
+  address: string
+  derivationPath: string
+  diversifierIndex: number
+}
+
+// Derive `count` diversified Orchard (shielded) addresses for an account.
+// ZIP-32 m/32'/coinType'/account'; each diversifierIndex yields a distinct
+// receiving address sharing the account's viewing key. Needs the password
+// (decrypts the seed).
+export const deriveShieldedAddresses = (wallet: Wallet, password: string, account: number, count: number, sdk: DashPlatformSDK): ShieldedAddressEntry[] => {
+  if (wallet.type !== 'seedphrase') {
+    throw new Error('Shielded addresses can only be derived from a seedphrase wallet')
+  }
+
+  const networkType = wallet.network
+  const network = Network[networkType as keyof typeof Network]
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+  const coinType = PLATFORM_ADDRESS_COIN_TYPE[networkType]
+  const derivationPath = `m/32'/${coinType}'/${account}'`
+
+  const entries: ShieldedAddressEntry[] = []
+  for (let diversifierIndex = 0; diversifierIndex < count; diversifierIndex++) {
+    const orchardAddress = sdk.keyPair.deriveShieldedAddress(seed, network, account, diversifierIndex)
+    entries.push({ address: orchardAddress.toBech32m(networkType), derivationPath, diversifierIndex })
+  }
+
+  return entries
+}
+
+// Pages the entire shielded note set (commitment-tree leaves) from the pool,
+// preserving global leaf order so a leaf position maps to its array index.
+// Read-only — no Halo2 builder is constructed.
+export const fetchAllShieldedNotes = async (sdk: DashPlatformSDK): Promise<ShieldedEncryptedNote[]> => {
+  const total = await sdk.shielded.getShieldedNotesCount()
+
+  if (total == null || total === 0n) {
+    return []
+  }
+
+  const notes: ShieldedEncryptedNote[] = []
+  for (let start = 0n; start < total; start += BigInt(SHIELDED_NOTES_PAGE_SIZE)) {
+    const page = await sdk.shielded.getShieldedEncryptedNotes(start, SHIELDED_NOTES_PAGE_SIZE)
+
+    if (page.length === 0) {
+      break
+    }
+
+    notes.push(...page)
+  }
+
+  return notes
+}
+
+// Sums the value of recovered notes that are not yet spent. Spent status is
+// matched by nullifier hex (not array order — getShieldedNullifiers does not
+// guarantee response order), and each recovered note's nullifier is taken from
+// its leaf in `allNotes` via the global `index`.
+export const sumUnspentShieldedValue = (recovered: RecoveredNoteWASM[], allNotes: ShieldedEncryptedNote[], statuses: ShieldedNullifierStatus[]): { balance: bigint, spendableNotes: number } => {
+  const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
+
+  let balance = 0n
+  let spendableNotes = 0
+
+  for (const recoveredNote of recovered) {
+    const encryptedNote = allNotes[recoveredNote.index]
+
+    if (encryptedNote == null || spent.has(bytesToHex(encryptedNote.nullifier))) {
+      continue
+    }
+
+    balance += recoveredNote.note.value
+    spendableNotes += 1
+  }
+
+  return { balance, spendableNotes }
 }
 
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {

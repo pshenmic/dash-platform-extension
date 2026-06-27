@@ -52,6 +52,8 @@ import { SetSettingsHandler } from './private/settings/setSettings'
 import { GetPlatformAddressesHandler } from './private/wallet/getPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
 import { CachePlatformAccountXpubHandler } from './private/wallet/cachePlatformAccountXpub'
+import { GetShieldedAddressesHandler } from './private/wallet/getShieldedAddresses'
+import { GetShieldedBalanceHandler } from './private/wallet/getShieldedBalance'
 
 /**
  * Handlers for a messages within extension context
@@ -151,7 +153,9 @@ export class PrivateAPI {
       [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository),
       [MessagingMethods.GET_PLATFORM_ADDRESSES]: new GetPlatformAddressesHandler(walletRepository),
       [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk),
-      [MessagingMethods.CACHE_PLATFORM_ACCOUNT_XPUB]: new CachePlatformAccountXpubHandler(walletRepository, this.sdk)
+      [MessagingMethods.CACHE_PLATFORM_ACCOUNT_XPUB]: new CachePlatformAccountXpubHandler(walletRepository, this.sdk),
+      [MessagingMethods.GET_SHIELDED_ADDRESSES]: new GetShieldedAddressesHandler(walletRepository, this.sdk),
+      [MessagingMethods.GET_SHIELDED_BALANCE]: new GetShieldedBalanceHandler(walletRepository, this.sdk)
     }
 
     chrome.runtime.onMessage.addListener((data: EventData) => {
