@@ -1,4 +1,6 @@
 import { base58, bech32m } from '@scure/base'
+import { HDKey } from '@scure/bip32'
+import { PublicKeyWASM } from 'pshenmic-dpp'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
@@ -7,6 +9,7 @@ import {
   BECH32M_CHAR_LIMIT,
   PLATFORM_ADDRESS_COIN_TYPE,
   PLATFORM_ADDRESS_FEATURE,
+  PLATFORM_ADDRESS_HD_VERSIONS,
   PLATFORM_ADDRESS_HRP,
   PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS,
   PLATFORM_ADDRESS_P2PKH_TYPE_BYTE
@@ -187,11 +190,11 @@ const encodePlatformP2PKH = (pubKeyHashHex: string, network: NetworkType): strin
   return bech32m.encode(PLATFORM_ADDRESS_HRP[network], bech32m.toWords(payload), BECH32M_CHAR_LIMIT)
 }
 
-// Derive `count` transparent P2PKH platform addresses from a seedphrase wallet,
-// at DIP-17 m/9'/coin'/17'/account'/keyClass'/index. The address is the Bech32m
-// (DIP-18) encoding of `typeByte || Hash160(pubkey)` — the same pubkey hash Core
-// uses, re-encoded with the platform HRP.
-export const derivePlatformAddresses = async (wallet: Wallet, password: string, account: number, count: number, sdk: DashPlatformSDK): Promise<PlatformAddressEntry[]> => {
+// Derive the DIP-17 account-level extended public key (xpub) for the clear-funds
+// key class: m/9'/coin'/17'/account'/0'. Needs the password (decrypts the seed),
+// but only once per account — the xpub then derives every address index
+// publicly, with no further access to the seed.
+export const derivePlatformAccountXpub = async (wallet: Wallet, password: string, account: number, sdk: DashPlatformSDK): Promise<string> => {
   if (wallet.type !== 'seedphrase') {
     throw new Error('Platform addresses can only be derived from a seedphrase wallet')
   }
@@ -202,20 +205,41 @@ export const derivePlatformAddresses = async (wallet: Wallet, password: string, 
   const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
   const coinType = PLATFORM_ADDRESS_COIN_TYPE[networkType]
 
+  const accountNode = await sdk.keyPair.derivePath(walletHDKey, `m/9'/${coinType}'/${PLATFORM_ADDRESS_FEATURE}'/${account}'/${PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS}'`)
+
+  return accountNode.publicExtendedKey
+}
+
+// Derive `count` transparent P2PKH platform addresses from an account xpub.
+// The address index is non-hardened, so public-only derivation reproduces the
+// exact same addresses as the private path — no seed/password required. The
+// address is the Bech32m (DIP-18) encoding of `typeByte || Hash160(pubkey)`.
+export const derivePlatformAddressesFromXpub = (xpub: string, network: NetworkType, account: number, count: number): PlatformAddressEntry[] => {
+  const coinType = PLATFORM_ADDRESS_COIN_TYPE[network]
+  const accountNode = HDKey.fromExtendedKey(xpub, PLATFORM_ADDRESS_HD_VERSIONS[network])
+
   const entries: PlatformAddressEntry[] = []
   for (let index = 0; index < count; index++) {
-    const derivationPath = `m/9'/${coinType}'/${PLATFORM_ADDRESS_FEATURE}'/${account}'/${PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS}'/${index}`
-    const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, derivationPath)
+    const childNode = accountNode.deriveChild(index)
 
-    if (privateKey == null) {
-      throw new Error(`Could not derive platform address key at ${derivationPath}`)
+    if (childNode.publicKey == null) {
+      throw new Error(`Could not derive platform address public key at index ${index}`)
     }
 
-    const pubKeyHashHex = PrivateKeyWASM.fromBytes(privateKey, networkType).getPublicKeyHash()
-    entries.push({ address: encodePlatformP2PKH(pubKeyHashHex, networkType), derivationPath, index })
+    const pubKeyHashHex = PublicKeyWASM.fromBytes(childNode.publicKey).getPublicKeyHash()
+    const derivationPath = `m/9'/${coinType}'/${PLATFORM_ADDRESS_FEATURE}'/${account}'/${PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS}'/${index}`
+    entries.push({ address: encodePlatformP2PKH(pubKeyHashHex, network), derivationPath, index })
   }
 
   return entries
+}
+
+// Convenience composition: derive the account xpub (with password) and expand it
+// into addresses in one call. Used when no cached xpub is available.
+export const derivePlatformAddresses = async (wallet: Wallet, password: string, account: number, count: number, sdk: DashPlatformSDK): Promise<PlatformAddressEntry[]> => {
+  const xpub = await derivePlatformAccountXpub(wallet, password, account, sdk)
+
+  return derivePlatformAddressesFromXpub(xpub, wallet.network, account, count)
 }
 
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {

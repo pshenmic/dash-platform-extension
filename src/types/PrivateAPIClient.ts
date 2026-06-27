@@ -9,6 +9,7 @@ import { VoidResponse } from './messages/response/VoidResponse'
 import { SwitchIdentityPayload } from './messages/payloads/SwitchIdentityPayload'
 import { EmptyPayload } from './messages/payloads/EmptyPayload'
 import { GetPlatformAddressesPayload } from './messages/payloads/GetPlatformAddressesPayload'
+import { CachePlatformAccountXpubPayload } from './messages/payloads/CachePlatformAccountXpubPayload'
 import { GetPlatformAddressesResponse } from './messages/response/GetPlatformAddressesResponse'
 import { GetPlatformAddressesInfosPayload } from './messages/payloads/GetPlatformAddressesInfosPayload'
 import { GetPlatformAddressesInfosResponse, PlatformAddressBalance } from './messages/response/GetPlatformAddressesInfosResponse'
@@ -388,8 +389,14 @@ export class PrivateAPIClient {
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
-  async getPlatformAddresses (password: string, account?: number, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
-    const payload: GetPlatformAddressesPayload = { password, account, count }
+  async cachePlatformAccountXpub (password: string, account?: number): Promise<void> {
+    const payload: CachePlatformAccountXpubPayload = { password, account }
+
+    await this._rpcCall(MessagingMethods.CACHE_PLATFORM_ACCOUNT_XPUB, payload)
+  }
+
+  async getPlatformAddresses (account?: number, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
+    const payload: GetPlatformAddressesPayload = { account, count }
 
     const response: GetPlatformAddressesResponse = await this._rpcCall(MessagingMethods.GET_PLATFORM_ADDRESSES, payload)
 
