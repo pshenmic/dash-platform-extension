@@ -10,6 +10,8 @@ import { SwitchIdentityPayload } from './messages/payloads/SwitchIdentityPayload
 import { EmptyPayload } from './messages/payloads/EmptyPayload'
 import { GetPlatformAddressesPayload } from './messages/payloads/GetPlatformAddressesPayload'
 import { CachePlatformAccountXpubPayload } from './messages/payloads/CachePlatformAccountXpubPayload'
+import { IsPlatformAccountInitializedPayload } from './messages/payloads/IsPlatformAccountInitializedPayload'
+import { IsPlatformAccountInitializedResponse } from './messages/response/IsPlatformAccountInitializedResponse'
 import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddressesPayload'
 import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
 import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
@@ -397,6 +399,14 @@ export class PrivateAPIClient {
     const payload: CachePlatformAccountXpubPayload = { password, account }
 
     await this._rpcCall(MessagingMethods.CACHE_PLATFORM_ACCOUNT_XPUB, payload)
+  }
+
+  async isPlatformAccountInitialized (account?: number): Promise<boolean> {
+    const payload: IsPlatformAccountInitializedPayload = { account }
+
+    const response: IsPlatformAccountInitializedResponse = await this._rpcCall(MessagingMethods.IS_PLATFORM_ACCOUNT_INITIALIZED, payload)
+
+    return response.initialized
   }
 
   async getPlatformAddresses (account?: number, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
