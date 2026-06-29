@@ -13,37 +13,27 @@ interface ButtonConfig {
 interface ButtonRowProps {
   leftButton: ButtonConfig
   rightButton: ButtonConfig
-  middleButton?: ButtonConfig
   className?: string
 }
 
-export default function ButtonRow ({ leftButton, rightButton, middleButton, className }: ButtonRowProps): React.JSX.Element {
-  const buttonClass = middleButton != null ? 'flex-1' : 'w-1/2'
+export default function ButtonRow ({ leftButton, rightButton, className }: ButtonRowProps): React.JSX.Element {
+  const handleLeftClick = leftButton.onClick
+  const handleRightClick = rightButton.onClick
 
   return (
     <div className={`flex gap-2 w-full ${className ?? ''}`}>
       <Button
-        onClick={leftButton.onClick}
+        onClick={handleLeftClick}
         colorScheme={leftButton.colorScheme}
-        className={buttonClass}
+        className='w-1/2'
         disabled={leftButton.disabled ?? false}
       >
         {leftButton.text}
       </Button>
-      {middleButton != null && (
-        <Button
-          onClick={middleButton.onClick}
-          colorScheme={middleButton.colorScheme}
-          className={buttonClass}
-          disabled={middleButton.disabled ?? false}
-        >
-          {middleButton.text}
-        </Button>
-      )}
       <Button
-        onClick={rightButton.onClick}
+        onClick={handleRightClick}
         colorScheme={rightButton.colorScheme}
-        className={buttonClass}
+        className='w-1/2'
         disabled={rightButton.disabled ?? false}
       >
         {rightButton.text}
