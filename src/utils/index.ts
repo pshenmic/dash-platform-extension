@@ -195,14 +195,8 @@ const encodePlatformP2PKH = (pubKeyHashHex: string, network: NetworkType): strin
 // key class: m/9'/coin'/17'/account'/0'. Needs the password (decrypts the seed),
 // but only once per account — the xpub then derives every address index
 // publicly, with no further access to the seed.
-export const derivePlatformAccountXpub = async (wallet: Wallet, password: string, account: number, sdk: DashPlatformSDK): Promise<string> => {
-  if (wallet.type !== 'seedphrase') {
-    throw new Error('Platform addresses can only be derived from a seedphrase wallet')
-  }
-
-  const networkType = wallet.network
+export const derivePlatformAccountXpubFromSeed = async (seed: Uint8Array, networkType: NetworkType, account: number, sdk: DashPlatformSDK): Promise<string> => {
   const network = Network[networkType as keyof typeof Network]
-  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
   const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
   const coinType = PLATFORM_ADDRESS_COIN_TYPE[networkType]
 
@@ -211,16 +205,27 @@ export const derivePlatformAccountXpub = async (wallet: Wallet, password: string
   return accountNode.publicExtendedKey
 }
 
+export const derivePlatformAccountXpub = async (wallet: Wallet, password: string, account: number, sdk: DashPlatformSDK): Promise<string> => {
+  if (wallet.type !== 'seedphrase') {
+    throw new Error('Platform addresses can only be derived from a seedphrase wallet')
+  }
+
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+
+  return await derivePlatformAccountXpubFromSeed(seed, wallet.network, account, sdk)
+}
+
 // Derive `count` transparent P2PKH platform addresses from an account xpub.
 // The address index is non-hardened, so public-only derivation reproduces the
 // exact same addresses as the private path — no seed/password required. The
 // address is the Bech32m (DIP-18) encoding of `typeByte || Hash160(pubkey)`.
-export const derivePlatformAddressesFromXpub = (xpub: string, network: NetworkType, account: number, count: number): PlatformAddressEntry[] => {
+export const derivePlatformAddressesFromXpub = (xpub: string, network: NetworkType, account: number, count: number, start: number = 0): PlatformAddressEntry[] => {
   const coinType = PLATFORM_ADDRESS_COIN_TYPE[network]
   const accountNode = HDKey.fromExtendedKey(xpub, PLATFORM_ADDRESS_HD_VERSIONS[network])
 
   const entries: PlatformAddressEntry[] = []
-  for (let index = 0; index < count; index++) {
+  for (let offset = 0; offset < count; offset++) {
+    const index = start + offset
     const childNode = accountNode.deriveChild(index)
 
     if (childNode.publicKey == null) {
