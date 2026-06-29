@@ -49,10 +49,9 @@ import { TopUpIdentityHandler } from './private/identities/topUpIdentity'
 import { WalletSettingsRepository } from '../repository/WalletSettingsRepository'
 import { GetSettingsHandler } from './private/settings/getSettings'
 import { SetSettingsHandler } from './private/settings/setSettings'
-import { GetPlatformAddressesHandler } from './private/wallet/getPlatformAddresses'
+import { GeneratePlatformAddressesHandler } from './private/wallet/generatePlatformAddresses'
+import { ListPlatformAddressesHandler } from './private/wallet/listPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
-import { CachePlatformXpubHandler } from './private/wallet/cachePlatformXpub'
-import { IsPlatformXpubInitializedHandler } from './private/wallet/isPlatformXpubInitialized'
 import { GetShieldedAddressesHandler } from './private/wallet/getShieldedAddresses'
 import { GetShieldedBalanceHandler } from './private/wallet/getShieldedBalance'
 
@@ -152,10 +151,9 @@ export class PrivateAPI {
       ),
       [MessagingMethods.GET_SETTINGS]: new GetSettingsHandler(walletSettingsRepository),
       [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository),
-      [MessagingMethods.GET_PLATFORM_ADDRESSES]: new GetPlatformAddressesHandler(walletRepository),
+      [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
+      [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository),
       [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk),
-      [MessagingMethods.CACHE_PLATFORM_XPUB]: new CachePlatformXpubHandler(walletRepository, this.sdk),
-      [MessagingMethods.IS_PLATFORM_XPUB_INITIALIZED]: new IsPlatformXpubInitializedHandler(walletRepository),
       [MessagingMethods.GET_SHIELDED_ADDRESSES]: new GetShieldedAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_SHIELDED_BALANCE]: new GetShieldedBalanceHandler(walletRepository, this.sdk)
     }

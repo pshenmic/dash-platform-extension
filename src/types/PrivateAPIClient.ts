@@ -8,10 +8,7 @@ import { SetupPasswordPayload } from './messages/payloads/SetupPasswordPayload'
 import { VoidResponse } from './messages/response/VoidResponse'
 import { SwitchIdentityPayload } from './messages/payloads/SwitchIdentityPayload'
 import { EmptyPayload } from './messages/payloads/EmptyPayload'
-import { GetPlatformAddressesPayload } from './messages/payloads/GetPlatformAddressesPayload'
-import { CachePlatformXpubPayload } from './messages/payloads/CachePlatformXpubPayload'
-import { IsPlatformXpubInitializedPayload } from './messages/payloads/IsPlatformXpubInitializedPayload'
-import { IsPlatformXpubInitializedResponse } from './messages/response/IsPlatformXpubInitializedResponse'
+import { GeneratePlatformAddressesPayload } from './messages/payloads/GeneratePlatformAddressesPayload'
 import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddressesPayload'
 import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
 import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
@@ -395,24 +392,18 @@ export class PrivateAPIClient {
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
-  async cachePlatformXpub (password: string): Promise<void> {
-    const payload: CachePlatformXpubPayload = { password }
+  async generatePlatformAddresses (password?: string): Promise<GetPlatformAddressesResponse['addresses']> {
+    const payload: GeneratePlatformAddressesPayload = { password }
 
-    await this._rpcCall(MessagingMethods.CACHE_PLATFORM_XPUB, payload)
+    const response: GetPlatformAddressesResponse = await this._rpcCall(MessagingMethods.GENERATE_PLATFORM_ADDRESSES, payload)
+
+    return response.addresses
   }
 
-  async isPlatformXpubInitialized (): Promise<boolean> {
-    const payload: IsPlatformXpubInitializedPayload = {}
+  async listPlatformAddresses (): Promise<GetPlatformAddressesResponse['addresses']> {
+    const payload: EmptyPayload = {}
 
-    const response: IsPlatformXpubInitializedResponse = await this._rpcCall(MessagingMethods.IS_PLATFORM_XPUB_INITIALIZED, payload)
-
-    return response.initialized
-  }
-
-  async getPlatformAddresses (count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
-    const payload: GetPlatformAddressesPayload = { count }
-
-    const response: GetPlatformAddressesResponse = await this._rpcCall(MessagingMethods.GET_PLATFORM_ADDRESSES, payload)
+    const response: GetPlatformAddressesResponse = await this._rpcCall(MessagingMethods.LIST_PLATFORM_ADDRESSES, payload)
 
     return response.addresses
   }
