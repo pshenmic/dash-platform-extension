@@ -15,8 +15,6 @@ interface AddressesMenuProps {
   currentNetwork?: NetworkType | null
 }
 
-type DerivedAddresses = Awaited<ReturnType<ReturnType<typeof useExtensionAPI>['getPlatformAddresses']>>
-
 export const AddressesMenu: React.FC<AddressesMenuProps> = ({
   isOpen,
   onClose,
@@ -31,6 +29,7 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
   const [addresses, setAddresses] = useState<AddressData[]>([])
   const [hasLoaded, setHasLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('transparent')
   const loadingRef = useRef(false)
@@ -42,9 +41,10 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
     setError(null)
   }, [currentWallet, currentNetwork])
 
-  // Fetch balances and tx counts for the derived addresses
-  const populate = async (derived: DerivedAddresses): Promise<void> => {
-    const initial: AddressData[] = derived.map((entry) => ({
+  const refreshList = async (): Promise<void> => {
+    const created = await extensionAPI.listPlatformAddresses()
+
+    const initial: AddressData[] = created.map((entry) => ({
       index: entry.index,
       derivationPath: entry.derivationPath,
       address: entry.address,
@@ -54,7 +54,8 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
     }))
 
     setAddresses(initial)
-    setHasLoaded(true)
+
+    if (initial.length === 0) return
 
     const network = currentNetwork ?? 'testnet'
 
@@ -80,24 +81,15 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
     })))
   }
 
-  // Load addresses without a password, from the cached account xpub.
-  // If the xpub has not been cached yet, fall back to a one-time password request.
-  const loadAddresses = async (): Promise<void> => {
+  const loadList = async (): Promise<void> => {
     if (loadingRef.current) return
     loadingRef.current = true
     setIsLoading(true)
     setError(null)
 
     try {
-      const initialized = await extensionAPI.isPlatformAccountInitialized()
-      if (!initialized) {
-        setNeedsPassword(true)
-        return
-      }
-
-      setNeedsPassword(false)
-      const derived = await extensionAPI.getPlatformAddresses()
-      await populate(derived)
+      await refreshList()
+      setHasLoaded(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load addresses')
     } finally {
@@ -106,13 +98,32 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
     }
   }
 
-  const initialize = async (): Promise<void> => {
+  useEffect(() => {
+    if (isOpen && !hasLoaded) void loadList()
+  }, [isOpen, hasLoaded])
+
+  const handleCreate = async (): Promise<void> => {
+    setIsGenerating(true)
+    setError(null)
+
+    try {
+      await extensionAPI.generatePlatformAddresses()
+      setNeedsPassword(false)
+      await refreshList()
+    } catch {
+      setNeedsPassword(true)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleCreateWithPassword = async (): Promise<void> => {
     if (password === '') {
       setPasswordError('Password must be provided')
       return
     }
 
-    setIsLoading(true)
+    setIsGenerating(true)
     setPasswordError(null)
     setError(null)
 
@@ -123,26 +134,27 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
         return
       }
 
-      await extensionAPI.cachePlatformAccountXpub(password)
+      await extensionAPI.generatePlatformAddresses(password)
       setPassword('')
       setNeedsPassword(false)
-
-      const derived = await extensionAPI.getPlatformAddresses()
-      await populate(derived)
+      await refreshList()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load addresses')
+      setError(err instanceof Error ? err.message : 'Failed to create address')
     } finally {
-      setIsLoading(false)
+      setIsGenerating(false)
     }
   }
 
-  useEffect(() => {
-    if (isOpen && !hasLoaded && !needsPassword) void loadAddresses()
-  }, [isOpen, hasLoaded])
+  const cancelPassword = (): void => {
+    setNeedsPassword(false)
+    setPassword('')
+    setPasswordError(null)
+  }
 
   const handleClose = (): void => {
     setPassword('')
     setPasswordError(null)
+    setNeedsPassword(false)
     onClose()
   }
 
@@ -152,28 +164,7 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
         Your Platform Addresses. It is recommended to use different addresses for each transaction.
       </Text>
 
-      {needsPassword && (
-        <div className='flex flex-col gap-4'>
-          <Text size='sm' dim>
-            Enter your password once to enable platform addresses for this wallet.
-          </Text>
-          <PasswordField
-            value={password}
-            onChange={(value) => { setPassword(value); setPasswordError(null) }}
-            error={passwordError}
-            autoFocus
-          />
-          <Button
-            colorScheme='brand'
-            onClick={() => { void initialize() }}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Loading...' : 'Enable Addresses'}
-          </Button>
-        </div>
-      )}
-
-      {isLoading && !needsPassword && (
+      {isLoading && (
         <Text size='sm' dim>Loading addresses...</Text>
       )}
 
@@ -183,9 +174,9 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
         </ValueCard>
       )}
 
-      {hasLoaded && error == null && addresses.length === 0 && (
+      {hasLoaded && !isLoading && addresses.length === 0 && (
         <ValueCard colorScheme='lightGray' size='xl'>
-          <Text size='sm' dim>No addresses available</Text>
+          <Text size='sm' dim>No addresses yet. Create your first one below.</Text>
         </ValueCard>
       )}
 
@@ -203,6 +194,48 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
           ))}
         </div>
       )}
+
+      {needsPassword
+        ? (
+          <div className='flex flex-col gap-3'>
+            <Text size='sm' dim>
+              Enter your password once to enable platform addresses for this wallet.
+            </Text>
+            <PasswordField
+              value={password}
+              onChange={(value) => { setPassword(value); setPasswordError(null) }}
+              error={passwordError}
+              autoFocus
+            />
+            <div className='flex gap-2'>
+              <Button
+                colorScheme='brand'
+                className='flex-1'
+                onClick={() => { void handleCreateWithPassword() }}
+                disabled={isGenerating}
+              >
+                {isGenerating ? 'Creating...' : 'Create address'}
+              </Button>
+              <Button
+                colorScheme='lightGray'
+                className='flex-1'
+                onClick={cancelPassword}
+                disabled={isGenerating}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+          )
+        : (
+          <Button
+            colorScheme='brand'
+            onClick={() => { void handleCreate() }}
+            disabled={isLoading || isGenerating}
+          >
+            {isGenerating ? 'Creating...' : 'Create new address'}
+          </Button>
+          )}
     </div>
   )
 

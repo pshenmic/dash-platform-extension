@@ -3,9 +3,11 @@ import { Text, Button, ValueCard, BigNumber } from 'dash-ui-kit/react'
 import { PasswordField } from '../forms'
 import { ShieldedAddressItem } from './ShieldedAddressItem'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import type { GetShieldedAddressesResponse } from '../../../types/messages/response/GetShieldedAddressesResponse'
+import type { GetShieldedBalanceResponse } from '../../../types/messages/response/GetShieldedBalanceResponse'
 
-type ShieldedAddressList = Awaited<ReturnType<ReturnType<typeof useExtensionAPI>['getShieldedAddresses']>>
-type ShieldedBalance = Awaited<ReturnType<ReturnType<typeof useExtensionAPI>['getShieldedBalance']>>
+type ShieldedAddressList = GetShieldedAddressesResponse['addresses']
+type ShieldedBalance = GetShieldedBalanceResponse
 
 export const ShieldedAddresses: React.FC = () => {
   const extensionAPI = useExtensionAPI()
