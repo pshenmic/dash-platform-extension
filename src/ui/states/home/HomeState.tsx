@@ -17,7 +17,6 @@ import { NamesList, type NameData } from '../../components/names'
 import { BalanceInfo } from '../../components/data'
 import { fetchNames } from '../../../utils'
 import ButtonRow from '../../components/layout/ButtonRow'
-import { AddressesMenu } from '../../components/addresses'
 
 function HomeState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -34,7 +33,6 @@ function HomeState (): React.JSX.Element {
   const [rateState, loadRate] = useAsyncState<number>()
   const [activeTab, setActiveTab] = useState('transactions')
   const [hideBalance, setHideBalance] = useState(false)
-  const [isAddressesOpen, setIsAddressesOpen] = useState(false)
 
   useEffect(() => {
     extensionAPI.getSettings()
@@ -146,10 +144,6 @@ function HomeState (): React.JSX.Element {
   // Check if there are wallets available in the current network
   const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
 
-  // Platform addresses are derived from the wallet seed, so the feature is only
-  // available for seedphrase wallets.
-  const isSeedphraseWallet = allWallets.find(wallet => wallet.walletId === currentWallet)?.type === 'seedphrase'
-
   if (availableWallets.length === 0) {
     return <NoWallets />
   }
@@ -256,23 +250,11 @@ function HomeState (): React.JSX.Element {
           colorScheme: 'brand',
           disabled: currentIdentity === null || balanceState.data === null
         }}
-        middleButton={{
+        rightButton={{
           text: 'Withdraw',
           onClick: () => { void navigate('/withdrawal') },
           disabled: currentIdentity === null || balanceState.data === null
         }}
-        rightButton={{
-          text: 'Addresses',
-          onClick: () => setIsAddressesOpen(true),
-          disabled: !isSeedphraseWallet
-        }}
-      />
-
-      <AddressesMenu
-        isOpen={isAddressesOpen}
-        onClose={() => setIsAddressesOpen(false)}
-        currentWallet={currentWallet}
-        currentNetwork={currentNetwork as NetworkType}
       />
 
       <ValueCard

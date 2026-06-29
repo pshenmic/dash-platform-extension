@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { OverlayMenu } from '../common'
 import { Text, Button, ValueCard, Tabs } from 'dash-ui-kit/react'
 import { PasswordField } from '../forms'
 import { AddressItem, type AddressData } from './AddressItem'
@@ -8,19 +7,11 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
 import type { NetworkType } from '../../../types'
 
-interface AddressesMenuProps {
-  isOpen: boolean
-  onClose: () => void
-  currentWallet?: string | null
+interface AddressesPanelProps {
   currentNetwork?: NetworkType | null
 }
 
-export const AddressesMenu: React.FC<AddressesMenuProps> = ({
-  isOpen,
-  onClose,
-  currentWallet,
-  currentNetwork
-}) => {
+export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }) => {
   const extensionAPI = useExtensionAPI()
   const platformExplorerClient = usePlatformExplorerClient()
   const [password, setPassword] = useState('')
@@ -34,13 +25,8 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
   const [activeTab, setActiveTab] = useState('transparent')
   const loadingRef = useRef(false)
 
-  useEffect(() => {
-    setAddresses([])
-    setHasLoaded(false)
-    setNeedsPassword(false)
-    setError(null)
-  }, [currentWallet, currentNetwork])
-
+  // Fetch the created addresses (public, no password) and enrich with balances
+  // and transaction counts.
   const refreshList = async (): Promise<void> => {
     const created = await extensionAPI.listPlatformAddresses()
 
@@ -59,6 +45,8 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
 
     const network = currentNetwork ?? 'testnet'
 
+    // Balance + nonce come from the batched SDK-backed handler. The transaction
+    // count has no SDK equivalent, so it still comes from the explorer.
     const [infos, txCounts] = await Promise.all([
       extensionAPI.getPlatformAddressesInfos(initial.map((item) => item.address)),
       Promise.all(initial.map(async (item) => {
@@ -81,6 +69,7 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
     })))
   }
 
+  // Load the existing list on mount. No password required.
   const loadList = async (): Promise<void> => {
     if (loadingRef.current) return
     loadingRef.current = true
@@ -99,9 +88,12 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
   }
 
   useEffect(() => {
-    if (isOpen && !hasLoaded) void loadList()
-  }, [isOpen, hasLoaded])
+    void loadList()
+  }, [])
 
+  // Generate the next address without a password. New wallets have the xpub
+  // cached at creation, so this just works. If the xpub is missing (legacy
+  // wallet), generation fails and we fall back to a one-time password prompt.
   const handleCreate = async (): Promise<void> => {
     setIsGenerating(true)
     setError(null)
@@ -117,6 +109,8 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
     }
   }
 
+  // Legacy wallets: initialize the xpub with the password and generate the
+  // first address. Subsequent generations no longer need the password.
   const handleCreateWithPassword = async (): Promise<void> => {
     if (password === '') {
       setPasswordError('Password must be provided')
@@ -151,22 +145,11 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
     setPasswordError(null)
   }
 
-  const handleClose = (): void => {
-    setPassword('')
-    setPasswordError(null)
-    setNeedsPassword(false)
-    onClose()
-  }
-
   const transparentContent = (
     <div className='flex flex-col gap-4 pt-4'>
       <Text size='sm' dim>
         Your Platform Addresses. It is recommended to use different addresses for each transaction.
       </Text>
-
-      {isLoading && (
-        <Text size='sm' dim>Loading addresses...</Text>
-      )}
 
       {error != null && (
         <ValueCard colorScheme='red' size='xl'>
@@ -240,29 +223,21 @@ export const AddressesMenu: React.FC<AddressesMenuProps> = ({
   )
 
   return (
-    <OverlayMenu
-      isOpen={isOpen}
-      onClose={handleClose}
-      title='Address List'
-      showBackButton
-      onBack={handleClose}
-    >
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        items={[
-          {
-            value: 'transparent',
-            label: 'Transparent',
-            content: transparentContent
-          },
-          {
-            value: 'shielded',
-            label: 'Shielded',
-            content: <ShieldedAddresses />
-          }
-        ]}
-      />
-    </OverlayMenu>
+    <Tabs
+      value={activeTab}
+      onValueChange={setActiveTab}
+      items={[
+        {
+          value: 'transparent',
+          label: 'Transparent',
+          content: transparentContent
+        },
+        {
+          value: 'shielded',
+          label: 'Shielded',
+          content: <ShieldedAddresses />
+        }
+      ]}
+    />
   )
 }
