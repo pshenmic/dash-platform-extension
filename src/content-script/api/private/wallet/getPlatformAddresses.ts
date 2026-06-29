@@ -7,9 +7,9 @@ import { GetPlatformAddressesPayload } from '../../../../types/messages/payloads
 import { GetPlatformAddressesResponse } from '../../../../types/messages/response/GetPlatformAddressesResponse'
 
 // Returns the current wallet's transparent (DIP-17) platform payment addresses
-// for an account. Derives them publicly from the cached account xpub, so no
+// for the first account. Derives them publicly from the cached platform xpub, so no
 // password is needed. The xpub must have been cached once via
-// CACHE_PLATFORM_ACCOUNT_XPUB; otherwise this fails and the UI should prompt for
+// CACHE_PLATFORM_XPUB; otherwise this fails and the UI should prompt for
 // the password and call that first.
 export class GetPlatformAddressesHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -26,13 +26,13 @@ export class GetPlatformAddressesHandler implements APIHandler {
       throw new Error('No wallet is chosen')
     }
 
-    const account = payload.account ?? 0
+    const account = 0
     const count = payload.count ?? PLATFORM_ADDRESS_DEFAULT_COUNT
 
     const xpub = await this.walletRepository.getPlatformAccountXpub(account)
 
     if (xpub == null) {
-      throw new Error(`Platform addresses for account ${account} are not initialized. Call cachePlatformAccountXpub with the wallet password first`)
+      throw new Error('Platform xpub is not initialized. Call cachePlatformXpub with the wallet password first')
     }
 
     const addresses = derivePlatformAddressesFromXpub(xpub, wallet.network, account, count)
@@ -41,8 +41,8 @@ export class GetPlatformAddressesHandler implements APIHandler {
   }
 
   validatePayload (payload: GetPlatformAddressesPayload): string | null {
-    if (payload.account != null && (!Number.isInteger(payload.account) || payload.account < 0)) {
-      return 'Account must be a non-negative integer'
+    if ('account' in payload) {
+      return 'Account is not supported'
     }
     if (payload.count != null && (!Number.isInteger(payload.count) || payload.count <= 0)) {
       return 'Count must be a positive integer'

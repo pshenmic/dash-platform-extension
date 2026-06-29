@@ -9,9 +9,9 @@ import { VoidResponse } from './messages/response/VoidResponse'
 import { SwitchIdentityPayload } from './messages/payloads/SwitchIdentityPayload'
 import { EmptyPayload } from './messages/payloads/EmptyPayload'
 import { GetPlatformAddressesPayload } from './messages/payloads/GetPlatformAddressesPayload'
-import { CachePlatformAccountXpubPayload } from './messages/payloads/CachePlatformAccountXpubPayload'
-import { IsPlatformAccountInitializedPayload } from './messages/payloads/IsPlatformAccountInitializedPayload'
-import { IsPlatformAccountInitializedResponse } from './messages/response/IsPlatformAccountInitializedResponse'
+import { CachePlatformXpubPayload } from './messages/payloads/CachePlatformXpubPayload'
+import { IsPlatformXpubInitializedPayload } from './messages/payloads/IsPlatformXpubInitializedPayload'
+import { IsPlatformXpubInitializedResponse } from './messages/response/IsPlatformXpubInitializedResponse'
 import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddressesPayload'
 import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
 import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
@@ -395,22 +395,22 @@ export class PrivateAPIClient {
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
-  async cachePlatformAccountXpub (password: string, account?: number): Promise<void> {
-    const payload: CachePlatformAccountXpubPayload = { password, account }
+  async cachePlatformXpub (password: string): Promise<void> {
+    const payload: CachePlatformXpubPayload = { password }
 
-    await this._rpcCall(MessagingMethods.CACHE_PLATFORM_ACCOUNT_XPUB, payload)
+    await this._rpcCall(MessagingMethods.CACHE_PLATFORM_XPUB, payload)
   }
 
-  async isPlatformAccountInitialized (account?: number): Promise<boolean> {
-    const payload: IsPlatformAccountInitializedPayload = { account }
+  async isPlatformXpubInitialized (): Promise<boolean> {
+    const payload: IsPlatformXpubInitializedPayload = {}
 
-    const response: IsPlatformAccountInitializedResponse = await this._rpcCall(MessagingMethods.IS_PLATFORM_ACCOUNT_INITIALIZED, payload)
+    const response: IsPlatformXpubInitializedResponse = await this._rpcCall(MessagingMethods.IS_PLATFORM_XPUB_INITIALIZED, payload)
 
     return response.initialized
   }
 
-  async getPlatformAddresses (account?: number, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
-    const payload: GetPlatformAddressesPayload = { account, count }
+  async getPlatformAddresses (count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
+    const payload: GetPlatformAddressesPayload = { count }
 
     const response: GetPlatformAddressesResponse = await this._rpcCall(MessagingMethods.GET_PLATFORM_ADDRESSES, payload)
 

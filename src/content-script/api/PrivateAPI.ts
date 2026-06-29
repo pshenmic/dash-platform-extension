@@ -51,8 +51,8 @@ import { GetSettingsHandler } from './private/settings/getSettings'
 import { SetSettingsHandler } from './private/settings/setSettings'
 import { GetPlatformAddressesHandler } from './private/wallet/getPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
-import { CachePlatformAccountXpubHandler } from './private/wallet/cachePlatformAccountXpub'
-import { IsPlatformAccountInitializedHandler } from './private/wallet/isPlatformAccountInitialized'
+import { CachePlatformXpubHandler } from './private/wallet/cachePlatformXpub'
+import { IsPlatformXpubInitializedHandler } from './private/wallet/isPlatformXpubInitialized'
 import { GetShieldedAddressesHandler } from './private/wallet/getShieldedAddresses'
 import { GetShieldedBalanceHandler } from './private/wallet/getShieldedBalance'
 
@@ -154,8 +154,8 @@ export class PrivateAPI {
       [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository),
       [MessagingMethods.GET_PLATFORM_ADDRESSES]: new GetPlatformAddressesHandler(walletRepository),
       [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk),
-      [MessagingMethods.CACHE_PLATFORM_ACCOUNT_XPUB]: new CachePlatformAccountXpubHandler(walletRepository, this.sdk),
-      [MessagingMethods.IS_PLATFORM_ACCOUNT_INITIALIZED]: new IsPlatformAccountInitializedHandler(walletRepository),
+      [MessagingMethods.CACHE_PLATFORM_XPUB]: new CachePlatformXpubHandler(walletRepository, this.sdk),
+      [MessagingMethods.IS_PLATFORM_XPUB_INITIALIZED]: new IsPlatformXpubInitializedHandler(walletRepository),
       [MessagingMethods.GET_SHIELDED_ADDRESSES]: new GetShieldedAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_SHIELDED_BALANCE]: new GetShieldedBalanceHandler(walletRepository, this.sdk)
     }
