@@ -1,1 +1,3 @@
-export interface IsPlatformXpubInitializedPayload {}
+import { EmptyPayload } from './EmptyPayload'
+
+export type IsPlatformXpubInitializedPayload = EmptyPayload
