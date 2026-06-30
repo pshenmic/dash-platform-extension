@@ -1,18 +1,16 @@
-import { base58, bech32m } from '@scure/base'
+import { base58 } from '@scure/base'
 import { HDKey } from '@scure/bip32'
-import { PublicKeyWASM, RecoveredNoteWASM } from 'pshenmic-dpp'
+import { PublicKeyWASM, RecoveredNoteWASM, PlatformAddressWASM } from 'pshenmic-dpp'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
 import {
-  BECH32M_CHAR_LIMIT,
   PLATFORM_ADDRESS_COIN_TYPE,
   PLATFORM_ADDRESS_FEATURE,
   PLATFORM_ADDRESS_HD_VERSIONS,
-  PLATFORM_ADDRESS_HRP,
   PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS,
-  PLATFORM_ADDRESS_P2PKH_TYPE_BYTE,
+  PLATFORM_ADDRESS_P2PKH_VARIANT_BYTE,
   SHIELDED_NOTES_PAGE_SIZE
 } from '../constants'
 import formatBigNumber from './formatBigNumber'
@@ -186,9 +184,13 @@ export interface PlatformAddressEntry {
   index: number
 }
 
+// Encode a transparent platform P2PKH address from a pubkey hash via the SDK's
+// PlatformAddressWASM, so the output is byte-identical to what DAPI and the
+// desktop wallet produce. The HRP (tdash/dash) is derived from the network.
 const encodePlatformP2PKH = (pubKeyHashHex: string, network: NetworkType): string => {
-  const payload = Uint8Array.from([PLATFORM_ADDRESS_P2PKH_TYPE_BYTE, ...hexToBytes(pubKeyHashHex)])
-  return bech32m.encode(PLATFORM_ADDRESS_HRP[network], bech32m.toWords(payload), BECH32M_CHAR_LIMIT)
+  const payload = Uint8Array.from([PLATFORM_ADDRESS_P2PKH_VARIANT_BYTE, ...hexToBytes(pubKeyHashHex)])
+
+  return PlatformAddressWASM.fromBytes(payload).toBech32m(network)
 }
 
 // Derive the DIP-17 account-level extended public key (xpub) for the clear-funds
