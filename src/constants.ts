@@ -40,6 +40,12 @@ export const PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS = 0
 export const PLATFORM_ADDRESS_DEFAULT_COUNT = 20
 // PlatformAddressWASM variant byte: 0 = P2PKH, 1 = P2SH.
 export const PLATFORM_ADDRESS_P2PKH_VARIANT_BYTE = 0x00
+// Platform credit transfer estimates. The platform computes the real processing
+// fee on-chain and the SDK exposes no estimator, so these are used only for the
+// pre-flight balance check and for reporting an estimated fee.
+// MIN_OUTPUT_CREDITS guards against dust outputs.
+export const MIN_OUTPUT_CREDITS = 500_000n
+export const TRANSFER_FEE_CREDITS = 6_500_000n
 export const PLATFORM_ADDRESS_COIN_TYPE = {
   testnet: 1,
   mainnet: 5

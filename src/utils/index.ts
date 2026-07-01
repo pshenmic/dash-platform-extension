@@ -23,6 +23,8 @@ export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
+export { selectPlatformSource, buildSignedPlatformTransfer, buildIdentityCreditTransferToAddress } from './platformTransfer'
+export type { PlatformSourceCandidate } from './platformTransfer'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -248,6 +250,30 @@ export const derivePlatformAddresses = async (wallet: Wallet, password: string, 
   const xpub = await derivePlatformAccountXpub(wallet, password, account, sdk)
 
   return derivePlatformAddressesFromXpub(xpub, wallet.network, account, count)
+}
+
+// Derive the private key for one of our DIP-17 platform addresses by its index:
+// m/9'/coin'/17'/account'/0'/index. Needs the password (decrypts the seed). Used
+// to sign a transfer that spends from that address.
+export const derivePlatformAddressPrivateKey = async (wallet: Wallet, password: string, account: number, index: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+  if (wallet.type !== 'seedphrase') {
+    throw new Error('Platform addresses can only be derived from a seedphrase wallet')
+  }
+
+  const networkType = wallet.network
+  const network = Network[networkType as keyof typeof Network]
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
+  const coinType = PLATFORM_ADDRESS_COIN_TYPE[networkType]
+  const path = `m/9'/${coinType}'/${PLATFORM_ADDRESS_FEATURE}'/${account}'/${PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS}'/${index}`
+
+  const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, path)
+
+  if (privateKey == null) {
+    throw new Error(`Could not derive platform address key at ${path}`)
+  }
+
+  return PrivateKeyWASM.fromBytes(privateKey, networkType)
 }
 
 export interface ShieldedAddressEntry {

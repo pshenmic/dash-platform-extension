@@ -52,6 +52,8 @@ import { SetSettingsHandler } from './private/settings/setSettings'
 import { GeneratePlatformAddressesHandler } from './private/wallet/generatePlatformAddresses'
 import { ListPlatformAddressesHandler } from './private/wallet/listPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
+import { SendPlatformTransferHandler } from './private/wallet/sendPlatformTransfer'
+import { FundPlatformAddressHandler } from './private/wallet/fundPlatformAddress'
 import { GetShieldedAddressesHandler } from './private/wallet/getShieldedAddresses'
 import { GetShieldedBalanceHandler } from './private/wallet/getShieldedBalance'
 
@@ -154,6 +156,8 @@ export class PrivateAPI {
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository),
       [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk),
+      [MessagingMethods.SEND_PLATFORM_TRANSFER]: new SendPlatformTransferHandler(walletRepository, this.sdk),
+      [MessagingMethods.FUND_PLATFORM_ADDRESS]: new FundPlatformAddressHandler(walletRepository, identitiesRepository, keypairRepository, this.sdk),
       [MessagingMethods.GET_SHIELDED_ADDRESSES]: new GetShieldedAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_SHIELDED_BALANCE]: new GetShieldedBalanceHandler(walletRepository, this.sdk)
     }
