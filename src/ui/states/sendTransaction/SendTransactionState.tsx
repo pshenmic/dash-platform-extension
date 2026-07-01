@@ -107,7 +107,7 @@ function SendTransactionState (): React.JSX.Element {
   })
 
   const isCredits = formState.formData.selectedAsset === 'credits'
-  const recipientKind = formState.selectedRecipient?.kind ?? null
+  const recipientKind = formState.selectedRecipient?.type ?? null
 
   // Resolve which transfer action the current form maps to.
   const transferMode: TransferMode = useMemo(() => {
@@ -505,7 +505,7 @@ function SendTransactionState (): React.JSX.Element {
           onSelect={formState.handleRecipientSelect}
           currentIdentity={currentIdentity}
           placeholder='Enter recipient identity or address'
-          allowPlatformAddress={platformFlowEnabled && isCredits}
+          allowPlatformAddress={isCredits}
           network={(currentNetwork ?? 'testnet') as NetworkType}
         />
       </div>
