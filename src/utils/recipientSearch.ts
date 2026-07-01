@@ -6,6 +6,7 @@ export interface RecipientSearchResult {
   identifier: string
   name?: string
   nameStatus?: NameStatus
+  kind?: 'identity' | 'platformAddress'
 }
 
 /**

@@ -18,6 +18,7 @@ interface SendFormData {
 interface RecipientData {
   identifier: string
   name?: string
+  kind?: 'identity' | 'platformAddress'
 }
 
 interface UseSendTransactionFormParams {
@@ -77,7 +78,8 @@ export function useSendTransactionForm ({
   const handleRecipientSelect = useCallback((recipient: RecipientSearchResult): void => {
     setSelectedRecipient({
       identifier: recipient.identifier,
-      name: recipient.name
+      name: recipient.name,
+      kind: recipient.kind ?? 'identity'
     })
     setFormData(prev => ({ ...prev, recipient: recipient.identifier }))
     setError(null)

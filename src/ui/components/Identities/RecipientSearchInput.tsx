@@ -9,7 +9,8 @@ import {
   ValueCard
 } from 'dash-ui-kit/react'
 import { useSdk, useDebounce } from '../../hooks'
-import { searchRecipients, type RecipientSearchResult, normalizeName } from '../../../utils'
+import { searchRecipients, type RecipientSearchResult, normalizeName, detectRecipientKind } from '../../../utils'
+import type { NetworkType } from '../../../types'
 
 interface RecipientSearchInputProps {
   value: string
@@ -18,6 +19,10 @@ interface RecipientSearchInputProps {
   currentIdentity: string | null
   placeholder?: string
   error?: string | null
+  // When true, a valid transparent platform address typed into the field becomes
+  // a selectable result. Requires `network` to classify the input.
+  allowPlatformAddress?: boolean
+  network?: NetworkType
 }
 
 export function RecipientSearchInput ({
@@ -26,7 +31,9 @@ export function RecipientSearchInput ({
   onSelect,
   currentIdentity,
   placeholder = 'Enter recipient identity identifier or name',
-  error
+  error,
+  allowPlatformAddress = false,
+  network = 'testnet'
 }: RecipientSearchInputProps): React.JSX.Element {
   const sdk = useSdk()
   const [isSearching, setIsSearching] = useState(false)
@@ -98,7 +105,17 @@ export function RecipientSearchInput ({
         ? normalizeName(selectedResult.name, sdk) + '.dash'
         : selectedResult.identifier)
     : value
-  const showSearchResults = isSearchActive && (selectedResult == null) && value.trim() !== ''
+
+  // Classify the typed value to surface a platform address (or a shield-address
+  // hint) alongside identity search results.
+  const recipientKind = allowPlatformAddress ? detectRecipientKind(value, network) : 'identity'
+  const addressResult: RecipientSearchResult | null = recipientKind === 'platformAddress'
+    ? { identifier: value.trim(), kind: 'platformAddress' }
+    : null
+  const isShieldAddress = recipientKind === 'shieldAddress'
+
+  const showSearchResults = (isSearchActive || addressResult != null || isShieldAddress) &&
+    (selectedResult == null) && value.trim() !== ''
 
   // Filter out current identity from results
   const filteredResults = searchResults.filter(
@@ -169,59 +186,83 @@ export function RecipientSearchInput ({
         {/* Search Results */}
         {showSearchResults && (
           <div className='max-h-[18.75rem] overflow-y-auto'>
-            {isSearching
+            {isShieldAddress
               ? (
-                <div className='flex items-center justify-center py-4'>
-                  <CircleProcessIcon className='w-5 h-5 text-blue-500 animate-spin' />
-                  <Text size='sm' className='ml-2 text-dash-primary-dark-blue opacity-50'>
-                    Searching...
+                <div className='py-4 text-center px-6'>
+                  <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
+                    Shield addresses are not supported yet
                   </Text>
                 </div>
                 )
-              : filteredResults.length > 0
+              : addressResult != null
                 ? (
                   <div className='flex flex-col gap-2 px-6'>
-                    {filteredResults.map((result, index) => (
-                      <div
-                        key={`${result.identifier}-${index}`}
-                        onClick={() => handleSelectResult(result)}
-                        className='flex flex-col gap-3 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
-                      >
-                        <div className='flex flex-col gap-2.5'>
-                          <Identifier
-                            avatar
-                            highlight='both'
-                            className='text-xs'
-                          >
-                            {result.identifier}
-                          </Identifier>
-                          {(result.name != null) && (
-                            <div className='flex items-baseline gap-2'>
-                              <Text className='text-xs' dim>
-                                Name:
-                              </Text>
-                              <ValueCard border={false} colorScheme='lightGray' size='xs' className='text-xs text-dash-primary-dark-blue'>
-                                <Text size='sm' monospace className='!text-dash-primary-dark-blue'>
-                                  {normalizeName(result.name, sdk)}
-                                </Text>
-                                <Text size='sm' monospace className='!text-dash-brand'>
-                                  .dash
-                                </Text>
-                              </ValueCard>
-                            </div>
-                          )}
-                        </div>
+                    <div
+                      onClick={() => handleSelectResult(addressResult)}
+                      className='flex flex-col gap-2.5 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
+                    >
+                      <div className='flex items-baseline gap-2'>
+                        <Text className='text-xs' dim>Platform address:</Text>
+                        <Identifier highlight='both' className='text-xs' disableCopy>
+                          {addressResult.identifier}
+                        </Identifier>
                       </div>
-                    ))}
+                    </div>
                   </div>
                   )
-                : (
-                  <div className='py-4 text-center'>
-                    <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
-                      No results found
-                    </Text>
-                  </div>
-                  )}
+                : isSearching
+                  ? (
+                    <div className='flex items-center justify-center py-4'>
+                      <CircleProcessIcon className='w-5 h-5 text-blue-500 animate-spin' />
+                      <Text size='sm' className='ml-2 text-dash-primary-dark-blue opacity-50'>
+                        Searching...
+                      </Text>
+                    </div>
+                    )
+                  : filteredResults.length > 0
+                    ? (
+                      <div className='flex flex-col gap-2 px-6'>
+                        {filteredResults.map((result, index) => (
+                          <div
+                            key={`${result.identifier}-${index}`}
+                            onClick={() => handleSelectResult(result)}
+                            className='flex flex-col gap-3 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
+                          >
+                            <div className='flex flex-col gap-2.5'>
+                              <Identifier
+                                avatar
+                                highlight='both'
+                                className='text-xs'
+                              >
+                                {result.identifier}
+                              </Identifier>
+                              {(result.name != null) && (
+                                <div className='flex items-baseline gap-2'>
+                                  <Text className='text-xs' dim>
+                                    Name:
+                                  </Text>
+                                  <ValueCard border={false} colorScheme='lightGray' size='xs' className='text-xs text-dash-primary-dark-blue'>
+                                    <Text size='sm' monospace className='!text-dash-primary-dark-blue'>
+                                      {normalizeName(result.name, sdk)}
+                                    </Text>
+                                    <Text size='sm' monospace className='!text-dash-brand'>
+                                      .dash
+                                    </Text>
+                                  </ValueCard>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      )
+                    : (
+                      <div className='py-4 text-center'>
+                        <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
+                          No results found
+                        </Text>
+                      </div>
+                      )}
           </div>
         )}
       </div>
