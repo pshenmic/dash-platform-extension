@@ -107,6 +107,15 @@ function SendTransactionState (): React.JSX.Element {
   const isCredits = formState.formData.selectedAsset === 'credits'
   const recipientKind = formState.selectedRecipient?.type ?? null
 
+  // The current sender identifier (identity or platform address), used to keep it
+  // out of the recipient field and to block sending to oneself.
+  const senderIdentifier = senderType === 'platform' ? selectedPlatformAddress : senderIdentity
+  // The recipient identity (if any), kept out of the sender identity selector.
+  const recipientIdentity = formState.selectedRecipient?.type === 'identity' ? formState.selectedRecipient.identifier : null
+  const isSameParty = formState.selectedRecipient != null &&
+    senderIdentifier != null &&
+    formState.selectedRecipient.identifier === senderIdentifier
+
   // Resolve which transfer action the current form maps to.
   const transferMode: TransferMode = useMemo(() => {
     if (formState.selectedRecipient == null) return 'incomplete'
@@ -253,6 +262,11 @@ function SendTransactionState (): React.JSX.Element {
 
     if (transferMode === 'blocked') {
       formState.setError('Sending from a platform address to an identity is not supported yet')
+      return
+    }
+
+    if (isSameParty) {
+      formState.setError('Recipient must be different from the sender')
       return
     }
 
@@ -405,6 +419,7 @@ function SendTransactionState (): React.JSX.Element {
     formState.selectedRecipient === null ||
     formState.formData.amount === '' ||
     transferMode === 'blocked' ||
+    isSameParty ||
     (transferMode === 'send' && selectedPlatformAddress === null)
 
   // Initial asset-selection step: only shown when the identity holds tokens and
@@ -487,7 +502,7 @@ function SendTransactionState (): React.JSX.Element {
           value={formState.formData.recipient}
           onChange={formState.handleRecipientChange}
           onSelect={formState.handleRecipientSelect}
-          currentIdentity={currentIdentity}
+          excludeIdentifier={senderIdentifier}
           placeholder='Enter recipient identity or address'
           allowPlatformAddress={isCredits}
           network={(currentNetwork ?? 'testnet') as NetworkType}
@@ -522,7 +537,9 @@ function SendTransactionState (): React.JSX.Element {
             ? (
               <div className='flex flex-col gap-2'>
                 <IdentitySelect
-                  identities={availableIdentities.map(identity => identity.identifier)}
+                  identities={availableIdentities
+                    .map(identity => identity.identifier)
+                    .filter(identifier => identifier !== recipientIdentity)}
                   value={senderIdentity}
                   onChange={setSelectedIdentity}
                 />
@@ -581,6 +598,9 @@ function SendTransactionState (): React.JSX.Element {
       <Banner variant='error' message={formState.error ?? null} />
       {transferMode === 'blocked' && (
         <Banner variant='error' message='Sending from a platform address to an identity is not supported yet' />
+      )}
+      {isSameParty && (
+        <Banner variant='error' message='Recipient must be different from the sender' />
       )}
 
       {/* Transaction Summary Card */}

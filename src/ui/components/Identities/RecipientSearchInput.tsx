@@ -16,7 +16,7 @@ interface RecipientSearchInputProps {
   value: string
   onChange: (value: string) => void
   onSelect: (recipient: RecipientSearchResult) => void
-  currentIdentity: string | null
+  excludeIdentifier: string | null
   placeholder?: string
   error?: string | null
   // When true, a valid transparent platform address typed into the field becomes
@@ -29,7 +29,7 @@ export function RecipientSearchInput ({
   value,
   onChange,
   onSelect,
-  currentIdentity,
+  excludeIdentifier,
   placeholder = 'Enter recipient identity identifier or name',
   error,
   allowPlatformAddress = false,
@@ -109,17 +109,18 @@ export function RecipientSearchInput ({
   // Classify the typed value to surface a platform address (or a shield-address
   // hint) alongside identity search results.
   const recipientKind = allowPlatformAddress ? detectRecipientKind(value, network) : 'identity'
-  const addressResult: RecipientSearchResult | null = recipientKind === 'platformAddress'
+  const isExcludedAddress = recipientKind === 'platformAddress' && value.trim() === excludeIdentifier
+  const addressResult: RecipientSearchResult | null = (recipientKind === 'platformAddress' && !isExcludedAddress)
     ? { identifier: value.trim(), type: 'platformAddress' }
     : null
   const isShieldAddress = recipientKind === 'shieldAddress'
 
-  const showSearchResults = (isSearchActive || addressResult != null || isShieldAddress) &&
+  const showSearchResults = (isSearchActive || addressResult != null || isShieldAddress || isExcludedAddress) &&
     (selectedResult == null) && value.trim() !== ''
 
-  // Filter out current identity from results
+  // Filter out the sender from results — can't send to oneself.
   const filteredResults = searchResults.filter(
-    result => result.identifier !== currentIdentity
+    result => result.identifier !== excludeIdentifier
   )
 
   return (
@@ -194,75 +195,83 @@ export function RecipientSearchInput ({
                   </Text>
                 </div>
                 )
-              : addressResult != null
+              : isExcludedAddress
                 ? (
-                  <div className='flex flex-col gap-2 px-6'>
-                    <div
-                      onClick={() => handleSelectResult(addressResult)}
-                      className='flex flex-col gap-2.5 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
-                    >
-                      <div className='flex flex-col gap-1'>
-                        <Text className='text-xs' dim>Platform address:</Text>
-                        <Identifier highlight='both' className='text-xs' disableCopy>
-                          {addressResult.identifier}
-                        </Identifier>
-                      </div>
-                    </div>
+                  <div className='py-4 text-center px-6'>
+                    <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
+                      Recipient must be different from the sender
+                    </Text>
                   </div>
                   )
-                : isSearching
+                : addressResult != null
                   ? (
-                    <div className='flex items-center justify-center py-4'>
-                      <CircleProcessIcon className='w-5 h-5 text-blue-500 animate-spin' />
-                      <Text size='sm' className='ml-2 text-dash-primary-dark-blue opacity-50'>
-                        Searching...
-                      </Text>
+                    <div className='flex flex-col gap-2 px-6'>
+                      <div
+                        onClick={() => handleSelectResult(addressResult)}
+                        className='flex flex-col gap-2.5 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
+                      >
+                        <div className='flex flex-col gap-1'>
+                          <Text className='text-xs' dim>Platform address:</Text>
+                          <Identifier highlight='both' className='text-xs' disableCopy>
+                            {addressResult.identifier}
+                          </Identifier>
+                        </div>
+                      </div>
                     </div>
                     )
-                  : filteredResults.length > 0
+                  : isSearching
                     ? (
-                      <div className='flex flex-col gap-2 px-6'>
-                        {filteredResults.map((result, index) => (
-                          <div
-                            key={`${result.identifier}-${index}`}
-                            onClick={() => handleSelectResult(result)}
-                            className='flex flex-col gap-3 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
-                          >
-                            <div className='flex flex-col gap-2.5'>
-                              <Identifier
-                                avatar
-                                highlight='both'
-                                className='text-xs'
-                              >
-                                {result.identifier}
-                              </Identifier>
-                              {(result.name != null) && (
-                                <div className='flex items-baseline gap-2'>
-                                  <Text className='text-xs' dim>
-                                    Name:
-                                  </Text>
-                                  <ValueCard border={false} colorScheme='lightGray' size='xs' className='text-xs text-dash-primary-dark-blue'>
-                                    <Text size='sm' monospace className='!text-dash-primary-dark-blue'>
-                                      {normalizeName(result.name, sdk)}
-                                    </Text>
-                                    <Text size='sm' monospace className='!text-dash-brand'>
-                                      .dash
-                                    </Text>
-                                  </ValueCard>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      )
-                    : (
-                      <div className='py-4 text-center'>
-                        <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
-                          No results found
+                      <div className='flex items-center justify-center py-4'>
+                        <CircleProcessIcon className='w-5 h-5 text-blue-500 animate-spin' />
+                        <Text size='sm' className='ml-2 text-dash-primary-dark-blue opacity-50'>
+                          Searching...
                         </Text>
                       </div>
-                      )}
+                      )
+                    : filteredResults.length > 0
+                      ? (
+                        <div className='flex flex-col gap-2 px-6'>
+                          {filteredResults.map((result, index) => (
+                            <div
+                              key={`${result.identifier}-${index}`}
+                              onClick={() => handleSelectResult(result)}
+                              className='flex flex-col gap-3 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
+                            >
+                              <div className='flex flex-col gap-2.5'>
+                                <Identifier
+                                  avatar
+                                  highlight='both'
+                                  className='text-xs'
+                                >
+                                  {result.identifier}
+                                </Identifier>
+                                {(result.name != null) && (
+                                  <div className='flex items-baseline gap-2'>
+                                    <Text className='text-xs' dim>
+                                      Name:
+                                    </Text>
+                                    <ValueCard border={false} colorScheme='lightGray' size='xs' className='text-xs text-dash-primary-dark-blue'>
+                                      <Text size='sm' monospace className='!text-dash-primary-dark-blue'>
+                                        {normalizeName(result.name, sdk)}
+                                      </Text>
+                                      <Text size='sm' monospace className='!text-dash-brand'>
+                                        .dash
+                                      </Text>
+                                    </ValueCard>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        )
+                      : (
+                        <div className='py-4 text-center'>
+                          <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
+                            No results found
+                          </Text>
+                        </div>
+                        )}
           </div>
         )}
       </div>
