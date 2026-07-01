@@ -3,10 +3,11 @@ import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import {
   Button,
   Text,
-  ValueCard
+  ValueCard,
+  Identifier
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
-import { AssetSelectionMenu, AssetSelectorBadge, OptionSelector } from '../../components/controls'
+import { AssetSelectionMenu, AssetSelectorBadge, OptionSelector, SelectableCard } from '../../components/controls'
 import type { OptionItem } from '../../components/controls'
 import { TransferSummaryCard, Banner } from '../../components/cards'
 import { AmountInputSection } from '../../components/forms'
@@ -41,12 +42,6 @@ interface PlatformAddressEntry {
   address: string
   derivationPath: string
   index: number
-}
-
-// Middle-truncates a long platform address for display in lists/labels.
-function truncateAddress (address: string): string {
-  if (address.length <= 24) return address
-  return `${address.slice(0, 14)}…${address.slice(-8)}`
 }
 
 function SendTransactionState (): React.JSX.Element {
@@ -389,22 +384,6 @@ function SendTransactionState (): React.JSX.Element {
     return options
   }, [tokensState.data])
 
-  // Options for the platform-address source list.
-  const platformAddressOptions: OptionItem[] = useMemo(() => {
-    return platformAddresses.map(entry => {
-      const bal = platformBalances.get(entry.address)
-      return {
-        id: entry.address,
-        label: truncateAddress(entry.address),
-        description: bal != null ? `${bal.toLocaleString()} Credits` : 'Loading balance…'
-      }
-    })
-  }, [platformAddresses, platformBalances])
-
-  const selectedPlatformBalance = selectedPlatformAddress != null
-    ? platformBalances.get(selectedPlatformAddress) ?? null
-    : null
-
   // Summary values, switching to the flat platform fee for fund/send.
   const summaryFees = isPlatformMode ? `~${TRANSFER_FEE_CREDITS.toLocaleString()}` : calculations.getEstimatedFee()
   const summaryWillBeSent = isPlatformMode
@@ -517,27 +496,20 @@ function SendTransactionState (): React.JSX.Element {
             Sender
           </Text>
 
-          {/* Sender type tabs */}
+          {/* Sender type selection */}
           <div className='flex gap-2'>
             {([
               { id: 'identity', label: 'Identity' },
               { id: 'platform', label: 'Platform address' }
-            ] as Array<{ id: SenderType, label: string }>).map(tab => {
-              const active = senderType === tab.id
-              return (
-                <div
-                  key={tab.id}
-                  onClick={() => setSenderType(tab.id)}
-                  className={`flex-1 text-center rounded-2xl px-4 py-3 cursor-pointer transition-all border ${
-                    active
-                      ? 'bg-dash-brand/15 border-dash-brand'
-                      : 'bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] border-transparent'
-                  }`}
-                >
-                  <Text weight='medium' color={active ? 'blue' : 'default'}>{tab.label}</Text>
-                </div>
-              )
-            })}
+            ] as Array<{ id: SenderType, label: string }>).map(option => (
+              <SelectableCard
+                key={option.id}
+                selected={senderType === option.id}
+                onClick={() => setSenderType(option.id)}
+                boldLabel={option.label}
+                className='flex-1'
+              />
+            ))}
           </div>
 
           {/* Sender detail */}
@@ -553,18 +525,28 @@ function SendTransactionState (): React.JSX.Element {
               )
             : (
               <div className='flex flex-col gap-2'>
-                <OptionSelector
-                  options={platformAddressOptions}
-                  selectedId={selectedPlatformAddress}
-                  onOptionSelect={setSelectedPlatformAddress}
-                />
-                {selectedPlatformBalance != null && (
-                  <div className='flex items-center gap-1 px-1'>
-                    <Text className='!text-[0.75rem]' dim>Selected balance:</Text>
-                    <Text weight='bold' className='!text-[0.75rem]'>{selectedPlatformBalance.toLocaleString()}</Text>
-                    <Text className='!text-[0.75rem]'>Credits</Text>
-                  </div>
-                )}
+                {platformAddresses.map(entry => {
+                  const bal = platformBalances.get(entry.address)
+                  return (
+                    <SelectableCard
+                      key={entry.address}
+                      selected={selectedPlatformAddress === entry.address}
+                      onClick={() => setSelectedPlatformAddress(entry.address)}
+                    >
+                      <div className='flex flex-col gap-1 min-w-0'>
+                        <Identifier linesAdjustment={false} highlight='both' disableCopy className='!text-[0.813rem]'>
+                          {entry.address}
+                        </Identifier>
+                        <div className='flex items-baseline gap-1'>
+                          {bal != null
+                            ? <Text weight='bold' className='!text-[0.8125rem]'>{bal.toLocaleString()}</Text>
+                            : <Text className='!text-[0.75rem]' dim>Loading balance…</Text>}
+                          {bal != null && <Text className='!text-[0.625rem]' dim>Credits</Text>}
+                        </div>
+                      </div>
+                    </SelectableCard>
+                  )
+                })}
               </div>
               )}
         </div>
