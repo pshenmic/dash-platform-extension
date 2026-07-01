@@ -1,18 +1,16 @@
-import { base58, bech32m } from '@scure/base'
+import { base58 } from '@scure/base'
 import { HDKey } from '@scure/bip32'
-import { PublicKeyWASM, RecoveredNoteWASM } from 'pshenmic-dpp'
+import { PublicKeyWASM, RecoveredNoteWASM, PlatformAddressWASM } from 'pshenmic-dpp'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
 import {
-  BECH32M_CHAR_LIMIT,
   PLATFORM_ADDRESS_COIN_TYPE,
   PLATFORM_ADDRESS_FEATURE,
   PLATFORM_ADDRESS_HD_VERSIONS,
-  PLATFORM_ADDRESS_HRP,
   PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS,
-  PLATFORM_ADDRESS_P2PKH_TYPE_BYTE,
+  PLATFORM_ADDRESS_P2PKH_VARIANT_BYTE,
   SHIELDED_NOTES_PAGE_SIZE
 } from '../constants'
 import formatBigNumber from './formatBigNumber'
@@ -25,6 +23,8 @@ export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
+export { selectPlatformSource, buildSignedPlatformTransfer, buildIdentityCreditTransferToAddress } from './platformTransfer'
+export type { PlatformSourceCandidate } from './platformTransfer'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -186,9 +186,13 @@ export interface PlatformAddressEntry {
   index: number
 }
 
+// Encode a transparent platform P2PKH address from a pubkey hash via the SDK's
+// PlatformAddressWASM, so the output is byte-identical to what DAPI and the
+// desktop wallet produce. The HRP (tdash/dash) is derived from the network.
 const encodePlatformP2PKH = (pubKeyHashHex: string, network: NetworkType): string => {
-  const payload = Uint8Array.from([PLATFORM_ADDRESS_P2PKH_TYPE_BYTE, ...hexToBytes(pubKeyHashHex)])
-  return bech32m.encode(PLATFORM_ADDRESS_HRP[network], bech32m.toWords(payload), BECH32M_CHAR_LIMIT)
+  const payload = Uint8Array.from([PLATFORM_ADDRESS_P2PKH_VARIANT_BYTE, ...hexToBytes(pubKeyHashHex)])
+
+  return PlatformAddressWASM.fromBytes(payload).toBech32m(network)
 }
 
 // Derive the DIP-17 account-level extended public key (xpub) for the clear-funds
@@ -246,6 +250,30 @@ export const derivePlatformAddresses = async (wallet: Wallet, password: string, 
   const xpub = await derivePlatformAccountXpub(wallet, password, account, sdk)
 
   return derivePlatformAddressesFromXpub(xpub, wallet.network, account, count)
+}
+
+// Derive the private key for one of our DIP-17 platform addresses by its index:
+// m/9'/coin'/17'/account'/0'/index. Needs the password (decrypts the seed). Used
+// to sign a transfer that spends from that address.
+export const derivePlatformAddressPrivateKey = async (wallet: Wallet, password: string, account: number, index: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+  if (wallet.type !== 'seedphrase') {
+    throw new Error('Platform addresses can only be derived from a seedphrase wallet')
+  }
+
+  const networkType = wallet.network
+  const network = Network[networkType as keyof typeof Network]
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
+  const coinType = PLATFORM_ADDRESS_COIN_TYPE[networkType]
+  const path = `m/9'/${coinType}'/${PLATFORM_ADDRESS_FEATURE}'/${account}'/${PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS}'/${index}`
+
+  const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, path)
+
+  if (privateKey == null) {
+    throw new Error(`Could not derive platform address key at ${path}`)
+  }
+
+  return PrivateKeyWASM.fromBytes(privateKey, networkType)
 }
 
 export interface ShieldedAddressEntry {

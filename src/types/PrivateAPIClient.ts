@@ -16,6 +16,10 @@ import { GetShieldedBalanceResponse } from './messages/response/GetShieldedBalan
 import { GetPlatformAddressesResponse } from './messages/response/GetPlatformAddressesResponse'
 import { GetPlatformAddressesInfosPayload } from './messages/payloads/GetPlatformAddressesInfosPayload'
 import { GetPlatformAddressesInfosResponse, PlatformAddressBalance } from './messages/response/GetPlatformAddressesInfosResponse'
+import { SendPlatformTransferPayload } from './messages/payloads/SendPlatformTransferPayload'
+import { SendPlatformTransferResponse } from './messages/response/SendPlatformTransferResponse'
+import { FundPlatformAddressPayload } from './messages/payloads/FundPlatformAddressPayload'
+import { FundPlatformAddressResponse } from './messages/response/FundPlatformAddressResponse'
 import { CheckPasswordResponse } from './messages/response/CheckPasswordResponse'
 import { CheckPasswordPayload } from './messages/payloads/CheckPasswordPayload'
 import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
@@ -414,6 +418,18 @@ export class PrivateAPIClient {
     const response: GetPlatformAddressesInfosResponse = await this._rpcCall(MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS, payload)
 
     return response.infos
+  }
+
+  async sendPlatformTransfer (toAddress: string, amountCredits: string, password: string, fromAddress?: string): Promise<SendPlatformTransferResponse> {
+    const payload: SendPlatformTransferPayload = { toAddress, amountCredits, password, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.SEND_PLATFORM_TRANSFER, payload)
+  }
+
+  async fundPlatformAddress (toAddress: string, amountCredits: string, password: string): Promise<FundPlatformAddressResponse> {
+    const payload: FundPlatformAddressPayload = { toAddress, amountCredits, password }
+
+    return await this._rpcCall(MessagingMethods.FUND_PLATFORM_ADDRESS, payload)
   }
 
   async getShieldedAddresses (password: string, account?: number, count?: number): Promise<GetShieldedAddressesResponse['addresses']> {

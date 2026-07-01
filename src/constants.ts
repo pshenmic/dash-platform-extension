@@ -33,19 +33,22 @@ export const CORE_EXPLORER_URLS = {
 
 // ── DIP-17 transparent platform payment addresses ────────────────────────────
 // Derived at m/9'/coin'/17'/account'/keyClass'/index; keyClass 0 = clear funds.
-// DIP-18 Bech32m encodes `typeByte || Hash160(pubkey)` with a network HRP.
+// The address is built via the SDK's PlatformAddressWASM from `variantByte ||
+// Hash160(pubkey)`; the HRP (tdash/dash) is chosen by the SDK from the network.
 export const PLATFORM_ADDRESS_FEATURE = 17
 export const PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS = 0
 export const PLATFORM_ADDRESS_DEFAULT_COUNT = 20
-export const PLATFORM_ADDRESS_P2PKH_TYPE_BYTE = 0xb0
-export const BECH32M_CHAR_LIMIT = 1023
+// PlatformAddressWASM variant byte: 0 = P2PKH, 1 = P2SH.
+export const PLATFORM_ADDRESS_P2PKH_VARIANT_BYTE = 0x00
+// Platform credit transfer estimates. The platform computes the real processing
+// fee on-chain and the SDK exposes no estimator, so these are used only for the
+// pre-flight balance check and for reporting an estimated fee.
+// MIN_OUTPUT_CREDITS guards against dust outputs.
+export const MIN_OUTPUT_CREDITS = 500_000n
+export const TRANSFER_FEE_CREDITS = 6_500_000n
 export const PLATFORM_ADDRESS_COIN_TYPE = {
   testnet: 1,
   mainnet: 5
-}
-export const PLATFORM_ADDRESS_HRP = {
-  testnet: 'tdash',
-  mainnet: 'dash'
 }
 // BIP-32 extended-key version bytes used by the SDK's HD keys (mirrors
 // DASH_VERSIONS in dash-platform-sdk). Required when restoring an account xpub
