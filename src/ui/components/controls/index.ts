@@ -1,4 +1,6 @@
-export { AssetSelectionMenu } from './AssetSelectionMenu'
+export { AssetSelectionMenu, buildAssetOptions, formatAssetBalance } from './AssetSelectionMenu'
+export type { AssetOption } from './AssetSelectionMenu'
+export { AssetOptionCard } from './AssetOptionCard'
 export { AssetSelectorBadge } from './AssetSelectorBadge'
 export { AutoSizingInput } from './AutoSizingInput'
 export { ConfirmDialog } from './ConfirmDialog'

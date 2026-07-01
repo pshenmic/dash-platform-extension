@@ -7,8 +7,7 @@ import {
   Identifier
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
-import { AssetSelectionMenu, AssetSelectorBadge, OptionSelector, SelectableCard } from '../../components/controls'
-import type { OptionItem } from '../../components/controls'
+import { AssetSelectionMenu, AssetSelectorBadge, AssetOptionCard, SelectableCard, buildAssetOptions, formatAssetBalance } from '../../components/controls'
 import { TransferSummaryCard, Banner } from '../../components/cards'
 import { AmountInputSection } from '../../components/forms'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -23,6 +22,7 @@ import {
 import { RecipientSearchInput } from '../../components/Identities'
 import { IdentitySelect } from '../../components/identity'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
+import LoadingScreen from '../../components/layout/LoadingScreen'
 import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { WalletType } from '../../../types'
@@ -59,8 +59,7 @@ function SendTransactionState (): React.JSX.Element {
   const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
   const [showAssetSelection, setShowAssetSelection] = useState(false)
 
-  // Platform-transfer state
-  const [assetChosen, setAssetChosen] = useState(false)
+  const [assetChosen, setAssetChosen] = useState(locationState?.selectedToken != null)
   const [senderType, setSenderType] = useState<SenderType>('identity')
   const [platformAddresses, setPlatformAddresses] = useState<PlatformAddressEntry[]>([])
   const [platformBalances, setPlatformBalances] = useState<Map<string, bigint>>(new Map())
@@ -393,15 +392,10 @@ function SendTransactionState (): React.JSX.Element {
 
   const hasTokens = (tokensState.data?.length ?? 0) > 0
 
+  const tokensReady = tokensState.data !== null || tokensState.error !== null || currentIdentity == null
+
   // Options for the initial "what to send" step (Credits + any tokens).
-  const assetOptions: OptionItem[] = useMemo(() => {
-    const options: OptionItem[] = [{ id: 'credits', label: 'Credits' }]
-    for (const t of tokensState.data ?? []) {
-      const name = t.localizations?.en?.singularForm ?? t.identifier
-      options.push({ id: t.identifier, label: name })
-    }
-    return options
-  }, [tokensState.data])
+  const assetOptions = useMemo(() => buildAssetOptions(tokensState.data ?? []), [tokensState.data])
 
   // Summary values, switching to the flat platform fee for fund/send.
   const summaryFees = isPlatformMode ? `~${TRANSFER_FEE_CREDITS.toLocaleString()}` : calculations.getEstimatedFee()
@@ -422,6 +416,14 @@ function SendTransactionState (): React.JSX.Element {
     isSameParty ||
     (transferMode === 'send' && selectedPlatformAddress === null)
 
+  if (!tokensReady) {
+    return (
+      <div className='screen-content'>
+        <LoadingScreen />
+      </div>
+    )
+  }
+
   // Initial asset-selection step: only shown when the identity holds tokens and
   // no asset has been chosen yet (single-asset wallets skip straight to Credits).
   if (hasTokens && !assetChosen) {
@@ -437,14 +439,22 @@ function SendTransactionState (): React.JSX.Element {
             </Text>
           </div>
 
-          <OptionSelector
-            options={assetOptions}
-            selectedId={null}
-            onOptionSelect={(id) => {
-              formState.handleAssetSelect(id)
-              setAssetChosen(true)
-            }}
-          />
+          <div className='flex flex-col gap-2.5'>
+            {assetOptions.map((option) => (
+              <AssetOptionCard
+                key={option.value}
+                variant='plain'
+                icon={option.icon}
+                label={option.label}
+                symbol={option.symbol}
+                balance={formatAssetBalance(option, balance != null ? balance.toString() : undefined)}
+                onClick={() => {
+                  formState.handleAssetSelect(option.value)
+                  setAssetChosen(true)
+                }}
+              />
+            ))}
+          </div>
         </div>
       </div>
     )
