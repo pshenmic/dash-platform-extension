@@ -5,6 +5,7 @@ import {
   WalletIcon,
   ShieldSmallIcon,
   ChainSmallIcon,
+  CreditsIcon,
   SettingsIcon,
   DashLogo,
   QuestionMessageIcon
@@ -32,6 +33,14 @@ export const connectedWebsitesConfig: ScreenConfig = {
   id: 'connected-websites',
   title: 'Connected Websites',
   icon: <ChainSmallIcon className='text-dash-primary-dark-blue' />,
+  category: 'wallet',
+  content: []
+}
+
+export const platformAddressesConfig: ScreenConfig = {
+  id: 'platform-addresses',
+  title: 'Addresses',
+  icon: <CreditsIcon className='text-dash-primary-dark-blue' />,
   category: 'wallet',
   content: []
 }
@@ -82,6 +91,13 @@ export const mainScreenConfig: ScreenConfig = {
           title: connectedWebsitesConfig.title,
           icon: connectedWebsitesConfig.icon,
           screenId: connectedWebsitesConfig.id,
+          hasSubMenu: true
+        },
+        {
+          id: 'platform-addresses-item',
+          title: platformAddressesConfig.title,
+          icon: platformAddressesConfig.icon,
+          screenId: platformAddressesConfig.id,
           hasSubMenu: true
         },
         {

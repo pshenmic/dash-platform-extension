@@ -117,3 +117,15 @@ export interface TokensResponse {
   pagination: TokensPagination
   error?: string | null
 }
+
+export interface AddressApiData {
+  base58Address: string | null
+  bech32mAddress: string | null
+  totalTxs: number | null
+  incomingTxs: number | null
+  outgoingTxs: number | null
+  nonce: number | null
+  balance: string | null
+  totalIncomingAmount: string | null
+  totalOutgoingAmount: string | null
+}
