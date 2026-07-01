@@ -47,6 +47,7 @@ function PlatformTransferConfirmState (): React.JSX.Element {
 
   const { direction, toAddress, fromAddress, amountCredits } = state
   const amountBig = BigInt(amountCredits)
+  const senderValue = direction === 'send' ? (fromAddress ?? '') : (state.fromIdentity ?? '')
 
   const handleConfirm = async (): Promise<void> => {
     if (password === '') {
@@ -118,15 +119,13 @@ function PlatformTransferConfirmState (): React.JSX.Element {
         {/* Recipient */}
         <div className='flex flex-col gap-2.5'>
           <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>Recipient</Text>
-          <Identifier highlight='both' className='text-xs'>{toAddress}</Identifier>
+          <Identifier highlight='both'>{toAddress}</Identifier>
         </div>
 
         {/* Sender */}
         <div className='flex flex-col gap-2.5'>
           <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>Sender</Text>
-          {direction === 'send'
-            ? <Identifier highlight='both' className='text-xs'>{fromAddress ?? ''}</Identifier>
-            : <Text size='sm' className='text-dash-primary-dark-blue'>{state.fromIdentity ?? 'Current identity'}</Text>}
+          <Identifier highlight='both'>{senderValue}</Identifier>
         </div>
 
         {/* Summary */}
