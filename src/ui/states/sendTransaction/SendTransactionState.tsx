@@ -21,6 +21,7 @@ import {
   useTransactionCalculations
 } from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
+import { IdentitySelect } from '../../components/identity'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
 import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
@@ -50,7 +51,7 @@ function SendTransactionState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
-  const { currentNetwork, currentIdentity, setHeaderComponent, allWallets, currentWallet } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentIdentity, setHeaderComponent, allWallets, currentWallet, availableIdentities } = useOutletContext<OutletContext>()
   const locationState = location.state as { selectedToken?: string } | null
   const [isLoading, setIsLoading] = useState(false)
   const [balance, setBalance] = useState<bigint | null>(null)
@@ -64,6 +65,8 @@ function SendTransactionState (): React.JSX.Element {
   const [platformAddresses, setPlatformAddresses] = useState<PlatformAddressEntry[]>([])
   const [platformBalances, setPlatformBalances] = useState<Map<string, bigint>>(new Map())
   const [selectedPlatformAddress, setSelectedPlatformAddress] = useState<string | null>(null)
+  const [selectedIdentity, setSelectedIdentity] = useState<string | null>(null)
+  const senderIdentity = selectedIdentity ?? currentIdentity
 
   // Wallet type of the current wallet (platform transfers are seedphrase-only).
   const walletType = useMemo((): string | null => {
@@ -133,9 +136,9 @@ function SendTransactionState (): React.JSX.Element {
   // Load balance, tokens and exchange rate on component mount
   useEffect(() => {
     const loadBalance = async (): Promise<void> => {
-      if ((currentIdentity !== null && currentIdentity !== undefined)) {
+      if ((senderIdentity !== null && senderIdentity !== undefined)) {
         try {
-          const identityBalance = await sdk.identities.getIdentityBalance(currentIdentity)
+          const identityBalance = await sdk.identities.getIdentityBalance(senderIdentity)
           setBalance(identityBalance)
         } catch (err) {
           console.error('Failed to load balance:', err)
@@ -155,7 +158,7 @@ function SendTransactionState (): React.JSX.Element {
 
     void loadBalance().catch(e => console.log('loadBalance error:', e))
     void loadRate().catch(e => console.log('loadRate error:', e))
-  }, [currentIdentity, sdk, currentNetwork, platformExplorerClient])
+  }, [senderIdentity, sdk, currentNetwork, platformExplorerClient])
 
   // Load tokens for the current identity
   useEffect(() => {
@@ -240,6 +243,8 @@ function SendTransactionState (): React.JSX.Element {
       return
     }
 
+    const sender = selectedIdentity ?? currentIdentity
+
     // Validate that recipient is selected from search results
     if (formState.selectedRecipient === null) {
       formState.setError('Please select a recipient from search results')
@@ -272,7 +277,7 @@ function SendTransactionState (): React.JSX.Element {
           toAddress: formState.selectedRecipient.identifier,
           fromAddress: transferMode === 'send' ? selectedPlatformAddress : undefined,
           amountCredits: amountCredits.toString(),
-          fromIdentity: transferMode === 'fund' ? currentIdentity : undefined
+          fromIdentity: transferMode === 'fund' ? sender : undefined
         }
       })
       return
@@ -291,11 +296,11 @@ function SendTransactionState (): React.JSX.Element {
           return
         }
 
-        const identityNonce = await sdk.identities.getIdentityNonce(currentIdentity)
+        const identityNonce = await sdk.identities.getIdentityNonce(sender)
 
         // Create unsigned identity credit transfer state transition
         const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
-          identityId: currentIdentity,
+          identityId: sender,
           amount: amountInCredits,
           recipientId: formState.selectedRecipient.identifier,
           identityNonce: identityNonce + 1n
@@ -515,12 +520,19 @@ function SendTransactionState (): React.JSX.Element {
           {/* Sender detail */}
           {senderType === 'identity'
             ? (
-              <div className='flex items-center gap-1 px-1'>
-                <Text className='!text-[0.75rem]' dim>Identity balance:</Text>
-                <Text weight='bold' className='!text-[0.75rem]'>
-                  {balance != null ? balance.toLocaleString() : '—'}
-                </Text>
-                <Text className='!text-[0.75rem]'>Credits</Text>
+              <div className='flex flex-col gap-2'>
+                <IdentitySelect
+                  identities={availableIdentities.map(identity => identity.identifier)}
+                  value={senderIdentity}
+                  onChange={setSelectedIdentity}
+                />
+                <div className='flex items-center gap-1 px-1'>
+                  <Text className='!text-[0.75rem]' dim>Identity balance:</Text>
+                  <Text weight='bold' className='!text-[0.75rem]'>
+                    {balance != null ? balance.toLocaleString() : '—'}
+                  </Text>
+                  <Text className='!text-[0.75rem]'>Credits</Text>
+                </div>
               </div>
               )
             : (
