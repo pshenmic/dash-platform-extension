@@ -7,6 +7,7 @@ import {
   multiplyBigIntByPercentage
 } from '../../utils'
 import { MIN_CREDIT_TRANSFER, ESTIMATED_FEES } from '../constants/transaction'
+import { MIN_OUTPUT_CREDITS, TRANSFER_FEE_CREDITS } from '../../constants'
 import { getAvailableBalance, getAssetDecimals } from '../../utils/transactionFormatters'
 
 interface SendFormData {
@@ -18,7 +19,7 @@ interface SendFormData {
 interface RecipientData {
   identifier: string
   name?: string
-  kind?: 'identity' | 'platformAddress'
+  type?: 'identity' | 'platformAddress'
 }
 
 interface UseSendTransactionFormParams {
@@ -69,6 +70,19 @@ export function useSendTransactionForm ({
     return tokens.find(token => token.identifier === formData.selectedAsset)
   }, [formData.selectedAsset, tokens])
 
+  const getCreditMin = useCallback((): { min: bigint, message: string } => {
+    if (selectedRecipient?.type === 'platformAddress') {
+      return {
+        min: MIN_OUTPUT_CREDITS,
+        message: `Minimum platform transfer amount is ${MIN_OUTPUT_CREDITS.toLocaleString()} credits`
+      }
+    }
+    return {
+      min: MIN_CREDIT_TRANSFER,
+      message: `Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`
+    }
+  }, [selectedRecipient])
+
   const handleRecipientChange = useCallback((value: string): void => {
     setFormData(prev => ({ ...prev, recipient: value }))
     setSelectedRecipient(null)
@@ -79,7 +93,7 @@ export function useSendTransactionForm ({
     setSelectedRecipient({
       identifier: recipient.identifier,
       name: recipient.name,
-      kind: recipient.kind ?? 'identity'
+      type: recipient.type ?? 'identity'
     })
     setFormData(prev => ({ ...prev, recipient: recipient.identifier }))
     setError(null)
@@ -147,14 +161,15 @@ export function useSendTransactionForm ({
       // Minimum credit transfer validation
       if (formData.selectedAsset === 'credits' && numericValue > 0) {
         const amountInCredits = BigInt(Math.floor(numericValue))
-        if (amountInCredits < MIN_CREDIT_TRANSFER) {
-          setError(`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`)
+        const { min, message } = getCreditMin()
+        if (amountInCredits < min) {
+          setError(message)
         } else {
           setError(null)
         }
       }
     }
-  }, [formData.selectedAsset, balance, rate, equivalentCurrency, getSelectedToken, tokens])
+  }, [formData.selectedAsset, balance, rate, equivalentCurrency, getSelectedToken, getCreditMin, tokens])
 
   const handleEquivalentChange = useCallback((value: string): void => {
     const decimals = equivalentCurrency === 'dash' ? 8 : 2
@@ -186,8 +201,9 @@ export function useSendTransactionForm ({
 
         if (formData.selectedAsset === 'credits') {
           const amountBigInt = BigInt(creditsAmount)
-          if (amountBigInt > 0n && amountBigInt < MIN_CREDIT_TRANSFER) {
-            setError(`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`)
+          const { min, message } = getCreditMin()
+          if (amountBigInt > 0n && amountBigInt < min) {
+            setError(message)
           } else {
             setError(null)
           }
@@ -200,27 +216,30 @@ export function useSendTransactionForm ({
       setFormData(prev => ({ ...prev, amount: '' }))
       setError(null)
     }
-  }, [equivalentCurrency, rate, formData.selectedAsset])
+  }, [equivalentCurrency, rate, formData.selectedAsset, getCreditMin])
 
   const handleQuickAmount = useCallback((percentage: number): void => {
     if (formData.selectedAsset === 'credits') {
       // For credits - deduct fee from balance before calculating percentage
       if (balance !== null && balance > 0n) {
-        // Calculate fee based on network and asset type
+        // Calculate fee based on network and asset type. Platform-address transfers
+        // use the flat platform transfer fee instead of the identity credit fee.
         const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
-        const fee = ESTIMATED_FEES[network].credits
+        const isPlatformRecipient = selectedRecipient?.type === 'platformAddress'
+        const fee = isPlatformRecipient ? TRANSFER_FEE_CREDITS : ESTIMATED_FEES[network].credits
+        const { min } = getCreditMin()
         const availableBalanceValue = balance - fee
 
         // Check if balance is enough to cover fee + minimum transfer
-        if (availableBalanceValue < MIN_CREDIT_TRANSFER) {
+        if (availableBalanceValue < min) {
           setError('Insufficient balance to cover fee and minimum transfer amount')
           return
         }
 
         const calculatedAmount = multiplyBigIntByPercentage(availableBalanceValue, percentage)
         // Ensure amount meets minimum requirement
-        const amount = calculatedAmount < MIN_CREDIT_TRANSFER
-          ? MIN_CREDIT_TRANSFER.toString()
+        const amount = calculatedAmount < min
+          ? min.toString()
           : calculatedAmount.toString()
         setFormData(prev => ({ ...prev, amount }))
 
@@ -245,7 +264,7 @@ export function useSendTransactionForm ({
         setFormData(prev => ({ ...prev, amount }))
       }
     }
-  }, [formData.selectedAsset, balance, rate, equivalentCurrency, currentNetwork, getSelectedToken, tokens])
+  }, [formData.selectedAsset, balance, rate, equivalentCurrency, currentNetwork, getSelectedToken, getCreditMin, selectedRecipient, tokens])
 
   const handleAssetSelect = useCallback((asset: string): void => {
     setFormData(prev => ({ ...prev, selectedAsset: asset, amount: '' }))
