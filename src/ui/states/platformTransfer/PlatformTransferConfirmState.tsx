@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useOutletContext } from 'react-router-dom'
 import { Button, Text, Identifier } from 'dash-ui-kit/react'
 import { TitleBlock } from '../../components/layout/TitleBlock'
+import { TransactionSuccessScreen } from '../../components/layout/TransactionSuccessScreen'
 import { TransferSummaryCard } from '../../components/cards'
 import { PasswordField } from '../../components/forms'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI } from '../../hooks'
+import type { OutletContext } from '../../types'
 import { TRANSFER_FEE_CREDITS } from '../../../constants'
 
 // Router state passed from the Transfer screen. `direction` selects the API
@@ -23,6 +25,7 @@ function PlatformTransferConfirmState (): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const extensionAPI = useExtensionAPI()
+  const { currentNetwork } = useOutletContext<OutletContext>()
 
   const state = location.state as PlatformTransferConfirmLocationState | null
 
@@ -74,36 +77,14 @@ function PlatformTransferConfirmState (): React.JSX.Element {
     }
   }
 
-  // Success view
+  // Success view — reuse the shared broadcast success screen.
   if (txHash != null) {
     return (
-      <div className='screen-content'>
-        <div className='flex flex-col gap-6'>
-          <TitleBlock
-            title={
-              <>
-                <span className='font-normal'>Transaction was</span><br />
-                <span className='font-medium'>successfully broadcasted</span>
-              </>
-            }
-            description='You can check the transaction details below'
-            showLogo={false}
-          />
-
-          <div className='flex flex-col gap-2.5'>
-            <div className='flex items-baseline gap-2'>
-              <Text className='text-xs' dim>Transaction hash:</Text>
-              <Identifier highlight='both' className='text-xs'>
-                {txHash}
-              </Identifier>
-            </div>
-          </div>
-
-          <Button className='w-full' colorScheme='brand' onClick={() => { void navigate('/') }}>
-            Close
-          </Button>
-        </div>
-      </div>
+      <TransactionSuccessScreen
+        txHash={txHash}
+        network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+        onClose={() => { void navigate('/') }}
+      />
     )
   }
 
@@ -111,7 +92,7 @@ function PlatformTransferConfirmState (): React.JSX.Element {
     <div className='screen-content'>
       <div className='flex flex-col gap-6'>
         <TitleBlock
-          title={<>Confirm<br />transfer</>}
+          title={<>Confirm transfer</>}
           description='Carefully check the transfer details before confirming'
           showLogo={false}
         />
@@ -119,7 +100,7 @@ function PlatformTransferConfirmState (): React.JSX.Element {
         {/* Recipient */}
         <div className='flex flex-col gap-2.5'>
           <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>Recipient</Text>
-          <Identifier highlight='both'>{toAddress}</Identifier>
+          <Identifier highlight='both' linesAdjustment={false}>{toAddress}</Identifier>
         </div>
 
         {/* Sender */}
