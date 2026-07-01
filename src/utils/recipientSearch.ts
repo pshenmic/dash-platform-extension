@@ -6,7 +6,7 @@ export interface RecipientSearchResult {
   identifier: string
   name?: string
   nameStatus?: NameStatus
-  kind?: 'identity' | 'platformAddress'
+  type?: 'identity' | 'platformAddress'
 }
 
 /**
@@ -37,7 +37,8 @@ export const searchRecipients = async (
       results.push({
         identifier: query,
         name: nameLabel !== null && nameLabel !== undefined ? `${nameLabel}.dash` : undefined,
-        nameStatus: nameLabel !== null && nameLabel !== undefined ? 'ok' : undefined
+        nameStatus: nameLabel !== null && nameLabel !== undefined ? 'ok' : undefined,
+        type: 'identity'
       })
     } catch (error) {
       console.log('Identity not found:', query)
@@ -64,7 +65,8 @@ export const searchRecipients = async (
           results.push({
             identifier: identifierString,
             name: `${normalizedLabel}.dash`,
-            nameStatus: 'ok'
+            nameStatus: 'ok',
+            type: 'identity'
           })
         }
       }
