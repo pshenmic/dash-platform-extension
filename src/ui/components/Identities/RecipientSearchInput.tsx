@@ -110,7 +110,7 @@ export function RecipientSearchInput ({
   // hint) alongside identity search results.
   const recipientKind = allowPlatformAddress ? detectRecipientKind(value, network) : 'identity'
   const addressResult: RecipientSearchResult | null = recipientKind === 'platformAddress'
-    ? { identifier: value.trim(), kind: 'platformAddress' }
+    ? { identifier: value.trim(), type: 'platformAddress' }
     : null
   const isShieldAddress = recipientKind === 'shieldAddress'
 
@@ -133,15 +133,15 @@ export function RecipientSearchInput ({
         {/* Input Section */}
         <div className='flex flex-col gap-2'>
           <div className='flex items-center gap-3 px-[1.5625rem] py-[1.25rem]'>
-            {/* Avatar Prefix */}
-            <div className={`${(selectedResult != null) ? 'w-5' : 'w-0'} h-5 flex items-center justify-center transition-all overflow-hidden`}>
-              {(selectedResult != null) && (
+            {selectedResult?.type === 'identity' && (
+              <div className={`${selectedResult?.type === 'identity' ? 'w-5' : 'w-0'} h-5 flex items-center justify-center transition-all overflow-hidden`}>
+
                 <Avatar
                   username={selectedResult.identifier}
                   className='w-5 h-5'
                 />
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Input Field */}
             <input
@@ -201,7 +201,7 @@ export function RecipientSearchInput ({
                       onClick={() => handleSelectResult(addressResult)}
                       className='flex flex-col gap-2.5 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
                     >
-                      <div className='flex items-baseline gap-2'>
+                      <div className='flex flex-col gap-1'>
                         <Text className='text-xs' dim>Platform address:</Text>
                         <Identifier highlight='both' className='text-xs' disableCopy>
                           {addressResult.identifier}
