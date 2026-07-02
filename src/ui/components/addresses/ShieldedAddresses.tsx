@@ -1,16 +1,24 @@
-import React, { useState } from 'react'
-import { Text, Button, ValueCard, BigNumber } from 'dash-ui-kit/react'
+import React, { useEffect, useState } from 'react'
+import { Text, Button, ValueCard, BigNumber, ShieldSmallIcon } from 'dash-ui-kit/react'
 import { PasswordField } from '../forms'
 import { ShieldedAddressItem } from './ShieldedAddressItem'
+import { BalanceInfo } from '../data'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
+import type { NetworkType } from '../../../types'
 import type { GetShieldedAddressesResponse } from '../../../types/messages/response/GetShieldedAddressesResponse'
 import type { GetShieldedBalanceResponse } from '../../../types/messages/response/GetShieldedBalanceResponse'
 
 type ShieldedAddressList = GetShieldedAddressesResponse['addresses']
 type ShieldedBalance = GetShieldedBalanceResponse
 
-export const ShieldedAddresses: React.FC = () => {
+interface ShieldedAddressesProps {
+  currentNetwork?: NetworkType | null
+}
+
+export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNetwork }) => {
   const extensionAPI = useExtensionAPI()
+  const platformExplorerClient = usePlatformExplorerClient()
   const [password, setPassword] = useState('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [addresses, setAddresses] = useState<ShieldedAddressList>([])
@@ -19,6 +27,16 @@ export const ShieldedAddresses: React.FC = () => {
   const [hasLoaded, setHasLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [rate, setRate] = useState<number | null>(null)
+
+  // USD rate per Dash. Fetched independently of the (password-gated) balance so
+  // the equivalent is ready as soon as the balance loads.
+  useEffect(() => {
+    const network = currentNetwork ?? 'testnet'
+    platformExplorerClient.fetchRate(network)
+      .then(setRate)
+      .catch(() => setRate(null))
+  }, [currentNetwork, platformExplorerClient])
 
   const load = async (): Promise<void> => {
     if (password === '') {
@@ -101,27 +119,46 @@ export const ShieldedAddresses: React.FC = () => {
       {hasLoaded && error == null && (
         <>
           <ValueCard colorScheme='lightGray' size='xl'>
-            <div className='grid grid-cols-[auto_1fr] gap-x-2 gap-y-2 items-baseline'>
-              <Text size='sm' dim>Shielded balance:</Text>
+            <div className='flex flex-col gap-3 w-full'>
+              {/* Header */}
+              <div className='flex items-center gap-1.5'>
+                <ShieldSmallIcon size={14} className='text-[rgba(12,28,51,0.5)]' />
+                <Text size='sm' dim>Shielded balance</Text>
+              </div>
+
               {balance != null
                 ? (
-                  <div className='flex items-baseline gap-1'>
-                    <Text weight='medium' monospace className='!text-lg text-dash-primary-dark-blue'>
-                      <BigNumber className='!text-lg gap-1'>
-                        {balance.balance}
-                      </BigNumber>
-                    </Text>
-                    <Text dim className='!text-[0.7rem]'>Credits</Text>
-                  </div>
+                  <>
+                    {/* Hero: credits */}
+                    <div className='flex items-baseline gap-1.5'>
+                      <Text weight='bold' monospace className='!text-[2rem] !leading-none text-dash-brand'>
+                        <BigNumber className='!text-[2rem] gap-1'>
+                          {balance.balance}
+                        </BigNumber>
+                      </Text>
+                      <Text dim className='!text-[0.7rem]'>Credits</Text>
+                    </div>
+
+                    {/* Dash + USD equivalents pill (same style as the home balance) */}
+                    <BalanceInfo
+                      balanceState={{ loading: false, error: null, data: BigInt(balance.balance) }}
+                      rateState={{ loading: false, error: null, data: rate }}
+                    />
+
+                    {/* Notes */}
+                    <div className='grid grid-cols-2 gap-2 w-full'>
+                      <div className='rounded-[10px] bg-[rgba(12,28,51,0.04)] px-2.5 py-2 flex flex-col gap-1'>
+                        <Text dim className='!text-[0.7rem]'>Spendable notes:</Text>
+                        <Text weight='medium' className='!text-base text-dash-primary-dark-blue'>{balance.spendableNotes}</Text>
+                      </div>
+                      <div className='rounded-[10px] bg-[rgba(12,28,51,0.04)] px-2.5 py-2 flex flex-col gap-1'>
+                        <Text dim className='!text-[0.7rem]'>Total notes:</Text>
+                        <Text weight='medium' className='!text-base text-dash-primary-dark-blue'>{balance.totalNotes}</Text>
+                      </div>
+                    </div>
+                  </>
                   )
                 : <Text size='sm' dim>{balanceUnavailable ? 'Unavailable' : 'n/a'}</Text>}
-
-              {balance != null && (
-                <>
-                  <Text size='sm' dim>Spendable notes:</Text>
-                  <Text weight='medium' className='!text-lg text-dash-primary-dark-blue'>{balance.spendableNotes}</Text>
-                </>
-              )}
             </div>
           </ValueCard>
 

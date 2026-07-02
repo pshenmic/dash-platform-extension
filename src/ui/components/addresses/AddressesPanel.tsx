@@ -235,7 +235,7 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
         {
           value: 'shielded',
           label: 'Shielded',
-          content: <ShieldedAddresses />
+          content: <ShieldedAddresses currentNetwork={currentNetwork} />
         }
       ]}
     />
