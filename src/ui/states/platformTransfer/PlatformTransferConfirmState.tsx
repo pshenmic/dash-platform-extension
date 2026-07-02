@@ -162,7 +162,7 @@ function PlatformTransferConfirmState (): React.JSX.Element {
         {/* Sender */}
         <div className='flex flex-col gap-2.5'>
           <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>Sender</Text>
-          <Identifier highlight='both'>{senderValue}</Identifier>
+          <Identifier highlight='both' linesAdjustment={false}>{senderValue}</Identifier>
         </div>
 
         {/* Summary */}
