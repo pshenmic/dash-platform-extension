@@ -36,7 +36,7 @@ export function PercentageSlider ({
     onPercentage(pct / 100)
   }
 
-  // `--pct` drives the filled portion of the track (see the CSS module).
+  // `--pct` drives the filled portion of the track
   const sliderStyle: React.CSSProperties & Record<'--pct', string> = { '--pct': `${sliderValue}%` }
 
   return (
