@@ -1,11 +1,12 @@
 import { base58 } from '@scure/base'
 import { HDKey } from '@scure/bip32'
-import { PublicKeyWASM, RecoveredNoteWASM, PlatformAddressWASM } from 'pshenmic-dpp'
+import { PublicKeyWASM, RecoveredNoteWASM, PlatformAddressWASM, CoreScriptWASM } from 'pshenmic-dpp'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
 import {
+  CORE_ADDRESS_VERSIONS,
   PLATFORM_ADDRESS_COIN_TYPE,
   PLATFORM_ADDRESS_FEATURE,
   PLATFORM_ADDRESS_HD_VERSIONS,
@@ -13,6 +14,7 @@ import {
   PLATFORM_ADDRESS_P2PKH_VARIANT_BYTE,
   SHIELDED_NOTES_PAGE_SIZE
 } from '../constants'
+import type { PlatformSourceCandidate } from './platformTransfer'
 import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
 import { decrypt, PrivateKey } from 'eciesjs'
@@ -23,7 +25,7 @@ export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
-export { selectPlatformSource, buildSignedPlatformTransfer, buildIdentityCreditTransferToAddress, buildSignedIdentityTopUpFromAddress } from './platformTransfer'
+export { selectPlatformSource, buildSignedPlatformTransfer, buildIdentityCreditTransferToAddress, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
 export type { PlatformSourceCandidate } from './platformTransfer'
 
 export const hexToBytes = (hex: string): Uint8Array => {
@@ -274,6 +276,73 @@ export const derivePlatformAddressPrivateKey = async (wallet: Wallet, password: 
   }
 
   return PrivateKeyWASM.fromBytes(privateKey, networkType)
+}
+
+// Loads the wallet's created platform addresses (0..count-1) with their on-chain
+// balance and nonce, as source candidates for a transfer / top-up / withdrawal.
+// Balances are matched by canonical address, not by response order.
+export const buildPlatformSourceCandidates = async (sdk: DashPlatformSDK, xpub: string, network: NetworkType, account: number, count: number): Promise<PlatformSourceCandidate[]> => {
+  const created = derivePlatformAddressesFromXpub(xpub, network, account, count)
+
+  if (created.length === 0) {
+    return []
+  }
+
+  const infos = await sdk.platformAddresses.getAddressesInfos(created.map(entry => entry.address))
+  const infoByAddress = new Map(infos.map(info => [
+    info.address.toBech32m(network),
+    { balance: info.balance, nonce: info.nonce }
+  ]))
+
+  return created.map(entry => {
+    const info = infoByAddress.get(entry.address)
+
+    return {
+      platformAddress: entry.address,
+      derivationPath: entry.derivationPath,
+      index: entry.index,
+      balanceCredits: info?.balance ?? 0n,
+      nonce: info?.nonce ?? 0
+    }
+  })
+}
+
+// Decode a Core (L1) base58check address into a P2PKH/P2SH script, for use as a
+// withdrawal recipient. Verifies the checksum and the network version byte.
+export const coreAddressToScript = (coreAddress: string, network: NetworkType): CoreScriptWASM => {
+  let decoded: Uint8Array
+  try {
+    decoded = base58.decode(coreAddress)
+  } catch {
+    throw new Error(`Invalid Core address: ${coreAddress}`)
+  }
+
+  if (decoded.length !== 25) {
+    throw new Error(`Invalid Core address length: ${coreAddress}`)
+  }
+
+  const payload = decoded.slice(0, 21)
+  const checksum = decoded.slice(21)
+  const digest = hash.sha256().update(hash.sha256().update(payload).digest()).digest()
+
+  for (let i = 0; i < 4; i++) {
+    if (digest[i] !== checksum[i]) {
+      throw new Error(`Invalid Core address checksum: ${coreAddress}`)
+    }
+  }
+
+  const version = decoded[0]
+  const hash160 = decoded.slice(1, 21)
+  const versions = CORE_ADDRESS_VERSIONS[network]
+
+  if (version === versions.pubKeyHash) {
+    return CoreScriptWASM.newP2PKH(hash160)
+  }
+  if (version === versions.scriptHash) {
+    return CoreScriptWASM.newP2SH(hash160)
+  }
+
+  throw new Error(`Core address ${coreAddress} is not a valid ${network} address`)
 }
 
 export interface ShieldedAddressEntry {

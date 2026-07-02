@@ -3,12 +3,11 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import {
-  derivePlatformAddressesFromXpub,
+  buildPlatformSourceCandidates,
   derivePlatformAddressPrivateKey,
   selectPlatformSource,
   buildSignedIdentityTopUpFromAddress,
-  validateIdentifier,
-  PlatformSourceCandidate
+  validateIdentifier
 } from '../../../../utils'
 import { TRANSFER_FEE_CREDITS } from '../../../../constants'
 import { TopUpIdentityFromAddressPayload } from '../../../../types/messages/payloads/TopUpIdentityFromAddressPayload'
@@ -52,25 +51,7 @@ export class TopUpIdentityFromAddressHandler implements APIHandler {
       throw new Error('No Platform addresses have been created yet')
     }
 
-    const created = derivePlatformAddressesFromXpub(xpub, wallet.network, account, count)
-    const infos = await this.sdk.platformAddresses.getAddressesInfos(created.map(entry => entry.address))
-    const infoByAddress = new Map(infos.map(info => [
-      info.address.toBech32m(wallet.network),
-      { balance: info.balance, nonce: info.nonce }
-    ]))
-
-    const candidates: PlatformSourceCandidate[] = created.map(entry => {
-      const info = infoByAddress.get(entry.address)
-
-      return {
-        platformAddress: entry.address,
-        derivationPath: entry.derivationPath,
-        index: entry.index,
-        balanceCredits: info?.balance ?? 0n,
-        nonce: info?.nonce ?? 0
-      }
-    })
-
+    const candidates = await buildPlatformSourceCandidates(this.sdk, xpub, wallet.network, account, count)
     const fromAddress = payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
     const source = selectPlatformSource(candidates, amountCredits, fromAddress)
 

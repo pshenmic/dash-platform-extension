@@ -3,9 +3,12 @@ import {
   OutputAddressWASM,
   AddressFundsFeeStrategyStepWASM,
   AddressFundsTransferTransitionWASM,
+  AddressCreditWithdrawalTransitionWASM,
   AddressWitnessWASM,
   IdentityCreditTransferToAddressesTransitionWASM,
   IdentityTopUpFromAddressesTransitionWASM,
+  CoreScriptWASM,
+  PoolingLike,
   PrivateKeyWASM,
   StateTransitionWASM
 } from 'pshenmic-dpp'
@@ -86,6 +89,21 @@ export const buildSignedIdentityTopUpFromAddress = (identityId: string, sourceAd
   const feeStrategy = [AddressFundsFeeStrategyStepWASM.DeductFromInput(0)]
 
   const transition = new IdentityTopUpFromAddressesTransitionWASM(identityId, inputs, feeStrategy, 0, [], undefined)
+  const signature = sourcePrivateKey.sign(transition.toStateTransition().getSignableBytes())
+
+  transition.inputWitness = [AddressWitnessWASM.P2PKH(signature)]
+
+  return transition.toStateTransition()
+}
+
+// Builds and signs a withdrawal from a platform address to a Core (L1) script:
+// spends `amount` from the source address (nonce + 1), and the platform produces
+// the L1 transaction paying `outputScript`. Signed with the source address key.
+export const buildSignedAddressWithdrawal = (outputScript: CoreScriptWASM, sourceAddress: string, sourceNonce: number, amountCredits: bigint, coreFeePerByte: number, pooling: PoolingLike, sourcePrivateKey: PrivateKeyWASM): StateTransitionWASM => {
+  const inputs = [new InputAddressWASM(sourceAddress, sourceNonce + 1, amountCredits)]
+  const feeStrategy = [AddressFundsFeeStrategyStepWASM.DeductFromInput(0)]
+
+  const transition = new AddressCreditWithdrawalTransitionWASM(inputs, feeStrategy, coreFeePerByte, pooling, outputScript, 0, [], undefined)
   const signature = sourcePrivateKey.sign(transition.toStateTransition().getSignableBytes())
 
   transition.inputWitness = [AddressWitnessWASM.P2PKH(signature)]

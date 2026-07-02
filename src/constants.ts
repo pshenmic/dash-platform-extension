@@ -46,6 +46,16 @@ export const PLATFORM_ADDRESS_P2PKH_VARIANT_BYTE = 0x00
 // MIN_OUTPUT_CREDITS guards against dust outputs.
 export const MIN_OUTPUT_CREDITS = 500_000n
 export const TRANSFER_FEE_CREDITS = 6_500_000n
+// Core (L1) base58check address version bytes, used to decode a withdrawal
+// recipient address into a P2PKH/P2SH script.
+export const CORE_ADDRESS_VERSIONS = {
+  testnet: { pubKeyHash: 0x8c, scriptHash: 0x13 },
+  mainnet: { pubKeyHash: 0x4c, scriptHash: 0x10 }
+}
+// Defaults for the L1 tx a platform withdrawal produces. Adjustable — the
+// platform builds the Core transaction from these.
+export const WITHDRAWAL_CORE_FEE_PER_BYTE = 1
+export const WITHDRAWAL_POOLING = 'Standard'
 export const PLATFORM_ADDRESS_COIN_TYPE = {
   testnet: 1,
   mainnet: 5

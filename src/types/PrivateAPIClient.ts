@@ -22,6 +22,8 @@ import { FundPlatformAddressPayload } from './messages/payloads/FundPlatformAddr
 import { FundPlatformAddressResponse } from './messages/response/FundPlatformAddressResponse'
 import { TopUpIdentityFromAddressPayload } from './messages/payloads/TopUpIdentityFromAddressPayload'
 import { TopUpIdentityFromAddressResponse } from './messages/response/TopUpIdentityFromAddressResponse'
+import { WithdrawPlatformAddressToCorePayload } from './messages/payloads/WithdrawPlatformAddressToCorePayload'
+import { WithdrawPlatformAddressToCoreResponse } from './messages/response/WithdrawPlatformAddressToCoreResponse'
 import { CheckPasswordResponse } from './messages/response/CheckPasswordResponse'
 import { CheckPasswordPayload } from './messages/payloads/CheckPasswordPayload'
 import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
@@ -438,6 +440,12 @@ export class PrivateAPIClient {
     const payload: TopUpIdentityFromAddressPayload = { identityId, amountCredits, password, fromAddress }
 
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_ADDRESS, payload)
+  }
+
+  async withdrawPlatformAddressToCore (toCoreAddress: string, amountCredits: string, password: string, fromAddress?: string): Promise<WithdrawPlatformAddressToCoreResponse> {
+    const payload: WithdrawPlatformAddressToCorePayload = { toCoreAddress, amountCredits, password, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.WITHDRAW_PLATFORM_ADDRESS_TO_CORE, payload)
   }
 
   async getShieldedAddresses (password: string, account?: number, count?: number): Promise<GetShieldedAddressesResponse['addresses']> {

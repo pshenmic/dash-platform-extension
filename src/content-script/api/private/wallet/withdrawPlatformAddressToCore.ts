@@ -2,22 +2,22 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { PlatformAddressWASM } from 'pshenmic-dpp'
 import {
   buildPlatformSourceCandidates,
+  coreAddressToScript,
   derivePlatformAddressPrivateKey,
   selectPlatformSource,
-  buildSignedPlatformTransfer
+  buildSignedAddressWithdrawal
 } from '../../../../utils'
-import { TRANSFER_FEE_CREDITS } from '../../../../constants'
-import { SendPlatformTransferPayload } from '../../../../types/messages/payloads/SendPlatformTransferPayload'
-import { SendPlatformTransferResponse } from '../../../../types/messages/response/SendPlatformTransferResponse'
+import { TRANSFER_FEE_CREDITS, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING } from '../../../../constants'
+import { WithdrawPlatformAddressToCorePayload } from '../../../../types/messages/payloads/WithdrawPlatformAddressToCorePayload'
+import { WithdrawPlatformAddressToCoreResponse } from '../../../../types/messages/response/WithdrawPlatformAddressToCoreResponse'
 
-// Sends a Platform (L2) credit transfer between transparent platform addresses.
-// Picks a source (explicit, or the largest covering amount + fee), derives its
-// private key from the DIP-17 path (needs the password), signs an
-// addressFundsTransfer state transition and broadcasts it.
-export class SendPlatformTransferHandler implements APIHandler {
+// Withdraws credits from a transparent platform address to a Core (L1) address
+// via an AddressCreditWithdrawal state transition. Picks a source (explicit, or
+// the largest covering amount + fee), derives its key (needs the password) and
+// signs with it; the platform produces the resulting L1 transaction.
+export class WithdrawPlatformAddressToCoreHandler implements APIHandler {
   walletRepository: WalletRepository
   sdk: DashPlatformSDK
 
@@ -26,25 +26,20 @@ export class SendPlatformTransferHandler implements APIHandler {
     this.sdk = sdk
   }
 
-  async handle (event: EventData): Promise<SendPlatformTransferResponse> {
-    const payload: SendPlatformTransferPayload = event.payload
+  async handle (event: EventData): Promise<WithdrawPlatformAddressToCoreResponse> {
+    const payload: WithdrawPlatformAddressToCorePayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
       throw new Error('No wallet is chosen')
     }
     if (wallet.type !== 'seedphrase') {
-      throw new Error('Platform transfer is only supported for a seedphrase wallet')
-    }
-
-    try {
-      PlatformAddressWASM.fromBech32m(payload.toAddress)
-    } catch {
-      throw new Error('Invalid recipient platform address')
+      throw new Error('Platform withdrawal is only supported for a seedphrase wallet')
     }
 
     const account = 0
     const amountCredits = BigInt(payload.amountCredits)
+    const outputScript = coreAddressToScript(payload.toCoreAddress, wallet.network)
 
     const xpub = await this.walletRepository.getPlatformAccountXpub(account)
     if (xpub == null) {
@@ -60,28 +55,24 @@ export class SendPlatformTransferHandler implements APIHandler {
     const fromAddress = payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
     const source = selectPlatformSource(candidates, amountCredits, fromAddress)
 
-    if (payload.toAddress === source.platformAddress) {
-      throw new Error('Recipient must be different from the source address')
-    }
-
     const privateKey = await derivePlatformAddressPrivateKey(wallet, payload.password, account, source.index, this.sdk)
-    const signedSt = buildSignedPlatformTransfer(source.platformAddress, source.nonce, payload.toAddress, amountCredits, privateKey)
+    const stateTransition = buildSignedAddressWithdrawal(outputScript, source.platformAddress, source.nonce, amountCredits, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING, privateKey)
 
-    await this.sdk.stateTransitions.broadcast(signedSt)
-    await this.sdk.stateTransitions.waitForStateTransitionResult(signedSt)
+    await this.sdk.stateTransitions.broadcast(stateTransition)
+    await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
     return {
-      stHash: signedSt.hash(false),
+      stHash: stateTransition.hash(false),
       amountCredits: amountCredits.toString(),
       feeCredits: TRANSFER_FEE_CREDITS.toString(),
       fromAddress: source.platformAddress,
-      toAddress: payload.toAddress
+      toCoreAddress: payload.toCoreAddress
     }
   }
 
-  validatePayload (payload: SendPlatformTransferPayload): string | null {
-    if (typeof payload.toAddress !== 'string' || payload.toAddress.length === 0) {
-      return 'Recipient address must be provided'
+  validatePayload (payload: WithdrawPlatformAddressToCorePayload): string | null {
+    if (typeof payload.toCoreAddress !== 'string' || payload.toCoreAddress.length === 0) {
+      return 'Recipient Core address must be provided'
     }
     if (typeof payload.amountCredits !== 'string' || !/^\d+$/.test(payload.amountCredits) || BigInt(payload.amountCredits) <= 0n) {
       return 'Amount must be a positive integer string of credits'
