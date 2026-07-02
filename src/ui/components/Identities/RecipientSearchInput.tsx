@@ -9,7 +9,7 @@ import {
   ValueCard
 } from 'dash-ui-kit/react'
 import { useSdk, useDebounce } from '../../hooks'
-import { searchRecipients, type RecipientSearchResult, normalizeName, detectRecipientKind } from '../../../utils'
+import { searchRecipients, type RecipientSearchResult, normalizeName, detectRecipientType } from '../../../utils'
 import type { NetworkType } from '../../../types'
 
 interface RecipientSearchInputProps {
@@ -108,12 +108,12 @@ export function RecipientSearchInput ({
 
   // Classify the typed value to surface a platform address (or a shield-address
   // hint) alongside identity search results.
-  const recipientKind = allowPlatformAddress ? detectRecipientKind(value, network) : 'identity'
-  const isExcludedAddress = recipientKind === 'platformAddress' && value.trim() === excludeIdentifier
-  const addressResult: RecipientSearchResult | null = (recipientKind === 'platformAddress' && !isExcludedAddress)
+  const recipientType = allowPlatformAddress ? detectRecipientType(value, network) : 'identity'
+  const isExcludedAddress = recipientType === 'platformAddress' && value.trim() === excludeIdentifier
+  const addressResult: RecipientSearchResult | null = (recipientType === 'platformAddress' && !isExcludedAddress)
     ? { identifier: value.trim(), type: 'platformAddress' }
     : null
-  const isShieldAddress = recipientKind === 'shieldAddress'
+  const isShieldAddress = recipientType === 'shieldAddress'
 
   const showSearchResults = (isSearchActive || addressResult != null || isShieldAddress || isExcludedAddress) &&
     (selectedResult == null) && value.trim() !== ''

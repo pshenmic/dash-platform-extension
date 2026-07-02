@@ -115,7 +115,7 @@ function SendTransactionState (): React.JSX.Element {
   })
 
   const isCredits = formState.formData.selectedAsset === 'credits'
-  const recipientKind = formState.selectedRecipient?.type ?? null
+  const recipientType = formState.selectedRecipient?.type ?? null
 
   // The current sender identifier (identity or platform address), used to keep it
   // out of the recipient field and to block sending to oneself.
@@ -131,16 +131,15 @@ function SendTransactionState (): React.JSX.Element {
     if (formState.selectedRecipient == null) return 'incomplete'
     if (!isCredits) return 'tokenTransfer'
     if (senderType === 'identity') {
-      return recipientKind === 'platformAddress' ? 'fund' : 'creditTransfer'
+      return recipientType === 'platformAddress' ? 'fund' : 'creditTransfer'
     }
-    // senderType === 'platform'
-    return recipientKind === 'platformAddress' ? 'send' : 'blocked'
-  }, [formState.selectedRecipient, isCredits, senderType, recipientKind])
+    return recipientType === 'platformAddress' ? 'send' : 'blocked'
+  }, [formState.selectedRecipient, isCredits, senderType, recipientType])
 
   // Whether the fee/summary should reflect a platform transfer. Driven by the
   // sender type (and recipient) rather than the fully-resolved transferMode, so
   // switching the sender to a platform address updates the fee immediately.
-  const isPlatformMode = isCredits && (senderType === 'platform' || recipientKind === 'platformAddress')
+  const isPlatformMode = isCredits && (senderType === 'platform' || recipientType === 'platformAddress')
 
   // Set selected token from navigation state
   useEffect(() => {
@@ -224,9 +223,8 @@ function SendTransactionState (): React.JSX.Element {
     }
   }, [walletType, currentWallet, extensionAPI])
 
-  // Load balances for all wallet identities, shown in the sender identity
-  // selector. Only needed for the platform flow, where that selector appears.
-  // Fetched in parallel; the dropdown shows a loading state until they resolve.
+  // Load balances for all wallet identities, shown in the sender identity selector.
+  // Only needed for the platform flow, where that selector appears.
   useEffect(() => {
     if (!platformFlowEnabled || availableIdentities.length === 0) return
 
@@ -289,7 +287,7 @@ function SendTransactionState (): React.JSX.Element {
     }
   }, [isCredits, senderType])
 
-  // ── Amount clamping when sender changes ─────────────────────────────────────
+  // Amount clamping when sender changes
   //
   // When the identity balance changes (async, after selectedIdentity changes)
   // or when the sender type / platform address changes (sync), we clamp the

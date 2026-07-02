@@ -76,13 +76,13 @@ export const validateIdentifier = (str: string): boolean => {
   }
 }
 
-export type RecipientKind = 'identity' | 'platformAddress' | 'shieldAddress' | 'unknown'
+export type RecipientType = 'identity' | 'platformAddress' | 'shieldAddress' | 'unknown'
 
 // Classifies a recipient string by format. Identity identifiers are 32-byte base58.
 // Transparent platform addresses parse via PlatformAddressWASM (HRP carries the
 // network). Shielded Orchard addresses share the HRP but add a 'z' marker
 // (tdash1z / dash1z) and do not parse as a transparent address.
-export const detectRecipientKind = (value: string, network: NetworkType): RecipientKind => {
+export const detectRecipientType = (value: string, network: NetworkType): RecipientType => {
   const trimmed = value.trim()
 
   if (trimmed === '') {
