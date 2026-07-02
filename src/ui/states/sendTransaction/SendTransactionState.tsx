@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import {
   Button,
@@ -26,7 +26,7 @@ import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { WalletType } from '../../../types'
 import { toBaseUnit } from '../../../utils'
-import { MIN_CREDIT_TRANSFER } from '../../constants/transaction'
+import { MIN_CREDIT_TRANSFER, ESTIMATED_FEES } from '../../constants/transaction'
 import { TRANSFER_FEE_CREDITS, MIN_OUTPUT_CREDITS } from '../../../constants'
 import {
   getFormattedBalance,
@@ -79,12 +79,21 @@ function SendTransactionState (): React.JSX.Element {
   // have already initialized (created) platform addresses.
   const platformFlowEnabled = walletType === WalletType.seedphrase && platformAddresses.length > 0
 
+  // Balance of the currently selected sender: the chosen platform address when
+  // sending from an address, otherwise the identity credit balance. Drives the
+  // amount Max/slider so it never exceeds the funds actually available to spend.
+  const selectedPlatformBalance = selectedPlatformAddress != null
+    ? platformBalances.get(selectedPlatformAddress) ?? null
+    : null
+  const senderBalance = senderType === 'platform' ? selectedPlatformBalance : balance
+
   // Form state hook
   const formState = useSendTransactionForm({
-    balance,
+    balance: senderBalance,
     rate,
     currentNetwork,
-    tokens: tokensState.data ?? []
+    tokens: tokensState.data ?? [],
+    platformTransfer: senderType === 'platform'
   })
 
   // Get selected token helper
@@ -128,7 +137,10 @@ function SendTransactionState (): React.JSX.Element {
     return recipientKind === 'platformAddress' ? 'send' : 'blocked'
   }, [formState.selectedRecipient, isCredits, senderType, recipientKind])
 
-  const isPlatformMode = transferMode === 'fund' || transferMode === 'send'
+  // Whether the fee/summary should reflect a platform transfer. Driven by the
+  // sender type (and recipient) rather than the fully-resolved transferMode, so
+  // switching the sender to a platform address updates the fee immediately.
+  const isPlatformMode = isCredits && (senderType === 'platform' || recipientKind === 'platformAddress')
 
   // Set selected token from navigation state
   useEffect(() => {
@@ -277,6 +289,78 @@ function SendTransactionState (): React.JSX.Element {
     }
   }, [isCredits, senderType])
 
+  // ── Amount clamping when sender changes ─────────────────────────────────────
+  //
+  // When the identity balance changes (async, after selectedIdentity changes)
+  // or when the sender type / platform address changes (sync), we clamp the
+  // current amount to the new available balance.  If the amount fits → keep it.
+  // If it exceeds the new max → pull it down to the new max.
+
+  const prevBalanceRef = useRef<bigint | null>(null)
+
+  // Case 1: identity balance loaded/changed → clamp if needed
+  useEffect(() => {
+    const prev = prevBalanceRef.current
+    prevBalanceRef.current = balance
+
+    // Skip initial null → first value transition and cases with no amount
+    if (prev === null || balance === null || balance === prev) return
+    if (formState.formData.amount === '' || formState.formData.amount === '.') return
+
+    const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+    const isPlatformRecipient = formState.selectedRecipient?.type === 'platformAddress'
+    const fee = isPlatformRecipient ? TRANSFER_FEE_CREDITS : ESTIMATED_FEES[network].credits
+    const available = balance - fee
+
+    if (available <= 0n || Number(formState.formData.amount) > Number(available)) {
+      formState.handleQuickAmount(1)
+    }
+  }, [balance]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Case 2: sender type or platform address changed → clamp against known balances
+  const isMountedSenderRef = useRef(false)
+  useEffect(() => {
+    if (!isMountedSenderRef.current) {
+      isMountedSenderRef.current = true
+      return
+    }
+    if (formState.formData.amount === '' || formState.formData.amount === '.') return
+
+    if (senderType === 'platform') {
+      if (selectedPlatformAddress === null) {
+        // No platform address selected yet → clear amount, nothing to send from
+        formState.handleAmountChange('')
+        return
+      }
+      const platformBal = platformBalances.get(selectedPlatformAddress)
+      if (platformBal == null) {
+        formState.handleAmountChange('')
+        return
+      }
+      const available = platformBal > TRANSFER_FEE_CREDITS ? platformBal - TRANSFER_FEE_CREDITS : 0n
+      if (available <= 0n || Number(formState.formData.amount) > Number(available)) {
+        if (available <= 0n) {
+          formState.handleAmountChange('')
+        } else {
+          formState.handleQuickAmount(1)
+        }
+      }
+    } else if (balance !== null) {
+      // Switched back to identity — balance already reflects current identity
+      const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+      const isPlatformRecipient = formState.selectedRecipient?.type === 'platformAddress'
+      const fee = isPlatformRecipient ? TRANSFER_FEE_CREDITS : ESTIMATED_FEES[network].credits
+      const available = balance - fee
+      if (available <= 0n || Number(formState.formData.amount) > Number(available)) {
+        if (available <= 0n) {
+          formState.handleAmountChange('')
+        } else {
+          formState.handleQuickAmount(1)
+        }
+      }
+    }
+  }, [senderType, selectedPlatformAddress]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSend = async (): Promise<void> => {
     if ((currentIdentity === null || currentIdentity === undefined)) {
       formState.setError('No identity selected')
@@ -421,6 +505,20 @@ function SendTransactionState (): React.JSX.Element {
   const formattedBalance = getFormattedBalance(formState.formData.selectedAsset, balance, token)
   const assetLabel = getAssetLabel(formState.formData.selectedAsset, token)
   const assetDecimals = getAssetDecimals(formState.formData.selectedAsset, token)
+
+  // Available balance for the percentage slider — for credits, fee is deducted so
+  // 100% on the slider matches exactly what Max produces.
+  const availableBalanceForSlider = useMemo((): string | null => {
+    if (isCredits) {
+      if (senderBalance === null || senderBalance === 0n) return null
+      const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+      const isPlatformTransfer = senderType === 'platform' || formState.selectedRecipient?.type === 'platformAddress'
+      const fee = isPlatformTransfer ? TRANSFER_FEE_CREDITS : ESTIMATED_FEES[network].credits
+      const available = senderBalance - fee
+      return available > 0n ? available.toString() : null
+    }
+    return formattedBalance !== '0' ? formattedBalance : null
+  }, [isCredits, senderBalance, senderType, currentNetwork, formState.selectedRecipient, formattedBalance])
 
   // The sender block (with its own balance display) only shows for the platform
   // flow with credits. Otherwise the balance is shown under the title.
@@ -644,6 +742,7 @@ function SendTransactionState (): React.JSX.Element {
         equivalentCurrency={formState.equivalentCurrency}
         onEquivalentCurrencyChange={formState.handleEquivalentCurrencyChange}
         assetDecimals={assetDecimals}
+        maxBalance={availableBalanceForSlider}
       />
 
       {/* Error Message */}

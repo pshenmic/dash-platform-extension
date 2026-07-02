@@ -27,6 +27,9 @@ interface UseSendTransactionFormParams {
   rate: number | null
   currentNetwork: string | null
   tokens: TokenData[]
+  // When true, treat the transfer as a platform-address transfer (flat platform
+  // fee + dust minimum) regardless of the recipient — e.g. sending from an address.
+  platformTransfer?: boolean
 }
 
 interface UseSendTransactionFormReturn {
@@ -50,7 +53,8 @@ export function useSendTransactionForm ({
   balance,
   rate,
   currentNetwork,
-  tokens
+  tokens,
+  platformTransfer = false
 }: UseSendTransactionFormParams): UseSendTransactionFormReturn {
   const [formData, setFormData] = useState<SendFormData>({
     recipient: '',
@@ -71,7 +75,7 @@ export function useSendTransactionForm ({
   }, [formData.selectedAsset, tokens])
 
   const getCreditMin = useCallback((): { min: bigint, message: string } => {
-    if (selectedRecipient?.type === 'platformAddress') {
+    if (platformTransfer || selectedRecipient?.type === 'platformAddress') {
       return {
         min: MIN_OUTPUT_CREDITS,
         message: `Minimum platform transfer amount is ${MIN_OUTPUT_CREDITS.toLocaleString()} credits`
@@ -81,7 +85,7 @@ export function useSendTransactionForm ({
       min: MIN_CREDIT_TRANSFER,
       message: `Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`
     }
-  }, [selectedRecipient])
+  }, [selectedRecipient, platformTransfer])
 
   const handleRecipientChange = useCallback((value: string): void => {
     setFormData(prev => ({ ...prev, recipient: value }))
@@ -225,8 +229,8 @@ export function useSendTransactionForm ({
         // Calculate fee based on network and asset type. Platform-address transfers
         // use the flat platform transfer fee instead of the identity credit fee.
         const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
-        const isPlatformRecipient = selectedRecipient?.type === 'platformAddress'
-        const fee = isPlatformRecipient ? TRANSFER_FEE_CREDITS : ESTIMATED_FEES[network].credits
+        const isPlatformTransfer = platformTransfer || selectedRecipient?.type === 'platformAddress'
+        const fee = isPlatformTransfer ? TRANSFER_FEE_CREDITS : ESTIMATED_FEES[network].credits
         const { min } = getCreditMin()
         const availableBalanceValue = balance - fee
 
@@ -264,7 +268,7 @@ export function useSendTransactionForm ({
         setFormData(prev => ({ ...prev, amount }))
       }
     }
-  }, [formData.selectedAsset, balance, rate, equivalentCurrency, currentNetwork, getSelectedToken, getCreditMin, selectedRecipient, tokens])
+  }, [formData.selectedAsset, balance, rate, equivalentCurrency, currentNetwork, getSelectedToken, getCreditMin, selectedRecipient, platformTransfer, tokens])
 
   const handleAssetSelect = useCallback((asset: string): void => {
     setFormData(prev => ({ ...prev, selectedAsset: asset, amount: '' }))
