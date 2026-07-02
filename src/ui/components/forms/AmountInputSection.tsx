@@ -13,7 +13,6 @@ interface AmountInputSectionProps {
   equivalentCurrency: 'usd' | 'dash'
   onEquivalentCurrencyChange: (currency: 'usd' | 'dash') => void
   assetDecimals: number
-  /** Max available balance as plain number string, used to drive the percentage slider */
   maxBalance?: string | null
 }
 

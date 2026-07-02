@@ -16,9 +16,6 @@ interface SelectableCardProps {
   className?: string
 }
 
-// A selectable card container matching the "Choose Wallet Type" style: a
-// left-accent border, light-blue when selected, with an optional icon circle
-// and a label/description block.
 export const SelectableCard: React.FC<SelectableCardProps> = ({
   selected,
   onClick,

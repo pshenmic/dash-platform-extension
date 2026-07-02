@@ -10,8 +10,7 @@ interface AssetBalanceLabelProps {
   className?: string
 }
 
-// "Balance: <amount> <unit>" with an optional fiat-equivalent pill. Used on the
-// transfer screen both under the title and under the sender identity selector.
+// "Balance: <amount> <unit>" with an optional fiat-equivalent pill.
 export const AssetBalanceLabel: React.FC<AssetBalanceLabelProps> = ({
   balance,
   unit,
