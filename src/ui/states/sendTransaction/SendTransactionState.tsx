@@ -20,7 +20,7 @@ import {
   useTransactionCalculations
 } from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
-import { IdentitySelect } from '../../components/identity'
+import { IdentitySelect, IdentityOption } from '../../components/identity'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import type { NetworkType, TokenData } from '../../../types'
@@ -65,6 +65,8 @@ function SendTransactionState (): React.JSX.Element {
   const [platformBalances, setPlatformBalances] = useState<Map<string, bigint>>(new Map())
   const [selectedPlatformAddress, setSelectedPlatformAddress] = useState<string | null>(null)
   const [selectedIdentity, setSelectedIdentity] = useState<string | null>(null)
+  const [identityBalances, setIdentityBalances] = useState<Map<string, bigint>>(new Map())
+  const [identityBalancesLoading, setIdentityBalancesLoading] = useState(false)
   const senderIdentity = selectedIdentity ?? currentIdentity
 
   // Wallet type of the current wallet (platform transfers are seedphrase-only).
@@ -209,6 +211,36 @@ function SendTransactionState (): React.JSX.Element {
       cancelled = true
     }
   }, [walletType, currentWallet, extensionAPI])
+
+  // Load balances for all wallet identities (for the sender identity selector).
+  // Only needed for the platform flow, where that selector is shown. Fetched in
+  // parallel; the dropdown shows a loading state until they resolve.
+  useEffect(() => {
+    if (!platformFlowEnabled || availableIdentities.length === 0) return
+
+    let cancelled = false
+    const ids = availableIdentities.map(identity => identity.identifier)
+
+    const loadIdentityBalances = async (): Promise<void> => {
+      setIdentityBalancesLoading(true)
+      const entries = await Promise.all(ids.map(async (id): Promise<[string, bigint] | null> => {
+        try {
+          return [id, await sdk.identities.getIdentityBalance(id)]
+        } catch {
+          return null
+        }
+      }))
+      if (cancelled) return
+      setIdentityBalances(new Map(entries.filter((entry): entry is [string, bigint] => entry != null)))
+      setIdentityBalancesLoading(false)
+    }
+
+    void loadIdentityBalances().catch(e => console.log('loadIdentityBalances error:', e))
+
+    return () => {
+      cancelled = true
+    }
+  }, [platformFlowEnabled, availableIdentities, sdk])
 
   // Get wallet name for display
   const getWalletName = (): string => {
@@ -552,6 +584,18 @@ function SendTransactionState (): React.JSX.Element {
                     .filter(identifier => identifier !== recipientIdentity)}
                   value={senderIdentity}
                   onChange={setSelectedIdentity}
+                  renderOption={(identifier) => (
+                    <div className='flex items-center justify-between gap-3 w-full'>
+                      <IdentityOption identity={identifier} variant='simple' />
+                      <Text size='xs' weight='medium' className='text-dash-primary-dark-blue shrink-0'>
+                        {identityBalancesLoading
+                          ? 'Loading…'
+                          : identityBalances.has(identifier)
+                            ? `${(identityBalances.get(identifier) as bigint).toLocaleString()} Credits`
+                            : '—'}
+                      </Text>
+                    </div>
+                  )}
                 />
                 <div className='flex items-center gap-1 px-1'>
                   <Text className='!text-[0.75rem]' dim>Identity balance:</Text>
