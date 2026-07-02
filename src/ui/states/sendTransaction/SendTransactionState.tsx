@@ -313,7 +313,7 @@ function SendTransactionState (): React.JSX.Element {
     if (available <= 0n || Number(formState.formData.amount) > Number(available)) {
       formState.handleQuickAmount(1)
     }
-  }, [balance]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [balance])
 
   // Case 2: sender type or platform address changed → clamp against known balances
   const isMountedSenderRef = useRef(false)
@@ -357,7 +357,7 @@ function SendTransactionState (): React.JSX.Element {
         }
       }
     }
-  }, [senderType, selectedPlatformAddress]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [senderType, selectedPlatformAddress])
 
   const handleSend = async (): Promise<void> => {
     if ((currentIdentity === null || currentIdentity === undefined)) {
