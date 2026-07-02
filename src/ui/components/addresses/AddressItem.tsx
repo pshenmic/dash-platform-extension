@@ -28,48 +28,45 @@ export const AddressItem: React.FC<AddressItemProps> = ({ item, explorerUrl }) =
   }
 
   return (
-    <div className='rounded-[15px] p-3 flex flex-row items-center justify-between gap-4 bg-[rgba(12,28,51,0.03)]'>
-      {/* Left: address + transactions */}
-      <div className='flex flex-row items-center gap-2 flex-1 min-w-0'>
+    <div className='rounded-[15px] p-3 flex flex-col gap-2 bg-[rgba(12,28,51,0.03)]'>
+      {/* Top: full-width address */}
+      <div className='flex items-center gap-2 min-w-0'>
+        <Identifier highlight={'both'} linesAdjustment={false}>
+          {item.address}
+        </Identifier>
+
+        <Tooltip
+          content='Copied!'
+          side='top'
+          sideOffset={4}
+          open={copied}
+          onOpenChange={(open) => { if (!open) setCopied(false) }}
+        >
+          <button
+            onClick={handleCopy}
+            className={ICON_CLASS}
+            aria-label='Copy address'
+          >
+            <span className='w-[14px] h-[14px] flex items-center justify-center overflow-hidden'>
+              <CopyIcon size={14} className={ICON_COLOR} />
+            </span>
+          </button>
+        </Tooltip>
+
+        <a
+          href={explorerUrl}
+          target='_blank'
+          rel='noreferrer'
+          className={ICON_CLASS}
+          aria-label='View in explorer'
+        >
+          <ExternalLinkIcon size={14} className={ICON_COLOR} />
+        </a>
+      </div>
+
+      {/* Bottom: transactions + credits in two columns */}
+      <div className='flex flex-row items-start justify-between gap-4'>
         <div className='flex flex-col gap-0.5 min-w-0'>
-          <div className='flex items-center gap-2'>
-            <Identifier
-              avatar
-              middleEllipsis
-              edgeChars={5}
-            >
-              {item.address}
-            </Identifier>
-
-            <Tooltip
-              content='Copied!'
-              side='top'
-              sideOffset={4}
-              open={copied}
-              onOpenChange={(open) => { if (!open) setCopied(false) }}
-            >
-              <button
-                onClick={handleCopy}
-                className={ICON_CLASS}
-                aria-label='Copy address'
-              >
-                <span className='w-[14px] h-[14px] flex items-center justify-center overflow-hidden'>
-                  <CopyIcon size={14} className={ICON_COLOR} />
-                </span>
-              </button>
-            </Tooltip>
-
-            <a
-              href={explorerUrl}
-              target='_blank'
-              rel='noreferrer'
-              className={ICON_CLASS}
-              aria-label='View in explorer'
-            >
-              <ExternalLinkIcon size={14} className={ICON_COLOR} />
-            </a>
-          </div>
-
           {item.loading
             ? <Text size='sm' dim>Loading...</Text>
             : (
@@ -78,24 +75,23 @@ export const AddressItem: React.FC<AddressItemProps> = ({ item, explorerUrl }) =
               </Text>
               )}
         </div>
-      </div>
 
-      {/* Right: balance */}
-      <div className='flex flex-col items-end gap-0.5 shrink-0'>
-        {item.loading
-          ? <Text size='sm' dim>...</Text>
-          : item.balance != null
-            ? (
-              <>
-                <Text size='sm' weight='medium' monospace className='text-dash-primary-dark-blue'>
-                  <BigNumber className='!text-[0.75rem] gap-1'>
-                    {item.balance}
-                  </BigNumber>
-                </Text>
-                <Text className='!text-[0.7rem]' dim>Credits</Text>
-              </>
-              )
-            : <Text size='sm' dim>n/a</Text>}
+        <div className='flex items-end gap-0.5 shrink-0'>
+          {item.loading
+            ? <Text size='sm' dim>...</Text>
+            : item.balance != null
+              ? (
+                <>
+                  <Text size='sm' weight='medium' monospace className='text-dash-primary-dark-blue'>
+                    <BigNumber className='!text-[0.75rem] gap-1'>
+                      {item.balance}
+                    </BigNumber>
+                  </Text>
+                  <Text className='!text-[0.7rem]' dim>Credits</Text>
+                </>
+                )
+              : <Text size='sm' dim>n/a</Text>}
+        </div>
       </div>
     </div>
   )

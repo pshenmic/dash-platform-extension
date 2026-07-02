@@ -21,11 +21,7 @@ export const ShieldedAddressItem: React.FC<ShieldedAddressItemProps> = ({ addres
 
   return (
     <div className='rounded-[15px] p-3 flex flex-row items-center gap-2 bg-[rgba(12,28,51,0.03)]'>
-      <Identifier
-        avatar
-        middleEllipsis
-        edgeChars={5}
-      >
+      <Identifier highlight={'both'} linesAdjustment={false}>
         {address}
       </Identifier>
 

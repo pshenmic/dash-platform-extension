@@ -216,7 +216,7 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
             onClick={() => { void handleCreate() }}
             disabled={isLoading || isGenerating}
           >
-            {isGenerating ? 'Creating...' : 'Create new address'}
+            {isGenerating ? 'Loading...' : 'Add one more address'}
           </Button>
           )}
     </div>
@@ -235,7 +235,7 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
         {
           value: 'shielded',
           label: 'Shielded',
-          content: <ShieldedAddresses />
+          content: <ShieldedAddresses currentNetwork={currentNetwork} />
         }
       ]}
     />
