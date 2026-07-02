@@ -148,7 +148,7 @@ describe('TopUpIdentityHandler', () => {
 
     buildAssetLockFromFundingTxMock.mockImplementation(async () => {
       order.push('build')
-      return { assetLockTx } as any
+      return { assetLockTx, lockedAmount: 100000n } as any
     })
 
     waitForAssetLockProofMock.mockImplementation(async () => {
@@ -185,7 +185,8 @@ describe('TopUpIdentityHandler', () => {
 
     expect(result).toEqual({
       identityId,
-      stateTransitionHash: 'stateTransitionHash'
+      stateTransitionHash: 'stateTransitionHash',
+      topUpAmount: 100000000n
     })
 
     expect(buildAssetLockFromFundingTxMock).toHaveBeenCalledWith(
@@ -294,7 +295,8 @@ describe('TopUpIdentityHandler', () => {
 
     expect(result).toEqual({
       identityId,
-      stateTransitionHash: 'stateTransitionHash'
+      stateTransitionHash: 'stateTransitionHash',
+      topUpAmount: 100000000n
     })
     expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
   })
@@ -308,7 +310,8 @@ describe('TopUpIdentityHandler', () => {
 
     expect(result).toEqual({
       identityId,
-      stateTransitionHash: 'stateTransitionHash'
+      stateTransitionHash: 'stateTransitionHash',
+      topUpAmount: 100000000n
     })
     expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
     expect(sdk.stateTransitions.waitForStateTransitionResult).not.toHaveBeenCalled()
