@@ -3,7 +3,6 @@ import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import {
   Button,
   Text,
-  ValueCard,
   Identifier
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
@@ -34,6 +33,7 @@ import {
   getAssetLabel,
   getAssetDecimals
 } from '../../../utils/transactionFormatters'
+import { AssetBalanceLabel } from '../../components/data'
 
 // Resolved action, derived from asset + sender type + recipient kind.
 type TransferMode = 'creditTransfer' | 'tokenTransfer' | 'fund' | 'send' | 'blocked' | 'incomplete'
@@ -212,9 +212,9 @@ function SendTransactionState (): React.JSX.Element {
     }
   }, [walletType, currentWallet, extensionAPI])
 
-  // Load balances for all wallet identities (for the sender identity selector).
-  // Only needed for the platform flow, where that selector is shown. Fetched in
-  // parallel; the dropdown shows a loading state until they resolve.
+  // Load balances for all wallet identities, shown in the sender identity
+  // selector. Only needed for the platform flow, where that selector appears.
+  // Fetched in parallel; the dropdown shows a loading state until they resolve.
   useEffect(() => {
     if (!platformFlowEnabled || availableIdentities.length === 0) return
 
@@ -422,6 +422,12 @@ function SendTransactionState (): React.JSX.Element {
   const assetLabel = getAssetLabel(formState.formData.selectedAsset, token)
   const assetDecimals = getAssetDecimals(formState.formData.selectedAsset, token)
 
+  // The sender block (with its own balance display) only shows for the platform
+  // flow with credits. Otherwise the balance is shown under the title.
+  const senderBlockShown = platformFlowEnabled && isCredits
+  const showHeaderBalance = !senderBlockShown &&
+    ((isCredits && balance !== null) || (!isCredits && token != null))
+
   const hasTokens = (tokensState.data?.length ?? 0) > 0
 
   const tokensReady = tokensState.data !== null || tokensState.error !== null || currentIdentity == null
@@ -510,22 +516,13 @@ function SendTransactionState (): React.JSX.Element {
             />
           </div>
 
-          {/* Balance Display */}
-          {((formState.formData.selectedAsset === 'credits' && balance !== null) || (formState.formData.selectedAsset !== 'credits' && token != null)) && (
-            <div className='flex items-center gap-3'>
-              <div className='flex gap-1'>
-                <Text className='!text-[0.75rem]' dim>Balance:</Text>
-                <Text weight='bold' className='!text-[0.75rem]'>{formattedBalance}</Text>
-                <Text className='!text-[0.75rem]'>{assetLabel}</Text>
-              </div>
-              {calculations.getBalanceUSDValue() !== null && (
-                <ValueCard border={false} size='xs' className='px-[0.313rem] py-[0.156rem]' colorScheme='lightGray'>
-                  <Text size='xs' weight='light' className='text-dash-primary-dark-blue !text-[0.625rem] !leading-[1.2]'>
-                    {calculations.getBalanceUSDValue()}
-                  </Text>
-                </ValueCard>
-              )}
-            </div>
+          {/* Balance Display — shown here when the sender block isn't */}
+          {showHeaderBalance && (
+            <AssetBalanceLabel
+              balance={formattedBalance}
+              unit={assetLabel}
+              usdValue={calculations.getBalanceUSDValue()}
+            />
           )}
         </div>
 
@@ -597,13 +594,14 @@ function SendTransactionState (): React.JSX.Element {
                     </div>
                   )}
                 />
-                <div className='flex items-center gap-1 px-1'>
-                  <Text className='!text-[0.75rem]' dim>Identity balance:</Text>
-                  <Text weight='bold' className='!text-[0.75rem]'>
-                    {balance != null ? balance.toLocaleString() : '—'}
-                  </Text>
-                  <Text className='!text-[0.75rem]'>Credits</Text>
-                </div>
+                {balance !== null && (
+                  <AssetBalanceLabel
+                    balance={balance.toLocaleString()}
+                    unit='Credits'
+                    usdValue={calculations.getBalanceUSDValue()}
+                    className='px-1'
+                  />
+                )}
               </div>
               )
             : (
