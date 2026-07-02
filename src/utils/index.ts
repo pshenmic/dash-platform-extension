@@ -112,7 +112,7 @@ export const decryptMnemonic = (wallet: Wallet, password: string): string => {
 export const deriveIdentityRegistrationKey = async (wallet: Wallet, password: string, identityIndex: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
   const coinType = wallet.network === 'mainnet' ? 5 : 1
   const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
-  const walletHDKey = sdk.keyPair.seedToHdKey(seed, wallet.network as any)
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, wallet.network)
   const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, `m/9'/${coinType}'/5'/1'/${identityIndex}`)
 
   if (privateKey == null) {
@@ -120,6 +120,39 @@ export const deriveIdentityRegistrationKey = async (wallet: Wallet, password: st
   }
 
   return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+}
+
+type WalletHdKey = ReturnType<DashPlatformSDK['keyPair']['seedToHdKey']>
+
+// Decrypts the mnemonic and builds the wallet HD root once. Callers that derive
+// many child keys (e.g. the top-up gap-scan) should build it once and reuse it
+// instead of re-decrypting per index.
+export const deriveWalletHdKey = (wallet: Wallet, password: string, sdk: DashPlatformSDK): WalletHdKey => {
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+
+  return sdk.keyPair.seedToHdKey(seed, wallet.network as any)
+}
+
+// Derives the DIP-0013 top-up funding key (m/9'/coin'/5'/2'/N) from an already
+// built wallet HD key. The index is a flat per-wallet counter, unlike
+// registration which keys off identityIndex on the 5'/1' branch. Deterministic
+// derivation is what lets the gap-scan find the next unused funding address and
+// recover an interrupted top-up.
+export const deriveTopUpKeyFromHdKey = async (walletHdKey: WalletHdKey, network: Wallet['network'], topUpIndex: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+  const coinType = network === 'mainnet' ? 5 : 1
+  const { privateKey } = await sdk.keyPair.derivePath(walletHdKey, `m/9'/${coinType}'/5'/2'/${topUpIndex}`)
+
+  if (privateKey == null) {
+    throw new Error('Could not derive identity top-up key from wallet hd key')
+  }
+
+  return PrivateKeyWASM.fromBytes(privateKey, network)
+}
+
+export const deriveIdentityTopUpKey = async (wallet: Wallet, password: string, topUpIndex: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+  const walletHdKey = deriveWalletHdKey(wallet, password, sdk)
+
+  return await deriveTopUpKeyFromHdKey(walletHdKey, wallet.network, topUpIndex, sdk)
 }
 
 export const deriveIdentityPrivateKey = async (wallet: Wallet, password: string, identityIndex: number, keyId: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {

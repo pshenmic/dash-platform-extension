@@ -32,7 +32,7 @@ const NameRegistrationState: React.FC = () => {
   const [isValid, setIsValid] = useState(false)
   const [isAvailable, setIsAvailable] = useState(true)
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
-  const [hasSufficientBalance, setHasSufficientBalance] = useState(true)
+  const [dashBalance, setDashBalance] = useState<number | null>(null)
   const [isCheckingBalance, setIsCheckingBalance] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
   const [registrationError, setRegistrationError] = useState<string | null>(null)
@@ -113,23 +113,25 @@ const NameRegistrationState: React.FC = () => {
     }).catch(e => console.log('loadRate error:', e))
   }, [currentNetwork, platformClient, loadRate])
 
+  const requiredBalance = isContested ? CONTESTED_NAME_COST_DASH : REGULAR_NAME_COST_DASH
+  const hasSufficientBalance = dashBalance == null || dashBalance >= requiredBalance
+
   useEffect(() => {
     if (currentIdentity == null) {
-      setHasSufficientBalance(true)
+      setDashBalance(null)
       return
     }
 
     const checkBalance = async (): Promise<void> => {
       setIsCheckingBalance(true)
       const balance = await sdk.identities.getIdentityBalance(currentIdentity)
-      const dashBalance = creditsToDash(balance)
-      setHasSufficientBalance(dashBalance >= CONTESTED_NAME_COST_DASH)
+      setDashBalance(creditsToDash(balance))
     }
 
     checkBalance()
       .catch(e => {
         console.log('Error checking balance:', e)
-        setHasSufficientBalance(true)
+        setDashBalance(null)
       })
       .finally(() => setIsCheckingBalance(false))
   }, [currentIdentity, sdk])
@@ -247,7 +249,7 @@ const NameRegistrationState: React.FC = () => {
           className='!text-[0.75rem] dash-shadow-xl text-dash-primary-dark-blue/75 mt-6'
         >
           {!hasSufficientBalance
-            ? `Insufficient balance. You need at least ${CONTESTED_NAME_COST_DASH} DASH equivalent in credits to register a username.`
+            ? `Insufficient balance. You need at least ${requiredBalance} DASH equivalent in credits to register a username.`
             : !isValid
                 ? 'Username must be at least 3 characters and contain only letters, numbers, hyphens, and underscores'
                 : 'This username is already taken. Please choose a different one.'}

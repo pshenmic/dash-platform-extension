@@ -192,7 +192,8 @@ describe('TopUpIdentityHandler', () => {
       coreSDK,
       assetLockFundingTxid,
       assetLockFundingAddress,
-      expect.any(String)
+      expect.any(String),
+      assetLockFundingAddress
     )
     expect(sdk.identities.createStateTransition).toHaveBeenCalledWith('topUp', {
       identityId,

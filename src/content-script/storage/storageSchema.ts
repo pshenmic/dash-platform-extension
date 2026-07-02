@@ -57,11 +57,18 @@ export interface AppConnectsStorageSchema {
   [id: string]: AppConnectStorageSchema
 }
 
+export type AssetLockFundingPurpose = 'registration' | 'topUp'
+
 export interface AssetLockFundingAddressSchema {
   address: string
   encryptedPrivateKey: string
   used: boolean
   assetLockTxid?: string | null
+  // DIP-13 derivation index for top-up funding keys (m/9'/coin'/5'/2'/index).
+  // Absent for registration entries, which use a one-time random funding key.
+  index?: number
+  // Defaults to 'registration' when absent (legacy entries predate top-up).
+  purpose?: AssetLockFundingPurpose
 }
 
 export interface AssetLockFundingAddressesSchema {

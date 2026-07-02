@@ -50,12 +50,14 @@ import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIden
 import { SetWalletLabelPayload } from './messages/payloads/SetWalletLabelPayload'
 import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
 import { RequestAssetLockFundingAddressResponse } from './messages/response/RequestAssetLockFundingAddressResponse'
+import { RequestTopUpFundingAddressResponse } from './messages/response/RequestTopUpFundingAddressResponse'
+import { RequestTopUpFundingAddressPayload } from './messages/payloads/RequestTopUpFundingAddressPayload'
 import { RegisterIdentityPayload } from './messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from './messages/response/RegisterIdentityResponse'
-import { GetSettingsResponse } from './messages/response/GetSettingsResponse'
-import { SetSettingsPayload } from './messages/payloads/SetSettingsPayload'
 import { TopUpIdentityPayload } from './messages/payloads/TopUpIdentityPayload'
 import { TopUpIdentityResponse } from './messages/response/TopUpIdentityResponse'
+import { GetSettingsResponse } from './messages/response/GetSettingsResponse'
+import { SetSettingsPayload } from './messages/payloads/SetSettingsPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -331,6 +333,15 @@ export class PrivateAPIClient {
     )
   }
 
+  async requestTopUpFundingAddress (password: string): Promise<RequestTopUpFundingAddressResponse> {
+    const payload: RequestTopUpFundingAddressPayload = { password }
+
+    return await this._rpcCall(
+      MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS,
+      payload
+    )
+  }
+
   async registerIdentity (
     assetLockFundingAddress: string,
     assetLockFundingTxid: string,
@@ -343,18 +354,6 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload)
-  }
-
-  async getSettings (): Promise<GetSettingsResponse> {
-    const payload: EmptyPayload = {}
-
-    return await this._rpcCall(MessagingMethods.GET_SETTINGS, payload)
-  }
-
-  async setSettings (hideBalance: boolean): Promise<void> {
-    const payload: SetSettingsPayload = { hideBalance }
-
-    await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
   async topUpIdentity (
@@ -371,6 +370,18 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload)
+  }
+
+  async getSettings (): Promise<GetSettingsResponse> {
+    const payload: EmptyPayload = {}
+
+    return await this._rpcCall(MessagingMethods.GET_SETTINGS, payload)
+  }
+
+  async setSettings (hideBalance: boolean): Promise<void> {
+    const payload: SetSettingsPayload = { hideBalance }
+
+    await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {

@@ -6,7 +6,7 @@ import {
   MasternodeVoteTransitionWASM,
   DataContractUpdateTransitionWASM
 } from 'dash-platform-sdk/types'
-import { IdentityCreditWithdrawalTransitionWASM, DataContractCreateTransitionWASM, PlatformVersionWASM } from 'pshenmic-dpp'
+import { IdentityCreditWithdrawalTransitionWASM, DataContractCreateTransitionWASM, PlatformVersionWASM, TokenTransitionWASM } from 'pshenmic-dpp'
 import { StateTransitionTypeEnum, DocumentActionEnum, TokenActionEnum } from '../enums'
 import { DecodedStateTransition } from '../types'
 
@@ -19,21 +19,21 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
 
       const transitions = batch.transitions.map((batchedTransition) => {
         const transition = batchedTransition.toTransition()
-        const transitionType = transition.__type === 'DocumentTransitionWASM' ? 0 : 1
-
         const out: any = {}
 
-        if (transitionType === 1) {
-          // Token transition
+        if (transition instanceof TokenTransitionWASM) {
           const tokenTransitionType = transition.getTransitionTypeNumber()
-          const tokenTransition = transition.getTransition()
+          const tokenTransition = transition.getTransition() as {
+            base: { tokenId: { base58: () => string }, dataContractId: { base58: () => string } }
+            amount?: bigint
+            recipientId?: { base58: () => string }
+          }
 
           out.action = TokenActionEnum[tokenTransitionType] ?? `TOKEN_${String(tokenTransitionType)}`
           out.tokenId = tokenTransition.base.tokenId.base58()
           out.identityContractNonce = String(transition.identityContractNonce)
           out.dataContractId = tokenTransition.base.dataContractId.base58()
 
-          // Add specific fields based on token action type
           if (tokenTransition.amount != null) {
             out.amount = tokenTransition.amount.toString()
           }
@@ -41,17 +41,17 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
             out.recipient = tokenTransition.recipientId.base58()
           }
         } else {
-          // Document transition
-          out.action = DocumentActionEnum[transition.actionTypeNumber] ?? `DOCUMENT_ACTION_${String(transition.actionTypeNumber)}`
-          out.id = transition.id.base58()
-          out.dataContractId = transition.dataContractId.base58()
-          out.revision = String(transition.revision)
-          out.type = transition.documentTypeName
-          out.identityContractNonce = String(transition.identityContractNonce)
+          const documentTransition = transition
 
-          // Add specific fields based on document action type
+          out.action = DocumentActionEnum[documentTransition.actionTypeNumber] ?? `DOCUMENT_ACTION_${String(documentTransition.actionTypeNumber)}`
+          out.id = documentTransition.id.base58()
+          out.dataContractId = documentTransition.dataContractId.base58()
+          out.revision = String(documentTransition.revision)
+          out.type = documentTransition.documentTypeName
+          out.identityContractNonce = String(documentTransition.identityContractNonce)
+
           try {
-            const createTransition = transition.createTransition
+            const createTransition = documentTransition.createTransition
             if (createTransition != null) {
               if (createTransition.entropy != null) {
                 out.entropy = Buffer.from(createTransition.entropy).toString('hex')
@@ -83,7 +83,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
           }
 
           try {
-            const replaceTransition = transition.replaceTransition
+            const replaceTransition = documentTransition.replaceTransition
             if (replaceTransition?.data != null) {
               out.data = replaceTransition.data
             }
@@ -233,7 +233,7 @@ export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM):
 
     case StateTransitionTypeEnum.DATA_CONTRACT_UPDATE: {
       const transition = DataContractUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
-      const dataContract = transition.getDataContract(null, PlatformVersionWASM.PLATFORM_V9)
+      const dataContract = transition.getDataContract(undefined, PlatformVersionWASM.PLATFORM_V9)
       const config = dataContract.getConfig()
       const groupsKeys = Object.keys(dataContract.groups ?? {})
       const signatureUpdate = stateTransitionWASM.signature
