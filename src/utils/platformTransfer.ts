@@ -5,6 +5,7 @@ import {
   AddressFundsTransferTransitionWASM,
   AddressWitnessWASM,
   IdentityCreditTransferToAddressesTransitionWASM,
+  IdentityTopUpFromAddressesTransitionWASM,
   PrivateKeyWASM,
   StateTransitionWASM
 } from 'pshenmic-dpp'
@@ -72,6 +73,22 @@ export const buildSignedPlatformTransfer = (sourceAddress: string, sourceNonce: 
 export const buildIdentityCreditTransferToAddress = (identityId: string, toAddress: string, amountCredits: bigint, nonce: bigint): StateTransitionWASM => {
   const recipients = [new OutputAddressWASM(toAddress, amountCredits)]
   const transition = new IdentityCreditTransferToAddressesTransitionWASM(identityId, recipients, nonce, 0)
+
+  return transition.toStateTransition()
+}
+
+// Builds and signs an identity top-up from a platform address: spends `amount`
+// from the source address (nonce + 1) and credits the target identity, with the
+// fee deducted from the input. Signed with the source address key (P2PKH witness)
+// — the target identity does not sign, so any identity can be topped up.
+export const buildSignedIdentityTopUpFromAddress = (identityId: string, sourceAddress: string, sourceNonce: number, amountCredits: bigint, sourcePrivateKey: PrivateKeyWASM): StateTransitionWASM => {
+  const inputs = [new InputAddressWASM(sourceAddress, sourceNonce + 1, amountCredits)]
+  const feeStrategy = [AddressFundsFeeStrategyStepWASM.DeductFromInput(0)]
+
+  const transition = new IdentityTopUpFromAddressesTransitionWASM(identityId, inputs, feeStrategy, 0, [], undefined)
+  const signature = sourcePrivateKey.sign(transition.toStateTransition().getSignableBytes())
+
+  transition.inputWitness = [AddressWitnessWASM.P2PKH(signature)]
 
   return transition.toStateTransition()
 }

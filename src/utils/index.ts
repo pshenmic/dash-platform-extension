@@ -23,7 +23,7 @@ export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
-export { selectPlatformSource, buildSignedPlatformTransfer, buildIdentityCreditTransferToAddress } from './platformTransfer'
+export { selectPlatformSource, buildSignedPlatformTransfer, buildIdentityCreditTransferToAddress, buildSignedIdentityTopUpFromAddress } from './platformTransfer'
 export type { PlatformSourceCandidate } from './platformTransfer'
 
 export const hexToBytes = (hex: string): Uint8Array => {

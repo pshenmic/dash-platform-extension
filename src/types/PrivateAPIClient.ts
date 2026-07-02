@@ -20,6 +20,8 @@ import { SendPlatformTransferPayload } from './messages/payloads/SendPlatformTra
 import { SendPlatformTransferResponse } from './messages/response/SendPlatformTransferResponse'
 import { FundPlatformAddressPayload } from './messages/payloads/FundPlatformAddressPayload'
 import { FundPlatformAddressResponse } from './messages/response/FundPlatformAddressResponse'
+import { TopUpIdentityFromAddressPayload } from './messages/payloads/TopUpIdentityFromAddressPayload'
+import { TopUpIdentityFromAddressResponse } from './messages/response/TopUpIdentityFromAddressResponse'
 import { CheckPasswordResponse } from './messages/response/CheckPasswordResponse'
 import { CheckPasswordPayload } from './messages/payloads/CheckPasswordPayload'
 import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
@@ -430,6 +432,12 @@ export class PrivateAPIClient {
     const payload: FundPlatformAddressPayload = { toAddress, amountCredits, password }
 
     return await this._rpcCall(MessagingMethods.FUND_PLATFORM_ADDRESS, payload)
+  }
+
+  async topUpIdentityFromAddress (identityId: string, amountCredits: string, password: string, fromAddress?: string): Promise<TopUpIdentityFromAddressResponse> {
+    const payload: TopUpIdentityFromAddressPayload = { identityId, amountCredits, password, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_ADDRESS, payload)
   }
 
   async getShieldedAddresses (password: string, account?: number, count?: number): Promise<GetShieldedAddressesResponse['addresses']> {
