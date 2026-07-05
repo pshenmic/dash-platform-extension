@@ -57,6 +57,7 @@ import { FundPlatformAddressHandler } from './private/wallet/fundPlatformAddress
 import { TopUpIdentityFromAddressHandler } from './private/wallet/topUpIdentityFromAddress'
 import { WithdrawPlatformAddressToCoreHandler } from './private/wallet/withdrawPlatformAddressToCore'
 import { RegisterIdentityFromAddressHandler } from './private/wallet/registerIdentityFromAddress'
+import { FundPlatformAddressFromCoreHandler } from './private/wallet/fundPlatformAddressFromCore'
 import { GetShieldedAddressesHandler } from './private/wallet/getShieldedAddresses'
 import { GetShieldedBalanceHandler } from './private/wallet/getShieldedBalance'
 
@@ -164,6 +165,7 @@ export class PrivateAPI {
       [MessagingMethods.TOP_UP_IDENTITY_FROM_ADDRESS]: new TopUpIdentityFromAddressHandler(walletRepository, this.sdk),
       [MessagingMethods.WITHDRAW_PLATFORM_ADDRESS_TO_CORE]: new WithdrawPlatformAddressToCoreHandler(walletRepository, this.sdk),
       [MessagingMethods.REGISTER_IDENTITY_FROM_ADDRESS]: new RegisterIdentityFromAddressHandler(walletRepository, identitiesRepository, this.sdk),
+      [MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE]: new FundPlatformAddressFromCoreHandler(walletRepository, assetLockFundingAddressesRepository, this.sdk, this.coreSDK),
       [MessagingMethods.GET_SHIELDED_ADDRESSES]: new GetShieldedAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_SHIELDED_BALANCE]: new GetShieldedBalanceHandler(walletRepository, this.sdk)
     }
