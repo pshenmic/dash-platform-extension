@@ -1,5 +1,12 @@
 import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { KeyType, Purpose, SecurityLevel, PrivateKeyWASM, StateTransitionWASM } from 'dash-platform-sdk/types'
+import {
+  InputAddressWASM,
+  AddressFundsFeeStrategyStepWASM,
+  AddressWitnessWASM,
+  IdentityCreateFromAddressesTransitionWASM,
+  IdentityPublicKeyInCreationWASM
+} from 'pshenmic-dpp'
 import type { AssetLockProof } from '../types/AssetLockProof'
 
 // Protocol limits IdentityCreateTransition to 6 public keys. AUTH MEDIUM is
@@ -59,4 +66,49 @@ export const buildIdentityCreateTransition = (
   stateTransition.signByPrivateKey(identityRegistrationKey, undefined, KeyType.ECDSA_SECP256K1)
 
   return stateTransition
+}
+
+/**
+ * Builds and signs an IdentityCreateFromAddresses state transition — registers a
+ * new identity funded from a platform address instead of an L1 asset lock.
+ *
+ * Same two-pass identity-key signing as buildIdentityCreateTransition, but the
+ * funding proof is the source address witness (P2PKH) rather than a funding-key
+ * signature over the whole ST.
+ */
+export const buildSignedIdentityCreateFromAddress = (
+  identityPrivateKeys: PrivateKeyWASM[],
+  sourceAddress: string,
+  sourceNonce: number,
+  amountCredits: bigint,
+  sourceAddressPrivateKey: PrivateKeyWASM
+): StateTransitionWASM => {
+  const inputs = [new InputAddressWASM(sourceAddress, sourceNonce + 1, amountCredits)]
+  const feeStrategy = [AddressFundsFeeStrategyStepWASM.DeductFromInput(0)]
+
+  const keys = IDENTITY_KEY_DEFINITIONS.map(({ id, purpose, securityLevel, keyType }, i) =>
+    new IdentityPublicKeyInCreationWASM(id, purpose, securityLevel, keyType, false, Uint8Array.from(identityPrivateKeys[i].getPublicKey().bytes()))
+  )
+
+  // Pass 1: collect a proof-of-possession signature from each identity key.
+  // signByPrivateKey overwrites the same WASM memory — copy out immediately.
+  const unsignedSt = new IdentityCreateFromAddressesTransitionWASM(keys, inputs, feeStrategy, 0, [], undefined).toStateTransition()
+
+  for (let i = 0; i < identityPrivateKeys.length; i++) {
+    unsignedSt.signByPrivateKey(identityPrivateKeys[i], undefined, IDENTITY_KEY_DEFINITIONS[i].keyType)
+
+    if (unsignedSt.signature == null) {
+      throw new Error(`signByPrivateKey did not produce a signature for identity key ${i}`)
+    }
+
+    keys[i].signature = Uint8Array.from(unsignedSt.signature)
+  }
+
+  // Pass 2: rebuild with signed keys, then fund with the source address witness.
+  const transition = new IdentityCreateFromAddressesTransitionWASM(keys, inputs, feeStrategy, 0, [], undefined)
+  const addressSignature = sourceAddressPrivateKey.sign(transition.toStateTransition().getSignableBytes())
+
+  transition.inputWitness = [AddressWitnessWASM.P2PKH(addressSignature)]
+
+  return transition.toStateTransition()
 }
