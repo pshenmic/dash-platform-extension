@@ -1,5 +1,6 @@
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
+import { DashPlatformSDK } from 'dash-platform-sdk'
 import { derivePlatformAddressesFromXpub } from '../../../../utils'
 import { EmptyPayload } from '../../../../types/messages/payloads/EmptyPayload'
 import { GetPlatformAddressesResponse } from '../../../../types/messages/response/GetPlatformAddressesResponse'
@@ -9,9 +10,11 @@ import { GetPlatformAddressesResponse } from '../../../../types/messages/respons
 // until addresses are created via GENERATE_PLATFORM_ADDRESSES.
 export class ListPlatformAddressesHandler implements APIHandler {
   walletRepository: WalletRepository
+  sdk: DashPlatformSDK
 
-  constructor (walletRepository: WalletRepository) {
+  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK) {
     this.walletRepository = walletRepository
+    this.sdk = sdk
   }
 
   async handle (): Promise<GetPlatformAddressesResponse> {
@@ -29,7 +32,7 @@ export class ListPlatformAddressesHandler implements APIHandler {
       return { addresses: [] }
     }
 
-    const addresses = derivePlatformAddressesFromXpub(xpub, wallet.network, account, count)
+    const addresses = derivePlatformAddressesFromXpub(this.sdk, xpub, wallet.network, account, count)
 
     return { addresses }
   }

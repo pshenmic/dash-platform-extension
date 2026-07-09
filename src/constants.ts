@@ -33,13 +33,11 @@ export const CORE_EXPLORER_URLS = {
 
 // ── DIP-17 transparent platform payment addresses ────────────────────────────
 // Derived at m/9'/coin'/17'/account'/keyClass'/index; keyClass 0 = clear funds.
-// The address is built via the SDK's PlatformAddressWASM from `variantByte ||
-// Hash160(pubkey)`; the HRP (tdash/dash) is chosen by the SDK from the network.
+// Address derivation and DIP-18 encoding live in the SDK (sdk.keyPair); these
+// constants only label the derivation path we report alongside each address.
 export const PLATFORM_ADDRESS_FEATURE = 17
 export const PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS = 0
 export const PLATFORM_ADDRESS_DEFAULT_COUNT = 20
-// PlatformAddressWASM variant byte: 0 = P2PKH, 1 = P2SH.
-export const PLATFORM_ADDRESS_P2PKH_VARIANT_BYTE = 0x00
 // Platform credit transfer estimates. The platform computes the real processing
 // fee on-chain and the SDK exposes no estimator, so these are used only for the
 // pre-flight balance check and for reporting an estimated fee.
@@ -59,14 +57,6 @@ export const WITHDRAWAL_POOLING = 'Standard'
 export const PLATFORM_ADDRESS_COIN_TYPE = {
   testnet: 1,
   mainnet: 5
-}
-// BIP-32 extended-key version bytes used by the SDK's HD keys (mirrors
-// DASH_VERSIONS in dash-platform-sdk). Required when restoring an account xpub
-// via HDKey.fromExtendedKey — otherwise @scure/bip32 rejects it as a foreign
-// network ('Version mismatch').
-export const PLATFORM_ADDRESS_HD_VERSIONS = {
-  testnet: { private: 0x04358394, public: 0x043587cf },
-  mainnet: { private: 0x0488ade4, public: 0x0488b21e }
 }
 
 // ── Shielded (Orchard) addresses ─────────────────────────────────────────────
