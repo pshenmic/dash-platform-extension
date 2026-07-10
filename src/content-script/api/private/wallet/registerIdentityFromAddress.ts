@@ -93,30 +93,26 @@ export class RegisterIdentityFromAddressHandler implements APIHandler {
     const source = selectPlatformSource(candidates, amountCredits, fromAddress)
     const sourcePrivateKey = await derivePlatformAddressPrivateKey(wallet, payload.password, account, source.index, this.sdk)
 
-    const stateTransition = buildSignedIdentityCreateFromAddress(identityPrivateKeys, source.platformAddress, source.nonce, amountCredits, sourcePrivateKey)
+    const stateTransition = buildSignedIdentityCreateFromAddress(this.sdk, identityPrivateKeys, source.platformAddress, source.nonce, amountCredits, sourcePrivateKey)
 
-    const identifier = stateTransition.getOwnerId()?.base58()
+    await this.sdk.stateTransitions.broadcast(stateTransition)
+    await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+
+    // IdentityCreateFromAddresses does not expose the new identity id on the state
+    // transition (getOwnerId is null — there is no asset-lock outpoint to derive it
+    // from). Resolve it after registration by looking up the identity via its
+    // master authentication key's public key hash.
+    const authKeyPublicKeyHash = identityPrivateKeys[0].getPublicKeyHash()
+    const identity = await this.sdk.identities.getIdentityByPublicKeyHash(authKeyPublicKeyHash)
+    const identifier = identity?.id.base58()
+
     if (identifier == null || identifier === '') {
-      throw new Error('Could not derive identity identifier from state transition')
+      throw new Error('Could not resolve the registered identity identifier')
     }
 
-    // Persist the identity before broadcasting so a failed broadcast can roll back.
     const existingIdentity = await this.identitiesRepository.getByIdentifier(identifier)
-    let wasJustCreated = false
-
     if (existingIdentity == null) {
       await this.identitiesRepository.create(identifier, IdentityType.regular, identityIndex)
-      wasJustCreated = true
-    }
-
-    try {
-      await this.sdk.stateTransitions.broadcast(stateTransition)
-      await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
-    } catch (e) {
-      if (wasJustCreated) {
-        await this.identitiesRepository.remove(identifier)
-      }
-      throw e
     }
 
     await this.walletRepository.switchIdentity(identifier)

@@ -1,4 +1,4 @@
-import { MESSAGING_TIMEOUT } from '../constants'
+import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
@@ -13,6 +13,14 @@ import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddr
 import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
 import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
 import { GetShieldedBalanceResponse } from './messages/response/GetShieldedBalanceResponse'
+import { ShieldToPoolPayload } from './messages/payloads/ShieldToPoolPayload'
+import { ShieldToPoolResponse } from './messages/response/ShieldToPoolResponse'
+import { SendShieldedTransferPayload } from './messages/payloads/SendShieldedTransferPayload'
+import { SendShieldedTransferResponse } from './messages/response/SendShieldedTransferResponse'
+import { UnshieldToAddressPayload } from './messages/payloads/UnshieldToAddressPayload'
+import { UnshieldToAddressResponse } from './messages/response/UnshieldToAddressResponse'
+import { WithdrawShieldedToCorePayload } from './messages/payloads/WithdrawShieldedToCorePayload'
+import { WithdrawShieldedToCoreResponse } from './messages/response/WithdrawShieldedToCoreResponse'
 import { GetPlatformAddressesResponse } from './messages/response/GetPlatformAddressesResponse'
 import { GetPlatformAddressesInfosPayload } from './messages/payloads/GetPlatformAddressesInfosPayload'
 import { GetPlatformAddressesInfosResponse, PlatformAddressBalance } from './messages/response/GetPlatformAddressesInfosResponse'
@@ -478,7 +486,37 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.GET_SHIELDED_BALANCE, payload)
   }
 
-  async _rpcCall<T>(method: string, payload?: object): Promise<T> {
+  // Warms up (initializes) the Halo2 shielded prover once so later spends reuse it.
+  // Long timeout: building the prover is CPU-heavy in the popup.
+  async warmUpShielded (): Promise<{ ready: boolean }> {
+    return await this._rpcCall(MessagingMethods.WARM_UP_SHIELDED, {}, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  async shieldToPool (amountCredits: string, password: string, fromAddress?: string, memo?: string): Promise<ShieldToPoolResponse> {
+    const payload: ShieldToPoolPayload = { amountCredits, password, fromAddress, memo }
+
+    return await this._rpcCall(MessagingMethods.SHIELD_TO_POOL, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  async sendShieldedTransfer (toShieldedAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<SendShieldedTransferResponse> {
+    const payload: SendShieldedTransferPayload = { toShieldedAddress, amountCredits, password, account, memo }
+
+    return await this._rpcCall(MessagingMethods.SEND_SHIELDED_TRANSFER, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  async unshieldToAddress (toPlatformAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<UnshieldToAddressResponse> {
+    const payload: UnshieldToAddressPayload = { toPlatformAddress, amountCredits, password, account, memo }
+
+    return await this._rpcCall(MessagingMethods.UNSHIELD_TO_ADDRESS, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  async withdrawShieldedToCore (toCoreAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<WithdrawShieldedToCoreResponse> {
+    const payload: WithdrawShieldedToCorePayload = { toCoreAddress, amountCredits, password, account, memo }
+
+    return await this._rpcCall(MessagingMethods.WITHDRAW_SHIELDED_TO_CORE, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  async _rpcCall<T>(method: string, payload?: object, timeoutMs: number = MESSAGING_TIMEOUT): Promise<T> {
     const id = generateRandomHex(8)
 
     return await new Promise((resolve, reject) => {
@@ -508,7 +546,7 @@ export class PrivateAPIClient {
 
       setTimeout(() => {
         rejectWithError(`Timed out waiting for response of ${method}`)
-      }, MESSAGING_TIMEOUT)
+      }, timeoutMs)
 
       const message: EventData = {
         context: 'dash-platform-extension',

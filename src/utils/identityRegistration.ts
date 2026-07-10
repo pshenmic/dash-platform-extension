@@ -77,6 +77,7 @@ export const buildIdentityCreateTransition = (
  * signature over the whole ST.
  */
 export const buildSignedIdentityCreateFromAddress = (
+  sdk: DashPlatformSDK,
   identityPrivateKeys: PrivateKeyWASM[],
   sourceAddress: string,
   sourceNonce: number,
@@ -90,24 +91,31 @@ export const buildSignedIdentityCreateFromAddress = (
     new IdentityPublicKeyInCreationWASM(id, purpose, securityLevel, keyType, false, Uint8Array.from(identityPrivateKeys[i].getPublicKey().bytes()))
   )
 
+  const buildUnsigned = (publicKeys: IdentityPublicKeyInCreationWASM[]): StateTransitionWASM =>
+    sdk.platformAddresses.createStateTransition('identityCreateFromAddresses', {
+      publicKeys, inputs, feeStrategy, userFeeIncrease: 0, inputWitness: []
+    })
+
   // Pass 1: collect a proof-of-possession signature from each identity key.
-  // signByPrivateKey overwrites the same WASM memory — copy out immediately.
-  const unsignedSt = new IdentityCreateFromAddressesTransitionWASM(keys, inputs, feeStrategy, 0, [], undefined).toStateTransition()
+  // signByPrivateKey RETURNS the signature bytes (it does not populate the ST's
+  // `.signature` for this transition type) — use the return value.
+  const proofOfPossessionSt = buildUnsigned(keys)
 
   for (let i = 0; i < identityPrivateKeys.length; i++) {
-    unsignedSt.signByPrivateKey(identityPrivateKeys[i], undefined, IDENTITY_KEY_DEFINITIONS[i].keyType)
+    const signature = proofOfPossessionSt.signByPrivateKey(identityPrivateKeys[i], undefined, IDENTITY_KEY_DEFINITIONS[i].keyType)
 
-    if (unsignedSt.signature == null) {
+    if (signature == null || signature.length === 0) {
       throw new Error(`signByPrivateKey did not produce a signature for identity key ${i}`)
     }
 
-    keys[i].signature = Uint8Array.from(unsignedSt.signature)
+    keys[i].signature = Uint8Array.from(signature)
   }
 
   // Pass 2: rebuild with signed keys, then fund with the source address witness.
-  const transition = new IdentityCreateFromAddressesTransitionWASM(keys, inputs, feeStrategy, 0, [], undefined)
-  const addressSignature = sourceAddressPrivateKey.sign(transition.toStateTransition().getSignableBytes())
+  const unsignedSt = buildUnsigned(keys)
+  const addressSignature = sourceAddressPrivateKey.sign(unsignedSt.getSignableBytes())
 
+  const transition = IdentityCreateFromAddressesTransitionWASM.fromStateTransition(unsignedSt)
   transition.inputWitness = [AddressWitnessWASM.P2PKH(addressSignature)]
 
   return transition.toStateTransition()

@@ -71,7 +71,7 @@ export class FundPlatformAddressHandler implements APIHandler {
     }
 
     const nonce = await this.sdk.identities.getIdentityNonce(identity.identifier)
-    const stateTransition = buildIdentityCreditTransferToAddress(identity.identifier, payload.toAddress, amountCredits, nonce + 1n)
+    const stateTransition = buildIdentityCreditTransferToAddress(this.sdk, identity.identifier, payload.toAddress, amountCredits, nonce + 1n)
 
     stateTransition.sign(privateKey, transferKey)
 

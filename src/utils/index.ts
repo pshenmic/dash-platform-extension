@@ -1,5 +1,5 @@
 import { base58 } from '@scure/base'
-import { RecoveredNoteWASM, CoreScriptWASM } from 'pshenmic-dpp'
+import { RecoveredNoteWASM, CoreScriptWASM, OrchardAddressWASM, SpendableNoteWASM } from 'pshenmic-dpp'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
@@ -386,6 +386,40 @@ export const sumUnspentShieldedValue = (recovered: RecoveredNoteWASM[], allNotes
   }
 
   return { balance, spendableNotes }
+}
+
+export interface ShieldedSpendInputs {
+  spends: SpendableNoteWASM[]
+  anchor: Uint8Array
+  changeAddress: OrchardAddressWASM
+  coinType: number
+}
+
+// Prepares the shared inputs for any shielded spend (transfer / unshield /
+// withdrawal): syncs the full note set, recovers the wallet's own notes, witnesses
+// them against the commitment tree, and derives the change address. The Halo2
+// builder is not touched here — proving happens inside the createStateTransition
+// call the handler makes with these inputs.
+export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number): Promise<ShieldedSpendInputs> => {
+  console.time('[shielded] sync notes')
+  const allNotes = await fetchAllShieldedNotes(sdk)
+  console.timeEnd('[shielded] sync notes')
+  console.log(`[shielded] synced ${allNotes.length} notes; recovering own notes…`)
+
+  const recovered = sdk.shielded.recoverNotes(allNotes, seed, account)
+
+  if (recovered.length === 0) {
+    throw new Error('No shielded notes available to spend')
+  }
+  console.log(`[shielded] recovered ${recovered.length} own notes; witnessing against the tree…`)
+
+  console.time('[shielded] build spendable notes')
+  const { spends, anchor } = sdk.shielded.buildSpendableNotes(allNotes, recovered)
+  console.timeEnd('[shielded] build spendable notes')
+
+  const changeAddress = sdk.keyPair.deriveShieldedAddress(seed, network, account)
+
+  return { spends, anchor, changeAddress, coinType: PLATFORM_ADDRESS_COIN_TYPE[network] }
 }
 
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {

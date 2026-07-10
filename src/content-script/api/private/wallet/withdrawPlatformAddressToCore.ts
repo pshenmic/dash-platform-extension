@@ -56,7 +56,7 @@ export class WithdrawPlatformAddressToCoreHandler implements APIHandler {
     const source = selectPlatformSource(candidates, amountCredits, fromAddress)
 
     const privateKey = await derivePlatformAddressPrivateKey(wallet, payload.password, account, source.index, this.sdk)
-    const stateTransition = buildSignedAddressWithdrawal(outputScript, source.platformAddress, source.nonce, amountCredits, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING, privateKey)
+    const stateTransition = buildSignedAddressWithdrawal(this.sdk, outputScript, source.platformAddress, source.nonce, amountCredits, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING, privateKey)
 
     await this.sdk.stateTransitions.broadcast(stateTransition)
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)

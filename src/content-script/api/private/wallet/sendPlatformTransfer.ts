@@ -65,7 +65,7 @@ export class SendPlatformTransferHandler implements APIHandler {
     }
 
     const privateKey = await derivePlatformAddressPrivateKey(wallet, payload.password, account, source.index, this.sdk)
-    const signedSt = buildSignedPlatformTransfer(source.platformAddress, source.nonce, payload.toAddress, amountCredits, privateKey)
+    const signedSt = buildSignedPlatformTransfer(this.sdk, source.platformAddress, source.nonce, payload.toAddress, amountCredits, privateKey)
 
     await this.sdk.stateTransitions.broadcast(signedSt)
     await this.sdk.stateTransitions.waitForStateTransitionResult(signedSt)

@@ -56,7 +56,7 @@ export class TopUpIdentityFromAddressHandler implements APIHandler {
     const source = selectPlatformSource(candidates, amountCredits, fromAddress)
 
     const privateKey = await derivePlatformAddressPrivateKey(wallet, payload.password, account, source.index, this.sdk)
-    const stateTransition = buildSignedIdentityTopUpFromAddress(payload.identityId, source.platformAddress, source.nonce, amountCredits, privateKey)
+    const stateTransition = buildSignedIdentityTopUpFromAddress(this.sdk, payload.identityId, source.platformAddress, source.nonce, amountCredits, privateKey)
 
     await this.sdk.stateTransitions.broadcast(stateTransition)
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)

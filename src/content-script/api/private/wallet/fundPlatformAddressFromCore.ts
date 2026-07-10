@@ -5,7 +5,6 @@ import { PrivateKey, decrypt } from 'eciesjs'
 import hash from 'hash.js'
 import {
   AssetLockProofWASM,
-  AddressFundingFromAssetLockTransitionWASM,
   OutputAddressNullableCreditsWASM,
   AddressFundsFeeStrategyStepWASM,
   PlatformAddressWASM
@@ -128,9 +127,10 @@ export class FundPlatformAddressFromCoreHandler implements APIHandler {
 
     const outputs = [new OutputAddressNullableCreditsWASM(payload.platformAddress)]
     const feeStrategy = [AddressFundsFeeStrategyStepWASM.ReduceOutput(0)]
-    const transition = new AddressFundingFromAssetLockTransitionWASM(assetLockProofWasm, [], feeStrategy, 0, [], outputs)
 
-    const stateTransition = transition.toStateTransition()
+    const stateTransition = this.sdk.platformAddresses.createStateTransition('addressFundingFromAssetLock', {
+      assetLockProof: assetLockProofWasm, inputs: [], feeStrategy, userFeeIncrease: 0, inputWitness: [], outputs
+    })
     stateTransition.signByPrivateKey(assetLockFundingPrivateKey, undefined, KeyType.ECDSA_SECP256K1)
 
     const stateTransitionHash: string = stateTransition.hash(false)
