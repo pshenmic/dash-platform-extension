@@ -60,7 +60,7 @@ import { RegisterIdentityFromAddressHandler } from './private/wallet/registerIde
 import { FundPlatformAddressFromCoreHandler } from './private/wallet/fundPlatformAddressFromCore'
 import { GetShieldedAddressesHandler } from './private/wallet/getShieldedAddresses'
 import { GetShieldedBalanceHandler } from './private/wallet/getShieldedBalance'
-import { WarmUpShieldedHandler } from './private/wallet/warmUpShielded'
+import { InitShieldHandler } from './private/wallet/initShield'
 import { ShieldToPoolHandler } from './private/wallet/shieldToPool'
 import { SendShieldedTransferHandler } from './private/wallet/sendShieldedTransfer'
 import { UnshieldToAddressHandler } from './private/wallet/unshieldToAddress'
@@ -173,7 +173,7 @@ export class PrivateAPI {
       [MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE]: new FundPlatformAddressFromCoreHandler(walletRepository, assetLockFundingAddressesRepository, this.sdk, this.coreSDK),
       [MessagingMethods.GET_SHIELDED_ADDRESSES]: new GetShieldedAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_SHIELDED_BALANCE]: new GetShieldedBalanceHandler(walletRepository, this.sdk),
-      [MessagingMethods.WARM_UP_SHIELDED]: new WarmUpShieldedHandler(this.sdk),
+      [MessagingMethods.INIT_SHIELD]: new InitShieldHandler(this.sdk),
       [MessagingMethods.SHIELD_TO_POOL]: new ShieldToPoolHandler(walletRepository, this.sdk),
       [MessagingMethods.SEND_SHIELDED_TRANSFER]: new SendShieldedTransferHandler(walletRepository, this.sdk),
       [MessagingMethods.UNSHIELD_TO_ADDRESS]: new UnshieldToAddressHandler(walletRepository, this.sdk),

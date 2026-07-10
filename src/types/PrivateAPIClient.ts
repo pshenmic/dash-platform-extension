@@ -486,10 +486,10 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.GET_SHIELDED_BALANCE, payload)
   }
 
-  // Warms up (initializes) the Halo2 shielded prover once so later spends reuse it.
+  // Initializes the Halo2 shielded prover once so later spends reuse it.
   // Long timeout: building the prover is CPU-heavy in the popup.
-  async warmUpShielded (): Promise<{ ready: boolean }> {
-    return await this._rpcCall(MessagingMethods.WARM_UP_SHIELDED, {}, SHIELDED_PROVE_TIMEOUT)
+  async initShield (): Promise<{ ready: boolean }> {
+    return await this._rpcCall(MessagingMethods.INIT_SHIELD, {}, SHIELDED_PROVE_TIMEOUT)
   }
 
   async shieldToPool (amountCredits: string, password: string, fromAddress?: string, memo?: string): Promise<ShieldToPoolResponse> {
