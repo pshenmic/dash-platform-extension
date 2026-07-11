@@ -43,7 +43,7 @@ export class GeneratePlatformAddressesHandler implements APIHandler {
     }
 
     const start = await this.walletRepository.getPlatformAddressCount(account)
-    const addresses = derivePlatformAddressesFromXpub(xpub, wallet.network, account, 1, start)
+    const addresses = derivePlatformAddressesFromXpub(this.sdk, xpub, wallet.network, account, 1, start)
 
     await this.walletRepository.setPlatformAddressCount(account, start + 1)
 

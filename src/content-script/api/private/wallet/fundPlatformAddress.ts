@@ -4,10 +4,10 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { PlatformAddressWASM } from 'pshenmic-dpp'
+import { PlatformAddressWASM, OutputAddressWASM } from 'pshenmic-dpp'
 import { Purpose } from 'dash-platform-sdk/types'
 import { WalletType } from '../../../../types/WalletType'
-import { deriveIdentityPrivateKey, deriveKeystorePrivateKey, buildIdentityCreditTransferToAddress } from '../../../../utils'
+import { deriveIdentityPrivateKey, deriveKeystorePrivateKey } from '../../../../utils'
 import { FundPlatformAddressPayload } from '../../../../types/messages/payloads/FundPlatformAddressPayload'
 import { FundPlatformAddressResponse } from '../../../../types/messages/response/FundPlatformAddressResponse'
 
@@ -71,7 +71,12 @@ export class FundPlatformAddressHandler implements APIHandler {
     }
 
     const nonce = await this.sdk.identities.getIdentityNonce(identity.identifier)
-    const stateTransition = buildIdentityCreditTransferToAddress(identity.identifier, payload.toAddress, amountCredits, nonce + 1n)
+    const recipients = [new OutputAddressWASM(payload.toAddress, amountCredits)]
+    const stateTransition = this.sdk.platformAddresses.createStateTransition('identityCreditTransferToAddresses', {
+      identityId: identity.identifier,
+      recipients,
+      nonce: nonce + 1n
+    })
 
     stateTransition.sign(privateKey, transferKey)
 
