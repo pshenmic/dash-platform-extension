@@ -16,7 +16,7 @@ import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLo
 import { buildAssetLockFromFundingTx } from '../../../../utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../utils/waitForAssetLockProof'
 import { hexToBytes } from '../../../../utils'
-import { TXID_HEX_LENGTH, TXID_HEX_RE } from '../../../../constants'
+import { TXID_HEX_LENGTH } from '../../../../constants'
 import { FundPlatformAddressFromCorePayload } from '../../../../types/messages/payloads/FundPlatformAddressFromCorePayload'
 import { FundPlatformAddressFromCoreResponse } from '../../../../types/messages/response/FundPlatformAddressFromCoreResponse'
 
@@ -152,7 +152,7 @@ export class FundPlatformAddressFromCoreHandler implements APIHandler {
     if (typeof payload.assetLockFundingAddress !== 'string' || payload.assetLockFundingAddress.length === 0) {
       return 'assetLockFundingAddress must be provided'
     }
-    if (typeof payload.assetLockFundingTxid !== 'string' || !TXID_HEX_RE.test(payload.assetLockFundingTxid)) {
+    if (typeof payload.assetLockFundingTxid !== 'string' || payload.assetLockFundingTxid.length !== TXID_HEX_LENGTH) {
       return `assetLockFundingTxid must be a ${TXID_HEX_LENGTH}-character hex string`
     }
     if (typeof payload.password !== 'string' || payload.password.length === 0) {

@@ -13,7 +13,7 @@ import { TopUpIdentityResponse } from '../../../../types/messages/response/TopUp
 import { buildAssetLockFromFundingTx } from '../../../../utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../utils/waitForAssetLockProof'
 import { hexToBytes } from '../../../../utils'
-import { TXID_HEX_LENGTH, TXID_HEX_RE } from '../../../../constants'
+import { TXID_HEX_LENGTH } from '../../../../constants'
 import { isIdempotentTopUpError } from '../../../../utils/isIdempotentTopUpError'
 
 export class TopUpIdentityHandler implements APIHandler {
@@ -157,7 +157,7 @@ export class TopUpIdentityHandler implements APIHandler {
       return 'assetLockFundingAddress must be provided'
     }
 
-    if (typeof payload.assetLockFundingTxid !== 'string' || !TXID_HEX_RE.test(payload.assetLockFundingTxid)) {
+    if (typeof payload.assetLockFundingTxid !== 'string' || payload.assetLockFundingTxid.length !== TXID_HEX_LENGTH) {
       return `assetLockFundingTxid must be a ${TXID_HEX_LENGTH}-character hex string`
     }
 
