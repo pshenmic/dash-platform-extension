@@ -26,8 +26,8 @@ import { GetPlatformAddressesInfosPayload } from './messages/payloads/GetPlatfor
 import { GetPlatformAddressesInfosResponse, PlatformAddressBalance } from './messages/response/GetPlatformAddressesInfosResponse'
 import { SendPlatformTransferPayload } from './messages/payloads/SendPlatformTransferPayload'
 import { SendPlatformTransferResponse } from './messages/response/SendPlatformTransferResponse'
-import { FundPlatformAddressPayload } from './messages/payloads/FundPlatformAddressPayload'
-import { FundPlatformAddressResponse } from './messages/response/FundPlatformAddressResponse'
+import { IdentityCreditTransferToAddressesPayload } from './messages/payloads/IdentityCreditTransferToAddressesPayload'
+import { IdentityCreditTransferToAddressesResponse } from './messages/response/IdentityCreditTransferToAddressesResponse'
 import { TopUpIdentityFromAddressPayload } from './messages/payloads/TopUpIdentityFromAddressPayload'
 import { TopUpIdentityFromAddressResponse } from './messages/response/TopUpIdentityFromAddressResponse'
 import { WithdrawPlatformAddressToCorePayload } from './messages/payloads/WithdrawPlatformAddressToCorePayload'
@@ -442,10 +442,10 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SEND_PLATFORM_TRANSFER, payload)
   }
 
-  async fundPlatformAddress (toAddress: string, amountCredits: string, password: string): Promise<FundPlatformAddressResponse> {
-    const payload: FundPlatformAddressPayload = { toAddress, amountCredits, password }
+  async identityCreditTransferToAddresses (toAddress: string, amountCredits: string, password: string): Promise<IdentityCreditTransferToAddressesResponse> {
+    const payload: IdentityCreditTransferToAddressesPayload = { toAddress, amountCredits, password }
 
-    return await this._rpcCall(MessagingMethods.FUND_PLATFORM_ADDRESS, payload)
+    return await this._rpcCall(MessagingMethods.IDENTITY_CREDIT_TRANSFER_TO_ADDRESSES, payload)
   }
 
   async topUpIdentityFromAddress (identityId: string, amountCredits: string, password: string, fromAddress?: string): Promise<TopUpIdentityFromAddressResponse> {

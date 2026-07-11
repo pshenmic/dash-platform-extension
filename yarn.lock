@@ -1426,13 +1426,6 @@
   dependencies:
     "@noble/hashes" "2.0.1"
 
-"@noble/curves@2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@noble/curves/-/curves-2.2.0.tgz#981be3aadc3bbfbcdb245e78cc97aa6f759246c2"
-  integrity sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ==
-  dependencies:
-    "@noble/hashes" "2.2.0"
-
 "@noble/curves@^1.9.1":
   version "1.9.7"
   resolved "https://registry.npmjs.org/@noble/curves/-/curves-1.9.7.tgz"
@@ -1449,11 +1442,6 @@
   version "2.0.1"
   resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-2.0.1.tgz"
   integrity sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw==
-
-"@noble/hashes@2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-2.2.0.tgz#22da1d16a469954fce877055d559900a6c73b63b"
-  integrity sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==
 
 "@noble/secp256k1@^3.0.0":
   version "3.0.0"
@@ -2191,11 +2179,6 @@
   resolved "https://registry.npmjs.org/@scure/base/-/base-2.0.0.tgz"
   integrity sha512-3E1kpuZginKkek01ovG8krQ0Z44E3DHPjc5S2rjJw9lZn3KSQOs8S7wqikF/AH7iRanHypj85uGyxk0XAyC37w==
 
-"@scure/base@2.2.0":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@scure/base/-/base-2.2.0.tgz#1311378ed247df6d58f8eb8941921965e97e5747"
-  integrity sha512-b8XEupJibegiXV+tDUseI8oLQc8ei3d/4Jkb2RpbHh3MfE054ov3uIz2dhFkB3FI8iwYkEh0gGCApkrYggkPNg==
-
 "@scure/base@^1.2.4", "@scure/base@~1.2.5":
   version "1.2.6"
   resolved "https://registry.npmjs.org/@scure/base/-/base-1.2.6.tgz"
@@ -2209,15 +2192,6 @@
     "@noble/curves" "2.0.1"
     "@noble/hashes" "2.0.1"
     "@scure/base" "2.0.0"
-
-"@scure/bip32@^2.0.1":
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/@scure/bip32/-/bip32-2.2.0.tgz#8b1b470f4079843df36a472f5e103c3bd9c11f7c"
-  integrity sha512-zFr7t2F+a9+5tB7QbarF2HQNYrgjCNaoLAupZdKkrFMYMozJf5zqH2WJCQibMzm1qQ0QogrxVGO3qXfQDYMaQg==
-  dependencies:
-    "@noble/curves" "2.2.0"
-    "@noble/hashes" "2.2.0"
-    "@scure/base" "2.2.0"
 
 "@scure/bip39@^1.6.0":
   version "1.6.0"
