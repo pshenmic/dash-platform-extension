@@ -3,6 +3,7 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { decryptMnemonic, prepareShieldedSpend } from '../../../../utils'
+import { SHIELDED_SPEND_FEE_CREDITS } from '../../../../constants'
 import { UnshieldToAddressPayload } from '../../../../types/messages/payloads/UnshieldToAddressPayload'
 import { UnshieldToAddressResponse } from '../../../../types/messages/response/UnshieldToAddressResponse'
 
@@ -34,7 +35,7 @@ export class UnshieldToAddressHandler implements APIHandler {
     const amountCredits = BigInt(payload.amountCredits)
     const seed = this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, payload.password))
 
-    const { spends, anchor, changeAddress, coinType } = await prepareShieldedSpend(this.sdk, seed, wallet.network, account)
+    const { spends, anchor, changeAddress, coinType } = await prepareShieldedSpend(this.sdk, seed, wallet.network, account, amountCredits + SHIELDED_SPEND_FEE_CREDITS)
 
     console.time('[shielded] unshield: build + prove')
     const stateTransition = await this.sdk.shielded.createStateTransition('unshield', {

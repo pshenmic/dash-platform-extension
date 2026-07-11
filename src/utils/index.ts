@@ -9,6 +9,7 @@ import {
   PLATFORM_ADDRESS_COIN_TYPE,
   PLATFORM_ADDRESS_FEATURE,
   PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS,
+  SHIELDED_MAX_SPEND_NOTES,
   SHIELDED_NOTES_PAGE_SIZE
 } from '../constants'
 import type { PlatformSourceCandidate } from './platformTransfer'
@@ -383,12 +384,40 @@ export interface ShieldedSpendInputs {
   coinType: number
 }
 
+// Selects the fewest notes (largest first) whose combined value covers
+// `requiredCredits`. Minimizing the note count keeps the Orchard bundle — one
+// action per note — under Platform's state-transition size limit. Throws if the
+// notes cannot cover the amount, or if even the minimal set exceeds the action cap.
+const selectShieldedNotes = (spendable: RecoveredNoteWASM[], requiredCredits: bigint): RecoveredNoteWASM[] => {
+  const byValueDesc = [...spendable].sort((a, b) => (a.note.value < b.note.value ? 1 : -1))
+
+  const selected: RecoveredNoteWASM[] = []
+  let total = 0n
+  for (const note of byValueDesc) {
+    if (total >= requiredCredits) {
+      break
+    }
+    selected.push(note)
+    total += note.note.value
+  }
+
+  if (total < requiredCredits) {
+    throw new Error('Insufficient shielded balance for this amount plus fee')
+  }
+  if (selected.length > SHIELDED_MAX_SPEND_NOTES) {
+    throw new Error(`This spend requires ${selected.length} notes, over the ${SHIELDED_MAX_SPEND_NOTES}-note limit per shielded transaction — consolidate notes first`)
+  }
+
+  return selected
+}
+
 // Prepares the shared inputs for any shielded spend (transfer / unshield /
-// withdrawal): syncs the full note set, recovers the wallet's own notes, witnesses
-// them against the commitment tree, and derives the change address. The Halo2
-// builder is not touched here — proving happens inside the createStateTransition
-// call the handler makes with these inputs.
-export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number): Promise<ShieldedSpendInputs> => {
+// withdrawal): syncs the full note set, recovers the wallet's own notes, keeps
+// only the unspent ones, selects the minimal set covering `requiredCredits`
+// (amount + fee), witnesses just those against the commitment tree, and derives
+// the change address. The Halo2 builder is not touched here — proving happens
+// inside the createStateTransition call the handler makes with these inputs.
+export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, requiredCredits: bigint): Promise<ShieldedSpendInputs> => {
   console.time('[shielded] sync notes')
   const allNotes = await fetchAllShieldedNotes(sdk)
   console.timeEnd('[shielded] sync notes')
@@ -399,10 +428,29 @@ export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Arra
   if (recovered.length === 0) {
     throw new Error('No shielded notes available to spend')
   }
-  console.log(`[shielded] recovered ${recovered.length} own notes; witnessing against the tree…`)
+
+  // Drop already-spent notes (their nullifiers are on-chain) so they never enter
+  // a spend — matching how the balance is computed.
+  const nullifiers = recovered
+    .map(recoveredNote => allNotes[recoveredNote.index]?.nullifier)
+    .filter((nullifier): nullifier is Uint8Array => nullifier != null)
+  const statuses = nullifiers.length > 0 ? await sdk.shielded.getShieldedNullifiers(nullifiers) : []
+  const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
+
+  const unspent = recovered.filter(recoveredNote => {
+    const encryptedNote = allNotes[recoveredNote.index]
+    return encryptedNote != null && !spent.has(bytesToHex(encryptedNote.nullifier))
+  })
+
+  if (unspent.length === 0) {
+    throw new Error('No unspent shielded notes available to spend')
+  }
+
+  const selected = selectShieldedNotes(unspent, requiredCredits)
+  console.log(`[shielded] selected ${selected.length}/${unspent.length} notes; witnessing against the tree…`)
 
   console.time('[shielded] build spendable notes')
-  const { spends, anchor } = sdk.shielded.buildSpendableNotes(allNotes, recovered)
+  const { spends, anchor } = sdk.shielded.buildSpendableNotes(allNotes, selected)
   console.timeEnd('[shielded] build spendable notes')
 
   const changeAddress = sdk.keyPair.deriveShieldedAddress(seed, network, account)

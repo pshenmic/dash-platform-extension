@@ -85,6 +85,16 @@ export const SHIELDED_ADDRESS_DEFAULT_COUNT = 5
 // Page size when paging the shielded note set; mirrors the SDK's
 // SHIELDED_MAX_NOTES_PER_QUERY gRPC limit.
 export const SHIELDED_NOTES_PAGE_SIZE = 8192
+// A shielded spend produces one Orchard action per input note, and the Halo2
+// proof grows with the action count. Too many actions push the state transition
+// past Platform's ~20KB size limit (observed to fail around 9 actions). Cap the
+// number of notes a single spend may consume, well under that; if a spend needs
+// more, the wallet must consolidate notes first. Tune once measured on-chain.
+export const SHIELDED_MAX_SPEND_NOTES = 5
+// Conservative fee headroom added on top of the amount when selecting which notes
+// to spend, so the chosen notes cover amount + processing fee (change absorbs the
+// remainder). Estimate — Platform computes the real fee on-chain.
+export const SHIELDED_SPEND_FEE_CREDITS = 15_000_000n
 
 export const PLATFORM_EXPLORER_URLS = {
   testnet: {
