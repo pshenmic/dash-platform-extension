@@ -22,7 +22,7 @@ export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
-export { selectPlatformSource, buildSignedPlatformTransfer, buildIdentityCreditTransferToAddress, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
+export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
 export type { PlatformSourceCandidate } from './platformTransfer'
 
 export const hexToBytes = (hex: string): Uint8Array => {
@@ -186,13 +186,9 @@ export interface PlatformAddressEntry {
 }
 
 // Derive the DIP-17 account-level extended public key (xpub) for the clear-funds
-// key class: m/9'/coin'/17'/account'/0'. Needs the password (decrypts the seed),
-// but only once per account — the xpub then derives every address index
-// publicly, with no further access to the seed.
-export const derivePlatformAccountXpubFromSeed = async (seed: Uint8Array, networkType: NetworkType, account: number, sdk: DashPlatformSDK): Promise<string> => {
-  return await sdk.keyPair.derivePlatformAccountXpub(seed, networkType, account)
-}
-
+// key class (m/9'/coin'/17'/account'/0'). Needs the password (decrypts the seed),
+// but only once per account — the xpub then derives every address index publicly,
+// with no further access to the seed.
 export const derivePlatformAccountXpub = async (wallet: Wallet, password: string, account: number, sdk: DashPlatformSDK): Promise<string> => {
   if (wallet.type !== 'seedphrase') {
     throw new Error('Platform addresses can only be derived from a seedphrase wallet')
@@ -200,7 +196,7 @@ export const derivePlatformAccountXpub = async (wallet: Wallet, password: string
 
   const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
 
-  return await derivePlatformAccountXpubFromSeed(seed, wallet.network, account, sdk)
+  return await sdk.keyPair.derivePlatformAccountXpub(seed, wallet.network, account)
 }
 
 // Derive `count` transparent P2PKH platform addresses from an account xpub.
@@ -220,14 +216,6 @@ export const derivePlatformAddressesFromXpub = (sdk: DashPlatformSDK, xpub: stri
   }
 
   return entries
-}
-
-// Convenience composition: derive the account xpub (with password) and expand it
-// into addresses in one call. Used when no cached xpub is available.
-export const derivePlatformAddresses = async (wallet: Wallet, password: string, account: number, count: number, sdk: DashPlatformSDK): Promise<PlatformAddressEntry[]> => {
-  const xpub = await derivePlatformAccountXpub(wallet, password, account, sdk)
-
-  return derivePlatformAddressesFromXpub(sdk, xpub, wallet.network, account, count)
 }
 
 // Derive the private key for one of our DIP-17 platform addresses by its index:

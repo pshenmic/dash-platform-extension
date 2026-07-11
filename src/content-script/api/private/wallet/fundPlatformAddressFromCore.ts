@@ -16,11 +16,9 @@ import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLo
 import { buildAssetLockFromFundingTx } from '../../../../utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../utils/waitForAssetLockProof'
 import { hexToBytes } from '../../../../utils'
-import { TXID_HEX_LENGTH } from '../../../../constants'
+import { TXID_HEX_LENGTH, TXID_HEX_RE } from '../../../../constants'
 import { FundPlatformAddressFromCorePayload } from '../../../../types/messages/payloads/FundPlatformAddressFromCorePayload'
 import { FundPlatformAddressFromCoreResponse } from '../../../../types/messages/response/FundPlatformAddressFromCoreResponse'
-
-const TXID_HEX_RE = /^[0-9a-fA-F]{64}$/
 
 // Funds a transparent platform address from a Core (L1) deposit via an
 // AddressFundingFromAssetLock state transition. Mirrors the identity top-up

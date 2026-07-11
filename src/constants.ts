@@ -23,6 +23,8 @@ export const FUNDING_TX_TIMEOUT_MS = 90 * 1000
 // blocking registration indefinitely if the confirmation stream is slow.
 export const REGISTRATION_CONFIRM_TIMEOUT_MS = 8000
 export const TXID_HEX_LENGTH = 64
+// A Core transaction id is 32 bytes rendered as a 64-character hex string.
+export const TXID_HEX_RE = /^[0-9a-fA-F]{64}$/
 
 // Gap limit for scanning DIP-13 top-up funding indexes (m/9'/coin'/5'/2'/N)
 // against L1 address usage when picking the next unused funding address.

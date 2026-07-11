@@ -13,10 +13,8 @@ import { TopUpIdentityResponse } from '../../../../types/messages/response/TopUp
 import { buildAssetLockFromFundingTx } from '../../../../utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../utils/waitForAssetLockProof'
 import { hexToBytes } from '../../../../utils'
-import { TXID_HEX_LENGTH } from '../../../../constants'
+import { TXID_HEX_LENGTH, TXID_HEX_RE } from '../../../../constants'
 import { isIdempotentTopUpError } from '../../../../utils/isIdempotentTopUpError'
-
-const TXID_HEX_RE = /^[0-9a-fA-F]{64}$/
 
 export class TopUpIdentityHandler implements APIHandler {
   walletRepository: WalletRepository

@@ -90,17 +90,6 @@ export const buildSignedPlatformTransfer = (sdk: DashPlatformSDK, sourceAddress:
   return signWithAddressWitness(unsignedSt, AddressFundsTransferTransitionWASM, sourcePrivateKey)
 }
 
-// Builds an unsigned identity -> platform address credit transfer, used to fund a
-// platform address from an identity's credit balance. `nonce` must be the
-// identity's next nonce (current + 1); sign the returned ST with the identity key.
-export const buildIdentityCreditTransferToAddress = (sdk: DashPlatformSDK, identityId: string, toAddress: string, amountCredits: bigint, nonce: bigint): StateTransitionWASM => {
-  const recipients = [new OutputAddressWASM(toAddress, amountCredits)]
-
-  return sdk.platformAddresses.createStateTransition('identityCreditTransferToAddresses', {
-    identityId, recipients, nonce
-  })
-}
-
 // Builds and signs an identity top-up from a platform address: spends `amount`
 // from the source address (nonce + 1) and credits the target identity, with the
 // fee deducted from the input. Signed with the source address key (P2PKH witness)

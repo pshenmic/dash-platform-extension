@@ -91,15 +91,12 @@ export const buildSignedIdentityCreateFromAddress = (
     new IdentityPublicKeyInCreationWASM(id, purpose, securityLevel, keyType, false, Uint8Array.from(identityPrivateKeys[i].getPublicKey().bytes()))
   )
 
-  const buildUnsigned = (publicKeys: IdentityPublicKeyInCreationWASM[]): StateTransitionWASM =>
-    sdk.platformAddresses.createStateTransition('identityCreateFromAddresses', {
-      publicKeys, inputs, feeStrategy, userFeeIncrease: 0, inputWitness: []
-    })
-
   // Pass 1: collect a proof-of-possession signature from each identity key.
   // signByPrivateKey RETURNS the signature bytes (it does not populate the ST's
   // `.signature` for this transition type) — use the return value.
-  const proofOfPossessionSt = buildUnsigned(keys)
+  const proofOfPossessionSt = sdk.platformAddresses.createStateTransition('identityCreateFromAddresses', {
+    publicKeys: keys, inputs, feeStrategy, userFeeIncrease: 0, inputWitness: []
+  })
 
   for (let i = 0; i < identityPrivateKeys.length; i++) {
     const signature = proofOfPossessionSt.signByPrivateKey(identityPrivateKeys[i], undefined, IDENTITY_KEY_DEFINITIONS[i].keyType)
@@ -112,7 +109,9 @@ export const buildSignedIdentityCreateFromAddress = (
   }
 
   // Pass 2: rebuild with signed keys, then fund with the source address witness.
-  const unsignedSt = buildUnsigned(keys)
+  const unsignedSt = sdk.platformAddresses.createStateTransition('identityCreateFromAddresses', {
+    publicKeys: keys, inputs, feeStrategy, userFeeIncrease: 0, inputWitness: []
+  })
   const addressSignature = sourceAddressPrivateKey.sign(unsignedSt.getSignableBytes())
 
   const transition = IdentityCreateFromAddressesTransitionWASM.fromStateTransition(unsignedSt)
