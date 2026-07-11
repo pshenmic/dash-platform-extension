@@ -5,6 +5,7 @@ import { PrivateKey, decrypt } from 'eciesjs'
 import hash from 'hash.js'
 import {
   AssetLockProofWASM,
+  OutPointWASM,
   OutputAddressNullableCreditsWASM,
   AddressFundsFeeStrategyStepWASM,
   PlatformAddressWASM
@@ -113,15 +114,18 @@ export class FundPlatformAddressFromCoreHandler implements APIHandler {
       instantLockSub
     )
 
-    if (assetLockProof.type !== 'instantLock') {
-      throw new Error('Only instant-lock asset lock funding is supported; retry once the funding transaction is instant-locked')
-    }
-
-    const assetLockProofWasm = AssetLockProofWASM.createInstantAssetLockProof(
-      hexToBytes(assetLockProof.instantLock),
-      hexToBytes(assetLockProof.transaction),
-      assetLockProof.outputIndex
-    )
+    // waitForAssetLockProof races the instant lock and the chain lock, so the
+    // proof may be of either kind — build the matching WASM proof for each.
+    const assetLockProofWasm = assetLockProof.type === 'instantLock'
+      ? AssetLockProofWASM.createInstantAssetLockProof(
+        hexToBytes(assetLockProof.instantLock),
+        hexToBytes(assetLockProof.transaction),
+        assetLockProof.outputIndex
+      )
+      : AssetLockProofWASM.createChainAssetLockProof(
+        assetLockProof.coreChainLockedHeight,
+        new OutPointWASM(assetLockTxid, assetLockProof.outputIndex)
+      )
 
     const outputs = [new OutputAddressNullableCreditsWASM(payload.platformAddress)]
     const feeStrategy = [AddressFundsFeeStrategyStepWASM.ReduceOutput(0)]
