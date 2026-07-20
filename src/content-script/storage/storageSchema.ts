@@ -31,6 +31,14 @@ export interface WalletStoreSchema {
   encryptedMnemonic: string | null
   seedHash: string | null
   currentIdentity: string | null
+  // Cached DIP-17 account-level extended public keys (xpub), keyed by account
+  // index. Stored once per account (needs the password) so platform addresses
+  // can be re-derived publicly afterwards without unlocking the seed.
+  platformXpubs?: Record<string, string>
+  // Number of platform addresses created so far, keyed by account index. Acts as
+  // the next derivation index — created addresses are 0..count-1, the next one
+  // created is `count`.
+  platformAddressCounts?: Record<string, number>
 }
 
 export interface StateTransitionsStoreSchema {

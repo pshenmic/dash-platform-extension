@@ -17,7 +17,7 @@ export class WalletRepository {
     this.identitiesRepository = identitiesRepository
   }
 
-  async create (walletType: WalletType, mnemonic?: string): Promise<Wallet> {
+  async create (walletType: WalletType, mnemonic?: string, platformXpub?: string): Promise<Wallet> {
     let encryptedMnemonic: string | null = null
     let seedHash: string | null = null
 
@@ -57,7 +57,11 @@ export class WalletRepository {
       walletId,
       encryptedMnemonic,
       seedHash,
-      currentIdentity: null
+      currentIdentity: null,
+      // Platform account xpub derived at creation time so platform addresses can
+      // be generated later without re-entering the password (account 0). Omitted
+      // entirely when not provided (e.g. keystore wallets).
+      ...(platformXpub != null ? { platformXpubs: { 0: platformXpub } } : {})
     }
 
     await this.storageAdapter.set(storageKey, walletSchema)
@@ -153,6 +157,55 @@ export class WalletRepository {
     }
 
     await this.storageAdapter.set(storageKey, { ...walletStoreSchema, label })
+  }
+
+  async getPlatformAccountXpub (account: number): Promise<string | null> {
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+
+    return walletStoreSchema.platformXpubs?.[String(account)] ?? null
+  }
+
+  async setPlatformAccountXpub (account: number, xpub: string): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+    const storageKey = `wallet_${network}_${walletStoreSchema.walletId}`
+
+    const platformXpubs = { ...walletStoreSchema.platformXpubs, [String(account)]: xpub }
+
+    await this.storageAdapter.set(storageKey, { ...walletStoreSchema, platformXpubs })
+  }
+
+  async getPlatformAddressCount (account: number): Promise<number> {
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+
+    return walletStoreSchema.platformAddressCounts?.[String(account)] ?? 0
+  }
+
+  async setPlatformAddressCount (account: number, count: number): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+    const storageKey = `wallet_${network}_${walletStoreSchema.walletId}`
+
+    const platformAddressCounts = { ...walletStoreSchema.platformAddressCounts, [String(account)]: count }
+
+    await this.storageAdapter.set(storageKey, { ...walletStoreSchema, platformAddressCounts })
+  }
+
+  private async getCurrentStoreSchema (): Promise<WalletStoreSchema> {
+    const network = await this.storageAdapter.get('network') as string
+    const currentWalletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (currentWalletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const walletStoreSchema = await this.storageAdapter.get(`wallet_${network}_${currentWalletId}`) as WalletStoreSchema | null
+
+    if (walletStoreSchema == null) {
+      throw new Error(`Could not find wallet by id ${currentWalletId}`)
+    }
+
+    return walletStoreSchema
   }
 
   async switchIdentity (identifier: string): Promise<void> {

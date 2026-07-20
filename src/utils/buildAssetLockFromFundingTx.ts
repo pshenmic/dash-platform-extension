@@ -11,8 +11,11 @@ import {
 import type { AssetLockBuildResult } from '../types/AssetLockBuildResult'
 import {
   MIN_FEE_RELAY,
-  MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS
+  MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS,
+  FUNDING_TX_POLL_INTERVAL_MS,
+  FUNDING_TX_TIMEOUT_MS
 } from '../constants'
+import { wait } from './index'
 
 /**
  * Builds an asset lock transaction from an asset lock funding transaction.
@@ -37,23 +40,49 @@ export const buildAssetLockFromFundingTx = async (
   assetLockFundingTxid: string,
   assetLockFundingAddress: string,
   assetLockFundingPrivateKeyWif: string,
-  creditOutputAddress: string
+  creditOutputAddress: string,
+  pollIntervalMs: number = FUNDING_TX_POLL_INTERVAL_MS,
+  timeoutMs: number = FUNDING_TX_TIMEOUT_MS
 ): Promise<AssetLockBuildResult> => {
-  const dapiTx = await coreSDK.getTransaction(assetLockFundingTxid).catch((e: unknown) => {
-    throw new Error(`Could not load asset lock funding transaction ${assetLockFundingTxid}: ${e instanceof Error ? e.message : String(e)}`)
-  })
+  // Poll for the funding tx to become fetchable AND locked/confirmed. A freshly
+  // broadcast deposit may not be on the DAPI node the SDK queries yet
+  // (propagation), or may not be instant-locked yet — tolerate transient
+  // failures instead of rejecting on the first attempt.
+  type DapiTx = Awaited<ReturnType<typeof coreSDK.getTransaction>>
+  const deadline = Date.now() + timeoutMs
+  let dapiTx: DapiTx | undefined
+
+  while (dapiTx == null) {
+    let fetched: DapiTx
+    try {
+      fetched = await coreSDK.getTransaction(assetLockFundingTxid)
+    } catch (e: unknown) {
+      if (Date.now() >= deadline) {
+        throw new Error(`Could not load asset lock funding transaction ${assetLockFundingTxid} within ${Math.round(timeoutMs / 1000)}s: ${e instanceof Error ? e.message : String(e)}`)
+      }
+      await wait(pollIntervalMs)
+      continue
+    }
+
+    if (fetched.isInstantLocked || fetched.isChainLocked || fetched.confirmations >= MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS) {
+      dapiTx = fetched
+      break
+    }
+
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `Asset lock funding transaction ${assetLockFundingTxid} was not locked or confirmed within ${Math.round(timeoutMs / 1000)}s. ` +
+        'Please wait for an instant lock or at least one confirmation and try again.'
+      )
+    }
+
+    await wait(pollIntervalMs)
+  }
 
   const fundingTx = Transaction.fromBytes(Uint8Array.from(dapiTx.transaction))
 
   if (fundingTx.hash() !== assetLockFundingTxid) {
     throw new Error(`Transaction hash mismatch for ${assetLockFundingTxid}: transaction data is corrupt`)
-  }
-
-  if (!dapiTx.isInstantLocked && !dapiTx.isChainLocked && dapiTx.confirmations < MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS) {
-    throw new Error(
-      `Asset lock funding transaction ${assetLockFundingTxid} is not locked or confirmed yet. ` +
-      'Please wait for an instant lock or at least one confirmation before proceeding.'
-    )
   }
 
   const expectedScriptHex = Output.createP2PKH(0n, assetLockFundingAddress).script.hex()

@@ -55,7 +55,10 @@ module.exports = (env, argv) => {
     resolve: {
       extensions: ['.tsx', '.ts', '.js', '.jsx', '.json'],
       fallback: {
-        buffer: require.resolve('buffer')
+        buffer: require.resolve('buffer'),
+        // pshenmic-dpp's WASM loader has a guarded `require('worker_threads')`
+        // (Node-only path); stub it out for the browser bundle.
+        worker_threads: false
       }
     },
     plugins: [
