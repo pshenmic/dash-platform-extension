@@ -86,3 +86,29 @@ export interface AssetLockFundingAddressesSchema {
 export interface WalletSettingsStoreSchema {
   hideBalance: boolean
 }
+
+// Persisted record of a long-running background operation (identity
+// registration, top-up, platform / shielded state transitions). Written by the
+// offscreen executor so it survives the popup closing; the popup reads it back
+// (directly or via chrome.storage.onChanged) to render progress and outcome.
+export interface JobStoreSchema {
+  id: string
+  // MessagingMethods value the job executes.
+  method: string
+  // JobStatus value.
+  status: string
+  // Current step within a running job (e.g. 'waiting-asset-lock-proof',
+  // 'proving'); null until the executor reports the first stage.
+  stage: string | null
+  // Terminal success payload — the same shape the handler returns synchronously.
+  result: unknown | null
+  // Terminal failure detail. `signedHex` preserves BroadcastError context so the
+  // popup can offer a re-broadcast, mirroring the current messaging error path.
+  error: { message: string, signedHex?: string } | null
+  createdAt: number
+  updatedAt: number
+}
+
+export interface JobsStoreSchema {
+  [id: string]: JobStoreSchema
+}
