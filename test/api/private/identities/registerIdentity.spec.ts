@@ -1,7 +1,7 @@
 import { PrivateKey, encrypt } from 'eciesjs'
 import hash from 'hash.js'
 import { PrivateKeyWASM } from 'dash-platform-sdk/types'
-import { RegisterIdentityHandler } from '../../../../src/content-script/api/private/identities/registerIdentity'
+import { RegisterIdentityHandler, REGISTER_IDENTITY_STAGES } from '../../../../src/content-script/api/private/identities/registerIdentity'
 import { bytesToHex, hexToBytes } from '../../../../src/utils'
 import { buildAssetLockFromFundingTx } from '../../../../src/utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../src/utils/waitForAssetLockProof'
@@ -179,7 +179,7 @@ describe('RegisterIdentityHandler', () => {
     )
   })
 
-  const handle = async (): Promise<any> => {
+  const handle = async (ctx?: { onProgress: (stage: string) => void }): Promise<any> => {
     return await handler.handle({
       context: 'dash-platform-extension',
       id: 'id',
@@ -190,7 +190,7 @@ describe('RegisterIdentityHandler', () => {
         assetLockFundingTxid,
         password
       }
-    })
+    }, ctx)
   }
 
   test('aborts the index scan on a non-not-found error instead of treating it as a free index', async () => {
@@ -346,5 +346,54 @@ describe('RegisterIdentityHandler', () => {
 
     expect(identitiesRepository.create).not.toHaveBeenCalled()
     expect(identitiesRepository.remove).not.toHaveBeenCalled()
+  })
+
+  test('reports progress stages in execution order on the happy path', async () => {
+    const stages: string[] = []
+
+    await handle({ onProgress: (stage) => { stages.push(stage) } })
+
+    expect(stages).toEqual([
+      REGISTER_IDENTITY_STAGES.preparing,
+      REGISTER_IDENTITY_STAGES.buildingAssetLock,
+      REGISTER_IDENTITY_STAGES.broadcastingAssetLock,
+      REGISTER_IDENTITY_STAGES.waitingAssetLockProof,
+      REGISTER_IDENTITY_STAGES.broadcastingStateTransition,
+      REGISTER_IDENTITY_STAGES.confirming
+    ])
+  })
+
+  test('skips the broadcastingAssetLock stage when recovering an already-broadcast asset lock', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
+      address: assetLockFundingAddress,
+      encryptedPrivateKey,
+      used: false,
+      assetLockTxid
+    })
+
+    const stages: string[] = []
+
+    await handle({ onProgress: (stage) => { stages.push(stage) } })
+
+    expect(stages).toEqual([
+      REGISTER_IDENTITY_STAGES.preparing,
+      REGISTER_IDENTITY_STAGES.buildingAssetLock,
+      REGISTER_IDENTITY_STAGES.waitingAssetLockProof,
+      REGISTER_IDENTITY_STAGES.broadcastingStateTransition,
+      REGISTER_IDENTITY_STAGES.confirming
+    ])
+  })
+
+  test('skips the confirming stage when the state transition is already in chain', async () => {
+    sdk.stateTransitions.broadcast.mockRejectedValueOnce(
+      new Error('Object already exists: state transition already in chain')
+    )
+
+    const stages: string[] = []
+
+    await handle({ onProgress: (stage) => { stages.push(stage) } })
+
+    expect(stages).not.toContain(REGISTER_IDENTITY_STAGES.confirming)
+    expect(stages[stages.length - 1]).toBe(REGISTER_IDENTITY_STAGES.broadcastingStateTransition)
   })
 })

@@ -1,5 +1,5 @@
 import { EventData } from '../../../../types/EventData'
-import { APIHandler } from '../../APIHandler'
+import { JobProgressContext, LongRunningHandler } from '../../LongRunningHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { InputAddressWASM, AddressFundsFeeStrategyStepWASM } from 'pshenmic-dpp'
@@ -12,7 +12,18 @@ import { ShieldToPoolResponse } from '../../../../types/messages/response/Shield
 // largest covering amount + fee), signs the input with its key, and builds the
 // Orchard (Halo2) proof — slow, runs in the popup for now — targeting the wallet's
 // own shielded address. Needs the password.
-export class ShieldToPoolHandler implements APIHandler {
+
+// Progress stages reported through JobProgressContext, in execution order. The
+// `proving` stage covers the CPU-heavy Halo2 proof build — the reason shielded
+// operations must run in a context that outlives the popup.
+export const SHIELD_TO_POOL_STAGES = {
+  preparing: 'preparing',
+  proving: 'proving',
+  broadcasting: 'broadcasting',
+  confirming: 'confirming'
+} as const
+
+export class ShieldToPoolHandler implements LongRunningHandler {
   walletRepository: WalletRepository
   sdk: DashPlatformSDK
 
@@ -21,8 +32,17 @@ export class ShieldToPoolHandler implements APIHandler {
     this.sdk = sdk
   }
 
-  async handle (event: EventData): Promise<ShieldToPoolResponse> {
+  async handle (event: EventData, ctx?: JobProgressContext): Promise<ShieldToPoolResponse> {
     const payload: ShieldToPoolPayload = event.payload
+
+    const reportStage = async (stage: string): Promise<void> => {
+      if (ctx?.onProgress != null) {
+        await ctx.onProgress(stage)
+      }
+    }
+
+    await reportStage(SHIELD_TO_POOL_STAGES.preparing)
+
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
@@ -57,6 +77,8 @@ export class ShieldToPoolHandler implements APIHandler {
     const inputs = [new InputAddressWASM(source.platformAddress, source.nonce + 1, source.balanceCredits)]
     const feeStrategy = [AddressFundsFeeStrategyStepWASM.DeductFromInput(0)]
 
+    await reportStage(SHIELD_TO_POOL_STAGES.proving)
+
     console.time('[shielded] shield: build + prove')
     const stateTransition = await this.sdk.shielded.createStateTransition('shield', {
       recipient,
@@ -70,8 +92,11 @@ export class ShieldToPoolHandler implements APIHandler {
     })
     console.timeEnd('[shielded] shield: build + prove')
 
+    await reportStage(SHIELD_TO_POOL_STAGES.broadcasting)
     console.log('[shielded] broadcasting…')
     await this.sdk.stateTransitions.broadcast(stateTransition)
+
+    await reportStage(SHIELD_TO_POOL_STAGES.confirming)
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
     return {

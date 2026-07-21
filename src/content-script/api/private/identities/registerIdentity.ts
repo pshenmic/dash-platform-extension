@@ -4,7 +4,7 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKey, decrypt } from 'eciesjs'
 import hash from 'hash.js'
 import { EventData } from '../../../../types'
-import { APIHandler } from '../../APIHandler'
+import { JobProgressContext, LongRunningHandler } from '../../LongRunningHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
@@ -27,7 +27,19 @@ import { isIdentityNotFoundError } from '../../../../utils/isIdentityNotFoundErr
 import { WalletType } from '../../../../types/WalletType'
 import { TXID_HEX_LENGTH, IDENTITY_INDEX_SCAN_LIMIT, REGISTRATION_CONFIRM_TIMEOUT_MS } from '../../../../constants'
 
-export class RegisterIdentityHandler implements APIHandler {
+// Progress stages reported through JobProgressContext, in execution order. The
+// popup renders these while the job runs in the background; a job may skip
+// `broadcastingAssetLock` when recovering an already-broadcast asset lock.
+export const REGISTER_IDENTITY_STAGES = {
+  preparing: 'preparing',
+  buildingAssetLock: 'building-asset-lock',
+  broadcastingAssetLock: 'broadcasting-asset-lock',
+  waitingAssetLockProof: 'waiting-asset-lock-proof',
+  broadcastingStateTransition: 'broadcasting-state-transition',
+  confirming: 'confirming'
+} as const
+
+export class RegisterIdentityHandler implements LongRunningHandler {
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
@@ -51,8 +63,16 @@ export class RegisterIdentityHandler implements APIHandler {
     this.coreSDK = coreSDK
   }
 
-  async handle (event: EventData): Promise<RegisterIdentityResponse> {
+  async handle (event: EventData, ctx?: JobProgressContext): Promise<RegisterIdentityResponse> {
     const payload: RegisterIdentityPayload = event.payload
+
+    const reportStage = async (stage: string): Promise<void> => {
+      if (ctx?.onProgress != null) {
+        await ctx.onProgress(stage)
+      }
+    }
+
+    await reportStage(REGISTER_IDENTITY_STAGES.preparing)
 
     // ── 1. Validate wallet and network context ──────────────────────────────
     const wallet = await this.walletRepository.getCurrent()
@@ -135,6 +155,8 @@ export class RegisterIdentityHandler implements APIHandler {
     // ── 6. Build asset lock transaction ─────────────────────────────────────
     // Inputs are signed by the one-time funding key. Credit output goes to
     // creditOutputAddress (registration key). Build is deterministic on retry.
+    await reportStage(REGISTER_IDENTITY_STAGES.buildingAssetLock)
+
     const { assetLockTx } = await buildAssetLockFromFundingTx(
       this.coreSDK,
       payload.assetLockFundingTxid,
@@ -165,6 +187,7 @@ export class RegisterIdentityHandler implements APIHandler {
     )
 
     if (assetLockFundingAddressEntry.assetLockTxid == null) {
+      await reportStage(REGISTER_IDENTITY_STAGES.broadcastingAssetLock)
       await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
       // Persist the broadcasted txid before any further work so a crash leaves
       // a recoverable record of the L1-committed asset lock.
@@ -172,6 +195,8 @@ export class RegisterIdentityHandler implements APIHandler {
     }
 
     // ── 8. Wait for instant lock or chain lock (whichever comes first) ──────
+    await reportStage(REGISTER_IDENTITY_STAGES.waitingAssetLockProof)
+
     const assetLockProof = await waitForAssetLockProof(
       this.coreSDK,
       this.sdk,
@@ -224,6 +249,8 @@ export class RegisterIdentityHandler implements APIHandler {
     // ── 13. Broadcast the state transition ──────────────────────────────────
     let alreadyOnPlatform = false
 
+    await reportStage(REGISTER_IDENTITY_STAGES.broadcastingStateTransition)
+
     try {
       await this.sdk.stateTransitions.broadcast(stateTransition)
     } catch (e) {
@@ -242,6 +269,8 @@ export class RegisterIdentityHandler implements APIHandler {
     // return once it exists rather than blocking indefinitely if the confirmation
     // stream is slow. A genuine state-transition failure still rolls back.
     if (!alreadyOnPlatform) {
+      await reportStage(REGISTER_IDENTITY_STAGES.confirming)
+
       try {
         await Promise.race([
           this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition),
