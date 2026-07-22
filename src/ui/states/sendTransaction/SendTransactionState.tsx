@@ -36,7 +36,7 @@ import {
 import { AssetBalanceLabel } from '../../components/data'
 
 // Resolved action, derived from asset + sender type + recipient kind.
-type TransferMode = 'creditTransfer' | 'tokenTransfer' | 'fund' | 'send' | 'blocked' | 'incomplete'
+type TransferMode = 'creditTransfer' | 'tokenTransfer' | 'fund' | 'send' | 'topup' | 'incomplete'
 type SenderType = 'identity' | 'platform'
 
 interface PlatformAddressEntry {
@@ -133,7 +133,7 @@ function SendTransactionState (): React.JSX.Element {
     if (senderType === 'identity') {
       return recipientType === 'platformAddress' ? 'fund' : 'creditTransfer'
     }
-    return recipientType === 'platformAddress' ? 'send' : 'blocked'
+    return recipientType === 'platformAddress' ? 'send' : 'topup'
   }, [formState.selectedRecipient, isCredits, senderType, recipientType])
 
   // Whether the fee/summary should reflect a platform transfer. Driven by the
@@ -373,11 +373,6 @@ function SendTransactionState (): React.JSX.Element {
       return
     }
 
-    if (transferMode === 'blocked') {
-      formState.setError('Sending from a platform address to an identity is not supported yet')
-      return
-    }
-
     if (isSameParty) {
       formState.setError('Recipient must be different from the sender')
       return
@@ -385,7 +380,7 @@ function SendTransactionState (): React.JSX.Element {
 
     // Platform-address transfers sign and broadcast directly (with a password),
     // so they go through a dedicated confirmation screen instead of /approve.
-    if (transferMode === 'fund' || transferMode === 'send') {
+    if (transferMode === 'fund' || transferMode === 'send' || transferMode === 'topup') {
       const amountCredits = BigInt(Math.floor(Number(formState.formData.amount)))
 
       if (amountCredits < MIN_OUTPUT_CREDITS) {
@@ -393,7 +388,8 @@ function SendTransactionState (): React.JSX.Element {
         return
       }
 
-      if (transferMode === 'send' && selectedPlatformAddress === null) {
+      const spendsFromAddress = transferMode === 'send' || transferMode === 'topup'
+      if (spendsFromAddress && selectedPlatformAddress === null) {
         formState.setError('Please select a source platform address')
         return
       }
@@ -402,7 +398,7 @@ function SendTransactionState (): React.JSX.Element {
         state: {
           direction: transferMode,
           toAddress: formState.selectedRecipient.identifier,
-          fromAddress: transferMode === 'send' ? selectedPlatformAddress : undefined,
+          fromAddress: spendsFromAddress ? selectedPlatformAddress : undefined,
           amountCredits: amountCredits.toString(),
           fromIdentity: transferMode === 'fund' ? sender : undefined
         }
@@ -546,9 +542,8 @@ function SendTransactionState (): React.JSX.Element {
   const nextDisabled = isLoading ||
     formState.selectedRecipient === null ||
     formState.formData.amount === '' ||
-    transferMode === 'blocked' ||
     isSameParty ||
-    (transferMode === 'send' && selectedPlatformAddress === null)
+    ((transferMode === 'send' || transferMode === 'topup') && selectedPlatformAddress === null)
 
   if (!tokensReady) {
     return (
@@ -745,9 +740,6 @@ function SendTransactionState (): React.JSX.Element {
 
       {/* Error Message */}
       <Banner variant='error' message={formState.error ?? null} />
-      {transferMode === 'blocked' && (
-        <Banner variant='error' message='Sending from a platform address to an identity is not supported yet' />
-      )}
       {isSameParty && (
         <Banner variant='error' message='Recipient must be different from the sender' />
       )}

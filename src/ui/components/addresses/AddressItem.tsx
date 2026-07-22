@@ -31,7 +31,7 @@ export const AddressItem: React.FC<AddressItemProps> = ({ item, explorerUrl }) =
     <div className='rounded-[15px] p-3 flex flex-col gap-2 bg-[rgba(12,28,51,0.03)]'>
       {/* Top: full-width address */}
       <div className='flex items-center gap-2 min-w-0'>
-        <Identifier highlight={'both'} linesAdjustment={false}>
+        <Identifier highlight='both' linesAdjustment={false}>
           {item.address}
         </Identifier>
 

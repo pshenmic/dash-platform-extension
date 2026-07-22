@@ -10,8 +10,14 @@ import { useExtensionAPI } from '../../hooks'
 import type { OutletContext } from '../../types'
 import { TRANSFER_FEE_CREDITS } from '../../../constants'
 
+// 'send'  — platform address → platform address
+// 'fund'  — identity → platform address
+// 'topup' — platform address → identity (recipient is an identity)
+const TRANSFER_DIRECTIONS = ['fund', 'send', 'topup'] as const
+type TransferDirection = typeof TRANSFER_DIRECTIONS[number]
+
 interface PlatformTransferConfirmLocationState {
-  direction: 'fund' | 'send'
+  direction: TransferDirection
   toAddress: string
   fromAddress?: string
   amountCredits: string
@@ -32,7 +38,7 @@ function PlatformTransferConfirmState (): React.JSX.Element {
   const [txHash, setTxHash] = useState<string | null>(null)
 
   // No valid transfer payload — nothing to confirm.
-  if (state == null || (state.direction !== 'fund' && state.direction !== 'send')) {
+  if (state == null || !TRANSFER_DIRECTIONS.includes(state.direction)) {
     return (
       <div className='screen-content'>
         <div className='flex flex-col gap-6'>
@@ -47,7 +53,11 @@ function PlatformTransferConfirmState (): React.JSX.Element {
 
   const { direction, toAddress, fromAddress, amountCredits } = state
   const amountBig = BigInt(amountCredits)
-  const senderValue = direction === 'send' ? (fromAddress ?? '') : (state.fromIdentity ?? '')
+  // 'send'/'topup' spend from a platform address; 'fund' spends from an identity.
+  const senderIsAddress = direction === 'send' || direction === 'topup'
+  // 'send'/'fund' pay a platform address; 'topup' pays an identity.
+  const recipientIsAddress = direction === 'send' || direction === 'fund'
+  const senderValue = senderIsAddress ? (fromAddress ?? '') : (state.fromIdentity ?? '')
 
   const handleConfirm = async (): Promise<void> => {
     if (password === '') {
@@ -62,12 +72,15 @@ function PlatformTransferConfirmState (): React.JSX.Element {
       if (direction === 'send') {
         const response = await extensionAPI.sendPlatformTransfer(toAddress, amountCredits, password, fromAddress)
         setTxHash(response.stHash)
+      } else if (direction === 'topup') {
+        const response = await extensionAPI.topUpIdentityFromAddress(toAddress, amountCredits, password, fromAddress)
+        setTxHash(response.stHash)
       } else {
         if (state.fromIdentity != null) {
           await extensionAPI.switchIdentity(state.fromIdentity)
           setCurrentIdentity(state.fromIdentity)
         }
-        const response = await extensionAPI.fundPlatformAddress(toAddress, amountCredits, password)
+        const response = await extensionAPI.identityCreditTransferToAddresses(toAddress, amountCredits, password)
         setTxHash(response.stHash)
       }
     } catch (err) {
@@ -96,7 +109,13 @@ function PlatformTransferConfirmState (): React.JSX.Element {
         <TransactionInfoSection
           transactionHash={txHash}
           network={network}
-          transactionType={direction === 'send' ? 'Address Funds Transfer' : 'Credit Transfer to Address'}
+          transactionType={
+            direction === 'send'
+              ? 'Address Funds Transfer'
+              : direction === 'topup'
+                ? 'Identity Top-Up from Address'
+                : 'Credit Transfer to Address'
+          }
         />
 
         <Accordion title='Details' showSeparator={false}>
@@ -115,13 +134,13 @@ function PlatformTransferConfirmState (): React.JSX.Element {
               </div>
             </TransactionDetailsCard>
 
-            <TransactionDetailsCard title={direction === 'send' ? 'Sender Address' : 'Sender Identity'}>
+            <TransactionDetailsCard title={senderIsAddress ? 'Sender Address' : 'Sender Identity'}>
               <Identifier className='!text-[1.25rem]' copyButton middleEllipsis edgeChars={5} linesAdjustment={false}>
                 {senderValue}
               </Identifier>
             </TransactionDetailsCard>
 
-            <TransactionDetailsCard title='Recipient Address'>
+            <TransactionDetailsCard title={recipientIsAddress ? 'Recipient Address' : 'Recipient Identity'}>
               <Identifier className='!text-[1.25rem]' copyButton middleEllipsis edgeChars={5} linesAdjustment={false}>
                 {toAddress}
               </Identifier>

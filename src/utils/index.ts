@@ -1,5 +1,5 @@
 import { base58 } from '@scure/base'
-import { RecoveredNoteWASM, CoreScriptWASM, OrchardAddressWASM, SpendableNoteWASM } from 'pshenmic-dpp'
+import { RecoveredNoteWASM, CoreScriptWASM, OrchardAddressWASM, SpendableNoteWASM, PlatformAddressWASM } from 'pshenmic-dpp'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
