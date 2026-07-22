@@ -1,4 +1,4 @@
-export interface FundPlatformAddressResponse {
+export interface IdentityCreditTransferToAddressesResponse {
   stHash: string
   amountCredits: string
   toAddress: string

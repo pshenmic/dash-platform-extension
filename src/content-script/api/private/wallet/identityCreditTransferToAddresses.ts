@@ -4,19 +4,14 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { PlatformAddressWASM } from 'pshenmic-dpp'
+import { PlatformAddressWASM, OutputAddressWASM } from 'pshenmic-dpp'
 import { Purpose } from 'dash-platform-sdk/types'
 import { WalletType } from '../../../../types/WalletType'
-import { deriveIdentityPrivateKey, deriveKeystorePrivateKey, buildIdentityCreditTransferToAddress } from '../../../../utils'
-import { FundPlatformAddressPayload } from '../../../../types/messages/payloads/FundPlatformAddressPayload'
-import { FundPlatformAddressResponse } from '../../../../types/messages/response/FundPlatformAddressResponse'
+import { deriveIdentityPrivateKey, deriveKeystorePrivateKey } from '../../../../utils'
+import { IdentityCreditTransferToAddressesPayload } from '../../../../types/messages/payloads/IdentityCreditTransferToAddressesPayload'
+import { IdentityCreditTransferToAddressesResponse } from '../../../../types/messages/response/IdentityCreditTransferToAddressesResponse'
 
-// Funds a transparent platform address from the current identity's credit balance
-// via an IdentityCreditTransferToAddresses state transition. Credit transfers must
-// be signed with the identity's TRANSFER key, which is selected automatically.
-// This is how credits get onto a platform address (the other path being an L1
-// asset-lock deposit).
-export class FundPlatformAddressHandler implements APIHandler {
+export class IdentityCreditTransferToAddressesHandler implements APIHandler {
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
   keypairRepository: KeypairRepository
@@ -29,8 +24,8 @@ export class FundPlatformAddressHandler implements APIHandler {
     this.sdk = sdk
   }
 
-  async handle (event: EventData): Promise<FundPlatformAddressResponse> {
-    const payload: FundPlatformAddressPayload = event.payload
+  async handle (event: EventData): Promise<IdentityCreditTransferToAddressesResponse> {
+    const payload: IdentityCreditTransferToAddressesPayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
@@ -71,7 +66,12 @@ export class FundPlatformAddressHandler implements APIHandler {
     }
 
     const nonce = await this.sdk.identities.getIdentityNonce(identity.identifier)
-    const stateTransition = buildIdentityCreditTransferToAddress(identity.identifier, payload.toAddress, amountCredits, nonce + 1n)
+    const recipients = [new OutputAddressWASM(payload.toAddress, amountCredits)]
+    const stateTransition = this.sdk.platformAddresses.createStateTransition('identityCreditTransferToAddresses', {
+      identityId: identity.identifier,
+      recipients,
+      nonce: nonce + 1n
+    })
 
     stateTransition.sign(privateKey, transferKey)
 
@@ -86,7 +86,7 @@ export class FundPlatformAddressHandler implements APIHandler {
     }
   }
 
-  validatePayload (payload: FundPlatformAddressPayload): string | null {
+  validatePayload (payload: IdentityCreditTransferToAddressesPayload): string | null {
     if (typeof payload.toAddress !== 'string' || payload.toAddress.length === 0) {
       return 'Recipient address must be provided'
     }

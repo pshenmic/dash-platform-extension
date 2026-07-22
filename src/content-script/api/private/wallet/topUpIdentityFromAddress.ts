@@ -2,22 +2,23 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { PlatformAddressWASM } from 'pshenmic-dpp'
 import {
   buildPlatformSourceCandidates,
   derivePlatformAddressPrivateKey,
   selectPlatformSource,
-  buildSignedPlatformTransfer
+  buildSignedIdentityTopUpFromAddress,
+  validateIdentifier
 } from '../../../../utils'
 import { TRANSFER_FEE_CREDITS } from '../../../../constants'
-import { SendPlatformTransferPayload } from '../../../../types/messages/payloads/SendPlatformTransferPayload'
-import { SendPlatformTransferResponse } from '../../../../types/messages/response/SendPlatformTransferResponse'
+import { TopUpIdentityFromAddressPayload } from '../../../../types/messages/payloads/TopUpIdentityFromAddressPayload'
+import { TopUpIdentityFromAddressResponse } from '../../../../types/messages/response/TopUpIdentityFromAddressResponse'
 
-// Sends a Platform (L2) credit transfer between transparent platform addresses.
-// Picks a source (explicit, or the largest covering amount + fee), derives its
-// private key from the DIP-17 path (needs the password), signs an
-// addressFundsTransfer state transition and broadcasts it.
-export class SendPlatformTransferHandler implements APIHandler {
+// Tops up an identity's credit balance from a transparent platform address via an
+// IdentityTopUpFromAddresses state transition. Picks a source address (explicit,
+// or the largest covering amount + fee), derives its key (needs the password) and
+// signs with it — the target identity does not sign, so any identity can be
+// topped up (unlike the L1 asset-lock top-up which only funds your own identity).
+export class TopUpIdentityFromAddressHandler implements APIHandler {
   walletRepository: WalletRepository
   sdk: DashPlatformSDK
 
@@ -26,21 +27,15 @@ export class SendPlatformTransferHandler implements APIHandler {
     this.sdk = sdk
   }
 
-  async handle (event: EventData): Promise<SendPlatformTransferResponse> {
-    const payload: SendPlatformTransferPayload = event.payload
+  async handle (event: EventData): Promise<TopUpIdentityFromAddressResponse> {
+    const payload: TopUpIdentityFromAddressPayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
       throw new Error('No wallet is chosen')
     }
     if (wallet.type !== 'seedphrase') {
-      throw new Error('Platform transfer is only supported for a seedphrase wallet')
-    }
-
-    try {
-      PlatformAddressWASM.fromBech32m(payload.toAddress)
-    } catch {
-      throw new Error('Invalid recipient platform address')
+      throw new Error('Platform top-up is only supported for a seedphrase wallet')
     }
 
     const account = 0
@@ -60,28 +55,24 @@ export class SendPlatformTransferHandler implements APIHandler {
     const fromAddress = payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
     const source = selectPlatformSource(candidates, amountCredits, fromAddress)
 
-    if (payload.toAddress === source.platformAddress) {
-      throw new Error('Recipient must be different from the source address')
-    }
-
     const privateKey = await derivePlatformAddressPrivateKey(wallet, payload.password, account, source.index, this.sdk)
-    const signedSt = buildSignedPlatformTransfer(this.sdk, source.platformAddress, source.nonce, payload.toAddress, amountCredits, privateKey)
+    const stateTransition = buildSignedIdentityTopUpFromAddress(this.sdk, payload.identityId, source.platformAddress, source.nonce, amountCredits, privateKey)
 
-    await this.sdk.stateTransitions.broadcast(signedSt)
-    await this.sdk.stateTransitions.waitForStateTransitionResult(signedSt)
+    await this.sdk.stateTransitions.broadcast(stateTransition)
+    await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
     return {
-      stHash: signedSt.hash(false),
+      stHash: stateTransition.hash(false),
       amountCredits: amountCredits.toString(),
       feeCredits: TRANSFER_FEE_CREDITS.toString(),
       fromAddress: source.platformAddress,
-      toAddress: payload.toAddress
+      identityId: payload.identityId
     }
   }
 
-  validatePayload (payload: SendPlatformTransferPayload): string | null {
-    if (typeof payload.toAddress !== 'string' || payload.toAddress.length === 0) {
-      return 'Recipient address must be provided'
+  validatePayload (payload: TopUpIdentityFromAddressPayload): string | null {
+    if (!validateIdentifier(payload.identityId)) {
+      return 'identityId must be a valid identifier'
     }
     if (typeof payload.amountCredits !== 'string' || !/^\d+$/.test(payload.amountCredits) || BigInt(payload.amountCredits) <= 0n) {
       return 'Amount must be a positive integer string of credits'
