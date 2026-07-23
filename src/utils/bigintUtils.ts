@@ -98,6 +98,16 @@ export function creditsToDashBigInt (credits: string | bigint): string {
 }
 
 /**
+ * Fiat (USD) equivalent for a credits amount, formatted as "~ $1.234".
+ * Returns null when the rate or amount is missing.
+ */
+export function creditsToUsdEquivalent (credits: bigint | null | undefined, rate: number | null): string | null {
+  if (rate == null || credits == null) return null
+  const dashAmount = Number(creditsToDashBigInt(credits))
+  return `~ $${(dashAmount * rate).toFixed(3)}`
+}
+
+/**
  * Convert dash to credits (specific utility for this project)
  */
 export function dashToCreditsBigInt (dash: string | number): bigint {

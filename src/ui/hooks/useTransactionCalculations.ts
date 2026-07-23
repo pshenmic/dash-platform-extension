@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { TokenData } from '../../types'
-import { creditsToDashBigInt } from '../../utils'
+import { creditsToUsdEquivalent } from '../../utils'
 import { ESTIMATED_FEES } from '../constants/transaction'
 import { formatTokenAmount } from '../../utils/transactionFormatters'
 
@@ -108,16 +108,8 @@ export function useTransactionCalculations ({
 
   const getBalanceUSDValue = useMemo(() => {
     return (): string | null => {
-      if (rate == null) return null
-
-      if (selectedAsset === 'credits' && balance !== null) {
-        const dashValue = creditsToDashBigInt(balance)
-        const dashAmount = Number(dashValue)
-        const usdValue = dashAmount * rate
-        return `~ $${usdValue.toFixed(3)}`
-      }
-
-      return null
+      if (selectedAsset !== 'credits') return null
+      return creditsToUsdEquivalent(balance, rate)
     }
   }, [rate, selectedAsset, balance])
 

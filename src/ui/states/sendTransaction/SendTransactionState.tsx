@@ -1,20 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
-import {
-  Button,
-  Text,
-  Identifier,
-  Select,
-  ValueCard,
-  Avatar
-} from 'dash-ui-kit/react'
-import { base64 } from '@scure/base'
-import { AssetSelectionMenu, AssetSelectorBadge, AssetOptionCard, SelectableCard, buildAssetOptions, formatAssetBalance } from '../../components/controls'
+import { useOutletContext, useLocation } from 'react-router-dom'
+import { Button, Text } from 'dash-ui-kit/react'
+import { AssetSelectionMenu, AssetSelectorBadge, buildAssetOptions } from '../../components/controls'
 import { TransferSummaryCard, Banner } from '../../components/cards'
 import { AmountInputSection } from '../../components/forms'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import {
-  useExtensionAPI,
   useAsyncState,
   useSdk,
   usePlatformExplorerClient,
@@ -22,41 +13,32 @@ import {
   useTransactionCalculations
 } from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
-import { IdentitySelect } from '../../components/identity'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { WalletType } from '../../../types'
-import { toBaseUnit, creditsToDashBigInt } from '../../../utils'
-import { MIN_CREDIT_TRANSFER, ESTIMATED_FEES } from '../../constants/transaction'
-import { TRANSFER_FEE_CREDITS, MIN_OUTPUT_CREDITS } from '../../../constants'
+import { ESTIMATED_FEES } from '../../constants/transaction'
+import { TRANSFER_FEE_CREDITS } from '../../../constants'
 import {
   getFormattedBalance,
   getAssetLabel,
   getAssetDecimals
 } from '../../../utils/transactionFormatters'
 import { AssetBalanceLabel } from '../../components/data'
-
-// Resolved action, derived from asset + sender type + recipient kind.
-type TransferMode = 'creditTransfer' | 'tokenTransfer' | 'fund' | 'send' | 'topup' | 'incomplete'
-type SenderType = 'identity' | 'platform'
-
-interface PlatformAddressEntry {
-  address: string
-  derivationPath: string
-  index: number
-}
+import type { SenderType, TransferMode } from './types'
+import { usePlatformAddresses } from './hooks/usePlatformAddresses'
+import { useIdentityBalances } from './hooks/useIdentityBalances'
+import { useSendSubmit } from './hooks/useSendSubmit'
+import { SenderSelector } from './components/SenderSelector'
+import { AssetSelectionStep } from './components/AssetSelectionStep'
 
 function SendTransactionState (): React.JSX.Element {
-  const navigate = useNavigate()
   const location = useLocation()
-  const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
   const { currentNetwork, currentIdentity, setHeaderComponent, allWallets, currentWallet, availableIdentities } = useOutletContext<OutletContext>()
   const locationState = location.state as { selectedToken?: string } | null
-  const [isLoading, setIsLoading] = useState(false)
   const [balance, setBalance] = useState<bigint | null>(null)
   const [rate, setRate] = useState<number | null>(null)
   const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
@@ -64,12 +46,8 @@ function SendTransactionState (): React.JSX.Element {
 
   const [assetChosen, setAssetChosen] = useState(locationState?.selectedToken != null)
   const [senderType, setSenderType] = useState<SenderType>('identity')
-  const [platformAddresses, setPlatformAddresses] = useState<PlatformAddressEntry[]>([])
-  const [platformBalances, setPlatformBalances] = useState<Map<string, bigint>>(new Map())
   const [selectedPlatformAddress, setSelectedPlatformAddress] = useState<string | null>(null)
   const [selectedIdentity, setSelectedIdentity] = useState<string | null>(null)
-  const [identityBalances, setIdentityBalances] = useState<Map<string, bigint>>(new Map())
-  const [identityBalancesLoading, setIdentityBalancesLoading] = useState(false)
   const senderIdentity = selectedIdentity ?? currentIdentity
 
   // Wallet type of the current wallet (platform transfers are seedphrase-only).
@@ -78,9 +56,15 @@ function SendTransactionState (): React.JSX.Element {
     return allWallets.find(wallet => wallet.walletId === currentWallet)?.type ?? null
   }, [allWallets, currentWallet])
 
+  // Platform addresses + balances (seedphrase wallets only).
+  const { platformAddresses, platformBalances } = usePlatformAddresses(walletType, currentWallet)
+
   // The new sender-selection flow is only offered for seedphrase wallets that
   // have already initialized (created) platform addresses.
   const platformFlowEnabled = walletType === WalletType.seedphrase && platformAddresses.length > 0
+
+  // Balances for the sender identity selector — only needed for the platform flow.
+  const { identityBalances, identityBalancesLoading } = useIdentityBalances(platformFlowEnabled, availableIdentities)
 
   // Balance of the currently selected sender: the chosen platform address when
   // sending from an address, otherwise the identity credit balance. Drives the
@@ -144,13 +128,17 @@ function SendTransactionState (): React.JSX.Element {
   // switching the sender to a platform address updates the fee immediately.
   const isPlatformMode = isCredits && (senderType === 'platform' || recipientType === 'platformAddress')
 
-  // Fiat equivalent for an arbitrary credits balance (per-option in the sender
-  // selector), mirroring calculations.getBalanceUSDValue for the selected one.
-  const creditsToUsd = (credits: bigint | null | undefined): string | null => {
-    if (rate == null || credits == null) return null
-    const dashAmount = Number(creditsToDashBigInt(credits))
-    return `~ $${(dashAmount * rate).toFixed(3)}`
-  }
+  const token = getSelectedToken()
+
+  const { isLoading, handleSend } = useSendSubmit({
+    currentIdentity,
+    selectedIdentity,
+    formState,
+    transferMode,
+    isSameParty,
+    selectedPlatformAddress,
+    token
+  })
 
   // Set selected token from navigation state
   useEffect(() => {
@@ -201,68 +189,6 @@ function SendTransactionState (): React.JSX.Element {
     }).catch(e => console.log('loadTokens error:', e))
   }, [currentIdentity, currentNetwork, platformExplorerClient, loadTokens])
 
-  // Load the wallet's platform addresses (seedphrase only) and their balances.
-  useEffect(() => {
-    if (walletType !== WalletType.seedphrase) {
-      setPlatformAddresses([])
-      setPlatformBalances(new Map())
-      return
-    }
-
-    let cancelled = false
-
-    const loadPlatformAddresses = async (): Promise<void> => {
-      const addresses = await extensionAPI.listPlatformAddresses()
-      if (cancelled) return
-      setPlatformAddresses(addresses)
-
-      if (addresses.length === 0) return
-
-      try {
-        const infos = await extensionAPI.getPlatformAddressesInfos(addresses.map(entry => entry.address))
-        if (cancelled) return
-        setPlatformBalances(new Map(infos.map(info => [info.address, BigInt(info.balance)])))
-      } catch (err) {
-        console.log('Failed to load platform address balances:', err)
-      }
-    }
-
-    void loadPlatformAddresses().catch(e => console.log('loadPlatformAddresses error:', e))
-
-    return () => {
-      cancelled = true
-    }
-  }, [walletType, currentWallet, extensionAPI])
-
-  // Load balances for all wallet identities, shown in the sender identity selector.
-  // Only needed for the platform flow, where that selector appears.
-  useEffect(() => {
-    if (!platformFlowEnabled || availableIdentities.length === 0) return
-
-    let cancelled = false
-    const ids = availableIdentities.map(identity => identity.identifier)
-
-    const loadIdentityBalances = async (): Promise<void> => {
-      setIdentityBalancesLoading(true)
-      const entries = await Promise.all(ids.map(async (id): Promise<[string, bigint] | null> => {
-        try {
-          return [id, await sdk.identities.getIdentityBalance(id)]
-        } catch {
-          return null
-        }
-      }))
-      if (cancelled) return
-      setIdentityBalances(new Map(entries.filter((entry): entry is [string, bigint] => entry != null)))
-      setIdentityBalancesLoading(false)
-    }
-
-    void loadIdentityBalances().catch(e => console.log('loadIdentityBalances error:', e))
-
-    return () => {
-      cancelled = true
-    }
-  }, [platformFlowEnabled, availableIdentities, sdk])
-
   // Get wallet name for display
   const getWalletName = (): string => {
     if (currentWallet == null || allWallets == null || allWallets.length === 0) return 'Wallet'
@@ -298,13 +224,9 @@ function SendTransactionState (): React.JSX.Element {
     }
   }, [isCredits, senderType])
 
-  // Amount clamping when sender changes
-  //
-  // When the identity balance changes (async, after selectedIdentity changes)
-  // or when the sender type / platform address changes (sync), we clamp the
-  // current amount to the new available balance.  If the amount fits → keep it.
-  // If it exceeds the new max → pull it down to the new max.
-
+  // Clamp the amount to the sender's available balance whenever the sender
+  // changes: async (identity balance loads) in Case 1, sync (sender type /
+  // platform address) in Case 2.
   const prevBalanceRef = useRef<bigint | null>(null)
 
   // Case 1: identity balance loaded/changed → clamp if needed
@@ -370,143 +292,6 @@ function SendTransactionState (): React.JSX.Element {
     }
   }, [senderType, selectedPlatformAddress])
 
-  const handleSend = async (): Promise<void> => {
-    if ((currentIdentity === null || currentIdentity === undefined)) {
-      formState.setError('No identity selected')
-      return
-    }
-
-    const sender = selectedIdentity ?? currentIdentity
-
-    // Validate that recipient is selected from search results
-    if (formState.selectedRecipient === null) {
-      formState.setError('Please select a recipient from search results')
-      return
-    }
-
-    if (isSameParty) {
-      formState.setError('Recipient must be different from the sender')
-      return
-    }
-
-    // Platform-address transfers sign and broadcast directly (with a password),
-    // so they go through a dedicated confirmation screen instead of /approve.
-    if (transferMode === 'fund' || transferMode === 'send' || transferMode === 'topup') {
-      const amountCredits = BigInt(Math.floor(Number(formState.formData.amount)))
-
-      if (amountCredits < MIN_OUTPUT_CREDITS) {
-        formState.setError(`Minimum platform transfer amount is ${MIN_OUTPUT_CREDITS.toLocaleString()} credits`)
-        return
-      }
-
-      const spendsFromAddress = transferMode === 'send' || transferMode === 'topup'
-      if (spendsFromAddress && selectedPlatformAddress === null) {
-        formState.setError('Please select a source platform address')
-        return
-      }
-
-      void navigate('/platform-transfer-confirm', {
-        state: {
-          direction: transferMode,
-          toAddress: formState.selectedRecipient.identifier,
-          fromAddress: spendsFromAddress ? selectedPlatformAddress : undefined,
-          amountCredits: amountCredits.toString(),
-          fromIdentity: transferMode === 'fund' ? sender : undefined
-        }
-      })
-      return
-    }
-
-    setIsLoading(true)
-    formState.setError(null)
-
-    try {
-      if (transferMode === 'creditTransfer') {
-        const amountInCredits = BigInt(Math.floor(Number(formState.formData.amount)))
-
-        // Validate minimum credit transfer amount
-        if (amountInCredits < MIN_CREDIT_TRANSFER) {
-          formState.setError(`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`)
-          return
-        }
-
-        const identityNonce = await sdk.identities.getIdentityNonce(sender)
-
-        // Create unsigned identity credit transfer state transition
-        const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
-          identityId: sender,
-          amount: amountInCredits,
-          recipientId: formState.selectedRecipient.identifier,
-          identityNonce: identityNonce + 1n
-        })
-
-        // Convert to base64
-        const stateTransitionBytes = stateTransition.bytes()
-        const stateTransitionBase64 = base64.encode(stateTransitionBytes)
-
-        // Create the state transition
-        const response = await extensionAPI.createStateTransition(stateTransitionBase64)
-
-        void navigate(`/approve/${response.stateTransition.unsignedHash}`, {
-          state: {
-            disableIdentitySelect: true,
-            showBackButton: true,
-            returnToHome: true
-          }
-        })
-      } else {
-        // Token transfer
-        const token = getSelectedToken()
-        if (token == null) {
-          formState.setError('Selected token not found')
-          return
-        }
-
-        // Convert amount to base units
-        const amountInBaseUnits = toBaseUnit(formState.formData.amount, token.decimals, true) as bigint
-
-        // Check if the converted amount is 0
-        if (amountInBaseUnits === 0n) {
-          formState.setError('Amount is too small')
-          return
-        }
-
-        // Create token base transition first
-        const baseTransition = await sdk.tokens.createBaseTransition(
-          token.identifier,
-          currentIdentity
-        )
-
-        const stateTransition = sdk.tokens.createStateTransition(
-          baseTransition,
-          currentIdentity,
-          'transfer',
-          {
-            identityId: formState.selectedRecipient.identifier,
-            amount: amountInBaseUnits
-          }
-        )
-
-        const stateTransitionBytes = stateTransition.bytes()
-        const stateTransitionBase64 = base64.encode(stateTransitionBytes)
-        const response = await extensionAPI.createStateTransition(stateTransitionBase64)
-        void navigate(`/approve/${response.stateTransition.unsignedHash}`, {
-          state: {
-            disableIdentitySelect: true,
-            showBackButton: true,
-            returnToHome: true
-          }
-        })
-      }
-    } catch (err) {
-      console.error('Transaction creation failed:', err)
-      formState.setError(err instanceof Error ? err.message : 'Transaction creation failed')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const token = getSelectedToken()
   const formattedBalance = getFormattedBalance(formState.formData.selectedAsset, balance, token)
   const assetLabel = getAssetLabel(formState.formData.selectedAsset, token)
   const assetDecimals = getAssetDecimals(formState.formData.selectedAsset, token)
@@ -568,35 +353,14 @@ function SendTransactionState (): React.JSX.Element {
   // no asset has been chosen yet (single-asset wallets skip straight to Credits).
   if (hasTokens && !assetChosen) {
     return (
-      <div className='screen-content'>
-        <div className='flex flex-col gap-6'>
-          <div className='flex flex-col gap-2'>
-            <Text className='text-dash-primary-dark-blue !text-[2.5rem] !font-medium !leading-[1.25] tracking-[-0.03em]'>
-              Transfer
-            </Text>
-            <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>
-              What do you want to send?
-            </Text>
-          </div>
-
-          <div className='flex flex-col gap-2.5'>
-            {assetOptions.map((option) => (
-              <AssetOptionCard
-                key={option.value}
-                variant='plain'
-                icon={option.icon}
-                label={option.label}
-                symbol={option.symbol}
-                balance={formatAssetBalance(option, balance != null ? balance.toString() : undefined)}
-                onClick={() => {
-                  formState.handleAssetSelect(option.value)
-                  setAssetChosen(true)
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+      <AssetSelectionStep
+        assetOptions={assetOptions}
+        balance={balance}
+        onSelect={(assetValue) => {
+          formState.handleAssetSelect(assetValue)
+          setAssetChosen(true)
+        }}
+      />
     )
   }
 
@@ -652,100 +416,21 @@ function SendTransactionState (): React.JSX.Element {
 
       {/* Sender selection (platform flow only, credits only) */}
       {platformFlowEnabled && isCredits && (
-        <div className='flex flex-col gap-2.5'>
-          <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>
-            Sender
-          </Text>
-
-          {/* Sender type selection */}
-          <div className='flex gap-2'>
-            {([
-              { id: 'identity', label: 'Identity' },
-              { id: 'platform', label: 'Platform address' }
-            ] as Array<{ id: SenderType, label: string }>).map(option => (
-              <SelectableCard
-                key={option.id}
-                selected={senderType === option.id}
-                onClick={() => setSenderType(option.id)}
-                boldLabel={option.label}
-                className='flex-1'
-              />
-            ))}
-          </div>
-
-          {/* Sender detail */}
-          {senderType === 'identity'
-            ? (
-              <IdentitySelect
-                identities={availableIdentities
-                  .map(identity => identity.identifier)
-                  .filter(identifier => identifier !== recipientIdentity)}
-                value={senderIdentity}
-                onChange={setSelectedIdentity}
-                renderOption={(identifier) => {
-                  const bal = identityBalances.get(identifier)
-                  const usd = creditsToUsd(bal)
-                  return (
-                    <div data-fit-trigger-width className='flex items-center gap-2 min-w-0' style={{ width: 'calc(var(--radix-select-trigger-width) - 3.125rem)' }}>
-                      <div className='w-8 h-8 shrink-0'>
-                        <Avatar username={identifier} />
-                      </div>
-                      <div className='flex flex-col gap-1 min-w-0'>
-                        <Identifier linesAdjustment={false} highlight='both' disableCopy className='!text-[0.813rem]'>
-                          {identifier}
-                        </Identifier>
-                        <div className='flex items-center gap-2'>
-                          <div className='flex items-baseline gap-1'>
-                            <Text weight='bold' className='!text-[1rem]'>
-                              {identityBalancesLoading
-                                ? 'Loading…'
-                                : bal != null ? bal.toLocaleString() : '—'}
-                            </Text>
-                            {bal != null && <Text className='!text-[0.75rem]' dim>Credits</Text>}
-                          </div>
-                          {usd != null && (
-                            <ValueCard border={false} size='xs' className='px-[0.313rem] py-[0.156rem]' colorScheme='lightGray'>
-                              <Text size='xs' weight='light' className='text-dash-primary-dark-blue !text-[0.625rem] !leading-[1.2]'>
-                                {usd}
-                              </Text>
-                            </ValueCard>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                }}
-              />
-              )
-            : (
-              <Select
-                size='xl'
-                value={selectedPlatformAddress ?? undefined}
-                onChange={setSelectedPlatformAddress}
-                placeholder='Select a platform address'
-                options={platformAddresses.map(entry => {
-                  const bal = platformBalances.get(entry.address)
-                  return {
-                    value: entry.address,
-                    label: entry.address,
-                    content: (
-                      <div data-fit-trigger-width className='flex flex-col gap-1 min-w-0' style={{ width: 'calc(var(--radix-select-trigger-width) - 3.125rem)' }}>
-                        <Identifier linesAdjustment={false} highlight='both' disableCopy className='!text-[0.813rem]'>
-                          {entry.address}
-                        </Identifier>
-                        <div className='flex items-baseline gap-1'>
-                          {bal != null
-                            ? <Text weight='bold' className='!text-[0.8125rem]'>{bal.toLocaleString()}</Text>
-                            : <Text className='!text-[0.75rem]' dim>Loading balance…</Text>}
-                          {bal != null && <Text className='!text-[0.625rem]' dim>Credits</Text>}
-                        </div>
-                      </div>
-                    )
-                  }
-                })}
-              />
-              )}
-        </div>
+        <SenderSelector
+          senderType={senderType}
+          onSenderTypeChange={setSenderType}
+          availableIdentities={availableIdentities}
+          senderIdentity={senderIdentity}
+          onIdentityChange={setSelectedIdentity}
+          recipientIdentity={recipientIdentity}
+          identityBalances={identityBalances}
+          identityBalancesLoading={identityBalancesLoading}
+          platformAddresses={platformAddresses}
+          platformBalances={platformBalances}
+          selectedPlatformAddress={selectedPlatformAddress}
+          onPlatformAddressChange={setSelectedPlatformAddress}
+          rate={rate}
+        />
       )}
 
       {/* Amount Input Section */}

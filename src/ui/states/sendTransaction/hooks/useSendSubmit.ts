@@ -1,0 +1,170 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { base64 } from '@scure/base'
+import { useSdk, useExtensionAPI, useSendTransactionForm } from '../../../hooks'
+import { toBaseUnit } from '../../../../utils'
+import { MIN_CREDIT_TRANSFER } from '../../../constants/transaction'
+import { MIN_OUTPUT_CREDITS } from '../../../../constants'
+import type { TokenData } from '../../../../types'
+import type { TransferMode } from '../types'
+
+type FormState = ReturnType<typeof useSendTransactionForm>
+
+interface UseSendSubmitParams {
+  currentIdentity: string | null
+  selectedIdentity: string | null
+  formState: FormState
+  transferMode: TransferMode
+  isSameParty: boolean
+  selectedPlatformAddress: string | null
+  token: TokenData | undefined
+}
+
+interface UseSendSubmitResult {
+  isLoading: boolean
+  handleSend: () => Promise<void>
+}
+
+// Navigation options shared by both approval flows.
+const APPROVE_NAV_STATE = {
+  disableIdentitySelect: true,
+  showBackButton: true,
+  returnToHome: true
+}
+
+/**
+ * Builds and dispatches the transfer for the current form: platform-address
+ * transfers go to the dedicated confirmation screen, while credit/token
+ * transfers create a state transition and route to the approval screen.
+ */
+export function useSendSubmit ({
+  currentIdentity,
+  selectedIdentity,
+  formState,
+  transferMode,
+  isSameParty,
+  selectedPlatformAddress,
+  token
+}: UseSendSubmitParams): UseSendSubmitResult {
+  const navigate = useNavigate()
+  const sdk = useSdk()
+  const extensionAPI = useExtensionAPI()
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSend = async (): Promise<void> => {
+    if (currentIdentity === null || currentIdentity === undefined) {
+      formState.setError('No identity selected')
+      return
+    }
+
+    const sender = selectedIdentity ?? currentIdentity
+
+    // Validate that recipient is selected from search results
+    if (formState.selectedRecipient === null) {
+      formState.setError('Please select a recipient from search results')
+      return
+    }
+
+    if (isSameParty) {
+      formState.setError('Recipient must be different from the sender')
+      return
+    }
+
+    // Platform-address transfers sign and broadcast directly (with a password),
+    // so they go through a dedicated confirmation screen instead of /approve.
+    if (transferMode === 'fund' || transferMode === 'send' || transferMode === 'topup') {
+      const amountCredits = BigInt(Math.floor(Number(formState.formData.amount)))
+
+      if (amountCredits < MIN_OUTPUT_CREDITS) {
+        formState.setError(`Minimum platform transfer amount is ${MIN_OUTPUT_CREDITS.toLocaleString()} credits`)
+        return
+      }
+
+      const spendsFromAddress = transferMode === 'send' || transferMode === 'topup'
+      if (spendsFromAddress && selectedPlatformAddress === null) {
+        formState.setError('Please select a source platform address')
+        return
+      }
+
+      void navigate('/platform-transfer-confirm', {
+        state: {
+          direction: transferMode,
+          toAddress: formState.selectedRecipient.identifier,
+          fromAddress: spendsFromAddress ? selectedPlatformAddress : undefined,
+          amountCredits: amountCredits.toString(),
+          fromIdentity: transferMode === 'fund' ? sender : undefined
+        }
+      })
+      return
+    }
+
+    setIsLoading(true)
+    formState.setError(null)
+
+    try {
+      if (transferMode === 'creditTransfer') {
+        const amountInCredits = BigInt(Math.floor(Number(formState.formData.amount)))
+
+        // Validate minimum credit transfer amount
+        if (amountInCredits < MIN_CREDIT_TRANSFER) {
+          formState.setError(`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`)
+          return
+        }
+
+        const identityNonce = await sdk.identities.getIdentityNonce(sender)
+
+        // Create unsigned identity credit transfer state transition
+        const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
+          identityId: sender,
+          amount: amountInCredits,
+          recipientId: formState.selectedRecipient.identifier,
+          identityNonce: identityNonce + 1n
+        })
+
+        const stateTransitionBase64 = base64.encode(stateTransition.bytes())
+        const response = await extensionAPI.createStateTransition(stateTransitionBase64)
+
+        void navigate(`/approve/${response.stateTransition.unsignedHash}`, { state: APPROVE_NAV_STATE })
+      } else {
+        // Token transfer
+        if (token == null) {
+          formState.setError('Selected token not found')
+          return
+        }
+
+        const amountInBaseUnits = toBaseUnit(formState.formData.amount, token.decimals, true) as bigint
+
+        // Check if the converted amount is 0
+        if (amountInBaseUnits === 0n) {
+          formState.setError('Amount is too small')
+          return
+        }
+
+        // Create token base transition first
+        const baseTransition = await sdk.tokens.createBaseTransition(token.identifier, currentIdentity)
+
+        const stateTransition = sdk.tokens.createStateTransition(
+          baseTransition,
+          currentIdentity,
+          'transfer',
+          {
+            identityId: formState.selectedRecipient.identifier,
+            amount: amountInBaseUnits
+          }
+        )
+
+        const stateTransitionBase64 = base64.encode(stateTransition.bytes())
+        const response = await extensionAPI.createStateTransition(stateTransitionBase64)
+
+        void navigate(`/approve/${response.stateTransition.unsignedHash}`, { state: APPROVE_NAV_STATE })
+      }
+    } catch (err) {
+      console.error('Transaction creation failed:', err)
+      formState.setError(err instanceof Error ? err.message : 'Transaction creation failed')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return { isLoading, handleSend }
+}
