@@ -3,7 +3,10 @@ import { useNavigate, useOutletContext, useLocation } from 'react-router-dom'
 import {
   Button,
   Text,
-  Identifier
+  Identifier,
+  Select,
+  ValueCard,
+  Avatar
 } from 'dash-ui-kit/react'
 import { base64 } from '@scure/base'
 import { AssetSelectionMenu, AssetSelectorBadge, AssetOptionCard, SelectableCard, buildAssetOptions, formatAssetBalance } from '../../components/controls'
@@ -19,13 +22,13 @@ import {
   useTransactionCalculations
 } from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
-import { IdentitySelect, IdentityOption } from '../../components/identity'
+import { IdentitySelect } from '../../components/identity'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { WalletType } from '../../../types'
-import { toBaseUnit } from '../../../utils'
+import { toBaseUnit, creditsToDashBigInt } from '../../../utils'
 import { MIN_CREDIT_TRANSFER, ESTIMATED_FEES } from '../../constants/transaction'
 import { TRANSFER_FEE_CREDITS, MIN_OUTPUT_CREDITS } from '../../../constants'
 import {
@@ -140,6 +143,14 @@ function SendTransactionState (): React.JSX.Element {
   // sender type (and recipient) rather than the fully-resolved transferMode, so
   // switching the sender to a platform address updates the fee immediately.
   const isPlatformMode = isCredits && (senderType === 'platform' || recipientType === 'platformAddress')
+
+  // Fiat equivalent for an arbitrary credits balance (per-option in the sender
+  // selector), mirroring calculations.getBalanceUSDValue for the selected one.
+  const creditsToUsd = (credits: bigint | null | undefined): string | null => {
+    if (rate == null || credits == null) return null
+    const dashAmount = Number(creditsToDashBigInt(credits))
+    return `~ $${(dashAmount * rate).toFixed(3)}`
+  }
 
   // Set selected token from navigation state
   useEffect(() => {
@@ -665,47 +676,60 @@ function SendTransactionState (): React.JSX.Element {
           {/* Sender detail */}
           {senderType === 'identity'
             ? (
-              <div className='flex flex-col gap-2'>
-                <IdentitySelect
-                  identities={availableIdentities
-                    .map(identity => identity.identifier)
-                    .filter(identifier => identifier !== recipientIdentity)}
-                  value={senderIdentity}
-                  onChange={setSelectedIdentity}
-                  renderOption={(identifier) => (
-                    <div className='flex items-center justify-between gap-3 w-full'>
-                      <IdentityOption identity={identifier} variant='simple' />
-                      <Text size='xs' weight='medium' className='text-dash-primary-dark-blue shrink-0'>
-                        {identityBalancesLoading
-                          ? 'Loading…'
-                          : identityBalances.has(identifier)
-                            ? `${(identityBalances.get(identifier) as bigint).toLocaleString()} Credits`
-                            : '—'}
-                      </Text>
+              <IdentitySelect
+                identities={availableIdentities
+                  .map(identity => identity.identifier)
+                  .filter(identifier => identifier !== recipientIdentity)}
+                value={senderIdentity}
+                onChange={setSelectedIdentity}
+                renderOption={(identifier) => {
+                  const bal = identityBalances.get(identifier)
+                  const usd = creditsToUsd(bal)
+                  return (
+                    <div data-fit-trigger-width className='flex items-center gap-2 min-w-0' style={{ width: 'calc(var(--radix-select-trigger-width) - 3.125rem)' }}>
+                      <div className='w-8 h-8 shrink-0'>
+                        <Avatar username={identifier} />
+                      </div>
+                      <div className='flex flex-col gap-1 min-w-0'>
+                        <Identifier linesAdjustment={false} highlight='both' disableCopy className='!text-[0.813rem]'>
+                          {identifier}
+                        </Identifier>
+                        <div className='flex items-center gap-2'>
+                          <div className='flex items-baseline gap-1'>
+                            <Text weight='bold' className='!text-[1rem]'>
+                              {identityBalancesLoading
+                                ? 'Loading…'
+                                : bal != null ? bal.toLocaleString() : '—'}
+                            </Text>
+                            {bal != null && <Text className='!text-[0.75rem]' dim>Credits</Text>}
+                          </div>
+                          {usd != null && (
+                            <ValueCard border={false} size='xs' className='px-[0.313rem] py-[0.156rem]' colorScheme='lightGray'>
+                              <Text size='xs' weight='light' className='text-dash-primary-dark-blue !text-[0.625rem] !leading-[1.2]'>
+                                {usd}
+                              </Text>
+                            </ValueCard>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  )}
-                />
-                {balance !== null && (
-                  <AssetBalanceLabel
-                    balance={balance.toLocaleString()}
-                    unit='Credits'
-                    usdValue={calculations.getBalanceUSDValue()}
-                    className='px-1'
-                  />
-                )}
-              </div>
+                  )
+                }}
+              />
               )
             : (
-              <div className='flex flex-col gap-2'>
-                {platformAddresses.map(entry => {
+              <Select
+                size='xl'
+                value={selectedPlatformAddress ?? undefined}
+                onChange={setSelectedPlatformAddress}
+                placeholder='Select a platform address'
+                options={platformAddresses.map(entry => {
                   const bal = platformBalances.get(entry.address)
-                  return (
-                    <SelectableCard
-                      key={entry.address}
-                      selected={selectedPlatformAddress === entry.address}
-                      onClick={() => setSelectedPlatformAddress(entry.address)}
-                    >
-                      <div className='flex flex-col gap-1 min-w-0'>
+                  return {
+                    value: entry.address,
+                    label: entry.address,
+                    content: (
+                      <div data-fit-trigger-width className='flex flex-col gap-1 min-w-0' style={{ width: 'calc(var(--radix-select-trigger-width) - 3.125rem)' }}>
                         <Identifier linesAdjustment={false} highlight='both' disableCopy className='!text-[0.813rem]'>
                           {entry.address}
                         </Identifier>
@@ -716,10 +740,10 @@ function SendTransactionState (): React.JSX.Element {
                           {bal != null && <Text className='!text-[0.625rem]' dim>Credits</Text>}
                         </div>
                       </div>
-                    </SelectableCard>
-                  )
+                    )
+                  }
                 })}
-              </div>
+              />
               )}
         </div>
       )}
