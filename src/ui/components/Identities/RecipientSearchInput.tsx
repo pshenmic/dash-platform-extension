@@ -6,10 +6,11 @@ import {
   ErrorIcon,
   Identifier,
   SearchIcon,
+  ShieldSmallIcon,
   ValueCard
 } from 'dash-ui-kit/react'
 import { useSdk, useDebounce } from '../../hooks'
-import { searchRecipients, type RecipientSearchResult, normalizeName, detectRecipientType } from '../../../utils'
+import { searchRecipients, type RecipientSearchResult, type RecipientTargetType, normalizeName, detectRecipientType } from '../../../utils'
 import type { NetworkType } from '../../../types'
 
 interface RecipientSearchInputProps {
@@ -22,7 +23,29 @@ interface RecipientSearchInputProps {
   // When true, a valid transparent platform address typed into the field becomes
   // a selectable result. Requires `network` to classify the input.
   allowPlatformAddress?: boolean
+  // When true, a valid Core (L1) base58check address becomes a selectable result
+  // (withdrawals leave Platform for L1).
+  allowCoreAddress?: boolean
+  // When true, an Orchard shielded address becomes a selectable result.
+  allowShieldAddress?: boolean
+  // Recipients offered outright (not searched) — e.g. the wallet's own shielded
+  // pool. Shown in the empty field so they're discoverable without typing.
+  pinnedRecipients?: RecipientSearchResult[]
   network?: NetworkType
+}
+
+// Label shown above a typed-address result, per recipient type.
+const ADDRESS_RESULT_LABELS: Record<string, string> = {
+  platformAddress: 'Platform address:',
+  coreAddress: 'Core (L1) address:',
+  shieldAddress: 'Shielded address:'
+}
+
+// Shown when the typed value is a valid address of a type this sender can't pay.
+const UNSUPPORTED_ADDRESS_MESSAGES: Record<string, string> = {
+  platformAddress: 'Platform addresses are not supported for this transfer',
+  coreAddress: 'Core (L1) withdrawals are only available from a platform or shielded balance',
+  shieldAddress: 'Shielded addresses can only be paid from your shielded balance'
 }
 
 export function RecipientSearchInput ({
@@ -33,6 +56,9 @@ export function RecipientSearchInput ({
   placeholder = 'Enter recipient identity identifier or name',
   error,
   allowPlatformAddress = false,
+  allowCoreAddress = false,
+  allowShieldAddress = false,
+  pinnedRecipients = [],
   network = 'testnet'
 }: RecipientSearchInputProps): React.JSX.Element {
   const sdk = useSdk()
@@ -101,22 +127,37 @@ export function RecipientSearchInput ({
   }
 
   const displayValue = selectedResult != null
-    ? (selectedResult.name != null
-        ? normalizeName(selectedResult.name, sdk) + '.dash'
-        : selectedResult.identifier)
+    ? (selectedResult.label ??
+        (selectedResult.name != null
+          ? normalizeName(selectedResult.name, sdk) + '.dash'
+          : selectedResult.identifier))
     : value
 
-  // Classify the typed value to surface a platform address (or a shield-address
+  // Classify the typed value to surface an address result (or an unsupported-type
   // hint) alongside identity search results.
-  const recipientType = allowPlatformAddress ? detectRecipientType(value, network) : 'identity'
-  const isExcludedAddress = recipientType === 'platformAddress' && value.trim() === excludeIdentifier
-  const addressResult: RecipientSearchResult | null = (recipientType === 'platformAddress' && !isExcludedAddress)
-    ? { identifier: value.trim(), type: 'platformAddress' }
+  const detectAddresses = allowPlatformAddress || allowCoreAddress || allowShieldAddress
+  const recipientType = detectAddresses ? detectRecipientType(value, network) : 'identity'
+  const isAddressType = recipientType === 'platformAddress' || recipientType === 'coreAddress' || recipientType === 'shieldAddress'
+  const isAllowedAddress =
+    (recipientType === 'platformAddress' && allowPlatformAddress) ||
+    (recipientType === 'coreAddress' && allowCoreAddress) ||
+    (recipientType === 'shieldAddress' && allowShieldAddress)
+  const isExcludedAddress = isAddressType && value.trim() === excludeIdentifier
+  const addressResult: RecipientSearchResult | null = (isAllowedAddress && !isExcludedAddress)
+    ? { identifier: value.trim(), type: recipientType as RecipientTargetType }
     : null
-  const isShieldAddress = recipientType === 'shieldAddress'
+  // A recognized address type this screen can't send to — explain instead of
+  // silently showing "No results found".
+  const unsupportedAddress = isAddressType && !isAllowedAddress && !isExcludedAddress
 
-  const showSearchResults = (isSearchActive || addressResult != null || isShieldAddress || isExcludedAddress) &&
-    (selectedResult == null) && value.trim() !== ''
+  // Pinned recipients are an entry point, not a search result: shown in the empty
+  // field as a suggestion, they step aside the moment the user types.
+  const showPinned = pinnedRecipients.length > 0 && selectedResult == null && value.trim() === ''
+
+  const showSearchResults = selectedResult == null && (
+    showPinned ||
+    (value.trim() !== '' && (isSearchActive || addressResult != null || unsupportedAddress || isExcludedAddress))
+  )
 
   // Filter out the sender from results — can't send to oneself.
   const filteredResults = searchResults.filter(
@@ -187,91 +228,117 @@ export function RecipientSearchInput ({
         {/* Search Results */}
         {showSearchResults && (
           <div className='max-h-[18.75rem] overflow-y-auto'>
-            {isShieldAddress
+            {showPinned
               ? (
-                <div className='py-4 text-center px-6'>
-                  <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
-                    Shield addresses are not supported yet
-                  </Text>
+                <div className='flex flex-col gap-2 px-6'>
+                  {pinnedRecipients.map(pinned => (
+                    <div
+                      key={pinned.identifier}
+                      onClick={() => handleSelectResult(pinned)}
+                      className='flex items-center gap-3 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
+                    >
+                      <div className='w-[1.875rem] h-[1.875rem] shrink-0 flex items-center justify-center bg-dash-primary-dark-blue/5 rounded-full'>
+                        <ShieldSmallIcon size={14} className='text-dash-primary-dark-blue opacity-50' />
+                      </div>
+                      <div className='flex flex-col gap-0.5 min-w-0'>
+                        <Text size='sm' className='text-dash-primary-dark-blue'>
+                          {pinned.label ?? pinned.identifier}
+                        </Text>
+                        <Text className='text-xs' dim>
+                          Move credits into your own private balance
+                        </Text>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 )
-              : isExcludedAddress
+              : unsupportedAddress
                 ? (
                   <div className='py-4 text-center px-6'>
                     <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
-                      Recipient must be different from the sender
+                      {(recipientType === 'shieldAddress' && pinnedRecipients.length > 0)
+                        ? 'Credits can only be shielded into your own pool — clear the field and pick “My shielded balance”'
+                        : UNSUPPORTED_ADDRESS_MESSAGES[recipientType] ?? 'This address type is not supported here'}
                     </Text>
                   </div>
                   )
-                : addressResult != null
+                : isExcludedAddress
                   ? (
-                    <div className='flex flex-col gap-2 px-6'>
-                      <div
-                        onClick={() => handleSelectResult(addressResult)}
-                        className='flex flex-col gap-2.5 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
-                      >
-                        <div className='flex flex-col gap-1'>
-                          <Text className='text-xs' dim>Platform address:</Text>
-                          <Identifier highlight='both' className='text-xs' disableCopy>
-                            {addressResult.identifier}
-                          </Identifier>
-                        </div>
-                      </div>
+                    <div className='py-4 text-center px-6'>
+                      <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
+                        Recipient must be different from the sender
+                      </Text>
                     </div>
                     )
-                  : isSearching
+                  : addressResult != null
                     ? (
-                      <div className='flex items-center justify-center py-4'>
-                        <CircleProcessIcon className='w-5 h-5 text-blue-500 animate-spin' />
-                        <Text size='sm' className='ml-2 text-dash-primary-dark-blue opacity-50'>
-                          Searching...
-                        </Text>
+                      <div className='flex flex-col gap-2 px-6'>
+                        <div
+                          onClick={() => handleSelectResult(addressResult)}
+                          className='flex flex-col gap-2.5 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
+                        >
+                          <div className='flex flex-col gap-1'>
+                            <Text className='text-xs' dim>{ADDRESS_RESULT_LABELS[recipientType] ?? 'Address:'}</Text>
+                            <Identifier highlight='both' className='text-xs' disableCopy>
+                              {addressResult.identifier}
+                            </Identifier>
+                          </div>
+                        </div>
                       </div>
                       )
-                    : filteredResults.length > 0
+                    : isSearching
                       ? (
-                        <div className='flex flex-col gap-2 px-6'>
-                          {filteredResults.map((result, index) => (
-                            <div
-                              key={`${result.identifier}-${index}`}
-                              onClick={() => handleSelectResult(result)}
-                              className='flex flex-col gap-3 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
-                            >
-                              <div className='flex flex-col gap-2.5'>
-                                <Identifier
-                                  avatar
-                                  highlight='both'
-                                  className='text-xs'
-                                >
-                                  {result.identifier}
-                                </Identifier>
-                                {(result.name != null) && (
-                                  <div className='flex items-baseline gap-2'>
-                                    <Text className='text-xs' dim>
-                                      Name:
-                                    </Text>
-                                    <ValueCard border={false} colorScheme='lightGray' size='xs' className='text-xs text-dash-primary-dark-blue'>
-                                      <Text size='sm' monospace className='!text-dash-primary-dark-blue'>
-                                        {normalizeName(result.name, sdk)}
-                                      </Text>
-                                      <Text size='sm' monospace className='!text-dash-brand'>
-                                        .dash
-                                      </Text>
-                                    </ValueCard>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        )
-                      : (
-                        <div className='py-4 text-center'>
-                          <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
-                            No results found
+                        <div className='flex items-center justify-center py-4'>
+                          <CircleProcessIcon className='w-5 h-5 text-blue-500 animate-spin' />
+                          <Text size='sm' className='ml-2 text-dash-primary-dark-blue opacity-50'>
+                            Searching...
                           </Text>
                         </div>
-                        )}
+                        )
+                      : filteredResults.length > 0
+                        ? (
+                          <div className='flex flex-col gap-2 px-6'>
+                            {filteredResults.map((result, index) => (
+                              <div
+                                key={`${result.identifier}-${index}`}
+                                onClick={() => handleSelectResult(result)}
+                                className='flex flex-col gap-3 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
+                              >
+                                <div className='flex flex-col gap-2.5'>
+                                  <Identifier
+                                    avatar
+                                    highlight='both'
+                                    className='text-xs'
+                                  >
+                                    {result.identifier}
+                                  </Identifier>
+                                  {(result.name != null) && (
+                                    <div className='flex items-baseline gap-2'>
+                                      <Text className='text-xs' dim>
+                                        Name:
+                                      </Text>
+                                      <ValueCard border={false} colorScheme='lightGray' size='xs' className='text-xs text-dash-primary-dark-blue'>
+                                        <Text size='sm' monospace className='!text-dash-primary-dark-blue'>
+                                          {normalizeName(result.name, sdk)}
+                                        </Text>
+                                        <Text size='sm' monospace className='!text-dash-brand'>
+                                          .dash
+                                        </Text>
+                                      </ValueCard>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          )
+                        : (
+                          <div className='py-4 text-center'>
+                            <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
+                              No results found
+                            </Text>
+                          </div>
+                          )}
           </div>
         )}
       </div>

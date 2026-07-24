@@ -76,12 +76,25 @@ export const validateIdentifier = (str: string): boolean => {
   }
 }
 
-export type RecipientType = 'identity' | 'platformAddress' | 'shieldAddress' | 'unknown'
+export type RecipientType = 'identity' | 'platformAddress' | 'shieldAddress' | 'coreAddress' | 'unknown'
+
+// Validates a Core (L1) base58check address for the network by reusing
+// `coreAddressToScript`, which decodes + checksums + version-checks and throws
+// on anything invalid. We only want the yes/no, so drop the script.
+export const validateCoreAddress = (value: string, network: NetworkType): boolean => {
+  try {
+    coreAddressToScript(value.trim(), network)
+    return true
+  } catch {
+    return false
+  }
+}
 
 // Classifies a recipient string by format. Identity identifiers are 32-byte base58.
 // Transparent platform addresses parse via PlatformAddressWASM (HRP carries the
 // network). Shielded Orchard addresses share the HRP but add a 'z' marker
-// (tdash1z / dash1z) and do not parse as a transparent address.
+// (tdash1z / dash1z) and do not parse as a transparent address. Core (L1)
+// addresses are base58check with a network-specific version byte.
 export const detectRecipientType = (value: string, network: NetworkType): RecipientType => {
   const trimmed = value.trim()
 
@@ -99,6 +112,9 @@ export const detectRecipientType = (value: string, network: NetworkType): Recipi
     const shieldPrefix = network === 'mainnet' ? 'dash1z' : 'tdash1z'
     if (trimmed.toLowerCase().startsWith(shieldPrefix)) {
       return 'shieldAddress'
+    }
+    if (validateCoreAddress(trimmed, network)) {
+      return 'coreAddress'
     }
 
     return 'unknown'

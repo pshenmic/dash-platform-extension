@@ -85,11 +85,13 @@ export interface SenderSelectorProps {
   selectedPlatformAddress: string | null
   onPlatformAddressChange: (address: string) => void
   rate: number | null
+  shieldedPanel: React.ReactNode
 }
 
 const SENDER_TYPES: Array<{ id: SenderType, label: string }> = [
   { id: 'identity', label: 'Identity' },
-  { id: 'platform', label: 'Platform address' }
+  { id: 'platform', label: 'Platform address' },
+  { id: 'shielded', label: 'Shielded balance' }
 ]
 
 /**
@@ -109,7 +111,8 @@ export function SenderSelector ({
   platformBalances,
   selectedPlatformAddress,
   onPlatformAddressChange,
-  rate
+  rate,
+  shieldedPanel
 }: SenderSelectorProps): React.JSX.Element {
   return (
     <div className='flex flex-col gap-2.5'>
@@ -117,56 +120,58 @@ export function SenderSelector ({
         Sender
       </Text>
 
-      {/* Sender type selection */}
-      <div className='flex gap-2'>
+      {/* Sender type selection — wraps so the third option keeps a readable width */}
+      <div className='flex flex-wrap gap-2'>
         {SENDER_TYPES.map(option => (
           <SelectableCard
             key={option.id}
             selected={senderType === option.id}
             onClick={() => onSenderTypeChange(option.id)}
             boldLabel={option.label}
-            className='flex-1'
+            className='flex-1 min-w-[8rem]'
           />
         ))}
       </div>
 
       {/* Sender detail */}
-      {senderType === 'identity'
-        ? (
-          <IdentitySelect
-            identities={availableIdentities
-              .map(identity => identity.identifier)
-              .filter(identifier => identifier !== recipientIdentity)}
-            value={senderIdentity}
-            onChange={onIdentityChange}
-            renderOption={(identifier) => (
-              <IdentityOptionContent
-                identifier={identifier}
-                balance={identityBalances.get(identifier)}
-                loading={identityBalancesLoading}
-                rate={rate}
-              />
-            )}
-          />
-          )
-        : (
-          <Select
-            size='xl'
-            value={selectedPlatformAddress ?? undefined}
-            onChange={onPlatformAddressChange}
-            placeholder='Select a platform address'
-            options={platformAddresses.map(entry => ({
-              value: entry.address,
-              label: entry.address,
-              content: (
-                <PlatformAddressOptionContent
-                  address={entry.address}
-                  balance={platformBalances.get(entry.address)}
+      {senderType === 'shielded'
+        ? shieldedPanel
+        : senderType === 'identity'
+          ? (
+            <IdentitySelect
+              identities={availableIdentities
+                .map(identity => identity.identifier)
+                .filter(identifier => identifier !== recipientIdentity)}
+              value={senderIdentity}
+              onChange={onIdentityChange}
+              renderOption={(identifier) => (
+                <IdentityOptionContent
+                  identifier={identifier}
+                  balance={identityBalances.get(identifier)}
+                  loading={identityBalancesLoading}
+                  rate={rate}
                 />
-              )
-            }))}
-          />
-          )}
+              )}
+            />
+            )
+          : (
+            <Select
+              size='xl'
+              value={selectedPlatformAddress ?? undefined}
+              onChange={onPlatformAddressChange}
+              placeholder='Select a platform address'
+              options={platformAddresses.map(entry => ({
+                value: entry.address,
+                label: entry.address,
+                content: (
+                  <PlatformAddressOptionContent
+                    address={entry.address}
+                    balance={platformBalances.get(entry.address)}
+                  />
+                )
+              }))}
+            />
+            )}
     </div>
   )
 }

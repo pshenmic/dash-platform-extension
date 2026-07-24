@@ -19,19 +19,41 @@ import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { WalletType } from '../../../types'
 import { ESTIMATED_FEES } from '../../constants/transaction'
-import { TRANSFER_FEE_CREDITS } from '../../../constants'
+import { TRANSFER_FEE_CREDITS, SHIELDED_SPEND_FEE_CREDITS, SHIELDED_POOL_RECIPIENT } from '../../../constants'
 import {
   getFormattedBalance,
   getAssetLabel,
   getAssetDecimals
 } from '../../../utils/transactionFormatters'
 import { AssetBalanceLabel } from '../../components/data'
+import type { RecipientSearchResult } from '../../../utils'
 import type { SenderType, TransferMode } from './types'
 import { usePlatformAddresses } from './hooks/usePlatformAddresses'
 import { useIdentityBalances } from './hooks/useIdentityBalances'
+import { useShieldedBalance } from './hooks/useShieldedBalance'
 import { useSendSubmit } from './hooks/useSendSubmit'
 import { SenderSelector } from './components/SenderSelector'
+import { ShieldedSenderPanel } from './components/ShieldedSenderPanel'
 import { AssetSelectionStep } from './components/AssetSelectionStep'
+
+// Shown when the sender can't pay the chosen recipient type (no API for it).
+const UNSUPPORTED_TRANSFER_MESSAGE = 'This sender cannot pay this recipient. Change the sender or the recipient.'
+
+// `shieldToPool` can only reach the wallet's own pool — a fixed choice, not typed.
+const SHIELDED_POOL_OPTIONS: RecipientSearchResult[] = [{
+  identifier: SHIELDED_POOL_RECIPIENT,
+  type: 'shieldedPool',
+  label: 'My shielded balance'
+}]
+
+// Caution shown on the send screen per resolved mode.
+const MODE_WARNINGS: Partial<Record<TransferMode, string>> = {
+  withdraw: 'Withdrawals leave Platform for the Dash (L1) network. They are irreversible, pay an additional L1 network fee and can take several minutes to settle.',
+  shieldedWithdraw: 'Withdrawing to Core reveals the amount and the destination on L1 — the privacy of this exit is lost. It is irreversible and pays an additional L1 network fee.',
+  shield: 'Private transfers build a zero-knowledge proof, which can take several minutes in the popup.',
+  unshield: 'Private transfers build a zero-knowledge proof, which can take several minutes in the popup. Unshielding also reveals the amount to the receiving address.',
+  shieldedTransfer: 'Private transfers build a zero-knowledge proof, which can take several minutes in the popup.'
+}
 
 function SendTransactionState (): React.JSX.Element {
   const location = useLocation()
@@ -66,13 +88,23 @@ function SendTransactionState (): React.JSX.Element {
   // Balances for the sender identity selector — only needed for the platform flow.
   const { identityBalances, identityBalancesLoading } = useIdentityBalances(platformFlowEnabled, availableIdentities)
 
-  // Balance of the currently selected sender: the chosen platform address when
-  // sending from an address, otherwise the identity credit balance. Drives the
-  // amount Max/slider so it never exceeds the funds actually available to spend.
+  // Shielded balance — password-gated, so it stays null until the user unlocks it.
+  const shielded = useShieldedBalance()
+
+  // Balance of the selected sender (platform address / unlocked pool / identity),
+  // driving the amount Max/slider so it can't exceed the spendable funds.
   const selectedPlatformBalance = selectedPlatformAddress != null
     ? platformBalances.get(selectedPlatformAddress) ?? null
     : null
-  const senderBalance = senderType === 'platform' ? selectedPlatformBalance : balance
+  const senderBalance = senderType === 'platform'
+    ? selectedPlatformBalance
+    : senderType === 'shielded'
+      ? shielded.balance
+      : balance
+
+  // Shielded spends estimate their own fee; transparent platform transfers use
+  // the flat transfer fee.
+  const platformFeeCredits = senderType === 'shielded' ? SHIELDED_SPEND_FEE_CREDITS : TRANSFER_FEE_CREDITS
 
   // Form state hook
   const formState = useSendTransactionForm({
@@ -80,7 +112,8 @@ function SendTransactionState (): React.JSX.Element {
     rate,
     currentNetwork,
     tokens: tokensState.data ?? [],
-    platformTransfer: senderType === 'platform'
+    platformTransfer: senderType !== 'identity',
+    platformFeeCredits
   })
 
   // Get selected token helper
@@ -104,29 +137,50 @@ function SendTransactionState (): React.JSX.Element {
   const isCredits = formState.formData.selectedAsset === 'credits'
   const recipientType = formState.selectedRecipient?.type ?? null
 
-  // The current sender identifier (identity or platform address), used to keep it
-  // out of the recipient field and to block sending to oneself.
-  const senderIdentifier = senderType === 'platform' ? selectedPlatformAddress : senderIdentity
+  // Sender identifier, used to keep it out of the recipient field and block
+  // self-sends. The shielded pool has no identifier to collide with.
+  const senderIdentifier = senderType === 'platform'
+    ? selectedPlatformAddress
+    : senderType === 'shielded'
+      ? null
+      : senderIdentity
   // The recipient identity (if any), kept out of the sender identity selector.
   const recipientIdentity = formState.selectedRecipient?.type === 'identity' ? formState.selectedRecipient.identifier : null
   const isSameParty = formState.selectedRecipient != null &&
     senderIdentifier != null &&
     formState.selectedRecipient.identifier === senderIdentifier
 
-  // Resolve which transfer action the current form maps to.
+  // Recipients paid through a platform transfer (flat fee) rather than an
+  // identity credit transfer.
+  const isAddressRecipient = recipientType != null && recipientType !== 'identity'
+
+  // Resolve the transfer action from the sender × recipient matrix (see the table
+  // in PLATFORM_ADDRESSES_UI_TODO.md). Anything not matched has no API → 'unsupported'.
   const transferMode: TransferMode = useMemo(() => {
     if (formState.selectedRecipient == null) return 'incomplete'
     if (!isCredits) return 'tokenTransfer'
     if (senderType === 'identity') {
-      return recipientType === 'platformAddress' ? 'fund' : 'creditTransfer'
+      if (recipientType === 'platformAddress') return 'fund'
+      if (recipientType === 'identity') return 'creditTransfer'
+      return 'unsupported'
     }
-    return recipientType === 'platformAddress' ? 'send' : 'topup'
+    if (senderType === 'platform') {
+      if (recipientType === 'platformAddress') return 'send'
+      if (recipientType === 'identity') return 'topup'
+      if (recipientType === 'coreAddress') return 'withdraw'
+      if (recipientType === 'shieldedPool') return 'shield'
+      return 'unsupported'
+    }
+    if (recipientType === 'shieldAddress') return 'shieldedTransfer'
+    if (recipientType === 'platformAddress') return 'unshield'
+    if (recipientType === 'coreAddress') return 'shieldedWithdraw'
+    return 'unsupported'
   }, [formState.selectedRecipient, isCredits, senderType, recipientType])
 
   // Whether the fee/summary should reflect a platform transfer. Driven by the
   // sender type (and recipient) rather than the fully-resolved transferMode, so
   // switching the sender to a platform address updates the fee immediately.
-  const isPlatformMode = isCredits && (senderType === 'platform' || recipientType === 'platformAddress')
+  const isPlatformMode = isCredits && (senderType !== 'identity' || isAddressRecipient)
 
   const token = getSelectedToken()
 
@@ -239,8 +293,8 @@ function SendTransactionState (): React.JSX.Element {
     if (formState.formData.amount === '' || formState.formData.amount === '.') return
 
     const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
-    const isPlatformRecipient = formState.selectedRecipient?.type === 'platformAddress'
-    const fee = isPlatformRecipient ? TRANSFER_FEE_CREDITS : ESTIMATED_FEES[network].credits
+    const isPlatformRecipient = isAddressRecipient
+    const fee = isPlatformRecipient ? platformFeeCredits : ESTIMATED_FEES[network].credits
     const available = balance - fee
 
     if (available <= 0n || Number(formState.formData.amount) > Number(available)) {
@@ -257,18 +311,18 @@ function SendTransactionState (): React.JSX.Element {
     }
     if (formState.formData.amount === '' || formState.formData.amount === '.') return
 
-    if (senderType === 'platform') {
-      if (selectedPlatformAddress === null) {
-        // No platform address selected yet → clear amount, nothing to send from
+    if (senderType === 'platform' || senderType === 'shielded') {
+      // Spendable funds of the new sender; unknown (no address / pool locked) → clear.
+      const sourceBalance = senderType === 'platform'
+        ? (selectedPlatformAddress !== null ? platformBalances.get(selectedPlatformAddress) ?? null : null)
+        : shielded.balance
+
+      if (sourceBalance == null) {
         formState.handleAmountChange('')
         return
       }
-      const platformBal = platformBalances.get(selectedPlatformAddress)
-      if (platformBal == null) {
-        formState.handleAmountChange('')
-        return
-      }
-      const available = platformBal > TRANSFER_FEE_CREDITS ? platformBal - TRANSFER_FEE_CREDITS : 0n
+
+      const available = sourceBalance > platformFeeCredits ? sourceBalance - platformFeeCredits : 0n
       if (available <= 0n || Number(formState.formData.amount) > Number(available)) {
         if (available <= 0n) {
           formState.handleAmountChange('')
@@ -279,8 +333,8 @@ function SendTransactionState (): React.JSX.Element {
     } else if (balance !== null) {
       // Switched back to identity — balance already reflects current identity
       const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
-      const isPlatformRecipient = formState.selectedRecipient?.type === 'platformAddress'
-      const fee = isPlatformRecipient ? TRANSFER_FEE_CREDITS : ESTIMATED_FEES[network].credits
+      const isPlatformRecipient = isAddressRecipient
+      const fee = isPlatformRecipient ? platformFeeCredits : ESTIMATED_FEES[network].credits
       const available = balance - fee
       if (available <= 0n || Number(formState.formData.amount) > Number(available)) {
         if (available <= 0n) {
@@ -290,7 +344,7 @@ function SendTransactionState (): React.JSX.Element {
         }
       }
     }
-  }, [senderType, selectedPlatformAddress])
+  }, [senderType, selectedPlatformAddress, shielded.balance])
 
   const formattedBalance = getFormattedBalance(formState.formData.selectedAsset, balance, token)
   const assetLabel = getAssetLabel(formState.formData.selectedAsset, token)
@@ -302,8 +356,8 @@ function SendTransactionState (): React.JSX.Element {
     if (isCredits) {
       if (senderBalance === null || senderBalance === 0n) return null
       const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
-      const isPlatformTransfer = senderType === 'platform' || formState.selectedRecipient?.type === 'platformAddress'
-      const fee = isPlatformTransfer ? TRANSFER_FEE_CREDITS : ESTIMATED_FEES[network].credits
+      const isPlatformTransfer = senderType !== 'identity' || isAddressRecipient
+      const fee = isPlatformTransfer ? platformFeeCredits : ESTIMATED_FEES[network].credits
       const available = senderBalance - fee
       return available > 0n ? available.toString() : null
     }
@@ -324,22 +378,29 @@ function SendTransactionState (): React.JSX.Element {
   const assetOptions = useMemo(() => buildAssetOptions(tokensState.data ?? []), [tokensState.data])
 
   // Summary values, switching to the flat platform fee for fund/send.
-  const summaryFees = isPlatformMode ? `~${TRANSFER_FEE_CREDITS.toLocaleString()}` : calculations.getEstimatedFee()
+  const summaryFees = isPlatformMode ? `~${platformFeeCredits.toLocaleString()}` : calculations.getEstimatedFee()
   const summaryWillBeSent = isPlatformMode
     ? (formState.formData.amount !== '' ? BigInt(Math.floor(Number(formState.formData.amount))).toLocaleString() : '0')
     : calculations.getWillBeSentAmount()
   const summaryTotal = isPlatformMode
     ? (formState.formData.amount !== ''
-        ? (BigInt(Math.floor(Number(formState.formData.amount))) + TRANSFER_FEE_CREDITS).toLocaleString()
-        : TRANSFER_FEE_CREDITS.toLocaleString())
+        ? (BigInt(Math.floor(Number(formState.formData.amount))) + platformFeeCredits).toLocaleString()
+        : platformFeeCredits.toLocaleString())
     : calculations.getTotalAmount()
   const summaryUnit = isPlatformMode ? 'Credits' : calculations.getTotalAmountUnit()
+
+  // Modes that spend from a platform address need one selected.
+  const spendsFromPlatformAddress = transferMode === 'send' || transferMode === 'topup' ||
+    transferMode === 'withdraw' || transferMode === 'shield'
 
   const nextDisabled = isLoading ||
     formState.selectedRecipient === null ||
     formState.formData.amount === '' ||
     isSameParty ||
-    ((transferMode === 'send' || transferMode === 'topup') && selectedPlatformAddress === null)
+    transferMode === 'unsupported' ||
+    (spendsFromPlatformAddress && selectedPlatformAddress === null) ||
+    // Spending shielded notes needs the pool unlocked first (known balance).
+    (senderType === 'shielded' && shielded.balance === null)
 
   if (!tokensReady) {
     return (
@@ -410,6 +471,9 @@ function SendTransactionState (): React.JSX.Element {
           excludeIdentifier={senderIdentifier}
           placeholder='Enter recipient identity or address'
           allowPlatformAddress={isCredits}
+          allowCoreAddress={isCredits && senderType !== 'identity'}
+          allowShieldAddress={isCredits && senderType === 'shielded'}
+          pinnedRecipients={isCredits && senderType === 'platform' ? SHIELDED_POOL_OPTIONS : undefined}
           network={(currentNetwork ?? 'testnet') as NetworkType}
         />
       </div>
@@ -430,6 +494,16 @@ function SendTransactionState (): React.JSX.Element {
           selectedPlatformAddress={selectedPlatformAddress}
           onPlatformAddressChange={setSelectedPlatformAddress}
           rate={rate}
+          shieldedPanel={
+            <ShieldedSenderPanel
+              info={shielded.info}
+              isUnlocking={shielded.isUnlocking}
+              isWarmingProver={shielded.isWarmingProver}
+              error={shielded.error}
+              onUnlock={(password) => { void shielded.unlock(password) }}
+              onErrorClear={() => shielded.clearError()}
+            />
+          }
         />
       )}
 
@@ -452,6 +526,10 @@ function SendTransactionState (): React.JSX.Element {
       {isSameParty && (
         <Banner variant='error' message='Recipient must be different from the sender' />
       )}
+      {transferMode === 'unsupported' && (
+        <Banner variant='error' message={UNSUPPORTED_TRANSFER_MESSAGE} />
+      )}
+      <Banner variant='warning' message={MODE_WARNINGS[transferMode] ?? null} />
 
       {/* Transaction Summary Card */}
       <TransferSummaryCard

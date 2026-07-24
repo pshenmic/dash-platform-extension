@@ -3,18 +3,103 @@ import { useNavigate, useLocation, useOutletContext } from 'react-router-dom'
 import { Button, Text, Identifier, Accordion, CreditsIcon, BigNumber } from 'dash-ui-kit/react'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { TransactionInfoSection, TransactionDetailsCard } from '../../components/transactions'
-import { TransferSummaryCard } from '../../components/cards'
+import { TransferSummaryCard, Banner } from '../../components/cards'
 import { PasswordField } from '../../components/forms'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI } from '../../hooks'
 import type { OutletContext } from '../../types'
-import { TRANSFER_FEE_CREDITS } from '../../../constants'
+import { TRANSFER_FEE_CREDITS, SHIELDED_SPEND_FEE_CREDITS } from '../../../constants'
 
-// 'send'  — platform address → platform address
-// 'fund'  — identity → platform address
-// 'topup' — platform address → identity (recipient is an identity)
-const TRANSFER_DIRECTIONS = ['fund', 'send', 'topup'] as const
+// Stands in for a party that is the wallet's own shielded pool — it has no
+// address the user chose, so there is nothing meaningful to render as an identifier.
+const SHIELDED_PARTY_LABEL = 'Your shielded balance'
+
+// 'send'             — platform address → platform address
+// 'fund'             — identity → platform address
+// 'topup'            — platform address → identity (recipient is an identity)
+// 'withdraw'         — platform address → Core (L1) address
+// 'shield'           — platform address → the wallet's own shielded pool
+// 'unshield'         — shielded pool → platform address
+// 'shieldedTransfer' — shielded pool → someone else's shielded address
+// 'shieldedWithdraw' — shielded pool → Core (L1) address
+const TRANSFER_DIRECTIONS = ['fund', 'send', 'topup', 'withdraw', 'shield', 'unshield', 'shieldedTransfer', 'shieldedWithdraw'] as const
 type TransferDirection = typeof TRANSFER_DIRECTIONS[number]
+
+const PROVING_WARNING = 'Building the zero-knowledge proof runs in this window and can take several minutes. Do not close the extension until it finishes.'
+
+interface DirectionDescriptor {
+  // What the transfer spends from. 'shielded' has no identifier to display.
+  senderType: 'address' | 'identity' | 'shielded'
+  senderLabel: string
+  recipientLabel: string
+  // True when the recipient is the wallet's own pool rather than an address the
+  // user chose — `shieldToPool` derives it from the seed.
+  recipientIsSelf?: boolean
+  transactionType: string
+  // Extra caution shown on both the confirm and the success screen.
+  warning?: string
+  // Carries an Orchard (Halo2) proof: slow, and the popup must stay open.
+  isSlow?: boolean
+}
+
+const DIRECTIONS: Record<TransferDirection, DirectionDescriptor> = {
+  fund: {
+    senderType: 'identity',
+    senderLabel: 'Sender Identity',
+    recipientLabel: 'Recipient Address',
+    transactionType: 'Credit Transfer to Address'
+  },
+  send: {
+    senderType: 'address',
+    senderLabel: 'Sender Address',
+    recipientLabel: 'Recipient Address',
+    transactionType: 'Address Funds Transfer'
+  },
+  topup: {
+    senderType: 'address',
+    senderLabel: 'Sender Address',
+    recipientLabel: 'Recipient Identity',
+    transactionType: 'Identity Top-Up from Address'
+  },
+  withdraw: {
+    senderType: 'address',
+    senderLabel: 'Sender Address',
+    recipientLabel: 'Recipient Core (L1) Address',
+    transactionType: 'Withdrawal to Core',
+    warning: 'This withdrawal leaves Platform for the Dash (L1) network. It is irreversible, pays an additional L1 network fee on top of the platform fee, and can take several minutes to appear on L1.'
+  },
+  shield: {
+    senderType: 'address',
+    senderLabel: 'Sender Address',
+    recipientLabel: 'Recipient',
+    recipientIsSelf: true,
+    transactionType: 'Shield to Private Pool',
+    isSlow: true
+  },
+  unshield: {
+    senderType: 'shielded',
+    senderLabel: 'Sender',
+    recipientLabel: 'Recipient Address',
+    transactionType: 'Unshield to Address',
+    warning: 'The unshielded amount becomes visible on the receiving address.',
+    isSlow: true
+  },
+  shieldedTransfer: {
+    senderType: 'shielded',
+    senderLabel: 'Sender',
+    recipientLabel: 'Recipient Shielded Address',
+    transactionType: 'Private Transfer',
+    isSlow: true
+  },
+  shieldedWithdraw: {
+    senderType: 'shielded',
+    senderLabel: 'Sender',
+    recipientLabel: 'Recipient Core (L1) Address',
+    transactionType: 'Private Withdrawal to Core',
+    warning: 'Withdrawing to Core reveals the amount and the destination on L1 — the privacy of this exit is lost.',
+    isSlow: true
+  }
+}
 
 interface PlatformTransferConfirmLocationState {
   direction: TransferDirection
@@ -53,11 +138,13 @@ function PlatformTransferConfirmState (): React.JSX.Element {
 
   const { direction, toAddress, fromAddress, amountCredits } = state
   const amountBig = BigInt(amountCredits)
-  // 'send'/'topup' spend from a platform address; 'fund' spends from an identity.
-  const senderIsAddress = direction === 'send' || direction === 'topup'
-  // 'send'/'fund' pay a platform address; 'topup' pays an identity.
-  const recipientIsAddress = direction === 'send' || direction === 'fund'
-  const senderValue = senderIsAddress ? (fromAddress ?? '') : (state.fromIdentity ?? '')
+  const descriptor = DIRECTIONS[direction]
+  const senderValue = descriptor.senderType === 'address'
+    ? (fromAddress ?? '')
+    : descriptor.senderType === 'identity'
+      ? (state.fromIdentity ?? '')
+      : ''
+  const feeCredits = descriptor.senderType === 'shielded' ? SHIELDED_SPEND_FEE_CREDITS : TRANSFER_FEE_CREDITS
 
   const handleConfirm = async (): Promise<void> => {
     if (password === '') {
@@ -74,6 +161,21 @@ function PlatformTransferConfirmState (): React.JSX.Element {
         setTxHash(response.stHash)
       } else if (direction === 'topup') {
         const response = await extensionAPI.topUpIdentityFromAddress(toAddress, amountCredits, password, fromAddress)
+        setTxHash(response.stHash)
+      } else if (direction === 'withdraw') {
+        const response = await extensionAPI.withdrawPlatformAddressToCore(toAddress, amountCredits, password, fromAddress)
+        setTxHash(response.stHash)
+      } else if (direction === 'shield') {
+        const response = await extensionAPI.shieldToPool(amountCredits, password, fromAddress)
+        setTxHash(response.stHash)
+      } else if (direction === 'unshield') {
+        const response = await extensionAPI.unshieldToAddress(toAddress, amountCredits, password)
+        setTxHash(response.stHash)
+      } else if (direction === 'shieldedTransfer') {
+        const response = await extensionAPI.sendShieldedTransfer(toAddress, amountCredits, password)
+        setTxHash(response.stHash)
+      } else if (direction === 'shieldedWithdraw') {
+        const response = await extensionAPI.withdrawShieldedToCore(toAddress, amountCredits, password)
         setTxHash(response.stHash)
       } else {
         if (state.fromIdentity != null) {
@@ -109,13 +211,7 @@ function PlatformTransferConfirmState (): React.JSX.Element {
         <TransactionInfoSection
           transactionHash={txHash}
           network={network}
-          transactionType={
-            direction === 'send'
-              ? 'Address Funds Transfer'
-              : direction === 'topup'
-                ? 'Identity Top-Up from Address'
-                : 'Credit Transfer to Address'
-          }
+          transactionType={descriptor.transactionType}
         />
 
         <Accordion title='Details' showSeparator={false}>
@@ -134,25 +230,37 @@ function PlatformTransferConfirmState (): React.JSX.Element {
               </div>
             </TransactionDetailsCard>
 
-            <TransactionDetailsCard title={senderIsAddress ? 'Sender Address' : 'Sender Identity'}>
-              <Identifier className='!text-[1.25rem]' copyButton middleEllipsis edgeChars={5} linesAdjustment={false}>
-                {senderValue}
-              </Identifier>
+            <TransactionDetailsCard title={descriptor.senderLabel}>
+              {descriptor.senderType === 'shielded'
+                ? <Text size='sm'>{SHIELDED_PARTY_LABEL}</Text>
+                : (
+                  <Identifier className='!text-[1.25rem]' copyButton middleEllipsis edgeChars={5} linesAdjustment={false}>
+                    {senderValue}
+                  </Identifier>
+                  )}
             </TransactionDetailsCard>
 
-            <TransactionDetailsCard title={recipientIsAddress ? 'Recipient Address' : 'Recipient Identity'}>
-              <Identifier className='!text-[1.25rem]' copyButton middleEllipsis edgeChars={5} linesAdjustment={false}>
-                {toAddress}
-              </Identifier>
+            <TransactionDetailsCard title={descriptor.recipientLabel}>
+              {descriptor.recipientIsSelf === true
+                ? <Text size='sm'>{SHIELDED_PARTY_LABEL}</Text>
+                : (
+                  <Identifier className='!text-[1.25rem]' copyButton middleEllipsis edgeChars={5} linesAdjustment={false}>
+                    {toAddress}
+                  </Identifier>
+                  )}
             </TransactionDetailsCard>
 
             <TransactionDetailsCard title='Fee (estimated)'>
               <BigNumber className='!text-[0.875rem] !font-medium'>
-                {TRANSFER_FEE_CREDITS.toString()}
+                {feeCredits.toString()}
               </BigNumber>
             </TransactionDetailsCard>
           </div>
         </Accordion>
+
+        {/* Informational caution (irreversibility, loss of privacy) — below the
+            details; never the proving text (the proof is already built by now). */}
+        <Banner variant='warning' message={descriptor.warning ?? null} />
 
         <div>
           <Button className='w-full' colorScheme='lightBlue' onClick={() => { void navigate('/') }}>
@@ -172,23 +280,29 @@ function PlatformTransferConfirmState (): React.JSX.Element {
           showLogo={false}
         />
 
+        <Banner variant='warning' message={descriptor.warning ?? null} />
+
         {/* Recipient */}
         <div className='flex flex-col gap-2.5'>
-          <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>Recipient</Text>
-          <Identifier highlight='both' linesAdjustment={false}>{toAddress}</Identifier>
+          <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>{descriptor.recipientLabel}</Text>
+          {descriptor.recipientIsSelf === true
+            ? <Text size='sm'>{SHIELDED_PARTY_LABEL}</Text>
+            : <Identifier highlight='both' linesAdjustment={false}>{toAddress}</Identifier>}
         </div>
 
         {/* Sender */}
         <div className='flex flex-col gap-2.5'>
-          <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>Sender</Text>
-          <Identifier highlight='both' linesAdjustment={false}>{senderValue}</Identifier>
+          <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>{descriptor.senderLabel}</Text>
+          {descriptor.senderType === 'shielded'
+            ? <Text size='sm'>{SHIELDED_PARTY_LABEL}</Text>
+            : <Identifier highlight='both' linesAdjustment={false}>{senderValue}</Identifier>}
         </div>
 
         {/* Summary */}
         <TransferSummaryCard
-          fees={`~${TRANSFER_FEE_CREDITS.toLocaleString()}`}
+          fees={`~${feeCredits.toLocaleString()}`}
           willBeSent={amountBig.toLocaleString()}
-          total={(amountBig + TRANSFER_FEE_CREDITS).toLocaleString()}
+          total={(amountBig + feeCredits).toLocaleString()}
           unit='Credits'
           selectedAsset='credits'
         />
@@ -203,6 +317,11 @@ function PlatformTransferConfirmState (): React.JSX.Element {
         />
 
         <div className='flex flex-col gap-4'>
+          {/* Proving blocks this window — warn once, up front, for slow modes. */}
+          {descriptor.isSlow === true && (
+            <Banner variant='warning' message={PROVING_WARNING} />
+          )}
+
           <Button
             colorScheme='brand'
             size='xl'
@@ -210,7 +329,9 @@ function PlatformTransferConfirmState (): React.JSX.Element {
             onClick={() => { handleConfirm().catch(e => console.log('handleConfirm error', e)) }}
             disabled={isSubmitting || password === ''}
           >
-            {isSubmitting ? 'Broadcasting...' : 'Confirm'}
+            {isSubmitting
+              ? (descriptor.isSlow === true ? 'Building proof — keep this open...' : 'Broadcasting...')
+              : 'Confirm'}
           </Button>
         </div>
       </div>

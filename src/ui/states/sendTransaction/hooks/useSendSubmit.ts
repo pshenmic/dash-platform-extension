@@ -7,6 +7,7 @@ import { MIN_CREDIT_TRANSFER } from '../../../constants/transaction'
 import { MIN_OUTPUT_CREDITS } from '../../../../constants'
 import type { TokenData } from '../../../../types'
 import type { TransferMode } from '../types'
+import { SHIELDED_MODES } from '../types'
 
 type FormState = ReturnType<typeof useSendTransactionForm>
 
@@ -24,6 +25,15 @@ interface UseSendSubmitResult {
   isLoading: boolean
   handleSend: () => Promise<void>
 }
+
+// Modes signed + broadcast directly via /platform-transfer-confirm (password),
+// rather than producing a state transition for the /approve screen.
+const DIRECT_BROADCAST_MODES: TransferMode[] = [
+  'fund', 'send', 'topup', 'withdraw', ...SHIELDED_MODES
+]
+
+// Of those, the ones spending a transparent platform address.
+const SPENDS_FROM_ADDRESS_MODES: TransferMode[] = ['send', 'topup', 'withdraw', 'shield']
 
 // Navigation options shared by both approval flows.
 const APPROVE_NAV_STATE = {
@@ -70,9 +80,13 @@ export function useSendSubmit ({
       return
     }
 
-    // Platform-address transfers sign and broadcast directly (with a password),
-    // so they go through a dedicated confirmation screen instead of /approve.
-    if (transferMode === 'fund' || transferMode === 'send' || transferMode === 'topup') {
+    if (transferMode === 'unsupported') {
+      formState.setError('This sender cannot pay this recipient')
+      return
+    }
+
+    // These sign + broadcast directly (password) -> dedicated confirm screen, not /approve.
+    if (DIRECT_BROADCAST_MODES.includes(transferMode)) {
       const amountCredits = BigInt(Math.floor(Number(formState.formData.amount)))
 
       if (amountCredits < MIN_OUTPUT_CREDITS) {
@@ -80,7 +94,7 @@ export function useSendSubmit ({
         return
       }
 
-      const spendsFromAddress = transferMode === 'send' || transferMode === 'topup'
+      const spendsFromAddress = SPENDS_FROM_ADDRESS_MODES.includes(transferMode)
       if (spendsFromAddress && selectedPlatformAddress === null) {
         formState.setError('Please select a source platform address')
         return
