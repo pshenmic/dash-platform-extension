@@ -9,6 +9,7 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI } from '../../hooks'
 import type { OutletContext } from '../../types'
 import { TRANSFER_FEE_CREDITS, SHIELDED_SPEND_FEE_CREDITS } from '../../../constants'
+import { PROVING_WARNING, WITHDRAW_TO_CORE_WARNING, UNSHIELD_REVEAL_WARNING, SHIELDED_WITHDRAW_WARNING } from '../../constants/transferWarnings'
 
 // Stands in for a party that is the wallet's own shielded pool — it has no
 // address the user chose, so there is nothing meaningful to render as an identifier.
@@ -24,8 +25,6 @@ const SHIELDED_PARTY_LABEL = 'Your shielded balance'
 // 'shieldedWithdraw' — shielded pool → Core (L1) address
 const TRANSFER_DIRECTIONS = ['fund', 'send', 'topup', 'withdraw', 'shield', 'unshield', 'shieldedTransfer', 'shieldedWithdraw'] as const
 type TransferDirection = typeof TRANSFER_DIRECTIONS[number]
-
-const PROVING_WARNING = 'Building the zero-knowledge proof runs in this window and can take several minutes. Do not close the extension until it finishes.'
 
 interface DirectionDescriptor {
   // What the transfer spends from. 'shielded' has no identifier to display.
@@ -66,7 +65,7 @@ const DIRECTIONS: Record<TransferDirection, DirectionDescriptor> = {
     senderLabel: 'Sender Address',
     recipientLabel: 'Recipient Core (L1) Address',
     transactionType: 'Withdrawal to Core',
-    warning: 'This withdrawal leaves Platform for the Dash (L1) network. It is irreversible, pays an additional L1 network fee on top of the platform fee, and can take several minutes to appear on L1.'
+    warning: WITHDRAW_TO_CORE_WARNING
   },
   shield: {
     senderType: 'address',
@@ -81,7 +80,7 @@ const DIRECTIONS: Record<TransferDirection, DirectionDescriptor> = {
     senderLabel: 'Sender',
     recipientLabel: 'Recipient Address',
     transactionType: 'Unshield to Address',
-    warning: 'The unshielded amount becomes visible on the receiving address.',
+    warning: UNSHIELD_REVEAL_WARNING,
     isSlow: true
   },
   shieldedTransfer: {
@@ -96,7 +95,7 @@ const DIRECTIONS: Record<TransferDirection, DirectionDescriptor> = {
     senderLabel: 'Sender',
     recipientLabel: 'Recipient Core (L1) Address',
     transactionType: 'Private Withdrawal to Core',
-    warning: 'Withdrawing to Core reveals the amount and the destination on L1 — the privacy of this exit is lost.',
+    warning: SHIELDED_WITHDRAW_WARNING,
     isSlow: true
   }
 }

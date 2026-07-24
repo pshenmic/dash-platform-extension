@@ -19,6 +19,7 @@ import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { WalletType } from '../../../types'
 import { ESTIMATED_FEES } from '../../constants/transaction'
+import { PROVING_NOTE, WITHDRAW_TO_CORE_WARNING, UNSHIELD_REVEAL_WARNING, SHIELDED_WITHDRAW_WARNING } from '../../constants/transferWarnings'
 import { TRANSFER_FEE_CREDITS, SHIELDED_SPEND_FEE_CREDITS, SHIELDED_POOL_RECIPIENT } from '../../../constants'
 import {
   getFormattedBalance,
@@ -46,13 +47,14 @@ const SHIELDED_POOL_OPTIONS: RecipientSearchResult[] = [{
   label: 'My shielded balance'
 }]
 
-// Caution shown on the send screen per resolved mode.
+// Caution shown on the send screen per resolved mode, composed from the shared
+// warning fragments (see ui/constants/transferWarnings).
 const MODE_WARNINGS: Partial<Record<TransferMode, string>> = {
-  withdraw: 'Withdrawals leave Platform for the Dash (L1) network. They are irreversible, pay an additional L1 network fee and can take several minutes to settle.',
-  shieldedWithdraw: 'Withdrawing to Core reveals the amount and the destination on L1 — the privacy of this exit is lost. It is irreversible and pays an additional L1 network fee.',
-  shield: 'Private transfers build a zero-knowledge proof, which can take several minutes in the popup.',
-  unshield: 'Private transfers build a zero-knowledge proof, which can take several minutes in the popup. Unshielding also reveals the amount to the receiving address.',
-  shieldedTransfer: 'Private transfers build a zero-knowledge proof, which can take several minutes in the popup.'
+  withdraw: WITHDRAW_TO_CORE_WARNING,
+  shieldedWithdraw: SHIELDED_WITHDRAW_WARNING,
+  shield: PROVING_NOTE,
+  unshield: `${PROVING_NOTE} ${UNSHIELD_REVEAL_WARNING}`,
+  shieldedTransfer: PROVING_NOTE
 }
 
 function SendTransactionState (): React.JSX.Element {
