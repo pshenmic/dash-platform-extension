@@ -95,7 +95,7 @@ const SENDER_TYPES: Array<{ id: SenderType, label: string }> = [
 
 // Keep the selected sender button looking active while native disabled blocks re-clicks.
 const SELECTED_SENDER_BUTTON_CLASS =
-  'disabled:!bg-dash-brand/10 disabled:!text-dash-brand disabled:hover:!bg-dash-brand/10 disabled:hover:!cursor-default'
+  'disabled:!opacity-100 disabled:!bg-dash-brand disabled:!text-white disabled:hover:!bg-dash-brand disabled:hover:!cursor-default'
 
 /**
  * Sender picker for the platform credit flow: choose between spending from an
