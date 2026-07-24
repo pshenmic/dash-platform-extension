@@ -9,7 +9,7 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI } from '../../hooks'
 import type { OutletContext } from '../../types'
 import { TRANSFER_FEE_CREDITS, SHIELDED_SPEND_FEE_CREDITS } from '../../../constants'
-import { PROVING_WARNING, WITHDRAW_TO_CORE_WARNING, UNSHIELD_REVEAL_WARNING, SHIELDED_WITHDRAW_WARNING } from '../../constants/transferWarnings'
+import { PROVING_WARNING, WITHDRAW_TO_CORE_WARNING, SHIELDED_WITHDRAW_WARNING } from '../../constants/transferWarnings'
 
 // Stands in for a party that is the wallet's own shielded pool — it has no
 // address the user chose, so there is nothing meaningful to render as an identifier.
@@ -80,7 +80,6 @@ const DIRECTIONS: Record<TransferDirection, DirectionDescriptor> = {
     senderLabel: 'Sender',
     recipientLabel: 'Recipient Address',
     transactionType: 'Unshield to Address',
-    warning: UNSHIELD_REVEAL_WARNING,
     isSlow: true
   },
   shieldedTransfer: {
@@ -306,6 +305,11 @@ function PlatformTransferConfirmState (): React.JSX.Element {
           selectedAsset='credits'
         />
 
+        {/* Proving blocks this window — warn once, up front, for slow modes. */}
+        {descriptor.isSlow === true && (
+          <Banner variant='warning' message={PROVING_WARNING} />
+        )}
+
         {/* Password */}
         <PasswordField
           value={password}
@@ -316,11 +320,6 @@ function PlatformTransferConfirmState (): React.JSX.Element {
         />
 
         <div className='flex flex-col gap-4'>
-          {/* Proving blocks this window — warn once, up front, for slow modes. */}
-          {descriptor.isSlow === true && (
-            <Banner variant='warning' message={PROVING_WARNING} />
-          )}
-
           <Button
             colorScheme='brand'
             size='xl'

@@ -19,7 +19,7 @@ import type { NetworkType, TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { WalletType } from '../../../types'
 import { ESTIMATED_FEES } from '../../constants/transaction'
-import { PROVING_NOTE, WITHDRAW_TO_CORE_WARNING, UNSHIELD_REVEAL_WARNING, SHIELDED_WITHDRAW_WARNING } from '../../constants/transferWarnings'
+import { PROVING_NOTE, WITHDRAW_TO_CORE_WARNING, SHIELDED_WITHDRAW_WARNING } from '../../constants/transferWarnings'
 import { TRANSFER_FEE_CREDITS, SHIELDED_SPEND_FEE_CREDITS, SHIELDED_POOL_RECIPIENT } from '../../../constants'
 import {
   getFormattedBalance,
@@ -53,7 +53,7 @@ const MODE_WARNINGS: Partial<Record<TransferMode, string>> = {
   withdraw: WITHDRAW_TO_CORE_WARNING,
   shieldedWithdraw: SHIELDED_WITHDRAW_WARNING,
   shield: PROVING_NOTE,
-  unshield: `${PROVING_NOTE} ${UNSHIELD_REVEAL_WARNING}`,
+  unshield: PROVING_NOTE,
   shieldedTransfer: PROVING_NOTE
 }
 
