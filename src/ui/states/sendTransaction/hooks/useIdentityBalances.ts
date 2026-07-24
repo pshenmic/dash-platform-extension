@@ -27,16 +27,19 @@ export function useIdentityBalances (
 
     const load = async (): Promise<void> => {
       setIdentityBalancesLoading(true)
-      const entries = await Promise.all(ids.map(async (id): Promise<[string, bigint] | null> => {
-        try {
-          return [id, await sdk.identities.getIdentityBalance(id)]
-        } catch {
-          return null
-        }
-      }))
-      if (cancelled) return
-      setIdentityBalances(new Map(entries.filter((entry): entry is [string, bigint] => entry != null)))
-      setIdentityBalancesLoading(false)
+      try {
+        const entries = await Promise.all(ids.map(async (id) => {
+          try {
+            return [id, await sdk.identities.getIdentityBalance(id)] as const
+          } catch {
+            return null
+          }
+        }))
+        if (cancelled) return
+        setIdentityBalances(new Map(entries.filter(entry => entry != null)))
+      } finally {
+        if (!cancelled) setIdentityBalancesLoading(false)
+      }
     }
 
     void load().catch(e => console.log('loadIdentityBalances error:', e))

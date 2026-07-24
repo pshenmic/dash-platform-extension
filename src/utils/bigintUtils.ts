@@ -117,6 +117,17 @@ export function dashToCreditsBigInt (dash: string | number): bigint {
 }
 
 /**
+ * Parse a user-entered credits amount string into an integer bigint of credits.
+ * Returns null for empty/partial/invalid input ('', '.', NaN) so callers can
+ * guard instead of throwing from BigInt(Math.floor(Number(amount))).
+ */
+export function parseCreditsAmount (amount: string): bigint | null {
+  const n = Number(amount)
+  if (amount === '' || amount === '.' || !Number.isFinite(n) || n <= 0) return null
+  return BigInt(Math.floor(n))
+}
+
+/**
  * Multiply a bigint by a percentage (0-1 range)
  * @param value - The bigint value to multiply
  * @param percentage - The percentage as a decimal (0.5 for 50%, 1 for 100%)

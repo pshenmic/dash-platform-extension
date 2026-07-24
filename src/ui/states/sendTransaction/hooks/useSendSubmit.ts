@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { base64 } from '@scure/base'
 import { useSdk, useExtensionAPI, useSendTransactionForm } from '../../../hooks'
-import { toBaseUnit } from '../../../../utils'
+import { toBaseUnit, parseCreditsAmount } from '../../../../utils'
 import { MIN_CREDIT_TRANSFER } from '../../../constants/transaction'
 import { MIN_OUTPUT_CREDITS } from '../../../../constants'
 import type { TokenData } from '../../../../types'
@@ -87,7 +87,12 @@ export function useSendSubmit ({
 
     // These sign + broadcast directly (password) -> dedicated confirm screen, not /approve.
     if (DIRECT_BROADCAST_MODES.includes(transferMode)) {
-      const amountCredits = BigInt(Math.floor(Number(formState.formData.amount)))
+      const amountCredits = parseCreditsAmount(formState.formData.amount)
+
+      if (amountCredits === null) {
+        formState.setError('Please enter a valid amount')
+        return
+      }
 
       if (amountCredits < MIN_OUTPUT_CREDITS) {
         formState.setError(`Minimum platform transfer amount is ${MIN_OUTPUT_CREDITS.toLocaleString()} credits`)
@@ -117,7 +122,12 @@ export function useSendSubmit ({
 
     try {
       if (transferMode === 'creditTransfer') {
-        const amountInCredits = BigInt(Math.floor(Number(formState.formData.amount)))
+        const amountInCredits = parseCreditsAmount(formState.formData.amount)
+
+        if (amountInCredits === null) {
+          formState.setError('Please enter a valid amount')
+          return
+        }
 
         // Validate minimum credit transfer amount
         if (amountInCredits < MIN_CREDIT_TRANSFER) {

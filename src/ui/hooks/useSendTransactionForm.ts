@@ -3,6 +3,7 @@ import type { TokenData } from '../../types'
 import type { RecipientSearchResult, RecipientTargetType } from '../../utils'
 import {
   parseDecimalInput,
+  parseCreditsAmount,
   creditsToDash,
   multiplyBigIntByPercentage
 } from '../../utils'
@@ -95,6 +96,17 @@ export function useSendTransactionForm ({
     }
   }, [selectedRecipient, platformTransfer])
 
+  // Recompute the equivalent (DASH / USD) display from a credits amount.
+  const recomputeEquivalent = useCallback((credits: bigint, currency: 'usd' | 'dash' = equivalentCurrency): void => {
+    const dashValue = creditsToDash(credits)
+
+    if (currency === 'dash') {
+      setEquivalentAmount(dashValue.toFixed(8))
+    } else if (rate !== null) {
+      setEquivalentAmount((dashValue * rate).toFixed(2))
+    }
+  }, [equivalentCurrency, rate])
+
   const handleRecipientChange = useCallback((value: string): void => {
     setFormData(prev => ({ ...prev, recipient: value }))
     setSelectedRecipient(null)
@@ -131,14 +143,7 @@ export function useSendTransactionForm ({
         // Update equivalent for max balance
         if (formData.selectedAsset === 'credits') {
           const creditsAmount = BigInt(Math.floor(Number(availableBalanceStr)))
-          const dashValue = creditsToDash(creditsAmount)
-
-          if (equivalentCurrency === 'dash') {
-            setEquivalentAmount(dashValue.toFixed(8))
-          } else if (rate !== null) {
-            const usdValue = dashValue * rate
-            setEquivalentAmount(usdValue.toFixed(2))
-          }
+          recomputeEquivalent(creditsAmount)
         }
         return
       }
@@ -151,14 +156,7 @@ export function useSendTransactionForm ({
       const numericValue = Number(parsed)
       if (!isNaN(numericValue) && numericValue > 0) {
         const creditsAmount = BigInt(Math.floor(numericValue))
-        const dashValue = creditsToDash(creditsAmount)
-
-        if (equivalentCurrency === 'dash') {
-          setEquivalentAmount(dashValue.toFixed(8))
-        } else if (rate !== null) {
-          const usdValue = dashValue * rate
-          setEquivalentAmount(usdValue.toFixed(2))
-        }
+        recomputeEquivalent(creditsAmount)
       } else {
         setEquivalentAmount('')
       }
@@ -181,7 +179,7 @@ export function useSendTransactionForm ({
         }
       }
     }
-  }, [formData.selectedAsset, balance, rate, equivalentCurrency, getSelectedToken, getCreditMin, tokens])
+  }, [formData.selectedAsset, balance, rate, equivalentCurrency, getSelectedToken, getCreditMin, recomputeEquivalent, tokens])
 
   const handleEquivalentChange = useCallback((value: string): void => {
     const decimals = equivalentCurrency === 'dash' ? 8 : 2
@@ -208,7 +206,7 @@ export function useSendTransactionForm ({
           return
         }
 
-        const creditsAmount = Math.floor(dashValue * 10e10)
+        const creditsAmount = Math.floor(dashValue * 1e11)
         setFormData(prev => ({ ...prev, amount: creditsAmount.toString() }))
 
         if (formData.selectedAsset === 'credits') {
@@ -258,14 +256,7 @@ export function useSendTransactionForm ({
 
         // Update equivalent amount
         const creditsAmount = BigInt(amount)
-        const dashValue = creditsToDash(creditsAmount)
-
-        if (equivalentCurrency === 'dash') {
-          setEquivalentAmount(dashValue.toFixed(8))
-        } else if (rate !== null) {
-          const usdValue = dashValue * rate
-          setEquivalentAmount(usdValue.toFixed(2))
-        }
+        recomputeEquivalent(creditsAmount)
       }
     } else {
       // For tokens with decimals - use bigint to avoid precision loss
@@ -277,7 +268,7 @@ export function useSendTransactionForm ({
         setFormData(prev => ({ ...prev, amount }))
       }
     }
-  }, [formData.selectedAsset, balance, rate, equivalentCurrency, currentNetwork, getSelectedToken, getCreditMin, selectedRecipient, platformTransfer, platformFeeCredits, tokens])
+  }, [formData.selectedAsset, balance, rate, equivalentCurrency, currentNetwork, getSelectedToken, getCreditMin, recomputeEquivalent, selectedRecipient, platformTransfer, platformFeeCredits, tokens])
 
   const handleAssetSelect = useCallback((asset: string): void => {
     setFormData(prev => ({ ...prev, selectedAsset: asset, amount: '' }))
@@ -289,18 +280,13 @@ export function useSendTransactionForm ({
     setEquivalentCurrency(currency)
 
     // Recalculate equivalent amount with new currency
-    if (formData.amount !== '' && formData.selectedAsset === 'credits') {
-      const creditsAmount = BigInt(Math.floor(Number(formData.amount)))
-      const dashValue = creditsToDash(creditsAmount)
-
-      if (currency === 'dash') {
-        setEquivalentAmount(dashValue.toFixed(8))
-      } else if (rate !== null) {
-        const usdValue = dashValue * rate
-        setEquivalentAmount(usdValue.toFixed(2))
+    if (formData.selectedAsset === 'credits') {
+      const creditsAmount = parseCreditsAmount(formData.amount)
+      if (creditsAmount !== null) {
+        recomputeEquivalent(creditsAmount, currency)
       }
     }
-  }, [formData.amount, formData.selectedAsset, rate])
+  }, [formData.amount, formData.selectedAsset, recomputeEquivalent])
 
   return {
     formData,

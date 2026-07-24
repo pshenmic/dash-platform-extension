@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { TokenData } from '../../types'
-import { creditsToUsdEquivalent } from '../../utils'
+import { creditsToUsdEquivalent, parseCreditsAmount } from '../../utils'
 import { ESTIMATED_FEES } from '../constants/transaction'
 import { formatTokenAmount } from '../../utils/transactionFormatters'
 
@@ -50,12 +50,12 @@ export function useTransactionCalculations ({
       const fee = getEstimatedFeeBigInt()
 
       if (selectedAsset === 'credits') {
-        if (amount !== '') {
-          const amountInCredits = BigInt(Math.floor(Number(amount)))
+        const amountInCredits = parseCreditsAmount(amount)
+        if (amountInCredits !== null) {
           const total = amountInCredits + fee
           return total.toLocaleString()
         }
-        // If no amount entered, show only fee
+        // If no amount entered (or invalid), show only fee
         return fee.toLocaleString()
       }
 
@@ -88,7 +88,10 @@ export function useTransactionCalculations ({
     return (): string => {
       if (amount !== '' && amount !== '0') {
         if (selectedAsset === 'credits') {
-          const amountInCredits = BigInt(Math.floor(Number(amount)))
+          const amountInCredits = parseCreditsAmount(amount)
+          if (amountInCredits === null) {
+            return '0'
+          }
           return amountInCredits.toLocaleString()
         }
 

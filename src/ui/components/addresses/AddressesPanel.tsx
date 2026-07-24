@@ -5,6 +5,7 @@ import { AddressItem, type AddressData } from './AddressItem'
 import { ShieldedAddresses } from './ShieldedAddresses'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
+import { usePasswordCheck } from '../../hooks'
 import type { NetworkType } from '../../../types'
 
 interface AddressesPanelProps {
@@ -14,8 +15,8 @@ interface AddressesPanelProps {
 export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }) => {
   const extensionAPI = useExtensionAPI()
   const platformExplorerClient = usePlatformExplorerClient()
+  const { verify: verifyPassword, error: passwordError, setError: setPasswordError } = usePasswordCheck()
   const [password, setPassword] = useState('')
-  const [passwordError, setPasswordError] = useState<string | null>(null)
   const [needsPassword, setNeedsPassword] = useState(false)
   const [addresses, setAddresses] = useState<AddressData[]>([])
   const [hasLoaded, setHasLoaded] = useState(false)
@@ -88,8 +89,9 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
   }
 
   useEffect(() => {
+    if (currentNetwork == null) return
     void loadList()
-  }, [])
+  }, [currentNetwork])
 
   // Generate the next address without a password. New wallets have the xpub
   // cached at creation, so this just works. If the xpub is missing (legacy
@@ -112,21 +114,11 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
   // Legacy wallets: initialize the xpub with the password and generate the
   // first address. Subsequent generations no longer need the password.
   const handleCreateWithPassword = async (): Promise<void> => {
-    if (password === '') {
-      setPasswordError('Password must be provided')
-      return
-    }
-
     setIsGenerating(true)
-    setPasswordError(null)
     setError(null)
 
     try {
-      const passwordCheck = await extensionAPI.checkPassword(password)
-      if (!passwordCheck.success) {
-        setPasswordError('Invalid password')
-        return
-      }
+      if (!(await verifyPassword(password))) return
 
       await extensionAPI.generatePlatformAddresses(password)
       setPassword('')

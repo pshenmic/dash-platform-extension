@@ -29,7 +29,7 @@ const CREDITS_OPTION: AssetOption = {
 // the asset-selection menu and the transfer screen's asset step.
 export function buildAssetOptions (tokens: TokenData[] = []): AssetOption[] {
   const tokenOptions: AssetOption[] = tokens.map(token => {
-    const singularForm = (token.localizations?.en?.singularForm ?? null) !== null ? token.localizations.en.singularForm : token.identifier
+    const singularForm = token.localizations?.en?.singularForm ?? token.identifier
     return {
       value: token.identifier,
       label: singularForm,
@@ -65,7 +65,6 @@ interface AssetSelectionMenuProps {
   onClose: () => void
   selectedAsset: string
   onAssetSelect: (asset: string) => void
-  dashBalance?: string
   creditsBalance?: string
   tokens?: TokenData[]
 }

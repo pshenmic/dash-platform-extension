@@ -5,6 +5,7 @@ import { ShieldedAddressItem } from './ShieldedAddressItem'
 import { BalanceInfo } from '../data'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
+import { usePasswordCheck } from '../../hooks'
 import type { NetworkType } from '../../../types'
 import type { GetShieldedAddressesResponse } from '../../../types/messages/response/GetShieldedAddressesResponse'
 import type { GetShieldedBalanceResponse } from '../../../types/messages/response/GetShieldedBalanceResponse'
@@ -19,8 +20,8 @@ interface ShieldedAddressesProps {
 export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNetwork }) => {
   const extensionAPI = useExtensionAPI()
   const platformExplorerClient = usePlatformExplorerClient()
+  const { verify: verifyPassword, error: passwordError, setError: setPasswordError } = usePasswordCheck()
   const [password, setPassword] = useState('')
-  const [passwordError, setPasswordError] = useState<string | null>(null)
   const [addresses, setAddresses] = useState<ShieldedAddressList>([])
   const [balance, setBalance] = useState<ShieldedBalance | null>(null)
   const [balanceUnavailable, setBalanceUnavailable] = useState(false)
@@ -39,22 +40,12 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
   }, [currentNetwork, platformExplorerClient])
 
   const load = async (): Promise<void> => {
-    if (password === '') {
-      setPasswordError('Password must be provided')
-      return
-    }
-
     setIsLoading(true)
-    setPasswordError(null)
     setError(null)
     setBalanceUnavailable(false)
 
     try {
-      const passwordCheck = await extensionAPI.checkPassword(password)
-      if (!passwordCheck.success) {
-        setPasswordError('Invalid password')
-        return
-      }
+      if (!(await verifyPassword(password))) return
 
       const [addrResult, balanceResult] = await Promise.allSettled([
         extensionAPI.getShieldedAddresses(password),

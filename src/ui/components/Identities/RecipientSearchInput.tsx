@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Avatar,
   Text,
@@ -136,7 +136,7 @@ export function RecipientSearchInput ({
   // Classify the typed value to surface an address result (or an unsupported-type
   // hint) alongside identity search results.
   const detectAddresses = allowPlatformAddress || allowCoreAddress || allowShieldAddress
-  const recipientType = detectAddresses ? detectRecipientType(value, network) : 'identity'
+  const recipientType = useMemo(() => detectAddresses ? detectRecipientType(value, network) : 'identity', [detectAddresses, value, network])
   const isAddressType = recipientType === 'platformAddress' || recipientType === 'coreAddress' || recipientType === 'shieldAddress'
   const isAllowedAddress =
     (recipientType === 'platformAddress' && allowPlatformAddress) ||
