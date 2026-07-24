@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { Text, Button, ValueCard, BigNumber, ShieldSmallIcon } from 'dash-ui-kit/react'
+import { Text, Button, ValueCard, CircleProcessIcon, ShieldSmallIcon } from 'dash-ui-kit/react'
 import { PasswordField } from '../../../components/forms'
+import { creditsToUsdEquivalent } from '../../../../utils'
 import type { GetShieldedBalanceResponse } from '../../../../types/messages/response/GetShieldedBalanceResponse'
 
 export interface ShieldedSenderPanelProps {
@@ -8,6 +9,7 @@ export interface ShieldedSenderPanelProps {
   isUnlocking: boolean
   isWarmingProver: boolean
   error: string | null
+  rate: number | null
   onUnlock: (password: string) => void
   onErrorClear: () => void
 }
@@ -20,6 +22,7 @@ export function ShieldedSenderPanel ({
   isUnlocking,
   isWarmingProver,
   error,
+  rate,
   onUnlock,
   onErrorClear
 }: ShieldedSenderPanelProps): React.JSX.Element {
@@ -49,38 +52,38 @@ export function ShieldedSenderPanel ({
     )
   }
 
+  const balance = BigInt(info.balance)
+  const usd = creditsToUsdEquivalent(balance, rate)
+
   return (
-    <ValueCard colorScheme='lightGray' size='xl'>
-      <div className='flex flex-col gap-3 w-full'>
+    <div className='flex flex-col gap-2'>
+      <div className='flex items-center gap-1.5'>
+        <ShieldSmallIcon size={14} className='text-[rgba(12,28,51,0.5)]' />
+        <Text size='sm' dim>Shielded balance</Text>
+      </div>
+
+      <div className='flex items-center gap-2'>
+        <div className='flex items-baseline gap-1'>
+          <Text weight='bold' className='!text-[1rem]'>{balance.toLocaleString()}</Text>
+          <Text className='!text-[0.75rem]' dim>Credits</Text>
+        </div>
+        {usd != null && (
+          <ValueCard border={false} size='xs' className='px-[0.313rem] py-[0.156rem]' colorScheme='lightGray'>
+            <Text size='xs' weight='light' className='text-dash-primary-dark-blue !text-[0.625rem] !leading-[1.2]'>
+              {usd}
+            </Text>
+          </ValueCard>
+        )}
+      </div>
+
+      {isWarmingProver && (
         <div className='flex items-center gap-1.5'>
-          <ShieldSmallIcon size={14} className='text-[rgba(12,28,51,0.5)]' />
-          <Text size='sm' dim>Shielded balance</Text>
-        </div>
-
-        <div className='flex items-baseline gap-1.5'>
-          <BigNumber className='!text-[1.5rem] gap-1 !text-dash-brand !font-bold'>
-            {info.balance}
-          </BigNumber>
-          <Text dim className='!text-[0.7rem]'>Credits</Text>
-        </div>
-
-        <div className='grid grid-cols-2 gap-2 w-full'>
-          <div className='rounded-[10px] bg-[rgba(12,28,51,0.04)] px-2.5 py-2 flex flex-col gap-1'>
-            <Text dim className='!text-[0.7rem]'>Spendable notes:</Text>
-            <Text weight='medium' className='!text-base text-dash-primary-dark-blue'>{info.spendableNotes}</Text>
-          </div>
-          <div className='rounded-[10px] bg-[rgba(12,28,51,0.04)] px-2.5 py-2 flex flex-col gap-1'>
-            <Text dim className='!text-[0.7rem]'>Total notes:</Text>
-            <Text weight='medium' className='!text-base text-dash-primary-dark-blue'>{info.totalNotes}</Text>
-          </div>
-        </div>
-
-        {isWarmingProver && (
+          <CircleProcessIcon className='w-3.5 h-3.5 text-dash-brand animate-spin shrink-0' />
           <Text className='!text-[0.7rem]' dim>
             Preparing the private prover - this makes the first transfer faster.
           </Text>
-        )}
-      </div>
-    </ValueCard>
+        </div>
+      )}
+    </div>
   )
 }

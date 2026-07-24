@@ -401,8 +401,10 @@ function SendTransactionState (): React.JSX.Element {
     isSameParty ||
     transferMode === 'unsupported' ||
     (spendsFromPlatformAddress && selectedPlatformAddress === null) ||
-    // Spending shielded notes needs the pool unlocked first (known balance).
-    (senderType === 'shielded' && shielded.balance === null)
+    // Spending shielded notes needs the pool unlocked first (known balance)
+    // and the prover fully warmed — starting a spend mid-warm-up would race
+    // the builder cache.
+    (senderType === 'shielded' && (shielded.balance === null || shielded.isWarmingProver))
 
   if (!tokensReady) {
     return (
@@ -502,6 +504,7 @@ function SendTransactionState (): React.JSX.Element {
               isUnlocking={shielded.isUnlocking}
               isWarmingProver={shielded.isWarmingProver}
               error={shielded.error}
+              rate={rate}
               onUnlock={(password) => { void shielded.unlock(password) }}
               onErrorClear={() => shielded.clearError()}
             />
@@ -553,7 +556,11 @@ function SendTransactionState (): React.JSX.Element {
           }}
           disabled={nextDisabled}
         >
-          {isLoading ? 'Creating Transaction...' : 'Next'}
+          {isLoading
+            ? 'Creating Transaction...'
+            : (senderType === 'shielded' && shielded.isWarmingProver)
+                ? 'Preparing private prover...'
+                : 'Next'}
         </Button>
       </div>
 
