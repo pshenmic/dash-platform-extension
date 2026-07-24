@@ -1,6 +1,5 @@
 import React from 'react'
-import { Text, Identifier, Select, ValueCard, Avatar } from 'dash-ui-kit/react'
-import { SelectableCard } from '../../../components/controls'
+import { Text, Identifier, Select, ValueCard, Avatar, Button } from 'dash-ui-kit/react'
 import { IdentitySelect } from '../../../components/identity'
 import { creditsToUsdEquivalent } from '../../../../utils'
 import type { Identity } from '../../../../types'
@@ -94,6 +93,10 @@ const SENDER_TYPES: Array<{ id: SenderType, label: string }> = [
   { id: 'shielded', label: 'Shielded balance' }
 ]
 
+// Keep the selected sender button looking active while native disabled blocks re-clicks.
+const SELECTED_SENDER_BUTTON_CLASS =
+  'disabled:!bg-dash-brand/10 disabled:!text-dash-brand disabled:hover:!bg-dash-brand/10 disabled:hover:!cursor-default'
+
 /**
  * Sender picker for the platform credit flow: choose between spending from an
  * identity or from a platform address, then pick the specific source.
@@ -120,17 +123,24 @@ export function SenderSelector ({
         Sender
       </Text>
 
-      {/* Sender type selection — wraps so the third option keeps a readable width */}
       <div className='flex flex-wrap gap-2'>
-        {SENDER_TYPES.map(option => (
-          <SelectableCard
-            key={option.id}
-            selected={senderType === option.id}
-            onClick={() => onSenderTypeChange(option.id)}
-            boldLabel={option.label}
-            className='flex-1 min-w-[8rem]'
-          />
-        ))}
+        {SENDER_TYPES.map(option => {
+          const isSelected = senderType === option.id
+
+          return (
+            <Button
+              key={option.id}
+              type='button'
+              size='sm'
+              colorScheme={isSelected ? 'lightBlue' : 'lightGray'}
+              disabled={isSelected}
+              className={`flex-auto whitespace-nowrap !normal-case ${isSelected ? SELECTED_SENDER_BUTTON_CLASS : ''}`}
+              onClick={() => onSenderTypeChange(option.id)}
+            >
+              {option.label}
+            </Button>
+          )
+        })}
       </div>
 
       {/* Sender detail */}
