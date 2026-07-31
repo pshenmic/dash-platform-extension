@@ -103,6 +103,7 @@ interface PlatformTransferConfirmLocationState {
   direction: TransferDirection
   toAddress: string
   fromAddress?: string
+  fromShieldedAddresses?: string[]
   amountCredits: string
   fromIdentity?: string
 }
@@ -134,14 +135,19 @@ function PlatformTransferConfirmState (): React.JSX.Element {
     )
   }
 
-  const { direction, toAddress, fromAddress, amountCredits } = state
+  const { direction, toAddress, fromAddress, fromShieldedAddresses, amountCredits } = state
   const amountBig = BigInt(amountCredits)
   const descriptor = DIRECTIONS[direction]
+  const shieldedSource = fromShieldedAddresses?.[0] ?? null
   const senderValue = descriptor.senderType === 'address'
     ? (fromAddress ?? '')
     : descriptor.senderType === 'identity'
       ? (state.fromIdentity ?? '')
-      : ''
+      : (shieldedSource ?? '')
+  const senderIsPool = descriptor.senderType === 'shielded' && shieldedSource === null
+  const senderLabel = descriptor.senderType === 'shielded' && shieldedSource !== null
+    ? 'Sender Shielded Address'
+    : descriptor.senderLabel
   const feeCredits = descriptor.senderType === 'shielded' ? SHIELDED_SPEND_FEE_CREDITS : TRANSFER_FEE_CREDITS
 
   const handleConfirm = async (): Promise<void> => {
@@ -170,7 +176,10 @@ function PlatformTransferConfirmState (): React.JSX.Element {
         const response = await extensionAPI.unshieldToAddress(toAddress, amountCredits, password)
         setTxHash(response.stHash)
       } else if (direction === 'shieldedTransfer') {
-        const response = await extensionAPI.sendShieldedTransfer(toAddress, amountCredits, password)
+        const response = await extensionAPI.sendShieldedTransfer(
+          toAddress, amountCredits, password, undefined, undefined,
+          (fromShieldedAddresses != null && fromShieldedAddresses.length > 0) ? fromShieldedAddresses : undefined
+        )
         setTxHash(response.stHash)
       } else if (direction === 'shieldedWithdraw') {
         const response = await extensionAPI.withdrawShieldedToCore(toAddress, amountCredits, password)
@@ -228,8 +237,8 @@ function PlatformTransferConfirmState (): React.JSX.Element {
               </div>
             </TransactionDetailsCard>
 
-            <TransactionDetailsCard title={descriptor.senderLabel}>
-              {descriptor.senderType === 'shielded'
+            <TransactionDetailsCard title={senderLabel}>
+              {senderIsPool
                 ? <Text size='sm'>{SHIELDED_PARTY_LABEL}</Text>
                 : (
                   <Identifier className='!text-[1.25rem]' copyButton middleEllipsis edgeChars={5} linesAdjustment={false}>
@@ -290,8 +299,8 @@ function PlatformTransferConfirmState (): React.JSX.Element {
 
         {/* Sender */}
         <div className='flex flex-col gap-2.5'>
-          <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>{descriptor.senderLabel}</Text>
-          {descriptor.senderType === 'shielded'
+          <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>{senderLabel}</Text>
+          {senderIsPool
             ? <Text size='sm'>{SHIELDED_PARTY_LABEL}</Text>
             : <Identifier highlight='both' linesAdjustment={false}>{senderValue}</Identifier>}
         </div>

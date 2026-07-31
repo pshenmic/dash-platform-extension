@@ -27,6 +27,7 @@ import {
   getAssetDecimals
 } from '../../../utils/transactionFormatters'
 import { AssetBalanceLabel } from '../../components/data'
+import { parseCreditsAmount } from '../../../utils'
 import type { RecipientSearchResult } from '../../../utils'
 import type { SenderType, TransferMode } from './types'
 import { usePlatformAddresses } from './hooks/usePlatformAddresses'
@@ -71,6 +72,7 @@ function SendTransactionState (): React.JSX.Element {
   const [assetChosen, setAssetChosen] = useState(locationState?.selectedToken != null)
   const [senderType, setSenderType] = useState<SenderType>('identity')
   const [selectedPlatformAddress, setSelectedPlatformAddress] = useState<string | null>(null)
+  const [selectedShieldedAddress, setSelectedShieldedAddress] = useState<string | null>(null)
   const [selectedIdentity, setSelectedIdentity] = useState<string | null>(null)
   const senderIdentity = selectedIdentity ?? currentIdentity
 
@@ -98,10 +100,15 @@ function SendTransactionState (): React.JSX.Element {
   const selectedPlatformBalance = selectedPlatformAddress != null
     ? platformBalances.get(selectedPlatformAddress) ?? null
     : null
+  // Restricting the spend to one shielded address caps the amount at what that
+  // address holds; spending the whole pool uses the aggregate.
+  const shieldedSenderBalance = selectedShieldedAddress != null
+    ? shielded.addresses.find(entry => entry.address === selectedShieldedAddress)?.balance ?? null
+    : shielded.balance
   const senderBalance = senderType === 'platform'
     ? selectedPlatformBalance
     : senderType === 'shielded'
-      ? shielded.balance
+      ? shieldedSenderBalance
       : balance
 
   // Shielded spends estimate their own fee; transparent platform transfers use
@@ -144,7 +151,7 @@ function SendTransactionState (): React.JSX.Element {
   const senderIdentifier = senderType === 'platform'
     ? selectedPlatformAddress
     : senderType === 'shielded'
-      ? null
+      ? selectedShieldedAddress
       : senderIdentity
   // The recipient identity (if any), kept out of the sender identity selector.
   const recipientIdentity = formState.selectedRecipient?.type === 'identity' ? formState.selectedRecipient.identifier : null
@@ -179,6 +186,8 @@ function SendTransactionState (): React.JSX.Element {
     return 'unsupported'
   }, [formState.selectedRecipient, isCredits, senderType, recipientType])
 
+  const shieldedSourceSupported = transferMode === 'incomplete' || transferMode === 'shieldedTransfer'
+
   // Whether the fee/summary should reflect a platform transfer. Driven by the
   // sender type (and recipient) rather than the fully-resolved transferMode, so
   // switching the sender to a platform address updates the fee immediately.
@@ -193,6 +202,7 @@ function SendTransactionState (): React.JSX.Element {
     transferMode,
     isSameParty,
     selectedPlatformAddress,
+    selectedShieldedAddress: shieldedSourceSupported ? selectedShieldedAddress : null,
     token
   })
 
@@ -280,6 +290,18 @@ function SendTransactionState (): React.JSX.Element {
     }
   }, [isCredits, senderType])
 
+  // Drop a picked shielded source when the resolved transfer can't spend from it,
+  // or when a re-read of the pool no longer reports that address.
+  useEffect(() => {
+    if (selectedShieldedAddress === null) return
+
+    const stillPresent = shielded.addresses.some(entry => entry.address === selectedShieldedAddress)
+
+    if (!shieldedSourceSupported || !stillPresent) {
+      setSelectedShieldedAddress(null)
+    }
+  }, [shieldedSourceSupported, selectedShieldedAddress, shielded.addresses])
+
   // Clamp the amount to the sender's available balance whenever the sender
   // changes: async (identity balance loads) in Case 1, sync (sender type /
   // platform address) in Case 2.
@@ -317,7 +339,7 @@ function SendTransactionState (): React.JSX.Element {
       // Spendable funds of the new sender; unknown (no address / pool locked) → clear.
       const sourceBalance = senderType === 'platform'
         ? (selectedPlatformAddress !== null ? platformBalances.get(selectedPlatformAddress) ?? null : null)
-        : shielded.balance
+        : shieldedSenderBalance
 
       if (sourceBalance == null) {
         formState.handleAmountChange('')
@@ -346,7 +368,7 @@ function SendTransactionState (): React.JSX.Element {
         }
       }
     }
-  }, [senderType, selectedPlatformAddress, shielded.balance])
+  }, [senderType, selectedPlatformAddress, selectedShieldedAddress, shieldedSenderBalance])
 
   const formattedBalance = getFormattedBalance(formState.formData.selectedAsset, balance, token)
   const assetLabel = getAssetLabel(formState.formData.selectedAsset, token)
@@ -391,6 +413,16 @@ function SendTransactionState (): React.JSX.Element {
     : calculations.getTotalAmount()
   const summaryUnit = isPlatformMode ? 'Credits' : calculations.getTotalAmountUnit()
 
+  // Note selection happens after the (slow) proof starts, so check up front that
+  // the chosen shielded source covers the amount plus its fee.
+  const shieldedSourceShortfall = useMemo((): boolean => {
+    if (senderType !== 'shielded' || shieldedSenderBalance === null) return false
+
+    const amountCredits = parseCreditsAmount(formState.formData.amount)
+
+    return amountCredits !== null && amountCredits + SHIELDED_SPEND_FEE_CREDITS > shieldedSenderBalance
+  }, [senderType, shieldedSenderBalance, formState.formData.amount])
+
   // Modes that spend from a platform address need one selected.
   const spendsFromPlatformAddress = transferMode === 'send' || transferMode === 'topup' ||
     transferMode === 'withdraw' || transferMode === 'shield'
@@ -404,7 +436,8 @@ function SendTransactionState (): React.JSX.Element {
     // Spending shielded notes needs the pool unlocked first (known balance)
     // and the prover fully warmed — starting a spend mid-warm-up would race
     // the builder cache.
-    (senderType === 'shielded' && (shielded.balance === null || shielded.isWarmingProver))
+    (senderType === 'shielded' && (shielded.balance === null || shielded.isWarmingProver)) ||
+    shieldedSourceShortfall
 
   if (!tokensReady) {
     return (
@@ -501,6 +534,10 @@ function SendTransactionState (): React.JSX.Element {
           shieldedPanel={
             <ShieldedSenderPanel
               info={shielded.info}
+              addresses={shielded.addresses}
+              selectedAddress={selectedShieldedAddress}
+              onAddressChange={setSelectedShieldedAddress}
+              sourceSelectionSupported={shieldedSourceSupported}
               isUnlocking={shielded.isUnlocking}
               isWarmingProver={shielded.isWarmingProver}
               error={shielded.error}
@@ -533,6 +570,14 @@ function SendTransactionState (): React.JSX.Element {
       )}
       {transferMode === 'unsupported' && (
         <Banner variant='error' message={UNSUPPORTED_TRANSFER_MESSAGE} />
+      )}
+      {shieldedSourceShortfall && (
+        <Banner
+          variant='error'
+          message={selectedShieldedAddress != null
+            ? 'The amount plus the shielded fee exceeds the balance of the selected source address'
+            : 'The amount plus the shielded fee exceeds your shielded balance'}
+        />
       )}
       <Banner variant='warning' message={MODE_WARNINGS[transferMode] ?? null} />
 

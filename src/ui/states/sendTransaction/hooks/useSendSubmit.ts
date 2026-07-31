@@ -18,6 +18,7 @@ interface UseSendSubmitParams {
   transferMode: TransferMode
   isSameParty: boolean
   selectedPlatformAddress: string | null
+  selectedShieldedAddress: string | null
   token: TokenData | undefined
 }
 
@@ -54,6 +55,7 @@ export function useSendSubmit ({
   transferMode,
   isSameParty,
   selectedPlatformAddress,
+  selectedShieldedAddress,
   token
 }: UseSendSubmitParams): UseSendSubmitResult {
   const navigate = useNavigate()
@@ -105,11 +107,18 @@ export function useSendSubmit ({
         return
       }
 
+      // Only a private transfer can scope the spend to source notes; the other
+      // shielded modes have no `fromAddresses` and draw from the whole account.
+      const shieldedSources = transferMode === 'shieldedTransfer' && selectedShieldedAddress !== null
+        ? [selectedShieldedAddress]
+        : undefined
+
       void navigate('/platform-transfer-confirm', {
         state: {
           direction: transferMode,
           toAddress: formState.selectedRecipient.identifier,
           fromAddress: spendsFromAddress ? selectedPlatformAddress : undefined,
+          fromShieldedAddresses: shieldedSources,
           amountCredits: amountCredits.toString(),
           fromIdentity: transferMode === 'fund' ? sender : undefined
         }

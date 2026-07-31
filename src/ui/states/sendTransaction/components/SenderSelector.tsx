@@ -90,7 +90,7 @@ export interface SenderSelectorProps {
 const SENDER_TYPES: Array<{ id: SenderType, label: string }> = [
   { id: 'identity', label: 'Identity' },
   { id: 'platform', label: 'Platform address' },
-  { id: 'shielded', label: 'Shielded balance' }
+  { id: 'shielded', label: 'Shielded address' }
 ]
 
 // Keep the selected sender button looking active while native disabled blocks re-clicks.

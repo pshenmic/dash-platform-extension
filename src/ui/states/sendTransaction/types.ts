@@ -29,3 +29,14 @@ export interface PlatformAddressEntry {
   derivationPath: string
   index: number
 }
+
+export interface ShieldedAddressEntry {
+  address: string
+  diversifierIndex: number | null
+  balance: bigint
+  spendableNotes: number
+}
+
+// Value of the "whole shielded balance" option in the source select — a real
+// address never collides with it (they are long bech32m strings).
+export const ALL_SHIELDED_SOURCES = 'all'
