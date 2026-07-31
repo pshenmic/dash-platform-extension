@@ -2,7 +2,8 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { decryptMnemonic, fetchAllShieldedNotes, sumUnspentShieldedValue } from '../../../../utils'
+import { decryptMnemonic, deriveShieldedAddresses, fetchAllShieldedNotes, sumUnspentShieldedValue } from '../../../../utils'
+import { SHIELDED_ADDRESS_DEFAULT_COUNT } from '../../../../constants'
 import { GetShieldedBalancePayload } from '../../../../types/messages/payloads/GetShieldedBalancePayload'
 import { GetShieldedBalanceResponse } from '../../../../types/messages/response/GetShieldedBalanceResponse'
 
@@ -46,9 +47,25 @@ export class GetShieldedBalanceHandler implements APIHandler {
       ? await this.sdk.shielded.getShieldedNullifiers(nullifiers)
       : []
 
-    const { balance, spendableNotes } = sumUnspentShieldedValue(recovered, allNotes, statuses)
+    // Map our known diversified addresses to their derivation index so the
+    // per-address breakdown can label them; notes to an address outside this
+    // window still count, with diversifierIndex null.
+    const derived = deriveShieldedAddresses(wallet, payload.password, account, SHIELDED_ADDRESS_DEFAULT_COUNT, this.sdk)
+    const diversifierIndexByAddress = new Map(derived.map(entry => [entry.address, entry.diversifierIndex]))
 
-    return { balance: balance.toString(), spendableNotes, totalNotes: allNotes.length }
+    const { balance, spendableNotes, byAddress } = sumUnspentShieldedValue(recovered, allNotes, statuses, wallet.network, diversifierIndexByAddress)
+
+    return {
+      balance: balance.toString(),
+      spendableNotes,
+      totalNotes: allNotes.length,
+      byAddress: byAddress.map(entry => ({
+        address: entry.address,
+        diversifierIndex: entry.diversifierIndex,
+        balance: entry.balance.toString(),
+        spendableNotes: entry.spendableNotes
+      }))
+    }
   }
 
   validatePayload (payload: GetShieldedBalancePayload): string | null {
