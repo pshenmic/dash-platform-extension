@@ -464,6 +464,15 @@ export interface ShieldedSpendInputs {
   coinType: number
 }
 
+// Narrows recovered notes to those received on one of `fromAddresses` (bech32m),
+// so a spend can draw only from specific source shielded addresses instead of the
+// whole account. Notes are keyed by their receiving address (`note.address`).
+export const filterRecoveredNotesByAddress = (notes: RecoveredNoteWASM[], fromAddresses: string[], network: NetworkType): RecoveredNoteWASM[] => {
+  const wanted = new Set(fromAddresses)
+
+  return notes.filter(recoveredNote => wanted.has(recoveredNote.note.address.toBech32m(network)))
+}
+
 // Selects the fewest notes (largest first) whose combined value covers
 // `requiredCredits`. Minimizing the note count keeps the Orchard bundle — one
 // action per note — under Platform's state-transition size limit. Throws if the
@@ -497,7 +506,9 @@ const selectShieldedNotes = (spendable: RecoveredNoteWASM[], requiredCredits: bi
 // (amount + fee), witnesses just those against the commitment tree, and derives
 // the change address. The Halo2 builder is not touched here — proving happens
 // inside the createStateTransition call the handler makes with these inputs.
-export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, requiredCredits: bigint): Promise<ShieldedSpendInputs> => {
+// `fromAddresses` (optional) restricts the spend to notes on those source
+// shielded addresses; when omitted, the whole account's notes are eligible.
+export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, requiredCredits: bigint, fromAddresses?: string[]): Promise<ShieldedSpendInputs> => {
   console.time('[shielded] sync notes')
   const allNotes = await fetchAllShieldedNotes(sdk)
   console.timeEnd('[shielded] sync notes')
@@ -526,8 +537,17 @@ export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Arra
     throw new Error('No unspent shielded notes available to spend')
   }
 
-  const selected = selectShieldedNotes(unspent, requiredCredits)
-  console.log(`[shielded] selected ${selected.length}/${unspent.length} notes; witnessing against the tree…`)
+  // Optionally restrict the spend to notes on specific source addresses.
+  const scoped = fromAddresses != null && fromAddresses.length > 0
+    ? filterRecoveredNotesByAddress(unspent, fromAddresses, network)
+    : unspent
+
+  if (scoped.length === 0) {
+    throw new Error('No unspent shielded notes on the selected source address(es)')
+  }
+
+  const selected = selectShieldedNotes(scoped, requiredCredits)
+  console.log(`[shielded] selected ${selected.length}/${scoped.length} notes; witnessing against the tree…`)
 
   console.time('[shielded] build spendable notes')
   const { spends, anchor } = sdk.shielded.buildSpendableNotes(allNotes, selected)
