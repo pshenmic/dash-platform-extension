@@ -7,7 +7,6 @@ import { CreateWalletResponse } from '../../../../types/messages/response/Create
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { NetworkType } from '../../../../types/NetworkType'
-import { derivePlatformAccountXpubFromSeed } from '../../../../utils'
 
 export class CreateWalletHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -60,7 +59,7 @@ export class CreateWalletHandler implements APIHandler {
     // mnemonic here), so platform addresses can be generated later without a password.
     const network = await this.storageAdapter.get('network') as NetworkType
     const seed = this.sdk.keyPair.mnemonicToSeed(mnemonic)
-    const platformXpub = await derivePlatformAccountXpubFromSeed(seed, network, 0, this.sdk)
+    const platformXpub = await this.sdk.keyPair.derivePlatformAccountXpub(seed, network, 0)
 
     const wallet = await this.walletRepository.create(WalletType.seedphrase, mnemonic, platformXpub)
 

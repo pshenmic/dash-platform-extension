@@ -19,12 +19,13 @@ import {
   deriveIdentityPrivateKey,
   deriveIdentityRegistrationKey,
   findNextLocalIdentityIndex,
-  hexToBytes
+  hexToBytes,
+  wait
 } from '../../../../utils'
 import { isStateTransitionAlreadyInChainError } from '../../../../utils/isStateTransitionAlreadyInChainError'
 import { isIdentityNotFoundError } from '../../../../utils/isIdentityNotFoundError'
 import { WalletType } from '../../../../types/WalletType'
-import { TXID_HEX_LENGTH, IDENTITY_INDEX_SCAN_LIMIT } from '../../../../constants'
+import { TXID_HEX_LENGTH, IDENTITY_INDEX_SCAN_LIMIT, REGISTRATION_CONFIRM_TIMEOUT_MS } from '../../../../constants'
 
 export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
@@ -236,9 +237,27 @@ export class RegisterIdentityHandler implements APIHandler {
       }
     }
 
-    // ── 14. Wait for confirmation (skip if Platform already had the ST) ─────
+    // ── 14. Best-effort confirmation. The identity is already created by the
+    // broadcast above, so wait only briefly for finalization (usually 1-3s) and
+    // return once it exists rather than blocking indefinitely if the confirmation
+    // stream is slow. A genuine state-transition failure still rolls back.
     if (!alreadyOnPlatform) {
-      await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+      try {
+        await Promise.race([
+          this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition),
+          wait(REGISTRATION_CONFIRM_TIMEOUT_MS).then(() => { throw new Error('confirmation-timeout') })
+        ])
+      } catch (e) {
+        const isTimeout = e instanceof Error && e.message === 'confirmation-timeout'
+
+        if (!isTimeout) {
+          if (wasJustCreated) {
+            await this.identitiesRepository.remove(identifier)
+          }
+
+          throw e
+        }
+      }
     }
 
     // ── 15. Mark funding address as used and switch identity ────────────────
