@@ -1,5 +1,6 @@
 // Resolved action, derived from asset + sender type + recipient type.
 // 'withdraw'         — platform address → Core (L1) address
+// 'identityWithdraw' — identity → Core (L1) address
 // 'shield'           — platform address → the wallet's own shielded pool
 // 'unshield'         — shielded pool → platform address
 // 'shieldedTransfer' — shielded pool → someone else's shielded address
@@ -11,6 +12,7 @@ export type TransferMode =
   | 'send'
   | 'topup'
   | 'withdraw'
+  | 'identityWithdraw'
   | 'shield'
   | 'unshield'
   | 'shieldedTransfer'

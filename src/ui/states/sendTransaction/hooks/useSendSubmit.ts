@@ -4,7 +4,7 @@ import { base64 } from '@scure/base'
 import { useSdk, useExtensionAPI, useSendTransactionForm } from '../../../hooks'
 import { toBaseUnit, parseCreditsAmount } from '../../../../utils'
 import { MIN_CREDIT_TRANSFER } from '../../../constants/transaction'
-import { MIN_OUTPUT_CREDITS, MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../../../constants'
+import { MIN_OUTPUT_CREDITS, MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS, WITHDRAWAL_POOLING } from '../../../../constants'
 import type { TokenData } from '../../../../types'
 import type { TransferMode } from '../types'
 import { SHIELDED_MODES } from '../types'
@@ -142,7 +142,39 @@ export function useSendSubmit ({
     formState.setError(null)
 
     try {
-      if (transferMode === 'creditTransfer') {
+      if (transferMode === 'identityWithdraw') {
+        const amountInCredits = parseCreditsAmount(formState.formData.amount)
+
+        if (amountInCredits === null) {
+          formState.setError('Please enter a valid amount')
+          return
+        }
+
+        if (amountInCredits < MIN_WITHDRAWAL_CREDITS) {
+          formState.setError(`Minimum withdrawal amount is ${MIN_WITHDRAWAL_CREDITS.toLocaleString()} credits`)
+          return
+        }
+
+        if (amountInCredits > MAX_WITHDRAWAL_CREDITS) {
+          formState.setError(`Maximum withdrawal amount is ${MAX_WITHDRAWAL_CREDITS.toLocaleString()} credits`)
+          return
+        }
+
+        const identityNonce = await sdk.identities.getIdentityNonce(sender)
+
+        const stateTransition = sdk.identities.createStateTransition('withdrawal', {
+          identityId: sender,
+          amount: amountInCredits,
+          withdrawalAddress: formState.selectedRecipient.identifier,
+          identityNonce: identityNonce + 1n,
+          pooling: WITHDRAWAL_POOLING
+        })
+
+        const stateTransitionBase64 = base64.encode(stateTransition.bytes())
+        const response = await extensionAPI.createStateTransition(stateTransitionBase64)
+
+        void navigate(`/approve/${response.stateTransition.unsignedHash}`, { state: APPROVE_NAV_STATE })
+      } else if (transferMode === 'creditTransfer') {
         const amountInCredits = parseCreditsAmount(formState.formData.amount)
 
         if (amountInCredits === null) {

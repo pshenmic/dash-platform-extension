@@ -255,8 +255,10 @@ export function useSendTransactionForm ({
         // Calculate fee based on network and asset type. Platform-address transfers
         // use the flat platform transfer fee instead of the identity credit fee.
         const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+        const isIdentityWithdrawal = !platformTransfer && selectedRecipient?.type === 'coreAddress'
         const isPlatformTransfer = platformTransfer ||
-          (selectedRecipient?.type != null && ADDRESS_RECIPIENT_TYPES.includes(selectedRecipient.type))
+          (!isIdentityWithdrawal && selectedRecipient?.type != null &&
+            ADDRESS_RECIPIENT_TYPES.includes(selectedRecipient.type))
         const fee = isPlatformTransfer ? platformFeeCredits : ESTIMATED_FEES[network].credits
         const { min, max } = getCreditLimits()
         const availableBalanceValue = balance - fee

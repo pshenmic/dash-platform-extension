@@ -41,10 +41,7 @@ const ADDRESS_RESULT_LABELS: Record<string, string> = {
   shieldAddress: 'Shielded address:'
 }
 
-// Shown when the typed value is a valid address of a type this sender can't pay.
 const UNSUPPORTED_ADDRESS_MESSAGES: Record<string, string> = {
-  platformAddress: 'Platform addresses are not supported for this transfer',
-  coreAddress: 'Core (L1) withdrawals are only available from a platform or shielded balance',
   shieldAddress: 'Shielded addresses can only be paid from your shielded balance'
 }
 

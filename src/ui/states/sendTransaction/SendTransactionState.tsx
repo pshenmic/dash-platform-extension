@@ -52,6 +52,7 @@ const SHIELDED_POOL_OPTIONS: RecipientSearchResult[] = [{
 // warning fragments (see ui/constants/transferWarnings).
 const MODE_WARNINGS: Partial<Record<TransferMode, string>> = {
   withdraw: WITHDRAW_TO_CORE_WARNING,
+  identityWithdraw: WITHDRAW_TO_CORE_WARNING,
   shieldedWithdraw: SHIELDED_WITHDRAW_WARNING,
   shield: PROVING_NOTE,
   unshield: PROVING_NOTE,
@@ -159,9 +160,10 @@ function SendTransactionState (): React.JSX.Element {
     senderIdentifier != null &&
     formState.selectedRecipient.identifier === senderIdentifier
 
-  // Recipients paid through a platform transfer (flat fee) rather than an
-  // identity credit transfer.
-  const isAddressRecipient = recipientType != null && recipientType !== 'identity'
+  // Recipients paid through a platform transfer (flat fee).
+  // Identity -> Core (L1) is an identity withdrawal, so it is not one of them.
+  const isAddressRecipient = recipientType != null && recipientType !== 'identity' &&
+    !(senderType === 'identity' && recipientType === 'coreAddress')
 
   // Resolve the transfer action from the sender × recipient matrix (see the table
   // in PLATFORM_ADDRESSES_UI_TODO.md). Anything not matched has no API → 'unsupported'.
@@ -171,6 +173,7 @@ function SendTransactionState (): React.JSX.Element {
     if (senderType === 'identity') {
       if (recipientType === 'platformAddress') return 'fund'
       if (recipientType === 'identity') return 'creditTransfer'
+      if (recipientType === 'coreAddress') return 'identityWithdraw'
       return 'unsupported'
     }
     if (senderType === 'platform') {
@@ -508,7 +511,7 @@ function SendTransactionState (): React.JSX.Element {
           excludeIdentifier={senderIdentifier}
           placeholder='Enter recipient identity or address'
           allowPlatformAddress={isCredits}
-          allowCoreAddress={isCredits && senderType !== 'identity'}
+          allowCoreAddress={isCredits}
           allowShieldAddress={isCredits && senderType === 'shielded'}
           pinnedRecipients={isCredits && senderType === 'platform' ? SHIELDED_POOL_OPTIONS : undefined}
           network={(currentNetwork ?? 'testnet') as NetworkType}
