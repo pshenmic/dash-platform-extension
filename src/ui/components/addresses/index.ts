@@ -1,5 +1,7 @@
 export { AddressesPanel } from './AddressesPanel'
+export { AddressCard, AddressCardBalance } from './AddressCard'
 export { AddressItem } from './AddressItem'
 export type { AddressData } from './AddressItem'
 export { ShieldedAddresses } from './ShieldedAddresses'
 export { ShieldedAddressItem } from './ShieldedAddressItem'
+export type { ShieldedAddressData } from './ShieldedAddressItem'

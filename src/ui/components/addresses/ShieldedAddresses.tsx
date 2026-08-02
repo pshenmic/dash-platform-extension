@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { Text, Button, ValueCard, BigNumber, ShieldSmallIcon } from 'dash-ui-kit/react'
+import { Text, Button, ValueCard, BigNumber, NotActive, ShieldSmallIcon } from 'dash-ui-kit/react'
 import { PasswordField } from '../forms'
-import { ShieldedAddressItem } from './ShieldedAddressItem'
+import { ShieldedAddressItem, type ShieldedAddressData } from './ShieldedAddressItem'
 import { BalanceInfo } from '../data'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
@@ -15,6 +15,34 @@ type ShieldedBalance = GetShieldedBalanceResponse
 
 interface ShieldedAddressesProps {
   currentNetwork?: NetworkType | null
+}
+
+const buildRows = (
+  addresses: ShieldedAddressList,
+  balance: ShieldedBalance | null
+): ShieldedAddressData[] => {
+  const unmatched = new Map((balance?.byAddress ?? []).map((entry) => [entry.address, entry]))
+
+  const derived = addresses.map((item) => {
+    const entry = unmatched.get(item.address)
+    unmatched.delete(item.address)
+
+    return {
+      address: item.address,
+      diversifierIndex: item.diversifierIndex,
+      balance: balance == null ? null : entry?.balance ?? '0',
+      spendableNotes: balance == null ? null : entry?.spendableNotes ?? 0
+    }
+  })
+
+  const external = [...unmatched.values()].map((entry) => ({
+    address: entry.address,
+    diversifierIndex: entry.diversifierIndex,
+    balance: entry.balance,
+    spendableNotes: entry.spendableNotes
+  }))
+
+  return [...derived, ...external]
 }
 
 export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNetwork }) => {
@@ -74,10 +102,12 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
     }
   }
 
+  const rows = buildRows(addresses, balance)
+
   return (
     <div className='flex flex-col gap-4'>
       <Text size='sm' dim>
-        Your shielded (private) addresses. The balance is shared across all of them.
+        Your shielded (private) addresses. They share one account balance, shown per address below.
       </Text>
 
       {!hasLoaded && (
@@ -149,11 +179,11 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
                     </div>
                   </>
                   )
-                : <Text size='sm' dim>{balanceUnavailable ? 'Unavailable' : 'n/a'}</Text>}
+                : <NotActive>{balanceUnavailable ? 'Unavailable' : 'n/a'}</NotActive>}
             </div>
           </ValueCard>
 
-          {addresses.length === 0
+          {rows.length === 0
             ? (
               <ValueCard colorScheme='lightGray' size='xl'>
                 <Text size='sm' dim>No shielded addresses available</Text>
@@ -161,8 +191,8 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
               )
             : (
               <div className='flex flex-col gap-2'>
-                {addresses.map((item) => (
-                  <ShieldedAddressItem key={`${item.diversifierIndex}-${item.address}`} address={item.address} />
+                {rows.map((item) => (
+                  <ShieldedAddressItem key={item.address} item={item} />
                 ))}
               </div>
               )}
