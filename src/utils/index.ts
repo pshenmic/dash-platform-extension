@@ -353,20 +353,41 @@ export const fetchAllShieldedNotes = async (sdk: DashPlatformSDK): Promise<Shiel
   return notes
 }
 
+// The nullifier of a recovered note as derived from the wallet's viewing key —
+// the value to check against getShieldedNullifiers to tell whether THIS note has
+// been spent.
+//
+// This is NOT the action leaf's nullifier (`ShieldedEncryptedNote.nullifier` /
+// `SerializedAction.nullifier`): a leaf's nullifier belongs to the note that
+// action spent (its input), which is unrelated to our received note. Checking
+// the leaf nullifier lets an already-spent note pass the spent filter, so it can
+// be reselected and the spend is rejected on-chain with "Nullifier has already
+// been spent".
+//
+// STOPGAP: the SDK's RecoveredNoteWASM wrapper does not expose this yet (only
+// `index` / `note`), so we reach into the raw NAPI. TODO: drop the cast once
+// dash-platform-sdk / pshenmic-dpp add a public RecoveredNoteWASM.nullifier
+// getter.
+interface RawRecoveredNoteWithNullifier {
+  _rawRecoveredNote: { nullifier: Uint8Array }
+}
+
+export const recoveredNoteNullifier = (recoveredNote: RecoveredNoteWASM): Uint8Array => {
+  return (recoveredNote as unknown as RawRecoveredNoteWithNullifier)._rawRecoveredNote.nullifier
+}
+
 // Sums the value of recovered notes that are not yet spent. Spent status is
-// matched by nullifier hex (not array order — getShieldedNullifiers does not
-// guarantee response order), and each recovered note's nullifier is taken from
-// its leaf in `allNotes` via the global `index`.
-export const sumUnspentShieldedValue = (recovered: RecoveredNoteWASM[], allNotes: ShieldedEncryptedNote[], statuses: ShieldedNullifierStatus[]): { balance: bigint, spendableNotes: number } => {
+// matched by each note's own nullifier (see recoveredNoteNullifier), by nullifier
+// hex — not array order, since getShieldedNullifiers does not guarantee response
+// order.
+export const sumUnspentShieldedValue = (recovered: RecoveredNoteWASM[], statuses: ShieldedNullifierStatus[]): { balance: bigint, spendableNotes: number } => {
   const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
 
   let balance = 0n
   let spendableNotes = 0
 
   for (const recoveredNote of recovered) {
-    const encryptedNote = allNotes[recoveredNote.index]
-
-    if (encryptedNote == null || spent.has(bytesToHex(encryptedNote.nullifier))) {
+    if (spent.has(bytesToHex(recoveredNoteNullifier(recoveredNote)))) {
       continue
     }
 
@@ -441,17 +462,14 @@ export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Arra
   }
 
   // Drop already-spent notes (their nullifiers are on-chain) so they never enter
-  // a spend — matching how the balance is computed.
-  const nullifiers = recovered
-    .map(recoveredNote => allNotes[recoveredNote.index]?.nullifier)
-    .filter((nullifier): nullifier is Uint8Array => nullifier != null)
+  // a spend — matching how the balance is computed. Uses each note's own
+  // nullifier (recoveredNoteNullifier), not the action leaf's, so a note we
+  // already spent is excluded instead of being reselected and rejected on-chain.
+  const nullifiers = recovered.map(recoveredNoteNullifier)
   const statuses = nullifiers.length > 0 ? await sdk.shielded.getShieldedNullifiers(nullifiers) : []
   const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
 
-  const unspent = recovered.filter(recoveredNote => {
-    const encryptedNote = allNotes[recoveredNote.index]
-    return encryptedNote != null && !spent.has(bytesToHex(encryptedNote.nullifier))
-  })
+  const unspent = recovered.filter(recoveredNote => !spent.has(bytesToHex(recoveredNoteNullifier(recoveredNote))))
 
   if (unspent.length === 0) {
     throw new Error('No unspent shielded notes available to spend')

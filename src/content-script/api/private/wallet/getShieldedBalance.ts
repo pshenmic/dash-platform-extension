@@ -2,7 +2,7 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { decryptMnemonic, fetchAllShieldedNotes, sumUnspentShieldedValue } from '../../../../utils'
+import { decryptMnemonic, fetchAllShieldedNotes, recoveredNoteNullifier, sumUnspentShieldedValue } from '../../../../utils'
 import { GetShieldedBalancePayload } from '../../../../types/messages/payloads/GetShieldedBalancePayload'
 import { GetShieldedBalanceResponse } from '../../../../types/messages/response/GetShieldedBalanceResponse'
 
@@ -38,15 +38,13 @@ export class GetShieldedBalanceHandler implements APIHandler {
     const allNotes = await fetchAllShieldedNotes(this.sdk)
     const recovered = this.sdk.shielded.recoverNotes(allNotes, seed, account)
 
-    const nullifiers = recovered
-      .map(recoveredNote => allNotes[recoveredNote.index]?.nullifier)
-      .filter((nullifier): nullifier is Uint8Array => nullifier != null)
+    const nullifiers = recovered.map(recoveredNoteNullifier)
 
     const statuses = nullifiers.length > 0
       ? await this.sdk.shielded.getShieldedNullifiers(nullifiers)
       : []
 
-    const { balance, spendableNotes } = sumUnspentShieldedValue(recovered, allNotes, statuses)
+    const { balance, spendableNotes } = sumUnspentShieldedValue(recovered, statuses)
 
     return { balance: balance.toString(), spendableNotes, totalNotes: allNotes.length }
   }
