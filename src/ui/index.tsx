@@ -13,7 +13,6 @@ import ApproveTransactionState from './states/approveTransaction/ApproveTransact
 import AppConnectState from './states/appConnect/AppConnectState'
 import SendTransactionState from './states/sendTransaction/SendTransactionState'
 import PlatformTransferConfirmState from './states/platformTransfer/PlatformTransferConfirmState'
-import WithdrawState from './states/withdrawal/WithdrawState'
 import Layout from './components/layout/Layout'
 import PageWithHeader from './components/layout/PageWithHeader'
 import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
@@ -187,15 +186,6 @@ const App: React.FC = function () {
         {
           path: '/send-transaction',
           element: <PageWithHeader><SendTransactionState /></PageWithHeader>,
-          handle: {
-            headerProps: {
-              variant: 'sendTransaction'
-            }
-          }
-        },
-        {
-          path: '/withdrawal',
-          element: <PageWithHeader><WithdrawState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'sendTransaction'

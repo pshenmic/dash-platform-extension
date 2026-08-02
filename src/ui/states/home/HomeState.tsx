@@ -3,7 +3,7 @@ import { useNavigate, useOutletContext, Navigate } from 'react-router-dom'
 import NoIdentities from './NoIdentities'
 import NoWallets from './NoWallets'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
-import { Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs, RefreshIcon, EyeOpenIcon, EyeClosedIcon } from 'dash-ui-kit/react'
+import { Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs, RefreshIcon, EyeOpenIcon, EyeClosedIcon, Button } from 'dash-ui-kit/react'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -16,7 +16,6 @@ import { TokensList } from '../../components/tokens'
 import { NamesList, type NameData } from '../../components/names'
 import { BalanceInfo } from '../../components/data'
 import { fetchNames } from '../../../utils'
-import ButtonRow from '../../components/layout/ButtonRow'
 
 function HomeState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -243,19 +242,14 @@ function HomeState (): React.JSX.Element {
         </div>
       </div>
 
-      <ButtonRow
-        leftButton={{
-          text: 'Send',
-          onClick: () => { void navigate('/send-transaction') },
-          colorScheme: 'brand',
-          disabled: currentIdentity === null || balanceState.data === null
-        }}
-        rightButton={{
-          text: 'Withdraw',
-          onClick: () => { void navigate('/withdrawal') },
-          disabled: currentIdentity === null || balanceState.data === null
-        }}
-      />
+      <Button
+        onClick={() => { void navigate('/send-transaction') }}
+        colorScheme='brand'
+        className='w-full'
+        disabled={currentIdentity === null || balanceState.data === null}
+      >
+        Send
+      </Button>
 
       <ValueCard
         border={false}
