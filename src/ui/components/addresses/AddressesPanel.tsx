@@ -12,6 +12,8 @@ interface AddressesPanelProps {
   currentNetwork?: NetworkType | null
 }
 
+// Addresses section of the settings: the wallet's transparent platform addresses
+// with their balances and a way to create more, plus the shielded ones in a tab.
 export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }) => {
   const extensionAPI = useExtensionAPI()
   const platformExplorerClient = usePlatformExplorerClient()
