@@ -4,7 +4,7 @@ import { base64 } from '@scure/base'
 import { useSdk, useExtensionAPI, useSendTransactionForm } from '../../../hooks'
 import { toBaseUnit, parseCreditsAmount } from '../../../../utils'
 import { MIN_CREDIT_TRANSFER } from '../../../constants/transaction'
-import { MIN_OUTPUT_CREDITS } from '../../../../constants'
+import { MIN_OUTPUT_CREDITS, MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../../../constants'
 import type { TokenData } from '../../../../types'
 import type { TransferMode } from '../types'
 import { SHIELDED_MODES } from '../types'
@@ -96,7 +96,19 @@ export function useSendSubmit ({
         return
       }
 
-      if (amountCredits < MIN_OUTPUT_CREDITS) {
+      const isWithdrawal = transferMode === 'withdraw' || transferMode === 'shieldedWithdraw'
+
+      if (isWithdrawal && amountCredits < MIN_WITHDRAWAL_CREDITS) {
+        formState.setError(`Minimum withdrawal amount is ${MIN_WITHDRAWAL_CREDITS.toLocaleString()} credits`)
+        return
+      }
+
+      if (isWithdrawal && amountCredits > MAX_WITHDRAWAL_CREDITS) {
+        formState.setError(`Maximum withdrawal amount is ${MAX_WITHDRAWAL_CREDITS.toLocaleString()} credits`)
+        return
+      }
+
+      if (!isWithdrawal && amountCredits < MIN_OUTPUT_CREDITS) {
         formState.setError(`Minimum platform transfer amount is ${MIN_OUTPUT_CREDITS.toLocaleString()} credits`)
         return
       }

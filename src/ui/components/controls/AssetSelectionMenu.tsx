@@ -48,11 +48,15 @@ export function buildAssetOptions (tokens: TokenData[] = []): AssetOption[] {
   return [CREDITS_OPTION, ...tokenOptions]
 }
 
+// Shown instead of a balance that hasn't loaded yet — a real 0 would claim the
+// account is empty.
+const UNKNOWN_BALANCE = '—'
+
 // Formats an asset's balance for display. `creditsBalance` is the raw credits
 // amount (string) for the Credits option.
 export function formatAssetBalance (option: AssetOption, creditsBalance?: string): string {
   if (option.value === 'credits') {
-    return creditsBalance != null ? `${creditsBalance} CRDT` : '0'
+    return creditsBalance != null ? `${creditsBalance} CRDT` : UNKNOWN_BALANCE
   }
   if ((option.isToken ?? false) && option.tokenData != null) {
     return `${fromBaseUnit(option.tokenData.balance, option.tokenData.decimals)} ${option.symbol}`

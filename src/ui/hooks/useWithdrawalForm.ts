@@ -4,7 +4,8 @@ import {
   creditsToDash,
   multiplyBigIntByPercentage
 } from '../../utils'
-import { ESTIMATED_FEES, MIN_CREDIT_WITHDRAWAL, MAX_CREDIT_WITHDRAWAL } from '../constants/transaction'
+import { ESTIMATED_FEES } from '../constants/transaction'
+import { MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../constants'
 
 interface WithdrawalFormData {
   amount: string
@@ -67,10 +68,10 @@ export function useWithdrawalForm (
 
     if (parsed !== '' && parsed !== '.') {
       const amountBigInt = BigInt(Math.floor(Number(parsed)))
-      if (amountBigInt > 0n && amountBigInt < MIN_CREDIT_WITHDRAWAL) {
-        setError(`Minimum withdrawal amount is ${MIN_CREDIT_WITHDRAWAL.toLocaleString()} credits`)
-      } else if (amountBigInt > MAX_CREDIT_WITHDRAWAL) {
-        setError(`Maximum withdrawal amount is ${MAX_CREDIT_WITHDRAWAL.toLocaleString()} credits`)
+      if (amountBigInt > 0n && amountBigInt < MIN_WITHDRAWAL_CREDITS) {
+        setError(`Minimum withdrawal amount is ${MIN_WITHDRAWAL_CREDITS.toLocaleString()} credits`)
+      } else if (amountBigInt > MAX_WITHDRAWAL_CREDITS) {
+        setError(`Maximum withdrawal amount is ${MAX_WITHDRAWAL_CREDITS.toLocaleString()} credits`)
       } else {
         setError(null)
       }
@@ -104,10 +105,10 @@ export function useWithdrawalForm (
         setFormData(prev => ({ ...prev, amount: creditsAmount.toString() }))
 
         const amountBigInt = BigInt(creditsAmount)
-        if (amountBigInt > 0n && amountBigInt < MIN_CREDIT_WITHDRAWAL) {
-          setError(`Minimum withdrawal amount is ${MIN_CREDIT_WITHDRAWAL.toLocaleString()} credits`)
-        } else if (amountBigInt > MAX_CREDIT_WITHDRAWAL) {
-          setError(`Maximum withdrawal amount is ${MAX_CREDIT_WITHDRAWAL.toLocaleString()} credits`)
+        if (amountBigInt > 0n && amountBigInt < MIN_WITHDRAWAL_CREDITS) {
+          setError(`Minimum withdrawal amount is ${MIN_WITHDRAWAL_CREDITS.toLocaleString()} credits`)
+        } else if (amountBigInt > MAX_WITHDRAWAL_CREDITS) {
+          setError(`Maximum withdrawal amount is ${MAX_WITHDRAWAL_CREDITS.toLocaleString()} credits`)
         } else {
           setError(null)
         }

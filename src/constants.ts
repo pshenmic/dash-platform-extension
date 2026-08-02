@@ -55,6 +55,8 @@ export const CORE_ADDRESS_VERSIONS = {
 // the platform hasn't implemented the other pooling mechanisms yet.
 export const WITHDRAWAL_CORE_FEE_PER_BYTE = 1
 export const WITHDRAWAL_POOLING = 'Never'
+export const MIN_WITHDRAWAL_CREDITS = 1_000_000n
+export const MAX_WITHDRAWAL_CREDITS = 50_000_000_000_000n
 export const PLATFORM_ADDRESS_COIN_TYPE = {
   testnet: 1,
   mainnet: 5

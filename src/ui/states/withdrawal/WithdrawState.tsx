@@ -21,7 +21,7 @@ import { TransferSummaryCard, Banner } from '../../components/cards'
 import { AmountInputSection } from '../../components/forms'
 import type { NetworkType } from '../../../types'
 import type { OutletContext } from '../../types'
-import { MIN_CREDIT_WITHDRAWAL, MAX_CREDIT_WITHDRAWAL } from '../../constants/transaction'
+import { MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../../constants'
 import {
   getFormattedBalance,
   getAssetDecimals
@@ -112,13 +112,13 @@ function WithdrawState (): React.JSX.Element {
 
     const amountInCredits = BigInt(Math.floor(Number(amount)))
 
-    if (amountInCredits < MIN_CREDIT_WITHDRAWAL) {
-      form.setError(`Minimum withdrawal amount is ${MIN_CREDIT_WITHDRAWAL.toLocaleString()} credits`)
+    if (amountInCredits < MIN_WITHDRAWAL_CREDITS) {
+      form.setError(`Minimum withdrawal amount is ${MIN_WITHDRAWAL_CREDITS.toLocaleString()} credits`)
       return
     }
 
-    if (amountInCredits > MAX_CREDIT_WITHDRAWAL) {
-      form.setError(`Maximum withdrawal amount is ${MAX_CREDIT_WITHDRAWAL.toLocaleString()} credits`)
+    if (amountInCredits > MAX_WITHDRAWAL_CREDITS) {
+      form.setError(`Maximum withdrawal amount is ${MAX_WITHDRAWAL_CREDITS.toLocaleString()} credits`)
       return
     }
 

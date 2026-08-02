@@ -8,7 +8,7 @@ import {
   multiplyBigIntByPercentage
 } from '../../utils'
 import { MIN_CREDIT_TRANSFER, ESTIMATED_FEES } from '../constants/transaction'
-import { MIN_OUTPUT_CREDITS, TRANSFER_FEE_CREDITS } from '../../constants'
+import { MIN_OUTPUT_CREDITS, TRANSFER_FEE_CREDITS, MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../constants'
 import { getAvailableBalance, getAssetDecimals } from '../../utils/transactionFormatters'
 
 interface SendFormData {
@@ -26,6 +26,13 @@ interface RecipientData {
 // Recipients that are paid through a platform-address transfer (flat platform
 // fee, dust minimum) rather than an identity credit transfer.
 const ADDRESS_RECIPIENT_TYPES: RecipientTargetType[] = ['platformAddress', 'coreAddress', 'shieldAddress', 'shieldedPool']
+
+interface CreditLimits {
+  min: bigint
+  minMessage: string
+  max: bigint | null
+  maxMessage: string | null
+}
 
 interface UseSendTransactionFormParams {
   balance: bigint | null
@@ -83,18 +90,42 @@ export function useSendTransactionForm ({
     return tokens.find(token => token.identifier === formData.selectedAsset)
   }, [formData.selectedAsset, tokens])
 
-  const getCreditMin = useCallback((): { min: bigint, message: string } => {
+  const getCreditLimits = useCallback((): CreditLimits => {
+    // A Core (L1) recipient makes this a withdrawal, which Platform bounds on
+    // both ends regardless of where the credits are spent from.
+    if (selectedRecipient?.type === 'coreAddress') {
+      return {
+        min: MIN_WITHDRAWAL_CREDITS,
+        minMessage: `Minimum withdrawal amount is ${MIN_WITHDRAWAL_CREDITS.toLocaleString()} credits`,
+        max: MAX_WITHDRAWAL_CREDITS,
+        maxMessage: `Maximum withdrawal amount is ${MAX_WITHDRAWAL_CREDITS.toLocaleString()} credits`
+      }
+    }
     if (platformTransfer || (selectedRecipient?.type != null && ADDRESS_RECIPIENT_TYPES.includes(selectedRecipient.type))) {
       return {
         min: MIN_OUTPUT_CREDITS,
-        message: `Minimum platform transfer amount is ${MIN_OUTPUT_CREDITS.toLocaleString()} credits`
+        minMessage: `Minimum platform transfer amount is ${MIN_OUTPUT_CREDITS.toLocaleString()} credits`,
+        max: null,
+        maxMessage: null
       }
     }
     return {
       min: MIN_CREDIT_TRANSFER,
-      message: `Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`
+      minMessage: `Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`,
+      max: null,
+      maxMessage: null
     }
   }, [selectedRecipient, platformTransfer])
+
+  // Error for an amount outside the limits of the current transfer, or null.
+  const validateCredits = useCallback((amountCredits: bigint): string | null => {
+    const { min, minMessage, max, maxMessage } = getCreditLimits()
+
+    if (amountCredits < min) return minMessage
+    if (max !== null && amountCredits > max) return maxMessage
+
+    return null
+  }, [getCreditLimits])
 
   // Recompute the equivalent (DASH / USD) display from a credits amount.
   const recomputeEquivalent = useCallback((credits: bigint, currency: 'usd' | 'dash' = equivalentCurrency): void => {
@@ -168,18 +199,12 @@ export function useSendTransactionForm ({
     if (parsed !== '' && parsed !== '.') {
       const numericValue = Number(parsed)
 
-      // Minimum credit transfer validation
+      // Credit amount limits validation
       if (formData.selectedAsset === 'credits' && numericValue > 0) {
-        const amountInCredits = BigInt(Math.floor(numericValue))
-        const { min, message } = getCreditMin()
-        if (amountInCredits < min) {
-          setError(message)
-        } else {
-          setError(null)
-        }
+        setError(validateCredits(BigInt(Math.floor(numericValue))))
       }
     }
-  }, [formData.selectedAsset, balance, rate, equivalentCurrency, getSelectedToken, getCreditMin, recomputeEquivalent, tokens])
+  }, [formData.selectedAsset, balance, rate, equivalentCurrency, getSelectedToken, validateCredits, recomputeEquivalent, tokens])
 
   const handleEquivalentChange = useCallback((value: string): void => {
     const decimals = equivalentCurrency === 'dash' ? 8 : 2
@@ -211,12 +236,7 @@ export function useSendTransactionForm ({
 
         if (formData.selectedAsset === 'credits') {
           const amountBigInt = BigInt(creditsAmount)
-          const { min, message } = getCreditMin()
-          if (amountBigInt > 0n && amountBigInt < min) {
-            setError(message)
-          } else {
-            setError(null)
-          }
+          setError(amountBigInt > 0n ? validateCredits(amountBigInt) : null)
         }
       } else {
         setFormData(prev => ({ ...prev, amount: '' }))
@@ -226,7 +246,7 @@ export function useSendTransactionForm ({
       setFormData(prev => ({ ...prev, amount: '' }))
       setError(null)
     }
-  }, [equivalentCurrency, rate, formData.selectedAsset, getCreditMin])
+  }, [equivalentCurrency, rate, formData.selectedAsset, validateCredits])
 
   const handleQuickAmount = useCallback((percentage: number): void => {
     if (formData.selectedAsset === 'credits') {
@@ -238,7 +258,7 @@ export function useSendTransactionForm ({
         const isPlatformTransfer = platformTransfer ||
           (selectedRecipient?.type != null && ADDRESS_RECIPIENT_TYPES.includes(selectedRecipient.type))
         const fee = isPlatformTransfer ? platformFeeCredits : ESTIMATED_FEES[network].credits
-        const { min } = getCreditMin()
+        const { min, max } = getCreditLimits()
         const availableBalanceValue = balance - fee
 
         // Check if balance is enough to cover fee + minimum transfer
@@ -248,10 +268,11 @@ export function useSendTransactionForm ({
         }
 
         const calculatedAmount = multiplyBigIntByPercentage(availableBalanceValue, percentage)
-        // Ensure amount meets minimum requirement
-        const amount = calculatedAmount < min
-          ? min.toString()
-          : calculatedAmount.toString()
+        // Keep the result inside the limits of this transfer
+        const boundedAmount = calculatedAmount < min
+          ? min
+          : (max !== null && calculatedAmount > max) ? max : calculatedAmount
+        const amount = boundedAmount.toString()
         setFormData(prev => ({ ...prev, amount }))
 
         // Update equivalent amount
@@ -268,7 +289,7 @@ export function useSendTransactionForm ({
         setFormData(prev => ({ ...prev, amount }))
       }
     }
-  }, [formData.selectedAsset, balance, rate, equivalentCurrency, currentNetwork, getSelectedToken, getCreditMin, recomputeEquivalent, selectedRecipient, platformTransfer, platformFeeCredits, tokens])
+  }, [formData.selectedAsset, balance, rate, equivalentCurrency, currentNetwork, getSelectedToken, getCreditLimits, recomputeEquivalent, selectedRecipient, platformTransfer, platformFeeCredits, tokens])
 
   const handleAssetSelect = useCallback((asset: string): void => {
     setFormData(prev => ({ ...prev, selectedAsset: asset, amount: '' }))
