@@ -1,47 +1,47 @@
-import React, { useState } from 'react'
-import { Identifier, CopyIcon, Tooltip } from 'dash-ui-kit/react'
+import React from 'react'
+import { Text } from 'dash-ui-kit/react'
+import { AddressCard, AddressCardBalance } from './AddressCard'
 
-interface ShieldedAddressItemProps {
+export interface ShieldedAddressData {
   address: string
+  diversifierIndex: number | null
+  balance: string | null
+  spendableNotes: number | null
+  loading?: boolean
 }
 
-const ICON_CLASS = 'flex items-center justify-center p-[3px] bg-[rgba(12,28,51,0.05)] rounded-[5px] shrink-0 hover:bg-[rgba(12,28,51,0.1)] transition-colors cursor-pointer'
-const ICON_COLOR = 'text-[rgba(12,28,51,0.5)]'
+interface ShieldedAddressItemProps {
+  item: ShieldedAddressData
+}
 
-// Shielded addresses are note-based: there is no per-address balance, so the
-// row only shows the address and a copy button.
-export const ShieldedAddressItem: React.FC<ShieldedAddressItemProps> = ({ address }) => {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = (): void => {
-    navigator.clipboard.writeText(address).catch(() => {})
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
+export const ShieldedAddressItem: React.FC<ShieldedAddressItemProps> = ({ item }) => {
+  const loading = item.loading ?? false
 
   return (
-    <div className='rounded-[15px] p-3 flex flex-row items-center gap-2 bg-[rgba(12,28,51,0.03)]'>
-      <Identifier highlight={'both'} linesAdjustment={false}>
-        {address}
-      </Identifier>
+    <AddressCard address={item.address}>
+      <div className='flex flex-row items-start justify-between gap-4'>
+        <div className='flex flex-col gap-0.5 min-w-0'>
+          <Text size='sm' dim>
+            Index:{' '}
+            <span className='font-extrabold text-dash-primary-dark-blue'>
+              {item.diversifierIndex ?? '—'}
+            </span>
+          </Text>
 
-      <Tooltip
-        content='Copied!'
-        side='top'
-        sideOffset={4}
-        open={copied}
-        onOpenChange={(open) => { if (!open) setCopied(false) }}
-      >
-        <button
-          onClick={handleCopy}
-          className={ICON_CLASS}
-          aria-label='Copy address'
-        >
-          <span className='w-[14px] h-[14px] flex items-center justify-center overflow-hidden'>
-            <CopyIcon size={14} className={ICON_COLOR} />
-          </span>
-        </button>
-      </Tooltip>
-    </div>
+          {loading
+            ? <Text size='sm' dim>Loading...</Text>
+            : (
+              <Text size='sm' dim>
+                Spendable notes:{' '}
+                <span className='font-extrabold text-dash-primary-dark-blue'>
+                  {item.spendableNotes ?? 0}
+                </span>
+              </Text>
+              )}
+        </div>
+
+        <AddressCardBalance balance={item.balance} loading={loading} />
+      </div>
+    </AddressCard>
   )
 }
