@@ -26,8 +26,7 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
   const [activeTab, setActiveTab] = useState('transparent')
   const loadingRef = useRef(false)
 
-  // Fetch the created addresses (public, no password) and enrich with balances
-  // and transaction counts.
+  // Fetch the created addresses and enrich with balances and transaction counts.
   const refreshList = async (): Promise<void> => {
     const created = await extensionAPI.listPlatformAddresses()
 
