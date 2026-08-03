@@ -310,12 +310,12 @@ function SendTransactionState (): React.JSX.Element {
   // platform address) in Case 2.
   const prevBalanceRef = useRef<bigint | null>(null)
 
-  // Case 1: identity balance loaded/changed → clamp if needed
+  // Case 1: identity balance loaded/changed -> clamp if needed
   useEffect(() => {
     const prev = prevBalanceRef.current
     prevBalanceRef.current = balance
 
-    // Skip initial null → first value transition and cases with no amount
+    // Skip initial null -> first value transition and cases with no amount
     if (prev === null || balance === null || balance === prev) return
     if (formState.formData.amount === '' || formState.formData.amount === '.') return
 
@@ -329,7 +329,7 @@ function SendTransactionState (): React.JSX.Element {
     }
   }, [balance])
 
-  // Case 2: sender type or platform address changed → clamp against known balances
+  // Case 2: sender type or platform address changed -> clamp against known balances
   const isMountedSenderRef = useRef(false)
   useEffect(() => {
     if (!isMountedSenderRef.current) {
@@ -339,7 +339,7 @@ function SendTransactionState (): React.JSX.Element {
     if (formState.formData.amount === '' || formState.formData.amount === '.') return
 
     if (senderType === 'platform' || senderType === 'shielded') {
-      // Spendable funds of the new sender; unknown (no address / pool locked) → clear.
+      // Spendable funds of the new sender; unknown (no address / pool locked) -> clear.
       const sourceBalance = senderType === 'platform'
         ? (selectedPlatformAddress !== null ? platformBalances.get(selectedPlatformAddress) ?? null : null)
         : shieldedSenderBalance
