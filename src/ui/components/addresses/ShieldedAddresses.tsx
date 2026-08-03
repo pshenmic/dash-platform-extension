@@ -58,8 +58,7 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
   const [error, setError] = useState<string | null>(null)
   const [rate, setRate] = useState<number | null>(null)
 
-  // USD rate per Dash. Fetched independently of the (password-gated) balance so
-  // the equivalent is ready as soon as the balance loads.
+  // Fetch USD rate per Dash
   useEffect(() => {
     const network = currentNetwork ?? 'testnet'
     platformExplorerClient.fetchRate(network)

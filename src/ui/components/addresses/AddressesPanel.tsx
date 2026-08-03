@@ -7,6 +7,7 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
 import { usePasswordCheck } from '../../hooks'
 import type { NetworkType } from '../../../types'
+import type { PlatformAddressBalance } from '../../../types/messages/response/GetPlatformAddressesInfosResponse'
 
 interface AddressesPanelProps {
   currentNetwork?: NetworkType | null
@@ -28,8 +29,7 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
   const [activeTab, setActiveTab] = useState('transparent')
   const loadingRef = useRef(false)
 
-  // Fetch the created addresses (public, no password) and enrich with balances
-  // and transaction counts.
+  // Fetch the created addresses and enrich with balances and transaction counts.
   const refreshList = async (): Promise<void> => {
     const created = await extensionAPI.listPlatformAddresses()
 
@@ -48,10 +48,9 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
 
     const network = currentNetwork ?? 'testnet'
 
-    // Balance + nonce come from the batched SDK-backed handler. The transaction
-    // count has no SDK equivalent, so it still comes from the explorer.
     const [infos, txCounts] = await Promise.all([
-      extensionAPI.getPlatformAddressesInfos(initial.map((item) => item.address)),
+      extensionAPI.getPlatformAddressesInfos(initial.map((item) => item.address))
+        .catch((): PlatformAddressBalance[] => []),
       Promise.all(initial.map(async (item) => {
         try {
           const data = await platformExplorerClient.fetchAddress(item.address, network)
@@ -72,7 +71,7 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
     })))
   }
 
-  // Load the existing list on mount. No password required.
+  // Load the existing list on mount.
   const loadList = async (): Promise<void> => {
     if (loadingRef.current) return
     loadingRef.current = true
@@ -95,19 +94,23 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
     void loadList()
   }, [currentNetwork])
 
-  // Generate the next address without a password. New wallets have the xpub
-  // cached at creation, so this just works. If the xpub is missing (legacy
-  // wallet), generation fails and we fall back to a one-time password prompt.
+  // Generate the next address
   const handleCreate = async (): Promise<void> => {
     setIsGenerating(true)
     setError(null)
 
     try {
-      await extensionAPI.generatePlatformAddresses()
+      try {
+        await extensionAPI.generatePlatformAddresses()
+      } catch {
+        setNeedsPassword(true)
+        return
+      }
+
       setNeedsPassword(false)
       await refreshList()
-    } catch {
-      setNeedsPassword(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load addresses')
     } finally {
       setIsGenerating(false)
     }
