@@ -6,6 +6,7 @@ import { ShieldedAddresses } from './ShieldedAddresses'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
 import type { NetworkType } from '../../../types'
+import type { PlatformAddressBalance } from '../../../types/messages/response/GetPlatformAddressesInfosResponse'
 
 interface AddressesPanelProps {
   currentNetwork?: NetworkType | null
@@ -45,10 +46,9 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
 
     const network = currentNetwork ?? 'testnet'
 
-    // Balance + nonce come from the batched SDK-backed handler. The transaction
-    // count has no SDK equivalent, so it still comes from the explorer.
     const [infos, txCounts] = await Promise.all([
-      extensionAPI.getPlatformAddressesInfos(initial.map((item) => item.address)),
+      extensionAPI.getPlatformAddressesInfos(initial.map((item) => item.address))
+        .catch((): PlatformAddressBalance[] => []),
       Promise.all(initial.map(async (item) => {
         try {
           const data = await platformExplorerClient.fetchAddress(item.address, network)
@@ -99,11 +99,17 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
     setError(null)
 
     try {
-      await extensionAPI.generatePlatformAddresses()
+      try {
+        await extensionAPI.generatePlatformAddresses()
+      } catch {
+        setNeedsPassword(true)
+        return
+      }
+
       setNeedsPassword(false)
       await refreshList()
-    } catch {
-      setNeedsPassword(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load addresses')
     } finally {
       setIsGenerating(false)
     }
