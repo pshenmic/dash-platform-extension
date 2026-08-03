@@ -68,7 +68,7 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
     })))
   }
 
-  // Load the existing list on mount. No password required.
+  // Load the existing list on mount.
   const loadList = async (): Promise<void> => {
     if (loadingRef.current) return
     loadingRef.current = true
@@ -90,9 +90,7 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
     void loadList()
   }, [])
 
-  // Generate the next address without a password. New wallets have the xpub
-  // cached at creation, so this just works. If the xpub is missing (legacy
-  // wallet), generation fails and we fall back to a one-time password prompt.
+  // Generate the next address
   const handleCreate = async (): Promise<void> => {
     setIsGenerating(true)
     setError(null)
