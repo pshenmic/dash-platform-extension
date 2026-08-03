@@ -96,15 +96,15 @@ function HomeState (): React.JSX.Element {
     }).catch(e => console.log('loadBalance error', e))
 
     loadTransactions(async () => {
-      return await platformExplorerClient.fetchTransactions(currentIdentity, currentNetwork as NetworkType, 'desc')
+      return await platformExplorerClient.fetchTransactions(currentIdentity, currentNetwork, 'desc')
     }).catch(e => console.log('loadTransactions error', e))
 
     loadTokens(async () => {
-      return await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
+      return await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork, 100, 1)
     }).catch(e => console.log('loadTokens error:', e))
 
     loadNames(async () => {
-      return await fetchNames(sdk, platformExplorerClient, currentIdentity, currentNetwork as NetworkType)
+      return await fetchNames(sdk, platformExplorerClient, currentIdentity, currentNetwork)
     }).catch(e => console.log('loadNames error:', e))
   }
 

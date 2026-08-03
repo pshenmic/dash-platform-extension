@@ -237,7 +237,7 @@ function SendTransactionState (): React.JSX.Element {
 
     const loadRate = async (): Promise<void> => {
       try {
-        const rate = await platformExplorerClient.fetchRate((currentNetwork ?? 'testnet') as NetworkType)
+        const rate = await platformExplorerClient.fetchRate(currentNetwork ?? 'testnet')
         setRate(rate)
       } catch (err) {
         console.log('Failed to load exchange rate:', err)
@@ -319,7 +319,7 @@ function SendTransactionState (): React.JSX.Element {
     if (prev === null || balance === null || balance === prev) return
     if (formState.formData.amount === '' || formState.formData.amount === '.') return
 
-    const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+    const network = currentNetwork ?? 'testnet'
     const isPlatformRecipient = isAddressRecipient
     const fee = isPlatformRecipient ? platformFeeCredits : ESTIMATED_FEES[network].credits
     const available = balance - fee
@@ -359,7 +359,7 @@ function SendTransactionState (): React.JSX.Element {
       }
     } else if (balance !== null) {
       // Switched back to identity — balance already reflects current identity
-      const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+      const network = currentNetwork ?? 'testnet'
       const isPlatformRecipient = isAddressRecipient
       const fee = isPlatformRecipient ? platformFeeCredits : ESTIMATED_FEES[network].credits
       const available = balance - fee
@@ -382,7 +382,7 @@ function SendTransactionState (): React.JSX.Element {
   const availableBalanceForSlider = useMemo((): string | null => {
     if (isCredits) {
       if (senderBalance === null || senderBalance === 0n) return null
-      const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+      const network = currentNetwork ?? 'testnet'
       const isPlatformTransfer = senderType !== 'identity' || isAddressRecipient
       const fee = isPlatformTransfer ? platformFeeCredits : ESTIMATED_FEES[network].credits
       const available = senderBalance - fee
@@ -514,7 +514,7 @@ function SendTransactionState (): React.JSX.Element {
           allowCoreAddress={isCredits}
           allowShieldAddress={isCredits && senderType === 'shielded'}
           pinnedRecipients={isCredits && senderType === 'platform' ? SHIELDED_POOL_OPTIONS : undefined}
-          network={(currentNetwork ?? 'testnet') as NetworkType}
+          network={currentNetwork ?? 'testnet'}
         />
       </div>
 

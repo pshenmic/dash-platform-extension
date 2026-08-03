@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import type { TokenData } from '../../types'
+import type { NetworkType, TokenData } from '../../types'
 import type { RecipientSearchResult, RecipientTargetType } from '../../utils'
 import {
   parseDecimalInput,
@@ -37,7 +37,7 @@ interface CreditLimits {
 interface UseSendTransactionFormParams {
   balance: bigint | null
   rate: number | null
-  currentNetwork: string | null
+  currentNetwork: NetworkType | null
   tokens: TokenData[]
   // When true, treat the transfer as a platform-address transfer (flat platform
   // fee + dust minimum) regardless of the recipient — e.g. sending from an address.
@@ -254,7 +254,7 @@ export function useSendTransactionForm ({
       if (balance !== null && balance > 0n) {
         // Calculate fee based on network and asset type. Platform-address transfers
         // use the flat platform transfer fee instead of the identity credit fee.
-        const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+        const network = currentNetwork ?? 'testnet'
         const isIdentityWithdrawal = !platformTransfer && selectedRecipient?.type === 'coreAddress'
         const isPlatformTransfer = platformTransfer ||
           (!isIdentityWithdrawal && selectedRecipient?.type != null &&

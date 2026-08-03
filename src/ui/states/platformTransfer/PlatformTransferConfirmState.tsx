@@ -201,7 +201,7 @@ function PlatformTransferConfirmState (): React.JSX.Element {
   }
 
   if (txHash != null) {
-    const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+    const network = currentNetwork ?? 'testnet'
 
     return (
       <div className='screen-content'>

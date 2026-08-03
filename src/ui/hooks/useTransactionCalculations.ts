@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { TokenData } from '../../types'
+import type { NetworkType, TokenData } from '../../types'
 import { creditsToUsdEquivalent, parseCreditsAmount } from '../../utils'
 import { ESTIMATED_FEES } from '../constants/transaction'
 import { formatTokenAmount } from '../../utils/transactionFormatters'
@@ -9,7 +9,7 @@ interface UseTransactionCalculationsParams {
   amount: string
   balance: bigint | null
   rate: number | null
-  currentNetwork: string | null
+  currentNetwork: NetworkType | null
   token?: TokenData
 }
 
@@ -31,7 +31,7 @@ export function useTransactionCalculations ({
   currentNetwork,
   token
 }: UseTransactionCalculationsParams): TransactionCalculations {
-  const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+  const network = currentNetwork ?? 'testnet'
   const assetType = selectedAsset === 'credits' ? 'credits' : 'tokens'
 
   const getEstimatedFeeBigInt = useMemo(() => {
