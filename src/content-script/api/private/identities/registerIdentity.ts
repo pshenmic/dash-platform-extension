@@ -126,7 +126,7 @@ export class RegisterIdentityHandler implements APIHandler {
     // This key owns the asset lock credit output and signs the
     // IdentityCreateTransition. Derived from seed — recoverable without storage.
     const identityRegistrationKey = await deriveIdentityRegistrationKey(wallet, payload.password, identityIndex, this.sdk)
-    const creditOutputAddress = this.sdk.keyPair.p2pkhAddress(identityRegistrationKey.getPublicKey().bytes(), wallet.network as any)
+    const creditOutputAddress = this.creditOutputAddress(identityRegistrationKey, wallet.network)
 
     // ── 6. Build asset lock transaction ─────────────────────────────────────
     // Inputs are signed by the one-time funding key. Credit output goes to
@@ -267,14 +267,25 @@ export class RegisterIdentityHandler implements APIHandler {
     }
   }
 
+  // The next identity index not occupied by a locally-stored identity.
+  private async nextLocalIdentityIndex (): Promise<number> {
+    const identities = await this.identitiesRepository.getAll()
+
+    return findNextLocalIdentityIndex(identities.map((identity) => identity.index))
+  }
+
+  // Address that owns an asset lock credit output for a given registration key
+  // (P2PKH of the DIP-0013 registration key at m/9'/coin'/5'/1'/identityIndex).
+  private creditOutputAddress (identityRegistrationKey: PrivateKeyWASM, network: Wallet['network']): string {
+    return this.sdk.keyPair.p2pkhAddress(identityRegistrationKey.getPublicKey().bytes(), network as any)
+  }
+
   // Scans for the next identity index whose auth key is not yet registered
   // on-chain, starting past the next locally-free index (skips indices whose
   // derived auth key is already registered, e.g. the same seedphrase used
   // elsewhere). Throws if none is found within the scan limit.
   private async scanFreeIdentityIndex (wallet: Wallet, password: string): Promise<number> {
-    const identities = await this.identitiesRepository.getAll()
-    const localIndices = identities.map((identity) => identity.index)
-    const startIndex = findNextLocalIdentityIndex(localIndices)
+    const startIndex = await this.nextLocalIdentityIndex()
     const scanLimit = startIndex + IDENTITY_INDEX_SCAN_LIMIT
 
     let identityIndex = startIndex
@@ -300,13 +311,11 @@ export class RegisterIdentityHandler implements APIHandler {
   // The original attempt picked the index via the free-index scan, so it lies in
   // the same window from 0. Throws if no candidate matches.
   private async recoverIdentityIndexFromTxid (wallet: Wallet, payload: RegisterIdentityPayload, assetLockFundingPrivateKey: PrivateKeyWASM, committedTxid: string): Promise<number> {
-    const identities = await this.identitiesRepository.getAll()
-    const localIndices = identities.map((identity) => identity.index)
-    const scanLimit = findNextLocalIdentityIndex(localIndices) + IDENTITY_INDEX_SCAN_LIMIT
+    const scanLimit = await this.nextLocalIdentityIndex() + IDENTITY_INDEX_SCAN_LIMIT
 
     for (let identityIndex = 0; identityIndex < scanLimit; identityIndex++) {
       const registrationKey = await deriveIdentityRegistrationKey(wallet, payload.password, identityIndex, this.sdk)
-      const creditOutputAddress = this.sdk.keyPair.p2pkhAddress(registrationKey.getPublicKey().bytes(), wallet.network as any)
+      const creditOutputAddress = this.creditOutputAddress(registrationKey, wallet.network)
 
       const { assetLockTx } = await buildAssetLockFromFundingTx(
         this.coreSDK,
