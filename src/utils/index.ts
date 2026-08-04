@@ -376,26 +376,59 @@ export const recoveredNoteNullifier = (recoveredNote: RecoveredNoteWASM): Uint8A
   return (recoveredNote as unknown as RawRecoveredNoteWithNullifier)._rawRecoveredNote.nullifier
 }
 
-// Sums the value of recovered notes that are not yet spent. Spent status is
-// matched by each note's own nullifier (see recoveredNoteNullifier), by nullifier
-// hex — not array order, since getShieldedNullifiers does not guarantee response
-// order.
-export const sumUnspentShieldedValue = (recovered: RecoveredNoteWASM[], statuses: ShieldedNullifierStatus[]): { balance: bigint, spendableNotes: number } => {
+export interface ShieldedAddressBalance {
+  // Diversified Orchard address (bech32m) that received the notes.
+  address: string
+  // Our derivation index for this address, or null when it falls outside the
+  // derived window (the balance is still counted, only the index is unknown).
+  diversifierIndex: number | null
+  balance: bigint
+  spendableNotes: number
+}
+
+// Sums the value of recovered notes that are not yet spent, both in aggregate
+// and grouped by the diversified Orchard address that received each note
+// (`note.address` from the trial-decrypted plaintext). Spent status is matched
+// by each note's own nullifier (see recoveredNoteNullifier), by nullifier hex —
+// not array order, since getShieldedNullifiers does not guarantee response order.
+// `diversifierIndexByAddress` attributes our known address indices; a note to an
+// address outside that map gets diversifierIndex null.
+export const sumUnspentShieldedValue = (
+  recovered: RecoveredNoteWASM[],
+  statuses: ShieldedNullifierStatus[],
+  network: NetworkType,
+  diversifierIndexByAddress: Map<string, number> = new Map()
+): { balance: bigint, spendableNotes: number, byAddress: ShieldedAddressBalance[] } => {
   const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
 
   let balance = 0n
   let spendableNotes = 0
+  const buckets = new Map<string, { balance: bigint, spendableNotes: number }>()
 
   for (const recoveredNote of recovered) {
     if (spent.has(bytesToHex(recoveredNoteNullifier(recoveredNote)))) {
       continue
     }
 
-    balance += recoveredNote.note.value
+    const value = recoveredNote.note.value
+    balance += value
     spendableNotes += 1
+
+    const address = recoveredNote.note.address.toBech32m(network)
+    const bucket = buckets.get(address) ?? { balance: 0n, spendableNotes: 0 }
+    bucket.balance += value
+    bucket.spendableNotes += 1
+    buckets.set(address, bucket)
   }
 
-  return { balance, spendableNotes }
+  const byAddress: ShieldedAddressBalance[] = Array.from(buckets.entries()).map(([address, bucket]) => ({
+    address,
+    diversifierIndex: diversifierIndexByAddress.get(address) ?? null,
+    balance: bucket.balance,
+    spendableNotes: bucket.spendableNotes
+  }))
+
+  return { balance, spendableNotes, byAddress }
 }
 
 export interface ShieldedSpendInputs {
