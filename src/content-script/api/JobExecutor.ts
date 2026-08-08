@@ -1,4 +1,4 @@
-import { EventData } from '../../types'
+import { EventData } from '../../types/EventData'
 import { JobsRepository } from '../repository/JobsRepository'
 import { LongRunningHandler } from './LongRunningHandler'
 import { BroadcastError } from '../errors/BroadcastError'

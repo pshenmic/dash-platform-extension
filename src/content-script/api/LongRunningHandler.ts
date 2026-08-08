@@ -1,4 +1,4 @@
-import { EventData } from '../../types'
+import { EventData } from '../../types/EventData'
 import { APIHandler } from './APIHandler'
 
 // Callback the job executor passes into a long-running handler so it can report

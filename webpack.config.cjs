@@ -5,21 +5,31 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = (env, argv) => {
   const mode = argv.mode || 'development'
+  const isProduction = mode === 'production'
+
+  // The popup document loads the React UI plus the in-popup content-script (fast
+  // methods on the dispatch path). The service worker and offscreen bundles must
+  // NOT be injected here.
+  const popupChunks = isProduction ? ['ui', 'content-script'] : ['ui']
 
   return ({
     devtool: 'inline-source-map',
     entry: {
       ui: './src/ui/index.tsx',
-      ...(mode === 'production' && {
+      ...(isProduction && {
         'content-script': './src/content-script/index.ts',
         injectExtension: './src/injected/dashPlatformExtension.ts',
-        injectSdk: './src/injected/dashPlatformSdk.ts'
+        injectSdk: './src/injected/dashPlatformSdk.ts',
+        background: './src/background/index.ts',
+        offscreen: './src/offscreen/index.ts'
       })
     },
     output: {
       publicPath: '',
       path: path.resolve(__dirname, 'dist'),
-      filename: '[name].js'
+      filename: '[name].js',
+      // Use `self` so the service-worker bundle (no `window`) works too.
+      globalObject: 'self'
     },
     module: {
       rules: [
@@ -78,8 +88,18 @@ module.exports = (env, argv) => {
       }),
       new HtmlWebpackPlugin({
         filename: 'index.html',
-        template: 'src/ui/index.html'
+        template: 'src/ui/index.html',
+        chunks: popupChunks
       }),
+      // Offscreen document host page — only exists in the production (packaged)
+      // build where the offscreen bundle is emitted.
+      ...(isProduction
+        ? [new HtmlWebpackPlugin({
+            filename: 'offscreen.html',
+            template: 'src/offscreen/offscreen.html',
+            chunks: ['offscreen']
+          })]
+        : []),
       new webpack.optimize.LimitChunkCountPlugin({
         maxChunks: 1
       }),
