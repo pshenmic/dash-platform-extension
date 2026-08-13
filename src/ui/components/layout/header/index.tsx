@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches, useOutletContext } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
+import { useWalletName } from '../../../hooks/useWalletName'
 import { Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
 import { BackButton } from '../../common'
 import { NetworkSelector } from '../../controls/NetworkSelector'
@@ -206,6 +207,7 @@ export default function Header (): React.JSX.Element {
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const walletName = useWalletName()
   const deepestRoute = [...matches].reverse().find((m): boolean =>
     m.handle?.headerProps != null
   )
@@ -257,18 +259,6 @@ export default function Header (): React.JSX.Element {
     }
 
     void navigate(-1)
-  }
-
-  const getWalletDisplayName = (): string => {
-    if (currentWallet == null || allWallets == null || allWallets.length === 0) return 'Wallet'
-
-    const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
-    const currentWalletData = availableWallets.find(wallet => wallet.walletId === currentWallet)
-
-    if (currentWalletData == null) return 'Wallet'
-
-    const currentWalletIndex = availableWallets.findIndex(wallet => wallet.walletId === currentWallet)
-    return currentWalletData.label ?? `Wallet_${currentWalletIndex + 1}`
   }
 
   const getRightSectionType = (): 'image' | 'burger' | 'none' => {
@@ -332,7 +322,7 @@ export default function Header (): React.JSX.Element {
         <div className={`flex items-center gap-2.5 ${config.imageType != null ? 'absolute top-0 right-0 z-10' : config.hideLeftSection && config.showWalletRightReadOnly ? 'w-full justify-between' : ''}`}>
           {config.showWalletRightReadOnly && currentWallet !== null && (
             <Text size='sm' color='gray' weight='medium' className='text-right' dim>
-              {getWalletDisplayName()}
+              {walletName}
             </Text>
           )}
 
