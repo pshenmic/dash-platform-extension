@@ -5,7 +5,7 @@ interface ConfirmDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   title?: string
-  message: string
+  message: React.ReactNode
   confirmText?: string
   cancelText?: string
   onConfirm: (password?: string) => void | Promise<void>

@@ -16,7 +16,8 @@ import { TokensList } from '../../components/tokens'
 import { NamesList, type NameData } from '../../components/names'
 import { BalanceInfo } from '../../components/data'
 import { fetchNames } from '../../../utils'
-import { openExtensionTab } from '../../utils/extensionTab'
+import { findOpenExtensionTab, focusExtensionTab, openExtensionTab, type OpenExtensionTab } from '../../utils/extensionTab'
+import { ConfirmDialog } from '../../components/controls'
 function HomeState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
@@ -32,6 +33,7 @@ function HomeState (): React.JSX.Element {
   const [rateState, loadRate] = useAsyncState<number>()
   const [activeTab, setActiveTab] = useState('transactions')
   const [hideBalance, setHideBalance] = useState(false)
+  const [busyTopUpTab, setBusyTopUpTab] = useState<OpenExtensionTab | null>(null)
 
   useEffect(() => {
     extensionAPI.getSettings()
@@ -131,6 +133,26 @@ function HomeState (): React.JSX.Element {
       return await platformExplorerClient.fetchRate(currentNetwork as NetworkType)
     }).catch(e => console.log('loadRate error:', e))
   }, [currentNetwork, platformExplorerClient, loadRate])
+
+  const handleTopUp = async (): Promise<void> => {
+    const openTab = await findOpenExtensionTab('topup')
+
+    if (openTab != null) {
+      if (openTab.identityId !== currentIdentity || openTab.walletId !== currentWallet) {
+        setBusyTopUpTab(openTab)
+        return
+      }
+
+      await focusExtensionTab(openTab.tabId)
+      return
+    }
+
+    await openExtensionTab(
+      'topup',
+      `/topup-identity?stage=1&identity=${currentIdentity ?? ''}`,
+      { identityId: currentIdentity, walletId: currentWallet }
+    )
+  }
 
   if (isLoading) {
     return <LoadingScreen message='Loading wallet data...' />
@@ -253,7 +275,7 @@ function HomeState (): React.JSX.Element {
         <Button
           className='flex-1'
           disabled={currentIdentity === null || balanceState.data === null}
-          onClick={() => { void openExtensionTab('topup', '/topup-identity?stage=1') }}
+          onClick={() => { void handleTopUp() }}
         >
           Top Up
         </Button>
@@ -317,6 +339,30 @@ function HomeState (): React.JSX.Element {
           ]}
         />
       </ValueCard>
+
+      <ConfirmDialog
+        open={busyTopUpTab !== null}
+        onOpenChange={(open) => { if (!open) setBusyTopUpTab(null) }}
+        title='Top-up already in progress'
+        message={
+          <span className='inline-flex flex-wrap items-center gap-1'>
+            A top-up is already open in another tab for identity:
+            {busyTopUpTab?.identityId != null && (
+              <Identifier ellipsis={false} highlight='both'>
+                {busyTopUpTab.identityId}
+              </Identifier>
+            )}
+            Finish or close that tab first.
+          </span>
+        }
+        confirmText='Open That Tab'
+        cancelText='Cancel'
+        onConfirm={() => {
+          const tabId = busyTopUpTab?.tabId
+          setBusyTopUpTab(null)
+          if (tabId != null) void focusExtensionTab(tabId)
+        }}
+      />
     </div>
   )
 }

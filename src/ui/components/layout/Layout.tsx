@@ -1,13 +1,20 @@
 import React, { FC, useState, useEffect, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
-import { ThemeProvider } from 'dash-ui-kit/react'
+import { ThemeProvider, Identifier } from 'dash-ui-kit/react'
 import { useExtensionAPI, useSdk } from '../../hooks'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { GetStatusResponse } from '../../../types/messages/response/GetStatusResponse'
 import { NetworkType, EventData, Identity } from '../../../types'
 import type { HeaderConfigOverride } from '../../types'
 import LoadingScreen from './screens/LoadingScreen'
-import { isTabView } from '../../utils/extensionTab'
+import { isTabView, findOpenExtensionTab } from '../../utils/extensionTab'
+import { ConfirmDialog } from '../controls'
+
+type PendingSwitch =
+  | { type: 'wallet', walletId: string | null }
+  | { type: 'network', network: NetworkType }
+
+type BlockedSwitch = PendingSwitch & { identityId: string | null }
 
 export interface LayoutContext {
   currentNetwork: NetworkType
@@ -40,6 +47,7 @@ const Layout: FC = () => {
   const [availableIdentities, setAvailableIdentities] = useState<Identity[]>([])
   const [headerComponent, setHeaderComponent] = useState<React.ReactNode>(null)
   const [headerConfigOverride, setHeaderConfigOverride] = useState<HeaderConfigOverride | null>(null)
+  const [blockedSwitch, setBlockedSwitch] = useState<BlockedSwitch | null>(null)
 
   const loadWallets = useCallback(async (): Promise<WalletAccountInfo[]> => {
     if (!isApiReady) return []
@@ -73,7 +81,7 @@ const Layout: FC = () => {
     }
   }, [isApiReady, currentWallet, extensionAPI])
 
-  const handleNetworkChange = useCallback(async (network: NetworkType): Promise<void> => {
+  const applyNetworkChange = useCallback(async (network: NetworkType): Promise<void> => {
     if (!isApiReady) return
 
     try {
@@ -90,7 +98,7 @@ const Layout: FC = () => {
     }
   }, [isApiReady, sdk, extensionAPI, loadWallets])
 
-  const handleWalletChange = useCallback(async (walletId: string | null): Promise<void> => {
+  const applyWalletChange = useCallback(async (walletId: string | null): Promise<void> => {
     if (!isApiReady || walletId === null || walletId === '') return
 
     try {
@@ -100,6 +108,29 @@ const Layout: FC = () => {
       console.log('Wallet change error:', error)
     }
   }, [isApiReady, extensionAPI])
+
+  // A top-up tab is bound to the wallet and network it was opened under,
+  // so switching either one strands it. Ask before doing that.
+  const guardSwitch = useCallback(async (target: PendingSwitch): Promise<void> => {
+    const openTab = await findOpenExtensionTab('topup')
+
+    if (openTab != null) {
+      setBlockedSwitch({ ...target, identityId: openTab.identityId })
+      return
+    }
+
+    await (target.type === 'wallet'
+      ? applyWalletChange(target.walletId)
+      : applyNetworkChange(target.network))
+  }, [applyWalletChange, applyNetworkChange])
+
+  const handleNetworkChange = useCallback(async (network: NetworkType): Promise<void> => {
+    await guardSwitch({ type: 'network', network })
+  }, [guardSwitch])
+
+  const handleWalletChange = useCallback(async (walletId: string | null): Promise<void> => {
+    await guardSwitch({ type: 'wallet', walletId })
+  }, [guardSwitch])
 
   const handleIdentityChange = useCallback(async (identity: string): Promise<void> => {
     if (!isApiReady) return
@@ -118,14 +149,14 @@ const Layout: FC = () => {
     const stillExists = networkWallets.some(w => w.walletId === currentWallet)
     if (!stillExists) {
       if (networkWallets.length > 0) {
-        await handleWalletChange(networkWallets[0].walletId)
+        await applyWalletChange(networkWallets[0].walletId)
       } else {
         setCurrentWallet(null)
       }
     }
     const status = await extensionAPI.getStatus()
     setHasAnyWallet(status.hasAnyWallet)
-  }, [loadWallets, currentNetwork, currentWallet, handleWalletChange, extensionAPI])
+  }, [loadWallets, currentNetwork, currentWallet, applyWalletChange, extensionAPI])
 
   const createWallet = useCallback(async (walletType: any, mnemonic?: string) => {
     if (!isApiReady) throw new Error('API is not ready')
@@ -222,6 +253,39 @@ const Layout: FC = () => {
           }}
             />
           : <LoadingScreen message='Initializing application...' />}
+
+        <ConfirmDialog
+          open={blockedSwitch !== null}
+          onOpenChange={(open) => { if (!open) setBlockedSwitch(null) }}
+          title='Top-up in progress'
+          message={
+            <span className='inline-flex flex-wrap items-center gap-1'>
+              A top-up is open in another tab
+              {blockedSwitch?.identityId != null && (
+                <>
+                  for identity
+                  <Identifier ellipsis={false} highlight='both'>
+                    {blockedSwitch.identityId}
+                  </Identifier>
+                </>
+              )}
+              . Switching the {blockedSwitch?.type === 'network' ? 'network' : 'wallet'} will
+              break it, and funds already sent will stay on the funding address.
+            </span>
+          }
+          confirmText='Switch Anyway'
+          cancelText='Cancel'
+          onConfirm={() => {
+            const target = blockedSwitch
+            setBlockedSwitch(null)
+
+            if (target == null) return
+
+            void (target.type === 'wallet'
+              ? applyWalletChange(target.walletId)
+              : applyNetworkChange(target.network))
+          }}
+        />
       </div>
     </ThemeProvider>
   )

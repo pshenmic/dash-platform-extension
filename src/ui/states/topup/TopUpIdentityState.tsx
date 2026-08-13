@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams, useOutletContext } from 'react-router-dom'
-import { useExtensionAPI } from '../../hooks'
+import { useExtensionAPI, useWalletName } from '../../hooks'
 import { useCoreSDK } from '../../hooks/useCoreSDK'
 import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerApi'
 import type { LayoutContext } from '../../components/layout/Layout'
@@ -10,6 +10,7 @@ import { Stage3Processing } from './stages/Stage3Processing'
 import { Stage4Success } from './stages/Stage4Success'
 import { TopUpError } from './stages/TopUpError'
 import { isTabView, closeCurrentExtensionTab } from '../../utils/extensionTab'
+import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
 
 type Stage = 1 | 2 | 3 | 4
 
@@ -24,7 +25,8 @@ function TopUpIdentityState (): React.JSX.Element {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const context = useOutletContext<LayoutContext>()
-  const { currentIdentity, setHeaderConfigOverride, currentNetwork } = context ?? {}
+  const { currentIdentity, setHeaderConfigOverride, setHeaderComponent, currentNetwork } = context ?? {}
+  const walletName = useWalletName()
   const extensionAPI = useExtensionAPI()
   const coreSDK = useCoreSDK()
   const platformExplorerClient = usePlatformExplorerClient()
@@ -49,6 +51,18 @@ function TopUpIdentityState (): React.JSX.Element {
   const stage = (rawStage >= 1 && rawStage <= 4 ? rawStage : 1) as Stage
   const hasError = searchParams.get('error') === 'true'
 
+  // Pinned to the identity the flow was opened for, not the wallet's current one.
+  const identityId = searchParams.get('identity') ?? currentIdentity ?? null
+
+  const stageUrl = useCallback((nextStage: Stage, failed = false): string => {
+    const params = new URLSearchParams({ stage: String(nextStage) })
+
+    if (identityId != null) params.set('identity', identityId)
+    if (failed) params.set('error', 'true')
+
+    return `/topup-identity?${params.toString()}`
+  }, [identityId])
+
   useEffect(() => {
     if (setHeaderConfigOverride == null) return
 
@@ -60,6 +74,16 @@ function TopUpIdentityState (): React.JSX.Element {
 
     return () => { setHeaderConfigOverride?.(null) }
   }, [stage, hasError, setHeaderConfigOverride])
+
+  useEffect(() => {
+    if (setHeaderComponent == null || identityId == null) return
+
+    setHeaderComponent(
+      <IdentityHeaderBadge identity={identityId} walletName={walletName} />
+    )
+
+    return () => { setHeaderComponent(null) }
+  }, [identityId, walletName, setHeaderComponent])
 
   // The whole top-up runs inside this page, so closing it once the funding
   // payment is out strands that payment. Warn before the page goes away.
@@ -78,26 +102,26 @@ function TopUpIdentityState (): React.JSX.Element {
   }, [isInFlight, hasError])
 
   const runTopUp = useCallback(async (address: string, txid: string, pwd: string): Promise<void> => {
-    if (currentIdentity == null) return
+    if (identityId == null) return
 
-    void navigate('/topup-identity?stage=3')
+    void navigate(stageUrl(3))
     setError(null)
 
     try {
-      const result = await extensionAPI.topUpIdentity(currentIdentity, address, txid, pwd)
+      const result = await extensionAPI.topUpIdentity(identityId, address, txid, pwd)
       setTopUpResult({
         identityId: result.identityId,
         stateTransitionHash: result.stateTransitionHash,
         topUpAmount: result.topUpAmount,
         date: new Date()
       })
-      void navigate('/topup-identity?stage=4')
+      void navigate(stageUrl(4))
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Top-up failed'
       setError(message)
-      void navigate('/topup-identity?stage=3&error=true', { replace: true })
+      void navigate(stageUrl(3, true), { replace: true })
     }
-  }, [extensionAPI, navigate, currentIdentity])
+  }, [extensionAPI, navigate, identityId, stageUrl])
 
   // Auto-detect payment on stage 2
   useEffect(() => {
@@ -156,7 +180,7 @@ function TopUpIdentityState (): React.JSX.Element {
     }
 
     setError(null)
-    void navigate('/topup-identity?stage=2')
+    void navigate(stageUrl(2))
   }
 
   const handleConfirmPayment = (): void => {
@@ -178,7 +202,7 @@ function TopUpIdentityState (): React.JSX.Element {
       setTransactionHash('')
       setShowManualEntry(false)
       setError(null)
-      void navigate('/topup-identity?stage=1', { replace: true })
+      void navigate(stageUrl(1), { replace: true })
     } else if (isTabView() && window.history.length <= 1) {
       void closeCurrentExtensionTab()
     } else {
@@ -190,7 +214,7 @@ function TopUpIdentityState (): React.JSX.Element {
     setTransactionHash('')
     setShowManualEntry(false)
     setError(null)
-    void navigate('/topup-identity?stage=2', { replace: true })
+    void navigate(stageUrl(2), { replace: true })
   }
 
   if (hasError) {

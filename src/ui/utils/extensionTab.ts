@@ -5,25 +5,31 @@ const OPEN_TABS_KEY = 'openExtensionTabs'
 
 export type ExtensionTabKey = 'topup'
 
+export interface OpenExtensionTab {
+  tabId: number
+  identityId: string | null
+  walletId: string | null
+}
+
 export const isTabView = (): boolean =>
   new URLSearchParams(window.location.search).get('view') === 'tab'
 
 export const buildExtensionTabUrl = (hashPath: string): string =>
   chrome.runtime.getURL(`index.html?${TAB_VIEW_QUERY}#${hashPath}`)
 
-const readOpenTabs = async (): Promise<Record<string, number>> => {
+const readOpenTabs = async (): Promise<Record<string, OpenExtensionTab>> => {
   if (chrome?.storage?.session == null) return {}
 
   try {
     const stored = await chrome.storage.session.get(OPEN_TABS_KEY)
 
-    return (stored?.[OPEN_TABS_KEY] ?? {}) as Record<string, number>
+    return (stored?.[OPEN_TABS_KEY] ?? {}) as Record<string, OpenExtensionTab>
   } catch {
     return {}
   }
 }
 
-const writeOpenTabs = async (openTabs: Record<string, number>): Promise<void> => {
+const writeOpenTabs = async (openTabs: Record<string, OpenExtensionTab>): Promise<void> => {
   if (chrome?.storage?.session == null) return
 
   try {
@@ -31,38 +37,45 @@ const writeOpenTabs = async (openTabs: Record<string, number>): Promise<void> =>
   } catch {}
 }
 
-const focusTab = async (tabId: number): Promise<boolean> => {
+// Returns the tab opened for this key, or null if it is gone.
+export const findOpenExtensionTab = async (key: ExtensionTabKey): Promise<OpenExtensionTab | null> => {
+  const entry = (await readOpenTabs())[key]
+
+  if (entry?.tabId == null) return null
+
+  try {
+    await chrome.tabs.get(entry.tabId)
+
+    return entry
+  } catch {
+    return null // tab was closed since we stored its id
+  }
+}
+
+export const focusExtensionTab = async (tabId: number): Promise<void> => {
   try {
     const tab = await chrome.tabs.get(tabId)
 
-    if (tab?.id == null) return false
-
-    await chrome.tabs.update(tab.id, { active: true })
+    await chrome.tabs.update(tabId, { active: true })
 
     if (chrome.windows != null && tab.windowId != null) {
       await chrome.windows.update(tab.windowId, { focused: true })
     }
+  } catch {}
 
-    return true
-  } catch {
-    return false // tab was closed since we stored its id
-  }
+  window.close()
 }
 
-// Focuses the tab already open for this key instead of starting a second copy.
-export const openExtensionTab = async (key: ExtensionTabKey, hashPath: string): Promise<void> => {
+export const openExtensionTab = async (
+  key: ExtensionTabKey,
+  hashPath: string,
+  owner: Omit<OpenExtensionTab, 'tabId'>
+): Promise<void> => {
   const openTabs = await readOpenTabs()
-  const existingTabId = openTabs[key]
-
-  if (existingTabId != null && await focusTab(existingTabId)) {
-    window.close()
-    return
-  }
-
   const tab = await chrome.tabs.create({ url: buildExtensionTabUrl(hashPath) })
 
   if (tab.id != null) {
-    await writeOpenTabs({ ...openTabs, [key]: tab.id })
+    await writeOpenTabs({ ...openTabs, [key]: { ...owner, tabId: tab.id } })
   }
 
   window.close()
