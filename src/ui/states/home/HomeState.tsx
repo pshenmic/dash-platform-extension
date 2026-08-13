@@ -16,6 +16,7 @@ import { TokensList } from '../../components/tokens'
 import { NamesList, type NameData } from '../../components/names'
 import { BalanceInfo } from '../../components/data'
 import { fetchNames } from '../../../utils'
+import { openExtensionTab } from '../../utils/extensionTab'
 function HomeState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
@@ -252,7 +253,7 @@ function HomeState (): React.JSX.Element {
         <Button
           className='flex-1'
           disabled={currentIdentity === null || balanceState.data === null}
-          onClick={() => { void navigate('/topup-identity') }}
+          onClick={() => { void openExtensionTab('topup', '/topup-identity?stage=1') }}
         >
           Top Up
         </Button>

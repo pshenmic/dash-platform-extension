@@ -7,6 +7,7 @@ import { GetStatusResponse } from '../../../types/messages/response/GetStatusRes
 import { NetworkType, EventData, Identity } from '../../../types'
 import type { HeaderConfigOverride } from '../../types'
 import LoadingScreen from './screens/LoadingScreen'
+import { isTabView } from '../../utils/extensionTab'
 
 export interface LayoutContext {
   currentNetwork: NetworkType
@@ -188,6 +189,15 @@ const Layout: FC = () => {
 
     loadData().catch(e => console.log('loadData error', e))
   }, [isApiReady, loadWallets, loadIdentities, loadCurrentIdentity])
+
+  // body sits outside the React root, so its tab-mode class is synced here
+  useEffect(() => {
+    if (!isTabView()) return
+
+    document.body.classList.add('tab-view')
+
+    return () => { document.body.classList.remove('tab-view') }
+  }, [])
 
   return (
     <ThemeProvider initialTheme='light'>

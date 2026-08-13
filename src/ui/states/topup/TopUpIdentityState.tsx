@@ -9,6 +9,7 @@ import { Stage2Payment } from './stages/Stage2Payment'
 import { Stage3Processing } from './stages/Stage3Processing'
 import { Stage4Success } from './stages/Stage4Success'
 import { TopUpError } from './stages/TopUpError'
+import { isTabView, closeCurrentExtensionTab } from '../../utils/extensionTab'
 
 type Stage = 1 | 2 | 3 | 4
 
@@ -59,6 +60,22 @@ function TopUpIdentityState (): React.JSX.Element {
 
     return () => { setHeaderConfigOverride?.(null) }
   }, [stage, hasError, setHeaderConfigOverride])
+
+  // The whole top-up runs inside this page, so closing it once the funding
+  // payment is out strands that payment. Warn before the page goes away.
+  const isInFlight = stage === 3 || (stage === 2 && transactionHash !== '')
+
+  useEffect(() => {
+    if (!isInFlight || hasError) return
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
+      event.preventDefault()
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => { window.removeEventListener('beforeunload', handleBeforeUnload) }
+  }, [isInFlight, hasError])
 
   const runTopUp = useCallback(async (address: string, txid: string, pwd: string): Promise<void> => {
     if (currentIdentity == null) return
@@ -148,6 +165,11 @@ function TopUpIdentityState (): React.JSX.Element {
   }
 
   const handleDone = (): void => {
+    if (isTabView()) {
+      void closeCurrentExtensionTab()
+      return
+    }
+
     void navigate('/home')
   }
 
@@ -157,6 +179,8 @@ function TopUpIdentityState (): React.JSX.Element {
       setShowManualEntry(false)
       setError(null)
       void navigate('/topup-identity?stage=1', { replace: true })
+    } else if (isTabView() && window.history.length <= 1) {
+      void closeCurrentExtensionTab()
     } else {
       void navigate(-1)
     }

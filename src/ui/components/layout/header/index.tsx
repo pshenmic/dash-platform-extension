@@ -9,6 +9,7 @@ import { WalletSelector } from '../../controls/WalletSelector'
 import { SettingsMenu } from '../../settings'
 import type { LayoutContext } from '../Layout'
 import type { NetworkType } from '../../../../types'
+import { isTabView, closeCurrentExtensionTab } from '../../../utils/extensionTab'
 
 const IMAGE_VARIANTS = {
   coins: {
@@ -249,6 +250,12 @@ export default function Header (): React.JSX.Element {
   }
 
   const handleBack = (): void => {
+    if (isTabView() && window.history.length <= 1) {
+      // Opened straight into a fresh tab - there is no previous entry to return to.
+      void closeCurrentExtensionTab()
+      return
+    }
+
     void navigate(-1)
   }
 

@@ -61,6 +61,27 @@ body {
   height: 37.5rem;
 }
 
+/* Full browser tab mode: keep the popup-sized card, centered on the page. */
+body.tab-view {
+  width: 100%;
+  height: auto;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+body.tab-view .root {
+  width: 26.25rem;
+  height: 37.5rem;
+  max-height: 100%;
+  flex-shrink: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 1.5rem 3rem rgba(12, 28, 51, 0.18);
+}
+
 [data-radix-popper-content-wrapper] {
   z-index: 9999 !important;
 }
