@@ -7,6 +7,7 @@ interface ConfirmDialogProps {
   title?: string
   message: React.ReactNode
   confirmText?: string
+  confirmColorScheme?: 'red' | 'brand' | 'lightBlue'
   cancelText?: string
   onConfirm: (password?: string) => void | Promise<void>
   onCancel?: () => void
@@ -21,6 +22,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   title = 'Confirm Action',
   message,
   confirmText = 'Confirm',
+  confirmColorScheme = 'red',
   cancelText = 'Cancel',
   onConfirm,
   onCancel,
@@ -128,7 +130,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             {cancelText}
           </Button>
           <Button
-            colorScheme='red'
+            colorScheme={confirmColorScheme}
             size='md'
             className='flex-1'
             onClick={handleConfirm}

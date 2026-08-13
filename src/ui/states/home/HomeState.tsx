@@ -356,6 +356,7 @@ function HomeState (): React.JSX.Element {
           </span>
         }
         confirmText='Open That Tab'
+        confirmColorScheme='brand'
         cancelText='Cancel'
         onConfirm={() => {
           const tabId = busyTopUpTab?.tabId
