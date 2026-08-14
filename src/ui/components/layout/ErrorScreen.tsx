@@ -8,6 +8,7 @@ interface ErrorScreenProps {
   defaultError?: string
   totalSteps: number
   currentStep: number
+  actionText?: string
   onReturnBack: () => void
 }
 
@@ -17,6 +18,7 @@ export function ErrorScreen ({
   defaultError = 'An unexpected error occurred.',
   totalSteps,
   currentStep,
+  actionText = 'Return Back',
   onReturnBack
 }: ErrorScreenProps): React.JSX.Element {
   return (
@@ -37,7 +39,7 @@ export function ErrorScreen ({
           className='w-full'
           onClick={onReturnBack}
         >
-          Return Back
+          {actionText}
         </Button>
         <ProgressStepBar
           totalSteps={totalSteps}
