@@ -1,4 +1,4 @@
-import { MESSAGING_TIMEOUT } from '../constants'
+import { MESSAGING_TIMEOUT, BLOCKCHAIN_MESSAGING_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
@@ -353,7 +353,7 @@ export class PrivateAPIClient {
       password
     }
 
-    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload)
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
   async topUpIdentity (
@@ -369,7 +369,7 @@ export class PrivateAPIClient {
       password
     }
 
-    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload)
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
   async getSettings (): Promise<GetSettingsResponse> {
@@ -384,7 +384,7 @@ export class PrivateAPIClient {
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
-  async _rpcCall<T>(method: string, payload?: object): Promise<T> {
+  async _rpcCall<T>(method: string, payload?: object, timeout: number = MESSAGING_TIMEOUT): Promise<T> {
     const id = generateRandomHex(8)
 
     return await new Promise((resolve, reject) => {
@@ -414,7 +414,7 @@ export class PrivateAPIClient {
 
       setTimeout(() => {
         rejectWithError(`Timed out waiting for response of ${method}`)
-      }, MESSAGING_TIMEOUT)
+      }, timeout)
 
       const message: EventData = {
         context: 'dash-platform-extension',
