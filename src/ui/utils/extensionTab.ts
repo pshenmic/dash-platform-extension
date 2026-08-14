@@ -9,6 +9,7 @@ export interface OpenExtensionTab {
   tabId: number
   identityId: string | null
   walletId: string | null
+  network: string | null
 }
 
 export const isTabView = (): boolean =>
