@@ -3,53 +3,54 @@ import { KeyType, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKey, decrypt } from 'eciesjs'
 import hash from 'hash.js'
+import {
+  AssetLockProofWASM,
+  OutPointWASM,
+  OutputAddressNullableCreditsWASM,
+  AddressFundsFeeStrategyStepWASM,
+  PlatformAddressWASM
+} from 'pshenmic-dpp'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
-import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
-import { TopUpIdentityPayload } from '../../../../types/messages/payloads/TopUpIdentityPayload'
-import { TopUpIdentityResponse } from '../../../../types/messages/response/TopUpIdentityResponse'
 import { buildAssetLockFromFundingTx } from '../../../../utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../utils/waitForAssetLockProof'
 import { hexToBytes } from '../../../../utils'
 import { TXID_HEX_LENGTH } from '../../../../constants'
-import { isIdempotentTopUpError } from '../../../../utils/isIdempotentTopUpError'
+import { FundPlatformAddressFromCorePayload } from '../../../../types/messages/payloads/FundPlatformAddressFromCorePayload'
+import { FundPlatformAddressFromCoreResponse } from '../../../../types/messages/response/FundPlatformAddressFromCoreResponse'
 
-export class TopUpIdentityHandler implements APIHandler {
+// Funds a transparent platform address from a Core (L1) deposit via an
+// AddressFundingFromAssetLock state transition. Mirrors the identity top-up
+// asset-lock flow: build an asset lock from the funding transaction, broadcast it
+// on L1, wait for its lock proof, then credit the platform address. The asset
+// lock funding key both funds the lock and signs the state transition.
+export class FundPlatformAddressFromCoreHandler implements APIHandler {
   walletRepository: WalletRepository
-  identitiesRepository: IdentitiesRepository
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
 
-  constructor (
-    walletRepository: WalletRepository,
-    identitiesRepository: IdentitiesRepository,
-    assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository,
-    sdk: DashPlatformSDK,
-    coreSDK: DashCoreSDK
-  ) {
+  constructor (walletRepository: WalletRepository, assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository, sdk: DashPlatformSDK, coreSDK: DashCoreSDK) {
     this.walletRepository = walletRepository
-    this.identitiesRepository = identitiesRepository
     this.assetLockFundingAddressesRepository = assetLockFundingAddressesRepository
     this.sdk = sdk
     this.coreSDK = coreSDK
   }
 
-  async handle (event: EventData): Promise<TopUpIdentityResponse> {
-    const payload: TopUpIdentityPayload = event.payload
-
+  async handle (event: EventData): Promise<FundPlatformAddressFromCoreResponse> {
+    const payload: FundPlatformAddressFromCorePayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
       throw new Error('No wallet is chosen')
     }
 
-    const ownedIdentity = await this.identitiesRepository.getByIdentifier(payload.identityId)
-
-    if (ownedIdentity == null) {
-      throw new Error(`Identity ${payload.identityId} does not belong to the current wallet`)
+    try {
+      PlatformAddressWASM.fromBech32m(payload.platformAddress)
+    } catch {
+      throw new Error('Invalid platform address')
     }
 
     const assetLockFundingAddressEntry = await this.assetLockFundingAddressesRepository.getByAddress(payload.assetLockFundingAddress)
@@ -57,7 +58,6 @@ export class TopUpIdentityHandler implements APIHandler {
     if (assetLockFundingAddressEntry == null) {
       throw new Error(`Asset lock funding address ${payload.assetLockFundingAddress} not found`)
     }
-
     if (assetLockFundingAddressEntry.used) {
       throw new Error(`Asset lock funding address ${payload.assetLockFundingAddress} has already been used`)
     }
@@ -74,12 +74,9 @@ export class TopUpIdentityHandler implements APIHandler {
 
     const assetLockFundingPrivateKey = PrivateKeyWASM.fromBytes(assetLockFundingKeyBytes, wallet.network)
 
-    // Build asset lock transaction. The build is deterministic so the same
-    // inputs produce the same txid on retry. For a top-up the funding key both
-    // funds the asset lock and owns the credit output (it signs the top-up
-    // state transition below), so the credit output goes back to the funding
-    // address — unlike registration, where a separate derived key owns it.
-    const { assetLockTx, lockedAmount } = await buildAssetLockFromFundingTx(
+    // The funding key funds the asset lock and owns the credit output (it signs
+    // the state transition), so the credit output goes back to the funding address.
+    const { assetLockTx } = await buildAssetLockFromFundingTx(
       this.coreSDK,
       payload.assetLockFundingTxid,
       payload.assetLockFundingAddress,
@@ -99,9 +96,6 @@ export class TopUpIdentityHandler implements APIHandler {
       )
     }
 
-    // The instant lock subscription is opened in both fresh and recovery modes
-    // because waitForAssetLockProof needs it to receive instant lock events
-    // for txs that are not yet chain-locked.
     const instantLockSub = this.coreSDK.subscribeToTransactions(
       [payload.assetLockFundingAddress],
       [hexToBytes(assetLockTxid)]
@@ -109,8 +103,6 @@ export class TopUpIdentityHandler implements APIHandler {
 
     if (assetLockFundingAddressEntry.assetLockTxid == null) {
       await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
-      // Persist the broadcasted txid before any further work so a crash leaves
-      // a recoverable record of the L1-committed asset lock.
       await this.assetLockFundingAddressesRepository.markAsBroadcasted(payload.assetLockFundingAddress, assetLockTxid)
     }
 
@@ -122,46 +114,51 @@ export class TopUpIdentityHandler implements APIHandler {
       instantLockSub
     )
 
-    const stateTransition = this.sdk.identities.createStateTransition('topUp', {
-      identityId: payload.identityId,
-      assetLockProof
-    })
+    // waitForAssetLockProof races the instant lock and the chain lock, so the
+    // proof may be of either kind — build the matching WASM proof for each.
+    const assetLockProofWasm = assetLockProof.type === 'instantLock'
+      ? AssetLockProofWASM.createInstantAssetLockProof(
+        hexToBytes(assetLockProof.instantLock),
+        hexToBytes(assetLockProof.transaction),
+        assetLockProof.outputIndex
+      )
+      : AssetLockProofWASM.createChainAssetLockProof(
+        assetLockProof.coreChainLockedHeight,
+        new OutPointWASM(assetLockTxid, assetLockProof.outputIndex)
+      )
 
+    const outputs = [new OutputAddressNullableCreditsWASM(payload.platformAddress)]
+    const feeStrategy = [AddressFundsFeeStrategyStepWASM.ReduceOutput(0)]
+
+    const stateTransition = this.sdk.platformAddresses.createStateTransition('addressFundingFromAssetLock', {
+      assetLockProof: assetLockProofWasm, inputs: [], feeStrategy, userFeeIncrease: 0, inputWitness: [], outputs
+    })
     stateTransition.signByPrivateKey(assetLockFundingPrivateKey, undefined, KeyType.ECDSA_SECP256K1)
 
     const stateTransitionHash: string = stateTransition.hash(false)
 
-    try {
-      await this.sdk.stateTransitions.broadcast(stateTransition)
-      await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
-    } catch (e) {
-      if (!isIdempotentTopUpError(e)) {
-        throw e
-      }
-    }
+    await this.sdk.stateTransitions.broadcast(stateTransition)
+    await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
     await this.assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
 
     return {
-      identityId: payload.identityId,
+      platformAddress: payload.platformAddress,
       stateTransitionHash,
-      topUpAmount: lockedAmount * 1000n
+      assetLockTxid
     }
   }
 
-  validatePayload (payload: TopUpIdentityPayload): string | null {
-    if (typeof payload.identityId !== 'string' || payload.identityId.length === 0) {
-      return 'identityId must be provided'
+  validatePayload (payload: FundPlatformAddressFromCorePayload): string | null {
+    if (typeof payload.platformAddress !== 'string' || payload.platformAddress.length === 0) {
+      return 'platformAddress must be provided'
     }
-
     if (typeof payload.assetLockFundingAddress !== 'string' || payload.assetLockFundingAddress.length === 0) {
       return 'assetLockFundingAddress must be provided'
     }
-
     if (typeof payload.assetLockFundingTxid !== 'string' || payload.assetLockFundingTxid.length !== TXID_HEX_LENGTH) {
       return `assetLockFundingTxid must be a ${TXID_HEX_LENGTH}-character hex string`
     }
-
     if (typeof payload.password !== 'string' || payload.password.length === 0) {
       return 'password must be provided'
     }

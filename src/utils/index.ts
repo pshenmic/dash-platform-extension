@@ -1,8 +1,18 @@
 import { base58 } from '@scure/base'
-import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'dash-platform-sdk/types'
+import { RecoveredNoteWASM, CoreScriptWASM, OrchardAddressWASM, SpendableNoteWASM } from 'pshenmic-dpp'
+import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
+import {
+  CORE_ADDRESS_VERSIONS,
+  PLATFORM_ADDRESS_COIN_TYPE,
+  PLATFORM_ADDRESS_FEATURE,
+  PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS,
+  SHIELDED_MAX_SPEND_NOTES,
+  SHIELDED_NOTES_PAGE_SIZE
+} from '../constants'
+import type { PlatformSourceCandidate } from './platformTransfer'
 import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
 import { decrypt, PrivateKey } from 'eciesjs'
@@ -13,6 +23,8 @@ export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
+export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
+export type { PlatformSourceCandidate } from './platformTransfer'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -166,6 +178,284 @@ export const deriveIdentityPrivateKey = async (wallet: Wallet, password: string,
   }
 
   return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+}
+
+export interface PlatformAddressEntry {
+  address: string
+  derivationPath: string
+  index: number
+}
+
+// Derive the DIP-17 account-level extended public key (xpub) for the clear-funds
+// key class (m/9'/coin'/17'/account'/0'). Needs the password (decrypts the seed),
+// but only once per account — the xpub then derives every address index publicly,
+// with no further access to the seed.
+export const derivePlatformAccountXpub = async (wallet: Wallet, password: string, account: number, sdk: DashPlatformSDK): Promise<string> => {
+  if (wallet.type !== 'seedphrase') {
+    throw new Error('Platform addresses can only be derived from a seedphrase wallet')
+  }
+
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+
+  return await sdk.keyPair.derivePlatformAccountXpub(seed, wallet.network, account)
+}
+
+// Derive `count` transparent P2PKH platform addresses from an account xpub.
+// The address index is non-hardened, so public-only derivation reproduces the
+// exact same addresses as the private path — no seed/password required. The
+// address derivation and DIP-18 encoding live in the SDK; here we only expand
+// the range and label each entry with its derivation path.
+export const derivePlatformAddressesFromXpub = (sdk: DashPlatformSDK, xpub: string, network: NetworkType, account: number, count: number, start: number = 0): PlatformAddressEntry[] => {
+  const coinType = PLATFORM_ADDRESS_COIN_TYPE[network]
+
+  const entries: PlatformAddressEntry[] = []
+  for (let offset = 0; offset < count; offset++) {
+    const index = start + offset
+    const address = sdk.keyPair.derivePlatformAddressFromXpub(xpub, network, index).toBech32m(network)
+    const derivationPath = `m/9'/${coinType}'/${PLATFORM_ADDRESS_FEATURE}'/${account}'/${PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS}'/${index}`
+    entries.push({ address, derivationPath, index })
+  }
+
+  return entries
+}
+
+// Derive the private key for one of our DIP-17 platform addresses by its index:
+// m/9'/coin'/17'/account'/0'/index. Needs the password (decrypts the seed). Used
+// to sign a transfer that spends from that address.
+export const derivePlatformAddressPrivateKey = async (wallet: Wallet, password: string, account: number, index: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+  if (wallet.type !== 'seedphrase') {
+    throw new Error('Platform addresses can only be derived from a seedphrase wallet')
+  }
+
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+
+  return await sdk.keyPair.derivePlatformAddressPrivateKey(seed, wallet.network, account, index)
+}
+
+// Loads the wallet's created platform addresses (0..count-1) with their on-chain
+// balance and nonce, as source candidates for a transfer / top-up / withdrawal.
+// Balances are matched by canonical address, not by response order.
+export const buildPlatformSourceCandidates = async (sdk: DashPlatformSDK, xpub: string, network: NetworkType, account: number, count: number): Promise<PlatformSourceCandidate[]> => {
+  const created = derivePlatformAddressesFromXpub(sdk, xpub, network, account, count)
+
+  if (created.length === 0) {
+    return []
+  }
+
+  const infos = await sdk.platformAddresses.getAddressesInfos(created.map(entry => entry.address))
+  const infoByAddress = new Map(infos.map(info => [
+    info.address.toBech32m(network),
+    { balance: info.balance, nonce: info.nonce }
+  ]))
+
+  return created.map(entry => {
+    const info = infoByAddress.get(entry.address)
+
+    return {
+      platformAddress: entry.address,
+      derivationPath: entry.derivationPath,
+      index: entry.index,
+      balanceCredits: info?.balance ?? 0n,
+      nonce: info?.nonce ?? 0
+    }
+  })
+}
+
+// Decode a Core (L1) base58check address into a P2PKH/P2SH script, for use as a
+// withdrawal recipient. Verifies the checksum and the network version byte.
+export const coreAddressToScript = (coreAddress: string, network: NetworkType): CoreScriptWASM => {
+  let decoded: Uint8Array
+  try {
+    decoded = base58.decode(coreAddress)
+  } catch {
+    throw new Error(`Invalid Core address: ${coreAddress}`)
+  }
+
+  if (decoded.length !== 25) {
+    throw new Error(`Invalid Core address length: ${coreAddress}`)
+  }
+
+  const payload = decoded.slice(0, 21)
+  const checksum = decoded.slice(21)
+  const digest = hash.sha256().update(hash.sha256().update(payload).digest()).digest()
+
+  for (let i = 0; i < 4; i++) {
+    if (digest[i] !== checksum[i]) {
+      throw new Error(`Invalid Core address checksum: ${coreAddress}`)
+    }
+  }
+
+  const version = decoded[0]
+  const hash160 = decoded.slice(1, 21)
+  const versions = CORE_ADDRESS_VERSIONS[network]
+
+  if (version === versions.pubKeyHash) {
+    return CoreScriptWASM.newP2PKH(hash160)
+  }
+  if (version === versions.scriptHash) {
+    return CoreScriptWASM.newP2SH(hash160)
+  }
+
+  throw new Error(`Core address ${coreAddress} is not a valid ${network} address`)
+}
+
+export interface ShieldedAddressEntry {
+  address: string
+  derivationPath: string
+  diversifierIndex: number
+}
+
+// Derive `count` diversified Orchard (shielded) addresses for an account.
+// ZIP-32 m/32'/coinType'/account'; each diversifierIndex yields a distinct
+// receiving address sharing the account's viewing key. Needs the password
+// (decrypts the seed).
+export const deriveShieldedAddresses = (wallet: Wallet, password: string, account: number, count: number, sdk: DashPlatformSDK): ShieldedAddressEntry[] => {
+  if (wallet.type !== 'seedphrase') {
+    throw new Error('Shielded addresses can only be derived from a seedphrase wallet')
+  }
+
+  const networkType = wallet.network
+  const network = Network[networkType as keyof typeof Network]
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+  const coinType = PLATFORM_ADDRESS_COIN_TYPE[networkType]
+  const derivationPath = `m/32'/${coinType}'/${account}'`
+
+  const entries: ShieldedAddressEntry[] = []
+  for (let diversifierIndex = 0; diversifierIndex < count; diversifierIndex++) {
+    const orchardAddress = sdk.keyPair.deriveShieldedAddress(seed, network, account, diversifierIndex)
+    entries.push({ address: orchardAddress.toBech32m(networkType), derivationPath, diversifierIndex })
+  }
+
+  return entries
+}
+
+// Pages the entire shielded note set (commitment-tree leaves) from the pool,
+// preserving global leaf order so a leaf position maps to its array index.
+// Read-only — no Halo2 builder is constructed.
+export const fetchAllShieldedNotes = async (sdk: DashPlatformSDK): Promise<ShieldedEncryptedNote[]> => {
+  const total = await sdk.shielded.getShieldedNotesCount()
+
+  if (total == null || total === 0n) {
+    return []
+  }
+
+  const notes: ShieldedEncryptedNote[] = []
+  for (let start = 0n; start < total; start += BigInt(SHIELDED_NOTES_PAGE_SIZE)) {
+    const page = await sdk.shielded.getShieldedEncryptedNotes(start, SHIELDED_NOTES_PAGE_SIZE)
+
+    if (page.length === 0) {
+      break
+    }
+
+    notes.push(...page)
+  }
+
+  return notes
+}
+
+// Sums the value of recovered notes that are not yet spent. Spent status is
+// matched by nullifier hex (not array order — getShieldedNullifiers does not
+// guarantee response order), and each recovered note's nullifier is taken from
+// its leaf in `allNotes` via the global `index`.
+export const sumUnspentShieldedValue = (recovered: RecoveredNoteWASM[], allNotes: ShieldedEncryptedNote[], statuses: ShieldedNullifierStatus[]): { balance: bigint, spendableNotes: number } => {
+  const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
+
+  let balance = 0n
+  let spendableNotes = 0
+
+  for (const recoveredNote of recovered) {
+    const encryptedNote = allNotes[recoveredNote.index]
+
+    if (encryptedNote == null || spent.has(bytesToHex(encryptedNote.nullifier))) {
+      continue
+    }
+
+    balance += recoveredNote.note.value
+    spendableNotes += 1
+  }
+
+  return { balance, spendableNotes }
+}
+
+export interface ShieldedSpendInputs {
+  spends: SpendableNoteWASM[]
+  anchor: Uint8Array
+  changeAddress: OrchardAddressWASM
+  coinType: number
+}
+
+// Selects the fewest notes (largest first) whose combined value covers
+// `requiredCredits`. Minimizing the note count keeps the Orchard bundle — one
+// action per note — under Platform's state-transition size limit. Throws if the
+// notes cannot cover the amount, or if even the minimal set exceeds the action cap.
+const selectShieldedNotes = (spendable: RecoveredNoteWASM[], requiredCredits: bigint): RecoveredNoteWASM[] => {
+  const byValueDesc = [...spendable].sort((a, b) => (a.note.value < b.note.value ? 1 : -1))
+
+  const selected: RecoveredNoteWASM[] = []
+  let total = 0n
+  for (const note of byValueDesc) {
+    if (total >= requiredCredits) {
+      break
+    }
+    selected.push(note)
+    total += note.note.value
+  }
+
+  if (total < requiredCredits) {
+    throw new Error('Insufficient shielded balance for this amount plus fee')
+  }
+  if (selected.length > SHIELDED_MAX_SPEND_NOTES) {
+    throw new Error(`This spend requires ${selected.length} notes, over the ${SHIELDED_MAX_SPEND_NOTES}-note limit per shielded transaction — consolidate notes first`)
+  }
+
+  return selected
+}
+
+// Prepares the shared inputs for any shielded spend (transfer / unshield /
+// withdrawal): syncs the full note set, recovers the wallet's own notes, keeps
+// only the unspent ones, selects the minimal set covering `requiredCredits`
+// (amount + fee), witnesses just those against the commitment tree, and derives
+// the change address. The Halo2 builder is not touched here — proving happens
+// inside the createStateTransition call the handler makes with these inputs.
+export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, requiredCredits: bigint): Promise<ShieldedSpendInputs> => {
+  console.time('[shielded] sync notes')
+  const allNotes = await fetchAllShieldedNotes(sdk)
+  console.timeEnd('[shielded] sync notes')
+  console.log(`[shielded] synced ${allNotes.length} notes; recovering own notes…`)
+
+  const recovered = sdk.shielded.recoverNotes(allNotes, seed, account)
+
+  if (recovered.length === 0) {
+    throw new Error('No shielded notes available to spend')
+  }
+
+  // Drop already-spent notes (their nullifiers are on-chain) so they never enter
+  // a spend — matching how the balance is computed.
+  const nullifiers = recovered
+    .map(recoveredNote => allNotes[recoveredNote.index]?.nullifier)
+    .filter((nullifier): nullifier is Uint8Array => nullifier != null)
+  const statuses = nullifiers.length > 0 ? await sdk.shielded.getShieldedNullifiers(nullifiers) : []
+  const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
+
+  const unspent = recovered.filter(recoveredNote => {
+    const encryptedNote = allNotes[recoveredNote.index]
+    return encryptedNote != null && !spent.has(bytesToHex(encryptedNote.nullifier))
+  })
+
+  if (unspent.length === 0) {
+    throw new Error('No unspent shielded notes available to spend')
+  }
+
+  const selected = selectShieldedNotes(unspent, requiredCredits)
+  console.log(`[shielded] selected ${selected.length}/${unspent.length} notes; witnessing against the tree…`)
+
+  console.time('[shielded] build spendable notes')
+  const { spends, anchor } = sdk.shielded.buildSpendableNotes(allNotes, selected)
+  console.timeEnd('[shielded] build spendable notes')
+
+  const changeAddress = sdk.keyPair.deriveShieldedAddress(seed, network, account)
+
+  return { spends, anchor, changeAddress, coinType: PLATFORM_ADDRESS_COIN_TYPE[network] }
 }
 
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {

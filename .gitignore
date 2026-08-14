@@ -6,3 +6,5 @@ build
 release
 .DS_Store
 package-lock.json
+# Claude Code local config
+.claude/
