@@ -4,6 +4,7 @@ import { Identity, WalletType } from '../../types'
 
 export interface HeaderConfigOverride {
   showBackButton?: boolean
+  hideLeftSection?: boolean
   imageType?: 'coins' | 'app' | 'userChain' | 'warning' | 'coin'
   imageClasses?: string
   containerClasses?: string

@@ -150,7 +150,7 @@ function HomeState (): React.JSX.Element {
     await openExtensionTab(
       'topup',
       `/topup-identity?stage=1&identity=${currentIdentity ?? ''}`,
-      { identityId: currentIdentity, walletId: currentWallet }
+      { identityId: currentIdentity, walletId: currentWallet, network: currentNetwork }
     )
   }
 
@@ -345,14 +345,16 @@ function HomeState (): React.JSX.Element {
         onOpenChange={(open) => { if (!open) setBusyTopUpTab(null) }}
         title='Top-up already in progress'
         message={
-          <span className='inline-flex flex-wrap items-center gap-1'>
-            A top-up is already open in another tab for identity:
+          <span className='flex flex-col gap-2'>
+            <span>A top-up is already open in another tab{busyTopUpTab?.identityId != null ? ' for identity:' : '.'}</span>
+
             {busyTopUpTab?.identityId != null && (
               <Identifier ellipsis={false} highlight='both'>
                 {busyTopUpTab.identityId}
               </Identifier>
             )}
-            Finish or close that tab first.
+
+            <span>Finish or close that tab first.</span>
           </span>
         }
         confirmText='Open That Tab'

@@ -238,7 +238,8 @@ export default function Header (): React.JSX.Element {
 
   const config = {
     showLogo: variant.showLogo ?? false,
-    hideLeftSection: headerConfigOverride?.showBackButton !== true && (variant.hideLeftSection ?? false),
+    hideLeftSection: headerConfigOverride?.hideLeftSection === true ||
+      (headerConfigOverride?.showBackButton !== true && (variant.hideLeftSection ?? false)),
     showNetworkSelector: variant.showNetworkSelector ?? false,
     showWalletSelector: variant.showWalletSelector ?? false,
     showBurgerMenu: variant.showBurgerMenu ?? false,

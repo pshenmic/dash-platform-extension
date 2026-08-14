@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, useCallback } from 'react'
+import React, { FC, useState, useEffect, useCallback, useRef } from 'react'
 import { Outlet } from 'react-router-dom'
 import { ThemeProvider, Identifier } from 'dash-ui-kit/react'
 import { useExtensionAPI, useSdk } from '../../hooks'
@@ -13,8 +13,9 @@ import { ConfirmDialog } from '../controls'
 type PendingSwitch =
   | { type: 'wallet', walletId: string | null }
   | { type: 'network', network: NetworkType }
+  | { type: 'identity', identityId: string }
 
-type BlockedSwitch = PendingSwitch & { identityId: string | null }
+type BlockedSwitch = PendingSwitch & { openTabIdentityId: string | null }
 
 export interface LayoutContext {
   currentNetwork: NetworkType
@@ -48,6 +49,11 @@ const Layout: FC = () => {
   const [headerComponent, setHeaderComponent] = useState<React.ReactNode>(null)
   const [headerConfigOverride, setHeaderConfigOverride] = useState<HeaderConfigOverride | null>(null)
   const [blockedSwitch, setBlockedSwitch] = useState<BlockedSwitch | null>(null)
+
+  // Read inside guardSwitch without making it change identity on every switch,
+  // which would re-trigger the selectors that call it.
+  const selectedRef = useRef({ currentWallet, currentNetwork, currentIdentity })
+  selectedRef.current = { currentWallet, currentNetwork, currentIdentity }
 
   const loadWallets = useCallback(async (): Promise<WalletAccountInfo[]> => {
     if (!isApiReady) return []
@@ -109,20 +115,53 @@ const Layout: FC = () => {
     }
   }, [isApiReady, extensionAPI])
 
+  const applyIdentityChange = useCallback(async (identity: string): Promise<void> => {
+    if (!isApiReady) return
+
+    try {
+      await extensionAPI.switchIdentity(identity)
+      setCurrentIdentity(identity)
+    } catch (error) {
+      console.log('Identity change error:', error)
+    }
+  }, [isApiReady, extensionAPI])
+
   // A top-up tab is bound to the wallet and network it was opened under,
   // so switching either one strands it. Ask before doing that.
   const guardSwitch = useCallback(async (target: PendingSwitch): Promise<void> => {
-    const openTab = await findOpenExtensionTab('topup')
+    // Selectors re-emit the current value on mount, so a switch to what is
+    // already selected changes nothing and needs no confirmation.
+    const selected = selectedRef.current
 
-    if (openTab != null) {
-      setBlockedSwitch({ ...target, identityId: openTab.identityId })
-      return
+    const isNoop = target.type === 'wallet'
+      ? target.walletId === selected.currentWallet
+      : target.type === 'network'
+        ? target.network === selected.currentNetwork
+        : target.identityId === selected.currentIdentity
+
+    if (!isNoop) {
+      const openTab = await findOpenExtensionTab('topup')
+
+      if (openTab != null) {
+        const changesTabContext = target.type === 'wallet'
+          ? target.walletId !== openTab.walletId
+          : target.type === 'network'
+            ? target.network !== openTab.network
+            : target.identityId !== openTab.identityId
+
+        if (changesTabContext) {
+          setBlockedSwitch({ ...target, openTabIdentityId: openTab.identityId })
+          return
+        }
+      }
     }
 
     await (target.type === 'wallet'
       ? applyWalletChange(target.walletId)
-      : applyNetworkChange(target.network))
-  }, [applyWalletChange, applyNetworkChange])
+      : target.type === 'network'
+        ? applyNetworkChange(target.network)
+        : applyIdentityChange(target.identityId))
+  }, [applyWalletChange, applyNetworkChange, applyIdentityChange])
 
   const handleNetworkChange = useCallback(async (network: NetworkType): Promise<void> => {
     await guardSwitch({ type: 'network', network })
@@ -133,15 +172,8 @@ const Layout: FC = () => {
   }, [guardSwitch])
 
   const handleIdentityChange = useCallback(async (identity: string): Promise<void> => {
-    if (!isApiReady) return
-
-    try {
-      await extensionAPI.switchIdentity(identity)
-      setCurrentIdentity(identity)
-    } catch (error) {
-      console.log('Identity change error:', error)
-    }
-  }, [isApiReady, extensionAPI])
+    await guardSwitch({ type: 'identity', identityId: identity })
+  }, [guardSwitch])
 
   const reloadWallets = useCallback(async (): Promise<void> => {
     const wallets = await loadWallets()
@@ -259,18 +291,20 @@ const Layout: FC = () => {
           onOpenChange={(open) => { if (!open) setBlockedSwitch(null) }}
           title='Top-up in progress'
           message={
-            <span className='inline-flex flex-wrap items-center gap-1'>
-              A top-up is open in another tab
-              {blockedSwitch?.identityId != null && (
-                <>
-                  for identity
-                  <Identifier ellipsis={false} highlight='both'>
-                    {blockedSwitch.identityId}
-                  </Identifier>
-                </>
+            <span className='flex flex-col gap-2'>
+              <span>A top-up is open in another tab{blockedSwitch?.openTabIdentityId != null ? ' for identity:' : '.'}</span>
+
+              {blockedSwitch?.openTabIdentityId != null && (
+                <Identifier ellipsis={false} highlight='both'>
+                  {blockedSwitch.openTabIdentityId}
+                </Identifier>
               )}
-              . Switching the {blockedSwitch?.type === 'network' ? 'network' : 'wallet'} will
-              break it, and funds already sent will stay on the funding address.
+
+              <span>
+                {blockedSwitch?.type === 'identity'
+                  ? 'It stays bound to that identity and will credit it, not the one you are switching to.'
+                  : `Switching the ${blockedSwitch?.type === 'network' ? 'network' : 'wallet'} will break it, and funds already sent will stay on the funding address.`}
+              </span>
             </span>
           }
           confirmText='Switch Anyway'
@@ -283,7 +317,9 @@ const Layout: FC = () => {
 
             void (target.type === 'wallet'
               ? applyWalletChange(target.walletId)
-              : applyNetworkChange(target.network))
+              : target.type === 'network'
+                ? applyNetworkChange(target.network)
+                : applyIdentityChange(target.identityId))
           }}
         />
       </div>

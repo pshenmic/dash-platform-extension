@@ -11,6 +11,7 @@ import { Stage4Success } from './stages/Stage4Success'
 import { TopUpError } from './stages/TopUpError'
 import { isTabView, closeCurrentExtensionTab } from '../../utils/extensionTab'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
+import { MIN_TOPUP_FUNDING_DUFFS } from '../../../constants'
 
 type Stage = 1 | 2 | 3 | 4
 
@@ -68,6 +69,9 @@ function TopUpIdentityState (): React.JSX.Element {
 
     if (stage === 1 && !hasError) {
       setHeaderConfigOverride({ imageType: 'coin' })
+    } else if ((stage === 3 || stage === 4) && !hasError) {
+      // Payment is out and processing, going back would restart the detection.
+      setHeaderConfigOverride({ hideLeftSection: true })
     } else {
       setHeaderConfigOverride(null)
     }
@@ -131,7 +135,7 @@ function TopUpIdentityState (): React.JSX.Element {
 
     const detectPayment = async (): Promise<void> => {
       try {
-        const { txid } = await coreSDK.waitForPayment(fundingAddress)
+        const { txid } = await coreSDK.waitForPayment(fundingAddress, MIN_TOPUP_FUNDING_DUFFS)
         if (cancelled) return
         setTransactionHash(txid)
         await runTopUp(fundingAddress, txid, password)
@@ -150,12 +154,18 @@ function TopUpIdentityState (): React.JSX.Element {
     if (stage !== 2) return
     if (fundingAddress != null) return
 
+    // Deriving the top-up key needs the password, which is lost on reload.
+    if (password === '') {
+      void navigate(stageUrl(1), { replace: true })
+      return
+    }
+
     const fetchAddress = async (): Promise<void> => {
       setIsLoadingAddress(true)
       setAddressError(null)
 
       try {
-        const { address } = await extensionAPI.requestAssetLockFundingAddress()
+        const { address } = await extensionAPI.requestTopUpFundingAddress(password)
         setFundingAddress(address)
       } catch (e) {
         setAddressError(e instanceof Error ? e.message : 'Failed to generate funding address')
@@ -165,7 +175,7 @@ function TopUpIdentityState (): React.JSX.Element {
     }
 
     fetchAddress().catch(console.error)
-  }, [stage, fundingAddress, extensionAPI])
+  }, [stage, fundingAddress, password, extensionAPI, navigate, stageUrl])
 
   const handleNext = async (): Promise<void> => {
     if (password.trim() === '') {
@@ -210,7 +220,16 @@ function TopUpIdentityState (): React.JSX.Element {
     }
   }
 
+  // Once the payment is out, going back to waiting for it would pick up our own
+  // asset lock transaction, so retry the same top-up instead.
+  const canRetry = fundingAddress != null && transactionHash !== ''
+
   const handleErrorReturn = (): void => {
+    if (canRetry) {
+      runTopUp(fundingAddress, transactionHash, password).catch(console.error)
+      return
+    }
+
     setTransactionHash('')
     setShowManualEntry(false)
     setError(null)
@@ -222,6 +241,7 @@ function TopUpIdentityState (): React.JSX.Element {
       <TopUpError
         stage={stage}
         error={error}
+        actionText={canRetry ? 'Try Again' : undefined}
         onReturnBack={handleErrorReturn}
       />
     )

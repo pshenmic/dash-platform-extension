@@ -3,6 +3,7 @@ import { Button, Input, Text, CopyButton, ProgressStepBar } from 'dash-ui-kit/re
 import { TitleBlock } from '../../../components/layout/TitleBlock'
 import { FieldLabel } from '../../../components/typography'
 import { QRCodeSVG } from 'qrcode.react'
+import { MIN_TOPUP_FUNDING_DASH } from '../../../../constants'
 
 interface Stage2PaymentProps {
   stage: number
@@ -86,7 +87,9 @@ export function Stage2Payment ({
                     )}
                   </div>
                   <Text className='text-xs' dim>
-                    You can send any amount convenient for you (over 0.1 Dash). We are ready to accept a transfer at any time!
+                    Send at least <Text as='span' weight='bold' className='text-xs'>{MIN_TOPUP_FUNDING_DASH} Dash</Text> - smaller
+                    payments are not enough to cover the network fee and will not be picked up.
+                    We are ready to accept a transfer at any time!
                   </Text>
                 </>
                 )}
