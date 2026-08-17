@@ -498,8 +498,8 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SHIELD_TO_POOL, payload, SHIELDED_PROVE_TIMEOUT)
   }
 
-  async sendShieldedTransfer (toShieldedAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<SendShieldedTransferResponse> {
-    const payload: SendShieldedTransferPayload = { toShieldedAddress, amountCredits, password, account, memo }
+  async sendShieldedTransfer (toShieldedAddress: string, amountCredits: string, password: string, account?: number, memo?: string, fromAddresses?: string[]): Promise<SendShieldedTransferResponse> {
+    const payload: SendShieldedTransferPayload = { toShieldedAddress, amountCredits, password, account, fromAddresses, memo }
 
     return await this._rpcCall(MessagingMethods.SEND_SHIELDED_TRANSFER, payload, SHIELDED_PROVE_TIMEOUT)
   }
