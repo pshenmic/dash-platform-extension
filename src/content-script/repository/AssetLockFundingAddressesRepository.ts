@@ -36,7 +36,7 @@ export class AssetLockFundingAddressesRepository {
     await this.storageAdapter.set(storageKey, addresses)
   }
 
-  async markAsBroadcasted (address: string, assetLockTxid: string): Promise<void> {
+  async markAsBroadcasted (address: string, assetLockTxid: string, registrationIdentityIndex?: number): Promise<void> {
     const storageKey = await this.getStorageKey()
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
 
@@ -60,7 +60,7 @@ export class AssetLockFundingAddressesRepository {
       return
     }
 
-    addresses[address] = { ...entry, assetLockTxid }
+    addresses[address] = { ...entry, assetLockTxid, registrationIdentityIndex }
 
     await this.storageAdapter.set(storageKey, addresses)
   }

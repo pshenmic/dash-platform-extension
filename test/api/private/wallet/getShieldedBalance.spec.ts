@@ -22,7 +22,9 @@ const ADDR_OUT = 'orchardAddressOutOfWindow'
 
 const recoveredNote = (index: number, value: bigint, address: string): any => ({
   index,
-  note: { value, address: { toBech32m: () => address } }
+  note: { value, address: { toBech32m: () => address } },
+  // Own nullifier (derived from the viewing key) — what the spent check reads.
+  _rawRecoveredNote: { nullifier: Uint8Array.from([index]) }
 })
 
 describe('GetShieldedBalanceHandler', () => {
