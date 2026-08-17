@@ -353,6 +353,29 @@ export const fetchAllShieldedNotes = async (sdk: DashPlatformSDK): Promise<Shiel
   return notes
 }
 
+// The nullifier of a recovered note as derived from the wallet's viewing key —
+// the value to check against getShieldedNullifiers to tell whether THIS note has
+// been spent.
+//
+// This is NOT the action leaf's nullifier (`ShieldedEncryptedNote.nullifier` /
+// `SerializedAction.nullifier`): a leaf's nullifier belongs to the note that
+// action spent (its input), which is unrelated to our received note. Checking
+// the leaf nullifier lets an already-spent note pass the spent filter, so it can
+// be reselected and the spend is rejected on-chain with "Nullifier has already
+// been spent".
+//
+// STOPGAP: the SDK's RecoveredNoteWASM wrapper does not expose this yet (only
+// `index` / `note`), so we reach into the raw NAPI. TODO: drop the cast once
+// dash-platform-sdk / pshenmic-dpp add a public RecoveredNoteWASM.nullifier
+// getter.
+interface RawRecoveredNoteWithNullifier {
+  _rawRecoveredNote: { nullifier: Uint8Array }
+}
+
+export const recoveredNoteNullifier = (recoveredNote: RecoveredNoteWASM): Uint8Array => {
+  return (recoveredNote as unknown as RawRecoveredNoteWithNullifier)._rawRecoveredNote.nullifier
+}
+
 export interface ShieldedAddressBalance {
   // Diversified Orchard address (bech32m) that received the notes.
   address: string
@@ -366,14 +389,12 @@ export interface ShieldedAddressBalance {
 // Sums the value of recovered notes that are not yet spent, both in aggregate
 // and grouped by the diversified Orchard address that received each note
 // (`note.address` from the trial-decrypted plaintext). Spent status is matched
-// by nullifier hex (not array order — getShieldedNullifiers does not guarantee
-// response order), and each recovered note's nullifier is taken from its leaf in
-// `allNotes` via the global `index`. `diversifierIndexByAddress` attributes our
-// known address indices; a note to an address outside that map gets
-// diversifierIndex null.
+// by each note's own nullifier (see recoveredNoteNullifier), by nullifier hex —
+// not array order, since getShieldedNullifiers does not guarantee response order.
+// `diversifierIndexByAddress` attributes our known address indices; a note to an
+// address outside that map gets diversifierIndex null.
 export const sumUnspentShieldedValue = (
   recovered: RecoveredNoteWASM[],
-  allNotes: ShieldedEncryptedNote[],
   statuses: ShieldedNullifierStatus[],
   network: NetworkType,
   diversifierIndexByAddress: Map<string, number> = new Map()
@@ -385,9 +406,7 @@ export const sumUnspentShieldedValue = (
   const buckets = new Map<string, { balance: bigint, spendableNotes: number }>()
 
   for (const recoveredNote of recovered) {
-    const encryptedNote = allNotes[recoveredNote.index]
-
-    if (encryptedNote == null || spent.has(bytesToHex(encryptedNote.nullifier))) {
+    if (spent.has(bytesToHex(recoveredNoteNullifier(recoveredNote)))) {
       continue
     }
 
@@ -417,6 +436,15 @@ export interface ShieldedSpendInputs {
   anchor: Uint8Array
   changeAddress: OrchardAddressWASM
   coinType: number
+}
+
+// Narrows recovered notes to those received on one of `fromAddresses` (bech32m),
+// so a spend can draw only from specific source shielded addresses instead of the
+// whole account. Notes are keyed by their receiving address (`note.address`).
+export const filterRecoveredNotesByAddress = (notes: RecoveredNoteWASM[], fromAddresses: string[], network: NetworkType): RecoveredNoteWASM[] => {
+  const wanted = new Set(fromAddresses)
+
+  return notes.filter(recoveredNote => wanted.has(recoveredNote.note.address.toBech32m(network)))
 }
 
 // Selects the fewest notes (largest first) whose combined value covers
@@ -452,7 +480,9 @@ const selectShieldedNotes = (spendable: RecoveredNoteWASM[], requiredCredits: bi
 // (amount + fee), witnesses just those against the commitment tree, and derives
 // the change address. The Halo2 builder is not touched here — proving happens
 // inside the createStateTransition call the handler makes with these inputs.
-export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, requiredCredits: bigint): Promise<ShieldedSpendInputs> => {
+// `fromAddresses` (optional) restricts the spend to notes on those source
+// shielded addresses; when omitted, the whole account's notes are eligible.
+export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, requiredCredits: bigint, fromAddresses?: string[]): Promise<ShieldedSpendInputs> => {
   console.time('[shielded] sync notes')
   const allNotes = await fetchAllShieldedNotes(sdk)
   console.timeEnd('[shielded] sync notes')
@@ -465,24 +495,30 @@ export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Arra
   }
 
   // Drop already-spent notes (their nullifiers are on-chain) so they never enter
-  // a spend — matching how the balance is computed.
-  const nullifiers = recovered
-    .map(recoveredNote => allNotes[recoveredNote.index]?.nullifier)
-    .filter((nullifier): nullifier is Uint8Array => nullifier != null)
+  // a spend — matching how the balance is computed. Uses each note's own
+  // nullifier (recoveredNoteNullifier), not the action leaf's, so a note we
+  // already spent is excluded instead of being reselected and rejected on-chain.
+  const nullifiers = recovered.map(recoveredNoteNullifier)
   const statuses = nullifiers.length > 0 ? await sdk.shielded.getShieldedNullifiers(nullifiers) : []
   const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
 
-  const unspent = recovered.filter(recoveredNote => {
-    const encryptedNote = allNotes[recoveredNote.index]
-    return encryptedNote != null && !spent.has(bytesToHex(encryptedNote.nullifier))
-  })
+  const unspent = recovered.filter(recoveredNote => !spent.has(bytesToHex(recoveredNoteNullifier(recoveredNote))))
 
   if (unspent.length === 0) {
     throw new Error('No unspent shielded notes available to spend')
   }
 
-  const selected = selectShieldedNotes(unspent, requiredCredits)
-  console.log(`[shielded] selected ${selected.length}/${unspent.length} notes; witnessing against the tree…`)
+  // Optionally restrict the spend to notes on specific source addresses.
+  const scoped = fromAddresses != null && fromAddresses.length > 0
+    ? filterRecoveredNotesByAddress(unspent, fromAddresses, network)
+    : unspent
+
+  if (scoped.length === 0) {
+    throw new Error('No unspent shielded notes on the selected source address(es)')
+  }
+
+  const selected = selectShieldedNotes(scoped, requiredCredits)
+  console.log(`[shielded] selected ${selected.length}/${scoped.length} notes; witnessing against the tree…`)
 
   console.time('[shielded] build spendable notes')
   const { spends, anchor } = sdk.shielded.buildSpendableNotes(allNotes, selected)

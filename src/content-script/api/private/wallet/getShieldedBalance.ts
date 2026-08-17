@@ -2,7 +2,7 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { decryptMnemonic, deriveShieldedAddresses, fetchAllShieldedNotes, sumUnspentShieldedValue } from '../../../../utils'
+import { decryptMnemonic, deriveShieldedAddresses, fetchAllShieldedNotes, recoveredNoteNullifier, sumUnspentShieldedValue } from '../../../../utils'
 import { SHIELDED_ADDRESS_DEFAULT_COUNT } from '../../../../constants'
 import { GetShieldedBalancePayload } from '../../../../types/messages/payloads/GetShieldedBalancePayload'
 import { GetShieldedBalanceResponse } from '../../../../types/messages/response/GetShieldedBalanceResponse'
@@ -39,9 +39,7 @@ export class GetShieldedBalanceHandler implements APIHandler {
     const allNotes = await fetchAllShieldedNotes(this.sdk)
     const recovered = this.sdk.shielded.recoverNotes(allNotes, seed, account)
 
-    const nullifiers = recovered
-      .map(recoveredNote => allNotes[recoveredNote.index]?.nullifier)
-      .filter((nullifier): nullifier is Uint8Array => nullifier != null)
+    const nullifiers = recovered.map(recoveredNoteNullifier)
 
     const statuses = nullifiers.length > 0
       ? await this.sdk.shielded.getShieldedNullifiers(nullifiers)
@@ -53,7 +51,7 @@ export class GetShieldedBalanceHandler implements APIHandler {
     const derived = deriveShieldedAddresses(wallet, payload.password, account, SHIELDED_ADDRESS_DEFAULT_COUNT, this.sdk)
     const diversifierIndexByAddress = new Map(derived.map(entry => [entry.address, entry.diversifierIndex]))
 
-    const { balance, spendableNotes, byAddress } = sumUnspentShieldedValue(recovered, allNotes, statuses, wallet.network, diversifierIndexByAddress)
+    const { balance, spendableNotes, byAddress } = sumUnspentShieldedValue(recovered, statuses, wallet.network, diversifierIndexByAddress)
 
     return {
       balance: balance.toString(),

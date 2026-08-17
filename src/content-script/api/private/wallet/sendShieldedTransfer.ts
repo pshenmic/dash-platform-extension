@@ -36,7 +36,7 @@ export class SendShieldedTransferHandler implements APIHandler {
     const amountCredits = BigInt(payload.amountCredits)
     const seed = this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, payload.password))
 
-    const { spends, anchor, changeAddress, coinType } = await prepareShieldedSpend(this.sdk, seed, wallet.network, account, amountCredits + SHIELDED_SPEND_FEE_CREDITS)
+    const { spends, anchor, changeAddress, coinType } = await prepareShieldedSpend(this.sdk, seed, wallet.network, account, amountCredits + SHIELDED_SPEND_FEE_CREDITS, payload.fromAddresses)
 
     console.time('[shielded] transfer: build + prove')
     const stateTransition = await this.sdk.shielded.createStateTransition('shieldedTransfer', {
@@ -75,6 +75,14 @@ export class SendShieldedTransferHandler implements APIHandler {
     }
     if (payload.account != null && (!Number.isInteger(payload.account) || payload.account < 0)) {
       return 'Account must be a non-negative integer'
+    }
+    if (payload.fromAddresses != null) {
+      if (!Array.isArray(payload.fromAddresses) || payload.fromAddresses.length === 0) {
+        return 'fromAddresses must be a non-empty array of addresses'
+      }
+      if (!payload.fromAddresses.every(address => typeof address === 'string' && address.length > 0)) {
+        return 'fromAddresses must contain only non-empty address strings'
+      }
     }
     if (payload.memo != null && typeof payload.memo !== 'string') {
       return 'memo must be a string'

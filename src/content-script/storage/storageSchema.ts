@@ -75,6 +75,12 @@ export interface AssetLockFundingAddressSchema {
   // DIP-13 derivation index for top-up funding keys (m/9'/coin'/5'/2'/index).
   // Absent for registration entries, which use a one-time random funding key.
   index?: number
+  // The identityIndex the broadcast asset lock funded (its credit output is
+  // owned by the registration key at m/9'/coin'/5'/1'/identityIndex). Pinned at
+  // broadcast so a retry rebuilds the SAME asset lock instead of re-scanning to a
+  // different index (which would change the credit address and hence the txid).
+  // Absent on legacy entries broadcast before this was persisted.
+  registrationIdentityIndex?: number
   // Defaults to 'registration' when absent (legacy entries predate top-up).
   purpose?: AssetLockFundingPurpose
 }
