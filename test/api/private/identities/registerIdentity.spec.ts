@@ -219,7 +219,8 @@ describe('RegisterIdentityHandler', () => {
     expect(coreSDK.broadcastTransaction).toHaveBeenCalledWith(assetLockTx.bytes())
     expect(assetLockFundingAddressesRepository.markAsBroadcasted).toHaveBeenCalledWith(
       assetLockFundingAddress,
-      assetLockTxid
+      assetLockTxid,
+      0
     )
     expect(identitiesRepository.create).toHaveBeenCalledWith(identifier, 'regular', 0)
     expect(sdk.stateTransitions.broadcast).toHaveBeenCalledWith(stateTransition)
@@ -260,18 +261,63 @@ describe('RegisterIdentityHandler', () => {
     expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
   })
 
-  test('rejects when entry has assetLockTxid different from rebuilt asset lock txid', async () => {
+  test('rejects when the pinned index rebuilds a different asset lock txid than the committed one', async () => {
     assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
       address: assetLockFundingAddress,
       encryptedPrivateKey,
       used: false,
-      assetLockTxid: 'c'.repeat(64)
+      assetLockTxid: 'c'.repeat(64),
+      registrationIdentityIndex: 0
     })
 
     await expect(handle()).rejects.toThrow(/already broadcasted with a different asset lock txid/)
 
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
     expect(identitiesRepository.create).not.toHaveBeenCalled()
+  })
+
+  test('recovery reuses the pinned identity index and skips the on-chain free-index scan', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
+      address: assetLockFundingAddress,
+      encryptedPrivateKey,
+      used: false,
+      assetLockTxid,
+      registrationIdentityIndex: 5
+    })
+
+    await handle()
+
+    // No free-index scan on recovery — the pinned index is used as-is.
+    expect(sdk.identities.getIdentityByPublicKeyHash).not.toHaveBeenCalled()
+    expect(sdk.identities.getIdentityByNonUniquePublicKeyHash).not.toHaveBeenCalled()
+    // Identity created at the pinned index, not a freshly scanned one.
+    expect(identitiesRepository.create).toHaveBeenCalledWith(identifier, 'regular', 5)
+    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
+  })
+
+  test('legacy recovery finds the index whose rebuilt asset lock matches the committed txid', async () => {
+    // Index-dependent credit address + txid so the sweep must land on index 2,
+    // reproducing the case where a fresh scan would have picked a different one.
+    deriveIdentityRegistrationKey.mockImplementation(async (_wallet: any, _password: any, index: number) => ({
+      getPublicKey: () => ({ bytes: () => new Uint8Array([index]) })
+    }))
+    sdk.keyPair.p2pkhAddress.mockImplementation((bytes: Uint8Array) => `addr-${bytes[0]}`)
+    buildAssetLockFromFundingTxMock.mockImplementation(async (_c: any, _t: any, _a: any, _w: any, creditAddress: string) => ({
+      assetLockTx: { hash: () => `txid-${creditAddress}`, bytes: () => new Uint8Array([1]) }
+    } as any))
+
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
+      address: assetLockFundingAddress,
+      encryptedPrivateKey,
+      used: false,
+      assetLockTxid: 'txid-addr-2' // committed asset lock funded index 2
+    })
+
+    await handle()
+
+    expect(identitiesRepository.create).toHaveBeenCalledWith(identifier, 'regular', 2)
+    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
   test('rejects used funding entry', async () => {
