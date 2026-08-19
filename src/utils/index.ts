@@ -200,7 +200,7 @@ export const derivePlatformAccountXpub = async (wallet: Wallet, password: string
   return await sdk.keyPair.derivePlatformAccountXpub(seed, wallet.network, account)
 }
 
-// Derive `count` transparent P2PKH platform addresses from an account xpub.
+// Derive `count` P2PKH Platform addresses from an account xpub.
 // The address index is non-hardened, so public-only derivation reproduces the
 // exact same addresses as the private path — no seed/password required. The
 // address derivation and DIP-18 encoding live in the SDK; here we only expand

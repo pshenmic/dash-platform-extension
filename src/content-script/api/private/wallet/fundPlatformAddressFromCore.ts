@@ -21,7 +21,7 @@ import { TXID_HEX_LENGTH } from '../../../../constants'
 import { FundPlatformAddressFromCorePayload } from '../../../../types/messages/payloads/FundPlatformAddressFromCorePayload'
 import { FundPlatformAddressFromCoreResponse } from '../../../../types/messages/response/FundPlatformAddressFromCoreResponse'
 
-// Funds a transparent platform address from a Core (L1) deposit via an
+// Funds a Platform address from a Core (L1) deposit via an
 // AddressFundingFromAssetLock state transition. Mirrors the identity top-up
 // asset-lock flow: build an asset lock from the funding transaction, broadcast it
 // on L1, wait for its lock proof, then credit the platform address. The asset

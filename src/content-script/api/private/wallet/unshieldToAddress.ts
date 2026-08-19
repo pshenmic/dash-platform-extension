@@ -7,7 +7,7 @@ import { SHIELDED_SPEND_FEE_CREDITS } from '../../../../constants'
 import { UnshieldToAddressPayload } from '../../../../types/messages/payloads/UnshieldToAddressPayload'
 import { UnshieldToAddressResponse } from '../../../../types/messages/response/UnshieldToAddressResponse'
 
-// Unshields credits from the Orchard pool to a transparent platform address via an
+// Unshields credits from the Orchard pool to a Platform address via an
 // unshield state transition. Syncs and witnesses the wallet's notes, builds the
 // Orchard (Halo2) proof — slow, runs in the popup for now — and broadcasts. Needs
 // the password to recover and spend the notes.

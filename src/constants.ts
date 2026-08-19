@@ -45,7 +45,7 @@ export const CORE_EXPLORER_URLS = {
   }
 }
 
-// ── DIP-17 transparent platform payment addresses ────────────────────────────
+// ── DIP-17 Platform payment addresses ────────────────────────────
 // Derived at m/9'/coin'/17'/account'/keyClass'/index; keyClass 0 = clear funds.
 // Address derivation and DIP-18 encoding live in the SDK (sdk.keyPair); these
 // constants only label the derivation path we report alongside each address.

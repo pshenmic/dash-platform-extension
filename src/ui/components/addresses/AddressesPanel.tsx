@@ -23,7 +23,7 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
   const [isLoading, setIsLoading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState('transparent')
+  const [activeTab, setActiveTab] = useState('platform')
   const loadingRef = useRef(false)
 
   // Fetch the created addresses and enrich with balances and transaction counts.
@@ -148,7 +148,7 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
     setPasswordError(null)
   }
 
-  const transparentContent = (
+  const platformContent = (
     <div className='flex flex-col gap-4 pt-4'>
       <Text size='sm' dim>
         Your Platform Addresses. It is recommended to use different addresses for each transaction.
@@ -231,9 +231,9 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
       onValueChange={setActiveTab}
       items={[
         {
-          value: 'transparent',
-          label: 'Transparent',
-          content: transparentContent
+          value: 'platform',
+          label: 'Platform',
+          content: platformContent
         },
         {
           value: 'shielded',

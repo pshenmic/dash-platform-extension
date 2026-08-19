@@ -13,7 +13,7 @@ import { TRANSFER_FEE_CREDITS, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING 
 import { WithdrawPlatformAddressToCorePayload } from '../../../../types/messages/payloads/WithdrawPlatformAddressToCorePayload'
 import { WithdrawPlatformAddressToCoreResponse } from '../../../../types/messages/response/WithdrawPlatformAddressToCoreResponse'
 
-// Withdraws credits from a transparent platform address to a Core (L1) address
+// Withdraws credits from a Platform address to a Core (L1) address
 // via an AddressCreditWithdrawal state transition. Picks a source (explicit, or
 // the largest covering amount + fee), derives its key (needs the password) and
 // signs with it; the platform produces the resulting L1 transaction.
