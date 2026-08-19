@@ -9,6 +9,7 @@ import { VoidResponse } from './messages/response/VoidResponse'
 import { SwitchIdentityPayload } from './messages/payloads/SwitchIdentityPayload'
 import { EmptyPayload } from './messages/payloads/EmptyPayload'
 import { GeneratePlatformAddressesPayload } from './messages/payloads/GeneratePlatformAddressesPayload'
+import { GenerateShieldedAddressesPayload } from './messages/payloads/GenerateShieldedAddressesPayload'
 import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddressesPayload'
 import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
 import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
@@ -472,6 +473,19 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE, payload)
   }
 
+  // Creates the next shielded address and returns it. The wallet keeps the
+  // number of created addresses, so repeated calls advance the diversifier
+  // index instead of returning the same address.
+  async generateShieldedAddresses (password: string): Promise<GetShieldedAddressesResponse['addresses']> {
+    const payload: GenerateShieldedAddressesPayload = { password }
+
+    const response: GetShieldedAddressesResponse = await this._rpcCall(MessagingMethods.GENERATE_SHIELDED_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  // Returns the shielded addresses created so far. `count` overrides that and
+  // derives a wider window (used to scan beyond what was created).
   async getShieldedAddresses (password: string, account?: number, count?: number): Promise<GetShieldedAddressesResponse['addresses']> {
     const payload: GetShieldedAddressesPayload = { password, account, count }
 
