@@ -341,12 +341,13 @@ export default function Header (): React.JSX.Element {
             config.networkDisplayFormat === 'card'
               ? <NetworkSelector
                   onSelect={setCurrentNetwork}
+                  currentNetwork={currentNetwork as NetworkType}
                   wallets={allWallets}
                   variant='card'
                   border
                   className='!backdrop-blur-[15px] !bg-[rgba(12,28,51,0.15)] text-white !outline-white/15'
                 />
-              : <NetworkSelector onSelect={setCurrentNetwork} wallets={allWallets} />
+              : <NetworkSelector onSelect={setCurrentNetwork} currentNetwork={currentNetwork as NetworkType} wallets={allWallets} />
           )}
         </div>
       )}
