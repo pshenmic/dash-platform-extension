@@ -10,6 +10,7 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import { usePlatformExplorerClient, type TransactionData, type NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { type TokenData } from '../../../types'
 import { IdentityType } from '../../../types/enums/IdentityType'
+import { WalletType } from '../../../types/WalletType'
 import type { OutletContext } from '../../types/OutletContext'
 import { TransactionsList } from '../../components/transactions'
 import { TokensList } from '../../components/tokens'
@@ -45,6 +46,12 @@ function HomeState (): React.JSX.Element {
     const identity = availableIdentities.find(i => i.identifier === currentIdentity)
     return identity?.type === IdentityType.masternode
   }, [availableIdentities, currentIdentity])
+
+  // Top-up derives its funding key from the seed phrase, which keystore wallets do not have.
+  const isKeystoreWallet = useMemo(() => {
+    const wallet = allWallets.find(item => item.walletId === currentWallet)
+    return wallet?.type === WalletType.keystore
+  }, [allWallets, currentWallet])
 
   useEffect(() => {
     if (isMasternodeIdentity && activeTab === 'names') {
@@ -272,13 +279,15 @@ function HomeState (): React.JSX.Element {
         >
           Send
         </Button>
-        <Button
-          className='flex-1'
-          disabled={currentIdentity === null || balanceState.data === null}
-          onClick={() => { void handleTopUp() }}
-        >
-          Top Up
-        </Button>
+        {!isKeystoreWallet && (
+          <Button
+            className='flex-1'
+            disabled={currentIdentity === null || balanceState.data === null}
+            onClick={() => { void handleTopUp() }}
+          >
+            Top Up
+          </Button>
+        )}
         <Button
           className='flex-1'
           disabled={currentIdentity === null || balanceState.data === null}
