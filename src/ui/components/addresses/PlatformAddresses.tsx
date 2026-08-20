@@ -3,7 +3,7 @@ import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { PasswordGate } from '../forms'
 import { AddressItem } from './AddressItem'
 import { usePlatformAddresses } from '../../hooks/usePlatformAddresses'
-import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
+import { getAddressExplorerUrl } from '../../../utils'
 import type { NetworkType } from '../../../types'
 
 interface PlatformAddressesProps {
@@ -11,7 +11,6 @@ interface PlatformAddressesProps {
 }
 
 export const PlatformAddresses: React.FC<PlatformAddressesProps> = ({ currentNetwork }) => {
-  const platformExplorerClient = usePlatformExplorerClient()
   const {
     addresses,
     isLoading,
@@ -48,10 +47,7 @@ export const PlatformAddresses: React.FC<PlatformAddressesProps> = ({ currentNet
             <AddressItem
               key={`${item.index}-${item.address}`}
               item={item}
-              explorerUrl={platformExplorerClient.getAddressExplorerUrl(
-                item.address,
-                currentNetwork ?? 'testnet'
-              )}
+              explorerUrl={getAddressExplorerUrl(item.address, currentNetwork ?? 'testnet')}
             />
           ))}
         </div>
