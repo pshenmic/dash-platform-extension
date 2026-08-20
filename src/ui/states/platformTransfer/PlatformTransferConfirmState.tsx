@@ -10,6 +10,7 @@ import { useExtensionAPI } from '../../hooks'
 import type { OutletContext } from '../../types'
 import { TRANSFER_FEE_CREDITS, SHIELDED_SPEND_FEE_CREDITS } from '../../../constants'
 import { PROVING_WARNING, WITHDRAW_TO_CORE_WARNING, SHIELDED_WITHDRAW_WARNING } from '../../constants/transferWarnings'
+import { creditsToDashDisplay } from '../../../utils'
 
 // Stands in for a party that is the wallet's own shielded pool — it has no
 // address the user chose, so there is nothing meaningful to render as an identifier.
@@ -307,10 +308,10 @@ function PlatformTransferConfirmState (): React.JSX.Element {
 
         {/* Summary */}
         <TransferSummaryCard
-          fees={`~${feeCredits.toLocaleString()}`}
-          willBeSent={amountBig.toLocaleString()}
-          total={(amountBig + feeCredits).toLocaleString()}
-          unit='Credits'
+          fees={`~${creditsToDashDisplay(feeCredits)}`}
+          willBeSent={creditsToDashDisplay(amountBig)}
+          total={creditsToDashDisplay(amountBig + feeCredits)}
+          unit='Dash'
           selectedAsset='credits'
         />
 

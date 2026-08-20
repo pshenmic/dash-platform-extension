@@ -28,7 +28,7 @@ export function TransferSummaryCard ({
           Fees:
         </Text>
         <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50 text-right'>
-          {fees} Credits
+          {fees} Dash
         </Text>
       </div>
 

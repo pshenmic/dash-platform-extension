@@ -120,7 +120,7 @@ export function SenderSelector ({
   return (
     <div className='flex flex-col gap-2.5'>
       <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>
-        Sender
+        Send from
       </Text>
 
       <div className='flex flex-wrap gap-2'>

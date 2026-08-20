@@ -144,3 +144,12 @@ export function multiplyBigIntByPercentage (value: bigint, percentage: number): 
 
   return result
 }
+
+/**
+ * Credits as a Dash amount for display, with trailing zeros trimmed.
+ */
+export function creditsToDashDisplay (credits: string | bigint): string {
+  const dash = creditsToDashBigInt(credits)
+  if (!dash.includes('.')) return dash
+  return dash.replace(/0+$/, '').replace(/\.$/, '')
+}

@@ -27,7 +27,7 @@ import {
   getAssetDecimals
 } from '../../../utils/transactionFormatters'
 import { AssetBalanceLabel } from '../../components/data'
-import { parseCreditsAmount } from '../../../utils'
+import { parseCreditsAmount, creditsToDashDisplay } from '../../../utils'
 import type { RecipientSearchResult } from '../../../utils'
 import type { SenderType, TransferMode } from './types'
 import { usePlatformAddresses } from './hooks/usePlatformAddresses'
@@ -404,17 +404,18 @@ function SendTransactionState (): React.JSX.Element {
   // Options for the initial "what to send" step (Credits + any tokens).
   const assetOptions = useMemo(() => buildAssetOptions(tokensState.data ?? []), [tokensState.data])
 
-  // Summary values, switching to the flat platform fee for fund/send.
-  const summaryFees = isPlatformMode ? `~${platformFeeCredits.toLocaleString()}` : calculations.getEstimatedFee()
-  const summaryWillBeSent = isPlatformMode
-    ? (formState.formData.amount !== '' ? BigInt(Math.floor(Number(formState.formData.amount))).toLocaleString() : '0')
+  // Summary values, switching to the flat platform fee for fund/send. Credits
+  // amounts (fees included) are shown in Dash.
+  const summaryFeeCredits = isPlatformMode ? platformFeeCredits : calculations.getEstimatedFeeBigInt()
+  const summaryAmountCredits = parseCreditsAmount(formState.formData.amount) ?? 0n
+  const summaryFees = `~${creditsToDashDisplay(summaryFeeCredits)}`
+  const summaryWillBeSent = isCredits
+    ? creditsToDashDisplay(summaryAmountCredits)
     : calculations.getWillBeSentAmount()
-  const summaryTotal = isPlatformMode
-    ? (formState.formData.amount !== ''
-        ? (BigInt(Math.floor(Number(formState.formData.amount))) + platformFeeCredits).toLocaleString()
-        : platformFeeCredits.toLocaleString())
+  const summaryTotal = isCredits
+    ? creditsToDashDisplay(summaryAmountCredits + summaryFeeCredits)
     : calculations.getTotalAmount()
-  const summaryUnit = isPlatformMode ? 'Credits' : calculations.getTotalAmountUnit()
+  const summaryUnit = isCredits ? 'Dash' : calculations.getTotalAmountUnit()
 
   // Note selection happens after the (slow) proof starts, so check up front that
   // the chosen shielded source covers the amount plus its fee.
