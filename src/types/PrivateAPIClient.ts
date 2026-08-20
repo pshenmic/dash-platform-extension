@@ -1,5 +1,10 @@
 import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
+import { CoreAddressChain } from './enums/CoreAddressChain'
+import { GenerateCoreAddressesPayload } from './messages/payloads/GenerateCoreAddressesPayload'
+import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
+import { GetCoreAddressesInfosPayload } from './messages/payloads/GetCoreAddressesInfosPayload'
+import { CoreAddressBalance, GetCoreAddressesInfosResponse } from './messages/response/GetCoreAddressesInfosResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -410,6 +415,30 @@ export class PrivateAPIClient {
     const payload: SetSettingsPayload = { hideBalance }
 
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
+  }
+
+  async generateCoreAddresses (chain?: CoreAddressChain, password?: string): Promise<GetCoreAddressesResponse['addresses']> {
+    const payload: GenerateCoreAddressesPayload = { chain, password }
+
+    const response: GetCoreAddressesResponse = await this._rpcCall(MessagingMethods.GENERATE_CORE_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  async listCoreAddresses (): Promise<GetCoreAddressesResponse['addresses']> {
+    const payload: EmptyPayload = {}
+
+    const response: GetCoreAddressesResponse = await this._rpcCall(MessagingMethods.LIST_CORE_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  async getCoreAddressesInfos (addresses: string[]): Promise<CoreAddressBalance[]> {
+    const payload: GetCoreAddressesInfosPayload = { addresses }
+
+    const response: GetCoreAddressesInfosResponse = await this._rpcCall(MessagingMethods.GET_CORE_ADDRESSES_INFOS, payload)
+
+    return response.infos
   }
 
   async generatePlatformAddresses (password?: string): Promise<GetPlatformAddressesResponse['addresses']> {

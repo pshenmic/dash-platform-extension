@@ -49,6 +49,9 @@ import { TopUpIdentityHandler } from './private/identities/topUpIdentity'
 import { WalletSettingsRepository } from '../repository/WalletSettingsRepository'
 import { GetSettingsHandler } from './private/settings/getSettings'
 import { SetSettingsHandler } from './private/settings/setSettings'
+import { GenerateCoreAddressesHandler } from './private/wallet/generateCoreAddresses'
+import { ListCoreAddressesHandler } from './private/wallet/listCoreAddresses'
+import { GetCoreAddressesInfosHandler } from './private/wallet/getCoreAddressesInfos'
 import { GeneratePlatformAddressesHandler } from './private/wallet/generatePlatformAddresses'
 import { ListPlatformAddressesHandler } from './private/wallet/listPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
@@ -162,6 +165,9 @@ export class PrivateAPI {
       ),
       [MessagingMethods.GET_SETTINGS]: new GetSettingsHandler(walletSettingsRepository),
       [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository),
+      [MessagingMethods.GENERATE_CORE_ADDRESSES]: new GenerateCoreAddressesHandler(walletRepository, this.sdk),
+      [MessagingMethods.LIST_CORE_ADDRESSES]: new ListCoreAddressesHandler(walletRepository, this.sdk),
+      [MessagingMethods.GET_CORE_ADDRESSES_INFOS]: new GetCoreAddressesInfosHandler(walletRepository, coreExplorer),
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk),
