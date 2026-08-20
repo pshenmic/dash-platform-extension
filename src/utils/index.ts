@@ -306,11 +306,11 @@ export interface ShieldedAddressEntry {
   diversifierIndex: number
 }
 
-// Derive `count` diversified Orchard (shielded) addresses for an account.
-// ZIP-32 m/32'/coinType'/account'; each diversifierIndex yields a distinct
-// receiving address sharing the account's viewing key. Needs the password
-// (decrypts the seed).
-export const deriveShieldedAddresses = (wallet: Wallet, password: string, account: number, count: number, sdk: DashPlatformSDK): ShieldedAddressEntry[] => {
+// Derive `count` diversified Orchard (shielded) addresses for an account,
+// starting at diversifier index `start`. ZIP-32 m/32'/coinType'/account'; each
+// diversifierIndex yields a distinct receiving address sharing the account's
+// viewing key. Needs the password (decrypts the seed).
+export const deriveShieldedAddresses = (wallet: Wallet, password: string, account: number, count: number, sdk: DashPlatformSDK, start: number = 0): ShieldedAddressEntry[] => {
   if (wallet.type !== 'seedphrase') {
     throw new Error('Shielded addresses can only be derived from a seedphrase wallet')
   }
@@ -322,7 +322,7 @@ export const deriveShieldedAddresses = (wallet: Wallet, password: string, accoun
   const derivationPath = `m/32'/${coinType}'/${account}'`
 
   const entries: ShieldedAddressEntry[] = []
-  for (let diversifierIndex = 0; diversifierIndex < count; diversifierIndex++) {
+  for (let diversifierIndex = start; diversifierIndex < start + count; diversifierIndex++) {
     const orchardAddress = sdk.keyPair.deriveShieldedAddress(seed, network, account, diversifierIndex)
     entries.push({ address: orchardAddress.toBech32m(networkType), derivationPath, diversifierIndex })
   }
