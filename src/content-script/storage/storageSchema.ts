@@ -1,3 +1,5 @@
+import { CoreAddressChain } from '../../types/enums/CoreAddressChain'
+
 export interface KeyPairSchema {
   keyId: number
 
@@ -39,7 +41,20 @@ export interface WalletStoreSchema {
   // the next derivation index — created addresses are 0..count-1, the next one
   // created is `count`.
   platformAddressCounts?: Record<string, number>
+  // Cached BIP44 account-level extended public keys (xpub) for Core (L1),
+  // m/44'/coin'/account', keyed by account index. Same contract as
+  // platformXpubs: stored once (needs the password) so Core addresses can be
+  // re-derived publicly afterwards without unlocking the seed.
+  coreXpubs?: Record<string, string>
+  // Number of Core addresses created so far, keyed by `${account}:${chain}` —
+  // the receiving and change chains advance independently. Acts as the next
+  // derivation index, as platformAddressCounts does.
+  coreAddressCounts?: Record<string, number>
 }
+
+// Key format for WalletStoreSchema.coreAddressCounts. Kept next to the field it
+// keys so the two can never drift apart.
+export const coreAddressCountKey = (account: number, chain: CoreAddressChain): string => `${account}:${chain}`
 
 export interface StateTransitionsStoreSchema {
   [hash: string]: StateTransitionStoreSchema

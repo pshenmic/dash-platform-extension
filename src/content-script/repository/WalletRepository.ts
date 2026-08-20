@@ -1,6 +1,7 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { bytesToHex, generateWalletId, utf8ToBytes } from '../../utils'
-import { WalletStoreSchema } from '../storage/storageSchema'
+import { WalletStoreSchema, coreAddressCountKey } from '../storage/storageSchema'
+import { CoreAddressChain } from '../../types/enums/CoreAddressChain'
 import { WalletType } from '../../types/WalletType'
 import { Wallet } from '../../types/Wallet'
 import { NetworkType } from '../../types/NetworkType'
@@ -189,6 +190,41 @@ export class WalletRepository {
     const platformAddressCounts = { ...walletStoreSchema.platformAddressCounts, [String(account)]: count }
 
     await this.storageAdapter.set(storageKey, { ...walletStoreSchema, platformAddressCounts })
+  }
+
+  async getCoreAccountXpub (account: number): Promise<string | null> {
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+
+    return walletStoreSchema.coreXpubs?.[String(account)] ?? null
+  }
+
+  async setCoreAccountXpub (account: number, xpub: string): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+    const storageKey = `wallet_${network}_${walletStoreSchema.walletId}`
+
+    const coreXpubs = { ...walletStoreSchema.coreXpubs, [String(account)]: xpub }
+
+    await this.storageAdapter.set(storageKey, { ...walletStoreSchema, coreXpubs })
+  }
+
+  async getCoreAddressCount (account: number, chain: CoreAddressChain): Promise<number> {
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+
+    return walletStoreSchema.coreAddressCounts?.[coreAddressCountKey(account, chain)] ?? 0
+  }
+
+  async setCoreAddressCount (account: number, chain: CoreAddressChain, count: number): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+    const storageKey = `wallet_${network}_${walletStoreSchema.walletId}`
+
+    const coreAddressCounts = {
+      ...walletStoreSchema.coreAddressCounts,
+      [coreAddressCountKey(account, chain)]: count
+    }
+
+    await this.storageAdapter.set(storageKey, { ...walletStoreSchema, coreAddressCounts })
   }
 
   private async getCurrentStoreSchema (): Promise<WalletStoreSchema> {
