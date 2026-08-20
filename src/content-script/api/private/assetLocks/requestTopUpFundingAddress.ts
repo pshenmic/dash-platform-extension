@@ -13,6 +13,7 @@ import { encrypt } from 'eciesjs'
 import { bytesToHex, hexToBytes, deriveWalletHdKey, deriveTopUpKeyFromHdKey } from '../../../../utils'
 import { TOPUP_FUNDING_GAP_LIMIT } from '../../../../constants'
 import { RepositoryScope } from '../../../../types/RepositoryScope'
+import { validateRepositoryScopePayload } from '../../../../utils/validateRepositoryScopePayload'
 
 export class RequestTopUpFundingAddressHandler implements APIHandler {
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
@@ -155,21 +156,6 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
       return 'password must be provided'
     }
 
-    const hasWalletId = payload.walletId != null
-    const hasNetwork = payload.network != null
-
-    if (hasWalletId !== hasNetwork) {
-      return 'walletId and network must be provided together'
-    }
-
-    if (hasWalletId && (typeof payload.walletId !== 'string' || payload.walletId.length === 0)) {
-      return 'walletId must be a non-empty string'
-    }
-
-    if (hasNetwork && payload.network !== 'testnet' && payload.network !== 'mainnet') {
-      return 'network must be either testnet or mainnet'
-    }
-
-    return null
+    return validateRepositoryScopePayload(payload)
   }
 }

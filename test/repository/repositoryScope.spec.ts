@@ -18,7 +18,7 @@ class TestStorageAdapter implements StorageAdapter {
   }
 
   remove = async (key: string): Promise<void> => {
-    this.cache[key] = undefined // eslint-disable-line @typescript-eslint/no-dynamic-delete
+    this.cache[key] = undefined
   }
 }
 
