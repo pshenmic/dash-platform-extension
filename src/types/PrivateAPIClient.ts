@@ -413,8 +413,8 @@ export class PrivateAPIClient {
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
-  async generatePlatformAddresses (password?: string): Promise<GetPlatformAddressesResponse['addresses']> {
-    const payload: GeneratePlatformAddressesPayload = { password }
+  async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
+    const payload: GeneratePlatformAddressesPayload = { password, count }
 
     const response: GetPlatformAddressesResponse = await this._rpcCall(MessagingMethods.GENERATE_PLATFORM_ADDRESSES, payload)
 
@@ -473,11 +473,11 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE, payload)
   }
 
-  // Creates the next shielded address and returns it. The wallet keeps the
+  // Creates the next shielded addresses and returns them. The wallet keeps the
   // number of created addresses, so repeated calls advance the diversifier
-  // index instead of returning the same address.
-  async generateShieldedAddresses (password: string): Promise<GetShieldedAddressesResponse['addresses']> {
-    const payload: GenerateShieldedAddressesPayload = { password }
+  // index instead of returning the same addresses.
+  async generateShieldedAddresses (password: string, count?: number): Promise<GetShieldedAddressesResponse['addresses']> {
+    const payload: GenerateShieldedAddressesPayload = { password, count }
 
     const response: GetShieldedAddressesResponse = await this._rpcCall(MessagingMethods.GENERATE_SHIELDED_ADDRESSES, payload)
 

@@ -118,9 +118,9 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
           {isCreating
             ? (
               <PasswordGate
-                description='Enter your password to create a new shielded address.'
-                submitLabel='Create address'
-                pendingLabel='Creating...'
+                description='Enter your password to show more shielded addresses.'
+                submitLabel='Show addresses'
+                pendingLabel='Loading...'
                 isPending={isGenerating}
                 onSubmit={handleGenerate}
                 onCancel={() => setIsCreating(false)}
@@ -132,7 +132,7 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
                 onClick={() => setIsCreating(true)}
                 disabled={isLoading || isGenerating}
               >
-                Add one more address
+                Show more addresses
               </Button>
               )}
         </>

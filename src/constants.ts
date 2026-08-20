@@ -51,7 +51,8 @@ export const CORE_EXPLORER_URLS = {
 // constants only label the derivation path we report alongside each address.
 export const PLATFORM_ADDRESS_FEATURE = 17
 export const PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS = 0
-export const PLATFORM_ADDRESS_DEFAULT_COUNT = 20
+// How many addresses one "show more" generation adds.
+export const PLATFORM_ADDRESS_GENERATE_BATCH = 10
 // Platform credit transfer estimates. The platform computes the real processing
 // fee on-chain and the SDK exposes no estimator, so these are used only for the
 // pre-flight balance check and for reporting an estimated fee. Set from observed
@@ -82,6 +83,8 @@ export const PLATFORM_ADDRESS_COIN_TYPE = {
 // SDK owns the path); diversifierIndex selects a distinct diversified address
 // sharing the account's viewing key.
 export const SHIELDED_ADDRESS_DEFAULT_COUNT = 5
+// How many addresses one "show more" generation adds.
+export const SHIELDED_ADDRESS_GENERATE_BATCH = 10
 // Page size when paging the shielded note set; mirrors the SDK's
 // SHIELDED_MAX_NOTES_PER_QUERY gRPC limit.
 export const SHIELDED_NOTES_PAGE_SIZE = 8192

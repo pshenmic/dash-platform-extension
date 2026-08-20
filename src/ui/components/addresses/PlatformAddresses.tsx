@@ -57,8 +57,8 @@ export const PlatformAddresses: React.FC<PlatformAddressesProps> = ({ currentNet
         ? (
           <PasswordGate
             description='Enter your password once to enable platform addresses for this wallet.'
-            submitLabel='Create address'
-            pendingLabel='Creating...'
+            submitLabel='Show addresses'
+            pendingLabel='Loading...'
             isPending={isGenerating}
             onSubmit={generateWithPassword}
             onCancel={cancelPassword}
@@ -70,7 +70,7 @@ export const PlatformAddresses: React.FC<PlatformAddressesProps> = ({ currentNet
             onClick={() => { void generate() }}
             disabled={isLoading || isGenerating}
           >
-            {isGenerating ? 'Loading...' : 'Add one more address'}
+            {isGenerating ? 'Loading...' : 'Show more addresses'}
           </Button>
           )}
     </div>

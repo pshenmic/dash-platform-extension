@@ -4,6 +4,7 @@ import { usePlatformExplorerClient } from './usePlatformExplorerClient'
 import type { AddressData } from '../components/addresses'
 import type { NetworkType } from '../../types'
 import type { PlatformAddressBalance } from '../../types/messages/response/GetPlatformAddressesInfosResponse'
+import { PLATFORM_ADDRESS_GENERATE_BATCH } from '../../constants'
 
 export interface UsePlatformAddressesResult {
   addresses: AddressData[]
@@ -93,12 +94,12 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
     void loadList()
   }, [])
 
-  // Generate the next address
+  // Generate the next batch of addresses
   const generate = useCallback(async (): Promise<void> => {
     setIsGenerating(true)
     setError(null)
 
-    const generated = await extensionAPI.generatePlatformAddresses()
+    const generated = await extensionAPI.generatePlatformAddresses(undefined, PLATFORM_ADDRESS_GENERATE_BATCH)
       .then(() => true)
       .catch(() => false)
 
@@ -120,7 +121,7 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
   }, [extensionAPI, refreshList])
 
   // Legacy wallets: initialize the xpub with the password and generate the
-  // first address. Subsequent generations no longer need the password.
+  // first batch. Subsequent generations no longer need the password.
   // Resolves with a password error message, or null on success.
   const generateWithPassword = useCallback(async (password: string): Promise<string | null> => {
     setIsGenerating(true)
@@ -132,7 +133,7 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
         return 'Invalid password'
       }
 
-      await extensionAPI.generatePlatformAddresses(password)
+      await extensionAPI.generatePlatformAddresses(password, PLATFORM_ADDRESS_GENERATE_BATCH)
       setNeedsPassword(false)
       await refreshList()
       return null

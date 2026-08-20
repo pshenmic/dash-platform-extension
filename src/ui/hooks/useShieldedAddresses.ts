@@ -5,6 +5,7 @@ import type { ShieldedAddressData } from '../components/addresses'
 import type { NetworkType } from '../../types'
 import type { GetShieldedAddressesResponse } from '../../types/messages/response/GetShieldedAddressesResponse'
 import type { GetShieldedBalanceResponse } from '../../types/messages/response/GetShieldedBalanceResponse'
+import { SHIELDED_ADDRESS_GENERATE_BATCH } from '../../constants'
 
 type ShieldedAddressList = GetShieldedAddressesResponse['addresses']
 type ShieldedBalance = GetShieldedBalanceResponse
@@ -118,7 +119,7 @@ export function useShieldedAddresses (currentNetwork?: NetworkType | null): UseS
     }
   }, [extensionAPI, refreshList])
 
-  // Generate the next diversified address and reload the list.
+  // Generate the next batch of diversified addresses and reload the list.
   const generate = useCallback(async (password: string): Promise<string | null> => {
     setIsGenerating(true)
     setError(null)
@@ -129,11 +130,11 @@ export function useShieldedAddresses (currentNetwork?: NetworkType | null): UseS
         return 'Invalid password'
       }
 
-      await extensionAPI.generateShieldedAddresses(password)
+      await extensionAPI.generateShieldedAddresses(password, SHIELDED_ADDRESS_GENERATE_BATCH)
 
       return await refreshList(password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create shielded address')
+      setError(err instanceof Error ? err.message : 'Failed to create shielded addresses')
       return null
     } finally {
       setIsGenerating(false)
