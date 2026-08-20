@@ -312,6 +312,7 @@ function PlatformTransferConfirmState (): React.JSX.Element {
           willBeSent={creditsToDashDisplay(amountBig)}
           total={creditsToDashDisplay(amountBig + feeCredits)}
           unit='Dash'
+          hasAmount={amountBig > 0n}
           selectedAsset='credits'
         />
 

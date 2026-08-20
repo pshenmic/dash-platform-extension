@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import type { NetworkType, TokenData } from '../../types'
 import type { RecipientSearchResult, RecipientTargetType } from '../../utils'
 import {
@@ -51,6 +51,8 @@ interface UseSendTransactionFormReturn {
   formData: SendFormData
   selectedRecipient: RecipientData | null
   error: string | null
+  // Limit violation of the entered credits amount, or null when it is spendable.
+  amountError: string | null
   equivalentAmount: string
   equivalentCurrency: 'usd' | 'dash'
   handleRecipientChange: (value: string) => void
@@ -127,6 +129,15 @@ export function useSendTransactionForm ({
     return null
   }, [getCreditLimits])
 
+  // Derived from the amount and the current limits, so changing the recipient
+  // (which moves the minimum) re-validates an already entered amount.
+  const amountError = useMemo((): string | null => {
+    if (formData.selectedAsset !== 'credits') return null
+    if (formData.amount === '' || formData.amount === '.') return null
+
+    return validateCredits(parseCreditsAmount(formData.amount) ?? 0n)
+  }, [formData.selectedAsset, formData.amount, validateCredits])
+
   // Recompute the equivalent (DASH / USD) display from a credits amount.
   const recomputeEquivalent = useCallback((credits: bigint, currency: 'usd' | 'dash' = equivalentCurrency): void => {
     const dashValue = creditsToDash(credits)
@@ -194,17 +205,7 @@ export function useSendTransactionForm ({
     } else if (parsed === '' || parsed === '.') {
       setEquivalentAmount('')
     }
-
-    // Validate amount
-    if (parsed !== '' && parsed !== '.') {
-      const numericValue = Number(parsed)
-
-      // Credit amount limits validation
-      if (formData.selectedAsset === 'credits' && numericValue > 0) {
-        setError(validateCredits(BigInt(Math.floor(numericValue))))
-      }
-    }
-  }, [formData.selectedAsset, balance, rate, equivalentCurrency, getSelectedToken, validateCredits, recomputeEquivalent, tokens])
+  }, [formData.selectedAsset, balance, rate, equivalentCurrency, getSelectedToken, recomputeEquivalent, tokens])
 
   const handleEquivalentChange = useCallback((value: string): void => {
     const decimals = equivalentCurrency === 'dash' ? 8 : 2
@@ -233,11 +234,6 @@ export function useSendTransactionForm ({
 
         const creditsAmount = Math.floor(dashValue * 1e11)
         setFormData(prev => ({ ...prev, amount: creditsAmount.toString() }))
-
-        if (formData.selectedAsset === 'credits') {
-          const amountBigInt = BigInt(creditsAmount)
-          setError(amountBigInt > 0n ? validateCredits(amountBigInt) : null)
-        }
       } else {
         setFormData(prev => ({ ...prev, amount: '' }))
         setError(null)
@@ -246,7 +242,7 @@ export function useSendTransactionForm ({
       setFormData(prev => ({ ...prev, amount: '' }))
       setError(null)
     }
-  }, [equivalentCurrency, rate, formData.selectedAsset, validateCredits])
+  }, [equivalentCurrency, rate])
 
   const handleQuickAmount = useCallback((percentage: number): void => {
     if (formData.selectedAsset === 'credits') {
@@ -315,6 +311,7 @@ export function useSendTransactionForm ({
     formData,
     selectedRecipient,
     error,
+    amountError,
     equivalentAmount,
     equivalentCurrency,
     handleRecipientChange,

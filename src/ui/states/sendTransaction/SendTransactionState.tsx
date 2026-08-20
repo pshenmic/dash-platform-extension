@@ -2,72 +2,45 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useOutletContext, useLocation } from 'react-router-dom'
 import { Button, Text } from 'dash-ui-kit/react'
 import { AssetSelectionMenu, AssetSelectorBadge, buildAssetOptions } from '../../components/controls'
-import { TransferSummaryCard, Banner } from '../../components/cards'
+import { TransferSummaryCard } from '../../components/cards'
 import { AmountInputSection } from '../../components/forms'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import {
-  useAsyncState,
-  useSdk,
-  usePlatformExplorerClient,
   useSendTransactionForm,
   useTransactionCalculations
 } from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
-import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
 import LoadingScreen from '../../components/layout/LoadingScreen'
-import type { NetworkType, TokenData } from '../../../types'
+import type { TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { WalletType } from '../../../types'
 import { ESTIMATED_FEES } from '../../constants/transaction'
-import { PROVING_NOTE, WITHDRAW_TO_CORE_WARNING, SHIELDED_WITHDRAW_WARNING } from '../../constants/transferWarnings'
-import { TRANSFER_FEE_CREDITS, SHIELDED_SPEND_FEE_CREDITS, SHIELDED_POOL_RECIPIENT } from '../../../constants'
+import { TRANSFER_FEE_CREDITS, SHIELDED_SPEND_FEE_CREDITS } from '../../../constants'
 import {
   getFormattedBalance,
   getAssetLabel,
   getAssetDecimals
 } from '../../../utils/transactionFormatters'
 import { AssetBalanceLabel } from '../../components/data'
-import { parseCreditsAmount, creditsToDashDisplay } from '../../../utils'
-import type { RecipientSearchResult } from '../../../utils'
+import { parseCreditsAmount } from '../../../utils'
 import type { SenderType, TransferMode } from './types'
+import { SHIELDED_POOL_OPTIONS } from './constants'
+import { buildTransferSummary } from './transferSummary'
 import { usePlatformAddresses } from './hooks/usePlatformAddresses'
 import { useIdentityBalances } from './hooks/useIdentityBalances'
 import { useShieldedBalance } from './hooks/useShieldedBalance'
 import { useSendSubmit } from './hooks/useSendSubmit'
+import { useSendScreenData } from './hooks/useSendScreenData'
+import { useIdentityHeader } from './hooks/useIdentityHeader'
 import { SenderSelector } from './components/SenderSelector'
 import { ShieldedSenderPanel } from './components/ShieldedSenderPanel'
 import { AssetSelectionStep } from './components/AssetSelectionStep'
-
-// Shown when the sender can't pay the chosen recipient type (no API for it).
-const UNSUPPORTED_TRANSFER_MESSAGE = 'This sender cannot pay this recipient. Change the sender or the recipient.'
-
-// `shieldToPool` can only reach the wallet's own pool — a fixed choice, not typed.
-const SHIELDED_POOL_OPTIONS: RecipientSearchResult[] = [{
-  identifier: SHIELDED_POOL_RECIPIENT,
-  type: 'shieldedPool',
-  label: 'My shielded balance'
-}]
-
-// Caution shown on the send screen per resolved mode, composed from the shared
-// warning fragments (see ui/constants/transferWarnings).
-const MODE_WARNINGS: Partial<Record<TransferMode, string>> = {
-  withdraw: WITHDRAW_TO_CORE_WARNING,
-  identityWithdraw: WITHDRAW_TO_CORE_WARNING,
-  shieldedWithdraw: SHIELDED_WITHDRAW_WARNING,
-  shield: PROVING_NOTE,
-  unshield: PROVING_NOTE,
-  shieldedTransfer: PROVING_NOTE
-}
+import { SendValidationBanners } from './components/SendValidationBanners'
 
 function SendTransactionState (): React.JSX.Element {
   const location = useLocation()
-  const sdk = useSdk()
-  const platformExplorerClient = usePlatformExplorerClient()
   const { currentNetwork, currentIdentity, setHeaderComponent, allWallets, currentWallet, availableIdentities } = useOutletContext<OutletContext>()
   const locationState = location.state as { selectedToken?: string } | null
-  const [balance, setBalance] = useState<bigint | null>(null)
-  const [rate, setRate] = useState<number | null>(null)
-  const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
   const [showAssetSelection, setShowAssetSelection] = useState(false)
 
   const [assetChosen, setAssetChosen] = useState(locationState?.selectedToken != null)
@@ -76,6 +49,13 @@ function SendTransactionState (): React.JSX.Element {
   const [selectedShieldedAddress, setSelectedShieldedAddress] = useState<string | null>(null)
   const [selectedIdentity, setSelectedIdentity] = useState<string | null>(null)
   const senderIdentity = selectedIdentity ?? currentIdentity
+
+  // Sender balance, exchange rate and token list.
+  const { balance, rate, tokensState } = useSendScreenData({
+    senderIdentity,
+    currentIdentity,
+    currentNetwork
+  })
 
   // Wallet type of the current wallet (platform transfers are seedphrase-only).
   const walletType = useMemo((): string | null => {
@@ -222,68 +202,7 @@ function SendTransactionState (): React.JSX.Element {
     }
   }, [locationState, tokensState.data, formState.handleAssetSelect])
 
-  // Load balance, tokens and exchange rate on component mount
-  useEffect(() => {
-    const loadBalance = async (): Promise<void> => {
-      if ((senderIdentity !== null && senderIdentity !== undefined)) {
-        try {
-          const identityBalance = await sdk.identities.getIdentityBalance(senderIdentity)
-          setBalance(identityBalance)
-        } catch (err) {
-          console.error('Failed to load balance:', err)
-        }
-      }
-    }
-
-    const loadRate = async (): Promise<void> => {
-      try {
-        const rate = await platformExplorerClient.fetchRate(currentNetwork ?? 'testnet')
-        setRate(rate)
-      } catch (err) {
-        console.log('Failed to load exchange rate:', err)
-        setRate(null)
-      }
-    }
-
-    void loadBalance().catch(e => console.log('loadBalance error:', e))
-    void loadRate().catch(e => console.log('loadRate error:', e))
-  }, [senderIdentity, sdk, currentNetwork, platformExplorerClient])
-
-  // Load tokens for the current identity
-  useEffect(() => {
-    if (currentIdentity === null) return
-
-    loadTokens(async () => {
-      return await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
-    }).catch(e => console.log('loadTokens error:', e))
-  }, [currentIdentity, currentNetwork, platformExplorerClient, loadTokens])
-
-  // Get wallet name for display
-  const getWalletName = (): string => {
-    if (currentWallet == null || allWallets == null || allWallets.length === 0) return 'Wallet'
-
-    const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
-    const currentWalletData = availableWallets.find(wallet => wallet.walletId === currentWallet)
-
-    if (currentWalletData == null) return 'Wallet'
-
-    const currentWalletIndex = availableWallets.findIndex(wallet => wallet.walletId === currentWallet)
-    return currentWalletData.label ?? `Wallet_${currentWalletIndex + 1}`
-  }
-
-  // Set header component with identity and wallet info
-  useEffect(() => {
-    if (currentIdentity !== null) {
-      setHeaderComponent(
-        <IdentityHeaderBadge identity={currentIdentity} walletName={getWalletName()} />
-      )
-    }
-
-    // Clear header component on unmount
-    return () => {
-      setHeaderComponent(null)
-    }
-  }, [currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent])
+  useIdentityHeader({ currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent })
 
   // Tokens can only be transferred between identities, so a token asset forces
   // the sender back to Identity.
@@ -404,18 +323,16 @@ function SendTransactionState (): React.JSX.Element {
   // Options for the initial "what to send" step (Credits + any tokens).
   const assetOptions = useMemo(() => buildAssetOptions(tokensState.data ?? []), [tokensState.data])
 
-  // Summary values, switching to the flat platform fee for fund/send. Credits
-  // amounts (fees included) are shown in Dash.
-  const summaryFeeCredits = isPlatformMode ? platformFeeCredits : calculations.getEstimatedFeeBigInt()
-  const summaryAmountCredits = parseCreditsAmount(formState.formData.amount) ?? 0n
-  const summaryFees = `~${creditsToDashDisplay(summaryFeeCredits)}`
-  const summaryWillBeSent = isCredits
-    ? creditsToDashDisplay(summaryAmountCredits)
-    : calculations.getWillBeSentAmount()
-  const summaryTotal = isCredits
-    ? creditsToDashDisplay(summaryAmountCredits + summaryFeeCredits)
-    : calculations.getTotalAmount()
-  const summaryUnit = isCredits ? 'Dash' : calculations.getTotalAmountUnit()
+  const summary = buildTransferSummary({
+    isCredits,
+    isPlatformMode,
+    amount: formState.formData.amount,
+    platformFeeCredits,
+    estimatedFeeCredits: calculations.getEstimatedFeeBigInt(),
+    tokenWillBeSent: calculations.getWillBeSentAmount(),
+    tokenTotal: calculations.getTotalAmount(),
+    tokenUnit: calculations.getTotalAmountUnit()
+  })
 
   // Note selection happens after the (slow) proof starts, so check up front that
   // the chosen shielded source covers the amount plus its fee.
@@ -434,11 +351,12 @@ function SendTransactionState (): React.JSX.Element {
   const nextDisabled = isLoading ||
     formState.selectedRecipient === null ||
     formState.formData.amount === '' ||
+    formState.amountError !== null ||
     isSameParty ||
     transferMode === 'unsupported' ||
     (spendsFromPlatformAddress && selectedPlatformAddress === null) ||
     // Spending shielded notes needs the pool unlocked first (known balance)
-    // and the prover fully warmed — starting a spend mid-warm-up would race
+    // and the prover fully warmed - starting a spend mid-warm-up would race
     // the builder cache.
     (senderType === 'shielded' && (shielded.balance === null || shielded.isWarmingProver)) ||
     shieldedSourceShortfall
@@ -567,32 +485,27 @@ function SendTransactionState (): React.JSX.Element {
         maxBalance={availableBalanceForSlider}
       />
 
-      {/* Error Message */}
-      <Banner variant='error' message={formState.error ?? null} />
-      {isSameParty && (
-        <Banner variant='error' message='Recipient must be different from the sender' />
-      )}
-      {transferMode === 'unsupported' && (
-        <Banner variant='error' message={UNSUPPORTED_TRANSFER_MESSAGE} />
-      )}
-      {shieldedSourceShortfall && (
-        <Banner
-          variant='error'
-          message={selectedShieldedAddress != null
-            ? 'The amount plus the shielded fee exceeds the balance of the selected source address'
-            : 'The amount plus the shielded fee exceeds your shielded balance'}
+      {/* Validation and mode warnings */}
+      <SendValidationBanners
+        formError={formState.error ?? null}
+        amountError={formState.amountError}
+        isSameParty={isSameParty}
+        transferMode={transferMode}
+        shieldedSourceShortfall={shieldedSourceShortfall}
+        selectedShieldedAddress={selectedShieldedAddress}
+      />
+
+      {/* Transaction Summary Card - hidden while the amount is out of limits */}
+      {formState.amountError === null && (
+        <TransferSummaryCard
+          fees={summary.fees}
+          willBeSent={summary.willBeSent}
+          total={summary.total}
+          unit={summary.unit}
+          hasAmount={summary.hasAmount}
+          selectedAsset={formState.formData.selectedAsset}
         />
       )}
-      <Banner variant='warning' message={MODE_WARNINGS[transferMode] ?? null} />
-
-      {/* Transaction Summary Card */}
-      <TransferSummaryCard
-        fees={summaryFees}
-        willBeSent={summaryWillBeSent}
-        total={summaryTotal}
-        unit={summaryUnit}
-        selectedAsset={formState.formData.selectedAsset}
-      />
 
       {/* Action Button */}
       <div className='flex flex-col gap-4'>
