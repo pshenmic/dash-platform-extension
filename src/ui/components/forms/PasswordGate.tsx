@@ -51,14 +51,6 @@ export const PasswordGate: React.FC<PasswordGateProps> = ({
         autoFocus
       />
       <div className='flex gap-2'>
-        <Button
-          colorScheme='brand'
-          className='flex-1'
-          onClick={() => { void handleSubmit() }}
-          disabled={isPending}
-        >
-          {isPending ? pendingLabel : submitLabel}
-        </Button>
         {onCancel != null && (
           <Button
             colorScheme='lightGray'
@@ -69,6 +61,14 @@ export const PasswordGate: React.FC<PasswordGateProps> = ({
             Cancel
           </Button>
         )}
+        <Button
+          colorScheme='brand'
+          className='flex-1'
+          onClick={() => { void handleSubmit() }}
+          disabled={isPending}
+        >
+          {isPending ? pendingLabel : submitLabel}
+        </Button>
       </div>
     </div>
   )

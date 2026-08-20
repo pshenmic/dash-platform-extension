@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text } from 'dash-ui-kit/react'
+import { Text, NotActive } from 'dash-ui-kit/react'
 import { AddressCard, AddressCardBalance } from './AddressCard'
 
 export interface AddressData {
@@ -25,7 +25,10 @@ export const AddressItem: React.FC<AddressItemProps> = ({ item, explorerUrl }) =
           ? <Text size='sm' dim>Loading...</Text>
           : (
             <Text size='sm' dim>
-              Transactions: <span className='font-extrabold text-dash-primary-dark-blue'>{item.totalTxs ?? 0}</span>
+              Transactions:{' '}
+              {item.totalTxs != null
+                ? <span className='font-extrabold text-dash-primary-dark-blue'>{item.totalTxs}</span>
+                : <NotActive>-</NotActive>}
             </Text>
             )}
       </div>

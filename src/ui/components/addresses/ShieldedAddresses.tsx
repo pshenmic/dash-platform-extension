@@ -1,116 +1,38 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Text, Button, ValueCard, BigNumber, NotActive, ShieldSmallIcon } from 'dash-ui-kit/react'
-import { PasswordField } from '../forms'
-import { ShieldedAddressItem, type ShieldedAddressData } from './ShieldedAddressItem'
+import { PasswordGate } from '../forms'
+import { ShieldedAddressItem } from './ShieldedAddressItem'
 import { BalanceInfo } from '../data'
-import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { usePlatformExplorerClient } from '../../hooks/usePlatformExplorerClient'
+import { useShieldedAddresses } from '../../hooks/useShieldedAddresses'
 import type { NetworkType } from '../../../types'
-import type { GetShieldedAddressesResponse } from '../../../types/messages/response/GetShieldedAddressesResponse'
-import type { GetShieldedBalanceResponse } from '../../../types/messages/response/GetShieldedBalanceResponse'
-
-type ShieldedAddressList = GetShieldedAddressesResponse['addresses']
-type ShieldedBalance = GetShieldedBalanceResponse
 
 interface ShieldedAddressesProps {
   currentNetwork?: NetworkType | null
 }
 
-const buildRows = (
-  addresses: ShieldedAddressList,
-  balance: ShieldedBalance | null
-): ShieldedAddressData[] => {
-  const unmatched = new Map((balance?.byAddress ?? []).map((entry) => [entry.address, entry]))
-
-  const derived = addresses.map((item) => {
-    const entry = unmatched.get(item.address)
-    unmatched.delete(item.address)
-
-    return {
-      address: item.address,
-      diversifierIndex: item.diversifierIndex,
-      balance: balance == null ? null : entry?.balance ?? '0',
-      spendableNotes: balance == null ? null : entry?.spendableNotes ?? 0
-    }
-  })
-
-  const external = [...unmatched.values()].map((entry) => ({
-    address: entry.address,
-    diversifierIndex: entry.diversifierIndex,
-    balance: entry.balance,
-    spendableNotes: entry.spendableNotes
-  }))
-
-  return [...derived, ...external]
-}
-
 export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNetwork }) => {
-  const extensionAPI = useExtensionAPI()
-  const platformExplorerClient = usePlatformExplorerClient()
-  const [password, setPassword] = useState('')
-  const [passwordError, setPasswordError] = useState<string | null>(null)
-  const [addresses, setAddresses] = useState<ShieldedAddressList>([])
-  const [balance, setBalance] = useState<ShieldedBalance | null>(null)
-  const [balanceUnavailable, setBalanceUnavailable] = useState(false)
-  const [hasLoaded, setHasLoaded] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [rate, setRate] = useState<number | null>(null)
+  const {
+    rows,
+    balance,
+    balanceUnavailable,
+    rate,
+    hasLoaded,
+    isLoading,
+    isGenerating,
+    error,
+    load,
+    generate
+  } = useShieldedAddresses(currentNetwork)
+  const [isCreating, setIsCreating] = useState(false)
 
-  // Fetch USD rate per Dash
-  useEffect(() => {
-    const network = currentNetwork ?? 'testnet'
-    platformExplorerClient.fetchRate(network)
-      .then(setRate)
-      .catch(() => setRate(null))
-  }, [currentNetwork, platformExplorerClient])
+  const handleGenerate = async (password: string): Promise<string | null> => {
+    const generateError = await generate(password)
 
-  const load = async (): Promise<void> => {
-    if (password === '') {
-      setPasswordError('Password must be provided')
-      return
-    }
+    if (generateError != null) return generateError
 
-    setIsLoading(true)
-    setPasswordError(null)
-    setError(null)
-    setBalanceUnavailable(false)
-
-    try {
-      const passwordCheck = await extensionAPI.checkPassword(password)
-      if (!passwordCheck.success) {
-        setPasswordError('Invalid password')
-        return
-      }
-
-      const [addrResult, balanceResult] = await Promise.allSettled([
-        extensionAPI.getShieldedAddresses(password),
-        extensionAPI.getShieldedBalance(password)
-      ])
-
-      setPassword('')
-
-      if (addrResult.status === 'rejected') {
-        setError(addrResult.reason instanceof Error ? addrResult.reason.message : 'Failed to load shielded addresses')
-        return
-      }
-
-      setAddresses(addrResult.value)
-      setHasLoaded(true)
-
-      if (balanceResult.status === 'fulfilled') {
-        setBalance(balanceResult.value)
-      } else {
-        setBalanceUnavailable(true)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load shielded addresses')
-    } finally {
-      setIsLoading(false)
-    }
+    setIsCreating(false)
+    return null
   }
-
-  const rows = buildRows(addresses, balance)
 
   return (
     <div className='flex flex-col gap-4'>
@@ -119,24 +41,12 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
       </Text>
 
       {!hasLoaded && (
-        <div className='flex flex-col gap-4'>
-          <Text size='sm' dim>
-            Enter your password to view shielded addresses.
-          </Text>
-          <PasswordField
-            value={password}
-            onChange={(value) => { setPassword(value); setPasswordError(null) }}
-            error={passwordError}
-            autoFocus
-          />
-          <Button
-            colorScheme='brand'
-            onClick={() => { void load() }}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Loading...' : 'Show Shielded Addresses'}
-          </Button>
-        </div>
+        <PasswordGate
+          description='Enter your password to view shielded addresses.'
+          submitLabel='Show Shielded Addresses'
+          isPending={isLoading}
+          onSubmit={load}
+        />
       )}
 
       {error != null && (
@@ -203,6 +113,27 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
                   <ShieldedAddressItem key={item.address} item={item} />
                 ))}
               </div>
+              )}
+
+          {isCreating
+            ? (
+              <PasswordGate
+                description='Enter your password to create a new shielded address.'
+                submitLabel='Create address'
+                pendingLabel='Creating...'
+                isPending={isGenerating}
+                onSubmit={handleGenerate}
+                onCancel={() => setIsCreating(false)}
+              />
+              )
+            : (
+              <Button
+                colorScheme='brand'
+                onClick={() => setIsCreating(true)}
+                disabled={isLoading || isGenerating}
+              >
+                Add one more address
+              </Button>
               )}
         </>
       )}

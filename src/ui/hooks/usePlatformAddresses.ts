@@ -54,7 +54,7 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
       Promise.all(initial.map(async (item) => {
         try {
           const data = await platformExplorerClient.fetchAddress(item.address, network)
-          return data.totalTxs ?? 0
+          return data.totalTxs ?? null
         } catch {
           return null
         }
