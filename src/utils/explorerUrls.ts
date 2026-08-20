@@ -11,6 +11,6 @@ export const getTransactionExplorerUrl = (transactionHash: string, network: Netw
 }
 
 // Explorer page link for a platform address.
-export const getAddressExplorerUrl = (address: string, network: NetworkType = 'testnet'): string => {
+export const getPlatformAddressExplorerUrl = (address: string, network: NetworkType = 'testnet'): string => {
   return `${getExplorerUrl(network)}/platformAddress/${address}`
 }

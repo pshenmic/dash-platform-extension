@@ -3,7 +3,7 @@ import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { PasswordGate } from '../forms'
 import { AddressItem } from './AddressItem'
 import { usePlatformAddresses } from '../../hooks/usePlatformAddresses'
-import { getAddressExplorerUrl } from '../../../utils'
+import { getPlatformAddressExplorerUrl } from '../../../utils'
 import type { NetworkType } from '../../../types'
 
 interface PlatformAddressesProps {
@@ -47,7 +47,7 @@ export const PlatformAddresses: React.FC<PlatformAddressesProps> = ({ currentNet
             <AddressItem
               key={`${item.index}-${item.address}`}
               item={item}
-              explorerUrl={getAddressExplorerUrl(item.address, currentNetwork ?? 'testnet')}
+              explorerUrl={getPlatformAddressExplorerUrl(item.address, currentNetwork ?? 'testnet')}
             />
           ))}
         </div>
