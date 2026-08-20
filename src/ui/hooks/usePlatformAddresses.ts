@@ -98,15 +98,19 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
     setIsGenerating(true)
     setError(null)
 
-    try {
-      try {
-        await extensionAPI.generatePlatformAddresses()
-      } catch {
-        setNeedsPassword(true)
-        return
-      }
+    const generated = await extensionAPI.generatePlatformAddresses()
+      .then(() => true)
+      .catch(() => false)
 
-      setNeedsPassword(false)
+    if (!generated) {
+      setNeedsPassword(true)
+      setIsGenerating(false)
+      return
+    }
+
+    setNeedsPassword(false)
+
+    try {
       await refreshList()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load addresses')
