@@ -23,6 +23,7 @@ export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
+export { getTransactionExplorerUrl, getAddressExplorerUrl } from './explorerUrls'
 export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
 export type { PlatformSourceCandidate } from './platformTransfer'
 
@@ -245,7 +246,7 @@ export const derivePlatformAccountXpub = async (wallet: Wallet, password: string
   return await sdk.keyPair.derivePlatformAccountXpub(seed, wallet.network, account)
 }
 
-// Derive `count` transparent P2PKH platform addresses from an account xpub.
+// Derive `count` P2PKH Platform addresses from an account xpub.
 // The address index is non-hardened, so public-only derivation reproduces the
 // exact same addresses as the private path — no seed/password required. The
 // address derivation and DIP-18 encoding live in the SDK; here we only expand
@@ -350,11 +351,11 @@ export interface ShieldedAddressEntry {
   diversifierIndex: number
 }
 
-// Derive `count` diversified Orchard (shielded) addresses for an account.
-// ZIP-32 m/32'/coinType'/account'; each diversifierIndex yields a distinct
-// receiving address sharing the account's viewing key. Needs the password
-// (decrypts the seed).
-export const deriveShieldedAddresses = (wallet: Wallet, password: string, account: number, count: number, sdk: DashPlatformSDK): ShieldedAddressEntry[] => {
+// Derive `count` diversified Orchard (shielded) addresses for an account,
+// starting at diversifier index `start`. ZIP-32 m/32'/coinType'/account'; each
+// diversifierIndex yields a distinct receiving address sharing the account's
+// viewing key. Needs the password (decrypts the seed).
+export const deriveShieldedAddresses = (wallet: Wallet, password: string, account: number, count: number, sdk: DashPlatformSDK, start: number = 0): ShieldedAddressEntry[] => {
   if (wallet.type !== 'seedphrase') {
     throw new Error('Shielded addresses can only be derived from a seedphrase wallet')
   }
@@ -366,7 +367,7 @@ export const deriveShieldedAddresses = (wallet: Wallet, password: string, accoun
   const derivationPath = `m/32'/${coinType}'/${account}'`
 
   const entries: ShieldedAddressEntry[] = []
-  for (let diversifierIndex = 0; diversifierIndex < count; diversifierIndex++) {
+  for (let diversifierIndex = start; diversifierIndex < start + count; diversifierIndex++) {
     const orchardAddress = sdk.keyPair.deriveShieldedAddress(seed, network, account, diversifierIndex)
     entries.push({ address: orchardAddress.toBech32m(networkType), derivationPath, diversifierIndex })
   }

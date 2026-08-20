@@ -7,7 +7,7 @@ import { buildPlatformSourceCandidates, decryptMnemonic, selectPlatformSource } 
 import { ShieldToPoolPayload } from '../../../../types/messages/payloads/ShieldToPoolPayload'
 import { ShieldToPoolResponse } from '../../../../types/messages/response/ShieldToPoolResponse'
 
-// Shields credits from a transparent platform address into the wallet's own
+// Shields credits from a Platform address into the wallet's own
 // Orchard pool via a shield state transition. Picks a source (explicit, or the
 // largest covering amount + fee), signs the input with its key, and builds the
 // Orchard (Halo2) proof — slow, runs in the popup for now — targeting the wallet's

@@ -24,10 +24,6 @@ const getBaseUrl = (network: NetworkType = 'testnet'): string => {
   return PLATFORM_EXPLORER_URLS[network].api
 }
 
-const getExplorerUrl = (network: NetworkType = 'testnet'): string => {
-  return PLATFORM_EXPLORER_URLS[network].explorer
-}
-
 export class PlatformExplorerClient {
   async fetchIdentity (identityId: string, network: NetworkType = 'testnet'): Promise<IdentityApiData> {
     const baseUrl = getBaseUrl(network)
@@ -120,15 +116,5 @@ export class PlatformExplorerClient {
     }
 
     return await response.json()
-  }
-
-  getTransactionExplorerUrl (transactionHash: string, network: NetworkType = 'testnet'): string {
-    const explorerUrl = getExplorerUrl(network)
-    return `${explorerUrl}/transaction/${transactionHash}`
-  }
-
-  getAddressExplorerUrl (address: string, network: NetworkType = 'testnet'): string {
-    const explorerUrl = getExplorerUrl(network)
-    return `${explorerUrl}/platformAddress/${address}`
   }
 }
