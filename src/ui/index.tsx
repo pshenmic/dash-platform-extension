@@ -16,7 +16,6 @@ const StartState = React.lazy(async () => await import('./states/start/StartStat
 const SetupPasswordState = React.lazy(async () => await import('./states/setup/SetupPasswordState'))
 const LoginState = React.lazy(async () => await import('./states/login/LoginState'))
 const CreateWalletState = React.lazy(async () => await import('./states/wallet/CreateWalletState'))
-const NoWalletState = React.lazy(async () => await import('./states/wallet/NoWalletState'))
 const ApproveTransactionState = React.lazy(async () => await import('./states/approveTransaction/ApproveTransactionState'))
 const AppConnectState = React.lazy(async () => await import('./states/appConnect/AppConnectState'))
 const SendTransactionState = React.lazy(async () => await import('./states/sendTransaction/SendTransactionState'))
@@ -24,6 +23,10 @@ const ImportSeedPhrase = React.lazy(async () => await import('./states/importIde
 const ChooseWalletType = React.lazy(async () => await import('./states/wallet/ChooseWalletType'))
 const WalletSuccessfullyCreated = React.lazy(async () => await import('./states/importIdentity/WalletSuccessfullyCreated'))
 const NameRegistrationState = React.lazy(async () => await import('./states/nameRegistration'))
+const WelcomeState = React.lazy(async () => await import('./states/welcome/WelcomeState'))
+const WithdrawState = React.lazy(async () => await import('./states/withdrawal/WithdrawState'))
+const CreateSeedWalletState = React.lazy(async () => await import('./states/wallet/CreateSeedWalletState'))
+const IdentityRegistrationState = React.lazy(async () => await import('./states/identityRegistration/IdentityRegistrationState'))
 
 const App: React.FC = function () {
   const router = createHashRouter([
@@ -50,13 +53,13 @@ const App: React.FC = function () {
           }
         },
         {
-            path: '/welcome',
-            element: <PageWithHeader><WelcomeState /></PageWithHeader>,
-            handle: {
-                headerProps: {
-                    variant: 'welcome'
-                }
+          path: '/welcome',
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><WelcomeState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'welcome'
             }
+          }
         },
         {
           path: '/import-seed-phrase',
@@ -68,15 +71,14 @@ const App: React.FC = function () {
           }
         },
         {
-            path: '/create-seed-wallet',
-            element: <PageWithHeader><CreateSeedWalletState /></PageWithHeader>,
-            handle: {
-                headerProps: {
-                    variant: 'seedImport'
-                }
+          path: '/create-seed-wallet',
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><CreateSeedWalletState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'seedImport'
             }
+          }
         },
-        {
         {
           path: '/home',
           element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><HomeState /></Suspense></PageWithHeader>,
@@ -178,7 +180,7 @@ const App: React.FC = function () {
         },
         {
           path: '/register-identity',
-          element: <PageWithHeader><IdentityRegistrationState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><IdentityRegistrationState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'identityRegistration'
@@ -196,7 +198,7 @@ const App: React.FC = function () {
         },
         {
           path: '/withdrawal',
-          element: <PageWithHeader><WithdrawState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><WithdrawState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'sendTransaction'
@@ -223,7 +225,7 @@ rootDiv.render(
 
 // Hide initial HTML loader after React is ready
 const initialLoader = document.getElementById('initial-loader')
-if (initialLoader) {
+if (initialLoader != null) {
   initialLoader.classList.add('hidden')
 }
 
