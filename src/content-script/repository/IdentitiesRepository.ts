@@ -3,17 +3,31 @@ import { Identity } from '../../types'
 import { IdentitiesStoreSchema, IdentityStoreSchema } from '../storage/storageSchema'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { IdentityType } from '../../types/enums/IdentityType'
+import { RepositoryScope } from '../../types/RepositoryScope'
 
 export class IdentitiesRepository {
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
+  scope?: RepositoryScope
 
-  constructor (storageAdapter: StorageAdapter, sdk: DashPlatformSDK) {
+  constructor (storageAdapter: StorageAdapter, sdk: DashPlatformSDK, scope?: RepositoryScope) {
     this.sdk = sdk
     this.storageAdapter = storageAdapter
+    this.scope = scope
   }
 
-  async create (identifier: string, type: IdentityType, index: number, proTxHash?: string): Promise<Identity> {
+  // Returns a repository pinned to one (network, wallet) pair. Callers that must
+  // keep addressing the same wallet across a long operation use this instead of
+  // the shared instance, which re-reads the current wallet on every call.
+  forScope (scope: RepositoryScope): IdentitiesRepository {
+    return new IdentitiesRepository(this.storageAdapter, this.sdk, scope)
+  }
+
+  private async getStorageKey (): Promise<string> {
+    if (this.scope != null) {
+      return `identities_${this.scope.network}_${this.scope.walletId}`
+    }
+
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
@@ -21,7 +35,11 @@ export class IdentitiesRepository {
       throw new Error('Wallet is not chosen')
     }
 
-    const storageKey = `identities_${network}_${walletId}`
+    return `identities_${network}_${walletId}`
+  }
+
+  async create (identifier: string, type: IdentityType, index: number, proTxHash?: string): Promise<Identity> {
+    const storageKey = await this.getStorageKey()
 
     const identities = (await this.storageAdapter.get(storageKey) ?? {}) as IdentitiesStoreSchema
 
@@ -61,14 +79,7 @@ export class IdentitiesRepository {
   }
 
   async replaceAll (identities: Identity[]): Promise<void> {
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const storageKey = `identities_${network}_${walletId}`
+    const storageKey = await this.getStorageKey()
 
     const identitiesSchema: IdentitiesStoreSchema = identities.reduce((acc, value) => {
       const schema: IdentityStoreSchema = {
@@ -86,14 +97,7 @@ export class IdentitiesRepository {
   }
 
   async getAll (): Promise<Identity[]> {
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const storageKey = `identities_${network}_${walletId}`
+    const storageKey = await this.getStorageKey()
 
     const identities = (await this.storageAdapter.get(storageKey) ?? {}) as IdentitiesStoreSchema
 
@@ -110,14 +114,7 @@ export class IdentitiesRepository {
   }
 
   async remove (identifier: string): Promise<void> {
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const storageKey = `identities_${network}_${walletId}`
+    const storageKey = await this.getStorageKey()
 
     const identities = (await this.storageAdapter.get(storageKey) ?? {}) as IdentitiesStoreSchema
 
@@ -131,14 +128,7 @@ export class IdentitiesRepository {
   }
 
   async getByIdentifier (identifier: string): Promise<Identity | null> {
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const storageKey = `identities_${network}_${walletId}`
+    const storageKey = await this.getStorageKey()
 
     const identities = (await this.storageAdapter.get(storageKey) ?? {}) as IdentitiesStoreSchema
 

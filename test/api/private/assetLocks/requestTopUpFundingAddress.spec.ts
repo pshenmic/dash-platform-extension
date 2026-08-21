@@ -57,6 +57,11 @@ describe('RequestTopUpFundingAddressHandler', () => {
       }))
     }
 
+    // The handler pins both repositories to the resolved (network, wallet) pair
+    // before using them; the mocks stay the same object under any scope.
+    assetLockFundingAddressesRepository.forScope = jest.fn(() => assetLockFundingAddressesRepository)
+    walletRepository.forScope = jest.fn(() => walletRepository)
+
     coreExplorer = {
       isAddressUsed: jest.fn(async () => false),
       // Defaults model a never-seen address: no history, no UTXOs.
@@ -195,6 +200,53 @@ describe('RequestTopUpFundingAddressHandler', () => {
 
     it('accepts a valid payload', () => {
       expect(handler.validatePayload({ password })).toBeNull()
+    })
+  })
+
+  describe('wallet and network scope', () => {
+    it('pins both repositories to the pair named in the payload', async () => {
+      await handler.handle({ payload: { password, walletId: 'walletFromTab', network: 'testnet' } } as any)
+
+      const scope = { network: 'testnet', walletId: 'walletFromTab' }
+
+      expect(walletRepository.forScope).toHaveBeenCalledWith(scope)
+      expect(assetLockFundingAddressesRepository.forScope).toHaveBeenCalledWith(scope)
+      // The named wallet is used directly, without consulting the current selection.
+      expect(walletRepository.getCurrent).toHaveBeenCalledTimes(1)
+    })
+
+    it('falls back to the current wallet when the payload omits the pair', async () => {
+      await handler.handle({ payload: { password } } as any)
+
+      const scope = { network: 'testnet', walletId: 'wallet1' }
+
+      expect(walletRepository.forScope).toHaveBeenCalledWith(scope)
+      expect(assetLockFundingAddressesRepository.forScope).toHaveBeenCalledWith(scope)
+    })
+
+    it('throws when the scoped wallet does not exist', async () => {
+      walletRepository.getCurrent.mockResolvedValueOnce(null)
+
+      await expect(handler.handle({ payload: { password, walletId: 'walletFromTab', network: 'testnet' } } as any))
+        .rejects.toThrow('Wallet walletFromTab does not exist on testnet')
+
+      expect(assetLockFundingAddressesRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('rejects a payload naming only one half of the pair', () => {
+      expect(handler.validatePayload({ password, walletId: 'wallet1' } as any))
+        .toBe('walletId and network must be provided together')
+      expect(handler.validatePayload({ password, network: 'testnet' } as any))
+        .toBe('walletId and network must be provided together')
+    })
+
+    it('rejects an unknown network', () => {
+      expect(handler.validatePayload({ password, walletId: 'wallet1', network: 'regtest' } as any))
+        .toBe('network must be either testnet or mainnet')
+    })
+
+    it('accepts a payload carrying the pair', () => {
+      expect(handler.validatePayload({ password, walletId: 'wallet1', network: 'mainnet' } as any)).toBeNull()
     })
   })
 })

@@ -4,12 +4,22 @@ import {
   AssetLockFundingAddressesSchema,
   AssetLockFundingPurpose
 } from '../storage/storageSchema'
+import { RepositoryScope } from '../../types/RepositoryScope'
 
 export class AssetLockFundingAddressesRepository {
   storageAdapter: StorageAdapter
+  scope?: RepositoryScope
 
-  constructor (storageAdapter: StorageAdapter) {
+  constructor (storageAdapter: StorageAdapter, scope?: RepositoryScope) {
     this.storageAdapter = storageAdapter
+    this.scope = scope
+  }
+
+  // Returns a repository pinned to one (network, wallet) pair. Callers that must
+  // keep addressing the same wallet across a long operation use this instead of
+  // the shared instance, which re-reads the current wallet on every call.
+  forScope (scope: RepositoryScope): AssetLockFundingAddressesRepository {
+    return new AssetLockFundingAddressesRepository(this.storageAdapter, scope)
   }
 
   async create (entry: AssetLockFundingAddressSchema): Promise<AssetLockFundingAddressSchema> {
@@ -86,6 +96,10 @@ export class AssetLockFundingAddressesRepository {
   }
 
   private async getStorageKey (): Promise<string> {
+    if (this.scope != null) {
+      return `assetLockFundingAddresses_${this.scope.network}_${this.scope.walletId}`
+    }
+
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
