@@ -13,7 +13,7 @@ export class IdentitiesRepository {
     this.storageAdapter = storageAdapter
   }
 
-  async create (identifier: string, type: IdentityType, proTxHash?: string): Promise<Identity> {
+  async create (identifier: string, type: IdentityType, index: number, proTxHash?: string): Promise<Identity> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
@@ -29,9 +29,15 @@ export class IdentitiesRepository {
       throw new Error(`Identity with identifier ${identifier} already exists`)
     }
 
-    const index = Object.entries(identities)
-      .map(([, entry]) => (entry.index))
-      .reduce((acc, index) => Math.max(acc, index + 1), 0)
+    if (!Number.isSafeInteger(index) || index < 0) {
+      throw new Error(`Identity index must be a non-negative integer: ${index}`)
+    }
+
+    const indexInUse = Object.values(identities).some((entry) => entry.index === index)
+
+    if (indexInUse) {
+      throw new Error(`Identity index ${index} is already used`)
+    }
 
     const identityStoreSchema: IdentityStoreSchema = {
       index,
@@ -101,6 +107,27 @@ export class IdentitiesRepository {
           type: entry.type as IdentityType
         })
       ))
+  }
+
+  async remove (identifier: string): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `identities_${network}_${walletId}`
+
+    const identities = (await this.storageAdapter.get(storageKey) ?? {}) as IdentitiesStoreSchema
+
+    if (identities[identifier] == null) {
+      return
+    }
+
+    const { [identifier]: _removed, ...rest } = identities
+
+    await this.storageAdapter.set(storageKey, rest)
   }
 
   async getByIdentifier (identifier: string): Promise<Identity | null> {

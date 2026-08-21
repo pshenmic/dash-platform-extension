@@ -1,5 +1,6 @@
 import { ExtensionStorageAdapter } from './storage/extensionStorageAdapter'
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPI } from './api/PrivateAPI'
 import { PublicAPI } from './api/PublicAPI'
 import hash from 'hash.js'
@@ -16,7 +17,9 @@ export async function initApp (): Promise<void> {
 
   const sdk = new DashPlatformSDK({ network: Network[network] })
 
-  const privateAPI = new PrivateAPI(sdk, extensionStorageAdapter)
+  const coreSDK = new DashCoreSDK({ network: Network[network] })
+
+  const privateAPI = new PrivateAPI(sdk, coreSDK, extensionStorageAdapter)
   const publicAPI = new PublicAPI(sdk, extensionStorageAdapter)
 
   privateAPI.init()

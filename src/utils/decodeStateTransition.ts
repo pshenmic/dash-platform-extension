@@ -1,0 +1,306 @@
+import {
+  StateTransitionWASM,
+  BatchTransitionWASM,
+  IdentityUpdateTransitionWASM,
+  IdentityCreditTransferWASM,
+  MasternodeVoteTransitionWASM,
+  DataContractUpdateTransitionWASM
+} from 'dash-platform-sdk/types'
+import { IdentityCreditWithdrawalTransitionWASM, DataContractCreateTransitionWASM, PlatformVersionWASM, TokenTransitionWASM } from 'pshenmic-dpp'
+import { StateTransitionTypeEnum, DocumentActionEnum, TokenActionEnum } from '../enums'
+import { DecodedStateTransition } from '../types'
+
+export const decodeStateTransition = (stateTransitionWASM: StateTransitionWASM): DecodedStateTransition => {
+  const type = stateTransitionWASM.getActionTypeNumber()
+
+  switch (type) {
+    case StateTransitionTypeEnum.BATCH: {
+      const batch = BatchTransitionWASM.fromStateTransition(stateTransitionWASM)
+
+      const transitions = batch.transitions.map((batchedTransition) => {
+        const transition = batchedTransition.toTransition()
+        const out: any = {}
+
+        if (transition instanceof TokenTransitionWASM) {
+          const tokenTransitionType = transition.getTransitionTypeNumber()
+          const tokenTransition = transition.getTransition() as {
+            base: { tokenId: { base58: () => string }, dataContractId: { base58: () => string } }
+            amount?: bigint
+            recipientId?: { base58: () => string }
+          }
+
+          out.action = TokenActionEnum[tokenTransitionType] ?? `TOKEN_${String(tokenTransitionType)}`
+          out.tokenId = tokenTransition.base.tokenId.base58()
+          out.identityContractNonce = String(transition.identityContractNonce)
+          out.dataContractId = tokenTransition.base.dataContractId.base58()
+
+          if (tokenTransition.amount != null) {
+            out.amount = tokenTransition.amount.toString()
+          }
+          if (tokenTransition.recipientId != null) {
+            out.recipient = tokenTransition.recipientId.base58()
+          }
+        } else {
+          const documentTransition = transition
+
+          out.action = DocumentActionEnum[documentTransition.actionTypeNumber] ?? `DOCUMENT_ACTION_${String(documentTransition.actionTypeNumber)}`
+          out.id = documentTransition.id.base58()
+          out.dataContractId = documentTransition.dataContractId.base58()
+          out.revision = String(documentTransition.revision)
+          out.type = documentTransition.documentTypeName
+          out.identityContractNonce = String(documentTransition.identityContractNonce)
+
+          try {
+            const createTransition = documentTransition.createTransition
+            if (createTransition != null) {
+              if (createTransition.entropy != null) {
+                out.entropy = Buffer.from(createTransition.entropy).toString('hex')
+              }
+
+              if (createTransition.data != null) {
+                out.data = createTransition.data
+              }
+
+              if (createTransition.prefundedVotingBalance != null) {
+                out.prefundedVotingBalance = {
+                  [createTransition.prefundedVotingBalance.indexName]: String(createTransition.prefundedVotingBalance.credits)
+                }
+              }
+
+              if (createTransition.base?.tokenPaymentInfo != null) {
+                const tokenPaymentInfo = createTransition.base.tokenPaymentInfo
+                out.tokenPaymentInfo = {
+                  paymentTokenContractId: tokenPaymentInfo.paymentTokenContractId?.base58() ?? null,
+                  tokenContractPosition: tokenPaymentInfo.tokenContractPosition,
+                  minimumTokenCost: tokenPaymentInfo.minimumTokenCost?.toString() ?? null,
+                  maximumTokenCost: tokenPaymentInfo.maximumTokenCost?.toString() ?? null,
+                  gasFeesPaidBy: tokenPaymentInfo.gasFeesPaidBy
+                }
+              }
+            }
+          } catch (e) {
+            console.log(e)
+          }
+
+          try {
+            const replaceTransition = documentTransition.replaceTransition
+            if (replaceTransition?.data != null) {
+              out.data = replaceTransition.data
+            }
+          } catch (e) {
+            console.log(e)
+          }
+        }
+
+        return out
+      })
+
+      const ownerId = stateTransitionWASM.getOwnerId()
+      if (ownerId == null) {
+        throw new Error('Batch transition requires ownerId')
+      }
+
+      const signature = stateTransitionWASM.signature
+      const signatureHex = signature != null ? Buffer.from(signature).toString('hex') : null
+
+      return {
+        type: StateTransitionTypeEnum.BATCH,
+        ownerId: ownerId.base58(),
+        transitions,
+        signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
+        signature: signatureHex,
+        raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
+      }
+    }
+
+    case StateTransitionTypeEnum.IDENTITY_UPDATE: {
+      const identityUpdateTransition = IdentityUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
+
+      const publicKeysToAdd = identityUpdateTransition.publicKeyIdsToAdd.map((key: any) => {
+        return {
+          id: key.keyId,
+          type: key.keyType,
+          data: Buffer.from(key.data).toString('hex'),
+          publicKeyHash: Buffer.from(key.getHash()).toString('hex'),
+          purpose: key.purpose,
+          securityLevel: key.securityLevel,
+          readOnly: key.readOnly
+        }
+      })
+
+      return {
+        type: StateTransitionTypeEnum.IDENTITY_UPDATE,
+        identityId: identityUpdateTransition.identityIdentifier.base58(),
+        revision: Number(identityUpdateTransition.revision),
+        identityNonce: String(identityUpdateTransition.nonce),
+        userFeeIncrease: identityUpdateTransition.userFeeIncrease,
+        publicKeysToAdd,
+        publicKeyIdsToDisable: Array.from(identityUpdateTransition.publicKeyIdsToDisable ?? []),
+        signaturePublicKeyId: identityUpdateTransition.signaturePublicKeyId,
+        signature: Buffer.from(identityUpdateTransition.signature).toString('hex'),
+        raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
+      }
+    }
+
+    case StateTransitionTypeEnum.IDENTITY_CREDIT_TRANSFER: {
+      const identityCreditTransferTransition = IdentityCreditTransferWASM.fromStateTransition(stateTransitionWASM)
+
+      const signature = stateTransitionWASM.signature
+      const signatureHex = signature != null ? Buffer.from(signature).toString('hex') : null
+
+      return {
+        type: StateTransitionTypeEnum.IDENTITY_CREDIT_TRANSFER,
+        identityNonce: String(identityCreditTransferTransition.nonce),
+        userFeeIncrease: identityCreditTransferTransition.userFeeIncrease,
+        senderId: identityCreditTransferTransition.senderId.base58(),
+        recipientId: identityCreditTransferTransition.recipientId.base58(),
+        amount: String(identityCreditTransferTransition.amount),
+        signaturePublicKeyId: identityCreditTransferTransition.signaturePublicKeyId,
+        signature: signatureHex,
+        raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
+      }
+    }
+
+    case StateTransitionTypeEnum.MASTERNODE_VOTE: {
+      const masternodeVoteTransition = MasternodeVoteTransitionWASM.fromStateTransition(stateTransitionWASM)
+
+      const towardsIdentity = masternodeVoteTransition.vote.resourceVoteChoice.getValue()?.base58()
+
+      const ownerId = stateTransitionWASM.getOwnerId()
+      if (ownerId == null) {
+        throw new Error('Masternode vote transition requires ownerId')
+      }
+
+      const signature = stateTransitionWASM.signature
+      const signatureHex = signature != null ? Buffer.from(signature).toString('hex') : null
+
+      return {
+        type: StateTransitionTypeEnum.MASTERNODE_VOTE,
+        proTxHash: masternodeVoteTransition.proTxHash.hex(),
+        choice: `${masternodeVoteTransition.vote.resourceVoteChoice.getType()}${towardsIdentity != null ? `(${String(towardsIdentity)})` : ''}`,
+        towardsIdentity: towardsIdentity ?? null,
+        identityNonce: String(masternodeVoteTransition.nonce),
+        userFeeIncrease: stateTransitionWASM.userFeeIncrease,
+        indexValues: masternodeVoteTransition.vote.votePoll.indexValues.map((bytes: any) => Buffer.from(bytes).toString('base64')),
+        contractId: masternodeVoteTransition.vote.votePoll.contractId.base58(),
+        modifiedDataIds: masternodeVoteTransition.modifiedDataIds.map((identifier: any) => identifier.base58()),
+        ownerId: ownerId.base58(),
+        documentTypeName: masternodeVoteTransition.vote.votePoll.documentTypeName,
+        indexName: masternodeVoteTransition.vote.votePoll.indexName,
+        signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
+        signature: signatureHex,
+        raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
+      }
+    }
+
+    case StateTransitionTypeEnum.DATA_CONTRACT_CREATE: {
+      const transition = DataContractCreateTransitionWASM.fromStateTransition(stateTransitionWASM)
+      const dataContract = transition.getDataContract(PlatformVersionWASM.PLATFORM_V9)
+      const config = dataContract.getConfig()
+      const groupsKeys = Object.keys(dataContract.groups ?? {})
+      const signatureCreate = stateTransitionWASM.signature
+      const signatureCreateHex = signatureCreate != null ? Buffer.from(signatureCreate).toString('hex') : null
+
+      return {
+        type: StateTransitionTypeEnum.DATA_CONTRACT_CREATE,
+        identityNonce: String(transition.identityNonce),
+        userFeeIncrease: stateTransitionWASM.userFeeIncrease,
+        dataContractId: dataContract.id.base58(),
+        ownerId: dataContract.ownerId.base58(),
+        version: dataContract.version,
+        schema: dataContract.getSchemas(),
+        tokens: dataContract.tokens ?? {},
+        groups: groupsKeys.map((key) => ({
+          position: Number(key),
+          members: dataContract.groups[key].members,
+          requiredPower: dataContract.groups[key].requiredPower
+        })),
+        internalConfig: {
+          canBeDeleted: config.canBeDeleted,
+          readonly: config.readonly,
+          keepsHistory: config.keepsHistory,
+          documentsKeepHistoryContractDefault: config.documentsKeepHistoryContractDefault,
+          documentsMutableContractDefault: config.documentsMutableContractDefault,
+          documentsCanBeDeletedContractDefault: config.documentsCanBeDeletedContractDefault,
+          requiresIdentityDecryptionBoundedKey: config.requiresIdentityDecryptionBoundedKey ?? null,
+          requiresIdentityEncryptionBoundedKey: config.requiresIdentityEncryptionBoundedKey ?? null
+        },
+        signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
+        signature: signatureCreateHex,
+        raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
+      }
+    }
+
+    case StateTransitionTypeEnum.DATA_CONTRACT_UPDATE: {
+      const transition = DataContractUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
+      const dataContract = transition.getDataContract(undefined, PlatformVersionWASM.PLATFORM_V9)
+      const config = dataContract.getConfig()
+      const groupsKeys = Object.keys(dataContract.groups ?? {})
+      const signatureUpdate = stateTransitionWASM.signature
+      const signatureUpdateHex = signatureUpdate != null ? Buffer.from(signatureUpdate).toString('hex') : null
+
+      return {
+        type: StateTransitionTypeEnum.DATA_CONTRACT_UPDATE,
+        identityContractNonce: String(transition.identityContractNonce),
+        userFeeIncrease: stateTransitionWASM.userFeeIncrease,
+        dataContractId: dataContract.id.base58(),
+        ownerId: dataContract.ownerId.base58(),
+        version: dataContract.version,
+        schema: dataContract.getSchemas(),
+        tokens: dataContract.tokens ?? {},
+        groups: groupsKeys.map((key) => ({
+          position: Number(key),
+          members: dataContract.groups[key].members,
+          requiredPower: dataContract.groups[key].requiredPower
+        })),
+        internalConfig: {
+          canBeDeleted: config.canBeDeleted,
+          readonly: config.readonly,
+          keepsHistory: config.keepsHistory,
+          documentsKeepHistoryContractDefault: config.documentsKeepHistoryContractDefault,
+          documentsMutableContractDefault: config.documentsMutableContractDefault,
+          documentsCanBeDeletedContractDefault: config.documentsCanBeDeletedContractDefault,
+          requiresIdentityDecryptionBoundedKey: config.requiresIdentityDecryptionBoundedKey ?? null,
+          requiresIdentityEncryptionBoundedKey: config.requiresIdentityEncryptionBoundedKey ?? null
+        },
+        signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
+        signature: signatureUpdateHex,
+        raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
+      }
+    }
+
+    case StateTransitionTypeEnum.IDENTITY_CREDIT_WITHDRAWAL: {
+      const withdrawalTransition = IdentityCreditWithdrawalTransitionWASM.fromStateTransition(stateTransitionWASM)
+
+      const signature = stateTransitionWASM.signature
+      const signatureHex = signature != null ? Buffer.from(signature).toString('hex') : null
+
+      let outputScript: string | null = null
+      try {
+        const script = withdrawalTransition.outputScript
+        if (script != null) {
+          outputScript = Buffer.from(script.bytes()).toString('hex')
+        }
+      } catch (e) {
+        console.error('[decodeStateTransition] Failed to decode outputScript:', e)
+      }
+
+      return {
+        type: StateTransitionTypeEnum.IDENTITY_CREDIT_WITHDRAWAL,
+        identityId: withdrawalTransition.identityId.base58(),
+        identityNonce: String(withdrawalTransition.nonce),
+        amount: String(withdrawalTransition.amount),
+        pooling: withdrawalTransition.pooling,
+        outputScript,
+        userFeeIncrease: withdrawalTransition.userFeeIncrease,
+        signaturePublicKeyId: stateTransitionWASM.signaturePublicKeyId,
+        signature: signatureHex,
+        raw: Buffer.from(stateTransitionWASM.bytes()).toString('hex')
+      }
+    }
+
+    default:
+      // Fallback for unknown types - should never happen in production
+      throw new Error(`Unknown state transition type: ${type}`)
+  }
+}

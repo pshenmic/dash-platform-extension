@@ -1,11 +1,11 @@
 import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
-import Layout from './components/layout/Layout'
-import PageWithHeader from './components/layout/PageWithHeader'
+import './styles/app.pcss'
 import LoadingScreen from './components/layout/LoadingScreen'
 import { loadSdk } from '../utils/sdkLoader'
-import './styles/app.pcss'
+import Layout from './components/layout/Layout'
+import PageWithHeader from './components/layout/PageWithHeader'
 
 // Lazy load all routes for better performance
 const HomeState = React.lazy(async () => await import('./states/home/HomeState'))
@@ -50,6 +50,15 @@ const App: React.FC = function () {
           }
         },
         {
+            path: '/welcome',
+            element: <PageWithHeader><WelcomeState /></PageWithHeader>,
+            handle: {
+                headerProps: {
+                    variant: 'welcome'
+                }
+            }
+        },
+        {
           path: '/import-seed-phrase',
           element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ImportSeedPhrase /></Suspense></PageWithHeader>,
           handle: {
@@ -59,14 +68,15 @@ const App: React.FC = function () {
           }
         },
         {
-          path: '/no-wallet',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><NoWalletState /></Suspense></PageWithHeader>,
-          handle: {
-            headerProps: {
-              variant: 'landing'
+            path: '/create-seed-wallet',
+            element: <PageWithHeader><CreateSeedWalletState /></PageWithHeader>,
+            handle: {
+                headerProps: {
+                    variant: 'seedImport'
+                }
             }
-          }
         },
+        {
         {
           path: '/home',
           element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><HomeState /></Suspense></PageWithHeader>,
@@ -167,8 +177,26 @@ const App: React.FC = function () {
           }
         },
         {
+          path: '/register-identity',
+          element: <PageWithHeader><IdentityRegistrationState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'identityRegistration'
+            }
+          }
+        },
+        {
           path: '/send-transaction',
           element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><SendTransactionState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'sendTransaction'
+            }
+          }
+        },
+        {
+          path: '/withdrawal',
+          element: <PageWithHeader><WithdrawState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'sendTransaction'

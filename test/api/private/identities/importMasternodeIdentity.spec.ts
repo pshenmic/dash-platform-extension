@@ -1,4 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateKey } from 'eciesjs'
 import hash from 'hash.js'
 import { PrivateAPIClient, WalletType } from '../../../../src/types'
@@ -7,7 +8,7 @@ import { StorageAdapter } from '../../../../src/content-script/storage/storageAd
 import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
 import { IdentitiesStoreSchema, KeyPairsSchema } from '../../../../src/content-script/storage/storageSchema'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
-import { PrivateKeyWASM } from 'pshenmic-dpp'
+import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 
 describe('import masternode identity', () => {
   let privateAPI: PrivateAPI
@@ -18,12 +19,13 @@ describe('import masternode identity', () => {
 
   beforeAll(async () => {
     sdk = new DashPlatformSDK({ network: 'testnet' })
+    const coreSDK = new DashCoreSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter
     await runMigrations(storage)
 
-    privateAPI = new PrivateAPI(sdk, memoryStorageAdapter)
+    privateAPI = new PrivateAPI(sdk, coreSDK, memoryStorageAdapter)
     privateAPIClient = new PrivateAPIClient()
 
     privateAPI.init()

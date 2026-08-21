@@ -11,9 +11,21 @@ export const PurposeLabelsInfo = {
     label: 'Decryption',
     description: 'Key used for decryption purposes'
   },
-  MASTER: {
-    label: 'Master',
-    description: 'Master key with full privileges'
+  TRANSFER: {
+    label: 'Transfer',
+    description: 'Key used for transfers'
+  },
+  VOTING: {
+    label: 'Voting',
+    description: 'Key used for voting'
+  },
+  SYSTEM: {
+    label: 'System',
+    description: 'System key'
+  },
+  OWNER: {
+    label: 'Owner',
+    description: 'Key proving masternode ownership'
   }
 }
 
@@ -49,10 +61,8 @@ export type PurposeCode = keyof typeof PurposeLabelsInfo
 export type SecurityCode = keyof typeof SecurityLabelsInfo
 
 // Helper functions to get labels
-export const getPurposeLabel = (purpose: string): string => {
-  const purposeKey = purpose as PurposeCode
-  return (purpose !== '' && PurposeLabelsInfo[purposeKey]?.label !== undefined) ? PurposeLabelsInfo[purposeKey].label : 'Master'
-}
+export const getPurposeLabel = (purpose: string): string =>
+  PurposeLabelsInfo[purpose as PurposeCode]?.label ?? purpose ?? 'Unknown'
 
 export const getSecurityLabel = (security: string): string => {
   const securityKey = security as SecurityCode

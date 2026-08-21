@@ -1,6 +1,7 @@
 export interface KeyPairSchema {
-  // base64
-  identityPublicKey: string
+  keyId: number
+
+  pending: boolean
 
   // hex
   encryptedPrivateKey: string | null
@@ -37,11 +38,13 @@ export interface StateTransitionsStoreSchema {
 }
 
 export interface StateTransitionStoreSchema {
-  hash: string
+  unsignedHash: string
+  signedHash: string | null
   unsigned: string
   signature: string | null
   signaturePublicKeyId: number | null
   status: string
+  error: string | null
 }
 
 export interface AppConnectStorageSchema {
@@ -52,4 +55,19 @@ export interface AppConnectStorageSchema {
 
 export interface AppConnectsStorageSchema {
   [id: string]: AppConnectStorageSchema
+}
+
+export interface AssetLockFundingAddressSchema {
+  address: string
+  encryptedPrivateKey: string
+  used: boolean
+  assetLockTxid?: string | null
+}
+
+export interface AssetLockFundingAddressesSchema {
+  [address: string]: AssetLockFundingAddressSchema
+}
+
+export interface WalletSettingsStoreSchema {
+  hideBalance: boolean
 }

@@ -1,10 +1,9 @@
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { EventData, WalletType } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
-import { IdentifierWASM } from 'pshenmic-dpp'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { KeypairRepository } from '../../../repository/KeypairRepository'
-import { deriveKeystorePrivateKey, deriveSeedphrasePrivateKey } from '../../../../utils'
+import { deriveKeystorePrivateKey, deriveIdentityPrivateKey } from '../../../../utils'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ExportPrivateKeyPayload } from '../../../../types/messages/payloads/ExportPrivateKeyPayload'
@@ -43,7 +42,7 @@ export class ExportPrivateKeyHandler implements APIHandler {
     if (wallet.type === WalletType.keystore) {
       privateKeyWASM = await deriveKeystorePrivateKey(wallet, payload.password, payload.identity, payload.keyId, this.keypairRepository)
     } else if (wallet.type === WalletType.seedphrase) {
-      privateKeyWASM = await deriveSeedphrasePrivateKey(wallet, payload.password, identity.index, payload.keyId, this.sdk)
+      privateKeyWASM = await deriveIdentityPrivateKey(wallet, payload.password, identity.index, payload.keyId, this.sdk)
     } else {
       throw new Error('Unsupported wallet type')
     }
@@ -52,10 +51,7 @@ export class ExportPrivateKeyHandler implements APIHandler {
   }
 
   validatePayload (payload: ExportPrivateKeyPayload): string | null {
-    try {
-      // eslint-disable-next-line no-new
-      new IdentifierWASM(payload.identity)
-    } catch (e) {
+    if (!this.sdk.utils.validateIdentifier(payload.identity)) {
       return 'Could not decode identity identifier'
     }
 

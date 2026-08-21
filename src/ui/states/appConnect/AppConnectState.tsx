@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { Text, Button, Heading, ValueCard } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
+import ButtonRow from '../../components/layout/ButtonRow'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { AppConnect } from '../../../types/AppConnect'
 import { AppConnectStatus } from '../../../types/enums/AppConnectStatus'
@@ -79,7 +81,7 @@ function AppConnectState (): React.JSX.Element {
   if (error != null || appConnect == null) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>Error</h1>
+        <TitleBlock title='Error' showLogo={false} />
         <ValueCard colorScheme='default' className='flex flex-col items-start gap-2 bg-red-50 border-red-200'>
           <Text size='lg' color='red'>
             {error ?? 'Unknown error'}
@@ -96,7 +98,7 @@ function AppConnectState (): React.JSX.Element {
   if (appConnect.status !== AppConnectStatus.pending) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>Request already processed</h1>
+        <TitleBlock title='Request already processed' showLogo={false} />
         <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-2'>
           <Text size='lg'>
             This connection request has already been {appConnect.status === AppConnectStatus.approved ? 'approved' : 'rejected'}.
@@ -132,24 +134,20 @@ function AppConnectState (): React.JSX.Element {
         </Text>
       </div>
 
-      <div className='flex gap-2 w-full'>
-        <Button
-          onClick={() => { handleReject().catch(e => console.log('handleReject error: ', e)) }}
-          colorScheme='lightBlue'
-          className='w-1/2'
-          disabled={processingStatus != null}
-        >
-          {processingStatus === 'rejecting' ? 'Rejecting...' : 'Reject'}
-        </Button>
-        <Button
-          onClick={() => { handleApprove().catch(e => console.log('handleApprove error: ', e)) }}
-          colorScheme='brand'
-          className='w-1/2'
-          disabled={processingStatus != null}
-        >
-          {processingStatus === 'approving' ? 'Approving...' : 'Allow'}
-        </Button>
-      </div>
+      <ButtonRow
+        leftButton={{
+          text: processingStatus === 'rejecting' ? 'Rejecting...' : 'Reject',
+          onClick: () => { handleReject().catch(e => console.log('handleReject error: ', e)) },
+          colorScheme: 'lightBlue',
+          disabled: processingStatus != null
+        }}
+        rightButton={{
+          text: processingStatus === 'approving' ? 'Approving...' : 'Allow',
+          onClick: () => { handleApprove().catch(e => console.log('handleApprove error: ', e)) },
+          colorScheme: 'brand',
+          disabled: processingStatus != null
+        }}
+      />
     </div>
   )
 }

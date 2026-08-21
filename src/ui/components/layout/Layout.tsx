@@ -16,6 +16,8 @@ export interface LayoutContext {
   currentIdentity: string | null
   setCurrentIdentity: (identity: string) => Promise<void>
   allWallets: WalletAccountInfo[]
+  hasAnyWallet: boolean
+  reloadWallets: () => Promise<void>
   availableIdentities: Identity[]
   createWallet: (walletType: any, mnemonic?: string) => Promise<any>
   headerComponent: React.ReactNode
@@ -33,6 +35,7 @@ const Layout: FC = () => {
   const [currentWallet, setCurrentWallet] = useState<string | null>(null)
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
+  const [hasAnyWallet, setHasAnyWallet] = useState<boolean>(false)
   const [availableIdentities, setAvailableIdentities] = useState<Identity[]>([])
   const [headerComponent, setHeaderComponent] = useState<React.ReactNode>(null)
   const [headerConfigOverride, setHeaderConfigOverride] = useState<HeaderConfigOverride | null>(null)
@@ -108,6 +111,21 @@ const Layout: FC = () => {
     }
   }, [isApiReady, extensionAPI])
 
+  const reloadWallets = useCallback(async (): Promise<void> => {
+    const wallets = await loadWallets()
+    const networkWallets = wallets.filter(w => w.network === currentNetwork)
+    const stillExists = networkWallets.some(w => w.walletId === currentWallet)
+    if (!stillExists) {
+      if (networkWallets.length > 0) {
+        await handleWalletChange(networkWallets[0].walletId)
+      } else {
+        setCurrentWallet(null)
+      }
+    }
+    const status = await extensionAPI.getStatus()
+    setHasAnyWallet(status.hasAnyWallet)
+  }, [loadWallets, currentNetwork, currentWallet, handleWalletChange, extensionAPI])
+
   const createWallet = useCallback(async (walletType: any, mnemonic?: string) => {
     if (!isApiReady) throw new Error('API is not ready')
 
@@ -117,6 +135,7 @@ const Layout: FC = () => {
 
       const status = await extensionAPI.getStatus()
       setCurrentWallet(status.currentWalletId)
+      setHasAnyWallet(true)
 
       return result
     } catch (error) {
@@ -135,6 +154,7 @@ const Layout: FC = () => {
           setIsApiReady(true)
           setCurrentNetwork(status.network as NetworkType)
           setCurrentWallet(status.currentWalletId)
+          setHasAnyWallet(status.hasAnyWallet)
           sdk.setNetwork(status.network as NetworkType)
         }
       } catch (error) {
@@ -181,6 +201,8 @@ const Layout: FC = () => {
             currentIdentity,
             setCurrentIdentity: handleIdentityChange,
             allWallets,
+            hasAnyWallet,
+            reloadWallets,
             availableIdentities,
             createWallet,
             headerComponent,

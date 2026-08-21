@@ -1,5 +1,5 @@
 import { base58 } from '@scure/base'
-import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'pshenmic-dpp'
+import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
@@ -11,6 +11,8 @@ import { KeypairRepository } from '../content-script/repository/KeypairRepositor
 export { formatBigNumber }
 export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
+export { decodeStateTransition } from './decodeStateTransition'
+export { copyToClipboard } from './copyToClipboard'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -41,6 +43,17 @@ export const generateWalletId = (): string => {
 
 export const generateRandomHex = (size: number): string => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')
 
+export const findNextLocalIdentityIndex = (existingIndices: number[]): number => {
+  const occupied = new Set(existingIndices.filter((index) => Number.isSafeInteger(index) && index >= 0))
+  let candidate = 0
+
+  while (occupied.has(candidate)) {
+    candidate += 1
+  }
+
+  return candidate
+}
+
 export const validateIdentifier = (str: string): boolean => {
   try {
     const bytes = base58.decode(str)
@@ -59,29 +72,29 @@ export const bytesToUtf8 = (bytes: Uint8Array): string => {
 }
 
 export const deriveKeystorePrivateKey = async (wallet: Wallet, password: string, identityId: string, keyId: number, keyPairRepository: KeypairRepository): Promise<PrivateKeyWASM> => {
-  const keyPairs = await keyPairRepository.getAllByIdentity(identityId)
+  const exists = await keyPairRepository.isExisting(identityId, keyId)
 
-  const [keyPair] = keyPairs
-    .filter(keyPair => keyPair.identityPublicKey.keyId === keyId)
-
-  if (keyPair == null || keyPair.encryptedPrivateKey == null) {
+  if (!exists) {
     throw new Error(`Could not find private key with KeyID ${keyId} for identity ${identityId}`)
   }
+
+  const encryptedPrivateKey = await keyPairRepository.getEncryptedPrivateKey(identityId, keyId)
 
   const passwordHash = hash.sha256().update(password).digest('hex')
 
   let privateKey
 
   try {
-    privateKey = decrypt(passwordHash, hexToBytes(keyPair.encryptedPrivateKey))
+    privateKey = decrypt(passwordHash, hexToBytes(encryptedPrivateKey))
   } catch (e) {
+    console.error(e)
     throw new Error('Failed to decrypt')
   }
 
   return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
 }
 
-export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: string, identityIndex: number, keyId: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+export const decryptMnemonic = (wallet: Wallet, password: string): string => {
   if (wallet.encryptedMnemonic == null) {
     throw new Error('Missing mnemonic')
   }
@@ -89,19 +102,31 @@ export const deriveSeedphrasePrivateKey = async (wallet: Wallet, password: strin
   const passwordHash = hash.sha256().update(password).digest('hex')
   const secretKey = PrivateKey.fromHex(passwordHash)
 
-  let mnemonic
-
   try {
-    mnemonic = bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(wallet.encryptedMnemonic)))
+    return bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(wallet.encryptedMnemonic)))
   } catch (e) {
     throw new Error('Failed to decrypt')
   }
+}
 
-  const seed = await sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
-  const walletHDKey = sdk.keyPair.seedToHdKey(seed)
+export const deriveIdentityRegistrationKey = async (wallet: Wallet, password: string, identityIndex: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+  const coinType = wallet.network === 'mainnet' ? 5 : 1
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, wallet.network)
+  const { privateKey } = await sdk.keyPair.derivePath(walletHDKey, `m/9'/${coinType}'/5'/1'/${identityIndex}`)
 
-  const hdKey = sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, identityIndex, keyId, Network[wallet.network])
-  const privateKey = hdKey.privateKey
+  if (privateKey == null) {
+    throw new Error('Could not derive identity registration key from wallet hd key')
+  }
+
+  return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+}
+
+export const deriveIdentityPrivateKey = async (wallet: Wallet, password: string, identityIndex: number, keyId: number, sdk: DashPlatformSDK): Promise<PrivateKeyWASM> => {
+  const network = Network[wallet.network as keyof typeof Network]
+  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+  const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
+  const { privateKey } = sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, identityIndex, keyId, network)
 
   if (privateKey == null) {
     throw new Error('Could not derive private key from wallet hd key')
@@ -154,16 +179,15 @@ export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformS
   return identities
 }
 
-export const popupWindow = (url: string, windowName: string, win: Window, w: number, h: number): void => {
+export const popupWindow = (url: string, windowName: string, win: Window, w: number, h: number): Window | null => {
   if (win.top == null) {
     throw new Error('Could not detect window size')
   }
 
   const y = win.top.outerHeight / 2 + win.top.screenY - (h / 2)
   const x = win.top.outerWidth / 2 + win.top.screenX - (w / 2)
-  // return win.open(url, windowName, `popup, toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${y}, left=${x}`);
 
-  win.open(url, windowName, `popup, width=${w}, height=${h}, top=${y}, left=${x}`)
+  return win.open(url, windowName, `popup, width=${w}, height=${h}, top=${y}, left=${x}`)
 }
 
 export const injectScript = (document: Document, src: string): void => {
@@ -206,7 +230,8 @@ export const getFaviconUrl = (url: string, size: number = 32): string => {
 
 export const creditsToDash = (credits: number | bigint): number => {
   const numericCredits = typeof credits === 'bigint' ? Number(credits) : credits
-  return numericCredits / 10e10
+  // 1 DASH = 100,000,000,000 credits (10^11)
+  return numericCredits / 1e11
 }
 
 export * from './bigintUtils'

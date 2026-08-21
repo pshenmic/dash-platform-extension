@@ -24,45 +24,48 @@ interface for developers to integrate their application and create transactions.
 
 ## Versioning
 
-### 2.x.x Tapti (work in progress)
-- Dash usernames registration
-- Identity registration
-- Create seedphrase
+### 1.4.x (WIP)
+- Platform Addresses support
+- Shielded Transfers support
+- Dash Core support
 
-### 1.x.x Narmada (in Chrome Store review)
+### 1.3.x (Current)
+- Identities Registration
+- Withdrawals to Dash Core
+
+### 1.2.x
+- Identity Public Keys management (create new keys)
+- Export private key
+- Details on Transaction Approval screen
+- SDK improvements
+
+### 1.1.x
+- Masternode Identities
+- Credits / Token transfers
+
+### 1.0.x
 - Mainnet support
 - DashPay seedphrases (no create / register yet)
 - Multi wallet and identity
 - Reworked UI screens
 - Tokens on homepage
 
-### 0.x.x Mekong (in store)
+### 0.0.x
 - Proof of Concept
 - Home page (balance, transactions)
 - Testnet only
 - Web integration and SDK (delegated tx signing to extension)
 - 1 identity and 1 private key support
 
-## Current features
-
+## Features
 - Mainnet / Testnet
 - Seedphrase and Identity management (with encrypted storage)
 - Show your Identity balance & transactions
 - Developer SDK for interaction with extension & blockchain (with cryptographic proofs)
 - Sign transactions with your wallet without sharing with the website
 - DApp permission system (choose which DApps allowed to read wallet data)
-
-
-### Next features (unordered)
-- Chrome Web Store publish
-- Seedphrase support
-- Network switch (mainnet / testnet)
-- Multiple accounts / identities
-- Identity registration
-- DPNS Names
-- Send & Withdraw credits
-- Tokens (with direct purchase)
-
+- Credits / Token Transfers
+- Masternode Identities
 
 ## Install (manual)
 

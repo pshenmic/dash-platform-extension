@@ -5,9 +5,10 @@ import { creditsToDash } from '../../../utils'
 interface BalanceInfoProps {
   balanceState: { loading: boolean, error: any, data: bigint | null }
   rateState: { loading: boolean, error: any, data: number | null }
+  hideAmounts?: boolean
 }
 
-const BalanceInfo: React.FC<BalanceInfoProps> = ({ balanceState, rateState }) => {
+const BalanceInfo: React.FC<BalanceInfoProps> = ({ balanceState, rateState, hideAmounts = false }) => {
   if (balanceState.error !== null || balanceState.data == null) {
     return null
   }
@@ -24,7 +25,9 @@ const BalanceInfo: React.FC<BalanceInfoProps> = ({ balanceState, rateState }) =>
               ? '~ Loading...'
               : rateState.loading
                 ? '~ ... USD'
-                : `~ $${(dashAmount * (rateState.data ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`}
+                : hideAmounts
+                  ? '~ ••• USD'
+                  : `~ $${(dashAmount * (rateState.data ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`}
           </Text>
           <div className='w-px h-4 bg-[rgba(76,126,255,0.25)]' />
         </>
@@ -33,7 +36,9 @@ const BalanceInfo: React.FC<BalanceInfoProps> = ({ balanceState, rateState }) =>
       <Text className='!text-dash-brand font-medium text-sm'>
         {balanceState.loading
           ? 'Loading...'
-          : `${dashAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Dash`}
+          : hideAmounts
+            ? '••• Dash'
+            : `${dashAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Dash`}
       </Text>
     </div>
   )

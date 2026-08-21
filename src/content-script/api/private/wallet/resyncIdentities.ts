@@ -6,8 +6,7 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ResyncIdentitiesPayload } from '../../../../types/messages/payloads/ResyncIdentitiesPayload'
 import { ResyncIdentitiesResponse } from '../../../../types/messages/response/ResyncIdentitiesResponse'
 import { WalletType } from '../../../../types/WalletType'
-import { decrypt, PrivateKey } from 'eciesjs'
-import { bytesToUtf8, fetchIdentitiesBySeed, hexToBytes } from '../../../../utils'
+import { decryptMnemonic, fetchIdentitiesBySeed } from '../../../../utils'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import hash from 'hash.js'
 import { Network } from '../../../../types/enums/Network'
@@ -56,18 +55,7 @@ export class ResyncIdentitiesHandler implements APIHandler {
     }
 
     if (payload.password != null) {
-      const passwordHash = hash.sha256().update(payload.password).digest('hex')
-      const secretKey = PrivateKey.fromHex(passwordHash)
-
-      let mnemonic
-
-      try {
-        mnemonic = bytesToUtf8(decrypt(secretKey.toHex(), hexToBytes(wallet.encryptedMnemonic)))
-      } catch (e) {
-        throw new Error('Failed to decrypt')
-      }
-
-      seed = this.sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
+      seed = this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, payload.password))
     }
 
     const identities = await fetchIdentitiesBySeed(seed, this.sdk, Network[network])

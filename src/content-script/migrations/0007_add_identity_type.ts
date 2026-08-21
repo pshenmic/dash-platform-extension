@@ -3,7 +3,7 @@ import { IdentitiesStoreSchema, WalletStoreSchema } from '../storage/storageSche
 import { SCHEMA_VERSION } from '../../constants'
 
 // set all identities to regular, hoping nobody put masternode identities in the extension yet
-export default async function moveCurrentIdentityToWallet (storageAdapter: StorageAdapter): Promise<void> {
+export default async function addIdentityType (storageAdapter: StorageAdapter): Promise<void> {
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
   if (schemaVersion === 6) {
@@ -16,10 +16,14 @@ export default async function moveCurrentIdentityToWallet (storageAdapter: Stora
     }))).filter(e => e != null)
 
     for (const wallet of wallets) {
-      const walletIdentities = await storageAdapter.get(`identities_${wallet.network}_${wallet.walletId}`) as IdentitiesStoreSchema
+      const walletIdentities = await storageAdapter.get(`identities_${wallet.network}_${wallet.walletId}`) as IdentitiesStoreSchema ?? {}
 
       for (const identityId of Object.keys(walletIdentities)) {
-        const migratedIdentity = { ...walletIdentities[identityId], type: 'regular', proTxHash: null }
+        let migratedIdentity = walletIdentities[identityId]
+
+        if (walletIdentities[identityId].type !== 'regular') {
+          migratedIdentity = { ...migratedIdentity, type: 'regular', proTxHash: null }
+        }
 
         await storageAdapter.set(`identities_${wallet.network}_${wallet.walletId}`, { [identityId]: migratedIdentity })
       }

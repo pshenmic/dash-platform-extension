@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches, useOutletContext } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
-import { ArrowIcon, Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
+import { Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
+import { BackButton } from '../../common'
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
 import { SettingsMenu } from '../../settings'
@@ -15,8 +16,26 @@ const IMAGE_VARIANTS = {
     alt: 'Badge',
     imgClasses: 'max-w -mt-[22%]',
     containerClasses: 'w-[100%] -mr-[55%]'
+  },
+  app: {
+    src: 'app.png',
+    alt: 'App',
+    imgClasses: '-mt-[67%]',
+    containerClasses: 'w-[100%] -mr-[55%]'
+  },
+  userChain: {
+    src: 'user-chain.png',
+    alt: 'User Chain',
+    imgClasses: '-mt-[10%] !w-[487px]',
+    containerClasses: 'absolute top-[-43px] -left-[14px] w-full'
+  },
+  warning: {
+    src: 'warning-turn-on.png',
+    alt: 'Warning',
+    imgClasses: '-right-[100px] -top-[100px] !w-[358px]',
+    containerClasses: 'absolute w-full'
   }
-} as const
+}
 
 type ImageVariant = keyof typeof IMAGE_VARIANTS
 
@@ -41,6 +60,15 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
     hideLeftSection: true,
     imageType: 'coins',
     imageClasses: '!w-[110%] -mt-[67%] right-[7%]'
+  },
+
+  // Welcome screen — no wallets yet, network selector in top-right
+  welcome: {
+    hideLeftSection: true,
+    imageType: 'coins',
+    imageClasses: '!w-[110%] -mt-[67%] right-[7%]',
+    showNetworkRightSelector: true,
+    networkDisplayFormat: 'card'
   },
 
   // Import/setup screens with centered image
@@ -90,6 +118,11 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
   sendTransaction: {
     showNetworkRightReadOnly: true,
     networkDisplayFormat: 'text',
+    hideLeftSection: false
+  },
+
+  // Identity registration with configurable header per stage
+  identityRegistration: {
     hideLeftSection: false
   },
 
@@ -152,6 +185,7 @@ export default function Header (): React.JSX.Element {
     setCurrentWallet,
     currentIdentity,
     allWallets,
+    reloadWallets,
     headerComponent,
     headerConfigOverride
   } = context ?? ({} satisfies Partial<LayoutContext>)
@@ -162,7 +196,30 @@ export default function Header (): React.JSX.Element {
     m.handle?.headerProps != null
   )
   const headerProps = deepestRoute?.handle?.headerProps
-  const variant = headerProps?.variant !== null && headerProps?.variant !== undefined ? HEADER_VARIANTS[headerProps.variant] : {}
+  const variantKey = headerProps?.variant
+  let variant = variantKey !== null && variantKey !== undefined ? HEADER_VARIANTS[variantKey] : {}
+
+  // Handle identity registration variant
+  if (variantKey === 'identityRegistration') {
+    variant = {
+      ...variant,
+      showNetworkRightReadOnly: true,
+      networkDisplayFormat: 'card'
+    }
+  }
+
+  // Apply header config overrides from outlet context
+  if (headerConfigOverride != null) {
+    if (headerConfigOverride.imageType != null) {
+      variant = {
+        ...variant,
+        imageType: headerConfigOverride.imageType,
+        imageClasses: headerConfigOverride.imageClasses,
+        containerClasses: headerConfigOverride.containerClasses
+      }
+    }
+  }
+
   const config = {
     showLogo: variant.showLogo ?? false,
     hideLeftSection: headerConfigOverride?.showBackButton !== true && (variant.hideLeftSection ?? false),
@@ -207,7 +264,7 @@ export default function Header (): React.JSX.Element {
       })}
     >
       {!config.hideLeftSection && (
-        <div className='flex items-center gap-2.5'>
+        <div className='flex items-center gap-2.5 relative z-10'>
           {config.showLogo
             ? (
               <img
@@ -217,20 +274,18 @@ export default function Header (): React.JSX.Element {
               />
               )
             : (
-              <Button onClick={handleBack} colorScheme='lightGray' className='w-[3rem] h-[3rem]'>
-                <ArrowIcon color='var(--color-dash-primary-dark-blue)' />
-              </Button>
+              <BackButton onClick={handleBack} />
               )}
 
-          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
+          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} onRemoved={() => { void reloadWallets?.() }} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
         </div>
       )}
 
       {/* Network & Wallet Selectors in left side */}
       {config.hideLeftSection && (config.showNetworkSelector || config.showWalletSelector) && (
-        <div className='flex items-center gap-2.5'>
+        <div className='flex items-center gap-2.5 relative z-10'>
           {config.showNetworkSelector && <NetworkSelector onSelect={setCurrentNetwork} currentNetwork={currentNetwork as NetworkType} wallets={allWallets} />}
-          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
+          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} onRemoved={() => { void reloadWallets?.() }} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
         </div>
       )}
 
@@ -246,7 +301,7 @@ export default function Header (): React.JSX.Element {
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           colorScheme='brand'
           size='xl'
-          className='w-12 h-12 p-0'
+          className='w-12 h-12 p-0 relative z-10'
         >
           <BurgerMenuIcon color='white' />
         </Button>
@@ -291,11 +346,12 @@ export default function Header (): React.JSX.Element {
         const imgClasses = config.imageClasses ?? defaultVariant.imgClasses
 
         return (
-          <div className={containerClasses}>
+          <div className={`${containerClasses} z-0`}>
             <img
+              key={config.imageType}
               src={useStaticAsset(defaultVariant.src)}
               alt={defaultVariant.alt}
-              className={`relative w-[348px] h-auto max-w-none ${imgClasses}`}
+              className={`relative w-[348px] h-auto max-w-none ${imgClasses} transition-opacity duration-300 ease-in-out`}
             />
           </div>
         )

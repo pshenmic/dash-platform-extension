@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, List, Text, ValueCard } from 'dash-ui-kit/react'
+import { Banner } from '../../components/cards'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { WalletType } from '../../../types'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -52,13 +53,7 @@ function CreateWalletState (): React.JSX.Element {
         />
       </ValueCard>
 
-      {error != null && (
-        <ValueCard className='text-red-500 text-sm'>
-          <Text color='red'>
-            {error}
-          </Text>
-        </ValueCard>
-      )}
+      <Banner variant='error' message={error} />
 
       <Button
         colorScheme='brand'

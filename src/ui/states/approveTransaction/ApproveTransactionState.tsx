@@ -1,25 +1,34 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { Text, Button, Identifier, ValueCard, Input, Select } from 'dash-ui-kit/react'
+import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
+import { Banner } from '../../components/cards'
+import ButtonRow from '../../components/layout/ButtonRow'
+import { PasswordField } from '../../components/forms'
+import { FieldLabel } from '../../components/typography'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 import { useExtensionAPI, useSigningKeys } from '../../hooks'
-import { StateTransitionWASM } from 'pshenmic-dpp'
+import { StateTransitionWASM } from 'dash-platform-sdk/types'
+import type { PurposeLike } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types'
 import LoadingScreen from '../../components/layout/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
+import { IdentitySelect } from '../../components/identity/IdentitySelect'
+import { TransactionDetails } from './details'
+import { decodeStateTransition } from '../../../utils'
+import { StateTransitionTypeEnum } from '../../../enums/TransactionTypes'
+import { SigningErrorDetails } from '../../components/errors'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const extensionAPI = useExtensionAPI()
-  const { currentWallet, currentIdentity, setCurrentIdentity, setHeaderConfigOverride } = useOutletContext<OutletContext>()
+  const { currentWallet, currentIdentity, setCurrentIdentity, setHeaderConfigOverride, currentNetwork } = useOutletContext<OutletContext>()
 
   const params = useParams()
 
-  // Check if identity switching should be disabled (e.g., when navigating from SendTransaction)
-  const disableIdentitySelect = location.state?.disableIdentitySelect === true
   const showBackButton = location.state?.showBackButton === true
   const returnToHome = location.state?.returnToHome === true
 
@@ -32,11 +41,13 @@ function ApproveTransactionState (): React.JSX.Element {
   const [password, setPassword] = useState<string>('')
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [isSigningInProgress, setIsSigningInProgress] = useState<boolean>(false)
+  const [signingErrorDetails, setSigningErrorDetails] = useState<{ name: string, message: string, hex: string | null } | null>(null)
   const [isLoadingIdentities, setIsLoadingIdentities] = useState<boolean>(true)
   const [isCheckingWallet, setIsCheckingWallet] = useState<boolean>(true)
   const [hasWallet, setHasWallet] = useState<boolean>(false)
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
   const [keyRequirements, setKeyRequirements] = useState<KeyRequirement[]>([])
+  const [decodedTransaction, setDecodedTransaction] = useState<any>(null)
 
   const {
     signingKeys,
@@ -112,12 +123,24 @@ function ApproveTransactionState (): React.JSX.Element {
       extensionAPI
         .getStateTransition(transactionHash)
         .then((stateTransitionResponse: GetStateTransitionResponse) => {
+          let receivedStateTransitionWASM: StateTransitionWASM
+
           try {
-            const receivedStateTransitionWASM = StateTransitionWASM.fromBytes(base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned))
+            const rawBytes = base64Decoder.decode(stateTransitionResponse.stateTransition.unsigned)
+            receivedStateTransitionWASM = StateTransitionWASM.fromBytes(rawBytes)
             setStateTransitionWASM(receivedStateTransitionWASM)
           } catch (e) {
             console.log('Error decoding state transition:', e)
             setTransactionDecodeError(String(e))
+            return
+          }
+
+          try {
+            const decoded = decodeStateTransition(receivedStateTransitionWASM)
+            setDecodedTransaction(decoded)
+          } catch (decodeError) {
+            console.log('Error decoding transaction locally:', decodeError)
+            setDecodedTransaction(null)
           }
         })
         .catch((error) => {
@@ -128,6 +151,22 @@ function ApproveTransactionState (): React.JSX.Element {
     }
   }, [params.hash, params.txhash])
 
+  // Auto-select identity based on transaction owner
+  useEffect(() => {
+    if (decodedTransaction == null) return
+
+    const txIdentity: string | null =
+      decodedTransaction.ownerId ??
+      decodedTransaction.identityId ??
+      decodedTransaction.senderId ??
+      null
+
+    if (txIdentity == null || txIdentity === currentIdentity) return
+
+    setCurrentIdentity(txIdentity)
+    extensionAPI.switchIdentity(txIdentity).catch(err => console.log('Failed to switch identity', err))
+  }, [decodedTransaction])
+
   // Extract key requirements from state transition
   useEffect(() => {
     if (stateTransitionWASM == null) {
@@ -135,19 +174,28 @@ function ApproveTransactionState (): React.JSX.Element {
       return
     }
 
+    // Withdrawal requires a Transfer/Critical key
+    if (stateTransitionWASM.getActionTypeNumber() === StateTransitionTypeEnum.IDENTITY_CREDIT_WITHDRAWAL) {
+      setKeyRequirements([{ purpose: 'TRANSFER', securityLevel: 'CRITICAL' }])
+      return
+    }
+
     try {
       const purposeRequirements = stateTransitionWASM.getPurposeRequirement()
       const requirements: KeyRequirement[] = []
 
+      const hasTokenTransfer: boolean = Array.isArray(decodedTransaction?.transitions) &&
+        decodedTransaction.transitions.some((t: any) => t.action === 'TOKEN_TRANSFER')
+
       if (Array.isArray(purposeRequirements)) {
         for (const purpose of purposeRequirements) {
-          const securityLevel = stateTransitionWASM.getKeyLevelRequirement(purpose)
+          const securityLevel = stateTransitionWASM.getKeyLevelRequirement(purpose as PurposeLike)
 
           if (Array.isArray(securityLevel)) {
             securityLevel.forEach(level => {
               requirements.push({
                 purpose,
-                securityLevel: level
+                securityLevel: hasTokenTransfer ? 'CRITICAL' : level
               })
             })
           }
@@ -159,7 +207,7 @@ function ApproveTransactionState (): React.JSX.Element {
       console.log('Error extracting key requirements:', error)
       setKeyRequirements([])
     }
-  }, [stateTransitionWASM])
+  }, [stateTransitionWASM, decodedTransaction])
 
   if (isCheckingWallet || isLoadingIdentities) {
     return (
@@ -172,7 +220,7 @@ function ApproveTransactionState (): React.JSX.Element {
   if (!hasWallet) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>No Wallet Found</h1>
+        <TitleBlock title='No Wallet Found' showLogo={false} />
 
         <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col items-start gap-2'>
           <Text size='md'>
@@ -205,7 +253,7 @@ function ApproveTransactionState (): React.JSX.Element {
   if (identities.length === 0) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>No Identities Available</h1>
+        <TitleBlock title='No Identities Available' showLogo={false} />
 
         <ValueCard colorScheme='lightGray' border={false} className='flex flex-col items-start gap-4'>
           <Text size='md'>
@@ -243,6 +291,9 @@ function ApproveTransactionState (): React.JSX.Element {
   }
 
   const doSign = async (): Promise<void> => {
+    setPasswordError(null)
+    setSigningErrorDetails(null)
+
     if (stateTransitionWASM == null) {
       throw new Error('stateTransitionWASM is null')
     }
@@ -257,7 +308,6 @@ function ApproveTransactionState (): React.JSX.Element {
     }
 
     setIsSigningInProgress(true)
-    setPasswordError(null)
 
     try {
       if (stateTransitionWASM == null) {
@@ -277,9 +327,21 @@ function ApproveTransactionState (): React.JSX.Element {
       const keyId = parseInt(selectedSigningKey, 10)
       const response = await extensionAPI.approveStateTransition(stateTransitionWASM.hash(true), currentIdentity, keyId, password)
 
+      // Update decodedTransaction with the actual signing key ID
+      if (decodedTransaction != null) {
+        setDecodedTransaction({
+          ...decodedTransaction,
+          signaturePublicKeyId: keyId
+        })
+      }
+
       setTxHash(response.txHash)
-    } catch (error) {
-      setPasswordError(`Signing failed: ${error.toString() as string}`)
+    } catch (error: any) {
+      setSigningErrorDetails({
+        name: error?.name ?? 'Error',
+        message: error?.message ?? String(error),
+        hex: error?.payload?.signedHex ?? null
+      })
     } finally {
       setIsSigningInProgress(false)
     }
@@ -288,105 +350,81 @@ function ApproveTransactionState (): React.JSX.Element {
   if (txHash != null) {
     return (
       <div className='screen-content'>
-        <h1 className='h1-title'>
-          Transaction was successfully broadcasted
-        </h1>
+        <div className='flex flex-col gap-6'>
+          <TitleBlock
+            title={
+              <>
+                <span className='font-normal'>Transaction was</span><br />
+                <span className='font-medium'>successfully broadcasted</span>
+              </>
+            }
+            description='You can check the transaction details below'
+            showLogo={false}
+          />
 
-        <div className='flex flex-col gap-2.5'>
-          <Text size='md' className='opacity-50 font-medium'>Transaction hash</Text>
-          <ValueCard colorScheme='lightBlue' size='xl'>
-            <Identifier
-              highlight='both'
-              copyButton
-              ellipsis={false}
-              className='w-full justify-between'
+          {/* Transaction details after success */}
+          {decodedTransaction != null && (
+            <TransactionDetails
+              data={decodedTransaction}
+              transactionHash={txHash}
+              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+              signed
+            />
+          )}
+
+          <div>
+            <Button
+              className='w-full'
+              onClick={() => {
+                if (returnToHome) {
+                  void navigate('/')
+                } else {
+                  window.close()
+                }
+              }}
+              colorScheme='brand'
             >
-              {txHash}
-            </Identifier>
-          </ValueCard>
-        </div>
-
-        <div>
-          <Button
-            className='w-full'
-            onClick={() => {
-              if (returnToHome) {
-                void navigate('/')
-              } else {
-                window.close()
-              }
-            }}
-            colorScheme='lightBlue'
-          >
-            Close
-          </Button>
+              Close
+            </Button>
+          </div>
         </div>
       </div>
     )
   }
 
-  const transactionHash = params.hash ?? params.txhash
-
-  const identityOptions = identities.map(identifier => ({
-    value: identifier,
-    label: identifier,
-    content: (
-      <Identifier
-        middleEllipsis
-        edgeChars={6}
-        avatar
-      >
-        {identifier}
-      </Identifier>
-    )
-  }))
-
   return (
     <div className='screen-content'>
       <div className='flex flex-col gap-6'>
-        <div className='flex flex-col gap-2.5'>
-          <h1 className='h1-title'>
-            Transaction<br />Approval
-          </h1>
-          <Text size='sm' opacity='50'>
-            Carefully check the transaction details before signing
-          </Text>
-        </div>
+        <TitleBlock
+          title={<>Transaction<br />Approval</>}
+          description='Carefully check the transaction details before signing'
+          showLogo={false}
+        />
 
-        <div className='flex flex-col gap-2.5'>
-          <Text size='md' opacity='50'>Transaction Hash</Text>
-          <ValueCard colorScheme='lightGray' size='xl'>
-            <Identifier
-              highlight='both'
-              linesAdjustment={false}
-            >
-              {transactionHash}
-            </Identifier>
-          </ValueCard>
-          {isLoadingTransaction && <Text size='sm'>Loading transaction...</Text>}
-          {transactionNotFound && <Text size='sm' color='red' weight='bold'>Could not find transaction with hash</Text>}
-          {transactionDecodeError != null && (
-            <Text size='sm' color='red' weight='bold'>
-              Error decoding state transition: {transactionDecodeError}
-            </Text>
-          )}
-        </div>
+        {/* Transaction details */}
+        {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
+        {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
+        <Banner variant='error' message={transactionDecodeError} />
 
-        {/* Choose Identity */}
+        {/* Decoded transaction details */}
+        {decodedTransaction != null && (
+          <TransactionDetails
+            data={decodedTransaction}
+            network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+          />
+        )}
+
+        {/* Identity (read-only, auto-set from transaction) */}
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <div className='flex flex-col gap-2.5'>
-            <Text size='md' opacity='50'>Choose Identity</Text>
-            <Select
+            <FieldLabel>Identity</FieldLabel>
+            <IdentitySelect
+              identities={identities}
               value={currentIdentity ?? ''}
-              onChange={(e: string) => {
-                const identity = e
-                setCurrentIdentity(identity)
-                extensionAPI.switchIdentity(identity).catch(err => console.log('Failed to switch identity', err))
-              }}
-              options={identityOptions}
-              showArrow
+              onChange={() => {}}
+              showArrow={false}
               size='xl'
-              disabled={disableIdentitySelect}
+              disabled
             />
           </div>
         )}
@@ -405,23 +443,22 @@ function ApproveTransactionState (): React.JSX.Element {
 
         {/* Password */}
         {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
-          <div className='flex flex-col gap-2.5'>
-            <Text size='md' opacity='50'>Password</Text>
-            <Input
-              type='password'
-              value={password}
-              onChange={(e: { target: { value: React.SetStateAction<string> } }) => setPassword(e.target.value)}
-              placeholder='Your Password'
-              size='xl'
-              variant='outlined'
-              error={passwordError != null}
-            />
-            {passwordError != null && (
-              <Text size='sm' color='red' className='mt-1'>
-                {passwordError}
-              </Text>
-            )}
-          </div>
+          <PasswordField
+            value={password}
+            onChange={setPassword}
+            placeholder='Your Password'
+            error={passwordError}
+            variant='outlined'
+          />
+        )}
+
+        {/* Error details */}
+        {signingErrorDetails != null && (
+          <SigningErrorDetails
+            name={signingErrorDetails.name}
+            message={signingErrorDetails.message}
+            hex={signingErrorDetails.hex}
+          />
         )}
 
         {/* Buttons */}
@@ -438,23 +475,19 @@ function ApproveTransactionState (): React.JSX.Element {
             </div>
             )
           : (stateTransitionWASM != null && (
-            <div className='flex gap-2 w-full'>
-              <Button
-                onClick={reject}
-                colorScheme='lightBlue'
-                className='w-1/2'
-              >
-                Reject
-              </Button>
-              <Button
-                onClick={() => { doSign().catch(e => console.log('doSign', e)) }}
-                colorScheme='brand'
-                className='w-1/2'
-                disabled={isSigningInProgress || selectedSigningKey === null}
-              >
-                {isSigningInProgress ? 'Signing...' : 'Sign'}
-              </Button>
-            </div>
+            <ButtonRow
+              leftButton={{
+                text: 'Cancel',
+                onClick: reject,
+                colorScheme: 'lightBlue'
+              }}
+              rightButton={{
+                text: isSigningInProgress ? 'Signing...' : 'Sign',
+                onClick: () => { void doSign() },
+                colorScheme: 'brand',
+                disabled: isSigningInProgress || selectedSigningKey === null
+              }}
+            />
             ))}
       </div>
     </div>

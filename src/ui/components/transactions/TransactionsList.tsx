@@ -12,6 +12,7 @@ interface TransactionsListProps {
   rate: number | null
   currentNetwork: NetworkType
   getTransactionExplorerUrl: (hash: string, network: NetworkType) => string
+  hideAmounts?: boolean
 }
 
 interface GroupedTransaction {
@@ -25,7 +26,8 @@ function TransactionsList ({
   error,
   rate,
   currentNetwork,
-  getTransactionExplorerUrl
+  getTransactionExplorerUrl,
+  hideAmounts = false
 }: TransactionsListProps): React.JSX.Element {
   const groupTransactionsByDate = (transactions: TransactionData[]): GroupedTransaction[] => {
     const groups: Record<string, TransactionData[]> = {}
@@ -121,15 +123,21 @@ function TransactionsList ({
                   {gasAmount > 0 && (
                     <div className='flex flex-col items-end gap-[5px]'>
                       <div className='flex items-center gap-1 text-dash-primary-dark-blue'>
-                        <BigNumber className='!font-bold text-[0.875rem]'>
-                          {gasAmount}
-                        </BigNumber>
+                        {hideAmounts
+                          ? <Text weight='bold' className='text-[0.875rem]' monospace>•••</Text>
+                          : (
+                            <BigNumber className='!font-bold text-[0.875rem]'>
+                              {gasAmount}
+                            </BigNumber>
+                            )}
                         <Text size='sm'>
                           Credits
                         </Text>
                       </div>
                       <Text size='xs' className='text-[rgba(12,28,51,0.35)] opacity-50 text-right'>
-                        {usdAmount > 0 && <>~ ${usdAmount.toFixed(3)}</>} (Gas)
+                        {hideAmounts
+                          ? '••• '
+                          : usdAmount > 0 ? `~ $${usdAmount.toFixed(3)} ` : ''}(Gas)
                       </Text>
                     </div>
                   )}
