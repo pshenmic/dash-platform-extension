@@ -78,6 +78,19 @@ export class TopUpIdentityHandler implements APIHandler {
       throw new Error(`Asset lock funding address ${payload.assetLockFundingAddress} has already been used`)
     }
 
+    // An address reserved for another identity is refused rather than spent
+    // toward this one, which would consume the deposit the other top-up is
+    // waiting on. Entries with no owner predate per-identity reservation.
+    if (
+      assetLockFundingAddressEntry.identityId != null &&
+      assetLockFundingAddressEntry.identityId !== payload.identityId
+    ) {
+      throw new Error(
+        `Asset lock funding address ${payload.assetLockFundingAddress} is reserved ` +
+        `for identity ${assetLockFundingAddressEntry.identityId}`
+      )
+    }
+
     const passwordHash = hash.sha256().update(payload.password).digest('hex')
     const secretKey = PrivateKey.fromHex(passwordHash)
 
