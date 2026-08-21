@@ -1,7 +1,8 @@
 import React, { FC, useState, useEffect, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
 import { ThemeProvider } from 'dash-ui-kit/react'
-import { useExtensionAPI, useSdk } from '../../hooks'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { getSdkPromise } from '../../../utils/sdkLoader'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { GetStatusResponse } from '../../../types/messages/response/GetStatusResponse'
 import { NetworkType, EventData, Identity } from '../../../types'
@@ -28,7 +29,6 @@ export interface LayoutContext {
 
 const Layout: FC = () => {
   const extensionAPI = useExtensionAPI()
-  const sdk = useSdk()
 
   const [isApiReady, setIsApiReady] = useState<boolean>(false)
   const [currentNetwork, setCurrentNetwork] = useState<NetworkType>('mainnet')
@@ -76,6 +76,7 @@ const Layout: FC = () => {
     if (!isApiReady) return
 
     try {
+      const sdk = await getSdkPromise()
       sdk.setNetwork(network)
       await extensionAPI.switchNetwork(network)
 
@@ -87,7 +88,7 @@ const Layout: FC = () => {
     } catch (error) {
       console.log('Network change error:', error)
     }
-  }, [isApiReady, sdk, extensionAPI, loadWallets])
+  }, [isApiReady, extensionAPI, loadWallets])
 
   const handleWalletChange = useCallback(async (walletId: string | null): Promise<void> => {
     if (!isApiReady || walletId === null || walletId === '') return
@@ -155,6 +156,7 @@ const Layout: FC = () => {
           setCurrentNetwork(status.network as NetworkType)
           setCurrentWallet(status.currentWalletId)
           setHasAnyWallet(status.hasAnyWallet)
+          const sdk = await getSdkPromise()
           sdk.setNetwork(status.network as NetworkType)
         }
       } catch (error) {
@@ -174,7 +176,7 @@ const Layout: FC = () => {
     return () => {
       window.removeEventListener('message', handleContentScriptReady)
     }
-  }, [extensionAPI, sdk])
+  }, [extensionAPI])
 
   // Load data when API becomes and callbacks changes
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { base58 } from '@scure/base'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'dash-platform-sdk/types'
-import { DashPlatformSDK } from 'dash-platform-sdk'
+import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
 import formatBigNumber from './formatBigNumber'
