@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useSearchParams, useOutletContext } from 'react-router-dom'
 import { useExtensionAPI, useWalletName } from '../../hooks'
 import { useCoreSDK } from '../../hooks/useCoreSDK'
@@ -10,8 +10,10 @@ import { Stage3Processing } from './stages/Stage3Processing'
 import { Stage4Success } from './stages/Stage4Success'
 import { TopUpError } from './stages/TopUpError'
 import { isTabView, closeCurrentExtensionTab } from '../../utils/extensionTab'
+import { buildTopUpUrl } from '../../utils/topUpTabUrl'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
 import { MIN_TOPUP_FUNDING_DUFFS } from '../../../constants'
+import { NetworkType } from '../../../types'
 
 type Stage = 1 | 2 | 3 | 4
 
@@ -26,18 +28,10 @@ function TopUpIdentityState (): React.JSX.Element {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const context = useOutletContext<LayoutContext>()
-  const { currentIdentity, setHeaderConfigOverride, setHeaderComponent, currentNetwork } = context ?? {}
-  const walletName = useWalletName()
+  const { currentIdentity, currentWallet, allWallets, setHeaderConfigOverride, setHeaderComponent, currentNetwork } = context ?? {}
   const extensionAPI = useExtensionAPI()
-  const coreSDK = useCoreSDK()
   const platformExplorerClient = usePlatformExplorerClient()
   const [dashRate, setDashRate] = useState<number | null>(null)
-
-  useEffect(() => {
-    platformExplorerClient.fetchRate(currentNetwork)
-      .then(rate => setDashRate(rate))
-      .catch(() => {})
-  }, [currentNetwork, platformExplorerClient])
 
   const [password, setPassword] = useState('')
   const [fundingAddress, setFundingAddress] = useState<string | null>(null)
@@ -52,17 +46,38 @@ function TopUpIdentityState (): React.JSX.Element {
   const stage = (rawStage >= 1 && rawStage <= 4 ? rawStage : 1) as Stage
   const hasError = searchParams.get('error') === 'true'
 
-  // Pinned to the identity the flow was opened for, not the wallet's current one.
+  // Pinned to the identity, wallet and network the flow was opened for, not the current selection.
   const identityId = searchParams.get('identity') ?? currentIdentity ?? null
+  const walletId = searchParams.get('wallet') ?? currentWallet ?? null
+  const network = (searchParams.get('network') as NetworkType | null) ?? currentNetwork ?? null
 
-  const stageUrl = useCallback((nextStage: Stage, failed = false): string => {
-    const params = new URLSearchParams({ stage: String(nextStage) })
+  // The tab outlives wallet and network switches, so the scope it was pinned to can go missing.
+  const scopeError = useMemo(() => {
+    if (identityId == null) return 'No identity was selected for this top-up'
+    if (walletId == null || network == null) return 'No wallet was selected for this top-up'
+    if (allWallets == null || allWallets.length === 0) return null
 
-    if (identityId != null) params.set('identity', identityId)
-    if (failed) params.set('error', 'true')
+    const wallet = allWallets.find(item => item.walletId === walletId && item.network === network)
 
-    return `/topup-identity?${params.toString()}`
-  }, [identityId])
+    if (wallet == null) return `Wallet was not found on ${network}, it may have been removed`
+
+    return null
+  }, [identityId, walletId, network, allWallets])
+
+  const coreSDK = useCoreSDK(network ?? undefined)
+  const walletName = useWalletName(walletId)
+
+  useEffect(() => {
+    if (network == null) return
+
+    platformExplorerClient.fetchRate(network)
+      .then(rate => setDashRate(rate))
+      .catch(() => {})
+  }, [network, platformExplorerClient])
+
+  const stageUrl = useCallback((nextStage: Stage, failed = false): string =>
+    buildTopUpUrl({ identityId, walletId, network }, nextStage, failed)
+  , [identityId, walletId, network])
 
   useEffect(() => {
     if (setHeaderConfigOverride == null) return
@@ -112,7 +127,9 @@ function TopUpIdentityState (): React.JSX.Element {
     setError(null)
 
     try {
-      const result = await extensionAPI.topUpIdentity(identityId, address, txid, pwd)
+      const result = await extensionAPI.topUpIdentity(
+        identityId, address, txid, pwd, walletId ?? undefined, network ?? undefined
+      )
       setTopUpResult({
         identityId: result.identityId,
         stateTransitionHash: result.stateTransitionHash,
@@ -125,7 +142,7 @@ function TopUpIdentityState (): React.JSX.Element {
       setError(message)
       void navigate(stageUrl(3, true), { replace: true })
     }
-  }, [extensionAPI, navigate, identityId, stageUrl])
+  }, [extensionAPI, navigate, identityId, walletId, network, stageUrl])
 
   // Auto-detect payment on stage 2
   useEffect(() => {
@@ -165,7 +182,9 @@ function TopUpIdentityState (): React.JSX.Element {
       setAddressError(null)
 
       try {
-        const { address } = await extensionAPI.requestTopUpFundingAddress(password)
+        const { address } = await extensionAPI.requestTopUpFundingAddress(
+          password, walletId ?? undefined, network ?? undefined
+        )
         setFundingAddress(address)
       } catch (e) {
         setAddressError(e instanceof Error ? e.message : 'Failed to generate funding address')
@@ -175,7 +194,7 @@ function TopUpIdentityState (): React.JSX.Element {
     }
 
     fetchAddress().catch(console.error)
-  }, [stage, fundingAddress, password, extensionAPI, navigate, stageUrl])
+  }, [stage, fundingAddress, password, walletId, network, extensionAPI, navigate, stageUrl])
 
   const handleNext = async (): Promise<void> => {
     if (password.trim() === '') {
@@ -234,6 +253,17 @@ function TopUpIdentityState (): React.JSX.Element {
     setShowManualEntry(false)
     setError(null)
     void navigate(stageUrl(2), { replace: true })
+  }
+
+  if (scopeError != null) {
+    return (
+      <TopUpError
+        stage={stage}
+        error={scopeError}
+        actionText='Close'
+        onReturnBack={handleDone}
+      />
+    )
   }
 
   if (hasError) {

@@ -18,6 +18,7 @@ import { NamesList, type NameData } from '../../components/names'
 import { BalanceInfo } from '../../components/data'
 import { fetchNames } from '../../../utils'
 import { findOpenExtensionTab, focusExtensionTab, openExtensionTab, type OpenExtensionTab } from '../../utils/extensionTab'
+import { buildTopUpUrl } from '../../utils/topUpTabUrl'
 import { ConfirmDialog } from '../../components/controls'
 function HomeState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -142,23 +143,21 @@ function HomeState (): React.JSX.Element {
   }, [currentNetwork, platformExplorerClient, loadRate])
 
   const handleTopUp = async (): Promise<void> => {
+    // Only one funding address is pending per wallet at a time, so a second tab would race the first.
     const openTab = await findOpenExtensionTab('topup')
 
     if (openTab != null) {
-      if (openTab.identityId !== currentIdentity || openTab.walletId !== currentWallet) {
-        setBusyTopUpTab(openTab)
-        return
-      }
-
-      await focusExtensionTab(openTab.tabId)
+      setBusyTopUpTab(openTab)
       return
     }
 
-    await openExtensionTab(
-      'topup',
-      `/topup-identity?stage=1&identity=${currentIdentity ?? ''}`,
-      { identityId: currentIdentity, walletId: currentWallet, network: currentNetwork }
-    )
+    const scope = {
+      identityId: currentIdentity,
+      walletId: currentWallet,
+      network: currentNetwork as NetworkType
+    }
+
+    await openExtensionTab('topup', buildTopUpUrl(scope, 1), scope)
   }
 
   if (isLoading) {
