@@ -92,8 +92,23 @@ describe('GenerateShieldedAddressesHandler', () => {
     expect(handler.validatePayload({} as any)).toEqual('Password must be provided')
   })
 
-  it('should reject account and count', () => {
+  it('should reject account', () => {
     expect(handler.validatePayload({ password: 'password', account: 0 } as any)).toEqual('Account is not supported')
-    expect(handler.validatePayload({ password: 'password', count: 2 } as any)).toEqual('Count is not supported')
+  })
+
+  it('should reject an invalid count', () => {
+    expect(handler.validatePayload({ password: 'password', count: 0 } as any)).toEqual('Count must be a positive integer')
+    expect(handler.validatePayload({ password: 'password', count: 1.5 } as any)).toEqual('Count must be a positive integer')
+    expect(handler.validatePayload({ password: 'password', count: 2 } as any)).toEqual(null)
+  })
+
+  it('should derive the requested count', async () => {
+    walletRepository.getShieldedAddressCount.mockResolvedValue(2)
+
+    const response = await handle({ password: 'password', count: 3 })
+
+    expect(deriveShieldedAddressesMock).toHaveBeenCalledWith(expect.anything(), 'password', 0, 3, sdk, 2)
+    expect(response.addresses.map((entry: any) => entry.diversifierIndex)).toEqual([2, 3, 4])
+    expect(walletRepository.setShieldedAddressCount).toHaveBeenCalledWith(0, 5)
   })
 })
