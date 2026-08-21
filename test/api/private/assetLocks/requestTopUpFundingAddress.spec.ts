@@ -15,6 +15,9 @@ jest.mock('../../../../src/utils', () => {
 
 const { deriveWalletHdKey, deriveTopUpKeyFromHdKey } = jest.requireMock('../../../../src/utils')
 
+const CURRENT_IDENTITY = 'identityCurrent'
+const OTHER_IDENTITY = 'identityOther'
+
 describe('RequestTopUpFundingAddressHandler', () => {
   const password = 'test'
   // A real ECIES public key so the handler's encrypt() call succeeds.
@@ -42,7 +45,8 @@ describe('RequestTopUpFundingAddressHandler', () => {
       findAllUnused: jest.fn(async () => []),
       getByAddress: jest.fn(async () => null),
       create: jest.fn(async (entry: any) => entry),
-      markAsUsed: jest.fn(async () => {})
+      markAsUsed: jest.fn(async () => {}),
+      bindToIdentity: jest.fn(async () => {})
     }
 
     walletRepository = {
@@ -53,7 +57,7 @@ describe('RequestTopUpFundingAddressHandler', () => {
         label: null,
         encryptedMnemonic: 'encryptedMnemonic',
         seedHash: 'seedHash',
-        currentIdentity: null
+        currentIdentity: CURRENT_IDENTITY
       }))
     }
 
@@ -111,7 +115,7 @@ describe('RequestTopUpFundingAddressHandler', () => {
     const result = await handler.handle({ payload: { password } } as any)
 
     expect(result).toEqual({ address: 'yPending' })
-    expect(assetLockFundingAddressesRepository.findAllUnused).toHaveBeenCalledWith('topUp')
+    expect(assetLockFundingAddressesRepository.findAllUnused).toHaveBeenCalledWith('topUp', CURRENT_IDENTITY)
     expect(deriveWalletHdKey).not.toHaveBeenCalled()
     expect(deriveTopUpKeyFromHdKey).not.toHaveBeenCalled()
     expect(assetLockFundingAddressesRepository.create).not.toHaveBeenCalled()
@@ -200,6 +204,78 @@ describe('RequestTopUpFundingAddressHandler', () => {
 
     it('accepts a valid payload', () => {
       expect(handler.validatePayload({ password })).toBeNull()
+    })
+  })
+
+  describe('identity reservation', () => {
+    it('reserves the address for the identity named in the payload', async () => {
+      await handler.handle({ payload: { password, identityId: OTHER_IDENTITY } } as any)
+
+      expect(assetLockFundingAddressesRepository.findAllUnused).toHaveBeenCalledWith('topUp', OTHER_IDENTITY)
+      expect(assetLockFundingAddressesRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ identityId: OTHER_IDENTITY, purpose: 'topUp' })
+      )
+    })
+
+    it('falls back to the wallet current identity', async () => {
+      await handler.handle({ payload: { password } } as any)
+
+      expect(assetLockFundingAddressesRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ identityId: CURRENT_IDENTITY })
+      )
+    })
+
+    it('claims a pending entry that has no owner yet', async () => {
+      assetLockFundingAddressesRepository.findAllUnused.mockResolvedValueOnce([{ address: 'yLegacy' }])
+
+      const result = await handler.handle({ payload: { password, identityId: OTHER_IDENTITY } } as any)
+
+      expect(result).toEqual({ address: 'yLegacy' })
+      expect(assetLockFundingAddressesRepository.bindToIdentity).toHaveBeenCalledWith('yLegacy', OTHER_IDENTITY)
+    })
+
+    it('reuses the same address when the same identity asks again', async () => {
+      assetLockFundingAddressesRepository.findAllUnused.mockResolvedValue([
+        { address: 'yReserved', identityId: OTHER_IDENTITY }
+      ])
+
+      const first = await handler.handle({ payload: { password, identityId: OTHER_IDENTITY } } as any)
+      const second = await handler.handle({ payload: { password, identityId: OTHER_IDENTITY } } as any)
+
+      expect(second).toEqual(first)
+      expect(assetLockFundingAddressesRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('gap-scans a fresh address when the pending one belongs to another identity', async () => {
+      // The repository filters foreign reservations out, so the handler sees none.
+      assetLockFundingAddressesRepository.findAllUnused.mockResolvedValueOnce([])
+
+      const result = await handler.handle({ payload: { password, identityId: OTHER_IDENTITY } } as any)
+
+      expect(assetLockFundingAddressesRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ identityId: OTHER_IDENTITY })
+      )
+      expect(result.address).toEqual(expect.any(String))
+    })
+
+    it('throws when neither the payload nor the wallet names an identity', async () => {
+      // getCurrent is consulted twice: once to resolve the scope, once through the
+      // scoped repository, so the override has to hold for both.
+      walletRepository.getCurrent.mockResolvedValue({
+        walletId: 'wallet1', type: WalletType.seedphrase, network: 'testnet', currentIdentity: null
+      })
+
+      await expect(handler.handle({ payload: { password } } as any))
+        .rejects.toThrow('No identity is chosen to top up')
+
+      expect(assetLockFundingAddressesRepository.create).not.toHaveBeenCalled()
+    })
+
+    it('rejects a malformed identityId', () => {
+      expect(handler.validatePayload({ password, identityId: '' } as any))
+        .toBe('identityId must be a non-empty string when provided')
+      expect(handler.validatePayload({ password, identityId: 1 } as any))
+        .toBe('identityId must be a non-empty string when provided')
     })
   })
 

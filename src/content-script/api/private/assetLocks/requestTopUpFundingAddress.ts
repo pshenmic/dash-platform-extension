@@ -56,6 +56,15 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
 
     const network = wallet.network as NetworkType
 
+    // The address is reserved for one identity, so two top-ups running side by
+    // side never receive the same one. Callers that do not name an identity get
+    // the wallet's current one, which is what a single-tab flow means anyway.
+    const identityId = payload.identityId ?? wallet.currentIdentity
+
+    if (identityId == null) {
+      throw new Error('No identity is chosen to top up')
+    }
+
     // Reuse an in-flight top-up funding address if one is still pending. Don't
     // trust the local flag blindly — re-check every pending entry against L1 and
     // reuse the first that is not consumed. "Consumed" = on-chain history but no
@@ -63,7 +72,7 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
     // before it was marked). An untouched address (no history) or one holding a
     // pending deposit (history + UTXO) is what we want to reuse; consumed ones
     // are retired locally so they are never handed out again.
-    const pending = await assetLockFundingAddressesRepository.findAllUnused('topUp')
+    const pending = await assetLockFundingAddressesRepository.findAllUnused('topUp', identityId)
 
     for (const entry of pending) {
       const [info, utxos] = await Promise.all([
@@ -74,6 +83,10 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
       const consumed = info != null && utxos.length === 0
 
       if (!consumed) {
+        // An entry with no owner predates per-identity reservation. Claim it on
+        // the way out so the next top-up for another identity is not offered it.
+        await assetLockFundingAddressesRepository.bindToIdentity(entry.address, identityId)
+
         return { address: entry.address }
       }
 
@@ -128,7 +141,8 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
       encryptedPrivateKey,
       used: false,
       index: foundIndex,
-      purpose: 'topUp'
+      purpose: 'topUp',
+      identityId
     })
 
     return { address: foundAddress }
@@ -154,6 +168,10 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
   validatePayload (payload: RequestTopUpFundingAddressPayload): null | string {
     if (typeof payload?.password !== 'string' || payload.password.length === 0) {
       return 'password must be provided'
+    }
+
+    if (payload.identityId != null && (typeof payload.identityId !== 'string' || payload.identityId.length === 0)) {
+      return 'identityId must be a non-empty string when provided'
     }
 
     return validateRepositoryScopePayload(payload)

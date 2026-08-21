@@ -269,6 +269,41 @@ describe('TopUpIdentityHandler', () => {
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
+  test('rejects a funding address reserved for another identity', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
+      address: assetLockFundingAddress,
+      encryptedPrivateKey,
+      used: false,
+      assetLockTxid: null,
+      identityId: 'someOtherIdentity'
+    })
+
+    await expect(handle()).rejects.toThrow(
+      `Asset lock funding address ${assetLockFundingAddress} is reserved for identity someOtherIdentity`
+    )
+
+    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
+    expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
+  })
+
+  test('accepts a funding address reserved for this identity', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
+      address: assetLockFundingAddress,
+      encryptedPrivateKey,
+      used: false,
+      assetLockTxid: null,
+      identityId
+    })
+
+    await expect(handle()).resolves.toEqual({ identityId, stateTransitionHash: 'stateTransitionHash' })
+  })
+
+  test('accepts an unreserved funding address created before reservations existed', async () => {
+    // The default mock entry carries no identityId, which is the legacy shape.
+    await expect(handle()).resolves.toEqual({ identityId, stateTransitionHash: 'stateTransitionHash' })
+  })
+
   test('rejects wrong password without broadcasting', async () => {
     await expect(handler.handle({
       context: 'dash-platform-extension',
@@ -551,6 +586,75 @@ describe('AssetLockFundingAddressesRepository broadcast support', () => {
     await expect(storage.get(storageKey)).resolves.toEqual({
       address: { address: 'address', encryptedPrivateKey: 'k', used: true, assetLockTxid: txid }
     })
+  })
+})
+
+describe('AssetLockFundingAddressesRepository identity reservation', () => {
+  const storageKey = 'assetLockFundingAddresses_testnet_wallet1'
+
+  let storage: TestStorageAdapter
+  let repository: AssetLockFundingAddressesRepository
+
+  const seed = async (entries: Record<string, any>): Promise<void> => {
+    await storage.set(storageKey, entries)
+  }
+
+  const topUpEntry = (address: string, identityId?: string): any => ({
+    address, encryptedPrivateKey: 'k', used: false, purpose: 'topUp', ...(identityId != null ? { identityId } : {})
+  })
+
+  beforeEach(async () => {
+    storage = new TestStorageAdapter()
+    await storage.set('network', 'testnet')
+    await storage.set('currentWalletId', 'wallet1')
+    repository = new AssetLockFundingAddressesRepository(storage)
+  })
+
+  test('findAllUnused returns entries reserved for the identity and unreserved ones', async () => {
+    await seed({
+      mine: topUpEntry('mine', 'identityA'),
+      theirs: topUpEntry('theirs', 'identityB'),
+      unreserved: topUpEntry('unreserved')
+    })
+
+    const found = await repository.findAllUnused('topUp', 'identityA')
+
+    expect(found.map(entry => entry.address).sort()).toEqual(['mine', 'unreserved'])
+  })
+
+  test('findAllUnused without an identity keeps every reservation', async () => {
+    await seed({ mine: topUpEntry('mine', 'identityA'), theirs: topUpEntry('theirs', 'identityB') })
+
+    const found = await repository.findAllUnused('topUp')
+
+    expect(found).toHaveLength(2)
+  })
+
+  test('bindToIdentity reserves an unreserved entry', async () => {
+    await seed({ unreserved: topUpEntry('unreserved') })
+
+    await repository.bindToIdentity('unreserved', 'identityA')
+
+    expect((await repository.getByAddress('unreserved'))?.identityId).toBe('identityA')
+  })
+
+  test('bindToIdentity is idempotent for the same identity', async () => {
+    await seed({ mine: topUpEntry('mine', 'identityA') })
+
+    await expect(repository.bindToIdentity('mine', 'identityA')).resolves.toBeUndefined()
+  })
+
+  test('bindToIdentity refuses to re-point an entry at another identity', async () => {
+    await seed({ mine: topUpEntry('mine', 'identityA') })
+
+    await expect(repository.bindToIdentity('mine', 'identityB'))
+      .rejects.toThrow('is already reserved for identity identityA')
+
+    expect((await repository.getByAddress('mine'))?.identityId).toBe('identityA')
+  })
+
+  test('bindToIdentity fails for a missing entry', async () => {
+    await expect(repository.bindToIdentity('missing', 'identityA')).rejects.toThrow('not found')
   })
 })
 

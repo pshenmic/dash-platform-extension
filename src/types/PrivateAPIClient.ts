@@ -362,8 +362,8 @@ export class PrivateAPIClient {
     )
   }
 
-  async requestTopUpFundingAddress (password: string, walletId?: string, network?: NetworkType): Promise<RequestTopUpFundingAddressResponse> {
-    const payload: RequestTopUpFundingAddressPayload = { password, walletId, network }
+  async requestTopUpFundingAddress (password: string, identityId?: string, walletId?: string, network?: NetworkType): Promise<RequestTopUpFundingAddressResponse> {
+    const payload: RequestTopUpFundingAddressPayload = { password, identityId, walletId, network }
 
     return await this._rpcCall(
       MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS,

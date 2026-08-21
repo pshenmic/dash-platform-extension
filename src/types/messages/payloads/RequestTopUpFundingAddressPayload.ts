@@ -7,4 +7,8 @@ export interface RequestTopUpFundingAddressPayload {
   // it must match the one later passed to TOP_UP_IDENTITY.
   walletId?: string
   network?: NetworkType
+  // The identity the address is reserved for. Optional: defaults to the wallet's
+  // current identity. Two top-ups running side by side must each name their own
+  // identity, otherwise they are handed the same address and race for it.
+  identityId?: string
 }
