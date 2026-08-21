@@ -6,7 +6,7 @@ import { deriveShieldedAddresses } from '../../../../utils'
 import { GenerateShieldedAddressesPayload } from '../../../../types/messages/payloads/GenerateShieldedAddressesPayload'
 import { GetShieldedAddressesResponse } from '../../../../types/messages/response/GetShieldedAddressesResponse'
 
-// Generates the next diversified Orchard (shielded) address and returns it.
+// Generates the next diversified Orchard (shielded) addresses and returns them.
 // The wallet stores how many were created, so the next diversifier index is the
 // current count. Unlike platform addresses, shielded ones cannot be derived
 // publicly — the password is always required to unlock the seed.
@@ -32,10 +32,11 @@ export class GenerateShieldedAddressesHandler implements APIHandler {
     }
 
     const account = 0
+    const count = payload.count ?? 1
     const start = await this.walletRepository.getShieldedAddressCount(account)
-    const addresses = deriveShieldedAddresses(wallet, payload.password, account, 1, this.sdk, start)
+    const addresses = deriveShieldedAddresses(wallet, payload.password, account, count, this.sdk, start)
 
-    await this.walletRepository.setShieldedAddressCount(account, start + 1)
+    await this.walletRepository.setShieldedAddressCount(account, start + count)
 
     return { addresses }
   }
@@ -47,8 +48,8 @@ export class GenerateShieldedAddressesHandler implements APIHandler {
     if ('account' in payload) {
       return 'Account is not supported'
     }
-    if ('count' in payload) {
-      return 'Count is not supported'
+    if (payload.count != null && (!Number.isInteger(payload.count) || payload.count < 1)) {
+      return 'Count must be a positive integer'
     }
 
     return null

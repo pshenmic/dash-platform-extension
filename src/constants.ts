@@ -41,6 +41,14 @@ export const CORE_EXPLORER_URLS = {
 // constants only label the derivation path we report alongside each address.
 export const PLATFORM_ADDRESS_FEATURE = 17
 export const PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS = 0
+// How many addresses one "show more" generation adds.
+export const PLATFORM_ADDRESS_GENERATE_BATCH = 10
+// Platform credit transfer estimates. The platform computes the real processing
+// fee on-chain and the SDK exposes no estimator, so these are used only for the
+// pre-flight balance check and for reporting an estimated fee. Set from observed
+// testnet behaviour: an addressFundsTransfer charged ~9.5M credits, and the SDK
+// pre-flight demanded ~15M available, so the guard is sized to the SDK's demand
+// to avoid passing transfers the platform then rejects.
 export const PLATFORM_ADDRESS_DEFAULT_COUNT = 20
 // Platform computes the real fee on-chain; these drive only the pre-flight
 // balance check and the estimated fee. Sized to the SDK's ~15M pre-flight demand.
@@ -67,6 +75,10 @@ export const PLATFORM_ADDRESS_COIN_TYPE = {
 // ZIP-32 m/32'/coinType'/account' (SDK owns the path); diversifierIndex picks a
 // distinct diversified address sharing the account's viewing key.
 export const SHIELDED_ADDRESS_DEFAULT_COUNT = 5
+// How many addresses one "show more" generation adds.
+export const SHIELDED_ADDRESS_GENERATE_BATCH = 10
+// Page size when paging the shielded note set; mirrors the SDK's
+// SHIELDED_MAX_NOTES_PER_QUERY gRPC limit.
 // Page size when paging the note set; mirrors the SDK's gRPC query limit.
 export const SHIELDED_NOTES_PAGE_SIZE = 8192
 // Max notes per spend: proof size grows per input note and the state transition

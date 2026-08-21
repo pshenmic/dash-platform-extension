@@ -3,7 +3,7 @@ import { Text, Button, ValueCard } from 'dash-ui-kit/react'
 import { PasswordGate } from '../forms'
 import { AddressItem } from './AddressItem'
 import { usePlatformAddresses } from '../../hooks/usePlatformAddresses'
-import { getAddressExplorerUrl } from '../../../utils'
+import { getPlatformAddressExplorerUrl } from '../../../utils'
 import type { NetworkType } from '../../../types'
 
 interface PlatformAddressesProps {
@@ -47,7 +47,7 @@ export const PlatformAddresses: React.FC<PlatformAddressesProps> = ({ currentNet
             <AddressItem
               key={`${item.index}-${item.address}`}
               item={item}
-              explorerUrl={getAddressExplorerUrl(item.address, currentNetwork ?? 'testnet')}
+              explorerUrl={getPlatformAddressExplorerUrl(item.address, currentNetwork ?? 'testnet')}
             />
           ))}
         </div>
@@ -57,8 +57,8 @@ export const PlatformAddresses: React.FC<PlatformAddressesProps> = ({ currentNet
         ? (
           <PasswordGate
             description='Enter your password once to enable platform addresses for this wallet.'
-            submitLabel='Create address'
-            pendingLabel='Creating...'
+            submitLabel='Show addresses'
+            pendingLabel='Loading...'
             isPending={isGenerating}
             onSubmit={generateWithPassword}
             onCancel={cancelPassword}
@@ -70,7 +70,7 @@ export const PlatformAddresses: React.FC<PlatformAddressesProps> = ({ currentNet
             onClick={() => { void generate() }}
             disabled={isLoading || isGenerating}
           >
-            {isGenerating ? 'Loading...' : 'Add one more address'}
+            {isGenerating ? 'Loading...' : 'Show more addresses'}
           </Button>
           )}
     </div>
