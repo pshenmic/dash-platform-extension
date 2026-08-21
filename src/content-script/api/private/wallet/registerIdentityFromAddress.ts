@@ -18,7 +18,7 @@ import { IDENTITY_INDEX_SCAN_LIMIT, TRANSFER_FEE_CREDITS } from '../../../../con
 import { RegisterIdentityFromAddressPayload } from '../../../../types/messages/payloads/RegisterIdentityFromAddressPayload'
 import { RegisterIdentityFromAddressResponse } from '../../../../types/messages/response/RegisterIdentityFromAddressResponse'
 
-// Registers a new identity funded from a transparent platform address via an
+// Registers a new identity funded from a Platform address via an
 // IdentityCreateFromAddresses state transition. Reuses the registration key
 // machinery (free-index scan, 6 identity keys, proof-of-possession) and our
 // platform source selection; the funding is the source address witness instead

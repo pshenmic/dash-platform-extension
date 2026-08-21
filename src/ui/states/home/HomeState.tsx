@@ -275,7 +275,6 @@ function HomeState (): React.JSX.Element {
                   error={transactionsState.error}
                   rate={rateState.data}
                   currentNetwork={currentNetwork as NetworkType}
-                  getTransactionExplorerUrl={platformExplorerClient.getTransactionExplorerUrl}
                   hideAmounts={hideBalance}
                 />
               )

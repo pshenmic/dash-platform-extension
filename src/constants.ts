@@ -45,13 +45,14 @@ export const CORE_EXPLORER_URLS = {
   }
 }
 
-// ── DIP-17 transparent platform payment addresses ────────────────────────────
+// ── DIP-17 Platform payment addresses ────────────────────────────
 // Derived at m/9'/coin'/17'/account'/keyClass'/index; keyClass 0 = clear funds.
 // Address derivation and DIP-18 encoding live in the SDK (sdk.keyPair); these
 // constants only label the derivation path we report alongside each address.
 export const PLATFORM_ADDRESS_FEATURE = 17
 export const PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS = 0
-export const PLATFORM_ADDRESS_DEFAULT_COUNT = 20
+// How many addresses one "show more" generation adds.
+export const PLATFORM_ADDRESS_GENERATE_BATCH = 10
 // Platform credit transfer estimates. The platform computes the real processing
 // fee on-chain and the SDK exposes no estimator, so these are used only for the
 // pre-flight balance check and for reporting an estimated fee. Set from observed
@@ -82,6 +83,8 @@ export const PLATFORM_ADDRESS_COIN_TYPE = {
 // SDK owns the path); diversifierIndex selects a distinct diversified address
 // sharing the account's viewing key.
 export const SHIELDED_ADDRESS_DEFAULT_COUNT = 5
+// How many addresses one "show more" generation adds.
+export const SHIELDED_ADDRESS_GENERATE_BATCH = 10
 // Page size when paging the shielded note set; mirrors the SDK's
 // SHIELDED_MAX_NOTES_PER_QUERY gRPC limit.
 export const SHIELDED_NOTES_PAGE_SIZE = 8192
