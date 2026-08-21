@@ -183,7 +183,7 @@ function TopUpIdentityState (): React.JSX.Element {
 
       try {
         const { address } = await extensionAPI.requestTopUpFundingAddress(
-          password, walletId ?? undefined, network ?? undefined
+          password, identityId ?? undefined, walletId ?? undefined, network ?? undefined
         )
         setFundingAddress(address)
       } catch (e) {
@@ -194,7 +194,7 @@ function TopUpIdentityState (): React.JSX.Element {
     }
 
     fetchAddress().catch(console.error)
-  }, [stage, fundingAddress, password, walletId, network, extensionAPI, navigate, stageUrl])
+  }, [stage, fundingAddress, password, identityId, walletId, network, extensionAPI, navigate, stageUrl])
 
   const handleNext = async (): Promise<void> => {
     if (password.trim() === '') {

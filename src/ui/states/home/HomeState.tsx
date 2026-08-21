@@ -143,7 +143,7 @@ function HomeState (): React.JSX.Element {
   }, [currentNetwork, platformExplorerClient, loadRate])
 
   const handleTopUp = async (): Promise<void> => {
-    // Only one funding address is pending per wallet at a time, so a second tab would race the first.
+    // The tab registry holds one top-up tab, so a second one would lose track of the first.
     const openTab = await findOpenExtensionTab('topup')
 
     if (openTab != null) {
