@@ -97,7 +97,8 @@ export function Stage2Payment ({
         </div>
       </div>
 
-      <div className={`flex flex-col gap-4 ${paymentReady ? 'mt-6' : 'mt-auto'}`}>
+      {/* Manual entry appears late, so the whole action block stays pinned to the bottom. */}
+      <div className='flex flex-col gap-4 mt-auto pt-6'>
         {paymentReady && (
           !showManualEntry
             ? (

@@ -61,7 +61,7 @@ body {
   height: 37.5rem;
 }
 
-/* Full browser tab mode: keep the popup-sized card, centered on the page. */
+/* Full browser tab mode: keep the popup width, but grow the card to the viewport height. */
 body.tab-view {
   width: 100%;
   height: auto;
@@ -74,8 +74,10 @@ body.tab-view {
 
 body.tab-view .root {
   width: 26.25rem;
-  height: 37.5rem;
-  max-height: 100%;
+  /* Viewport minus the body padding, never below the popup height and capped on very tall screens. */
+  height: calc(100vh - 4rem);
+  min-height: 37.5rem;
+  max-height: 48.5rem; /* 776px */
   flex-shrink: 0;
   border-radius: 1rem;
   overflow: hidden;
