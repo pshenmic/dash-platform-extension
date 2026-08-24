@@ -133,7 +133,7 @@ function TopUpIdentityState (): React.JSX.Element {
       setTopUpResult({
         identityId: result.identityId,
         stateTransitionHash: result.stateTransitionHash,
-        topUpAmount: result.topUpAmount,
+        topUpAmount: BigInt(result.topUpAmount),
         date: new Date()
       })
       void navigate(stageUrl(4))

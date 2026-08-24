@@ -1,5 +1,5 @@
 export interface TopUpIdentityResponse {
   identityId: string
   stateTransitionHash: string
-  topUpAmount: bigint
+  topUpAmount: string
 }

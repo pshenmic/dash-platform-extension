@@ -175,7 +175,7 @@ export class TopUpIdentityHandler implements APIHandler {
     return {
       identityId: payload.identityId,
       stateTransitionHash,
-      topUpAmount: lockedAmount * 1000n
+      topUpAmount: (lockedAmount * 1000n).toString()
     }
   }
 

@@ -197,7 +197,7 @@ describe('TopUpIdentityHandler', () => {
     expect(result).toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: 100000000n
+      topUpAmount: '100000000'
     })
 
     expect(buildAssetLockFromFundingTxMock).toHaveBeenCalledWith(
@@ -296,12 +296,20 @@ describe('TopUpIdentityHandler', () => {
       identityId
     })
 
-    await expect(handle()).resolves.toEqual({ identityId, stateTransitionHash: 'stateTransitionHash' })
+    await expect(handle()).resolves.toEqual({
+      identityId,
+      stateTransitionHash: 'stateTransitionHash',
+      topUpAmount: '100000000'
+    })
   })
 
   test('accepts an unreserved funding address created before reservations existed', async () => {
     // The default mock entry carries no identityId, which is the legacy shape.
-    await expect(handle()).resolves.toEqual({ identityId, stateTransitionHash: 'stateTransitionHash' })
+    await expect(handle()).resolves.toEqual({
+      identityId,
+      stateTransitionHash: 'stateTransitionHash',
+      topUpAmount: '100000000'
+    })
   })
 
   test('rejects wrong password without broadcasting', async () => {
@@ -342,7 +350,7 @@ describe('TopUpIdentityHandler', () => {
     expect(result).toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: 100000000n
+      topUpAmount: '100000000'
     })
     expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
   })
@@ -357,7 +365,7 @@ describe('TopUpIdentityHandler', () => {
     expect(result).toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: 100000000n
+      topUpAmount: '100000000'
     })
     expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
     expect(sdk.stateTransitions.waitForStateTransitionResult).not.toHaveBeenCalled()
