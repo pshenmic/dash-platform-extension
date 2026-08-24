@@ -87,6 +87,12 @@ export interface AssetLockFundingAddressSchema {
   registrationIdentityIndex?: number
   // Defaults to 'registration' when absent (legacy entries predate top-up).
   purpose?: AssetLockFundingPurpose
+  // The identity a 'topUp' address is reserved for. Without an owner every
+  // top-up in a wallet is handed the same pending address, so two of them run
+  // into each other: the first payment claims the asset lock and the second is
+  // rejected as already used. Absent on registration entries, and on top-up
+  // entries created before addresses were reserved per identity.
+  identityId?: string
 }
 
 export interface AssetLockFundingAddressesSchema {
