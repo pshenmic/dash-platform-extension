@@ -34,22 +34,18 @@ export class GetCoreAddressesInfosHandler implements APIHandler {
 
     const network = wallet.network as NetworkType
 
-    // The explorer has no batch-by-address endpoint, so this is one request per
-    // address. Results are mapped positionally off the same array the requests
-    // were built from, so a balance can never be paired with another address.
-    const infos = await Promise.all(payload.addresses.map(async (address) => {
-      const info = await this.coreExplorer.getAddressInfo(address, network)
+    // One request for the whole batch. The service keeps the result aligned with
+    // the addresses it was given, so a balance can never be paired with another
+    // address, and fills unseen ones in as zeros.
+    const infos = await this.coreExplorer.getAddressesInfo(payload.addresses, network)
 
-      return {
-        address,
-        balance: (info?.balance ?? 0n).toString(),
-        received: (info?.received ?? 0n).toString(),
-        sent: (info?.sent ?? 0n).toString(),
-        txCount: info?.txCount ?? 0
-      }
-    }))
-
-    return { infos }
+    return {
+      infos: infos.map(info => ({
+        address: info.address,
+        balance: info.balance.toString(),
+        txCount: info.txCount
+      }))
+    }
   }
 
   validatePayload (payload: GetCoreAddressesInfosPayload): string | null {

@@ -1,11 +1,19 @@
 import { NetworkType } from '../../types/PlatformExplorer'
-import { CORE_EXPLORER_URLS } from '../../constants'
+import { CORE_EXPLORER_ADDRESS_BATCH_LIMIT, CORE_EXPLORER_URLS } from '../../constants'
 
 export interface CoreAddressInfo {
   txCount: number
   balance: bigint
   received: bigint
   sent: bigint
+}
+
+// The batch endpoint reports only what it can aggregate cheaply: no received /
+// sent totals, unlike the single-address route.
+export interface CoreAddressBalanceInfo {
+  address: string
+  balance: bigint
+  txCount: number
 }
 
 export interface CoreAddressUtxo {
@@ -69,6 +77,43 @@ export class CoreExplorerService {
       received: toBigInt(data.received),
       sent: toBigInt(data.sent)
     }
+  }
+
+  // Balances for many addresses in one request. The explorer caps the query at
+  // 100 addresses, so longer lists are sent in consecutive chunks. Addresses it
+  // omits (never seen on-chain) are filled in as zeros, so the result always
+  // lines up one-to-one with the input, in the same order.
+  async getAddressesInfo (addresses: string[], network: NetworkType = 'testnet'): Promise<CoreAddressBalanceInfo[]> {
+    if (addresses.length === 0) {
+      return []
+    }
+
+    const baseUrl = getBaseUrl(network)
+    const byAddress = new Map<string, CoreAddressBalanceInfo>()
+
+    for (let offset = 0; offset < addresses.length; offset += CORE_EXPLORER_ADDRESS_BATCH_LIMIT) {
+      const chunk = addresses.slice(offset, offset + CORE_EXPLORER_ADDRESS_BATCH_LIMIT)
+      const response = await fetch(`${baseUrl}/addresses/info?addresses=${chunk.join(',')}`)
+
+      if (!response.ok) {
+        throw new Error(`Core explorer error for ${chunk.length} addresses: HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      const rows: any[] = Array.isArray(data) ? data : []
+
+      for (const row of rows) {
+        byAddress.set(row.address, {
+          address: row.address,
+          balance: toBigInt(row.balance),
+          txCount: toCount(row.txCount)
+        })
+      }
+    }
+
+    return addresses.map(address =>
+      byAddress.get(address) ?? { address, balance: 0n, txCount: 0 }
+    )
   }
 
   // An address counts as used once it has appeared in at least one transaction.

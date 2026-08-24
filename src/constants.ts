@@ -36,6 +36,10 @@ export const IDENTITY_INDEX_SCAN_LIMIT = 20
 // dashscan (L1 / Dash Core) REST API — source of address usage and UTXOs for
 // the top-up funding gap-scan. Mirrors the testnet-prefixed host scheme of
 // PLATFORM_EXPLORER_URLS.
+// Most addresses the explorer accepts in one /addresses/info query. Its schema
+// caps the list at 100, so longer lists are chunked.
+export const CORE_EXPLORER_ADDRESS_BATCH_LIMIT = 100
+
 export const CORE_EXPLORER_URLS = {
   testnet: {
     api: 'https://testnet.dashscan.pshenmic.dev'

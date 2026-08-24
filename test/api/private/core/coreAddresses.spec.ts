@@ -1,6 +1,6 @@
-import { GenerateCoreAddressesHandler } from '../../../../src/content-script/api/private/wallet/generateCoreAddresses'
-import { ListCoreAddressesHandler } from '../../../../src/content-script/api/private/wallet/listCoreAddresses'
-import { GetCoreAddressesInfosHandler } from '../../../../src/content-script/api/private/wallet/getCoreAddressesInfos'
+import { GenerateCoreAddressesHandler } from '../../../../src/content-script/api/private/core/generateCoreAddresses'
+import { ListCoreAddressesHandler } from '../../../../src/content-script/api/private/core/listCoreAddresses'
+import { GetCoreAddressesInfosHandler } from '../../../../src/content-script/api/private/core/getCoreAddressesInfos'
 import { CoreAddressChain } from '../../../../src/types/enums/CoreAddressChain'
 import { WalletType } from '../../../../src/types/WalletType'
 import { deriveCoreAccountXpub, deriveCoreAddressesFromXpub } from '../../../../src/utils/coreAddresses'
@@ -205,13 +205,11 @@ describe('core address handlers', () => {
 
     beforeEach(() => {
       coreExplorer = {
-        getAddressInfo: jest.fn(async (address: string) => ({
-          txCount: 2,
-          balance: 1000n,
-          received: 3000n,
-          sent: 2000n,
-          address
-        }))
+        // The service keeps the batch aligned with the addresses it was given
+        // and fills unseen ones in as zeros, so the mock does the same.
+        getAddressesInfo: jest.fn(async (addresses: string[]) =>
+          addresses.map(address => ({ address, balance: 1000n, txCount: 2 }))
+        )
       }
 
       handler = new GetCoreAddressesInfosHandler(walletRepository, coreExplorer)
@@ -223,32 +221,36 @@ describe('core address handlers', () => {
     test('returns amounts as strings on the wallet network', async () => {
       const result = await handle(['yAddr1'])
 
-      expect(result.infos).toEqual([{ address: 'yAddr1', balance: '1000', received: '3000', sent: '2000', txCount: 2 }])
-      expect(coreExplorer.getAddressInfo).toHaveBeenCalledWith('yAddr1', 'testnet')
+      expect(result.infos).toEqual([{ address: 'yAddr1', balance: '1000', txCount: 2 }])
+      expect(coreExplorer.getAddressesInfo).toHaveBeenCalledWith(['yAddr1'], 'testnet')
     })
 
     test('keeps each balance paired with its own address', async () => {
-      coreExplorer.getAddressInfo.mockImplementation(async (address: string) => ({
-        txCount: 1,
-        balance: BigInt(address.length),
-        received: BigInt(address.length),
-        sent: 0n
-      }))
+      coreExplorer.getAddressesInfo.mockImplementation(async (addresses: string[]) =>
+        addresses.map(address => ({ address, balance: BigInt(address.length), txCount: 1 }))
+      )
 
       const result = await handle(['yShort', 'yMuchLongerAddress'])
 
       expect(result.infos).toEqual([
-        { address: 'yShort', balance: '6', received: '6', sent: '0', txCount: 1 },
-        { address: 'yMuchLongerAddress', balance: '18', received: '18', sent: '0', txCount: 1 }
+        { address: 'yShort', balance: '6', txCount: 1 },
+        { address: 'yMuchLongerAddress', balance: '18', txCount: 1 }
       ])
     })
 
+    test('sends every address in a single request', async () => {
+      await handle(['yA', 'yB', 'yC'])
+
+      expect(coreExplorer.getAddressesInfo).toHaveBeenCalledTimes(1)
+      expect(coreExplorer.getAddressesInfo).toHaveBeenCalledWith(['yA', 'yB', 'yC'], 'testnet')
+    })
+
     test('reports zeros for an address never seen on-chain', async () => {
-      coreExplorer.getAddressInfo.mockResolvedValueOnce(null)
+      coreExplorer.getAddressesInfo.mockResolvedValueOnce([{ address: 'yUnseen', balance: 0n, txCount: 0 }])
 
       const result = await handle(['yUnseen'])
 
-      expect(result.infos).toEqual([{ address: 'yUnseen', balance: '0', received: '0', sent: '0', txCount: 0 }])
+      expect(result.infos).toEqual([{ address: 'yUnseen', balance: '0', txCount: 0 }])
     })
 
     test('short-circuits an empty request without touching the explorer', async () => {
@@ -256,7 +258,7 @@ describe('core address handlers', () => {
 
       expect(result.infos).toEqual([])
       expect(walletRepository.getCurrent).not.toHaveBeenCalled()
-      expect(coreExplorer.getAddressInfo).not.toHaveBeenCalled()
+      expect(coreExplorer.getAddressesInfo).not.toHaveBeenCalled()
     })
 
     test('throws when no wallet is chosen', async () => {
