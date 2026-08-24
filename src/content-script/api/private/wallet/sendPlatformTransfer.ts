@@ -13,7 +13,7 @@ import { TRANSFER_FEE_CREDITS } from '../../../../constants'
 import { SendPlatformTransferPayload } from '../../../../types/messages/payloads/SendPlatformTransferPayload'
 import { SendPlatformTransferResponse } from '../../../../types/messages/response/SendPlatformTransferResponse'
 
-// Sends a Platform (L2) credit transfer between transparent platform addresses.
+// Sends a Platform (L2) credit transfer between Platform addresses.
 // Picks a source (explicit, or the largest covering amount + fee), derives its
 // private key from the DIP-17 path (needs the password), signs an
 // addressFundsTransfer state transition and broadcasts it.

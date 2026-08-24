@@ -13,7 +13,7 @@ import { TRANSFER_FEE_CREDITS } from '../../../../constants'
 import { TopUpIdentityFromAddressPayload } from '../../../../types/messages/payloads/TopUpIdentityFromAddressPayload'
 import { TopUpIdentityFromAddressResponse } from '../../../../types/messages/response/TopUpIdentityFromAddressResponse'
 
-// Tops up an identity's credit balance from a transparent platform address via an
+// Tops up an identity's credit balance from a Platform address via an
 // IdentityTopUpFromAddresses state transition. Picks a source address (explicit,
 // or the largest covering amount + fee), derives its key (needs the password) and
 // signs with it — the target identity does not sign, so any identity can be

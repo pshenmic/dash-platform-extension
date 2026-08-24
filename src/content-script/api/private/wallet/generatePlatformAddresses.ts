@@ -6,7 +6,7 @@ import { derivePlatformAccountXpub, derivePlatformAddressesFromXpub } from '../.
 import { GeneratePlatformAddressesPayload } from '../../../../types/messages/payloads/GeneratePlatformAddressesPayload'
 import { GetPlatformAddressesResponse } from '../../../../types/messages/response/GetPlatformAddressesResponse'
 
-// Generates the next platform (DIP-17) address and returns it. Derives publicly
+// Generates the next platform (DIP-17) addresses and returns them. Derives publicly
 // from the cached platform xpub — normally cached at wallet creation. If the xpub
 // is missing (e.g. a legacy wallet), a password must be supplied to initialize it.
 export class GeneratePlatformAddressesHandler implements APIHandler {
@@ -42,10 +42,11 @@ export class GeneratePlatformAddressesHandler implements APIHandler {
       await this.walletRepository.setPlatformAccountXpub(account, xpub)
     }
 
+    const count = payload.count ?? 1
     const start = await this.walletRepository.getPlatformAddressCount(account)
-    const addresses = derivePlatformAddressesFromXpub(this.sdk, xpub, wallet.network, account, 1, start)
+    const addresses = derivePlatformAddressesFromXpub(this.sdk, xpub, wallet.network, account, count, start)
 
-    await this.walletRepository.setPlatformAddressCount(account, start + 1)
+    await this.walletRepository.setPlatformAddressCount(account, start + count)
 
     return { addresses }
   }
@@ -57,8 +58,8 @@ export class GeneratePlatformAddressesHandler implements APIHandler {
     if ('account' in payload) {
       return 'Account is not supported'
     }
-    if ('count' in payload) {
-      return 'Count is not supported'
+    if (payload.count != null && (!Number.isInteger(payload.count) || payload.count < 1)) {
+      return 'Count must be a positive integer'
     }
 
     return null

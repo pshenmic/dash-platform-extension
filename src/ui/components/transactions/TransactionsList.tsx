@@ -2,7 +2,7 @@ import React from 'react'
 import { Text, TransactionStatusIcon, Identifier, BigNumber } from 'dash-ui-kit/react'
 import { TransactionData, NetworkType } from '../../../types'
 import { TransactionTypesInfo, BatchActions } from '../../../enums'
-import { creditsToDash } from '../../../utils'
+import { creditsToDash, getTransactionExplorerUrl } from '../../../utils'
 import EntityList from '../common/EntityList'
 
 interface TransactionsListProps {
@@ -11,7 +11,6 @@ interface TransactionsListProps {
   error: string | null
   rate: number | null
   currentNetwork: NetworkType
-  getTransactionExplorerUrl: (hash: string, network: NetworkType) => string
   hideAmounts?: boolean
 }
 
@@ -26,7 +25,6 @@ function TransactionsList ({
   error,
   rate,
   currentNetwork,
-  getTransactionExplorerUrl,
   hideAmounts = false
 }: TransactionsListProps): React.JSX.Element {
   const groupTransactionsByDate = (transactions: TransactionData[]): GroupedTransaction[] => {
