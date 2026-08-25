@@ -13,7 +13,7 @@ import { StateTransitionWASM } from 'dash-platform-sdk/types'
 import type { PurposeLike } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types'
-import LoadingScreen from '../../components/layout/LoadingScreen'
+import LoadingScreen from '../../components/layout/screens/LoadingScreen'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
 import { TransactionDetails } from './details'
@@ -367,7 +367,7 @@ function ApproveTransactionState (): React.JSX.Element {
             <TransactionDetails
               data={decodedTransaction}
               transactionHash={txHash}
-              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+              network={currentNetwork ?? 'testnet'}
               signed
             />
           )}
@@ -410,7 +410,7 @@ function ApproveTransactionState (): React.JSX.Element {
         {decodedTransaction != null && (
           <TransactionDetails
             data={decodedTransaction}
-            network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+            network={currentNetwork ?? 'testnet'}
           />
         )}
 

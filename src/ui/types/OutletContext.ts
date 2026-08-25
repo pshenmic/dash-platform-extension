@@ -1,17 +1,18 @@
 import React from 'react'
 import { WalletAccountInfo } from '../../types/messages/response/GetAllWalletsResponse'
-import { Identity, WalletType } from '../../types'
+import { Identity, NetworkType, WalletType } from '../../types'
 
 export interface HeaderConfigOverride {
   showBackButton?: boolean
-  imageType?: 'coins' | 'app' | 'userChain' | 'warning'
+  hideLeftSection?: boolean
+  imageType?: 'coins' | 'app' | 'userChain' | 'warning' | 'coin'
   imageClasses?: string
   containerClasses?: string
 }
 
 export interface OutletContext {
-  currentNetwork: string | null
-  setCurrentNetwork: (network: string | null) => void
+  currentNetwork: NetworkType | null
+  setCurrentNetwork: (network: NetworkType | null) => void
   currentWallet: string | null
   setCurrentWallet: (wallet: string | null) => void
   currentIdentity: string | null

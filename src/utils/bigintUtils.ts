@@ -98,12 +98,33 @@ export function creditsToDashBigInt (credits: string | bigint): string {
 }
 
 /**
+ * Fiat (USD) equivalent for a credits amount, formatted as "~ $1.234".
+ * Returns null when the rate or amount is missing.
+ */
+export function creditsToUsdEquivalent (credits: bigint | null | undefined, rate: number | null): string | null {
+  if (rate == null || credits == null) return null
+  const dashAmount = Number(creditsToDashBigInt(credits))
+  return `~ $${(dashAmount * rate).toFixed(3)}`
+}
+
+/**
  * Convert dash to credits (specific utility for this project)
  */
 export function dashToCreditsBigInt (dash: string | number): bigint {
   const dashValue = typeof dash === 'string' ? Number(dash) : dash
   // 1 DASH = 100,000,000,000 credits (10^11)
   return BigInt(Math.floor(dashValue * 1e11))
+}
+
+/**
+ * Parse a user-entered credits amount string into an integer bigint of credits.
+ * Returns null for empty/partial/invalid input ('', '.', NaN) so callers can
+ * guard instead of throwing from BigInt(Math.floor(Number(amount))).
+ */
+export function parseCreditsAmount (amount: string): bigint | null {
+  const n = Number(amount)
+  if (amount === '' || amount === '.' || !Number.isFinite(n) || n <= 0) return null
+  return BigInt(Math.floor(n))
 }
 
 /**
@@ -122,4 +143,13 @@ export function multiplyBigIntByPercentage (value: bigint, percentage: number): 
   const result = (value * BigInt(percentageInt)) / 10000n
 
   return result
+}
+
+/**
+ * Credits as a Dash amount for display, with trailing zeros trimmed.
+ */
+export function creditsToDashDisplay (credits: string | bigint): string {
+  const dash = creditsToDashBigInt(credits)
+  if (!dash.includes('.')) return dash
+  return dash.replace(/0+$/, '').replace(/\.$/, '')
 }

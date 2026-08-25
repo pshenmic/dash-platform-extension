@@ -2,10 +2,16 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import type { NameStatus } from '../types'
 import { validateIdentifier } from './index'
 
+// Recipient types the transfer screen can address. 'shieldedPool' is the wallet's
+// own pool — not typed, but the destination `shieldToPool` implies.
+export type RecipientTargetType = 'identity' | 'platformAddress' | 'coreAddress' | 'shieldAddress' | 'shieldedPool'
+
 export interface RecipientSearchResult {
   identifier: string
   name?: string
   nameStatus?: NameStatus
+  type?: RecipientTargetType
+  label?: string
 }
 
 /**
@@ -36,7 +42,8 @@ export const searchRecipients = async (
       results.push({
         identifier: query,
         name: nameLabel !== null && nameLabel !== undefined ? `${nameLabel}.dash` : undefined,
-        nameStatus: nameLabel !== null && nameLabel !== undefined ? 'ok' : undefined
+        nameStatus: nameLabel !== null && nameLabel !== undefined ? 'ok' : undefined,
+        type: 'identity'
       })
     } catch (error) {
       console.log('Identity not found:', query)
@@ -63,7 +70,8 @@ export const searchRecipients = async (
           results.push({
             identifier: identifierString,
             name: `${normalizedLabel}.dash`,
-            nameStatus: 'ok'
+            nameStatus: 'ok',
+            type: 'identity'
           })
         }
       }

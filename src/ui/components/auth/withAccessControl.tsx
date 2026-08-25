@@ -1,6 +1,6 @@
 import React from 'react'
 import { useAccessControl, type AccessControlConfig } from '../../hooks/useAccessControl'
-import LoadingScreen from '../layout/LoadingScreen'
+import LoadingScreen from '../layout/screens/LoadingScreen'
 import { Text } from 'dash-ui-kit/react'
 
 export function withAccessControl<T extends object> (

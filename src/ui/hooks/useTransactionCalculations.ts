@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import type { TokenData } from '../../types'
-import { creditsToDashBigInt } from '../../utils'
+import type { NetworkType, TokenData } from '../../types'
+import { creditsToUsdEquivalent, parseCreditsAmount } from '../../utils'
 import { ESTIMATED_FEES } from '../constants/transaction'
 import { formatTokenAmount } from '../../utils/transactionFormatters'
 
@@ -9,7 +9,7 @@ interface UseTransactionCalculationsParams {
   amount: string
   balance: bigint | null
   rate: number | null
-  currentNetwork: string | null
+  currentNetwork: NetworkType | null
   token?: TokenData
 }
 
@@ -31,7 +31,7 @@ export function useTransactionCalculations ({
   currentNetwork,
   token
 }: UseTransactionCalculationsParams): TransactionCalculations {
-  const network = (currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'
+  const network = currentNetwork ?? 'testnet'
   const assetType = selectedAsset === 'credits' ? 'credits' : 'tokens'
 
   const getEstimatedFeeBigInt = useMemo(() => {
@@ -50,12 +50,12 @@ export function useTransactionCalculations ({
       const fee = getEstimatedFeeBigInt()
 
       if (selectedAsset === 'credits') {
-        if (amount !== '') {
-          const amountInCredits = BigInt(Math.floor(Number(amount)))
+        const amountInCredits = parseCreditsAmount(amount)
+        if (amountInCredits !== null) {
           const total = amountInCredits + fee
           return total.toLocaleString()
         }
-        // If no amount entered, show only fee
+        // If no amount entered (or invalid), show only fee
         return fee.toLocaleString()
       }
 
@@ -88,7 +88,10 @@ export function useTransactionCalculations ({
     return (): string => {
       if (amount !== '' && amount !== '0') {
         if (selectedAsset === 'credits') {
-          const amountInCredits = BigInt(Math.floor(Number(amount)))
+          const amountInCredits = parseCreditsAmount(amount)
+          if (amountInCredits === null) {
+            return '0'
+          }
           return amountInCredits.toLocaleString()
         }
 
@@ -108,16 +111,8 @@ export function useTransactionCalculations ({
 
   const getBalanceUSDValue = useMemo(() => {
     return (): string | null => {
-      if (rate == null) return null
-
-      if (selectedAsset === 'credits' && balance !== null) {
-        const dashValue = creditsToDashBigInt(balance)
-        const dashAmount = Number(dashValue)
-        const usdValue = dashAmount * rate
-        return `~ $${usdValue.toFixed(3)}`
-      }
-
-      return null
+      if (selectedAsset !== 'credits') return null
+      return creditsToUsdEquivalent(balance, rate)
     }
   }, [rate, selectedAsset, balance])
 

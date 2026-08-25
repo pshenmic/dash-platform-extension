@@ -57,6 +57,11 @@ export const TransactionTypesInfo = {
     title: 'Masternode Vote',
     description: 'Vote for a contested resource on the Dash Platform',
     colorScheme: 'orange'
+  },
+  IDENTITY_CREDIT_TRANSFER_TO_ADDRESS: {
+    title: 'Identity Credit Transfer To Address',
+    description: 'Transfers credits from an identity to a Dash address, converting them into Dash.',
+    colorScheme: 'orange'
   }
 }
 

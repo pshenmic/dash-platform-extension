@@ -127,6 +127,7 @@ export const buildAssetLockFromFundingTx = async (
 
   return {
     assetLockTx,
-    assetLockOutputIndex: 0
+    assetLockOutputIndex: 0,
+    lockedAmount
   }
 }

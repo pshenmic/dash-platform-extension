@@ -3,14 +3,14 @@ import { ValueCard, Text } from 'dash-ui-kit/react'
 
 interface BannerProps {
   message?: string | null
-  variant: 'error' | 'info'
+  variant: 'error' | 'warning' | 'info'
   className?: string
 }
 
 export default function Banner ({ message, variant, className }: BannerProps): React.JSX.Element | null {
   if (message == null || message === '') return null
 
-  const colorScheme = variant === 'error' ? 'yellow' : 'lightBlue'
+  const colorScheme = variant === 'info' ? 'lightBlue' : 'yellow'
   const textColor = variant === 'error' ? 'red' : undefined
 
   return (

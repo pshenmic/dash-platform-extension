@@ -1,7 +1,5 @@
 import React, { useState } from 'react'
 import {
-  Text,
-  ValueCard,
   KeyIcon,
   ProtectedMessageIcon,
   Button
@@ -11,6 +9,7 @@ import type { OutletContext } from '../../types/OutletContext'
 import { WalletType } from '../../../types'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { TitleBlock } from '../../components/layout/TitleBlock'
+import { SelectableCard } from '../../components/controls'
 
 interface WalletOption {
   id: string
@@ -84,35 +83,18 @@ function ChooseWalletType (): React.JSX.Element {
       </div>
 
       <div className='flex flex-col gap-2 mb-auto'>
-        {walletOptions.map((option) => {
-          const selected = option.id === selectedId
-          const disabled = option.disabled === true
-          return (
-            <ValueCard
-              key={option.id}
-              onClick={() => { if (!disabled) setSelectedId(option.id) }}
-              disabled={disabled}
-              colorScheme={selected ? 'lightBlue' : 'lightGray'}
-              border={false}
-              clickable={!disabled}
-              className={`py-3 px-6 border-l-2 ${selected ? 'border-l-[#4C7EFF]' : 'border-l-transparent'} ${disabled ? 'opacity-40' : ''}`}
-            >
-              <div className='flex items-center gap-4'>
-                <div className='w-[2.125rem] h-[2.125rem] rounded-full flex items-center justify-center shrink-0 bg-[rgba(76,126,255,0.15)] text-[#4C7EFF]'>
-                  {option.icon}
-                </div>
-                <div className='flex flex-col gap-1'>
-                  <Text size='sm' className='text-[#0C1C33]'>
-                    {option.label}<span className='font-extrabold'>{option.boldLabel}</span>
-                  </Text>
-                  <Text size='xs' className='text-[rgba(12,28,51,0.5)] leading-tight'>
-                    {option.description}
-                  </Text>
-                </div>
-              </div>
-            </ValueCard>
-          )
-        })}
+        {walletOptions.map((option) => (
+          <SelectableCard
+            key={option.id}
+            selected={option.id === selectedId}
+            disabled={option.disabled === true}
+            onClick={() => setSelectedId(option.id)}
+            icon={option.icon}
+            label={option.label}
+            boldLabel={option.boldLabel}
+            description={option.description}
+          />
+        ))}
       </div>
 
       <Button

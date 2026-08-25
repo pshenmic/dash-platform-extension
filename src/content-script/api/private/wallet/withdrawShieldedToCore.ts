@@ -3,7 +3,7 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { coreAddressToScript, decryptMnemonic, prepareShieldedSpend } from '../../../../utils'
-import { SHIELDED_SPEND_FEE_CREDITS, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING } from '../../../../constants'
+import { SHIELDED_SPEND_FEE_CREDITS, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING, MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../../../constants'
 import { WithdrawShieldedToCorePayload } from '../../../../types/messages/payloads/WithdrawShieldedToCorePayload'
 import { WithdrawShieldedToCoreResponse } from '../../../../types/messages/response/WithdrawShieldedToCoreResponse'
 
@@ -71,6 +71,9 @@ export class WithdrawShieldedToCoreHandler implements APIHandler {
     }
     if (typeof payload.amountCredits !== 'string' || !/^\d+$/.test(payload.amountCredits) || BigInt(payload.amountCredits) <= 0n) {
       return 'Amount must be a positive integer string of credits'
+    }
+    if (BigInt(payload.amountCredits) < MIN_WITHDRAWAL_CREDITS || BigInt(payload.amountCredits) > MAX_WITHDRAWAL_CREDITS) {
+      return `Withdrawal amount must be between ${MIN_WITHDRAWAL_CREDITS.toString()} and ${MAX_WITHDRAWAL_CREDITS.toString()} credits`
     }
     if (typeof payload.password !== 'string' || payload.password.length === 0) {
       return 'Password must be provided'

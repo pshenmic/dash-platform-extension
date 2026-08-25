@@ -21,7 +21,7 @@ export function IdentityCreditWithdrawalDetails ({ data }: IdentityCreditWithdra
   useEffect(() => {
     const loadRate = async (): Promise<void> => {
       try {
-        const fetched = await platformClient.fetchRate((currentNetwork ?? 'testnet') as 'testnet' | 'mainnet')
+        const fetched = await platformClient.fetchRate(currentNetwork ?? 'testnet')
         setRate(fetched)
       } catch {}
     }

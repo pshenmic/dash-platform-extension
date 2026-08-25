@@ -1,5 +1,5 @@
 import { base58 } from '@scure/base'
-import { RecoveredNoteWASM, CoreScriptWASM, OrchardAddressWASM, SpendableNoteWASM } from 'pshenmic-dpp'
+import { RecoveredNoteWASM, CoreScriptWASM, OrchardAddressWASM, SpendableNoteWASM, PlatformAddressWASM } from 'pshenmic-dpp'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
@@ -74,6 +74,51 @@ export const validateIdentifier = (str: string): boolean => {
     return bytes.length === 32
   } catch (e) {
     return false
+  }
+}
+
+export type RecipientType = 'identity' | 'platformAddress' | 'shieldAddress' | 'coreAddress' | 'unknown'
+
+// Validates a Core (L1) base58check address for the network by reusing
+// `coreAddressToScript`, which decodes + checksums + version-checks and throws
+// on anything invalid. We only want the yes/no, so drop the script.
+export const validateCoreAddress = (value: string, network: NetworkType): boolean => {
+  try {
+    coreAddressToScript(value.trim(), network)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Classifies a recipient string by format. Identity identifiers are 32-byte base58.
+// Transparent platform addresses parse via PlatformAddressWASM (HRP carries the
+// network). Shielded Orchard addresses share the HRP but add a 'z' marker
+// (tdash1z / dash1z) and do not parse as a transparent address. Core (L1)
+// addresses are base58check with a network-specific version byte.
+export const detectRecipientType = (value: string, network: NetworkType): RecipientType => {
+  const trimmed = value.trim()
+
+  if (trimmed === '') {
+    return 'unknown'
+  }
+  if (validateIdentifier(trimmed)) {
+    return 'identity'
+  }
+
+  try {
+    PlatformAddressWASM.fromBech32m(trimmed)
+    return 'platformAddress'
+  } catch {
+    const shieldPrefix = network === 'mainnet' ? 'dash1z' : 'tdash1z'
+    if (trimmed.toLowerCase().startsWith(shieldPrefix)) {
+      return 'shieldAddress'
+    }
+    if (validateCoreAddress(trimmed, network)) {
+      return 'coreAddress'
+    }
+
+    return 'unknown'
   }
 }
 
