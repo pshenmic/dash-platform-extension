@@ -122,7 +122,16 @@ describe('TopUpIdentityHandler', () => {
       })
     }
 
+    // The handler pins all three repositories to the resolved (network, wallet)
+    // pair before using them; the mocks stay the same object under any scope.
+    walletRepository.forScope = jest.fn(() => walletRepository)
+    identitiesRepository.forScope = jest.fn(() => identitiesRepository)
+    assetLockFundingAddressesRepository.forScope = jest.fn(() => assetLockFundingAddressesRepository)
+
     coreSDK = {
+      // Both SDKs are fixed to a network for the lifetime of their document, and
+      // the handler refuses to run against a scope they cannot serve.
+      network: 'testnet',
       subscribeToTransactions: jest.fn(() => {
         order.push('subscribe')
         return { close: jest.fn() }
@@ -133,6 +142,7 @@ describe('TopUpIdentityHandler', () => {
     }
 
     sdk = {
+      getNetwork: jest.fn(() => 'testnet'),
       identities: {
         createStateTransition: jest.fn(() => stateTransition)
       },
@@ -165,7 +175,7 @@ describe('TopUpIdentityHandler', () => {
     )
   })
 
-  const handle = async (): Promise<any> => {
+  const handle = async (extraPayload: any = {}): Promise<any> => {
     return await handler.handle({
       context: 'dash-platform-extension',
       id: 'id',
@@ -175,7 +185,8 @@ describe('TopUpIdentityHandler', () => {
         identityId,
         assetLockFundingAddress,
         assetLockFundingTxid,
-        password
+        password,
+        ...extraPayload
       }
     })
   }
@@ -224,10 +235,10 @@ describe('TopUpIdentityHandler', () => {
     ])
   })
 
-  test('rejects identity that does not belong to current wallet', async () => {
+  test('rejects identity that does not belong to the scoped wallet', async () => {
     identitiesRepository.getByIdentifier.mockResolvedValueOnce(null)
 
-    await expect(handle()).rejects.toThrow(`Identity ${identityId} does not belong to the current wallet`)
+    await expect(handle()).rejects.toThrow(`Identity ${identityId} does not belong to wallet wallet1 on testnet`)
 
     expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
@@ -255,6 +266,41 @@ describe('TopUpIdentityHandler', () => {
 
     expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
+  })
+
+  test('rejects a funding address reserved for another identity', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
+      address: assetLockFundingAddress,
+      encryptedPrivateKey,
+      used: false,
+      assetLockTxid: null,
+      identityId: 'someOtherIdentity'
+    })
+
+    await expect(handle()).rejects.toThrow(
+      `Asset lock funding address ${assetLockFundingAddress} is reserved for identity someOtherIdentity`
+    )
+
+    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
+    expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
+  })
+
+  test('accepts a funding address reserved for this identity', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
+      address: assetLockFundingAddress,
+      encryptedPrivateKey,
+      used: false,
+      assetLockTxid: null,
+      identityId
+    })
+
+    await expect(handle()).resolves.toEqual({ identityId, stateTransitionHash: 'stateTransitionHash' })
+  })
+
+  test('accepts an unreserved funding address created before reservations existed', async () => {
+    // The default mock entry carries no identityId, which is the legacy shape.
+    await expect(handle()).resolves.toEqual({ identityId, stateTransitionHash: 'stateTransitionHash' })
   })
 
   test('rejects wrong password without broadcasting', async () => {
@@ -355,6 +401,83 @@ describe('TopUpIdentityHandler', () => {
 
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
     expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
+  })
+
+  describe('wallet and network scope', () => {
+    test('pins every repository to the pair named in the payload', async () => {
+      await handle({ walletId: 'walletFromTab', network: 'testnet' })
+
+      const scope = { network: 'testnet', walletId: 'walletFromTab' }
+
+      expect(walletRepository.forScope).toHaveBeenCalledWith(scope)
+      expect(identitiesRepository.forScope).toHaveBeenCalledWith(scope)
+      expect(assetLockFundingAddressesRepository.forScope).toHaveBeenCalledWith(scope)
+      // The named wallet is used directly, without consulting the current selection.
+      expect(walletRepository.getCurrent).toHaveBeenCalledTimes(1)
+    })
+
+    test('falls back to the current wallet when the payload omits the pair', async () => {
+      await handle()
+
+      const scope = { network: 'testnet', walletId: 'wallet1' }
+
+      expect(walletRepository.forScope).toHaveBeenCalledWith(scope)
+      expect(identitiesRepository.forScope).toHaveBeenCalledWith(scope)
+      expect(assetLockFundingAddressesRepository.forScope).toHaveBeenCalledWith(scope)
+    })
+
+    test('resolves the scope once, before anything is broadcast', async () => {
+      await handle({ walletId: 'walletFromTab', network: 'testnet' })
+
+      // A single resolution per repository is what keeps the writes that follow
+      // the asset lock wait (markAsBroadcasted, markAsUsed) on the same store.
+      expect(assetLockFundingAddressesRepository.forScope).toHaveBeenCalledTimes(1)
+      expect(order.indexOf('markUsed')).toBeGreaterThan(order.indexOf('l1Broadcast'))
+    })
+
+    test('throws when the scoped wallet does not exist', async () => {
+      walletRepository.getCurrent.mockResolvedValueOnce(null)
+
+      await expect(handle({ walletId: 'walletFromTab', network: 'testnet' }))
+        .rejects.toThrow('Wallet walletFromTab does not exist on testnet')
+
+      expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
+    })
+
+    test('refuses to run when the platform SDK is on another network', async () => {
+      sdk.getNetwork.mockReturnValue('mainnet')
+
+      await expect(handle({ walletId: 'wallet1', network: 'testnet' }))
+        .rejects.toThrow('Top-up is bound to testnet')
+
+      expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
+      expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
+    })
+
+    test('refuses to run when the core SDK is on another network', async () => {
+      coreSDK.network = 'mainnet'
+
+      await expect(handle({ walletId: 'wallet1', network: 'testnet' }))
+        .rejects.toThrow('Top-up is bound to testnet')
+
+      expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
+    })
+
+    test('rejects a payload naming only one half of the pair', () => {
+      expect(handler.validatePayload({ identityId, assetLockFundingAddress, assetLockFundingTxid, password, walletId: 'wallet1' } as any))
+        .toBe('walletId and network must be provided together')
+      expect(handler.validatePayload({ identityId, assetLockFundingAddress, assetLockFundingTxid, password, network: 'testnet' } as any))
+        .toBe('walletId and network must be provided together')
+    })
+
+    test('rejects an unknown network', () => {
+      expect(handler.validatePayload({ identityId, assetLockFundingAddress, assetLockFundingTxid, password, walletId: 'wallet1', network: 'regtest' } as any))
+        .toBe('network must be either testnet or mainnet')
+    })
+
+    test('accepts a payload without the pair', () => {
+      expect(handler.validatePayload({ identityId, assetLockFundingAddress, assetLockFundingTxid, password } as any)).toBeNull()
+    })
   })
 })
 
@@ -460,6 +583,75 @@ describe('AssetLockFundingAddressesRepository broadcast support', () => {
     await expect(storage.get(storageKey)).resolves.toEqual({
       address: { address: 'address', encryptedPrivateKey: 'k', used: true, assetLockTxid: txid }
     })
+  })
+})
+
+describe('AssetLockFundingAddressesRepository identity reservation', () => {
+  const storageKey = 'assetLockFundingAddresses_testnet_wallet1'
+
+  let storage: TestStorageAdapter
+  let repository: AssetLockFundingAddressesRepository
+
+  const seed = async (entries: Record<string, any>): Promise<void> => {
+    await storage.set(storageKey, entries)
+  }
+
+  const topUpEntry = (address: string, identityId?: string): any => ({
+    address, encryptedPrivateKey: 'k', used: false, purpose: 'topUp', ...(identityId != null ? { identityId } : {})
+  })
+
+  beforeEach(async () => {
+    storage = new TestStorageAdapter()
+    await storage.set('network', 'testnet')
+    await storage.set('currentWalletId', 'wallet1')
+    repository = new AssetLockFundingAddressesRepository(storage)
+  })
+
+  test('findAllUnused returns entries reserved for the identity and unreserved ones', async () => {
+    await seed({
+      mine: topUpEntry('mine', 'identityA'),
+      theirs: topUpEntry('theirs', 'identityB'),
+      unreserved: topUpEntry('unreserved')
+    })
+
+    const found = await repository.findAllUnused('topUp', 'identityA')
+
+    expect(found.map(entry => entry.address).sort()).toEqual(['mine', 'unreserved'])
+  })
+
+  test('findAllUnused without an identity keeps every reservation', async () => {
+    await seed({ mine: topUpEntry('mine', 'identityA'), theirs: topUpEntry('theirs', 'identityB') })
+
+    const found = await repository.findAllUnused('topUp')
+
+    expect(found).toHaveLength(2)
+  })
+
+  test('bindToIdentity reserves an unreserved entry', async () => {
+    await seed({ unreserved: topUpEntry('unreserved') })
+
+    await repository.bindToIdentity('unreserved', 'identityA')
+
+    expect((await repository.getByAddress('unreserved'))?.identityId).toBe('identityA')
+  })
+
+  test('bindToIdentity is idempotent for the same identity', async () => {
+    await seed({ mine: topUpEntry('mine', 'identityA') })
+
+    await expect(repository.bindToIdentity('mine', 'identityA')).resolves.toBeUndefined()
+  })
+
+  test('bindToIdentity refuses to re-point an entry at another identity', async () => {
+    await seed({ mine: topUpEntry('mine', 'identityA') })
+
+    await expect(repository.bindToIdentity('mine', 'identityB'))
+      .rejects.toThrow('is already reserved for identity identityA')
+
+    expect((await repository.getByAddress('mine'))?.identityId).toBe('identityA')
+  })
+
+  test('bindToIdentity fails for a missing entry', async () => {
+    await expect(repository.bindToIdentity('missing', 'identityA')).rejects.toThrow('not found')
   })
 })
 

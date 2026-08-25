@@ -17,6 +17,7 @@ import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLo
 import { buildAssetLockFromFundingTx } from '../../../../utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../utils/waitForAssetLockProof'
 import { hexToBytes } from '../../../../utils'
+import { txidToFilterBytes } from '../../../../utils/txidToFilterBytes'
 import { TXID_HEX_LENGTH } from '../../../../constants'
 import { FundPlatformAddressFromCorePayload } from '../../../../types/messages/payloads/FundPlatformAddressFromCorePayload'
 import { FundPlatformAddressFromCoreResponse } from '../../../../types/messages/response/FundPlatformAddressFromCoreResponse'
@@ -98,7 +99,7 @@ export class FundPlatformAddressFromCoreHandler implements APIHandler {
 
     const instantLockSub = this.coreSDK.subscribeToTransactions(
       [payload.assetLockFundingAddress],
-      [hexToBytes(assetLockTxid)]
+      [txidToFilterBytes(assetLockTxid)]
     )
 
     if (assetLockFundingAddressEntry.assetLockTxid == null) {
