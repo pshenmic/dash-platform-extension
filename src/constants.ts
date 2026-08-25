@@ -3,6 +3,8 @@ export const MESSAGING_TIMEOUT = 3 * 60 * 1000
 // Shielded (Orchard) Halo2 proofs are CPU-heavy and run well past the normal
 // timeout in the popup — give these calls a much longer window.
 export const SHIELDED_PROVE_TIMEOUT = 20 * 60 * 1000
+// Operations that wait for L1 confirmations outlive the default timeout.
+export const BLOCKCHAIN_MESSAGING_TIMEOUT = 30 * 60 * 1000
 export const POPUP_WINDOW_WIDTH = 250
 export const POPUP_WINDOW_HEIGHT = 500
 
@@ -18,6 +20,12 @@ export const FUNDING_TX_TIMEOUT_MS = 90 * 1000
 // Confirmation is best-effort — the identity already exists after broadcast.
 export const REGISTRATION_CONFIRM_TIMEOUT_MS = 8000
 export const TXID_HEX_LENGTH = 64
+
+// Gap limit for scanning DIP-13 top-up funding indexes (m/9'/coin'/5'/2'/N).
+// Smallest funding payment a top-up can be built from, in duffs.
+// Platform needs ~50500 duffs of credits to process the top-up, plus the asset lock tx fee.
+export const MIN_TOPUP_FUNDING_DUFFS = 100000n
+export const MIN_TOPUP_FUNDING_DASH = Number(MIN_TOPUP_FUNDING_DUFFS) / 1e8
 
 // Gap limit for scanning DIP-13 top-up funding indexes (m/9'/coin'/5'/2'/N).
 export const TOPUP_FUNDING_GAP_LIMIT = 20

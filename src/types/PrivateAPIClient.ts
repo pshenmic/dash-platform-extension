@@ -1,4 +1,4 @@
-import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT } from '../constants'
+import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT, BLOCKCHAIN_MESSAGING_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
 import { MessagingMethods } from './enums/MessagingMethods'
@@ -383,7 +383,7 @@ export class PrivateAPIClient {
       password
     }
 
-    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload)
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
   async topUpIdentity (
@@ -403,7 +403,7 @@ export class PrivateAPIClient {
       network
     }
 
-    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload)
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
   async getSettings (): Promise<GetSettingsResponse> {
