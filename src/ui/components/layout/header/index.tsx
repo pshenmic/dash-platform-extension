@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches, useOutletContext } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
+import { useWalletName } from '../../../hooks/useWalletName'
 import { Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
 import { BackButton } from '../../common'
 import { NetworkSelector } from '../../controls/NetworkSelector'
@@ -9,6 +10,7 @@ import { WalletSelector } from '../../controls/WalletSelector'
 import { SettingsMenu } from '../../settings'
 import type { LayoutContext } from '../Layout'
 import type { NetworkType } from '../../../../types'
+import { isTabView, closeCurrentExtensionTab } from '../../../utils/extensionTab'
 
 const IMAGE_VARIANTS = {
   coins: {
@@ -16,6 +18,12 @@ const IMAGE_VARIANTS = {
     alt: 'Badge',
     imgClasses: 'max-w -mt-[22%]',
     containerClasses: 'w-[100%] -mr-[55%]'
+  },
+  coin: {
+    src: 'coin.png',
+    alt: 'Dash coin',
+    imgClasses: '-mt-[15%] !w-[450px] [mask-image:linear-gradient(to_bottom,transparent_20%,black_70%)]',
+    containerClasses: 'absolute -top-[90%] -right-[32%] flex justify-center'
   },
   app: {
     src: 'app.png',
@@ -126,6 +134,13 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
     hideLeftSection: false
   },
 
+  // Top-up identity with network badge and configurable image per stage
+  topupIdentity: {
+    hideLeftSection: false,
+    showNetworkRightReadOnly: true,
+    networkDisplayFormat: 'card' as const
+  },
+
   // Minimal header with just logo
   minimal: {
     hideLeftSection: true,
@@ -192,6 +207,7 @@ export default function Header (): React.JSX.Element {
   const matches = useMatches() as Match[]
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const walletName = useWalletName()
   const deepestRoute = [...matches].reverse().find((m): boolean =>
     m.handle?.headerProps != null
   )
@@ -222,7 +238,8 @@ export default function Header (): React.JSX.Element {
 
   const config = {
     showLogo: variant.showLogo ?? false,
-    hideLeftSection: headerConfigOverride?.showBackButton !== true && (variant.hideLeftSection ?? false),
+    hideLeftSection: headerConfigOverride?.hideLeftSection === true ||
+      (headerConfigOverride?.showBackButton !== true && (variant.hideLeftSection ?? false)),
     showNetworkSelector: variant.showNetworkSelector ?? false,
     showWalletSelector: variant.showWalletSelector ?? false,
     showBurgerMenu: variant.showBurgerMenu ?? false,
@@ -236,19 +253,13 @@ export default function Header (): React.JSX.Element {
   }
 
   const handleBack = (): void => {
+    if (isTabView() && window.history.length <= 1) {
+      // Opened straight into a fresh tab - there is no previous entry to return to.
+      void closeCurrentExtensionTab()
+      return
+    }
+
     void navigate(-1)
-  }
-
-  const getWalletDisplayName = (): string => {
-    if (currentWallet == null || allWallets == null || allWallets.length === 0) return 'Wallet'
-
-    const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
-    const currentWalletData = availableWallets.find(wallet => wallet.walletId === currentWallet)
-
-    if (currentWalletData == null) return 'Wallet'
-
-    const currentWalletIndex = availableWallets.findIndex(wallet => wallet.walletId === currentWallet)
-    return currentWalletData.label ?? `Wallet_${currentWalletIndex + 1}`
   }
 
   const getRightSectionType = (): 'image' | 'burger' | 'none' => {
@@ -312,7 +323,7 @@ export default function Header (): React.JSX.Element {
         <div className={`flex items-center gap-2.5 ${config.imageType != null ? 'absolute top-0 right-0 z-10' : config.hideLeftSection && config.showWalletRightReadOnly ? 'w-full justify-between' : ''}`}>
           {config.showWalletRightReadOnly && currentWallet !== null && (
             <Text size='sm' color='gray' weight='medium' className='text-right' dim>
-              {getWalletDisplayName()}
+              {walletName}
             </Text>
           )}
 
@@ -330,12 +341,13 @@ export default function Header (): React.JSX.Element {
             config.networkDisplayFormat === 'card'
               ? <NetworkSelector
                   onSelect={setCurrentNetwork}
+                  currentNetwork={currentNetwork as NetworkType}
                   wallets={allWallets}
                   variant='card'
                   border
                   className='!backdrop-blur-[15px] !bg-[rgba(12,28,51,0.15)] text-white !outline-white/15'
                 />
-              : <NetworkSelector onSelect={setCurrentNetwork} wallets={allWallets} />
+              : <NetworkSelector onSelect={setCurrentNetwork} currentNetwork={currentNetwork as NetworkType} wallets={allWallets} />
           )}
         </div>
       )}

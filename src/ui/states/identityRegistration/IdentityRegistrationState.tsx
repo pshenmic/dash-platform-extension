@@ -32,7 +32,6 @@ function IdentityRegistrationState (): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [registeredIdentity, setRegisteredIdentity] = useState<IdentityPreviewData | null>(null)
 
-  const coinBagelImage = useStaticAsset('coin_bagel.png')
   const coinImage = useStaticAsset('coin.png')
 
   const rawStage = parseInt(searchParams.get('stage') ?? '1', 10)
@@ -236,7 +235,6 @@ function IdentityRegistrationState (): React.JSX.Element {
     return (
       <Stage4Processing
         stage={stage}
-        coinBagelImage={coinBagelImage}
         isRegistering={isRegistering}
       />
     )

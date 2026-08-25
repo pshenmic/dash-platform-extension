@@ -6,7 +6,8 @@ import { WalletAccountInfo } from '../../../types/messages/response/GetAllWallet
 import { GetStatusResponse } from '../../../types/messages/response/GetStatusResponse'
 import { NetworkType, EventData, Identity } from '../../../types'
 import type { HeaderConfigOverride } from '../../types'
-import LoadingScreen from './LoadingScreen'
+import LoadingScreen from './screens/LoadingScreen'
+import { isTabView } from '../../utils/extensionTab'
 
 export interface LayoutContext {
   currentNetwork: NetworkType
@@ -72,7 +73,7 @@ const Layout: FC = () => {
     }
   }, [isApiReady, currentWallet, extensionAPI])
 
-  const handleNetworkChange = useCallback(async (network: NetworkType): Promise<void> => {
+  const applyNetworkChange = useCallback(async (network: NetworkType): Promise<void> => {
     if (!isApiReady) return
 
     try {
@@ -89,7 +90,7 @@ const Layout: FC = () => {
     }
   }, [isApiReady, sdk, extensionAPI, loadWallets])
 
-  const handleWalletChange = useCallback(async (walletId: string | null): Promise<void> => {
+  const applyWalletChange = useCallback(async (walletId: string | null): Promise<void> => {
     if (!isApiReady || walletId === null || walletId === '') return
 
     try {
@@ -100,7 +101,7 @@ const Layout: FC = () => {
     }
   }, [isApiReady, extensionAPI])
 
-  const handleIdentityChange = useCallback(async (identity: string): Promise<void> => {
+  const applyIdentityChange = useCallback(async (identity: string): Promise<void> => {
     if (!isApiReady) return
 
     try {
@@ -117,14 +118,14 @@ const Layout: FC = () => {
     const stillExists = networkWallets.some(w => w.walletId === currentWallet)
     if (!stillExists) {
       if (networkWallets.length > 0) {
-        await handleWalletChange(networkWallets[0].walletId)
+        await applyWalletChange(networkWallets[0].walletId)
       } else {
         setCurrentWallet(null)
       }
     }
     const status = await extensionAPI.getStatus()
     setHasAnyWallet(status.hasAnyWallet)
-  }, [loadWallets, currentNetwork, currentWallet, handleWalletChange, extensionAPI])
+  }, [loadWallets, currentNetwork, currentWallet, applyWalletChange, extensionAPI])
 
   const createWallet = useCallback(async (walletType: any, mnemonic?: string) => {
     if (!isApiReady) throw new Error('API is not ready')
@@ -189,17 +190,26 @@ const Layout: FC = () => {
     loadData().catch(e => console.log('loadData error', e))
   }, [isApiReady, loadWallets, loadIdentities, loadCurrentIdentity])
 
+  // body sits outside the React root, so its tab-mode class is synced here
+  useEffect(() => {
+    if (!isTabView()) return
+
+    document.body.classList.add('tab-view')
+
+    return () => { document.body.classList.remove('tab-view') }
+  }, [])
+
   return (
     <ThemeProvider initialTheme='light'>
       <div className='main_container'>
         {isApiReady
           ? <Outlet context={{
             currentNetwork,
-            setCurrentNetwork: handleNetworkChange,
+            setCurrentNetwork: applyNetworkChange,
             currentWallet,
-            setCurrentWallet: handleWalletChange,
+            setCurrentWallet: applyWalletChange,
             currentIdentity,
-            setCurrentIdentity: handleIdentityChange,
+            setCurrentIdentity: applyIdentityChange,
             allWallets,
             hasAnyWallet,
             reloadWallets,
@@ -212,6 +222,7 @@ const Layout: FC = () => {
           }}
             />
           : <LoadingScreen message='Initializing application...' />}
+
       </div>
     </ThemeProvider>
   )

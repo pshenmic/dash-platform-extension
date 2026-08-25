@@ -16,7 +16,8 @@ import {
   useSdk,
   usePlatformExplorerClient,
   useSendTransactionForm,
-  useTransactionCalculations
+  useTransactionCalculations,
+  useWalletName
 } from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
@@ -36,7 +37,8 @@ function SendTransactionState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
-  const { currentNetwork, currentIdentity, setHeaderComponent, allWallets, currentWallet } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentIdentity, setHeaderComponent } = useOutletContext<OutletContext>()
+  const walletName = useWalletName()
   const locationState = location.state as { selectedToken?: string } | null
   const [isLoading, setIsLoading] = useState(false)
   const [balance, setBalance] = useState<bigint | null>(null)
@@ -118,24 +120,11 @@ function SendTransactionState (): React.JSX.Element {
     }).catch(e => console.log('loadTokens error:', e))
   }, [currentIdentity, currentNetwork, platformExplorerClient, loadTokens])
 
-  // Get wallet name for display
-  const getWalletName = (): string => {
-    if (currentWallet == null || allWallets == null || allWallets.length === 0) return 'Wallet'
-
-    const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
-    const currentWalletData = availableWallets.find(wallet => wallet.walletId === currentWallet)
-
-    if (currentWalletData == null) return 'Wallet'
-
-    const currentWalletIndex = availableWallets.findIndex(wallet => wallet.walletId === currentWallet)
-    return currentWalletData.label ?? `Wallet_${currentWalletIndex + 1}`
-  }
-
   // Set header component with identity and wallet info
   useEffect(() => {
     if (currentIdentity !== null) {
       setHeaderComponent(
-        <IdentityHeaderBadge identity={currentIdentity} walletName={getWalletName()} />
+        <IdentityHeaderBadge identity={currentIdentity} walletName={walletName} />
       )
     }
 
@@ -143,7 +132,7 @@ function SendTransactionState (): React.JSX.Element {
     return () => {
       setHeaderComponent(null)
     }
-  }, [currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent])
+  }, [currentIdentity, walletName, setHeaderComponent])
 
   const handleSend = async (): Promise<void> => {
     if ((currentIdentity === null || currentIdentity === undefined)) {

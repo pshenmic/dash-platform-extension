@@ -109,7 +109,7 @@ export class TopUpIdentityHandler implements APIHandler {
     // funds the asset lock and owns the credit output (it signs the top-up
     // state transition below), so the credit output goes back to the funding
     // address — unlike registration, where a separate derived key owns it.
-    const { assetLockTx } = await buildAssetLockFromFundingTx(
+    const { assetLockTx, lockedAmount } = await buildAssetLockFromFundingTx(
       this.coreSDK,
       payload.assetLockFundingTxid,
       payload.assetLockFundingAddress,
@@ -174,7 +174,8 @@ export class TopUpIdentityHandler implements APIHandler {
 
     return {
       identityId: payload.identityId,
-      stateTransitionHash
+      stateTransitionHash,
+      topUpAmount: (lockedAmount * 1000n).toString()
     }
   }
 

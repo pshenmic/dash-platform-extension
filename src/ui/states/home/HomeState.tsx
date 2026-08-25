@@ -3,21 +3,23 @@ import { useNavigate, useOutletContext, Navigate } from 'react-router-dom'
 import NoIdentities from './NoIdentities'
 import NoWallets from './NoWallets'
 import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
-import { Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs, RefreshIcon, EyeOpenIcon, EyeClosedIcon } from 'dash-ui-kit/react'
-import LoadingScreen from '../../components/layout/LoadingScreen'
+import { Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs, RefreshIcon, EyeOpenIcon, EyeClosedIcon, Button } from 'dash-ui-kit/react'
+import LoadingScreen from '../../components/layout/screens/LoadingScreen'
 import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { usePlatformExplorerClient, type TransactionData, type NetworkType } from '../../hooks/usePlatformExplorerApi'
 import { type TokenData } from '../../../types'
 import { IdentityType } from '../../../types/enums/IdentityType'
+import { WalletType } from '../../../types/WalletType'
 import type { OutletContext } from '../../types/OutletContext'
 import { TransactionsList } from '../../components/transactions'
 import { TokensList } from '../../components/tokens'
 import { NamesList, type NameData } from '../../components/names'
 import { BalanceInfo } from '../../components/data'
 import { fetchNames } from '../../../utils'
-import ButtonRow from '../../components/layout/ButtonRow'
-
+import { findOpenExtensionTab, focusExtensionTab, openExtensionTab, type OpenExtensionTab } from '../../utils/extensionTab'
+import { buildTopUpUrl } from '../../utils/topUpTabUrl'
+import { ConfirmDialog } from '../../components/controls'
 function HomeState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
@@ -33,6 +35,7 @@ function HomeState (): React.JSX.Element {
   const [rateState, loadRate] = useAsyncState<number>()
   const [activeTab, setActiveTab] = useState('transactions')
   const [hideBalance, setHideBalance] = useState(false)
+  const [busyTopUpTab, setBusyTopUpTab] = useState<OpenExtensionTab | null>(null)
 
   useEffect(() => {
     extensionAPI.getSettings()
@@ -44,6 +47,12 @@ function HomeState (): React.JSX.Element {
     const identity = availableIdentities.find(i => i.identifier === currentIdentity)
     return identity?.type === IdentityType.masternode
   }, [availableIdentities, currentIdentity])
+
+  // Top-up derives its funding key from the seed phrase, which keystore wallets do not have.
+  const isKeystoreWallet = useMemo(() => {
+    const wallet = allWallets.find(item => item.walletId === currentWallet)
+    return wallet?.type === WalletType.keystore
+  }, [allWallets, currentWallet])
 
   useEffect(() => {
     if (isMasternodeIdentity && activeTab === 'names') {
@@ -132,6 +141,24 @@ function HomeState (): React.JSX.Element {
       return await platformExplorerClient.fetchRate(currentNetwork as NetworkType)
     }).catch(e => console.log('loadRate error:', e))
   }, [currentNetwork, platformExplorerClient, loadRate])
+
+  const handleTopUp = async (): Promise<void> => {
+    // The tab registry holds one top-up tab, so a second one would lose track of the first.
+    const openTab = await findOpenExtensionTab('topup')
+
+    if (openTab != null) {
+      setBusyTopUpTab(openTab)
+      return
+    }
+
+    const scope = {
+      identityId: currentIdentity,
+      walletId: currentWallet,
+      network: currentNetwork as NetworkType
+    }
+
+    await openExtensionTab('topup', buildTopUpUrl(scope, 1), scope)
+  }
 
   if (isLoading) {
     return <LoadingScreen message='Loading wallet data...' />
@@ -243,19 +270,31 @@ function HomeState (): React.JSX.Element {
         </div>
       </div>
 
-      <ButtonRow
-        leftButton={{
-          text: 'Send',
-          onClick: () => { void navigate('/send-transaction') },
-          colorScheme: 'brand',
-          disabled: currentIdentity === null || balanceState.data === null
-        }}
-        rightButton={{
-          text: 'Withdraw',
-          onClick: () => { void navigate('/withdrawal') },
-          disabled: currentIdentity === null || balanceState.data === null
-        }}
-      />
+      <div className='flex gap-2 w-full'>
+        <Button
+          className='flex-1'
+          disabled={currentIdentity === null || balanceState.data === null}
+          onClick={() => { void navigate('/send-transaction') }}
+        >
+          Send
+        </Button>
+        {!isKeystoreWallet && (
+          <Button
+            className='flex-1'
+            disabled={currentIdentity === null || balanceState.data === null}
+            onClick={() => { void handleTopUp() }}
+          >
+            Top Up
+          </Button>
+        )}
+        <Button
+          className='flex-1'
+          disabled={currentIdentity === null || balanceState.data === null}
+          onClick={() => { void navigate('/withdrawal') }}
+        >
+          Withdraw
+        </Button>
+      </div>
 
       <ValueCard
         border={false}
@@ -307,6 +346,33 @@ function HomeState (): React.JSX.Element {
           ]}
         />
       </ValueCard>
+
+      <ConfirmDialog
+        open={busyTopUpTab !== null}
+        onOpenChange={(open) => { if (!open) setBusyTopUpTab(null) }}
+        title='Top-up already in progress'
+        message={
+          <span className='flex flex-col gap-2'>
+            <span>A top-up is already open in another tab{busyTopUpTab?.identityId != null ? ' for identity:' : '.'}</span>
+
+            {busyTopUpTab?.identityId != null && (
+              <Identifier ellipsis={false} highlight='both'>
+                {busyTopUpTab.identityId}
+              </Identifier>
+            )}
+
+            <span>Finish or close that tab first.</span>
+          </span>
+        }
+        confirmText='Open That Tab'
+        confirmColorScheme='brand'
+        cancelText='Cancel'
+        onConfirm={() => {
+          const tabId = busyTopUpTab?.tabId
+          setBusyTopUpTab(null)
+          if (tabId != null) void focusExtensionTab(tabId)
+        }}
+      />
     </div>
   )
 }

@@ -14,7 +14,8 @@ import {
   useSdk,
   usePlatformExplorerClient,
   useTransactionCalculations,
-  useWithdrawalForm
+  useWithdrawalForm,
+  useWalletName
 } from '../../hooks'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
 import { TransferSummaryCard, Banner } from '../../components/cards'
@@ -34,7 +35,8 @@ function WithdrawState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
-  const { currentNetwork, currentIdentity, setHeaderComponent, allWallets, currentWallet } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentIdentity, setHeaderComponent } = useOutletContext<OutletContext>()
+  const walletName = useWalletName()
 
   const [isLoading, setIsLoading] = useState(false)
   const [balance, setBalance] = useState<bigint | null>(null)
@@ -74,23 +76,14 @@ function WithdrawState (): React.JSX.Element {
     void loadRate()
   }, [currentIdentity, sdk, currentNetwork, platformExplorerClient])
 
-  const getWalletName = (): string => {
-    if (currentWallet == null || allWallets == null || allWallets.length === 0) return 'Wallet'
-    const available = allWallets.filter(w => w.network === currentNetwork)
-    const current = available.find(w => w.walletId === currentWallet)
-    if (current == null) return 'Wallet'
-    const idx = available.findIndex(w => w.walletId === currentWallet)
-    return current.label ?? `Wallet_${idx + 1}`
-  }
-
   useEffect(() => {
     if (currentIdentity !== null) {
       setHeaderComponent(
-        <IdentityHeaderBadge identity={currentIdentity} walletName={getWalletName()} />
+        <IdentityHeaderBadge identity={currentIdentity} walletName={walletName} />
       )
     }
     return () => { setHeaderComponent(null) }
-  }, [currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent])
+  }, [currentIdentity, walletName, setHeaderComponent])
 
   const handleWithdraw = async (): Promise<void> => {
     if (currentIdentity == null) {
