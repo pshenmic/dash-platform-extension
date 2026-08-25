@@ -220,6 +220,22 @@ export class WalletRepository {
     await this.storageAdapter.set(storageKey, { ...walletStoreSchema, platformAddressCounts })
   }
 
+  async getShieldedAddressCount (account: number): Promise<number> {
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+
+    return walletStoreSchema.shieldedAddressCounts?.[String(account)] ?? 0
+  }
+
+  async setShieldedAddressCount (account: number, count: number): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+    const storageKey = `wallet_${network}_${walletStoreSchema.walletId}`
+
+    const shieldedAddressCounts = { ...walletStoreSchema.shieldedAddressCounts, [String(account)]: count }
+
+    await this.storageAdapter.set(storageKey, { ...walletStoreSchema, shieldedAddressCounts })
+  }
+
   private async getCurrentStoreSchema (): Promise<WalletStoreSchema> {
     const network = await this.getNetwork()
     const currentWalletId = await this.getCurrentWalletId()

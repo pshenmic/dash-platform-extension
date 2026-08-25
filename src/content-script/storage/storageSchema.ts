@@ -39,6 +39,10 @@ export interface WalletStoreSchema {
   // the next derivation index — created addresses are 0..count-1, the next one
   // created is `count`.
   platformAddressCounts?: Record<string, number>
+  // Number of shielded (Orchard) addresses created so far, keyed by account
+  // index. Acts as the next diversifier index — created addresses are
+  // 0..count-1, the next one created is `count`.
+  shieldedAddressCounts?: Record<string, number>
 }
 
 export interface StateTransitionsStoreSchema {

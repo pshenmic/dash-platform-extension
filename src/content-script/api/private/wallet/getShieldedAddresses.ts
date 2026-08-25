@@ -3,13 +3,15 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { deriveShieldedAddresses } from '../../../../utils'
-import { SHIELDED_ADDRESS_DEFAULT_COUNT } from '../../../../constants'
 import { GetShieldedAddressesPayload } from '../../../../types/messages/payloads/GetShieldedAddressesPayload'
 import { GetShieldedAddressesResponse } from '../../../../types/messages/response/GetShieldedAddressesResponse'
 
 // Derives the current wallet's diversified Orchard (shielded) addresses for an
-// account. Requires the password because the addresses come from the encrypted
-// seed; shielded balance is fetched separately via GET_SHIELDED_BALANCE.
+// account. Without an explicit `count` it returns the addresses created so far
+// via GENERATE_SHIELDED_ADDRESSES (indices 0..count-1); `count` overrides that
+// to derive a wider window. Requires the password because the addresses come
+// from the encrypted seed; shielded balance is fetched separately via
+// GET_SHIELDED_BALANCE.
 export class GetShieldedAddressesHandler implements APIHandler {
   walletRepository: WalletRepository
   sdk: DashPlatformSDK
@@ -28,7 +30,11 @@ export class GetShieldedAddressesHandler implements APIHandler {
     }
 
     const account = payload.account ?? 0
-    const count = payload.count ?? SHIELDED_ADDRESS_DEFAULT_COUNT
+    const count = payload.count ?? await this.walletRepository.getShieldedAddressCount(account)
+
+    if (count === 0) {
+      return { addresses: [] }
+    }
 
     const addresses = deriveShieldedAddresses(wallet, payload.password, account, count, this.sdk)
 

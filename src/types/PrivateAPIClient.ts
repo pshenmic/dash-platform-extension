@@ -10,6 +10,7 @@ import { VoidResponse } from './messages/response/VoidResponse'
 import { SwitchIdentityPayload } from './messages/payloads/SwitchIdentityPayload'
 import { EmptyPayload } from './messages/payloads/EmptyPayload'
 import { GeneratePlatformAddressesPayload } from './messages/payloads/GeneratePlatformAddressesPayload'
+import { GenerateShieldedAddressesPayload } from './messages/payloads/GenerateShieldedAddressesPayload'
 import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddressesPayload'
 import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
 import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
@@ -417,8 +418,8 @@ export class PrivateAPIClient {
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
-  async generatePlatformAddresses (password?: string): Promise<GetPlatformAddressesResponse['addresses']> {
-    const payload: GeneratePlatformAddressesPayload = { password }
+  async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
+    const payload: GeneratePlatformAddressesPayload = { password, count }
 
     const response: GetPlatformAddressesResponse = await this._rpcCall(MessagingMethods.GENERATE_PLATFORM_ADDRESSES, payload)
 
@@ -477,6 +478,19 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE, payload)
   }
 
+  // Creates the next shielded addresses and returns them. The wallet keeps the
+  // number of created addresses, so repeated calls advance the diversifier
+  // index instead of returning the same addresses.
+  async generateShieldedAddresses (password: string, count?: number): Promise<GetShieldedAddressesResponse['addresses']> {
+    const payload: GenerateShieldedAddressesPayload = { password, count }
+
+    const response: GetShieldedAddressesResponse = await this._rpcCall(MessagingMethods.GENERATE_SHIELDED_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  // Returns the shielded addresses created so far. `count` overrides that and
+  // derives a wider window (used to scan beyond what was created).
   async getShieldedAddresses (password: string, account?: number, count?: number): Promise<GetShieldedAddressesResponse['addresses']> {
     const payload: GetShieldedAddressesPayload = { password, account, count }
 

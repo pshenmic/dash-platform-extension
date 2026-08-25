@@ -3,6 +3,7 @@ import {
   mainScreenConfig,
   walletSettingsConfig,
   connectedWebsitesConfig,
+  platformAddressesConfig,
   securityPrivacyConfig,
   aboutDashConfig
 } from './MainSettingsScreen'
@@ -17,6 +18,7 @@ export const screenConfigs: Record<string, ScreenConfig> = {
   'current-wallet': walletSettingsConfig,
   preferences: preferencesScreenConfig,
   'connected-websites': connectedWebsitesConfig,
+  'platform-addresses': platformAddressesConfig,
   'private-keys': privateKeysScreenConfig,
   'import-private-keys-settings': importPrivateKeysScreenConfig,
   'create-key-settings': createKeyScreenConfig,
