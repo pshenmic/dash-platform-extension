@@ -1,6 +1,6 @@
 import React from 'react'
 import { WalletAccountInfo } from '../../types/messages/response/GetAllWalletsResponse'
-import { Identity, WalletType } from '../../types'
+import { Identity, NetworkType, WalletType } from '../../types'
 
 export interface HeaderConfigOverride {
   showBackButton?: boolean
@@ -11,8 +11,8 @@ export interface HeaderConfigOverride {
 }
 
 export interface OutletContext {
-  currentNetwork: string | null
-  setCurrentNetwork: (network: string | null) => void
+  currentNetwork: NetworkType | null
+  setCurrentNetwork: (network: NetworkType | null) => void
   currentWallet: string | null
   setCurrentWallet: (wallet: string | null) => void
   currentIdentity: string | null

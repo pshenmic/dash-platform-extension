@@ -21,7 +21,7 @@ export function IdentityCreditTransferDetails ({ data }: IdentityCreditTransferD
   useEffect(() => {
     const loadRate = async (): Promise<void> => {
       try {
-        const fetchedRate = await platformClient.fetchRate((currentNetwork ?? 'testnet') as 'testnet' | 'mainnet')
+        const fetchedRate = await platformClient.fetchRate(currentNetwork ?? 'testnet')
         setRate(fetchedRate)
       } catch (error) {
         console.error('Failed to fetch rate:', error)

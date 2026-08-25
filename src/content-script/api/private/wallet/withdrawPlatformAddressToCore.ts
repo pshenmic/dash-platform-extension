@@ -9,7 +9,7 @@ import {
   selectPlatformSource,
   buildSignedAddressWithdrawal
 } from '../../../../utils'
-import { TRANSFER_FEE_CREDITS, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING } from '../../../../constants'
+import { TRANSFER_FEE_CREDITS, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING, MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../../../constants'
 import { WithdrawPlatformAddressToCorePayload } from '../../../../types/messages/payloads/WithdrawPlatformAddressToCorePayload'
 import { WithdrawPlatformAddressToCoreResponse } from '../../../../types/messages/response/WithdrawPlatformAddressToCoreResponse'
 
@@ -76,6 +76,9 @@ export class WithdrawPlatformAddressToCoreHandler implements APIHandler {
     }
     if (typeof payload.amountCredits !== 'string' || !/^\d+$/.test(payload.amountCredits) || BigInt(payload.amountCredits) <= 0n) {
       return 'Amount must be a positive integer string of credits'
+    }
+    if (BigInt(payload.amountCredits) < MIN_WITHDRAWAL_CREDITS || BigInt(payload.amountCredits) > MAX_WITHDRAWAL_CREDITS) {
+      return `Withdrawal amount must be between ${MIN_WITHDRAWAL_CREDITS.toString()} and ${MAX_WITHDRAWAL_CREDITS.toString()} credits`
     }
     if (typeof payload.password !== 'string' || payload.password.length === 0) {
       return 'Password must be provided'

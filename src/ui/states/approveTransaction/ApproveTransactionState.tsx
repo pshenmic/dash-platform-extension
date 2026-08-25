@@ -367,7 +367,7 @@ function ApproveTransactionState (): React.JSX.Element {
             <TransactionDetails
               data={decodedTransaction}
               transactionHash={txHash}
-              network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+              network={currentNetwork ?? 'testnet'}
               signed
             />
           )}
@@ -410,7 +410,7 @@ function ApproveTransactionState (): React.JSX.Element {
         {decodedTransaction != null && (
           <TransactionDetails
             data={decodedTransaction}
-            network={(currentNetwork ?? 'testnet') as 'testnet' | 'mainnet'}
+            network={currentNetwork ?? 'testnet'}
           />
         )}
 

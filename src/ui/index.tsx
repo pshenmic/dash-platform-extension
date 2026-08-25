@@ -12,7 +12,7 @@ import CreateWalletState from './states/wallet/CreateWalletState'
 import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
 import AppConnectState from './states/appConnect/AppConnectState'
 import SendTransactionState from './states/sendTransaction/SendTransactionState'
-import WithdrawState from './states/withdrawal/WithdrawState'
+import PlatformTransferConfirmState from './states/platformTransfer/PlatformTransferConfirmState'
 import Layout from './components/layout/Layout'
 import PageWithHeader from './components/layout/PageWithHeader'
 import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
@@ -203,8 +203,8 @@ const App: React.FC = function () {
           }
         },
         {
-          path: '/withdrawal',
-          element: <PageWithHeader><WithdrawState /></PageWithHeader>,
+          path: '/platform-transfer-confirm',
+          element: <PageWithHeader><PlatformTransferConfirmState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'sendTransaction'

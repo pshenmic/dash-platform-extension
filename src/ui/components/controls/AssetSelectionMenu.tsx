@@ -1,17 +1,67 @@
 import React, { useState, useMemo } from 'react'
-import { Text, CreditsIcon, Input, Avatar } from 'dash-ui-kit/react'
+import { CreditsIcon, Input, Avatar } from 'dash-ui-kit/react'
 import { OverlayMenu } from '../common'
+import { AssetOptionCard } from './AssetOptionCard'
 import type { TokenData } from '../../../types'
 import { fromBaseUnit } from '../../../utils'
 
-interface AssetOption {
+export interface AssetOption {
   value: string
   label: string
   symbol: string
   icon: React.ReactNode
-  balance?: string
   isToken?: boolean
   tokenData?: TokenData
+}
+
+const CREDITS_OPTION: AssetOption = {
+  value: 'credits',
+  label: 'Credits',
+  symbol: 'CRDT',
+  icon: (
+    <div className='w-[2.438rem] h-[2.438rem] bg-[rgba(12,28,51,0.05)] rounded-full flex items-center justify-center'>
+      <CreditsIcon className='!text-dash-brand w-5 h-5' />
+    </div>
+  )
+}
+
+// Builds the selectable asset list (Credits + the identity's tokens). Shared by
+// the asset-selection menu and the transfer screen's asset step.
+export function buildAssetOptions (tokens: TokenData[] = []): AssetOption[] {
+  const tokenOptions: AssetOption[] = tokens.map(token => {
+    const singularForm = token.localizations?.en?.singularForm ?? token.identifier
+    return {
+      value: token.identifier,
+      label: singularForm,
+      symbol: singularForm.toUpperCase().slice(0, 4),
+      icon: (
+        <Avatar
+          username={token.identifier}
+          className='w-[2.438rem] h-[2.438rem]'
+        />
+      ),
+      isToken: true,
+      tokenData: token
+    }
+  })
+
+  return [CREDITS_OPTION, ...tokenOptions]
+}
+
+// Shown instead of a balance that hasn't loaded yet — a real 0 would claim the
+// account is empty.
+const UNKNOWN_BALANCE = '—'
+
+// Formats an asset's balance for display. `creditsBalance` is the raw credits
+// amount (string) for the Credits option.
+export function formatAssetBalance (option: AssetOption, creditsBalance?: string): string {
+  if (option.value === 'credits') {
+    return creditsBalance != null ? `${creditsBalance} CRDT` : UNKNOWN_BALANCE
+  }
+  if ((option.isToken ?? false) && option.tokenData != null) {
+    return `${fromBaseUnit(option.tokenData.balance, option.tokenData.decimals)} ${option.symbol}`
+  }
+  return '0'
 }
 
 interface AssetSelectionMenuProps {
@@ -19,23 +69,9 @@ interface AssetSelectionMenuProps {
   onClose: () => void
   selectedAsset: string
   onAssetSelect: (asset: string) => void
-  dashBalance?: string
   creditsBalance?: string
   tokens?: TokenData[]
 }
-
-const ASSET_OPTIONS: AssetOption[] = [
-  {
-    value: 'credits',
-    label: 'Credits',
-    symbol: 'CRDT',
-    icon: (
-      <div className='w-[2.438rem] h-[2.438rem] bg-[rgba(12,28,51,0.05)] rounded-full flex items-center justify-center'>
-        <CreditsIcon className='!text-dash-brand w-5 h-5' />
-      </div>
-    )
-  }
-]
 
 export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
   isOpen,
@@ -52,37 +88,7 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
     onClose()
   }
 
-  const getAssetBalance = (asset: AssetOption): string => {
-    if (asset.value === 'credits' && (creditsBalance !== null && creditsBalance !== undefined)) {
-      return `${creditsBalance} CRDT`
-    }
-    if ((asset.isToken ?? false) && (asset.tokenData != null)) {
-      const balance = fromBaseUnit(asset.tokenData.balance, asset.tokenData.decimals)
-      return `${balance} ${asset.symbol}`
-    }
-    return '0'
-  }
-
-  const allAssets = useMemo(() => {
-    const tokenOptions: AssetOption[] = tokens.map(token => {
-      const singularForm = (token.localizations?.en?.singularForm ?? null) !== null ? token.localizations.en.singularForm : token.identifier
-      return {
-        value: token.identifier,
-        label: singularForm,
-        symbol: singularForm.toUpperCase().slice(0, 4),
-        icon: (
-          <Avatar
-            username={token.identifier}
-            className='w-[2.438rem] h-[2.438rem]'
-          />
-        ),
-        isToken: true,
-        tokenData: token
-      }
-    })
-
-    return [...ASSET_OPTIONS, ...tokenOptions]
-  }, [tokens])
+  const allAssets = useMemo(() => buildAssetOptions(tokens), [tokens])
 
   const filteredAssets = useMemo(() => {
     if (searchQuery.trim() === '') return allAssets
@@ -115,44 +121,17 @@ export const AssetSelectionMenu: React.FC<AssetSelectionMenuProps> = ({
 
         {/* Assets List */}
         <div className='flex flex-col gap-2.5'>
-          {filteredAssets.map((asset) => {
-            const isSelected = asset.value === selectedAsset
-            return (
-              <div
-                key={asset.value}
-                onClick={() => handleAssetClick(asset.value)}
-                className={`rounded-[15px] px-[15px] py-2.5 cursor-pointer transition-all border-l-2 ${
-                  isSelected
-                    ? 'bg-dash-brand/15 border-dash-brand'
-                    : 'bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] border-transparent'
-                }`}
-              >
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-3'>
-                    {asset.icon}
-
-                    <div className='flex items-center gap-2'>
-                      <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
-                        {asset.label}
-                      </Text>
-
-                      <div className='flex bg-dash-brand/10 rounded px-[5px] py-[3px]'>
-                        <Text size='xs' weight='medium' className='text-dash-brand !text-[10px] leading-[1.366]'>
-                          {asset.symbol}
-                        </Text>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className='flex items-center gap-2'>
-                    <Text size='sm' weight='medium' className='text-dash-primary-dark-blue'>
-                      {getAssetBalance(asset)}
-                    </Text>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+          {filteredAssets.map((asset) => (
+            <AssetOptionCard
+              key={asset.value}
+              icon={asset.icon}
+              label={asset.label}
+              symbol={asset.symbol}
+              balance={formatAssetBalance(asset, creditsBalance)}
+              selected={asset.value === selectedAsset}
+              onClick={() => handleAssetClick(asset.value)}
+            />
+          ))}
         </div>
       </div>
     </OverlayMenu>

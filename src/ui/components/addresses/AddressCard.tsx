@@ -1,6 +1,5 @@
-import React, { useState } from 'react'
-import { Text, Identifier, BigNumber, NotActive, ExternalLinkIcon, CopyIcon, Tooltip } from 'dash-ui-kit/react'
-
+import React from 'react'
+import { Text, Identifier, BigNumber, NotActive, ExternalLinkIcon, CopyButton } from 'dash-ui-kit/react'
 const ICON_CLASS = 'flex items-center justify-center p-[3px] bg-[rgba(12,28,51,0.05)] rounded-[5px] shrink-0 hover:bg-[rgba(12,28,51,0.1)] transition-colors cursor-pointer'
 const ICON_COLOR = 'text-[rgba(12,28,51,0.5)]'
 
@@ -11,14 +10,6 @@ interface AddressCardProps {
 }
 
 export const AddressCard: React.FC<AddressCardProps> = ({ address, explorerUrl, children }) => {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = (): void => {
-    navigator.clipboard.writeText(address).catch(() => {})
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
   return (
     <div className='rounded-[15px] p-3 flex flex-col gap-2 bg-[rgba(12,28,51,0.03)]'>
       {/* Top: full-width address */}
@@ -27,23 +18,7 @@ export const AddressCard: React.FC<AddressCardProps> = ({ address, explorerUrl, 
           {address}
         </Identifier>
 
-        <Tooltip
-          content='Copied!'
-          side='top'
-          sideOffset={4}
-          open={copied}
-          onOpenChange={(open) => { if (!open) setCopied(false) }}
-        >
-          <button
-            onClick={handleCopy}
-            className={ICON_CLASS}
-            aria-label='Copy address'
-          >
-            <span className='w-[14px] h-[14px] flex items-center justify-center overflow-hidden'>
-              <CopyIcon size={14} className={ICON_COLOR} />
-            </span>
-          </button>
-        </Tooltip>
+        <CopyButton text={address} className='shrink-0' />
 
         {explorerUrl != null && explorerUrl !== '' && (
           <a
