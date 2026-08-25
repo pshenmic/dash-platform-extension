@@ -21,7 +21,6 @@ export const FUNDING_TX_TIMEOUT_MS = 90 * 1000
 export const REGISTRATION_CONFIRM_TIMEOUT_MS = 8000
 export const TXID_HEX_LENGTH = 64
 
-// Gap limit for scanning DIP-13 top-up funding indexes (m/9'/coin'/5'/2'/N).
 // Smallest funding payment a top-up can be built from, in duffs.
 // Platform needs ~50500 duffs of credits to process the top-up, plus the asset lock tx fee.
 export const MIN_TOPUP_FUNDING_DUFFS = 100000n
