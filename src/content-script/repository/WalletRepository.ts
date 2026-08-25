@@ -6,16 +6,45 @@ import { WalletType } from '../../types/WalletType'
 import { Wallet } from '../../types/Wallet'
 import { NetworkType } from '../../types/NetworkType'
 import { IdentitiesRepository } from './IdentitiesRepository'
+import { RepositoryScope } from '../../types/RepositoryScope'
 import { encrypt } from 'eciesjs'
 import hash from 'hash.js'
 
 export class WalletRepository {
   storageAdapter: StorageAdapter
   identitiesRepository: IdentitiesRepository
+  scope?: RepositoryScope
 
-  constructor (storageAdapter: StorageAdapter, identitiesRepository: IdentitiesRepository) {
+  constructor (storageAdapter: StorageAdapter, identitiesRepository: IdentitiesRepository, scope?: RepositoryScope) {
     this.storageAdapter = storageAdapter
     this.identitiesRepository = identitiesRepository
+    this.scope = scope
+  }
+
+  // Returns a repository pinned to one (network, wallet) pair, together with an
+  // identities repository pinned to the same pair. Callers that must keep
+  // addressing the same wallet across a long operation use this instead of the
+  // shared instance, which re-reads the current wallet on every call. Under a
+  // scope `getCurrent` resolves to the scoped wallet rather than the one the
+  // extension happens to have selected.
+  forScope (scope: RepositoryScope): WalletRepository {
+    return new WalletRepository(this.storageAdapter, this.identitiesRepository.forScope(scope), scope)
+  }
+
+  private async getNetwork (): Promise<string> {
+    if (this.scope != null) {
+      return this.scope.network
+    }
+
+    return await this.storageAdapter.get('network') as string
+  }
+
+  private async getCurrentWalletId (): Promise<string | null> {
+    if (this.scope != null) {
+      return this.scope.walletId
+    }
+
+    return await this.storageAdapter.get('currentWalletId') as string | null
   }
 
   // Account-level xpubs cached at creation time (account 0), so addresses can be
@@ -24,7 +53,7 @@ export class WalletRepository {
     let encryptedMnemonic: string | null = null
     let seedHash: string | null = null
 
-    const currentNetwork = await this.storageAdapter.get('network') as string
+    const currentNetwork = await this.getNetwork()
 
     const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
 
@@ -71,8 +100,8 @@ export class WalletRepository {
   }
 
   async getCurrent (): Promise<Wallet | null> {
-    const network = await this.storageAdapter.get('network') as string
-    const currentWalletId = await this.storageAdapter.get('currentWalletId') as string
+    const network = await this.getNetwork()
+    const currentWalletId = await this.getCurrentWalletId()
 
     if (currentWalletId == null) {
       return null
@@ -100,7 +129,7 @@ export class WalletRepository {
   }
 
   async getAll (): Promise<Wallet[]> {
-    const network = await this.storageAdapter.get('network') as string
+    const network = await this.getNetwork()
     const walletIds = await this.storageAdapter.get('wallets') as string[]
 
     const wallets = await Promise.all(walletIds.map(async walletId => (await this.storageAdapter.get(`wallet_${network}_${walletId}`)) as WalletStoreSchema))
@@ -126,7 +155,7 @@ export class WalletRepository {
   }
 
   async getById (walletId: string): Promise<Wallet | null> {
-    const network = await this.storageAdapter.get('network') as string
+    const network = await this.getNetwork()
 
     const wallet = await this.storageAdapter.get(`wallet_${network}_${walletId}`)
 
@@ -148,7 +177,7 @@ export class WalletRepository {
   }
 
   async setLabel (walletId: string, label: string): Promise<void> {
-    const network = await this.storageAdapter.get('network') as string
+    const network = await this.getNetwork()
     const storageKey = `wallet_${network}_${walletId}`
 
     const walletStoreSchema = await this.storageAdapter.get(storageKey) as WalletStoreSchema
@@ -167,7 +196,7 @@ export class WalletRepository {
   }
 
   async setPlatformAccountXpub (account: number, xpub: string): Promise<void> {
-    const network = await this.storageAdapter.get('network') as string
+    const network = await this.getNetwork()
     const walletStoreSchema = await this.getCurrentStoreSchema()
     const storageKey = `wallet_${network}_${walletStoreSchema.walletId}`
 
@@ -183,7 +212,7 @@ export class WalletRepository {
   }
 
   async setPlatformAddressCount (account: number, count: number): Promise<void> {
-    const network = await this.storageAdapter.get('network') as string
+    const network = await this.getNetwork()
     const walletStoreSchema = await this.getCurrentStoreSchema()
     const storageKey = `wallet_${network}_${walletStoreSchema.walletId}`
 
@@ -244,8 +273,8 @@ export class WalletRepository {
   }
 
   private async getCurrentStoreSchema (): Promise<WalletStoreSchema> {
-    const network = await this.storageAdapter.get('network') as string
-    const currentWalletId = await this.storageAdapter.get('currentWalletId') as string | null
+    const network = await this.getNetwork()
+    const currentWalletId = await this.getCurrentWalletId()
 
     if (currentWalletId == null) {
       throw new Error('Wallet is not chosen')
@@ -262,7 +291,7 @@ export class WalletRepository {
 
   async switchIdentity (identifier: string): Promise<void> {
     const currentWallet = await this.getCurrent()
-    const network = await this.storageAdapter.get('network') as string
+    const network = await this.getNetwork()
 
     if (currentWallet == null) {
       throw new Error('Wallet is not chosen')

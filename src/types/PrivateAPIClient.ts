@@ -1,5 +1,6 @@
 import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
+import { NetworkType } from './NetworkType'
 import { CoreAddressChain } from './enums/CoreAddressChain'
 import { GenerateCoreAddressesPayload } from './messages/payloads/GenerateCoreAddressesPayload'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
@@ -366,8 +367,8 @@ export class PrivateAPIClient {
     )
   }
 
-  async requestTopUpFundingAddress (password: string): Promise<RequestTopUpFundingAddressResponse> {
-    const payload: RequestTopUpFundingAddressPayload = { password }
+  async requestTopUpFundingAddress (password: string, identityId?: string, walletId?: string, network?: NetworkType): Promise<RequestTopUpFundingAddressResponse> {
+    const payload: RequestTopUpFundingAddressPayload = { password, identityId, walletId, network }
 
     return await this._rpcCall(
       MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS,
@@ -393,13 +394,17 @@ export class PrivateAPIClient {
     identityId: string,
     assetLockFundingAddress: string,
     assetLockFundingTxid: string,
-    password: string
+    password: string,
+    walletId?: string,
+    network?: NetworkType
   ): Promise<TopUpIdentityResponse> {
     const payload: TopUpIdentityPayload = {
       identityId,
       assetLockFundingAddress,
       assetLockFundingTxid,
-      password
+      password,
+      walletId,
+      network
     }
 
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload)

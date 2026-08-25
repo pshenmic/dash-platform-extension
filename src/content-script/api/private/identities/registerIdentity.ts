@@ -22,6 +22,7 @@ import {
   hexToBytes,
   wait
 } from '../../../../utils'
+import { txidToFilterBytes } from '../../../../utils/txidToFilterBytes'
 import { isStateTransitionAlreadyInChainError } from '../../../../utils/isStateTransitionAlreadyInChainError'
 import { isIdentityNotFoundError } from '../../../../utils/isIdentityNotFoundError'
 import { WalletType } from '../../../../types/WalletType'
@@ -157,7 +158,7 @@ export class RegisterIdentityHandler implements APIHandler {
     // for txs that are not yet chain-locked.
     const instantLockSub = this.coreSDK.subscribeToTransactions(
       [payload.assetLockFundingAddress],
-      [hexToBytes(assetLockTxid)]
+      [txidToFilterBytes(assetLockTxid)]
     )
 
     if (assetLockFundingAddressEntry.assetLockTxid == null) {

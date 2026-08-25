@@ -12,6 +12,8 @@ import { NetworkType } from '../../../../types/PlatformExplorer'
 import { encrypt } from 'eciesjs'
 import { bytesToHex, hexToBytes, deriveWalletHdKey, deriveTopUpKeyFromHdKey } from '../../../../utils'
 import { TOPUP_FUNDING_GAP_LIMIT } from '../../../../constants'
+import { RepositoryScope } from '../../../../types/RepositoryScope'
+import { validateRepositoryScopePayload } from '../../../../utils/validateRepositoryScopePayload'
 
 export class RequestTopUpFundingAddressHandler implements APIHandler {
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
@@ -37,13 +39,31 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
   async handle (event: EventData): Promise<RequestTopUpFundingAddressResponse> {
     const payload: RequestTopUpFundingAddressPayload = event.payload
 
-    const wallet = await this.walletRepository.getCurrent()
+    // The issued address is stored under (network, wallet), and TOP_UP_IDENTITY
+    // later looks it up under the pair it is given — so both handlers must agree
+    // on the pair. Scope the repositories to the one the caller names, falling
+    // back to a single snapshot of the current selection.
+    const scope = await this.resolveScope(payload)
+
+    const walletRepository = this.walletRepository.forScope(scope)
+    const assetLockFundingAddressesRepository = this.assetLockFundingAddressesRepository.forScope(scope)
+
+    const wallet = await walletRepository.getCurrent()
 
     if (wallet == null) {
-      throw new Error('Wallet is not chosen')
+      throw new Error(`Wallet ${scope.walletId} does not exist on ${scope.network}`)
     }
 
     const network = wallet.network as NetworkType
+
+    // The address is reserved for one identity, so two top-ups running side by
+    // side never receive the same one. Callers that do not name an identity get
+    // the wallet's current one, which is what a single-tab flow means anyway.
+    const identityId = payload.identityId ?? wallet.currentIdentity
+
+    if (identityId == null) {
+      throw new Error('No identity is chosen to top up')
+    }
 
     // Reuse an in-flight top-up funding address if one is still pending. Don't
     // trust the local flag blindly — re-check every pending entry against L1 and
@@ -52,7 +72,7 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
     // before it was marked). An untouched address (no history) or one holding a
     // pending deposit (history + UTXO) is what we want to reuse; consumed ones
     // are retired locally so they are never handed out again.
-    const pending = await this.assetLockFundingAddressesRepository.findAllUnused('topUp')
+    const pending = await assetLockFundingAddressesRepository.findAllUnused('topUp', identityId)
 
     for (const entry of pending) {
       const [info, utxos] = await Promise.all([
@@ -63,10 +83,14 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
       const consumed = info != null && utxos.length === 0
 
       if (!consumed) {
+        // An entry with no owner predates per-identity reservation. Claim it on
+        // the way out so the next top-up for another identity is not offered it.
+        await assetLockFundingAddressesRepository.bindToIdentity(entry.address, identityId)
+
         return { address: entry.address }
       }
 
-      await this.assetLockFundingAddressesRepository.markAsUsed(entry.address)
+      await assetLockFundingAddressesRepository.markAsUsed(entry.address)
     }
 
     const passwordPublicKey = await this.storageAdapter.get('passwordPublicKey') as string | null
@@ -90,7 +114,7 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
       const candidate = await deriveTopUpKeyFromHdKey(walletHdKey, wallet.network, index, this.sdk)
       const candidateAddress = this.sdk.keyPair.p2pkhAddress(candidate.getPublicKey().bytes(), wallet.network as Network)
 
-      const localEntry = await this.assetLockFundingAddressesRepository.getByAddress(candidateAddress)
+      const localEntry = await assetLockFundingAddressesRepository.getByAddress(candidateAddress)
 
       if (localEntry != null) {
         continue
@@ -112,15 +136,33 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
 
     const encryptedPrivateKey = bytesToHex(encrypt(passwordPublicKey, hexToBytes(foundKeyHex)))
 
-    await this.assetLockFundingAddressesRepository.create({
+    await assetLockFundingAddressesRepository.create({
       address: foundAddress,
       encryptedPrivateKey,
       used: false,
       index: foundIndex,
-      purpose: 'topUp'
+      purpose: 'topUp',
+      identityId
     })
 
     return { address: foundAddress }
+  }
+
+  // Same contract as TopUpIdentityHandler: the caller may name the (network,
+  // wallet) pair the address belongs to, otherwise the current selection is
+  // snapshotted once here rather than re-read on every repository call.
+  private async resolveScope (payload: RequestTopUpFundingAddressPayload): Promise<RepositoryScope> {
+    if (payload.walletId != null && payload.network != null) {
+      return { network: payload.network, walletId: payload.walletId }
+    }
+
+    const currentWallet = await this.walletRepository.getCurrent()
+
+    if (currentWallet == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    return { network: currentWallet.network, walletId: currentWallet.walletId }
   }
 
   validatePayload (payload: RequestTopUpFundingAddressPayload): null | string {
@@ -128,6 +170,10 @@ export class RequestTopUpFundingAddressHandler implements APIHandler {
       return 'password must be provided'
     }
 
-    return null
+    if (payload.identityId != null && (typeof payload.identityId !== 'string' || payload.identityId.length === 0)) {
+      return 'identityId must be a non-empty string when provided'
+    }
+
+    return validateRepositoryScopePayload(payload)
   }
 }
