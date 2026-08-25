@@ -3,8 +3,7 @@ import { EventData } from './EventData'
 import { CoreAddressChain } from './enums/CoreAddressChain'
 import { GenerateCoreAddressesPayload } from './messages/payloads/GenerateCoreAddressesPayload'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
-import { GetCoreAddressesInfosPayload } from './messages/payloads/GetCoreAddressesInfosPayload'
-import { CoreAddressBalance, GetCoreAddressesInfosResponse } from './messages/response/GetCoreAddressesInfosResponse'
+import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -434,12 +433,10 @@ export class PrivateAPIClient {
     return response.addresses
   }
 
-  async getCoreAddressesInfos (addresses: string[]): Promise<CoreAddressBalance[]> {
-    const payload: GetCoreAddressesInfosPayload = { addresses }
+  async getCoreBalance (): Promise<GetCoreBalanceResponse> {
+    const payload: EmptyPayload = {}
 
-    const response: GetCoreAddressesInfosResponse = await this._rpcCall(MessagingMethods.GET_CORE_ADDRESSES_INFOS, payload)
-
-    return response.infos
+    return await this._rpcCall(MessagingMethods.GET_CORE_BALANCE, payload)
   }
 
   async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {

@@ -1,6 +1,6 @@
 import { GenerateCoreAddressesHandler } from '../../../../src/content-script/api/private/core/generateCoreAddresses'
 import { ListCoreAddressesHandler } from '../../../../src/content-script/api/private/core/listCoreAddresses'
-import { GetCoreAddressesInfosHandler } from '../../../../src/content-script/api/private/core/getCoreAddressesInfos'
+import { GetCoreBalanceHandler } from '../../../../src/content-script/api/private/core/getCoreBalance'
 import { CoreAddressChain } from '../../../../src/types/enums/CoreAddressChain'
 import { WalletType } from '../../../../src/types/WalletType'
 import { deriveCoreAccountXpub, deriveCoreAddressesFromXpub } from '../../../../src/utils/coreAddresses'
@@ -199,79 +199,67 @@ describe('core address handlers', () => {
     })
   })
 
-  describe('GetCoreAddressesInfosHandler', () => {
+  describe('GetCoreBalanceHandler', () => {
     let coreExplorer: any
-    let handler: GetCoreAddressesInfosHandler
+    let handler: GetCoreBalanceHandler
+
+    const summary = {
+      balance: 399337281n,
+      received: 4827233218n,
+      sent: 4427895937n,
+      txCount: 21,
+      addressCount: 51,
+      usedAddressCount: 11,
+      nextUnused: { receiving: 2, change: 9 }
+    }
 
     beforeEach(() => {
-      coreExplorer = {
-        // The service keeps the batch aligned with the addresses it was given
-        // and fills unseen ones in as zeros, so the mock does the same.
-        getAddressesInfo: jest.fn(async (addresses: string[]) =>
-          addresses.map(address => ({ address, balance: 1000n, txCount: 2 }))
-        )
-      }
-
-      handler = new GetCoreAddressesInfosHandler(walletRepository, coreExplorer)
+      coreExplorer = { getXpubSummary: jest.fn(async () => summary) }
+      handler = new GetCoreBalanceHandler(walletRepository, coreExplorer)
     })
 
-    const handle = async (addresses: string[]): Promise<any> =>
-      await handler.handle({ context: 'dash-platform-extension', id: 'id', method: 'GET_CORE_ADDRESSES_INFOS', type: 'request', payload: { addresses } } as any)
+    test('asks the explorer by xpub and returns amounts as strings', async () => {
+      const result = await handler.handle()
 
-    test('returns amounts as strings on the wallet network', async () => {
-      const result = await handle(['yAddr1'])
-
-      expect(result.infos).toEqual([{ address: 'yAddr1', balance: '1000', txCount: 2 }])
-      expect(coreExplorer.getAddressesInfo).toHaveBeenCalledWith(['yAddr1'], 'testnet')
+      expect(coreExplorer.getXpubSummary).toHaveBeenCalledWith(XPUB, 'testnet')
+      expect(result).toEqual({
+        balance: '399337281',
+        received: '4827233218',
+        sent: '4427895937',
+        txCount: 21,
+        usedAddressCount: 11,
+        nextUnused: { receiving: 2, change: 9 }
+      })
     })
 
-    test('keeps each balance paired with its own address', async () => {
-      coreExplorer.getAddressesInfo.mockImplementation(async (addresses: string[]) =>
-        addresses.map(address => ({ address, balance: BigInt(address.length), txCount: 1 }))
-      )
+    test('never derives addresses locally', async () => {
+      await handler.handle()
 
-      const result = await handle(['yShort', 'yMuchLongerAddress'])
-
-      expect(result.infos).toEqual([
-        { address: 'yShort', balance: '6', txCount: 1 },
-        { address: 'yMuchLongerAddress', balance: '18', txCount: 1 }
-      ])
+      expect(deriveCoreAddressesFromXpubMock).not.toHaveBeenCalled()
     })
 
-    test('sends every address in a single request', async () => {
-      await handle(['yA', 'yB', 'yC'])
+    test('never asks for a password', async () => {
+      await handler.handle()
 
-      expect(coreExplorer.getAddressesInfo).toHaveBeenCalledTimes(1)
-      expect(coreExplorer.getAddressesInfo).toHaveBeenCalledWith(['yA', 'yB', 'yC'], 'testnet')
-    })
-
-    test('reports zeros for an address never seen on-chain', async () => {
-      coreExplorer.getAddressesInfo.mockResolvedValueOnce([{ address: 'yUnseen', balance: 0n, txCount: 0 }])
-
-      const result = await handle(['yUnseen'])
-
-      expect(result.infos).toEqual([{ address: 'yUnseen', balance: '0', txCount: 0 }])
-    })
-
-    test('short-circuits an empty request without touching the explorer', async () => {
-      const result = await handle([])
-
-      expect(result.infos).toEqual([])
-      expect(walletRepository.getCurrent).not.toHaveBeenCalled()
-      expect(coreExplorer.getAddressesInfo).not.toHaveBeenCalled()
+      expect(deriveCoreAccountXpubMock).not.toHaveBeenCalled()
     })
 
     test('throws when no wallet is chosen', async () => {
       walletRepository.getCurrent.mockResolvedValueOnce(null)
 
-      await expect(handle(['yAddr1'])).rejects.toThrow('No wallet is chosen')
+      await expect(handler.handle()).rejects.toThrow('No wallet is chosen')
     })
 
-    test('validatePayload', () => {
-      expect(handler.validatePayload({ addresses: ['yAddr1'] })).toBeNull()
-      expect(handler.validatePayload({ addresses: 'yAddr1' } as any)).toBe('Addresses must be an array')
-      expect(handler.validatePayload({ addresses: [''] })).toBe('Each address must be a non-empty string')
-      expect(handler.validatePayload({ addresses: [1] } as any)).toBe('Each address must be a non-empty string')
+    test('throws when the xpub was never cached', async () => {
+      walletRepository.getCoreAccountXpub.mockResolvedValueOnce(null)
+
+      await expect(handler.handle()).rejects.toThrow('Core xpub is not initialized')
+      expect(coreExplorer.getXpubSummary).not.toHaveBeenCalled()
+    })
+
+    test('validatePayload rejects an account', () => {
+      expect(handler.validatePayload({})).toBeNull()
+      expect(handler.validatePayload({ account: 0 } as any)).toBe('Account is not supported')
     })
   })
 })

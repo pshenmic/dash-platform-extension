@@ -1,5 +1,5 @@
 import { NetworkType } from '../../types/PlatformExplorer'
-import { CORE_EXPLORER_ADDRESS_BATCH_LIMIT, CORE_EXPLORER_URLS } from '../../constants'
+import { CORE_EXPLORER_URLS } from '../../constants'
 
 export interface CoreAddressInfo {
   txCount: number
@@ -8,12 +8,16 @@ export interface CoreAddressInfo {
   sent: bigint
 }
 
-// The batch endpoint reports only what it can aggregate cheaply: no received /
-// sent totals, unlike the single-address route.
-export interface CoreAddressBalanceInfo {
-  address: string
+// Everything POST /xpub reports for one account.
+export interface CoreXpubSummary {
   balance: bigint
+  received: bigint
+  sent: bigint
   txCount: number
+  addressCount: number
+  usedAddressCount: number
+  // The explorer's own gap-scan: the next index it considers free on each chain.
+  nextUnused: { receiving: number, change: number }
 }
 
 export interface CoreAddressUtxo {
@@ -79,41 +83,36 @@ export class CoreExplorerService {
     }
   }
 
-  // Balances for many addresses in one request. The explorer caps the query at
-  // 100 addresses, so longer lists are sent in consecutive chunks. Addresses it
-  // omits (never seen on-chain) are filled in as zeros, so the result always
-  // lines up one-to-one with the input, in the same order.
-  async getAddressesInfo (addresses: string[], network: NetworkType = 'testnet'): Promise<CoreAddressBalanceInfo[]> {
-    if (addresses.length === 0) {
-      return []
-    }
-
+  // Account totals for an extended public key. The explorer walks the xpub's
+  // own chains, so this covers every address it derives, including ones this
+  // install never created. `nextUnused` is the explorer's own gap-scan result.
+  async getXpubSummary (xpub: string, network: NetworkType = 'testnet'): Promise<CoreXpubSummary> {
     const baseUrl = getBaseUrl(network)
-    const byAddress = new Map<string, CoreAddressBalanceInfo>()
 
-    for (let offset = 0; offset < addresses.length; offset += CORE_EXPLORER_ADDRESS_BATCH_LIMIT) {
-      const chunk = addresses.slice(offset, offset + CORE_EXPLORER_ADDRESS_BATCH_LIMIT)
-      const response = await fetch(`${baseUrl}/addresses/info?addresses=${chunk.join(',')}`)
+    const response = await fetch(`${baseUrl}/xpub`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ xpub })
+    })
 
-      if (!response.ok) {
-        throw new Error(`Core explorer error for ${chunk.length} addresses: HTTP ${response.status}`)
-      }
-
-      const data = await response.json()
-      const rows: any[] = Array.isArray(data) ? data : []
-
-      for (const row of rows) {
-        byAddress.set(row.address, {
-          address: row.address,
-          balance: toBigInt(row.balance),
-          txCount: toCount(row.txCount)
-        })
-      }
+    if (!response.ok) {
+      throw new Error(`Core explorer error for xpub summary: HTTP ${response.status}`)
     }
 
-    return addresses.map(address =>
-      byAddress.get(address) ?? { address, balance: 0n, txCount: 0 }
-    )
+    const data = await response.json()
+
+    return {
+      balance: toBigInt(data.balance),
+      received: toBigInt(data.received),
+      sent: toBigInt(data.sent),
+      txCount: toCount(data.txCount),
+      addressCount: toCount(data.addressCount),
+      usedAddressCount: toCount(data.usedAddressCount),
+      nextUnused: {
+        receiving: toCount(data.nextUnused?.receive),
+        change: toCount(data.nextUnused?.change)
+      }
+    }
   }
 
   // An address counts as used once it has appeared in at least one transaction.

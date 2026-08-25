@@ -110,70 +110,69 @@ describe('CoreExplorerService', () => {
     expect(fetchMock).toHaveBeenCalledWith(`${CORE_EXPLORER_URLS.mainnet.api}/address/Xaddr`)
   })
 
-  describe('getAddressesInfo', () => {
-    const okBatch = (rows: unknown): void => {
-      fetchMock.mockResolvedValue({ status: 200, ok: true, json: async () => rows })
+  describe('getXpubSummary', () => {
+    const XPUB = 'tpubTestAccountXpub'
+
+    const okSummary = (body: unknown): void => {
+      fetchMock.mockResolvedValue({ status: 200, ok: true, json: async () => body })
     }
 
-    it('asks for every address in one comma separated request', async () => {
-      okBatch([
-        { address: 'yA', balance: '10', txCount: 1 },
-        { address: 'yB', balance: '20', txCount: 2 }
-      ])
+    it('posts the xpub and parses the account totals', async () => {
+      okSummary({
+        balance: '399337281',
+        received: '4827233218',
+        sent: '4427895937',
+        txCount: 21,
+        addressCount: 51,
+        usedAddressCount: 11,
+        nextUnused: { receive: 2, change: 9 }
+      })
 
-      const infos = await service.getAddressesInfo(['yA', 'yB'], 'testnet')
+      const summary = await service.getXpubSummary(XPUB, 'testnet')
 
-      expect(fetchMock).toHaveBeenCalledTimes(1)
-      expect(fetchMock).toHaveBeenCalledWith(`${testnetBase}/addresses/info?addresses=yA,yB`)
-      expect(infos).toEqual([
-        { address: 'yA', balance: 10n, txCount: 1 },
-        { address: 'yB', balance: 20n, txCount: 2 }
-      ])
+      expect(fetchMock).toHaveBeenCalledWith(`${testnetBase}/xpub`, expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ xpub: XPUB })
+      }))
+      expect(summary).toEqual({
+        balance: 399337281n,
+        received: 4827233218n,
+        sent: 4427895937n,
+        txCount: 21,
+        addressCount: 51,
+        usedAddressCount: 11,
+        nextUnused: { receiving: 2, change: 9 }
+      })
     })
 
-    it('keeps the caller order even when the explorer reorders the rows', async () => {
-      okBatch([
-        { address: 'yB', balance: '20', txCount: 2 },
-        { address: 'yA', balance: '10', txCount: 1 }
-      ])
+    it('renames the explorer receive chain to receiving, matching CoreAddressChain', async () => {
+      okSummary({ balance: '0', nextUnused: { receive: 4, change: 7 } })
 
-      const infos = await service.getAddressesInfo(['yA', 'yB'], 'testnet')
+      const summary = await service.getXpubSummary(XPUB, 'testnet')
 
-      expect(infos.map(info => info.address)).toEqual(['yA', 'yB'])
-      expect(infos[0].balance).toEqual(10n)
+      expect(summary.nextUnused).toEqual({ receiving: 4, change: 7 })
     })
 
-    it('fills addresses the explorer omits in as zeros', async () => {
-      okBatch([{ address: 'ySeen', balance: '5', txCount: 1 }])
+    it('degrades missing fields to zeros rather than throwing', async () => {
+      okSummary({})
 
-      const infos = await service.getAddressesInfo(['ySeen', 'yUnseen'], 'testnet')
+      const summary = await service.getXpubSummary(XPUB, 'testnet')
 
-      expect(infos).toEqual([
-        { address: 'ySeen', balance: 5n, txCount: 1 },
-        { address: 'yUnseen', balance: 0n, txCount: 0 }
-      ])
-    })
-
-    it('splits a list longer than the explorer limit into chunks', async () => {
-      const addresses = Array.from({ length: 150 }, (_, i) => `yAddr${i}`)
-      okBatch([])
-
-      await service.getAddressesInfo(addresses, 'testnet')
-
-      expect(fetchMock).toHaveBeenCalledTimes(2)
-      expect(fetchMock.mock.calls[0][0]).toContain('yAddr0,')
-      expect(fetchMock.mock.calls[1][0]).toContain('yAddr100,')
-    })
-
-    it('makes no request for an empty list', async () => {
-      expect(await service.getAddressesInfo([], 'testnet')).toEqual([])
-      expect(fetchMock).not.toHaveBeenCalled()
+      expect(summary).toEqual({
+        balance: 0n,
+        received: 0n,
+        sent: 0n,
+        txCount: 0,
+        addressCount: 0,
+        usedAddressCount: 0,
+        nextUnused: { receiving: 0, change: 0 }
+      })
     })
 
     it('throws on a non-ok response', async () => {
       fetchMock.mockResolvedValue({ status: 500, ok: false, json: async () => ({}) })
 
-      await expect(service.getAddressesInfo(['yA'], 'testnet')).rejects.toThrow('HTTP 500')
+      await expect(service.getXpubSummary(XPUB, 'testnet')).rejects.toThrow('HTTP 500')
     })
   })
 })

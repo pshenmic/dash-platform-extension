@@ -51,7 +51,7 @@ import { GetSettingsHandler } from './private/settings/getSettings'
 import { SetSettingsHandler } from './private/settings/setSettings'
 import { GenerateCoreAddressesHandler } from './private/core/generateCoreAddresses'
 import { ListCoreAddressesHandler } from './private/core/listCoreAddresses'
-import { GetCoreAddressesInfosHandler } from './private/core/getCoreAddressesInfos'
+import { GetCoreBalanceHandler } from './private/core/getCoreBalance'
 import { GeneratePlatformAddressesHandler } from './private/wallet/generatePlatformAddresses'
 import { ListPlatformAddressesHandler } from './private/wallet/listPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
@@ -168,7 +168,7 @@ export class PrivateAPI {
       [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository),
       [MessagingMethods.GENERATE_CORE_ADDRESSES]: new GenerateCoreAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.LIST_CORE_ADDRESSES]: new ListCoreAddressesHandler(walletRepository, this.sdk),
-      [MessagingMethods.GET_CORE_ADDRESSES_INFOS]: new GetCoreAddressesInfosHandler(walletRepository, coreExplorer),
+      [MessagingMethods.GET_CORE_BALANCE]: new GetCoreBalanceHandler(walletRepository, coreExplorer),
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk),
