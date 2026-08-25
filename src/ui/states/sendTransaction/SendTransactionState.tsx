@@ -10,7 +10,7 @@ import {
   useTransactionCalculations
 } from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
-import LoadingScreen from '../../components/layout/LoadingScreen'
+import LoadingScreen from '../../components/layout/screens/LoadingScreen'
 import type { TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { WalletType } from '../../../types'
