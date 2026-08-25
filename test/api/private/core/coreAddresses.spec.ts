@@ -59,10 +59,17 @@ describe('core address handlers', () => {
   })
 
   describe('GenerateCoreAddressesHandler', () => {
+    let coreExplorer: any
     let handler: GenerateCoreAddressesHandler
 
     beforeEach(() => {
-      handler = new GenerateCoreAddressesHandler(walletRepository, sdk)
+      // Defaults model an account the explorer has never seen, so the local
+      // counter is what decides the index.
+      coreExplorer = {
+        getXpubSummary: jest.fn(async () => ({ nextUnused: { receiving: 0, change: 0 } }))
+      }
+
+      handler = new GenerateCoreAddressesHandler(walletRepository, coreExplorer, sdk)
     })
 
     const handle = async (payload: any = {}): Promise<any> =>
@@ -121,6 +128,44 @@ describe('core address handlers', () => {
       walletRepository.getCurrent.mockResolvedValueOnce({ walletId: 'wallet1', type: WalletType.keystore, network: 'testnet' })
 
       await expect(handle()).rejects.toThrow('Core addresses can only be generated for a seedphrase wallet')
+    })
+
+    test('skips ahead when the explorer knows of later addresses than this install', async () => {
+      walletRepository.getCoreAddressCount.mockResolvedValueOnce(0)
+      coreExplorer.getXpubSummary.mockResolvedValueOnce({ nextUnused: { receiving: 5, change: 2 } })
+
+      const result = await handle()
+
+      expect(result.addresses).toEqual([entry(5, CoreAddressChain.receiving)])
+      expect(walletRepository.setCoreAddressCount).toHaveBeenCalledWith(0, CoreAddressChain.receiving, 6)
+    })
+
+    test('keeps the local counter when it is further along than the explorer', async () => {
+      walletRepository.getCoreAddressCount.mockResolvedValueOnce(7)
+      coreExplorer.getXpubSummary.mockResolvedValueOnce({ nextUnused: { receiving: 3, change: 0 } })
+
+      const result = await handle()
+
+      expect(result.addresses).toEqual([entry(7, CoreAddressChain.receiving)])
+    })
+
+    test('reads the gap scan for the chain being generated', async () => {
+      walletRepository.getCoreAddressCount.mockResolvedValueOnce(0)
+      coreExplorer.getXpubSummary.mockResolvedValueOnce({ nextUnused: { receiving: 5, change: 2 } })
+
+      const result = await handle({ chain: CoreAddressChain.change })
+
+      expect(result.addresses).toEqual([entry(2, CoreAddressChain.change)])
+    })
+
+    test('falls back to the counter when the explorer cannot be reached', async () => {
+      walletRepository.getCoreAddressCount.mockResolvedValueOnce(4)
+      coreExplorer.getXpubSummary.mockRejectedValueOnce(new Error('offline'))
+
+      const result = await handle()
+
+      expect(result.addresses).toEqual([entry(4, CoreAddressChain.receiving)])
+      expect(walletRepository.setCoreAddressCount).toHaveBeenCalledWith(0, CoreAddressChain.receiving, 5)
     })
 
     test('validatePayload', () => {

@@ -166,7 +166,7 @@ export class PrivateAPI {
       ),
       [MessagingMethods.GET_SETTINGS]: new GetSettingsHandler(walletSettingsRepository),
       [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository),
-      [MessagingMethods.GENERATE_CORE_ADDRESSES]: new GenerateCoreAddressesHandler(walletRepository, this.sdk),
+      [MessagingMethods.GENERATE_CORE_ADDRESSES]: new GenerateCoreAddressesHandler(walletRepository, coreExplorer, this.sdk),
       [MessagingMethods.LIST_CORE_ADDRESSES]: new ListCoreAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_CORE_BALANCE]: new GetCoreBalanceHandler(walletRepository, coreExplorer),
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
