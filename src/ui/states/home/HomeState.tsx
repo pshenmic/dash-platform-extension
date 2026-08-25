@@ -288,13 +288,6 @@ function HomeState (): React.JSX.Element {
             Top Up
           </Button>
         )}
-        <Button
-          className='flex-1'
-          disabled={currentIdentity === null || balanceState.data === null}
-          onClick={() => { void navigate('/withdrawal') }}
-        >
-          Withdraw
-        </Button>
       </div>
 
       <ValueCard
