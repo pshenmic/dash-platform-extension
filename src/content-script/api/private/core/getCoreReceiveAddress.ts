@@ -3,16 +3,20 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { CoreExplorerService } from '../../../services/CoreExplorerService'
 import { NetworkType } from '../../../../types/PlatformExplorer'
-import { CoreAddressEntry, deriveCoreAddressesFromXpub } from '../../../../utils/coreAddresses'
+import { deriveCoreAddressesFromXpub } from '../../../../utils/coreAddresses'
 import { CoreAddressChain } from '../../../../types/enums/CoreAddressChain'
 import { EmptyPayload } from '../../../../types/messages/payloads/EmptyPayload'
 import { GetCoreAddressesResponse } from '../../../../types/messages/response/GetCoreAddressesResponse'
 
-// Lists the Core (L1) addresses of this wallet that have been used, on both
-// chains, plus the next free one on each. The extent comes from the explorer's
-// gap scan, so addresses used by another install on the same seed are included;
-// the addresses themselves are derived locally from the cached xpub. No password.
-export class ListCoreAddressesHandler implements APIHandler {
+// Returns the address to receive Core (L1) funds on: the first one on the
+// receiving chain that has not appeared on-chain yet. Reading it does not
+// consume it — the same address comes back until something is paid to it, which
+// is how Core wallets present a receive address.
+//
+// Only the index comes from the explorer. The address itself is always derived
+// locally from the cached xpub, because an explorer that returned addresses
+// directly could hand the user one they do not own.
+export class GetCoreReceiveAddressHandler implements APIHandler {
   walletRepository: WalletRepository
   coreExplorer: CoreExplorerService
   sdk: DashPlatformSDK
@@ -34,21 +38,14 @@ export class ListCoreAddressesHandler implements APIHandler {
     const xpub = await this.walletRepository.getCoreAccountXpub(account)
 
     if (xpub == null) {
-      return { addresses: [] }
+      throw new Error('Core xpub is not initialized. Reopen the wallet to derive it')
     }
 
     const { nextUnused } = await this.coreExplorer.getXpubSummary(xpub, wallet.network as NetworkType)
 
-    // Receiving first, then change, each in index order — a stable order the
-    // caller can render without sorting. The next free index is included so the
-    // list always shows the address currently on offer.
-    const addresses: CoreAddressEntry[] = []
-
-    for (const chain of [CoreAddressChain.receiving, CoreAddressChain.change]) {
-      addresses.push(...deriveCoreAddressesFromXpub(
-        this.sdk, xpub, wallet.network, account, chain, nextUnused[chain] + 1
-      ))
-    }
+    const addresses = deriveCoreAddressesFromXpub(
+      this.sdk, xpub, wallet.network, account, CoreAddressChain.receiving, 1, nextUnused.receiving
+    )
 
     return { addresses }
   }
@@ -56,6 +53,9 @@ export class ListCoreAddressesHandler implements APIHandler {
   validatePayload (payload: EmptyPayload): string | null {
     if ('account' in payload) {
       return 'Account is not supported'
+    }
+    if ('chain' in payload) {
+      return 'Chain is not supported: change addresses are an internal concern of spending'
     }
 
     return null

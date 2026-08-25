@@ -1,8 +1,6 @@
 import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
-import { CoreAddressChain } from './enums/CoreAddressChain'
-import { GenerateCoreAddressesPayload } from './messages/payloads/GenerateCoreAddressesPayload'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
 import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
@@ -422,12 +420,14 @@ export class PrivateAPIClient {
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
-  async generateCoreAddresses (chain?: CoreAddressChain, password?: string): Promise<GetCoreAddressesResponse['addresses']> {
-    const payload: GenerateCoreAddressesPayload = { chain, password }
+  // The address to receive on. Reading it does not consume it: the same address
+  // comes back until something is paid to it.
+  async getCoreReceiveAddress (): Promise<GetCoreAddressesResponse['addresses'][number]> {
+    const payload: EmptyPayload = {}
 
-    const response: GetCoreAddressesResponse = await this._rpcCall(MessagingMethods.GENERATE_CORE_ADDRESSES, payload)
+    const response: GetCoreAddressesResponse = await this._rpcCall(MessagingMethods.GET_CORE_RECEIVE_ADDRESS, payload)
 
-    return response.addresses
+    return response.addresses[0]
   }
 
   async listCoreAddresses (): Promise<GetCoreAddressesResponse['addresses']> {

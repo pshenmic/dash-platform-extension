@@ -1,4 +1,4 @@
-import { GenerateCoreAddressesHandler } from '../../../../src/content-script/api/private/core/generateCoreAddresses'
+import { GetCoreReceiveAddressHandler } from '../../../../src/content-script/api/private/core/getCoreReceiveAddress'
 import { ListCoreAddressesHandler } from '../../../../src/content-script/api/private/core/listCoreAddresses'
 import { GetCoreBalanceHandler } from '../../../../src/content-script/api/private/core/getCoreBalance'
 import { CoreAddressChain } from '../../../../src/types/enums/CoreAddressChain'
@@ -18,7 +18,6 @@ const deriveCoreAccountXpubMock = deriveCoreAccountXpub as jest.MockedFunction<t
 const deriveCoreAddressesFromXpubMock = deriveCoreAddressesFromXpub as jest.MockedFunction<typeof deriveCoreAddressesFromXpub>
 
 const XPUB = 'tpubAccountXpub'
-const PASSWORD = 'test'
 
 const entry = (index: number, chain: CoreAddressChain): any => ({
   address: `y${chain}${index}`,
@@ -45,9 +44,7 @@ describe('core address handlers', () => {
         currentIdentity: null
       })),
       getCoreAccountXpub: jest.fn(async () => XPUB),
-      setCoreAccountXpub: jest.fn(async () => {}),
-      getCoreAddressCount: jest.fn(async () => 0),
-      setCoreAddressCount: jest.fn(async () => {})
+      setCoreAccountXpub: jest.fn(async () => {})
     }
 
     sdk = {}
@@ -58,172 +55,127 @@ describe('core address handlers', () => {
     )
   })
 
-  describe('GenerateCoreAddressesHandler', () => {
+  describe('GetCoreReceiveAddressHandler', () => {
     let coreExplorer: any
-    let handler: GenerateCoreAddressesHandler
+    let handler: GetCoreReceiveAddressHandler
 
     beforeEach(() => {
-      // Defaults model an account the explorer has never seen, so the local
-      // counter is what decides the index.
       coreExplorer = {
-        getXpubSummary: jest.fn(async () => ({ nextUnused: { receiving: 0, change: 0 } }))
+        getXpubSummary: jest.fn(async () => ({ nextUnused: { receiving: 3, change: 7 } }))
       }
 
-      handler = new GenerateCoreAddressesHandler(walletRepository, coreExplorer, sdk)
+      handler = new GetCoreReceiveAddressHandler(walletRepository, coreExplorer, sdk)
     })
 
-    const handle = async (payload: any = {}): Promise<any> =>
-      await handler.handle({ context: 'dash-platform-extension', id: 'id', method: 'GENERATE_CORE_ADDRESSES', type: 'request', payload } as any)
-
-    test('returns the next receiving address and advances that chain', async () => {
-      walletRepository.getCoreAddressCount.mockResolvedValueOnce(3)
-
-      const result = await handle()
+    test('returns the first receiving address the explorer has not seen', async () => {
+      const result = await handler.handle()
 
       expect(result.addresses).toEqual([entry(3, CoreAddressChain.receiving)])
-      expect(walletRepository.getCoreAddressCount).toHaveBeenCalledWith(0, CoreAddressChain.receiving)
-      expect(walletRepository.setCoreAddressCount).toHaveBeenCalledWith(0, CoreAddressChain.receiving, 4)
-      expect(deriveCoreAddressesFromXpubMock).toHaveBeenCalledWith(sdk, XPUB, 'testnet', 0, CoreAddressChain.receiving, 1, 3)
+      expect(deriveCoreAddressesFromXpubMock).toHaveBeenCalledWith(
+        sdk, XPUB, 'testnet', 0, CoreAddressChain.receiving, 1, 3
+      )
     })
 
-    test('advances the change chain independently when asked', async () => {
-      walletRepository.getCoreAddressCount.mockResolvedValueOnce(1)
+    test('returns the same address again when nothing has been paid to it', async () => {
+      const first = await handler.handle()
+      const second = await handler.handle()
 
-      const result = await handle({ chain: CoreAddressChain.change })
-
-      expect(result.addresses).toEqual([entry(1, CoreAddressChain.change)])
-      expect(walletRepository.setCoreAddressCount).toHaveBeenCalledWith(0, CoreAddressChain.change, 2)
+      expect(second).toEqual(first)
     })
 
-    test('initializes the xpub from the password when it is missing', async () => {
-      walletRepository.getCoreAccountXpub.mockResolvedValueOnce(null)
+    test('never writes anything: reading an address does not consume it', async () => {
+      await handler.handle()
 
-      await handle({ password: PASSWORD })
-
-      expect(deriveCoreAccountXpubMock).toHaveBeenCalledWith(expect.objectContaining({ walletId: 'wallet1' }), PASSWORD, 0, sdk)
-      expect(walletRepository.setCoreAccountXpub).toHaveBeenCalledWith(0, XPUB)
-    })
-
-    test('does not touch the password when the xpub is already cached', async () => {
-      await handle({ password: PASSWORD })
-
-      expect(deriveCoreAccountXpubMock).not.toHaveBeenCalled()
       expect(walletRepository.setCoreAccountXpub).not.toHaveBeenCalled()
     })
 
-    test('demands a password when the xpub is missing', async () => {
-      walletRepository.getCoreAccountXpub.mockResolvedValueOnce(null)
+    test('moves on once the explorer sees the address used', async () => {
+      coreExplorer.getXpubSummary.mockResolvedValueOnce({ nextUnused: { receiving: 4, change: 7 } })
 
-      await expect(handle()).rejects.toThrow('Core xpub is not initialized')
-      expect(walletRepository.setCoreAddressCount).not.toHaveBeenCalled()
+      const result = await handler.handle()
+
+      expect(result.addresses).toEqual([entry(4, CoreAddressChain.receiving)])
+    })
+
+    test('derives locally rather than trusting the explorer for the address', async () => {
+      await handler.handle()
+
+      // The explorer is asked only for the index; the address comes from our xpub.
+      expect(deriveCoreAddressesFromXpubMock).toHaveBeenCalled()
     })
 
     test('throws when no wallet is chosen', async () => {
       walletRepository.getCurrent.mockResolvedValueOnce(null)
 
-      await expect(handle()).rejects.toThrow('No wallet is chosen')
+      await expect(handler.handle()).rejects.toThrow('No wallet is chosen')
     })
 
-    test('throws for a non-seedphrase wallet', async () => {
-      walletRepository.getCurrent.mockResolvedValueOnce({ walletId: 'wallet1', type: WalletType.keystore, network: 'testnet' })
+    test('throws when the xpub was never cached', async () => {
+      walletRepository.getCoreAccountXpub.mockResolvedValueOnce(null)
 
-      await expect(handle()).rejects.toThrow('Core addresses can only be generated for a seedphrase wallet')
-    })
-
-    test('skips ahead when the explorer knows of later addresses than this install', async () => {
-      walletRepository.getCoreAddressCount.mockResolvedValueOnce(0)
-      coreExplorer.getXpubSummary.mockResolvedValueOnce({ nextUnused: { receiving: 5, change: 2 } })
-
-      const result = await handle()
-
-      expect(result.addresses).toEqual([entry(5, CoreAddressChain.receiving)])
-      expect(walletRepository.setCoreAddressCount).toHaveBeenCalledWith(0, CoreAddressChain.receiving, 6)
-    })
-
-    test('keeps the local counter when it is further along than the explorer', async () => {
-      walletRepository.getCoreAddressCount.mockResolvedValueOnce(7)
-      coreExplorer.getXpubSummary.mockResolvedValueOnce({ nextUnused: { receiving: 3, change: 0 } })
-
-      const result = await handle()
-
-      expect(result.addresses).toEqual([entry(7, CoreAddressChain.receiving)])
-    })
-
-    test('reads the gap scan for the chain being generated', async () => {
-      walletRepository.getCoreAddressCount.mockResolvedValueOnce(0)
-      coreExplorer.getXpubSummary.mockResolvedValueOnce({ nextUnused: { receiving: 5, change: 2 } })
-
-      const result = await handle({ chain: CoreAddressChain.change })
-
-      expect(result.addresses).toEqual([entry(2, CoreAddressChain.change)])
-    })
-
-    test('falls back to the counter when the explorer cannot be reached', async () => {
-      walletRepository.getCoreAddressCount.mockResolvedValueOnce(4)
-      coreExplorer.getXpubSummary.mockRejectedValueOnce(new Error('offline'))
-
-      const result = await handle()
-
-      expect(result.addresses).toEqual([entry(4, CoreAddressChain.receiving)])
-      expect(walletRepository.setCoreAddressCount).toHaveBeenCalledWith(0, CoreAddressChain.receiving, 5)
+      await expect(handler.handle()).rejects.toThrow('Core xpub is not initialized')
+      expect(coreExplorer.getXpubSummary).not.toHaveBeenCalled()
     })
 
     test('validatePayload', () => {
       expect(handler.validatePayload({})).toBeNull()
-      expect(handler.validatePayload({ chain: CoreAddressChain.change })).toBeNull()
-      expect(handler.validatePayload({ password: '' } as any)).toBe('Password must be a non-empty string when provided')
-      expect(handler.validatePayload({ chain: 'internal' } as any)).toBe('Unknown chain internal')
-      expect(handler.validatePayload({ account: 1 } as any)).toBe('Account is not supported')
-      expect(handler.validatePayload({ count: 2 } as any)).toBe('Count is not supported')
+      expect(handler.validatePayload({ account: 0 } as any)).toBe('Account is not supported')
+      expect(handler.validatePayload({ chain: 'change' } as any))
+        .toBe('Chain is not supported: change addresses are an internal concern of spending')
     })
   })
 
   describe('ListCoreAddressesHandler', () => {
+    let coreExplorer: any
     let handler: ListCoreAddressesHandler
 
     beforeEach(() => {
-      handler = new ListCoreAddressesHandler(walletRepository, sdk)
+      coreExplorer = {
+        getXpubSummary: jest.fn(async () => ({ nextUnused: { receiving: 2, change: 1 } }))
+      }
+
+      handler = new ListCoreAddressesHandler(walletRepository, coreExplorer, sdk)
     })
 
-    test('returns both chains, receiving first, in index order', async () => {
-      walletRepository.getCoreAddressCount.mockImplementation(async (_account: number, chain: CoreAddressChain) =>
-        chain === CoreAddressChain.receiving ? 2 : 1
-      )
-
+    test('lists used addresses on both chains plus the next free one', async () => {
       const result = await handler.handle()
 
       expect(result.addresses).toEqual([
         entry(0, CoreAddressChain.receiving),
         entry(1, CoreAddressChain.receiving),
+        entry(2, CoreAddressChain.receiving),
+        entry(0, CoreAddressChain.change),
+        entry(1, CoreAddressChain.change)
+      ])
+    })
+
+    test('shows one address per chain on an untouched wallet', async () => {
+      coreExplorer.getXpubSummary.mockResolvedValueOnce({ nextUnused: { receiving: 0, change: 0 } })
+
+      const result = await handler.handle()
+
+      expect(result.addresses).toEqual([
+        entry(0, CoreAddressChain.receiving),
         entry(0, CoreAddressChain.change)
       ])
     })
 
-    test('skips a chain with no addresses created', async () => {
-      walletRepository.getCoreAddressCount.mockImplementation(async (_account: number, chain: CoreAddressChain) =>
-        chain === CoreAddressChain.receiving ? 1 : 0
-      )
+    test('covers addresses used by another install on the same seed', async () => {
+      // Nothing local says these exist; the extent comes from the explorer.
+      coreExplorer.getXpubSummary.mockResolvedValueOnce({ nextUnused: { receiving: 5, change: 0 } })
 
       const result = await handler.handle()
 
-      expect(result.addresses).toEqual([entry(0, CoreAddressChain.receiving)])
-      expect(deriveCoreAddressesFromXpubMock).toHaveBeenCalledTimes(1)
-    })
-
-    test('returns an empty list before any address is created', async () => {
-      const result = await handler.handle()
-
-      expect(result.addresses).toEqual([])
-      expect(deriveCoreAddressesFromXpubMock).not.toHaveBeenCalled()
+      expect(result.addresses.filter(a => a.chain === CoreAddressChain.receiving)).toHaveLength(6)
     })
 
     test('returns an empty list when the xpub was never cached', async () => {
       walletRepository.getCoreAccountXpub.mockResolvedValueOnce(null)
-      walletRepository.getCoreAddressCount.mockResolvedValue(5)
 
       const result = await handler.handle()
 
       expect(result.addresses).toEqual([])
+      expect(coreExplorer.getXpubSummary).not.toHaveBeenCalled()
     })
 
     test('never asks for a password', async () => {
