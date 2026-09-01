@@ -5,6 +5,7 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useExtensionAPI } from '../../hooks'
 import type { OutletContext } from '../../types/OutletContext'
 import { ActionRow } from '../home/ActionRow'
+import { AddressesTab } from './AddressesTab'
 import { BalanceBlock } from './BalanceBlock'
 import { IdentitiesTab } from './IdentitiesTab'
 import { OverviewTab } from './OverviewTab'
@@ -67,7 +68,7 @@ function PlatformHomeState (): React.JSX.Element {
           {
             value: 'addresses',
             label: 'Addresses',
-            content: <TabStub label='Addresses' />
+            content: <AddressesTab hide={hideBalance} />
           },
           {
             value: 'tokens',
