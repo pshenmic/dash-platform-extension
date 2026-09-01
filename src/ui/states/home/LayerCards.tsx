@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Text } from 'dash-ui-kit/react'
 import { useStaticAsset } from '../../hooks'
 import { DashAmount, FiatChip } from './DashAmount'
@@ -14,6 +15,7 @@ interface LayerCardProps {
   toneClassName: string
   imageClassName: string
   contentClassName: string
+  onClick: () => void
 }
 
 function LayerCard ({
@@ -25,15 +27,22 @@ function LayerCard ({
   image,
   toneClassName,
   imageClassName,
-  contentClassName
+  contentClassName,
+  onClick
 }: LayerCardProps): React.JSX.Element {
   return (
-    <div className={`relative flex-1 min-w-0 overflow-hidden rounded-[14px] ${toneClassName}`}>
+    <button
+      type='button'
+      onClick={onClick}
+      aria-label={`${title} layer`}
+      className={`group relative flex-1 min-w-0 overflow-hidden rounded-[14px] text-left cursor-pointer border-0 p-0 ${toneClassName}`}
+    >
       <img
         src={image}
         alt=''
-        className={`pointer-events-none absolute max-w-none select-none ${imageClassName}`}
+        className={`pointer-events-none absolute max-w-none select-none transition-transform duration-300 ease-out group-hover:scale-110 ${imageClassName}`}
       />
+      <div className='pointer-events-none absolute inset-0 bg-white/0 transition-colors duration-200 ease-out group-hover:bg-white/12' />
       <div className={`relative z-10 flex flex-col gap-5 ${contentClassName}`}>
         <Text size='sm' weight='medium' className='!text-white !tracking-[-0.03em] !leading-none'>
           {title}
@@ -58,7 +67,7 @@ function LayerCard ({
           </div>
         </div>
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -67,6 +76,7 @@ interface LayerCardsProps {
 }
 
 export function LayerCards ({ hide }: LayerCardsProps): React.JSX.Element {
+  const navigate = useNavigate()
   const coreImage = useStaticAsset('3d-triangles-circle.png')
   const platformImage = useStaticAsset('asset-chain.png')
 
@@ -82,6 +92,7 @@ export function LayerCards ({ hide }: LayerCardsProps): React.JSX.Element {
         toneClassName='bg-[#4C7EFF]'
         imageClassName='right-[-26%] top-[-46%] w-[170px] h-auto opacity-30'
         contentClassName='p-4 pr-8'
+        onClick={() => { void navigate('/core') }}
       />
       <LayerCard
         title='Platform'
@@ -93,6 +104,7 @@ export function LayerCards ({ hide }: LayerCardsProps): React.JSX.Element {
         toneClassName='bg-[#0C1C33]'
         imageClassName='right-[-18%] top-[-32%] w-[115px] h-auto rotate-[-46deg]'
         contentClassName='p-4'
+        onClick={() => { void navigate('/platform') }}
       />
     </div>
   )
