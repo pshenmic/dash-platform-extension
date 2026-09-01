@@ -24,7 +24,7 @@ export function ActionRow (): React.JSX.Element {
         className={`${actionButtonClassName} flex-1`}
         onClick={() => { void navigate('/send-transaction') }}
       >
-        <TopRightArrowIcon size={12} className='!text-dash-brand rotate-180' />
+        <TopRightArrowIcon size={12} className='!text-dash-brand' />
         <Text size='md' weight='medium' className='!text-dash-brand !leading-none'>Send</Text>
       </Button>
       <Button
@@ -33,7 +33,7 @@ export function ActionRow (): React.JSX.Element {
         className={`${actionButtonClassName} flex-1`}
         onClick={() => { void navigate('/receive') }}
       >
-        <TopRightArrowIcon size={12} className='!text-dash-brand' />
+        <TopRightArrowIcon size={12} className='!text-dash-brand rotate-180' />
         <Text size='md' weight='medium' className='!text-dash-brand !leading-none'>Receive</Text>
       </Button>
     </div>
