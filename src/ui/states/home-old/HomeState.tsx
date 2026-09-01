@@ -12,11 +12,11 @@ import { type TokenData } from '../../../types'
 import { IdentityType } from '../../../types/enums/IdentityType'
 import { WalletType } from '../../../types/WalletType'
 import type { OutletContext } from '../../types/OutletContext'
-import { TransactionsList } from '../../components/transactions'
+import { TransactionsList, toTransactionRowItem } from '../../components/transactions'
 import { TokensList } from '../../components/tokens'
 import { NamesList, type NameData } from '../../components/names'
 import { BalanceInfo } from '../../components/data'
-import { fetchNames } from '../../../utils'
+import { fetchNames, getTransactionExplorerUrl } from '../../../utils'
 import { findOpenExtensionTab, focusExtensionTab, openExtensionTab, type OpenExtensionTab } from '../../utils/extensionTab'
 import { buildTopUpUrl } from '../../utils/topUpTabUrl'
 import { ConfirmDialog } from '../../components/controls'
@@ -303,12 +303,15 @@ function HomeState (): React.JSX.Element {
               label: 'Transactions',
               content: (
                 <TransactionsList
-                  transactions={transactionsState.data ?? []}
+                  items={(transactionsState.data ?? []).map(tx => toTransactionRowItem(tx, rateState.data))}
                   loading={transactionsState.loading}
                   error={transactionsState.error}
-                  rate={rateState.data}
-                  currentNetwork={currentNetwork as NetworkType}
                   hideAmounts={hideBalance}
+                  onItemClick={(item) => {
+                    if (item.hash != null && item.hash !== '') {
+                      window.open(getTransactionExplorerUrl(item.hash, currentNetwork as NetworkType), '_blank')
+                    }
+                  }}
                 />
               )
             },
