@@ -1,0 +1,80 @@
+import React, { useCallback, useEffect, useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
+import { Tabs, Text } from 'dash-ui-kit/react'
+import { withAccessControl } from '../../components/auth/withAccessControl'
+import { useExtensionAPI } from '../../hooks'
+import type { OutletContext } from '../../types/OutletContext'
+import { ActionRow } from '../home/ActionRow'
+import { BalanceBlock } from './BalanceBlock'
+import { OverviewTab } from './OverviewTab'
+
+function TabStub ({ label }: { label: string }): React.JSX.Element {
+  return (
+    <Text size='sm' dim>
+      {label} tab — mock only. Live lists land with Platform v2.
+    </Text>
+  )
+}
+
+/**
+ * Platform layer home (Figma 10681:876). Mock balances / ops until explorer + credits APIs wire in.
+ */
+function PlatformHomeState (): React.JSX.Element {
+  const extensionAPI = useExtensionAPI()
+  const { availableIdentities } = useOutletContext<OutletContext>()
+  const [hideBalance, setHideBalance] = useState(false)
+  const [activeTab, setActiveTab] = useState('overview')
+
+  useEffect(() => {
+    extensionAPI.getSettings()
+      .then(settings => { setHideBalance(settings.hideBalance) })
+      .catch(e => console.log('getSettings error', e))
+  }, [extensionAPI])
+
+  const toggleHide = useCallback((): void => {
+    const next = !hideBalance
+    setHideBalance(next)
+    extensionAPI.setSettings(next).catch(e => console.log('setSettings error', e))
+  }, [extensionAPI, hideBalance])
+
+  const refresh = useCallback((): void => {
+    extensionAPI.getIdentities().catch(e => console.log('refresh identities error', e))
+  }, [extensionAPI])
+
+  return (
+    <div className='flex flex-col gap-6'>
+      <BalanceBlock hide={hideBalance} onToggleHide={toggleHide} onRefresh={refresh} />
+      <ActionRow />
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        items={[
+          {
+            value: 'overview',
+            label: 'Overview',
+            content: (
+              <OverviewTab hide={hideBalance} identityCount={availableIdentities.length} />
+            )
+          },
+          {
+            value: 'identities',
+            label: 'Identities',
+            content: <TabStub label='Identities' />
+          },
+          {
+            value: 'addresses',
+            label: 'Addresses',
+            content: <TabStub label='Addresses' />
+          },
+          {
+            value: 'tokens',
+            label: 'Tokens',
+            content: <TabStub label='Tokens' />
+          }
+        ]}
+      />
+    </div>
+  )
+}
+
+export default withAccessControl(PlatformHomeState, { requireWallet: false })
