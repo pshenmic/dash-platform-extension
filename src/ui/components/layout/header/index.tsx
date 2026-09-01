@@ -112,6 +112,13 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
     showBurgerMenu: true
   },
 
+  // Wallet dashboard preview — Figma nav is wallet + menu (network lives in settings)
+  dashboard: {
+    hideLeftSection: true,
+    showWalletSelector: true,
+    showBurgerMenu: true
+  },
+
   // Transaction approval with read-only displays, no back button
   transaction: {
     hideLeftSection: true,
@@ -310,11 +317,14 @@ export default function Header (): React.JSX.Element {
       {config.showBurgerMenu && (
         <Button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          colorScheme='brand'
+          colorScheme={variantKey === 'dashboard' ? 'lightGray' : 'brand'}
           size='xl'
           className='w-12 h-12 p-0 relative z-10'
         >
-          <BurgerMenuIcon color='white' />
+          <BurgerMenuIcon
+            color={variantKey === 'dashboard' ? undefined : 'white'}
+            className={variantKey === 'dashboard' ? '!text-dash-primary-dark-blue' : undefined}
+          />
         </Button>
       )}
 

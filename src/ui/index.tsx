@@ -1,7 +1,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
+import HomeOldState from './states/home-old/HomeState'
 import HomeState from './states/home/HomeState'
+import CoreHomeState from './states/core/CoreHomeState'
 import ImportRegularState from './states/importIdentity/ImportRegularState'
 import ImportMasternodeState from './states/importIdentity/ImportMasternodeState'
 import SelectImportTypesState from './states/importIdentity/SelectImportTypesState'
@@ -78,7 +80,43 @@ const App: React.FC = function () {
         },
         {
           path: '/home',
+          element: <PageWithHeader><HomeOldState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'main'
+            }
+          }
+        },
+        {
+          path: '/home-old',
+          element: <PageWithHeader><HomeOldState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'main'
+            }
+          }
+        },
+        {
+          path: '/dashboard',
           element: <PageWithHeader><HomeState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'dashboard'
+            }
+          }
+        },
+        {
+          path: '/platform',
+          element: <PageWithHeader><HomeOldState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'main'
+            }
+          }
+        },
+        {
+          path: '/core',
+          element: <PageWithHeader><CoreHomeState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'main'
