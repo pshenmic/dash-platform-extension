@@ -4,6 +4,9 @@ import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import HomeOldState from './states/home-old/HomeState'
 import HomeState from './states/home/HomeState'
 import CoreHomeState from './states/core/CoreHomeState'
+import PlatformHomeState from './states/platform/PlatformHomeState'
+import ReceiveState from './states/receive/ReceiveState'
+import TransactionsState from './states/transactions/TransactionsState'
 import ImportRegularState from './states/importIdentity/ImportRegularState'
 import ImportMasternodeState from './states/importIdentity/ImportMasternodeState'
 import SelectImportTypesState from './states/importIdentity/SelectImportTypesState'
@@ -107,10 +110,10 @@ const App: React.FC = function () {
         },
         {
           path: '/platform',
-          element: <PageWithHeader><HomeOldState /></PageWithHeader>,
+          element: <PageWithHeader><PlatformHomeState /></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'main'
+              variant: 'platform'
             }
           }
         },
@@ -119,7 +122,25 @@ const App: React.FC = function () {
           element: <PageWithHeader><CoreHomeState /></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'main'
+              variant: 'simple'
+            }
+          }
+        },
+        {
+          path: '/transactions',
+          element: <PageWithHeader><TransactionsState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'simple'
+            }
+          }
+        },
+        {
+          path: '/receive',
+          element: <PageWithHeader><ReceiveState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'simple'
             }
           }
         },
