@@ -28,27 +28,27 @@ export const PLATFORM_MOCK = {
       title: 'Send',
       detailLabel: 'To:',
       detailValue: '12345...87sj',
-      credits: '-101 236 520',
-      fiat: '~ $0.02',
-      tone: 'out' as const
+      creditsLabel: '-101 236 520',
+      fiatLabel: '~ $0.02',
+      direction: 'out'
     },
     {
       id: 'batch-1',
       title: 'Documents Batch',
       detailLabel: 'Hash:',
       detailValue: '12345...87SJ1',
-      credits: '40 371 460',
-      fiat: '~ $0.008',
-      tone: 'neutral' as const
+      creditsLabel: '40 371 460',
+      fiatLabel: '~ $0.008',
+      direction: 'neutral'
     },
     {
       id: 'receive-1',
       title: 'Receive',
       detailLabel: 'From:',
       detailValue: '12345...87sj',
-      credits: '+ 204 278 360',
-      fiat: '~ $0.04',
-      tone: 'in' as const
+      creditsLabel: '+ 204 278 360',
+      fiatLabel: '~ $0.04',
+      direction: 'in'
     }
   ]
 } as const
