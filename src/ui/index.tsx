@@ -5,6 +5,7 @@ import HomeOldState from './states/home-old/HomeState'
 import HomeState from './states/home/HomeState'
 import CoreHomeState from './states/core/CoreHomeState'
 import PlatformHomeState from './states/platform/PlatformHomeState'
+import IdentityHomeState from './states/identity/IdentityHomeState'
 import ReceiveState from './states/receive/ReceiveState'
 import TransactionsState from './states/transactions/TransactionsState'
 import ImportRegularState from './states/importIdentity/ImportRegularState'
@@ -111,6 +112,15 @@ const App: React.FC = function () {
         {
           path: '/platform',
           element: <PageWithHeader><PlatformHomeState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'platform'
+            }
+          }
+        },
+        {
+          path: '/identity/:identifier',
+          element: <PageWithHeader><IdentityHomeState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'platform'

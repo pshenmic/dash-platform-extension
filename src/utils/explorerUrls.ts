@@ -14,3 +14,8 @@ export const getTransactionExplorerUrl = (transactionHash: string, network: Netw
 export const getPlatformAddressExplorerUrl = (address: string, network: NetworkType = 'testnet'): string => {
   return `${getExplorerUrl(network)}/platformAddress/${address}`
 }
+
+// Explorer page link for an identity.
+export const getIdentityExplorerUrl = (identifier: string, network: NetworkType = 'testnet'): string => {
+  return `${getExplorerUrl(network)}/identity/${identifier}`
+}

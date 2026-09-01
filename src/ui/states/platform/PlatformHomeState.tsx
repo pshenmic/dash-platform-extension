@@ -6,6 +6,7 @@ import { useExtensionAPI } from '../../hooks'
 import type { OutletContext } from '../../types/OutletContext'
 import { ActionRow } from '../home/ActionRow'
 import { BalanceBlock } from './BalanceBlock'
+import { IdentitiesTab } from './IdentitiesTab'
 import { OverviewTab } from './OverviewTab'
 
 function TabStub ({ label }: { label: string }): React.JSX.Element {
@@ -59,7 +60,9 @@ function PlatformHomeState (): React.JSX.Element {
           {
             value: 'identities',
             label: 'Identities',
-            content: <TabStub label='Identities' />
+            content: (
+              <IdentitiesTab hide={hideBalance} identities={availableIdentities} />
+            )
           },
           {
             value: 'addresses',

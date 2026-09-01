@@ -190,7 +190,7 @@ interface Match {
 }
 
 const headerStyles = cva(
-  'relative flex justify-between items-start',
+  'relative z-50 flex justify-between items-start',
   {
     variants: {
       rightType: {

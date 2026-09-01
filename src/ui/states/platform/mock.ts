@@ -22,6 +22,29 @@ export const PLATFORM_MOCK = {
   lastTxHash: 'ba406f3b20a79d59f83af9504a57b0851a7b6fdbb17b91eee1380e6af0fc609e',
   lastTxLayer: 'Platform',
   lastTxKind: 'Normal',
+  identities: [
+    {
+      identifier: 'EWNwtGEC1qAbgF5DfvNUbaZtBXgJrPNS',
+      name: 'wallet.dash',
+      credits: '101236520',
+      changePct: '1.41',
+      txCount: 145
+    },
+    {
+      identifier: 'EWNwtGEC1qAbgF5DfvNUbaZtBXgJrPNS',
+      name: null,
+      credits: '378627520040',
+      changePct: '2.56',
+      txCount: 21
+    },
+    {
+      identifier: 'EWNwtGEC1qAbgF5DfvNUbaZtBXgJrPNS',
+      name: null,
+      credits: '378627520040',
+      changePct: '2.56',
+      txCount: 21
+    }
+  ],
   operations: [
     {
       id: 'send-1',
