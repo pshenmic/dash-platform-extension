@@ -4,6 +4,7 @@ import { MainSettingsScreen } from './screens/MainSettingsScreen'
 import { WalletSettingsScreen } from './screens/WalletSettingsScreen'
 import { PreferencesScreen } from './screens/PreferencesScreen'
 import { ConnectedWebsitesScreen } from './screens/ConnectedWebsitesScreen'
+import { AddressesScreen } from './screens/AddressesScreen'
 import { PrivateKeysScreen } from './screens/PrivateKeysScreen'
 import { ImportPrivateKeysScreen } from './screens/ImportPrivateKeysScreen'
 import { CreateKeyScreen } from './screens/CreateKeyScreen'
@@ -16,12 +17,13 @@ import type { MenuSection as MenuSectionType, SettingsScreenProps } from './type
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { NetworkType } from '../../../types'
 
-type ScreenType = 'main' | 'current-wallet' | 'preferences' | 'connected-websites' | 'private-keys' | 'import-private-keys-settings' | 'create-key-settings' | 'security-privacy' | 'help-support' | 'about-dash'
+type ScreenType = 'main' | 'current-wallet' | 'preferences' | 'connected-websites' | 'platform-addresses' | 'private-keys' | 'import-private-keys-settings' | 'create-key-settings' | 'security-privacy' | 'help-support' | 'about-dash'
 
 const SCREEN_COMPONENTS: Record<string, React.ComponentType<SettingsScreenProps>> = {
   'current-wallet': WalletSettingsScreen,
   preferences: PreferencesScreen,
   'connected-websites': ConnectedWebsitesScreen,
+  'platform-addresses': AddressesScreen,
   'private-keys': PrivateKeysScreen,
   'import-private-keys-settings': ImportPrivateKeysScreen,
   'create-key-settings': CreateKeyScreen,

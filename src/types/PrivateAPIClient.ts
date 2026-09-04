@@ -1,5 +1,6 @@
-import { MESSAGING_TIMEOUT } from '../constants'
+import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT, BLOCKCHAIN_MESSAGING_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
+import { NetworkType } from './NetworkType'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -8,6 +9,35 @@ import { SetupPasswordPayload } from './messages/payloads/SetupPasswordPayload'
 import { VoidResponse } from './messages/response/VoidResponse'
 import { SwitchIdentityPayload } from './messages/payloads/SwitchIdentityPayload'
 import { EmptyPayload } from './messages/payloads/EmptyPayload'
+import { GeneratePlatformAddressesPayload } from './messages/payloads/GeneratePlatformAddressesPayload'
+import { GenerateShieldedAddressesPayload } from './messages/payloads/GenerateShieldedAddressesPayload'
+import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddressesPayload'
+import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
+import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
+import { GetShieldedBalanceResponse } from './messages/response/GetShieldedBalanceResponse'
+import { ShieldToPoolPayload } from './messages/payloads/ShieldToPoolPayload'
+import { ShieldToPoolResponse } from './messages/response/ShieldToPoolResponse'
+import { SendShieldedTransferPayload } from './messages/payloads/SendShieldedTransferPayload'
+import { SendShieldedTransferResponse } from './messages/response/SendShieldedTransferResponse'
+import { UnshieldToAddressPayload } from './messages/payloads/UnshieldToAddressPayload'
+import { UnshieldToAddressResponse } from './messages/response/UnshieldToAddressResponse'
+import { WithdrawShieldedToCorePayload } from './messages/payloads/WithdrawShieldedToCorePayload'
+import { WithdrawShieldedToCoreResponse } from './messages/response/WithdrawShieldedToCoreResponse'
+import { GetPlatformAddressesResponse } from './messages/response/GetPlatformAddressesResponse'
+import { GetPlatformAddressesInfosPayload } from './messages/payloads/GetPlatformAddressesInfosPayload'
+import { GetPlatformAddressesInfosResponse, PlatformAddressBalance } from './messages/response/GetPlatformAddressesInfosResponse'
+import { SendPlatformTransferPayload } from './messages/payloads/SendPlatformTransferPayload'
+import { SendPlatformTransferResponse } from './messages/response/SendPlatformTransferResponse'
+import { IdentityCreditTransferToAddressesPayload } from './messages/payloads/IdentityCreditTransferToAddressesPayload'
+import { IdentityCreditTransferToAddressesResponse } from './messages/response/IdentityCreditTransferToAddressesResponse'
+import { TopUpIdentityFromAddressPayload } from './messages/payloads/TopUpIdentityFromAddressPayload'
+import { TopUpIdentityFromAddressResponse } from './messages/response/TopUpIdentityFromAddressResponse'
+import { WithdrawPlatformAddressToCorePayload } from './messages/payloads/WithdrawPlatformAddressToCorePayload'
+import { WithdrawPlatformAddressToCoreResponse } from './messages/response/WithdrawPlatformAddressToCoreResponse'
+import { RegisterIdentityFromAddressPayload } from './messages/payloads/RegisterIdentityFromAddressPayload'
+import { RegisterIdentityFromAddressResponse } from './messages/response/RegisterIdentityFromAddressResponse'
+import { FundPlatformAddressFromCorePayload } from './messages/payloads/FundPlatformAddressFromCorePayload'
+import { FundPlatformAddressFromCoreResponse } from './messages/response/FundPlatformAddressFromCoreResponse'
 import { CheckPasswordResponse } from './messages/response/CheckPasswordResponse'
 import { CheckPasswordPayload } from './messages/payloads/CheckPasswordPayload'
 import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
@@ -50,8 +80,12 @@ import { CreateIdentityPrivateKeyResponse } from './messages/response/CreateIden
 import { SetWalletLabelPayload } from './messages/payloads/SetWalletLabelPayload'
 import { RemoveWalletPayload } from './messages/payloads/RemoveWalletPayload'
 import { RequestAssetLockFundingAddressResponse } from './messages/response/RequestAssetLockFundingAddressResponse'
+import { RequestTopUpFundingAddressResponse } from './messages/response/RequestTopUpFundingAddressResponse'
+import { RequestTopUpFundingAddressPayload } from './messages/payloads/RequestTopUpFundingAddressPayload'
 import { RegisterIdentityPayload } from './messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from './messages/response/RegisterIdentityResponse'
+import { TopUpIdentityPayload } from './messages/payloads/TopUpIdentityPayload'
+import { TopUpIdentityResponse } from './messages/response/TopUpIdentityResponse'
 import { GetSettingsResponse } from './messages/response/GetSettingsResponse'
 import { SetSettingsPayload } from './messages/payloads/SetSettingsPayload'
 
@@ -329,6 +363,15 @@ export class PrivateAPIClient {
     )
   }
 
+  async requestTopUpFundingAddress (password: string, identityId?: string, walletId?: string, network?: NetworkType): Promise<RequestTopUpFundingAddressResponse> {
+    const payload: RequestTopUpFundingAddressPayload = { password, identityId, walletId, network }
+
+    return await this._rpcCall(
+      MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS,
+      payload
+    )
+  }
+
   async registerIdentity (
     assetLockFundingAddress: string,
     assetLockFundingTxid: string,
@@ -340,7 +383,27 @@ export class PrivateAPIClient {
       password
     }
 
-    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload)
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
+  async topUpIdentity (
+    identityId: string,
+    assetLockFundingAddress: string,
+    assetLockFundingTxid: string,
+    password: string,
+    walletId?: string,
+    network?: NetworkType
+  ): Promise<TopUpIdentityResponse> {
+    const payload: TopUpIdentityPayload = {
+      identityId,
+      assetLockFundingAddress,
+      assetLockFundingTxid,
+      password,
+      walletId,
+      network
+    }
+
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
   async getSettings (): Promise<GetSettingsResponse> {
@@ -355,7 +418,124 @@ export class PrivateAPIClient {
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
   }
 
-  async _rpcCall<T>(method: string, payload?: object): Promise<T> {
+  async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
+    const payload: GeneratePlatformAddressesPayload = { password, count }
+
+    const response: GetPlatformAddressesResponse = await this._rpcCall(MessagingMethods.GENERATE_PLATFORM_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  async listPlatformAddresses (): Promise<GetPlatformAddressesResponse['addresses']> {
+    const payload: EmptyPayload = {}
+
+    const response: GetPlatformAddressesResponse = await this._rpcCall(MessagingMethods.LIST_PLATFORM_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  async getPlatformAddressesInfos (addresses: string[]): Promise<PlatformAddressBalance[]> {
+    const payload: GetPlatformAddressesInfosPayload = { addresses }
+
+    const response: GetPlatformAddressesInfosResponse = await this._rpcCall(MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS, payload)
+
+    return response.infos
+  }
+
+  async sendPlatformTransfer (toAddress: string, amountCredits: string, password: string, fromAddress?: string): Promise<SendPlatformTransferResponse> {
+    const payload: SendPlatformTransferPayload = { toAddress, amountCredits, password, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.SEND_PLATFORM_TRANSFER, payload)
+  }
+
+  async identityCreditTransferToAddresses (toAddress: string, amountCredits: string, password: string): Promise<IdentityCreditTransferToAddressesResponse> {
+    const payload: IdentityCreditTransferToAddressesPayload = { toAddress, amountCredits, password }
+
+    return await this._rpcCall(MessagingMethods.IDENTITY_CREDIT_TRANSFER_TO_ADDRESSES, payload)
+  }
+
+  async topUpIdentityFromAddress (identityId: string, amountCredits: string, password: string, fromAddress?: string): Promise<TopUpIdentityFromAddressResponse> {
+    const payload: TopUpIdentityFromAddressPayload = { identityId, amountCredits, password, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_ADDRESS, payload)
+  }
+
+  async withdrawPlatformAddressToCore (toCoreAddress: string, amountCredits: string, password: string, fromAddress?: string): Promise<WithdrawPlatformAddressToCoreResponse> {
+    const payload: WithdrawPlatformAddressToCorePayload = { toCoreAddress, amountCredits, password, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.WITHDRAW_PLATFORM_ADDRESS_TO_CORE, payload)
+  }
+
+  async registerIdentityFromAddress (amountCredits: string, password: string, fromAddress?: string): Promise<RegisterIdentityFromAddressResponse> {
+    const payload: RegisterIdentityFromAddressPayload = { amountCredits, password, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY_FROM_ADDRESS, payload)
+  }
+
+  async fundPlatformAddressFromCore (platformAddress: string, assetLockFundingAddress: string, assetLockFundingTxid: string, password: string): Promise<FundPlatformAddressFromCoreResponse> {
+    const payload: FundPlatformAddressFromCorePayload = { platformAddress, assetLockFundingAddress, assetLockFundingTxid, password }
+
+    return await this._rpcCall(MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE, payload)
+  }
+
+  // Creates the next shielded addresses and returns them. The wallet keeps the
+  // number of created addresses, so repeated calls advance the diversifier
+  // index instead of returning the same addresses.
+  async generateShieldedAddresses (password: string, count?: number): Promise<GetShieldedAddressesResponse['addresses']> {
+    const payload: GenerateShieldedAddressesPayload = { password, count }
+
+    const response: GetShieldedAddressesResponse = await this._rpcCall(MessagingMethods.GENERATE_SHIELDED_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  // Returns the shielded addresses created so far. `count` overrides that and
+  // derives a wider window (used to scan beyond what was created).
+  async getShieldedAddresses (password: string, account?: number, count?: number): Promise<GetShieldedAddressesResponse['addresses']> {
+    const payload: GetShieldedAddressesPayload = { password, account, count }
+
+    const response: GetShieldedAddressesResponse = await this._rpcCall(MessagingMethods.GET_SHIELDED_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  async getShieldedBalance (password: string, account?: number): Promise<GetShieldedBalanceResponse> {
+    const payload: GetShieldedBalancePayload = { password, account }
+
+    return await this._rpcCall(MessagingMethods.GET_SHIELDED_BALANCE, payload)
+  }
+
+  // Initializes the Halo2 shielded prover once so later spends reuse it.
+  // Long timeout: building the prover is CPU-heavy in the popup.
+  async initShield (): Promise<{ ready: boolean }> {
+    return await this._rpcCall(MessagingMethods.INIT_SHIELD, {}, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  async shieldToPool (amountCredits: string, password: string, fromAddress?: string, memo?: string): Promise<ShieldToPoolResponse> {
+    const payload: ShieldToPoolPayload = { amountCredits, password, fromAddress, memo }
+
+    return await this._rpcCall(MessagingMethods.SHIELD_TO_POOL, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  async sendShieldedTransfer (toShieldedAddress: string, amountCredits: string, password: string, account?: number, memo?: string, fromAddresses?: string[]): Promise<SendShieldedTransferResponse> {
+    const payload: SendShieldedTransferPayload = { toShieldedAddress, amountCredits, password, account, fromAddresses, memo }
+
+    return await this._rpcCall(MessagingMethods.SEND_SHIELDED_TRANSFER, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  async unshieldToAddress (toPlatformAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<UnshieldToAddressResponse> {
+    const payload: UnshieldToAddressPayload = { toPlatformAddress, amountCredits, password, account, memo }
+
+    return await this._rpcCall(MessagingMethods.UNSHIELD_TO_ADDRESS, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  async withdrawShieldedToCore (toCoreAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<WithdrawShieldedToCoreResponse> {
+    const payload: WithdrawShieldedToCorePayload = { toCoreAddress, amountCredits, password, account, memo }
+
+    return await this._rpcCall(MessagingMethods.WITHDRAW_SHIELDED_TO_CORE, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  async _rpcCall<T>(method: string, payload?: object, timeoutMs: number = MESSAGING_TIMEOUT): Promise<T> {
     const id = generateRandomHex(8)
 
     return await new Promise((resolve, reject) => {
@@ -385,7 +565,7 @@ export class PrivateAPIClient {
 
       setTimeout(() => {
         rejectWithError(`Timed out waiting for response of ${method}`)
-      }, MESSAGING_TIMEOUT)
+      }, timeoutMs)
 
       const message: EventData = {
         context: 'dash-platform-extension',

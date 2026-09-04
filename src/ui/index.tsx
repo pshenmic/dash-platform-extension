@@ -24,9 +24,10 @@ const ChooseWalletType = React.lazy(async () => await import('./states/wallet/Ch
 const WalletSuccessfullyCreated = React.lazy(async () => await import('./states/importIdentity/WalletSuccessfullyCreated'))
 const NameRegistrationState = React.lazy(async () => await import('./states/nameRegistration'))
 const WelcomeState = React.lazy(async () => await import('./states/welcome/WelcomeState'))
-const WithdrawState = React.lazy(async () => await import('./states/withdrawal/WithdrawState'))
 const CreateSeedWalletState = React.lazy(async () => await import('./states/wallet/CreateSeedWalletState'))
 const IdentityRegistrationState = React.lazy(async () => await import('./states/identityRegistration/IdentityRegistrationState'))
+const TopUpIdentityState = React.lazy(async () => await import('./states/topup/TopUpIdentityState'))
+const PlatformTransferConfirmState = React.lazy(async () => await import('./states/platformTransfer/PlatformTransferConfirmState'))
 
 const App: React.FC = function () {
   const router = createHashRouter([
@@ -188,6 +189,15 @@ const App: React.FC = function () {
           }
         },
         {
+          path: '/topup-identity',
+          element: <PageWithHeader><TopUpIdentityState /></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'topupIdentity'
+            }
+          }
+        },
+        {
           path: '/send-transaction',
           element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><SendTransactionState /></Suspense></PageWithHeader>,
           handle: {
@@ -197,8 +207,8 @@ const App: React.FC = function () {
           }
         },
         {
-          path: '/withdrawal',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><WithdrawState /></Suspense></PageWithHeader>,
+          path: '/platform-transfer-confirm',
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><PlatformTransferConfirmState/></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'sendTransaction'

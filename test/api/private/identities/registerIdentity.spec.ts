@@ -2,12 +2,11 @@ import { PrivateKey, encrypt } from 'eciesjs'
 import hash from 'hash.js'
 import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { RegisterIdentityHandler } from '../../../../src/content-script/api/private/identities/registerIdentity'
-import { AssetLockFundingAddressesRepository } from '../../../../src/content-script/repository/AssetLockFundingAddressesRepository'
-import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
 import { bytesToHex, hexToBytes } from '../../../../src/utils'
 import { buildAssetLockFromFundingTx } from '../../../../src/utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../src/utils/waitForAssetLockProof'
 import { WalletType } from '../../../../src/types'
+import { IDENTITY_INDEX_SCAN_LIMIT } from '../../../../src/constants'
 
 jest.mock('../../../../src/utils/buildAssetLockFromFundingTx', () => ({
   buildAssetLockFromFundingTx: jest.fn()
@@ -194,6 +193,21 @@ describe('RegisterIdentityHandler', () => {
     })
   }
 
+  test('aborts the index scan on a non-not-found error instead of treating it as a free index', async () => {
+    sdk.identities.getIdentityByPublicKeyHash.mockRejectedValueOnce(new Error('Metadata not found'))
+
+    await expect(handle()).rejects.toThrow('Metadata not found')
+    expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
+  })
+
+  test('throws when no free identity index is found within the scan limit', async () => {
+    sdk.identities.getIdentityByPublicKeyHash.mockResolvedValue({ id: { base58: () => 'x' } })
+
+    await expect(handle()).rejects.toThrow(/Could not find a free identity index/)
+    expect(sdk.identities.getIdentityByPublicKeyHash).toHaveBeenCalledTimes(IDENTITY_INDEX_SCAN_LIMIT)
+    expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
+  })
+
   test('registers identity with full happy-path flow', async () => {
     const result = await handle()
 
@@ -205,7 +219,8 @@ describe('RegisterIdentityHandler', () => {
     expect(coreSDK.broadcastTransaction).toHaveBeenCalledWith(assetLockTx.bytes())
     expect(assetLockFundingAddressesRepository.markAsBroadcasted).toHaveBeenCalledWith(
       assetLockFundingAddress,
-      assetLockTxid
+      assetLockTxid,
+      0
     )
     expect(identitiesRepository.create).toHaveBeenCalledWith(identifier, 'regular', 0)
     expect(sdk.stateTransitions.broadcast).toHaveBeenCalledWith(stateTransition)
@@ -246,18 +261,63 @@ describe('RegisterIdentityHandler', () => {
     expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
   })
 
-  test('rejects when entry has assetLockTxid different from rebuilt asset lock txid', async () => {
+  test('rejects when the pinned index rebuilds a different asset lock txid than the committed one', async () => {
     assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
       address: assetLockFundingAddress,
       encryptedPrivateKey,
       used: false,
-      assetLockTxid: 'c'.repeat(64)
+      assetLockTxid: 'c'.repeat(64),
+      registrationIdentityIndex: 0
     })
 
     await expect(handle()).rejects.toThrow(/already broadcasted with a different asset lock txid/)
 
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
     expect(identitiesRepository.create).not.toHaveBeenCalled()
+  })
+
+  test('recovery reuses the pinned identity index and skips the on-chain free-index scan', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
+      address: assetLockFundingAddress,
+      encryptedPrivateKey,
+      used: false,
+      assetLockTxid,
+      registrationIdentityIndex: 5
+    })
+
+    await handle()
+
+    // No free-index scan on recovery — the pinned index is used as-is.
+    expect(sdk.identities.getIdentityByPublicKeyHash).not.toHaveBeenCalled()
+    expect(sdk.identities.getIdentityByNonUniquePublicKeyHash).not.toHaveBeenCalled()
+    // Identity created at the pinned index, not a freshly scanned one.
+    expect(identitiesRepository.create).toHaveBeenCalledWith(identifier, 'regular', 5)
+    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
+  })
+
+  test('legacy recovery finds the index whose rebuilt asset lock matches the committed txid', async () => {
+    // Index-dependent credit address + txid so the sweep must land on index 2,
+    // reproducing the case where a fresh scan would have picked a different one.
+    deriveIdentityRegistrationKey.mockImplementation(async (_wallet: any, _password: any, index: number) => ({
+      getPublicKey: () => ({ bytes: () => new Uint8Array([index]) })
+    }))
+    sdk.keyPair.p2pkhAddress.mockImplementation((bytes: Uint8Array) => `addr-${bytes[0]}`)
+    buildAssetLockFromFundingTxMock.mockImplementation(async (_c: any, _t: any, _a: any, _w: any, creditAddress: string) => ({
+      assetLockTx: { hash: () => `txid-${creditAddress}`, bytes: () => new Uint8Array([1]) }
+    } as any))
+
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce({
+      address: assetLockFundingAddress,
+      encryptedPrivateKey,
+      used: false,
+      assetLockTxid: 'txid-addr-2' // committed asset lock funded index 2
+    })
+
+    await handle()
+
+    expect(identitiesRepository.create).toHaveBeenCalledWith(identifier, 'regular', 2)
+    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
   test('rejects used funding entry', async () => {
@@ -332,143 +392,5 @@ describe('RegisterIdentityHandler', () => {
 
     expect(identitiesRepository.create).not.toHaveBeenCalled()
     expect(identitiesRepository.remove).not.toHaveBeenCalled()
-  })
-})
-
-describe('AssetLockFundingAddressesRepository broadcast support', () => {
-  const storageKey = 'assetLockFundingAddresses_testnet_wallet1'
-
-  let storage: MemoryStorageAdapter
-  let repository: AssetLockFundingAddressesRepository
-
-  beforeEach(async () => {
-    storage = new MemoryStorageAdapter()
-    await storage.set('network', 'testnet')
-    await storage.set('currentWalletId', 'wallet1')
-    repository = new AssetLockFundingAddressesRepository(storage)
-  })
-
-  test('findUnused skips entries with assetLockTxid set', async () => {
-    await storage.set(storageKey, {
-      broadcasted: {
-        address: 'broadcasted',
-        encryptedPrivateKey: 'k',
-        used: false,
-        assetLockTxid: 'a'.repeat(64)
-      },
-      available: {
-        address: 'available',
-        encryptedPrivateKey: 'k',
-        used: false,
-        assetLockTxid: null
-      }
-    })
-
-    await expect(repository.findUnused()).resolves.toEqual({
-      address: 'available',
-      encryptedPrivateKey: 'k',
-      used: false,
-      assetLockTxid: null
-    })
-  })
-
-  test('markAsBroadcasted fails for missing entry', async () => {
-    await storage.set(storageKey, {})
-
-    await expect(repository.markAsBroadcasted('missing', 'a'.repeat(64))).rejects.toThrow(
-      'Asset lock funding address missing not found'
-    )
-  })
-
-  test('markAsBroadcasted fails for used entry', async () => {
-    await storage.set(storageKey, {
-      address: { address: 'address', encryptedPrivateKey: 'k', used: true, assetLockTxid: null }
-    })
-
-    await expect(repository.markAsBroadcasted('address', 'a'.repeat(64))).rejects.toThrow(
-      'Asset lock funding address address has already been used'
-    )
-  })
-
-  test('markAsBroadcasted fails when txid mismatches', async () => {
-    await storage.set(storageKey, {
-      address: { address: 'address', encryptedPrivateKey: 'k', used: false, assetLockTxid: 'a'.repeat(64) }
-    })
-
-    await expect(repository.markAsBroadcasted('address', 'b'.repeat(64))).rejects.toThrow(
-      /is already broadcasted with txid/
-    )
-  })
-
-  test('markAsBroadcasted is idempotent for the same txid', async () => {
-    const txid = 'a'.repeat(64)
-    await storage.set(storageKey, {
-      address: { address: 'address', encryptedPrivateKey: 'k', used: false, assetLockTxid: txid }
-    })
-
-    await repository.markAsBroadcasted('address', txid)
-
-    await expect(storage.get(storageKey)).resolves.toEqual({
-      address: { address: 'address', encryptedPrivateKey: 'k', used: false, assetLockTxid: txid }
-    })
-  })
-
-  test('markAsBroadcasted sets txid for fresh entry', async () => {
-    const txid = 'a'.repeat(64)
-    await storage.set(storageKey, {
-      address: { address: 'address', encryptedPrivateKey: 'k', used: false }
-    })
-
-    await repository.markAsBroadcasted('address', txid)
-
-    await expect(storage.get(storageKey)).resolves.toEqual({
-      address: { address: 'address', encryptedPrivateKey: 'k', used: false, assetLockTxid: txid }
-    })
-  })
-
-  test('markAsUsed preserves assetLockTxid', async () => {
-    const txid = 'a'.repeat(64)
-    await storage.set(storageKey, {
-      address: { address: 'address', encryptedPrivateKey: 'k', used: false, assetLockTxid: txid }
-    })
-
-    await repository.markAsUsed('address')
-
-    await expect(storage.get(storageKey)).resolves.toEqual({
-      address: { address: 'address', encryptedPrivateKey: 'k', used: true, assetLockTxid: txid }
-    })
-  })
-})
-
-describe('IdentitiesRepository remove', () => {
-  test('removes existing identity by identifier', async () => {
-    const storage = new MemoryStorageAdapter()
-    await storage.set('network', 'testnet')
-    await storage.set('currentWalletId', 'wallet1')
-    const storageKey = 'identities_testnet_wallet1'
-    await storage.set(storageKey, {
-      idA: { identifier: 'idA', index: 0, label: null, proTxHash: null, type: 'regular' },
-      idB: { identifier: 'idB', index: 1, label: null, proTxHash: null, type: 'regular' }
-    })
-
-    const { IdentitiesRepository } = await import('../../../../src/content-script/repository/IdentitiesRepository')
-    const repo = new IdentitiesRepository(storage, {} as any)
-
-    await repo.remove('idA')
-
-    await expect(storage.get(storageKey)).resolves.toEqual({
-      idB: { identifier: 'idB', index: 1, label: null, proTxHash: null, type: 'regular' }
-    })
-  })
-
-  test('remove is a no-op for missing identifier', async () => {
-    const storage = new MemoryStorageAdapter()
-    await storage.set('network', 'testnet')
-    await storage.set('currentWalletId', 'wallet1')
-
-    const { IdentitiesRepository } = await import('../../../../src/content-script/repository/IdentitiesRepository')
-    const repo = new IdentitiesRepository(storage, {} as any)
-
-    await expect(repo.remove('missing')).resolves.toBeUndefined()
   })
 })

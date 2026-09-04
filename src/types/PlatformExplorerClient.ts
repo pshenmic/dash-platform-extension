@@ -4,7 +4,8 @@ import {
   IdentityApiData,
   TransactionsResponse,
   TokenData,
-  TokensResponse
+  TokensResponse,
+  AddressApiData
 } from './PlatformExplorer'
 import { PLATFORM_EXPLORER_URLS } from '../constants'
 
@@ -15,15 +16,12 @@ export {
   TransactionsResponse,
   TokenData,
   TokensResponse,
+  AddressApiData,
   ApiState
 } from './PlatformExplorer'
 
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
   return PLATFORM_EXPLORER_URLS[network].api
-}
-
-const getExplorerUrl = (network: NetworkType = 'testnet'): string => {
-  return PLATFORM_EXPLORER_URLS[network].explorer
 }
 
 export class PlatformExplorerClient {
@@ -109,8 +107,14 @@ export class PlatformExplorerClient {
     }))
   }
 
-  getTransactionExplorerUrl (transactionHash: string, network: NetworkType = 'testnet'): string {
-    const explorerUrl = getExplorerUrl(network)
-    return `${explorerUrl}/transaction/${transactionHash}`
+  async fetchAddress (address: string, network: NetworkType = 'testnet'): Promise<AddressApiData> {
+    const baseUrl = getBaseUrl(network)
+    const response = await fetch(`${baseUrl}/platformAddress/${address}/info`)
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
   }
 }

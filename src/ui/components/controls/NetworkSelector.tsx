@@ -32,9 +32,16 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, vari
     void loadLocalCurrentNetwork()
   }, [extensionAPI])
 
+  // When the parent controls the value, show it rather than an optimistic local
+  // one - the switch can be rejected, and the trigger must not claim otherwise.
+  const displayedNetwork = currentNetwork ?? localCurrentNetwork
+
   const handleNetworkChange = async (network: string): Promise<void> => {
     try {
-      setLocalCurrentNetwork(network)
+      if (currentNetwork == null) {
+        setLocalCurrentNetwork(network)
+      }
+
       onSelect?.(network)
     } catch (error) {
       console.error('Failed to switch network:', error)
@@ -57,7 +64,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, vari
         className={variant === 'card' ? 'text-white' : '!text-dash-primary-dark-blue'}
       />
       <span className={`text-sm font-medium capitalize ${variant === 'card' ? 'text-white' : ''}`}>
-        {localCurrentNetwork}
+        {displayedNetwork}
       </span>
     </div>
   )

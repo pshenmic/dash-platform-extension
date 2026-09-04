@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react'
-import { Button, ChevronIcon, DashLogo } from 'dash-ui-kit/react'
-import { AutoSizingInput } from '../controls'
+import { ChevronIcon, DashLogo } from 'dash-ui-kit/react'
+import { AutoSizingInput, PercentageSlider } from '../controls'
 import { parseDecimalInput } from '../../../utils'
 
 interface AmountInputSectionProps {
@@ -13,6 +13,7 @@ interface AmountInputSectionProps {
   equivalentCurrency: 'usd' | 'dash'
   onEquivalentCurrencyChange: (currency: 'usd' | 'dash') => void
   assetDecimals: number
+  maxBalance?: string | null
 }
 
 export function AmountInputSection ({
@@ -24,7 +25,8 @@ export function AmountInputSection ({
   selectedAsset,
   equivalentCurrency,
   onEquivalentCurrencyChange,
-  assetDecimals
+  assetDecimals,
+  maxBalance
 }: AmountInputSectionProps): React.JSX.Element {
   const [showEquivalentCurrencyMenu, setShowEquivalentCurrencyMenu] = useState(false)
   const currencyMenuRef = useRef<HTMLDivElement>(null)
@@ -55,6 +57,7 @@ export function AmountInputSection ({
     <div className='flex flex-col items-center gap-[1.125rem] py-3 w-full'>
       {/* Dual Input Row */}
       <div className='flex items-end justify-center gap-3 w-full max-w-full px-0'>
+
         {/* Main Amount Input */}
         <AutoSizingInput
           value={amount}
@@ -69,17 +72,6 @@ export function AmountInputSection ({
             const parsed = parseDecimalInput(value, assetDecimals)
             return parsed ?? amount
           }}
-          rightContent={
-            <Button
-              onClick={() => onQuickAmount(1)}
-              variant='solid'
-              colorScheme='lightBlue'
-              size='sm'
-              className='px-2 py-1 !min-h-0 text-[0.75rem] leading-[1.2] bg-[rgba(76,126,255,0.05)] text-dash-brand hover:bg-[rgba(76,126,255,0.1)] flex-shrink-0'
-            >
-              Max
-            </Button>
-          }
         />
 
         {/* Equivalent Input - Only for Credits */}
@@ -135,6 +127,17 @@ export function AmountInputSection ({
           />
         )}
       </div>
+
+      {/* Percentage Slider */}
+      {maxBalance != null && maxBalance !== '' && (
+        <PercentageSlider
+          amount={amount}
+          maxBalance={maxBalance}
+          onPercentage={onQuickAmount}
+          onClear={() => onAmountChange('')}
+          className='px-1'
+        />
+      )}
     </div>
   )
 }
