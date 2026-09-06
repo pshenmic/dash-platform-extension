@@ -44,6 +44,7 @@ describe('SendCoreTransferHandler', () => {
   const password = 'test'
 
   let walletRepository: any
+  let corePendingSpendsRepository: any
   let coreExplorer: any
   let sdk: any
   let coreSDK: any
@@ -65,6 +66,12 @@ describe('SendCoreTransferHandler', () => {
         currentIdentity: null
       })),
       getCoreAccountXpub: jest.fn(async () => 'tpubAccountXpub')
+    }
+
+    corePendingSpendsRepository = {
+      getAll: jest.fn(async () => []),
+      record: jest.fn(async () => {}),
+      remove: jest.fn(async () => {})
     }
 
     coreExplorer = {
@@ -99,7 +106,7 @@ describe('SendCoreTransferHandler', () => {
     sdk = {}
     coreSDK = { broadcastTransaction: jest.fn(async () => ({ transactionId: 'broadcasted' })) }
 
-    handler = new SendCoreTransferHandler(walletRepository, coreExplorer, sdk, coreSDK)
+    handler = new SendCoreTransferHandler(walletRepository, corePendingSpendsRepository, coreExplorer, sdk, coreSDK)
   })
 
   it('spends the wallet outputs, signs and broadcasts the transaction', async () => {
@@ -149,6 +156,76 @@ describe('SendCoreTransferHandler', () => {
     await expect(handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password })))
       .rejects.toThrow('the stored xpub and the wallet seed disagree')
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
+  })
+
+  describe('transactions the explorer has not indexed yet', () => {
+    it('records what it spent and the change it produced', async () => {
+      const response = await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
+
+      expect(corePendingSpendsRepository.record).toHaveBeenCalledWith({
+        txid: response.txid,
+        spentOutpoints: [`${'a'.repeat(64)}:0`],
+        change: {
+          txid: response.txid,
+          vout: 1,
+          amount: (100_000n - 10_000n - FEE_1_IN).toString(),
+          address: CHANGE[1]
+        },
+        broadcastedAt: expect.any(Number)
+      })
+    })
+
+    it('records no change when the leftover went to the fee', async () => {
+      coreExplorer.getAddressesUtxos.mockResolvedValue([utxo(RECEIVING[0], 10_000n + FEE_1_IN + 100n)])
+
+      await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
+
+      expect(corePendingSpendsRepository.record).toHaveBeenCalledWith(
+        expect.not.objectContaining({ change: expect.anything() })
+      )
+    })
+
+    it('does not spend an output a pending transaction already consumed', async () => {
+      coreExplorer.getAddressesUtxos.mockResolvedValue([
+        utxo(RECEIVING[0], 100_000n),
+        utxo(RECEIVING[1], 50_000n, 1)
+      ])
+      corePendingSpendsRepository.getAll.mockResolvedValue([{
+        txid: 'c'.repeat(64),
+        spentOutpoints: [`${'a'.repeat(64)}:0`],
+        broadcastedAt: Date.now()
+      }])
+
+      const response = await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
+
+      expect(response.fromAddresses).toEqual([RECEIVING[1]])
+    })
+
+    it('spends its own change before the explorer knows about it', async () => {
+      coreExplorer.getAddressesUtxos.mockResolvedValue([utxo(RECEIVING[0], 100_000n)])
+      corePendingSpendsRepository.getAll.mockResolvedValue([{
+        txid: 'c'.repeat(64),
+        spentOutpoints: [`${'a'.repeat(64)}:0`],
+        change: { txid: 'c'.repeat(64), vout: 1, amount: '80000', address: CHANGE[0] },
+        broadcastedAt: Date.now()
+      }])
+
+      const response = await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
+
+      expect(response.fromAddresses).toEqual([CHANGE[0]])
+    })
+
+    it('forgets entries the explorer has caught up with', async () => {
+      corePendingSpendsRepository.getAll.mockResolvedValue([{
+        txid: 'c'.repeat(64),
+        spentOutpoints: ['deadbeef:7'],
+        broadcastedAt: Date.now()
+      }])
+
+      await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
+
+      expect(corePendingSpendsRepository.remove).toHaveBeenCalledWith(['c'.repeat(64)])
+    })
   })
 
   it('rejects a source address the wallet does not own', async () => {

@@ -65,6 +65,12 @@ export const CORE_DUST_THRESHOLD = 546n
 // dashscan takes the address list in the query string; chunk it so a wallet with
 // many used addresses cannot blow the URL length limit.
 export const CORE_UTXO_ADDRESS_BATCH = 50
+// How long a broadcast transaction the explorer has not indexed keeps its inputs
+// reserved. Normally an entry is dropped as soon as the explorer stops listing
+// those inputs, well inside this window — Dash mines every 2.5 minutes. The
+// deadline only matters for a transaction that never confirms, so that a
+// dropped or conflicting one cannot strand the funds forever.
+export const CORE_PENDING_SPEND_TTL_MS = 6 * 60 * 60 * 1000
 
 // ── DIP-17 Platform payment addresses ────────────────────────────
 // Derived at m/9'/coin'/17'/account'/keyClass'/index; keyClass 0 = clear funds.

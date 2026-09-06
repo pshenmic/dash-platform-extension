@@ -1,6 +1,7 @@
-import { buildCoreTransfer, estimateCoreFee, estimateCoreTxSize, selectCoreUtxos } from '../../src/utils/coreTransfer'
+import { buildCoreTransfer, estimateCoreFee, estimateCoreTxSize, reconcilePendingSpends, selectCoreUtxos } from '../../src/utils/coreTransfer'
 import { CoreWalletUtxo } from '../../src/content-script/services/CoreExplorerService'
-import { CORE_DUST_THRESHOLD } from '../../src/constants'
+import { CorePendingSpendSchema } from '../../src/content-script/storage/storageSchema'
+import { CORE_DUST_THRESHOLD, CORE_PENDING_SPEND_TTL_MS } from '../../src/constants'
 
 // Valid testnet P2PKH addresses (base58check over a fixed hash160), so the real
 // address decoding runs instead of being stubbed.
@@ -135,5 +136,72 @@ describe('buildCoreTransfer', () => {
   it('refuses a recipient address from another network', () => {
     expect(() => buildCoreTransfer(inputs, 'XanAvE5GMB8CsPH78B9moJq9viEVKvCS4f', 10_000n, CHANGE, 0n, 'testnet'))
       .toThrow(/not a valid testnet address/)
+  })
+})
+
+describe('reconcilePendingSpends', () => {
+  const NOW = 1_700_000_000_000
+  const spent = utxo(RECIPIENT, 100_000n)
+  const untouched = utxo(CHANGE, 40_000n, 9)
+
+  const entry = (overrides: Partial<CorePendingSpendSchema> = {}): CorePendingSpendSchema => ({
+    txid: 'b'.repeat(64),
+    spentOutpoints: [`${spent.txid}:${spent.vout}`],
+    change: { txid: 'b'.repeat(64), vout: 1, amount: '88774', address: CHANGE },
+    broadcastedAt: NOW - 60_000,
+    ...overrides
+  })
+
+  it('hides the outputs a broadcast transaction already spent', () => {
+    const { candidates } = reconcilePendingSpends([spent, untouched], [entry()], NOW)
+
+    expect(candidates.map(candidate => candidate.txid)).not.toContain(spent.txid)
+    expect(candidates).toContainEqual(untouched)
+  })
+
+  it('offers the change of a broadcast transaction before it is mined', () => {
+    const { candidates } = reconcilePendingSpends([spent], [entry()], NOW)
+
+    expect(candidates).toContainEqual({ txid: 'b'.repeat(64), vout: 1, amount: 88_774n, address: CHANGE })
+  })
+
+  it('keeps an entry with no change, which only reserves its inputs', () => {
+    const { candidates, resolvedTxids } = reconcilePendingSpends([spent], [entry({ change: undefined })], NOW)
+
+    expect(candidates).toEqual([])
+    expect(resolvedTxids).toEqual([])
+  })
+
+  it('forgets an entry once the explorer stops listing what it spent', () => {
+    const { candidates, resolvedTxids } = reconcilePendingSpends([untouched], [entry()], NOW)
+
+    // The explorer has caught up, so its view is authoritative again and the
+    // change must come from there rather than from us.
+    expect(resolvedTxids).toEqual(['b'.repeat(64)])
+    expect(candidates).toEqual([untouched])
+  })
+
+  it('never lists a change output twice once the explorer has indexed it', () => {
+    const change = { txid: 'b'.repeat(64), vout: 1, amount: 88_774n, address: CHANGE }
+
+    const { candidates } = reconcilePendingSpends([spent, change], [entry()], NOW)
+
+    expect(candidates.filter(candidate => candidate.txid === change.txid)).toHaveLength(1)
+  })
+
+  it('releases the inputs of a transaction that never confirmed', () => {
+    const stale = entry({ broadcastedAt: NOW - CORE_PENDING_SPEND_TTL_MS - 1 })
+
+    const { candidates, resolvedTxids } = reconcilePendingSpends([spent], [stale], NOW)
+
+    expect(resolvedTxids).toEqual([stale.txid])
+    expect(candidates).toEqual([spent])
+  })
+
+  it('passes the explorer set through untouched when nothing is pending', () => {
+    const { candidates, resolvedTxids } = reconcilePendingSpends([spent, untouched], [], NOW)
+
+    expect(candidates).toEqual([spent, untouched])
+    expect(resolvedTxids).toEqual([])
   })
 })

@@ -4,10 +4,11 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { CoreExplorerService } from '../../../services/CoreExplorerService'
+import { CorePendingSpendsRepository } from '../../../repository/CorePendingSpendsRepository'
 import { NetworkType } from '../../../../types/PlatformExplorer'
 import { CoreAddressChain } from '../../../../types/enums/CoreAddressChain'
 import { CoreAddressEntry, deriveCoreAddressesFromXpub, deriveCoreAddressPrivateKey } from '../../../../utils/coreAddresses'
-import { buildCoreTransfer, selectCoreUtxos } from '../../../../utils/coreTransfer'
+import { buildCoreTransfer, reconcilePendingSpends, selectCoreUtxos } from '../../../../utils/coreTransfer'
 import { deriveWalletHdKey, validateCoreAddress } from '../../../../utils'
 import { SendCoreTransferPayload } from '../../../../types/messages/payloads/SendCoreTransferPayload'
 import { SendCoreTransferResponse } from '../../../../types/messages/response/SendCoreTransferResponse'
@@ -23,12 +24,14 @@ import { SendCoreTransferResponse } from '../../../../types/messages/response/Se
 // same seed are spendable here too.
 export class SendCoreTransferHandler implements APIHandler {
   walletRepository: WalletRepository
+  corePendingSpendsRepository: CorePendingSpendsRepository
   coreExplorer: CoreExplorerService
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
 
-  constructor (walletRepository: WalletRepository, coreExplorer: CoreExplorerService, sdk: DashPlatformSDK, coreSDK: DashCoreSDK) {
+  constructor (walletRepository: WalletRepository, corePendingSpendsRepository: CorePendingSpendsRepository, coreExplorer: CoreExplorerService, sdk: DashPlatformSDK, coreSDK: DashCoreSDK) {
     this.walletRepository = walletRepository
+    this.corePendingSpendsRepository = corePendingSpendsRepository
     this.coreExplorer = coreExplorer
     this.sdk = sdk
     this.coreSDK = coreSDK
@@ -85,9 +88,20 @@ export class SendCoreTransferHandler implements APIHandler {
     const sourceAddresses = fromAddress != null ? [fromAddress] : [...owned.keys()]
     const utxos = await this.coreExplorer.getAddressesUtxos(sourceAddresses, wallet.network as NetworkType)
 
-    // The explorer answers per address, so an entry it cannot attribute to one of
-    // ours has no key to sign it and must not reach coin selection.
-    const spendable = utxos.filter(utxo => owned.has(utxo.address))
+    // The explorer only sees mined transactions, so a send made minutes ago is
+    // missing from its view: it still offers the inputs that send consumed, and
+    // hides the change it produced. Correct both from what we recorded locally,
+    // otherwise two sends in a row pick the same inputs and the second is
+    // rejected as a double spend.
+    const pending = await this.corePendingSpendsRepository.getAll()
+    const { candidates, resolvedTxids } = reconcilePendingSpends(utxos, pending, Date.now())
+
+    await this.corePendingSpendsRepository.remove(resolvedTxids)
+
+    // An entry the explorer could not attribute to one of the addresses we asked
+    // about has no key to sign it, and must not reach coin selection.
+    const sourceSet = new Set(sourceAddresses)
+    const spendable = candidates.filter(utxo => sourceSet.has(utxo.address))
 
     if (spendable.length === 0) {
       throw new Error(fromAddress != null
@@ -134,6 +148,24 @@ export class SendCoreTransferHandler implements APIHandler {
     const txid = transaction.hash()
 
     await this.coreSDK.broadcastTransaction(transaction.bytes())
+
+    // buildCoreTransfer puts the change last, so it is the final output whenever
+    // there is one at all.
+    await this.corePendingSpendsRepository.record({
+      txid,
+      spentOutpoints: selection.inputs.map(utxo => `${utxo.txid}:${utxo.vout}`),
+      ...(selection.change > 0n
+        ? {
+            change: {
+              txid,
+              vout: transaction.outputs.length - 1,
+              amount: selection.change.toString(),
+              address: changeEntry.address
+            }
+          }
+        : {}),
+      broadcastedAt: Date.now()
+    })
 
     return {
       txid,

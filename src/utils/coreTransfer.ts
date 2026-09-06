@@ -1,8 +1,10 @@
 import { Input, Output, Script, Transaction } from 'dash-core-sdk'
 import { CoreWalletUtxo } from '../content-script/services/CoreExplorerService'
+import { CorePendingSpendSchema } from '../content-script/storage/storageSchema'
 import { NetworkType } from '../types/NetworkType'
 import {
   CORE_DUST_THRESHOLD,
+  CORE_PENDING_SPEND_TTL_MS,
   CORE_FEE_PER_BYTE,
   CORE_P2PKH_INPUT_BYTES,
   CORE_P2PKH_OUTPUT_BYTES,
@@ -41,6 +43,71 @@ export const estimateCoreTxSize = (inputCount: number, outputCount: number): num
 // is no absolute minimum to floor the result at.
 export const estimateCoreFee = (inputCount: number, outputCount: number): bigint => {
   return BigInt(estimateCoreTxSize(inputCount, outputCount)) * CORE_FEE_PER_BYTE
+}
+
+const outpoint = (utxo: { txid: string, vout: number }): string => `${utxo.txid}:${utxo.vout}`
+
+export interface PendingSpendReconciliation {
+  // What is really spendable: the explorer's set without the outputs a pending
+  // transaction already consumed, plus the change that transaction paid us.
+  candidates: CoreWalletUtxo[]
+  // Pending entries that have served their purpose and can be forgotten.
+  resolvedTxids: string[]
+}
+
+/**
+ * Corrects the explorer's unspent set with the transactions this wallet has
+ * broadcast but that are not in a block yet.
+ *
+ * An entry stops mattering as soon as the explorer no longer lists the outputs it
+ * spent: at that point the explorer's own view is up to date, and it lists the
+ * change too. The deadline is only there for a transaction that never confirms,
+ * which would otherwise reserve its inputs forever.
+ */
+export const reconcilePendingSpends = (
+  explorerUtxos: CoreWalletUtxo[],
+  pending: CorePendingSpendSchema[],
+  now: number
+): PendingSpendReconciliation => {
+  const explorerOutpoints = new Set(explorerUtxos.map(outpoint))
+
+  const resolvedTxids: string[] = []
+  const spentOutpoints = new Set<string>()
+  const pendingChange: CoreWalletUtxo[] = []
+
+  for (const entry of pending) {
+    const stillUnspentUpstream = entry.spentOutpoints.some(spent => explorerOutpoints.has(spent))
+    const expired = now - entry.broadcastedAt > CORE_PENDING_SPEND_TTL_MS
+
+    if (!stillUnspentUpstream || expired) {
+      resolvedTxids.push(entry.txid)
+      continue
+    }
+
+    for (const spent of entry.spentOutpoints) {
+      spentOutpoints.add(spent)
+    }
+
+    if (entry.change != null) {
+      pendingChange.push({
+        txid: entry.change.txid,
+        vout: entry.change.vout,
+        amount: BigInt(entry.change.amount),
+        address: entry.change.address
+      })
+    }
+  }
+
+  const candidates = explorerUtxos.filter(utxo => !spentOutpoints.has(outpoint(utxo)))
+  const known = new Set(candidates.map(outpoint))
+
+  for (const change of pendingChange) {
+    if (!known.has(outpoint(change))) {
+      candidates.push(change)
+    }
+  }
+
+  return { candidates, resolvedTxids }
 }
 
 /**
