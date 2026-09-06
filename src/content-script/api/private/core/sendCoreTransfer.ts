@@ -54,7 +54,9 @@ export class SendCoreTransferHandler implements APIHandler {
     const xpub = await this.walletRepository.getCoreAccountXpub(account)
 
     if (xpub == null) {
-      throw new Error('Core xpub is not initialized. Generate a Core address first to initialize it')
+      // The xpub is cached only by CreateWallet, and nothing backfills it, so a
+      // wallet made before Core support has none and cannot spend on L1.
+      throw new Error('Core xpub is not initialized: it is cached when a wallet is created, so this wallet has to be re-imported from its seed phrase')
     }
 
     const { nextUnused } = await this.coreExplorer.getXpubSummary(xpub, wallet.network as NetworkType)
