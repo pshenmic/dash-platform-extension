@@ -3,6 +3,8 @@ import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
 import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
+import { SendCoreTransferPayload } from './messages/payloads/SendCoreTransferPayload'
+import { SendCoreTransferResponse } from './messages/response/SendCoreTransferResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -442,6 +444,14 @@ export class PrivateAPIClient {
     const payload: EmptyPayload = {}
 
     return await this._rpcCall(MessagingMethods.GET_CORE_BALANCE, payload)
+  }
+
+  // Sends Core (L1) funds from the wallet's own addresses. `fromAddress` limits
+  // the spend to one of them; omitted, the largest unspent outputs are picked.
+  async sendCoreTransfer (toAddress: string, amountDuffs: string, password: string, fromAddress?: string): Promise<SendCoreTransferResponse> {
+    const payload: SendCoreTransferPayload = { toAddress, amountDuffs, password, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.SEND_CORE_TRANSFER, payload)
   }
 
   async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
