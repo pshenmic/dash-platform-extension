@@ -5,7 +5,7 @@ import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { getSdkPromise } from '../../../utils/sdkLoader'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { GetStatusResponse } from '../../../types/messages/response/GetStatusResponse'
-import { NetworkType, EventData, Identity } from '../../../types'
+import { NetworkType, Identity } from '../../../types'
 import type { HeaderConfigOverride } from '../../types'
 import LoadingScreen from './screens/LoadingScreen'
 import { isTabView } from '../../utils/extensionTab'
@@ -165,18 +165,10 @@ const Layout: FC = () => {
       }
     }
 
-    const handleContentScriptReady = (event: MessageEvent<EventData>): void => {
-      if (event.data?.method === 'content-script-ready') {
-        initializeApp().catch(e => console.log('initializeApp error', e))
-      }
-    }
-
-    window.addEventListener('message', handleContentScriptReady)
+    // No readiness handshake needed any more. getStatus() goes to the service
+    // worker, which starts the offscreen backend before forwarding, and the
+    // backend queues requests that arrive while it is still booting.
     initializeApp().catch(e => console.log('initializeApp error', e))
-
-    return () => {
-      window.removeEventListener('message', handleContentScriptReady)
-    }
   }, [extensionAPI])
 
   // Load data when API becomes and callbacks changes

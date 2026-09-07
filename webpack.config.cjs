@@ -11,6 +11,8 @@ module.exports = (env, argv) => {
     entry: {
       ui: './src/ui/index.tsx',
       ...(isProduction && {
+        background: './src/background/index.ts',
+        offscreen: './src/offscreen/index.ts',
         'content-script': './src/content-script/index.ts',
         injectExtension: './src/injected/dashPlatformExtension.ts',
         injectSdk: './src/injected/dashPlatformSdk.ts'
@@ -65,10 +67,22 @@ module.exports = (env, argv) => {
       minimize: isProduction,
       splitChunks: {
         chunks (chunk) {
-          // Only split chunks for UI entry - not for content-script or injected scripts
+          // Only split the UI entry. background/offscreen/content-script and the
+          // injected scripts each ship as one self-contained file.
           return chunk.name === 'ui'
         },
         cacheGroups: {
+          // The SDK and its WASM must NOT land in an initial chunk — that is
+          // what blocked the popup's first paint. But it must also not be
+          // copied into all ~19 lazy route chunks, so it gets its own async
+          // bundle that whichever route needs it pulls in on demand.
+          sdkAsync: {
+            test: /[\\/]node_modules[\\/](dash-platform-sdk|dash-core-sdk|pshenmic-dpp|@emnapi|@tybys|fflate)[\\/]/,
+            name: 'sdk',
+            chunks: 'async',
+            priority: 30,
+            enforce: true
+          },
           // Critical vendors - React core (loads immediately)
           vendorsCritical: {
             test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/,
@@ -110,10 +124,20 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         filename: 'index.html',
         template: 'src/ui/index.html',
-        chunks: ['vendors', 'content-script', 'ui'], // Vendors → content-script (PrivateAPI) → UI
-        chunksSortMode: 'manual', // Preserve chunk order as specified
+        // The popup is UI only. The backend it talks to lives in the offscreen
+        // document, reached over runtime messaging — so content-script.js (and
+        // the WASM it drags in) no longer belongs here.
+        chunks: ['vendors', 'vendor-ui-kit', 'ui'],
+        chunksSortMode: 'manual',
         inject: 'body',
-        scriptLoading: 'blocking' // Ensure correct load order
+        scriptLoading: 'defer'
+      }),
+      new HtmlWebpackPlugin({
+        filename: 'offscreen.html',
+        template: 'src/offscreen/offscreen.html',
+        chunks: ['offscreen'],
+        inject: 'body',
+        scriptLoading: 'blocking'
       }),
       new webpack.ProvidePlugin({
         Buffer: ['buffer', 'Buffer']

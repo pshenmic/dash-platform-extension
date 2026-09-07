@@ -2,7 +2,7 @@ import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import './styles/app.pcss'
-import LoadingScreen from './components/layout/LoadingScreen'
+import LoadingScreen from './components/layout/screens/LoadingScreen'
 import { loadSdk } from '../utils/sdkLoader'
 import Layout from './components/layout/Layout'
 import PageWithHeader from './components/layout/PageWithHeader'
@@ -208,7 +208,7 @@ const App: React.FC = function () {
         },
         {
           path: '/platform-transfer-confirm',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><PlatformTransferConfirmState/></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><PlatformTransferConfirmState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'sendTransaction'
