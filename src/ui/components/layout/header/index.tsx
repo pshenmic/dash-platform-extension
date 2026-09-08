@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import { cva } from 'class-variance-authority'
 import { useNavigate, useMatches, useOutletContext } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
@@ -7,10 +7,12 @@ import { Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
 import { BackButton } from '../../common'
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
-import { SettingsMenu } from '../../settings'
 import type { LayoutContext } from '../Layout'
 import type { NetworkType } from '../../../../types'
 import { isTabView, closeCurrentExtensionTab } from '../../../utils/extensionTab'
+const SettingsMenu = React.lazy(async () => ({
+  default: (await import('../../settings/SettingsMenu')).SettingsMenu
+}))
 
 const IMAGE_VARIANTS = {
   coins: {
@@ -369,13 +371,15 @@ export default function Header (): React.JSX.Element {
         )
       })()}
 
-      <SettingsMenu
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        currentIdentity={currentIdentity}
-        currentNetwork={currentNetwork}
-        currentWallet={allWallets?.find(wallet => wallet.walletId === currentWallet) ?? null}
-      />
+      <Suspense fallback={null}>
+        <SettingsMenu
+          isOpen={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
+          currentIdentity={currentIdentity}
+          currentNetwork={currentNetwork}
+          currentWallet={allWallets?.find(wallet => wallet.walletId === currentWallet) ?? null}
+        />
+      </Suspense>
     </header>
   )
 }

@@ -1,4 +1,4 @@
-import { DashPlatformSDK } from 'dash-platform-sdk'
+import type { DashPlatformSDK } from 'dash-platform-sdk'
 import type { NameStatus } from '../types'
 import { validateIdentifier } from './index'
 

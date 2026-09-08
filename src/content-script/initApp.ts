@@ -22,7 +22,9 @@ export async function initApp (): Promise<void> {
   const privateAPI = new PrivateAPI(sdk, coreSDK, extensionStorageAdapter)
   const publicAPI = new PublicAPI(sdk, extensionStorageAdapter)
 
-  privateAPI.init()
+  // Handler table only — the popup now talks to the offscreen backend over
+  // real runtime messaging, which does not reach content scripts.
+  privateAPI.buildHandlers()
   publicAPI.init()
 
   // get current wallet

@@ -6,7 +6,13 @@
   "homepage_url": "https://github.com/pshenmic/dash-platform-extension",
   "minimum_chrome_version": "119",
   "description": "A browser extension wallet for interacting with Dash Platform blockchain",
-  "permissions": ["storage"],
+  "permissions": [
+    "storage",
+    "offscreen"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
   },
@@ -16,19 +22,34 @@
     "48": "assets/extension_icon_48.png",
     "128": "assets/extension_icon_128.png"
   },
-  "action":{
+  "action": {
     "default_popup": "index.html",
     "default_title": "Dash Platform Extension"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content-script.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content-script.js"
+      ],
       "run_at": "document_start"
     }
   ],
-  "web_accessible_resources": [{
-    "resources": ["injectSdk.js", "injectExtension.js", "index.html", "/assets/dash_logo.png", "/assets/dash_cointest3.png"],
-    "matches": ["<all_urls>"]
-  }]
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "injectSdk.js",
+        "injectExtension.js",
+        "index.html",
+        "/assets/dash_logo.png",
+        "/assets/dash_cointest3.png",
+        "offscreen.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
 }

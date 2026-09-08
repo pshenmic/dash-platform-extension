@@ -1,4 +1,4 @@
-import { DashPlatformSDK } from 'dash-platform-sdk'
+import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { type NameData } from '../ui/components/names'
 import type { NetworkType, PlatformExplorerClient } from '../types'
 
