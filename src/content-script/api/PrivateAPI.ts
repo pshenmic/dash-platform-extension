@@ -43,7 +43,6 @@ import { CoreExplorerService } from '../services/CoreExplorerService'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
-import { BroadcastError } from '../errors/BroadcastError'
 import { RemoveWalletHandler } from './private/wallet/removeWallet'
 import { TopUpIdentityHandler } from './private/identities/topUpIdentity'
 import { WalletSettingsRepository } from '../repository/WalletSettingsRepository'
@@ -103,7 +102,13 @@ export class PrivateAPI {
     return await handler.handle(data)
   }
 
-  init (): void {
+  /**
+   * Builds the handler table. Transport is deliberately NOT registered here —
+   * the hosting context owns it (see src/offscreen/index.ts), so the same
+   * PrivateAPI boots unchanged in Chrome's offscreen document and Firefox's
+   * event page.
+   */
+  buildHandlers (): void {
     const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk)
     const walletRepository = new WalletRepository(this.storageAdapter, identitiesRepository)
     const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk)
@@ -181,43 +186,5 @@ export class PrivateAPI {
       [MessagingMethods.UNSHIELD_TO_ADDRESS]: new UnshieldToAddressHandler(walletRepository, this.sdk),
       [MessagingMethods.WITHDRAW_SHIELDED_TO_CORE]: new WithdrawShieldedToCoreHandler(walletRepository, this.sdk)
     }
-
-    chrome.runtime.onMessage.addListener((data: EventData) => {
-      const { context, type } = data
-
-      if (context !== 'dash-platform-extension' || type === 'response') {
-        return
-      }
-
-      const { id, method } = data
-
-      this.handleMessage(data)
-        .then((result: any) => {
-          const message: EventData = {
-            id,
-            context: 'dash-platform-extension',
-            type: 'response',
-            method,
-            payload: result,
-            error: null
-          }
-
-          // @ts-expect-error
-          return chrome.runtime.onMessage.dispatch(message)
-        })
-        .catch(e => {
-          const message: EventData = {
-            id,
-            context: 'dash-platform-extension',
-            type: 'response',
-            method,
-            payload: e instanceof BroadcastError ? { signedHex: e.signedHex } : null,
-            error: e.message
-          }
-
-          // @ts-expect-error
-          return chrome.runtime.onMessage.dispatch(message)
-        })
-    })
   }
 }

@@ -1,6 +1,7 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
+import { connectBackend } from '../../../helpers/connectBackend'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
 import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
 import hash from 'hash.js'
@@ -27,7 +28,7 @@ describe('remove identity private key', () => {
     privateAPI = new PrivateAPI(sdk, coreSDK, memoryStorageAdapter)
     privateAPIClient = new PrivateAPIClient()
 
-    privateAPI.init()
+    connectBackend(privateAPI)
 
     const password = 'test'
     const passwordHash = hash.sha256().update(password).digest('hex')

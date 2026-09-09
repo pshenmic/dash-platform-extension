@@ -1,35 +1,53 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
+import './styles/app.pcss'
+import LoadingScreen from './components/layout/screens/LoadingScreen'
+import { loadSdk } from '../utils/sdkLoader'
+import Layout from './components/layout/Layout'
+import PageWithHeader from './components/layout/PageWithHeader'
+
 import HomeOldState from './states/home-old/HomeState'
-import HomeState from './states/home/HomeState'
+// import HomeState from './states/home/HomeState'
 import CoreHomeState from './states/core/CoreHomeState'
 import PlatformHomeState from './states/platform/PlatformHomeState'
 import IdentityHomeState from './states/identity/IdentityHomeState'
 import ReceiveState from './states/receive/ReceiveState'
 import TransactionsState from './states/transactions/TransactionsState'
-import ImportRegularState from './states/importIdentity/ImportRegularState'
-import ImportMasternodeState from './states/importIdentity/ImportMasternodeState'
-import SelectImportTypesState from './states/importIdentity/SelectImportTypesState'
-import StartState from './states/start/StartState'
-import SetupPasswordState from './states/setup/SetupPasswordState'
-import LoginState from './states/login/LoginState'
-import CreateWalletState from './states/wallet/CreateWalletState'
-import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
-import AppConnectState from './states/appConnect/AppConnectState'
-import SendTransactionState from './states/sendTransaction/SendTransactionState'
-import PlatformTransferConfirmState from './states/platformTransfer/PlatformTransferConfirmState'
-import Layout from './components/layout/Layout'
-import PageWithHeader from './components/layout/PageWithHeader'
-import ImportSeedPhrase from './states/importIdentity/ImportSeedPhrase'
-import ChooseWalletType from './states/wallet/ChooseWalletType'
-import WelcomeState from './states/welcome/WelcomeState'
-import CreateSeedWalletState from './states/wallet/CreateSeedWalletState'
-import WalletSuccessfullyCreated from './states/importIdentity/WalletSuccessfullyCreated'
-import NameRegistrationState from './states/nameRegistration'
-import IdentityRegistrationState from './states/identityRegistration/IdentityRegistrationState'
-import TopUpIdentityState from './states/topup/TopUpIdentityState'
-import './styles/app.pcss'
+// import ImportRegularState from './states/importIdentity/ImportRegularState'
+// import ImportMasternodeState from './states/importIdentity/ImportMasternodeState'
+// import SelectImportTypesState from './states/importIdentity/SelectImportTypesState'
+// import StartState from './states/start/StartState'
+// import SetupPasswordState from './states/setup/SetupPasswordState'
+// import LoginState from './states/login/LoginState'
+// import CreateWalletState from './states/wallet/CreateWalletState'
+// import ApproveTransactionState from './states/approveTransaction/ApproveTransactionState'
+// import AppConnectState from './states/appConnect/AppConnectState'
+// import SendTransactionState from './states/sendTransaction/SendTransactionState'
+// import PlatformTransferConfirmState from './states/platformTransfer/PlatformTransferConfirmState'
+
+
+// Lazy load all routes for better performance
+const HomeState = React.lazy(async () => await import('./states/home/HomeState'))
+const ImportRegularState = React.lazy(async () => await import('./states/importIdentity/ImportRegularState'))
+const ImportMasternodeState = React.lazy(async () => await import('./states/importIdentity/ImportMasternodeState'))
+const SelectImportTypesState = React.lazy(async () => await import('./states/importIdentity/SelectImportTypesState'))
+const StartState = React.lazy(async () => await import('./states/start/StartState'))
+const SetupPasswordState = React.lazy(async () => await import('./states/setup/SetupPasswordState'))
+const LoginState = React.lazy(async () => await import('./states/login/LoginState'))
+const CreateWalletState = React.lazy(async () => await import('./states/wallet/CreateWalletState'))
+const ApproveTransactionState = React.lazy(async () => await import('./states/approveTransaction/ApproveTransactionState'))
+const AppConnectState = React.lazy(async () => await import('./states/appConnect/AppConnectState'))
+const SendTransactionState = React.lazy(async () => await import('./states/sendTransaction/SendTransactionState'))
+const ImportSeedPhrase = React.lazy(async () => await import('./states/importIdentity/ImportSeedPhrase'))
+const ChooseWalletType = React.lazy(async () => await import('./states/wallet/ChooseWalletType'))
+const WalletSuccessfullyCreated = React.lazy(async () => await import('./states/importIdentity/WalletSuccessfullyCreated'))
+const NameRegistrationState = React.lazy(async () => await import('./states/nameRegistration'))
+const WelcomeState = React.lazy(async () => await import('./states/welcome/WelcomeState'))
+const CreateSeedWalletState = React.lazy(async () => await import('./states/wallet/CreateSeedWalletState'))
+const IdentityRegistrationState = React.lazy(async () => await import('./states/identityRegistration/IdentityRegistrationState'))
+const TopUpIdentityState = React.lazy(async () => await import('./states/topup/TopUpIdentityState'))
+const PlatformTransferConfirmState = React.lazy(async () => await import('./states/platformTransfer/PlatformTransferConfirmState'))
 
 const App: React.FC = function () {
   const router = createHashRouter([
@@ -39,7 +57,7 @@ const App: React.FC = function () {
         {
           index: true,
           path: '/',
-          element: <PageWithHeader><StartState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><StartState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'minimal'
@@ -48,7 +66,7 @@ const App: React.FC = function () {
         },
         {
           path: '/choose-wallet-type',
-          element: <PageWithHeader><ChooseWalletType /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ChooseWalletType /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'chooseWalletType'
@@ -57,7 +75,7 @@ const App: React.FC = function () {
         },
         {
           path: '/welcome',
-          element: <PageWithHeader><WelcomeState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><WelcomeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'welcome'
@@ -65,8 +83,8 @@ const App: React.FC = function () {
           }
         },
         {
-          path: '/create-seed-wallet',
-          element: <PageWithHeader><CreateSeedWalletState /></PageWithHeader>,
+          path: '/import-seed-phrase',
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ImportSeedPhrase /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -74,8 +92,8 @@ const App: React.FC = function () {
           }
         },
         {
-          path: '/import-seed-phrase',
-          element: <PageWithHeader><ImportSeedPhrase /></PageWithHeader>,
+          path: '/create-seed-wallet',
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><CreateSeedWalletState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -84,7 +102,7 @@ const App: React.FC = function () {
         },
         {
           path: '/home',
-          element: <PageWithHeader><HomeState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><HomeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'main'
@@ -156,7 +174,7 @@ const App: React.FC = function () {
         },
         {
           path: '/setup-password',
-          element: <PageWithHeader><SetupPasswordState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><SetupPasswordState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'onboarding'
@@ -165,7 +183,7 @@ const App: React.FC = function () {
         },
         {
           path: '/login',
-          element: <PageWithHeader><LoginState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><LoginState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'landing'
@@ -174,7 +192,7 @@ const App: React.FC = function () {
         },
         {
           path: '/create-wallet',
-          element: <PageWithHeader><CreateWalletState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><CreateWalletState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'simple'
@@ -183,7 +201,7 @@ const App: React.FC = function () {
         },
         {
           path: '/import-regular-identity',
-          element: <PageWithHeader><ImportRegularState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ImportRegularState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -192,7 +210,7 @@ const App: React.FC = function () {
         },
         {
           path: '/import-masternode-identity',
-          element: <PageWithHeader><ImportMasternodeState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ImportMasternodeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -201,7 +219,7 @@ const App: React.FC = function () {
         },
         {
           path: '/select-import-type',
-          element: <PageWithHeader><SelectImportTypesState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><SelectImportTypesState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -210,7 +228,7 @@ const App: React.FC = function () {
         },
         {
           path: '/approve/:txhash',
-          element: <PageWithHeader><ApproveTransactionState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ApproveTransactionState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'transaction'
@@ -219,7 +237,7 @@ const App: React.FC = function () {
         },
         {
           path: '/connect/:id',
-          element: <PageWithHeader><AppConnectState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><AppConnectState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'simple'
@@ -228,7 +246,7 @@ const App: React.FC = function () {
         },
         {
           path: '/wallet-created',
-          element: <PageWithHeader><WalletSuccessfullyCreated /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><WalletSuccessfullyCreated /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'minimal'
@@ -237,7 +255,7 @@ const App: React.FC = function () {
         },
         {
           path: '/name-registration',
-          element: <PageWithHeader><NameRegistrationState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><NameRegistrationState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'simple'
@@ -246,7 +264,7 @@ const App: React.FC = function () {
         },
         {
           path: '/register-identity',
-          element: <PageWithHeader><IdentityRegistrationState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><IdentityRegistrationState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'identityRegistration'
@@ -264,7 +282,7 @@ const App: React.FC = function () {
         },
         {
           path: '/send-transaction',
-          element: <PageWithHeader><SendTransactionState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><SendTransactionState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'sendTransaction'
@@ -273,7 +291,7 @@ const App: React.FC = function () {
         },
         {
           path: '/platform-transfer-confirm',
-          element: <PageWithHeader><PlatformTransferConfirmState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><PlatformTransferConfirmState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'sendTransaction'
@@ -297,3 +315,18 @@ const rootDiv = ReactDOM.createRoot(root)
 rootDiv.render(
   <App />
 )
+
+// Hide initial HTML loader after React is ready
+const initialLoader = document.getElementById('initial-loader')
+if (initialLoader != null) {
+  initialLoader.classList.add('hidden')
+}
+
+// Load SDK in background - non-blocking
+loadSdk()
+  .then(() => {
+    console.log('✅ Dash Platform SDK loaded successfully')
+  })
+  .catch(error => {
+    console.error('❌ Failed to load SDK:', error)
+  })

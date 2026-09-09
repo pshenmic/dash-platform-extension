@@ -5,12 +5,14 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = (env, argv) => {
   const mode = argv.mode || 'development'
+  const isProduction = mode === 'production'
 
   return ({
-    devtool: 'inline-source-map',
     entry: {
       ui: './src/ui/index.tsx',
-      ...(mode === 'production' && {
+      ...(isProduction && {
+        background: './src/background/index.ts',
+        offscreen: './src/offscreen/index.ts',
         'content-script': './src/content-script/index.ts',
         injectExtension: './src/injected/dashPlatformExtension.ts',
         injectSdk: './src/injected/dashPlatformSdk.ts'
@@ -61,6 +63,53 @@ module.exports = (env, argv) => {
         worker_threads: false
       }
     },
+    optimization: {
+      minimize: isProduction,
+      splitChunks: {
+        chunks (chunk) {
+          // Only split the UI entry. background/offscreen/content-script and the
+          // injected scripts each ship as one self-contained file.
+          return chunk.name === 'ui'
+        },
+        cacheGroups: {
+          // The SDK and its WASM must NOT land in an initial chunk — that is
+          // what blocked the popup's first paint. But it must also not be
+          // copied into all ~19 lazy route chunks, so it gets its own async
+          // bundle that whichever route needs it pulls in on demand.
+          sdkAsync: {
+            test: /[\\/]node_modules[\\/](dash-platform-sdk|dash-core-sdk|pshenmic-dpp|@emnapi|@tybys|fflate)[\\/]/,
+            name: 'sdk',
+            chunks: 'async',
+            priority: 30,
+            enforce: true
+          },
+          // Critical vendors - React core (loads immediately)
+          vendorsCritical: {
+            test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/,
+            name: 'vendors',
+            priority: 20,
+            enforce: true
+          },
+          // UI Kit - can be lazy loaded
+          vendorsUIKit: {
+            test: /[\\/]node_modules[\\/]dash-ui-kit[\\/]/,
+            name: 'vendor-ui-kit',
+            priority: 15,
+            enforce: true
+          },
+          // All other node_modules
+          commons: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            priority: 5
+          }
+        }
+      },
+      runtimeChunk: false, // Don't create separate runtime chunk for extensions
+      moduleIds: 'deterministic', // Better caching
+      usedExports: true, // Tree shaking
+      sideEffects: true // Honor package.json sideEffects flag
+    },
     plugins: [
       new CopyWebpackPlugin({
         patterns: [
@@ -68,20 +117,27 @@ module.exports = (env, argv) => {
             from: './src/ui/assets',
             to: 'assets',
             toType: 'dir'
-          }
-        ]
-      }),
-      new CopyWebpackPlugin({
-        patterns: [
+          },
           { from: 'manifest.json' }
         ]
       }),
       new HtmlWebpackPlugin({
         filename: 'index.html',
-        template: 'src/ui/index.html'
+        template: 'src/ui/index.html',
+        // The popup is UI only. The backend it talks to lives in the offscreen
+        // document, reached over runtime messaging — so content-script.js (and
+        // the WASM it drags in) no longer belongs here.
+        chunks: ['vendors', 'vendor-ui-kit', 'ui'],
+        chunksSortMode: 'manual',
+        inject: 'body',
+        scriptLoading: 'defer'
       }),
-      new webpack.optimize.LimitChunkCountPlugin({
-        maxChunks: 1
+      new HtmlWebpackPlugin({
+        filename: 'offscreen.html',
+        template: 'src/offscreen/offscreen.html',
+        chunks: ['offscreen'],
+        inject: 'body',
+        scriptLoading: 'blocking'
       }),
       new webpack.ProvidePlugin({
         Buffer: ['buffer', 'Buffer']
@@ -91,6 +147,11 @@ module.exports = (env, argv) => {
       static: {
         directory: path.resolve(__dirname, 'src/ui')
       }
+    },
+    performance: {
+      hints: isProduction ? 'warning' : false,
+      maxEntrypointSize: 3000000,
+      maxAssetSize: 3000000
     }
   })
 }
