@@ -1,6 +1,6 @@
 import React, { useState, Suspense } from 'react'
 import { cva } from 'class-variance-authority'
-import { useNavigate, useMatches, useOutletContext, useParams, useLocation } from 'react-router-dom'
+import { useNavigate, useMatches, useOutletContext, useParams } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import { useWalletName } from '../../../hooks/useWalletName'
 import { Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
@@ -10,7 +10,6 @@ import { WalletSelector } from '../../controls/WalletSelector'
 import { IdentitySelector } from '../../controls/IdentitySelector'
 import type { LayoutContext } from '../Layout'
 import type { NetworkType } from '../../../../types'
-import { locationReturnPath } from '../../../types'
 import { isTabView, closeCurrentExtensionTab } from '../../../utils/extensionTab'
 const SettingsMenu = React.lazy(async () => ({
   default: (await import('../../settings/SettingsMenu')).SettingsMenu
@@ -131,6 +130,13 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
     showBurgerMenu: true
   },
 
+  // Core layer home — back to dashboard + wallet + menu
+  core: {
+    hideLeftSection: false,
+    showWalletSelector: true,
+    showBurgerMenu: true
+  },
+
   // Identity home — back + identity selector (wallet identities) + menu
   identity: {
     hideLeftSection: false,
@@ -235,7 +241,6 @@ export default function Header (): React.JSX.Element {
   const matches = useMatches() as Match[]
   const { identifier: routeIdentifier } = useParams<{ identifier: string }>()
   const navigate = useNavigate()
-  const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const walletName = useWalletName()
   const deepestRoute = [...matches].reverse().find((m): boolean =>
@@ -284,8 +289,8 @@ export default function Header (): React.JSX.Element {
   }
 
   const handleBack = (): void => {
-    if (variantKey === 'identity') {
-      void navigate(locationReturnPath(location.state, '/platform'))
+    if (variantKey === 'core') {
+      void navigate('/home')
       return
     }
 
@@ -305,7 +310,7 @@ export default function Header (): React.JSX.Element {
   }
 
   const headerIdentityId = routeIdentifier ?? currentIdentity ?? ''
-  const isLightChrome = variantKey === 'dashboard' || variantKey === 'platform' || variantKey === 'identity'
+  const isLightChrome = variantKey === 'dashboard' || variantKey === 'platform' || variantKey === 'identity' || variantKey === 'core'
 
   return (
     <header

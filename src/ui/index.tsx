@@ -124,10 +124,10 @@ const App: React.FC = function () {
         },
         {
           path: '/core',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><CoreHomeState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><CoreHomeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'simple'
+              variant: 'core'
             }
           }
         },

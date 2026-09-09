@@ -51,7 +51,7 @@ export const PLATFORM_MOCK = {
       title: 'Send',
       detailLabel: 'To:',
       detailValue: '12345...87sj',
-      creditsLabel: '-101 236 520',
+      credits: '101236520',
       fiatLabel: '~ $0.02',
       direction: 'out'
     },
@@ -60,7 +60,7 @@ export const PLATFORM_MOCK = {
       title: 'Documents Batch',
       detailLabel: 'Hash:',
       detailValue: '12345...87SJ1',
-      creditsLabel: '40 371 460',
+      credits: '40371460',
       fiatLabel: '~ $0.008',
       direction: 'neutral'
     },
@@ -69,7 +69,7 @@ export const PLATFORM_MOCK = {
       title: 'Receive',
       detailLabel: 'From:',
       detailValue: '12345...87sj',
-      creditsLabel: '+ 204 278 360',
+      credits: '204278360',
       fiatLabel: '~ $0.04',
       direction: 'in'
     }
