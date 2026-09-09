@@ -1,5 +1,6 @@
 export { default as TransactionHashBlock } from './TransactionHashBlock'
 export { default as TransactionsList } from './TransactionsList'
+export { TransactionsFooter } from './TransactionsFooter'
 export { TransactionRow, type TransactionRowItem, type TransactionDirection } from './TransactionRow'
 export { toTransactionRowItem } from './toTransactionRowItem'
 export { TransactionField } from './TransactionField'

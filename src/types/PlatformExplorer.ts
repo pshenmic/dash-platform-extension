@@ -46,8 +46,16 @@ export interface IdentityApiData {
   txHash: string | null
 }
 
+export interface ApiPagination {
+  page: number
+  limit: number
+  total: number
+}
+
 export interface TransactionsResponse {
   resultSet: TransactionData[]
+  // Present only when the request passes an explicit limit.
+  pagination?: ApiPagination
   error?: string | null
 }
 
@@ -106,11 +114,7 @@ export interface TokenData {
   preProgrammedDistribution: any | null
 }
 
-export interface TokensPagination {
-  page: number
-  limit: number
-  total: number
-}
+export type TokensPagination = ApiPagination
 
 export interface TokensResponse {
   resultSet: TokenData[]

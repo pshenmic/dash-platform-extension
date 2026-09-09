@@ -83,7 +83,7 @@ function IdentityHomeState (): React.JSX.Element {
       {identifier !== '' && (
         <IdentityIdRow identifier={identifier} network={network} />
       )}
-      <ActionRow />
+      <ActionRow scope='identity' identityId={identifier} />
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}

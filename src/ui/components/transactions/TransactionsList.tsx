@@ -20,9 +20,10 @@ interface DateGroup {
 }
 
 function dateKey (item: TransactionRowItem): string {
-  const date = item.timestamp != null && item.timestamp !== ''
-    ? new Date(item.timestamp)
-    : new Date()
+  if (item.timestamp == null || item.timestamp === '') return 'Unknown date'
+
+  const date = new Date(item.timestamp)
+  if (Number.isNaN(date.getTime())) return 'Unknown date'
 
   return date.toLocaleDateString('en-GB', {
     day: 'numeric',

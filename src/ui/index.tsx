@@ -133,10 +133,10 @@ const App: React.FC = function () {
         },
         {
           path: '/transactions',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><TransactionsState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><TransactionsState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'simple'
+              variant: 'transactions'
             }
           }
         },

@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Button, Text } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { TransactionsList, type TransactionRowItem } from '../../components/transactions'
-import { useExtensionAPI } from '../../hooks'
+import { useExtensionAPI, useOpenTransactions } from '../../hooks'
 import { ActionRow } from '../home/ActionRow'
 import { LastTransaction } from '../home/LastTransaction'
 import { CoreBalance } from './CoreBalance'
@@ -14,8 +13,8 @@ import { CORE_MOCK } from './mock'
  * Core layer home (Figma 10698:112). Mock balances / txs until Core APIs wire in.
  */
 function CoreHomeState (): React.JSX.Element {
-  const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
+  const openTransactions = useOpenTransactions('core')
   const [hideBalance, setHideBalance] = useState(false)
 
   useEffect(() => {
@@ -37,7 +36,7 @@ function CoreHomeState (): React.JSX.Element {
   return (
     <div className='flex flex-col gap-6'>
       <CoreBalance hide={hideBalance} onToggleHide={toggleHide} onRefresh={refresh} />
-      <ActionRow />
+      <ActionRow scope='core' />
       <div className='flex flex-col gap-4'>
         <TransactionsList
           items={CORE_MOCK.operations.map((op): TransactionRowItem => ({ ...op }))}
@@ -49,7 +48,7 @@ function CoreHomeState (): React.JSX.Element {
               type='button'
               colorScheme='lightBlue'
               className='!h-auto !min-h-0 !rounded-xl !py-2 !px-6'
-              onClick={() => { void navigate('/transactions') }}
+              onClick={openTransactions}
             >
               <Text size='sm' weight='medium' className='!text-dash-brand'>
                 See All Transactions

@@ -8,6 +8,7 @@ import {
   AddressApiData
 } from './PlatformExplorer'
 import { PLATFORM_EXPLORER_URLS } from '../constants'
+import { buildIdentityTransactionsUrl } from '../utils/explorerUrls'
 
 export {
   NetworkType,
@@ -17,7 +18,8 @@ export {
   TokenData,
   TokensResponse,
   AddressApiData,
-  ApiState
+  ApiState,
+  ApiPagination
 } from './PlatformExplorer'
 
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
@@ -64,7 +66,7 @@ export class PlatformExplorerClient {
 
   async fetchTransactions (identityId: string, network: NetworkType = 'testnet', order: 'desc' | 'asc' = 'desc'): Promise<TransactionData[]> {
     const baseUrl = getBaseUrl(network)
-    const response = await fetch(`${baseUrl}/identity/${identityId}/transactions?order=${order}`)
+    const response = await fetch(buildIdentityTransactionsUrl(baseUrl, identityId, { order }))
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -77,6 +79,32 @@ export class PlatformExplorerClient {
     }
 
     return data.resultSet
+  }
+
+  // Single page of identity transactions, pagination envelope included.
+  async fetchTransactionsPage (
+    identityId: string,
+    network: NetworkType = 'testnet',
+    limit: number = 10,
+    page: number = 1,
+    order: 'desc' | 'asc' = 'desc',
+    signal?: AbortSignal
+  ): Promise<TransactionsResponse> {
+    const baseUrl = getBaseUrl(network)
+    const url = buildIdentityTransactionsUrl(baseUrl, identityId, { limit, page, order })
+    const response = await fetch(url, { signal })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data: TransactionsResponse = await response.json()
+
+    if (data.error != null) {
+      throw new Error(data.error)
+    }
+
+    return data
   }
 
   async fetchTokens (identityId: string, network: NetworkType = 'testnet', limit: number = 10, page: number = 1): Promise<TokenData[]> {

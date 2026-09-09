@@ -46,7 +46,7 @@ function PlatformHomeState (): React.JSX.Element {
   return (
     <div className='flex flex-col gap-6'>
       <BalanceBlock hide={hideBalance} onToggleHide={toggleHide} onRefresh={refresh} />
-      <ActionRow />
+      <ActionRow scope='platform' />
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}

@@ -1,6 +1,6 @@
 import React, { useState, Suspense } from 'react'
 import { cva } from 'class-variance-authority'
-import { useNavigate, useMatches, useOutletContext, useParams } from 'react-router-dom'
+import { useNavigate, useMatches, useLocation, useOutletContext, useParams } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import { useWalletName } from '../../../hooks/useWalletName'
 import { Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
@@ -11,6 +11,7 @@ import { IdentitySelector } from '../../controls/IdentitySelector'
 import type { LayoutContext } from '../Layout'
 import type { NetworkType } from '../../../../types'
 import { isTabView, closeCurrentExtensionTab } from '../../../utils/extensionTab'
+import { locationReturnPath } from '../../../types'
 const SettingsMenu = React.lazy(async () => ({
   default: (await import('../../settings/SettingsMenu')).SettingsMenu
 }))
@@ -138,6 +139,13 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
   },
 
   // Identity home — back + identity selector (wallet identities) + menu
+  // Transactions list: back to origin + wallet + menu
+  transactions: {
+    hideLeftSection: false,
+    showWalletSelector: true,
+    showBurgerMenu: true
+  },
+
   identity: {
     hideLeftSection: false,
     showIdentitySelector: true,
@@ -241,6 +249,7 @@ export default function Header (): React.JSX.Element {
   const matches = useMatches() as Match[]
   const { identifier: routeIdentifier } = useParams<{ identifier: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const walletName = useWalletName()
   const deepestRoute = [...matches].reverse().find((m): boolean =>
@@ -294,6 +303,11 @@ export default function Header (): React.JSX.Element {
       return
     }
 
+    if (variantKey === 'transactions') {
+      void navigate(locationReturnPath(location.state, '/home'))
+      return
+    }
+
     if (isTabView() && window.history.length <= 1) {
       // Opened straight into a fresh tab - there is no previous entry to return to.
       void closeCurrentExtensionTab()
@@ -310,7 +324,7 @@ export default function Header (): React.JSX.Element {
   }
 
   const headerIdentityId = routeIdentifier ?? currentIdentity ?? ''
-  const isLightChrome = variantKey === 'dashboard' || variantKey === 'platform' || variantKey === 'identity' || variantKey === 'core'
+  const isLightChrome = variantKey === 'dashboard' || variantKey === 'platform' || variantKey === 'identity' || variantKey === 'core' || variantKey === 'transactions'
 
   return (
     <header

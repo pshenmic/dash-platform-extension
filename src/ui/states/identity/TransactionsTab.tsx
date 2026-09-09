@@ -1,8 +1,9 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Button, CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
 import { LastTransaction } from '../home/LastTransaction'
 import { TransactionsList, toTransactionRowItem, type TransactionRowItem } from '../../components/transactions'
+import { useOpenTransactions } from '../../hooks'
 import { creditsToDash, getTransactionExplorerUrl } from '../../../utils'
 import type { NetworkType } from '../../../types'
 import type { TransactionData } from '../../hooks/usePlatformExplorerApi'
@@ -65,7 +66,8 @@ export function TransactionsTab ({
   nameCount,
   lastName
 }: TransactionsTabProps): React.JSX.Element {
-  const navigate = useNavigate()
+  const { identifier } = useParams<{ identifier: string }>()
+  const openTransactions = useOpenTransactions('identity', identifier)
   const items: TransactionRowItem[] = transactions.map(tx => toTransactionRowItem(tx, rate))
   const received = items.filter(item => item.direction === 'in').length
   const sent = items.filter(item => item.direction === 'out').length
@@ -95,7 +97,7 @@ export function TransactionsTab ({
             type='button'
             colorScheme='lightBlue'
             className='!h-auto !min-h-0 !rounded-xl !py-2 !px-6'
-            onClick={() => { void navigate('/transactions') }}
+            onClick={openTransactions}
           >
             <Text size='sm' weight='medium' className='!text-dash-brand'>
               See All Transactions

@@ -1,8 +1,8 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Button, CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
 import { LastTransaction } from '../home/LastTransaction'
 import { TransactionsList, type TransactionRowItem } from '../../components/transactions'
+import { useOpenTransactions } from '../../hooks'
 import { PLATFORM_MOCK } from './mock'
 
 interface StatCardProps {
@@ -46,7 +46,7 @@ interface OverviewTabProps {
 }
 
 export function OverviewTab ({ hide, identityCount }: OverviewTabProps): React.JSX.Element {
-  const navigate = useNavigate()
+  const openTransactions = useOpenTransactions('platform')
   const identities = identityCount > 0 ? identityCount : PLATFORM_MOCK.identityCountFallback
 
   return (
@@ -61,7 +61,7 @@ export function OverviewTab ({ hide, identityCount }: OverviewTabProps): React.J
             type='button'
             colorScheme='lightBlue'
             className='!h-auto !min-h-0 !rounded-xl !py-2 !px-6'
-            onClick={() => { void navigate('/transactions') }}
+            onClick={openTransactions}
           >
             <Text size='sm' weight='medium' className='!text-dash-brand'>
               See All Transactions
