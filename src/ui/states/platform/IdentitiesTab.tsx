@@ -12,7 +12,7 @@ import {
 import type { Identity, NetworkType } from '../../../types'
 import { fetchNames, formatCredits, getIdentityExplorerUrl, splitDpns } from '../../../utils'
 import { usePlatformExplorerClient, useSdk } from '../../hooks'
-import type { OutletContext } from '../../types/OutletContext'
+import { locationReturnState, type OutletContext } from '../../types'
 import { PLATFORM_MOCK } from './mock'
 
 const iconChipClassName = 'flex items-center justify-center size-6 p-1 rounded-[5px] bg-[rgba(12,28,51,0.05)] shrink-0 transition-colors hover:bg-[rgba(12,28,51,0.12)]'
@@ -204,7 +204,7 @@ export function IdentitiesTab ({ hide, identities }: IdentitiesTabProps): React.
 
   const openIdentity = (identifier: string): void => {
     setCurrentIdentity(identifier)
-    void navigate(`/identity/${identifier}`, { state: { from: '/platform' } })
+    void navigate(`/identity/${identifier}`, { state: locationReturnState('/platform') })
   }
 
   const createIdentity = (): void => {

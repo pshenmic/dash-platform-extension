@@ -10,6 +10,7 @@ import { WalletSelector } from '../../controls/WalletSelector'
 import { IdentitySelector } from '../../controls/IdentitySelector'
 import type { LayoutContext } from '../Layout'
 import type { NetworkType } from '../../../../types'
+import { locationReturnPath } from '../../../types'
 import { isTabView, closeCurrentExtensionTab } from '../../../utils/extensionTab'
 const SettingsMenu = React.lazy(async () => ({
   default: (await import('../../settings/SettingsMenu')).SettingsMenu
@@ -284,8 +285,7 @@ export default function Header (): React.JSX.Element {
 
   const handleBack = (): void => {
     if (variantKey === 'identity') {
-      const from = (location.state as { from?: string } | null)?.from
-      void navigate(from != null && from !== '' ? from : '/platform')
+      void navigate(locationReturnPath(location.state, '/platform'))
       return
     }
 
