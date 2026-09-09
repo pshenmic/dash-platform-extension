@@ -67,7 +67,11 @@ function TransactionsState (): React.JSX.Element {
     void navigate(transactionsPath(next), { replace: true, state: location.state })
   }, [navigate, location.state])
 
-  const clearIdentity = useCallback((): void => { changeScope('platform') }, [changeScope])
+  const changeIdentity = useCallback((next: string | null): void => {
+    const path = next == null ? transactionsPath('platform') : transactionsPath('identity', next)
+
+    void navigate(path, { replace: true, state: location.state })
+  }, [navigate, location.state])
 
   const counter = useMemo(() => {
     if (items.length === 0) return SCOPE_LABELS[scope]
@@ -89,8 +93,9 @@ function TransactionsState (): React.JSX.Element {
       <ScopeSwitch
         scope={scope}
         identityId={identityId}
+        identities={availableIdentities}
         onScopeChange={changeScope}
-        onClearIdentity={clearIdentity}
+        onIdentityChange={changeIdentity}
       />
 
       <TransactionsList

@@ -1,5 +1,6 @@
 import React from 'react'
-import { Avatar, Identifier, Switch, Text } from 'dash-ui-kit/react'
+import { Avatar, Identifier, OverlayMenu, Switch, Text } from 'dash-ui-kit/react'
+import type { Identity } from '../../../types'
 import type { TransactionsScope } from './types'
 
 const SCOPE_OPTIONS = [
@@ -8,53 +9,91 @@ const SCOPE_OPTIONS = [
   { label: 'Platform', value: 'platform' as const }
 ]
 
+const ALL_IDENTITIES = 'all-identities'
+
+function IdentityRow ({ identifier }: { identifier: string }): React.JSX.Element {
+  return (
+    <div className='flex items-center gap-2 min-w-0'>
+      <div className='w-6 h-6 rounded-full overflow-hidden shrink-0'>
+        <Avatar username={identifier} className='w-6 h-6' />
+      </div>
+      <Identifier highlight='both' middleEllipsis edgeChars={5} className='!text-sm'>
+        {identifier}
+      </Identifier>
+    </div>
+  )
+}
+
+function AllIdentitiesRow (): React.JSX.Element {
+  return (
+    <div className='flex items-center gap-2 min-w-0'>
+      <div className='flex items-center justify-center w-6 h-6 rounded-full bg-[rgba(12,28,51,0.05)] shrink-0'>
+        <Text size='xs' weight='bold' className='!leading-none !text-dash-primary-dark-blue/50'>A</Text>
+      </div>
+      <Text size='sm' weight='medium'>All Identities</Text>
+    </div>
+  )
+}
+
 interface ScopeSwitchProps {
   scope: TransactionsScope
   identityId: string | null
+  identities: Identity[]
   onScopeChange: (scope: TransactionsScope) => void
-  onClearIdentity: () => void
+  onIdentityChange: (identityId: string | null) => void
 }
 
 /**
- * Layer picker. An identity scope narrows Platform further, so it shows as a
- * removable chip instead of a fourth segment.
+ * Layer picker plus, on the Platform layer, an identity narrowing selector.
+ * An identity scope is Platform filtered down, not a fourth layer.
  */
 export function ScopeSwitch ({
   scope,
   identityId,
+  identities,
   onScopeChange,
-  onClearIdentity
+  onIdentityChange
 }: ScopeSwitchProps): React.JSX.Element {
-  if (scope === 'identity' && identityId != null && identityId !== '') {
-    return (
-      <div className='flex items-center gap-2 py-1.5 pl-2 pr-1.5 rounded-[14px] bg-[rgba(12,28,51,0.04)] self-start max-w-full'>
-        <div className='w-5 h-5 rounded-full overflow-hidden shrink-0'>
-          <Avatar username={identityId} className='w-5 h-5' />
-        </div>
-        <Text size='xs' weight='medium' className='!text-dash-primary-dark-blue/50 shrink-0'>
-          Identity
-        </Text>
-        <Identifier middleEllipsis edgeChars={5} highlight='both' className='!text-xs min-w-0'>
-          {identityId}
-        </Identifier>
-        <button
-          type='button'
-          aria-label='Show all platform transactions'
-          onClick={onClearIdentity}
-          className='flex items-center justify-center size-5 rounded-full bg-[rgba(12,28,51,0.05)] hover:bg-[rgba(12,28,51,0.12)] transition-colors shrink-0 cursor-pointer border-0'
-        >
-          <Text size='xs' weight='medium' className='!leading-none !text-dash-primary-dark-blue/50'>x</Text>
-        </button>
-      </div>
-    )
-  }
+  const onPlatform = scope === 'platform' || scope === 'identity'
+  const selected = scope === 'identity' && identityId != null && identityId !== '' ? identityId : null
+
+  // Keep an identity from another wallet visible instead of silently dropping it.
+  const known = identities.map(identity => identity.identifier)
+  const rows = selected != null && !known.includes(selected) ? [selected, ...known] : known
+
+  const items = [
+    {
+      id: ALL_IDENTITIES,
+      content: <AllIdentitiesRow />,
+      onClick: () => { onIdentityChange(null) }
+    },
+    ...rows.map(identifier => ({
+      id: identifier,
+      content: <IdentityRow identifier={identifier} />,
+      onClick: () => { onIdentityChange(identifier) }
+    }))
+  ]
 
   return (
-    <Switch
-      size='sm'
-      options={SCOPE_OPTIONS}
-      value={scope === 'identity' ? 'platform' : scope}
-      onChange={onScopeChange}
-    />
+    <div className='flex flex-col gap-2'>
+      <Switch
+        size='sm'
+        options={SCOPE_OPTIONS}
+        value={scope === 'identity' ? 'platform' : scope}
+        onChange={onScopeChange}
+      />
+
+      {onPlatform && rows.length > 0 && (
+        <OverlayMenu
+          overlayLabel='Identity'
+          triggerContent={selected != null ? <IdentityRow identifier={selected} /> : <AllIdentitiesRow />}
+          items={items}
+          size='md'
+          border
+          showArrow
+          className='!w-full'
+        />
+      )}
+    </div>
   )
 }
