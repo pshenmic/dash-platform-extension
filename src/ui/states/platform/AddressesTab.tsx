@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import {
   Avatar,
+  BigNumber,
   Button,
   CopyButton,
   ExternalLinkIcon,
@@ -19,7 +20,7 @@ import {
 import type { AddressData, ShieldedAddressData } from '../../components/addresses'
 import type { OutletContext } from '../../types/OutletContext'
 import type { NetworkType } from '../../../types'
-import { creditsToUsdEquivalent, formatCredits, getPlatformAddressExplorerUrl } from '../../../utils'
+import { creditsToUsdEquivalent, getPlatformAddressExplorerUrl } from '../../../utils'
 
 const iconChipClassName = 'flex items-center justify-center size-6 p-1 rounded-[5px] bg-[rgba(12,28,51,0.05)] shrink-0 transition-colors hover:bg-[rgba(12,28,51,0.12)]'
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
@@ -113,7 +114,7 @@ function AddressRow ({
           : (
             <>
               <Text size='sm' weight='medium' className='!text-[0.875rem] !leading-[17px] !text-dash-primary-dark-blue whitespace-nowrap'>
-                {hide ? '••••••' : credits != null ? formatCredits(credits) : '—'}{' '}
+                {hide ? '••••••' : credits != null ? <BigNumber>{credits}</BigNumber> : '—'}{' '}
                 <Text as='span' size='sm' weight='medium' className='!text-[0.875rem] !leading-[17px] !text-dash-primary-dark-blue'>
                   Credits
                 </Text>

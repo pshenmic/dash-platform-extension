@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import {
   Avatar,
+  BigNumber,
   Button,
   CopyButton,
   ExternalLinkIcon,
@@ -10,7 +11,7 @@ import {
   Text
 } from 'dash-ui-kit/react'
 import type { Identity, NetworkType } from '../../../types'
-import { fetchNames, formatCredits, getIdentityExplorerUrl, splitDpns } from '../../../utils'
+import { fetchNames, getIdentityExplorerUrl, splitDpns } from '../../../utils'
 import { usePlatformExplorerClient, useSdk } from '../../hooks'
 import { locationReturnState, type OutletContext } from '../../types'
 import { PLATFORM_MOCK } from './mock'
@@ -125,7 +126,7 @@ function IdentityCard ({
               Credits:
             </Text>
             <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue'>
-              {hide ? '••••••' : formatCredits(row.credits)}
+              {hide ? '••••••' : <BigNumber>{row.credits}</BigNumber>}
             </Text>
             {!hide && (
               <Text size='xs' weight='bold' className='!font-extrabold !text-[0.75rem] !leading-[1.2] !text-[#95BF40]'>
