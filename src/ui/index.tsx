@@ -118,7 +118,7 @@ const App: React.FC = function () {
           element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><IdentityHomeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'platform'
+              variant: 'identity'
             }
           }
         },

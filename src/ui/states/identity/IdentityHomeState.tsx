@@ -8,14 +8,12 @@ import type { NetworkType } from '../../../types'
 import type { OutletContext } from '../../types/OutletContext'
 import { ActionRow } from '../home/ActionRow'
 import { IdentityBalance } from './IdentityBalance'
-import { IdentitySelector } from './IdentitySelector'
+import { IdentityIdRow } from './IdentityIdRow'
 import { NamesTab } from './NamesTab'
 import { TokensTab } from './TokensTab'
 import { TransactionsTab } from './TransactionsTab'
+import { useIdentityHomeData } from './useIdentityHomeData'
 
-/**
- * Identity-scoped home (Figma 10681:1367). Mock amounts / lists until the API pass.
- */
 function IdentityHomeState (): React.JSX.Element {
   const { identifier: routeIdentifier } = useParams<{ identifier: string }>()
   const extensionAPI = useExtensionAPI()
@@ -29,6 +27,14 @@ function IdentityHomeState (): React.JSX.Element {
   const [activeTab, setActiveTab] = useState('transactions')
   const identifier = routeIdentifier ?? currentIdentity ?? ''
   const network: NetworkType = currentNetwork ?? 'testnet'
+  const {
+    balanceState,
+    transactionsState,
+    tokensState,
+    namesState,
+    rateState,
+    refreshData
+  } = useIdentityHomeData(identifier)
 
   const isMasternodeIdentity = useMemo(() => {
     const identity = availableIdentities.find(item => item.identifier === identifier)
@@ -59,20 +65,24 @@ function IdentityHomeState (): React.JSX.Element {
     extensionAPI.setSettings(next).catch(e => console.log('setSettings error', e))
   }, [extensionAPI, hideBalance])
 
-  const refresh = useCallback((): void => {
-    extensionAPI.getIdentities().catch(e => console.log('refresh identities error', e))
-  }, [extensionAPI])
+  const names = namesState.data ?? []
+  const tokens = tokensState.data ?? []
+  const transactions = transactionsState.data ?? []
 
   return (
     <div className='flex flex-col gap-6'>
+      <IdentityBalance
+        hide={hideBalance}
+        loading={balanceState.loading}
+        error={balanceState.error}
+        credits={balanceState.data}
+        rate={rateState.data}
+        onToggleHide={toggleHide}
+        onRefresh={() => { void refreshData() }}
+      />
       {identifier !== '' && (
-        <IdentitySelector
-          identifier={identifier}
-          identities={availableIdentities}
-          onSelect={setCurrentIdentity}
-        />
+        <IdentityIdRow identifier={identifier} network={network} />
       )}
-      <IdentityBalance hide={hideBalance} onToggleHide={toggleHide} onRefresh={refresh} />
       <ActionRow />
       <Tabs
         value={activeTab}
@@ -81,18 +91,44 @@ function IdentityHomeState (): React.JSX.Element {
           {
             value: 'transactions',
             label: 'Transactions',
-            content: <TransactionsTab hide={hideBalance} />
+            content: (
+              <TransactionsTab
+                hide={hideBalance}
+                loading={transactionsState.loading}
+                error={transactionsState.error}
+                transactions={transactions}
+                rate={rateState.data}
+                network={network}
+                tokenCount={tokens.length}
+                nameCount={names.length}
+                lastName={names[0]?.name ?? null}
+              />
+            )
           },
           {
             value: 'tokens',
             label: 'Tokens',
-            content: <TokensTab hide={hideBalance} network={network} />
+            content: (
+              <TokensTab
+                hide={hideBalance}
+                network={network}
+                loading={tokensState.loading}
+                error={tokensState.error}
+                tokens={tokens}
+              />
+            )
           },
           {
             value: 'names',
             label: 'Names',
             disabled: isMasternodeIdentity,
-            content: <NamesTab />
+            content: (
+              <NamesTab
+                loading={namesState.loading}
+                error={namesState.error}
+                names={names}
+              />
+            )
           }
         ]}
       />

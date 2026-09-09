@@ -10,59 +10,58 @@ import {
 } from 'dash-ui-kit/react'
 import { PLATFORM_EXPLORER_URLS } from '../../../constants'
 import type { NetworkType } from '../../../types'
+import type { TokenData } from '../../hooks/usePlatformExplorerApi'
+import { fromBaseUnit, getTokenName } from '../../../utils'
 import { IconChip } from './IconChip'
-import { formatCredits } from '../../../utils'
-import { IDENTITY_MOCK } from './mock'
 
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
 
 interface TokensTabProps {
   hide: boolean
   network: NetworkType
+  loading: boolean
+  error: string | null
+  tokens: TokenData[]
 }
 
 function TokenCard ({
-  identifier,
-  name,
-  credits,
-  changePct,
-  txCount,
+  token,
   hide,
   explorerUrl
 }: {
-  identifier: string
-  name: string
-  credits: string
-  changePct: string
-  txCount: number
+  token: TokenData
   hide: boolean
   explorerUrl: string
 }): React.JSX.Element {
   const stop = (event: React.MouseEvent): void => {
     event.stopPropagation()
   }
+  const name = getTokenName(token.localizations, 'singularForm')
+  const label = name !== '' ? name : (token.description !== '' ? token.description : 'Token')
+  const amount = fromBaseUnit(token.balance, token.decimals)
+  const txCount = token.totalTransitionsCount
 
   return (
     <div className='flex flex-col gap-[15px] p-3 rounded-[15px] bg-[rgba(12,28,51,0.04)]'>
       <div className='flex flex-col justify-center gap-2 min-w-0'>
         <div className='flex items-center gap-2 min-w-0'>
           <div className='w-6 h-6 rounded-full overflow-hidden shrink-0'>
-            <Avatar username={identifier} className='w-6 h-6' />
+            <Avatar username={token.identifier} className='w-6 h-6' />
           </div>
           <Text size='sm' weight='bold' className='!font-extrabold !text-dash-primary-dark-blue !leading-[1.2]'>
-            {name}
+            {label}
           </Text>
         </div>
         <div className='flex items-start gap-2'>
           <Identifier highlight='both' className='!text-sm !leading-[1.2] flex-1'>
-            {identifier}
+            {token.identifier}
           </Identifier>
           <IconChip label='View in explorer' href={explorerUrl} onClick={stop}>
             <ExternalLinkIcon size={14} color='#000000' />
           </IconChip>
           <IconChip label='Copy identifier' onClick={stop}>
             <CopyButton
-              text={identifier}
+              text={token.identifier}
               aria-label='Copy identifier'
               className='!p-0 !bg-transparent [&_svg]:!size-3.5'
             />
@@ -70,40 +69,34 @@ function TokenCard ({
         </div>
         <div className='flex gap-4'>
           <div className='flex items-center gap-1'>
-            <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/48'>
-              Credits:
-            </Text>
             <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue'>
-              {hide ? '••••••' : formatCredits(credits)}
+              {hide ? '••••••' : amount}
             </Text>
-            {!hide && (
-              <Text size='xs' weight='bold' className='!font-extrabold !text-[0.75rem] !leading-[1.2] !text-[#95BF40]'>
-                ↑{changePct}%
+          </div>
+          {txCount != null && (
+            <div className='flex items-center gap-1'>
+              <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/48'>
+                Txs:
               </Text>
-            )}
-          </div>
-          <div className='flex items-center gap-1'>
-            <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/48'>
-              Txs:
-            </Text>
-            <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue'>
-              {txCount}
-            </Text>
-          </div>
+              <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue'>
+                {txCount}
+              </Text>
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-export function TokensTab ({ hide, network }: TokensTabProps): React.JSX.Element {
+export function TokensTab ({ hide, network, loading, error, tokens }: TokensTabProps): React.JSX.Element {
   const explorerBase = PLATFORM_EXPLORER_URLS[network].explorer
 
   return (
     <div className='flex flex-col gap-2'>
       <div className='flex items-center justify-between'>
         <Text weight='medium' className={`${headerTextClassName} !text-dash-primary-dark-blue/35`}>
-          {IDENTITY_MOCK.tokens.length} Tokens
+          {loading ? '...' : tokens.length} Tokens
         </Text>
         <Button
           type='button'
@@ -116,14 +109,16 @@ export function TokensTab ({ hide, network }: TokensTabProps): React.JSX.Element
           </Text>
         </Button>
       </div>
-      {IDENTITY_MOCK.tokens.map((token) => (
+      {loading && (
+        <Text size='sm' dim>Loading tokens...</Text>
+      )}
+      {!loading && error != null && error !== '' && (
+        <Text size='sm' className='!text-red-500'>Error loading tokens: {error}</Text>
+      )}
+      {!loading && (error == null || error === '') && tokens.map((token) => (
         <TokenCard
           key={token.identifier}
-          identifier={token.identifier}
-          name={token.name}
-          credits={token.credits}
-          changePct={token.changePct}
-          txCount={token.txCount}
+          token={token}
           hide={hide}
           explorerUrl={`${explorerBase}/token/${token.identifier}`}
         />

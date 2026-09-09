@@ -2,8 +2,10 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
 import { LastTransaction } from '../home/LastTransaction'
-import { TransactionsList, type TransactionRowItem } from '../../components/transactions'
-import { IDENTITY_MOCK } from './mock'
+import { TransactionsList, toTransactionRowItem, type TransactionRowItem } from '../../components/transactions'
+import { creditsToDash, getTransactionExplorerUrl } from '../../../utils'
+import type { NetworkType } from '../../../types'
+import type { TransactionData } from '../../hooks/usePlatformExplorerApi'
 
 interface StatCardProps {
   icon: React.ReactNode
@@ -42,18 +44,52 @@ function CountValue ({ count, unit }: { count: number, unit: string }): React.JS
 
 interface TransactionsTabProps {
   hide: boolean
+  loading: boolean
+  error: string | null
+  transactions: TransactionData[]
+  rate: number | null
+  network: NetworkType
+  tokenCount: number
+  nameCount: number
+  lastName: string | null
 }
 
-export function TransactionsTab ({ hide }: TransactionsTabProps): React.JSX.Element {
+export function TransactionsTab ({
+  hide,
+  loading,
+  error,
+  transactions,
+  rate,
+  network,
+  tokenCount,
+  nameCount,
+  lastName
+}: TransactionsTabProps): React.JSX.Element {
   const navigate = useNavigate()
+  const items: TransactionRowItem[] = transactions.map(tx => toTransactionRowItem(tx, rate))
+  const received = items.filter(item => item.direction === 'in').length
+  const sent = items.filter(item => item.direction === 'out').length
+  const first = transactions[0]
+  const firstItem = items[0]
+  const lastDash = first != null ? creditsToDash(Number(first.gasUsed ?? 0)) : null
+  const lastSigned = lastDash != null && firstItem != null
+    ? `${firstItem.direction === 'out' ? '-' : firstItem.direction === 'in' ? '+' : ''}${lastDash.toFixed(3)}`
+    : null
 
   return (
     <div className='flex flex-col gap-4'>
       <TransactionsList
-        items={IDENTITY_MOCK.operations.map((op): TransactionRowItem => ({ ...op }))}
+        items={items}
+        loading={loading}
+        error={error}
         hideAmounts={hide}
         groupByDate
         limit={3}
+        onItemClick={(item) => {
+          if (item.hash != null && item.hash !== '') {
+            window.open(getTransactionExplorerUrl(item.hash, network), '_blank')
+          }
+        }}
         footer={(
           <Button
             type='button'
@@ -74,41 +110,45 @@ export function TransactionsTab ({ hide }: TransactionsTabProps): React.JSX.Elem
         <StatCard
           icon={<CreditsIcon size={12} className='!text-dash-brand' />}
           label='Tokens'
-          value={<CountValue count={IDENTITY_MOCK.tokenCount} unit='Tokens' />}
+          value={<CountValue count={tokenCount} unit='Tokens' />}
         />
         <StatCard
           icon={<DocumentIcon size={12} className='!text-dash-brand' />}
           label='Transactions'
           hint={(
             <Text size='xs' weight='medium' className='!text-[0.75rem] !text-dash-primary-dark-blue/50 !leading-[1.1]'>
-              {IDENTITY_MOCK.txReceived} received - {IDENTITY_MOCK.txSent} sent
+              {received} received - {sent} sent
             </Text>
           )}
-          value={<CountValue count={IDENTITY_MOCK.txCount} unit='TXs' />}
+          value={<CountValue count={items.length} unit='TXs' />}
         />
         <StatCard
           icon={<FingerprintIcon size={12} className='!text-dash-brand' />}
           label='Usernames'
-          hint={(
-            <div className='flex items-center gap-1'>
-              <div className='flex px-2 py-1 rounded-lg bg-[rgba(12,28,51,0.04)]'>
-                <Text size='xs' weight='medium' className='!text-dash-primary-dark-blue/64'>Last</Text>
+          hint={lastName != null && lastName !== ''
+            ? (
+              <div className='flex items-center gap-1'>
+                <div className='flex px-2 py-1 rounded-lg bg-[rgba(12,28,51,0.04)]'>
+                  <Text size='xs' weight='medium' className='!text-dash-primary-dark-blue/64'>Last</Text>
+                </div>
+                <Text size='xs' weight='bold' className='!text-dash-primary-dark-blue/64'>
+                  {lastName}
+                </Text>
               </div>
-              <Text size='xs' weight='bold' className='!text-dash-primary-dark-blue/64'>
-                {IDENTITY_MOCK.lastName}
-              </Text>
-            </div>
-          )}
-          value={<CountValue count={IDENTITY_MOCK.nameCount} unit='Names' />}
+              )
+            : undefined}
+          value={<CountValue count={nameCount} unit='Names' />}
         />
       </div>
-      <LastTransaction
-        hide={hide}
-        amount={IDENTITY_MOCK.lastTxAmount}
-        hash={IDENTITY_MOCK.lastTxHash}
-        layer={IDENTITY_MOCK.lastTxLayer}
-        kind={IDENTITY_MOCK.lastTxKind}
-      />
+      {lastSigned != null && firstItem?.hash != null && (
+        <LastTransaction
+          hide={hide}
+          amount={lastSigned}
+          hash={firstItem.hash}
+          layer='Platform'
+          kind={firstItem.title}
+        />
+      )}
     </div>
   )
 }
