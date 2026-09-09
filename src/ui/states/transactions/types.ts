@@ -25,3 +25,26 @@ export function transactionSortKey (item: TransactionRowItem): number {
 
   return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed
 }
+
+interface SourceKeyParts {
+  scope: TransactionsScope
+  identityId: string | null
+  network: string
+  walletId: string | null
+  identifiers: string[]
+}
+
+/**
+ * Identity of a loaded page set. Anything that changes it must invalidate
+ * everything already loaded, so the wallet belongs here even for a single
+ * identity: the same identifier under another wallet is a different screen.
+ */
+export function transactionsSourceKey ({
+  scope,
+  identityId,
+  network,
+  walletId,
+  identifiers
+}: SourceKeyParts): string {
+  return [network, walletId ?? '', scope, identityId ?? '', identifiers.join(',')].join('|')
+}

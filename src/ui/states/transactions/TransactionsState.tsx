@@ -12,7 +12,7 @@ import { useTransactionsSource } from './useTransactionsSource'
 import type { TransactionsScope } from './types'
 
 const SCOPE_LABELS: Record<TransactionsScope, string> = {
-  all: 'All layers',
+  all: 'Core and Platform',
   core: 'Core',
   platform: 'Platform',
   identity: 'Identity'
@@ -49,6 +49,20 @@ function TransactionsState (): React.JSX.Element {
       .catch(e => console.log('fetchRate error', e))
   }, [client, currentNetwork])
 
+  // A picked identity belongs to the wallet it was picked in, so switching
+  // wallets widens the list back to the whole Platform layer.
+  const previousWalletRef = useRef(currentWallet)
+
+  useEffect(() => {
+    const previous = previousWalletRef.current
+    previousWalletRef.current = currentWallet
+
+    if (previous === currentWallet || previous == null || currentWallet == null) return
+    if (scope !== 'identity') return
+
+    void navigate(transactionsPath('platform'), { replace: true, state: location.state })
+  }, [currentWallet, scope, navigate, location.state])
+
   const source = useTransactionsSource({
     scope,
     identityId,
@@ -73,13 +87,20 @@ function TransactionsState (): React.JSX.Element {
     void navigate(path, { replace: true, state: location.state })
   }, [navigate, location.state])
 
+  // Core has no API yet, so its rows are generated and must be called out.
+  const includesCoreMock = scope === 'all' || scope === 'core'
+
   const counter = useMemo(() => {
     if (items.length === 0) return SCOPE_LABELS[scope]
-    // Merged streams drop cross-identity duplicates, so the total is an upper bound.
     if (total == null) return `${SCOPE_LABELS[scope]} - ${items.length} loaded`
 
-    return `${SCOPE_LABELS[scope]} - ${items.length} of ~${total}`
-  }, [items.length, scope, total])
+    // Merging several identity streams drops cross-identity duplicates, so the
+    // summed total is an upper bound. A single stream counts exactly.
+    const merged = (scope === 'all' || scope === 'platform') && availableIdentities.length > 1
+    const approximate = merged ? '~' : ''
+
+    return `${SCOPE_LABELS[scope]} - ${items.length} of ${approximate}${total} loaded`
+  }, [items.length, scope, total, availableIdentities.length])
 
   return (
     <div className='flex flex-col gap-4'>
@@ -88,6 +109,11 @@ function TransactionsState (): React.JSX.Element {
         <Text size='sm' weight='medium' className='!text-dash-primary-dark-blue/48 !tracking-[-0.03em]'>
           {counter}
         </Text>
+        {includesCoreMock && (
+          <Text size='xs' weight='medium' className='!text-dash-primary-dark-blue/35'>
+            Core transactions are mock data
+          </Text>
+        )}
       </div>
 
       <ScopeSwitch

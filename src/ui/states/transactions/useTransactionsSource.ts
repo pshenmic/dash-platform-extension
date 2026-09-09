@@ -4,7 +4,7 @@ import { createIdentitySource } from './sources/identitySource'
 import { createMockSource } from './sources/mockSource'
 import { mergeSources } from './sources/mergeSources'
 import { buildCoreMockRows } from './mock'
-import type { TransactionsScope, TransactionsSource } from './types'
+import { transactionsSourceKey, type TransactionsScope, type TransactionsSource } from './types'
 
 interface UseTransactionsSourceOptions {
   scope: TransactionsScope
@@ -34,23 +34,37 @@ export function useTransactionsSource ({
   return useMemo(() => {
     if (network == null) return null
 
-    const key = `${network}|${walletId ?? ''}|${scope}|${identityId ?? ''}|${identifiers}`
+    const key = transactionsSourceKey({
+      scope,
+      identityId,
+      network,
+      walletId,
+      identifiers: identifiers === '' ? [] : identifiers.split(',')
+    })
     const coreSource = (): TransactionsSource => createMockSource(`core:${key}`, buildCoreMockRows())
     const platformSources = (): TransactionsSource[] => identifiers === ''
       ? []
       : identifiers.split(',').map(identifier => createIdentitySource({ client, identifier, network, rateRef }))
 
-    if (scope === 'core') return coreSource()
+    const build = (): TransactionsSource | null => {
+      if (scope === 'core') return coreSource()
 
-    if (scope === 'identity') {
-      if (identityId == null || identityId === '') return null
+      if (scope === 'identity') {
+        if (identityId == null || identityId === '') return null
 
-      return createIdentitySource({ client, identifier: identityId, network, rateRef })
+        return createIdentitySource({ client, identifier: identityId, network, rateRef })
+      }
+
+      if (scope === 'platform') return mergeSources(key, platformSources())
+
+      return mergeSources(key, [...platformSources(), coreSource()])
     }
 
-    if (scope === 'platform') return mergeSources(key, platformSources())
+    const built = build()
 
-    return mergeSources(key, [...platformSources(), coreSource()])
+    // Stamped here so no branch can hand back a source keyed on less than the
+    // full scope. Consumers reset their loaded pages on this key alone.
+    return built == null ? null : { ...built, key }
     // rateRef and client are stable singletons, intentionally not in the key.
   }, [scope, identityId, identifiers, network, walletId, client, rateRef])
 }
