@@ -84,7 +84,7 @@ const App: React.FC = function () {
         },
         {
           path: '/home',
-          element: <PageWithHeader><HomeOldState /></PageWithHeader>,
+          element: <PageWithHeader><HomeState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'main'
@@ -102,7 +102,7 @@ const App: React.FC = function () {
         },
         {
           path: '/dashboard',
-          element: <PageWithHeader><HomeState /></PageWithHeader>,
+          element: <PageWithHeader showGrid><HomeState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'dashboard'
@@ -111,7 +111,7 @@ const App: React.FC = function () {
         },
         {
           path: '/platform',
-          element: <PageWithHeader><PlatformHomeState /></PageWithHeader>,
+          element: <PageWithHeader showGrid><PlatformHomeState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'platform'
@@ -120,7 +120,7 @@ const App: React.FC = function () {
         },
         {
           path: '/identity/:identifier',
-          element: <PageWithHeader><IdentityHomeState /></PageWithHeader>,
+          element: <PageWithHeader showGrid><IdentityHomeState /></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'platform'
