@@ -1,6 +1,6 @@
 import React, { useState, Suspense } from 'react'
 import { cva } from 'class-variance-authority'
-import { useNavigate, useMatches, useOutletContext, useParams } from 'react-router-dom'
+import { useNavigate, useMatches, useOutletContext, useParams, useLocation } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import { useWalletName } from '../../../hooks/useWalletName'
 import { Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
@@ -234,6 +234,7 @@ export default function Header (): React.JSX.Element {
   const matches = useMatches() as Match[]
   const { identifier: routeIdentifier } = useParams<{ identifier: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const walletName = useWalletName()
   const deepestRoute = [...matches].reverse().find((m): boolean =>
@@ -282,6 +283,12 @@ export default function Header (): React.JSX.Element {
   }
 
   const handleBack = (): void => {
+    if (variantKey === 'identity') {
+      const from = (location.state as { from?: string } | null)?.from
+      void navigate(from != null && from !== '' ? from : '/platform')
+      return
+    }
+
     if (isTabView() && window.history.length <= 1) {
       // Opened straight into a fresh tab - there is no previous entry to return to.
       void closeCurrentExtensionTab()

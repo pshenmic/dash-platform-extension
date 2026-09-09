@@ -204,7 +204,7 @@ export function IdentitiesTab ({ hide, identities }: IdentitiesTabProps): React.
 
   const openIdentity = (identifier: string): void => {
     setCurrentIdentity(identifier)
-    void navigate(`/identity/${identifier}`)
+    void navigate(`/identity/${identifier}`, { state: { from: '/platform' } })
   }
 
   const createIdentity = (): void => {
