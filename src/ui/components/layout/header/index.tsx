@@ -114,7 +114,7 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
     showBurgerMenu: true
   },
 
-  // Wallet dashboard preview — Figma nav is wallet + menu (network lives in settings)
+  // Wallet dashboard — Figma nav is wallet + menu (network lives in settings)
   dashboard: {
     hideLeftSection: true,
     showWalletSelector: true,

@@ -11,7 +11,7 @@ import { Statistics } from './Statistics'
 import { TotalBalance } from './TotalBalance'
 
 /**
- * Wallet dashboard (Figma 10681:2603). Preview at `#/dashboard`.
+ * Wallet dashboard (Figma 10681:2603). Route: `#/home`.
  * Balances / stats / chart are mock until Core + overview APIs exist.
  */
 function HomeState (): React.JSX.Element {

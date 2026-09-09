@@ -88,10 +88,10 @@ const App: React.FC = function () {
         },
         {
           path: '/home',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><HomeState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><HomeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'main'
+              variant: 'dashboard'
             }
           }
         },
@@ -101,15 +101,6 @@ const App: React.FC = function () {
           handle: {
             headerProps: {
               variant: 'main'
-            }
-          }
-        },
-        {
-          path: '/dashboard',
-          element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><HomeState /></Suspense></PageWithHeader>,
-          handle: {
-            headerProps: {
-              variant: 'dashboard'
             }
           }
         },
