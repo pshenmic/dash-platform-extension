@@ -20,7 +20,6 @@ import { KeypairRepository } from '../content-script/repository/KeypairRepositor
 import { generateRandomHex } from './random'
 
 export { formatBigNumber }
-export { formatCredits } from './formatCredits'
 export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName, splitDpns } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
