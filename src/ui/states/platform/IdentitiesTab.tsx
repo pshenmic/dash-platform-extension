@@ -10,7 +10,7 @@ import {
   Text
 } from 'dash-ui-kit/react'
 import type { Identity, NetworkType } from '../../../types'
-import { fetchNames, getIdentityExplorerUrl } from '../../../utils'
+import { fetchNames, formatCredits, getIdentityExplorerUrl, splitDpns } from '../../../utils'
 import { usePlatformExplorerClient, useSdk } from '../../hooks'
 import type { OutletContext } from '../../types/OutletContext'
 import { PLATFORM_MOCK } from './mock'
@@ -30,17 +30,6 @@ interface IdentityRow {
 interface IdentitiesTabProps {
   hide: boolean
   identities: Identity[]
-}
-
-function formatCredits (credits: string): string {
-  return credits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
-}
-
-function splitDpns (name: string): { local: string, tld: string | null } {
-  if (!name.endsWith('.dash')) {
-    return { local: name, tld: null }
-  }
-  return { local: name.slice(0, -5), tld: '.dash' }
 }
 
 function IdActions ({

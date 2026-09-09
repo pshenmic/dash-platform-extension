@@ -19,7 +19,7 @@ import {
 import type { AddressData, ShieldedAddressData } from '../../components/addresses'
 import type { OutletContext } from '../../types/OutletContext'
 import type { NetworkType } from '../../../types'
-import { creditsToUsdEquivalent, getPlatformAddressExplorerUrl } from '../../../utils'
+import { creditsToUsdEquivalent, formatCredits, getPlatformAddressExplorerUrl } from '../../../utils'
 
 const iconChipClassName = 'flex items-center justify-center size-6 p-1 rounded-[5px] bg-[rgba(12,28,51,0.05)] shrink-0 transition-colors hover:bg-[rgba(12,28,51,0.12)]'
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
@@ -29,10 +29,6 @@ type AddressKind = 'platform' | 'shield'
 
 interface AddressesTabProps {
   hide: boolean
-}
-
-function formatCredits (credits: string): string {
-  return credits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 }
 
 function AddressActions ({
