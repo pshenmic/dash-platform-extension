@@ -11,24 +11,25 @@ import {
 import type { Identity, NetworkType } from '../../../types'
 import { fetchNames, getIdentityExplorerUrl, splitDpns } from '../../../utils'
 import { usePlatformExplorerClient, useSdk } from '../../hooks'
+import type { UseWalletPlatformDataResult } from '../../hooks'
 import { locationReturnState, type OutletContext } from '../../types'
-import { PLATFORM_MOCK } from './mock'
 import { ExplorerCopyChips } from '../../components/common'
 
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
-const MOCK_STATS = PLATFORM_MOCK.identities
+// Shown instead of a number whenever the value is unknown, never a made-up one.
+const PLACEHOLDER = '-'
 
 interface IdentityRow {
   identifier: string
   name: string | null
-  credits: string
-  changePct: string
-  txCount: number
+  credits: string | null
+  txCount: number | null
 }
 
 interface IdentitiesTabProps {
   hide: boolean
   identities: Identity[]
+  platformData: UseWalletPlatformDataResult
 }
 
 function IdentityCard ({
@@ -92,20 +93,15 @@ function IdentityCard ({
               Credits:
             </Text>
             <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue'>
-              {hide ? '••••••' : <BigNumber>{row.credits}</BigNumber>}
+              {hide ? '••••••' : row.credits != null ? <BigNumber>{row.credits}</BigNumber> : PLACEHOLDER}
             </Text>
-            {!hide && (
-              <Text size='xs' weight='bold' className='!font-extrabold !text-[0.75rem] !leading-[1.2] !text-[#95BF40]'>
-                ↑{row.changePct}%
-              </Text>
-            )}
           </div>
           <div className='flex items-center gap-1'>
             <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/48'>
               Txs:
             </Text>
             <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue'>
-              {row.txCount}
+              {row.txCount ?? PLACEHOLDER}
             </Text>
           </div>
         </div>
@@ -114,7 +110,7 @@ function IdentityCard ({
   )
 }
 
-export function IdentitiesTab ({ hide, identities }: IdentitiesTabProps): React.JSX.Element {
+export function IdentitiesTab ({ hide, identities, platformData }: IdentitiesTabProps): React.JSX.Element {
   const navigate = useNavigate()
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
@@ -151,23 +147,19 @@ export function IdentitiesTab ({ hide, identities }: IdentitiesTabProps): React.
   }, [identities, network, platformExplorerClient, sdk])
 
   const rows = useMemo((): IdentityRow[] => {
-    if (identities.length === 0) {
-      return MOCK_STATS.map(item => ({ ...item }))
-    }
+    const dataById = new Map(platformData.identities.map(item => [item.identifier, item]))
 
-    return identities.map((identity, index): IdentityRow => {
-      const stats = MOCK_STATS[index % MOCK_STATS.length]
+    return identities.map((identity): IdentityRow => {
+      const data = dataById.get(identity.identifier)
+
       return {
         identifier: identity.identifier,
         name: namesById.get(identity.identifier) ?? identity.label,
-        credits: stats.credits,
-        changePct: stats.changePct,
-        txCount: stats.txCount
+        credits: data?.credits ?? null,
+        txCount: data?.txCount ?? null
       }
     })
-  }, [identities, namesById])
-
-  const countLabel = identities.length > 0 ? identities.length : PLATFORM_MOCK.identityCountFallback
+  }, [identities, namesById, platformData.identities])
 
   const openIdentity = (identifier: string): void => {
     setCurrentIdentity(identifier)
@@ -182,7 +174,7 @@ export function IdentitiesTab ({ hide, identities }: IdentitiesTabProps): React.
     <div className='flex flex-col gap-2'>
       <div className='flex items-center justify-between'>
         <Text weight='medium' className={`${headerTextClassName} !text-dash-primary-dark-blue/35`}>
-          {countLabel} Identities
+          {identities.length} Identities
         </Text>
         <Button
           type='button'
@@ -196,6 +188,16 @@ export function IdentitiesTab ({ hide, identities }: IdentitiesTabProps): React.
           </Text>
         </Button>
       </div>
+      {rows.length === 0 && (
+        <div className='flex flex-col gap-1 p-4 rounded-[15px] bg-[rgba(12,28,51,0.04)]'>
+          <Text size='sm' weight='medium' className='!text-dash-primary-dark-blue'>
+            No identities yet
+          </Text>
+          <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/48'>
+            Create your first identity to start using Dash Platform.
+          </Text>
+        </div>
+      )}
       {rows.map((row, index) => (
         <IdentityCard
           key={`${row.identifier}-${index}`}

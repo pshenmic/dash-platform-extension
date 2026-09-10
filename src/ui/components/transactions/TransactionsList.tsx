@@ -12,6 +12,8 @@ interface TransactionsListProps {
   limit?: number
   footer?: React.ReactNode
   rate?: number | null
+  /** Overrides the empty-list message, e.g. when a source has no API yet. */
+  emptyText?: string
   /** Shows a retry control when the first page failed. */
   onRetry?: () => void
   onItemClick?: (item: TransactionRowItem) => void
@@ -59,6 +61,7 @@ function TransactionsList ({
   limit,
   footer,
   rate,
+  emptyText = 'No transactions found',
   onRetry,
   onItemClick
 }: TransactionsListProps): React.JSX.Element {
@@ -75,7 +78,7 @@ function TransactionsList ({
         variant='spaced'
         loadingText='Loading transactions...'
         errorText={error != null && error !== '' ? `Error loading transactions: ${error}` : undefined}
-        emptyText='No transactions found'
+        emptyText={emptyText}
       >
         {groups.map((group) => (
           <div key={group.date === '' ? 'flat' : group.date} className='flex flex-col gap-2.5'>

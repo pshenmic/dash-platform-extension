@@ -1,11 +1,15 @@
 import React from 'react'
-import { BigNumber, Text } from 'dash-ui-kit/react'
+import { Text } from 'dash-ui-kit/react'
+import { fromBaseUnit } from '../../../utils/bigintUtils'
+import type { GetCoreBalanceResponse } from '../../../types/messages/response/GetCoreBalanceResponse'
 import { useStaticAsset } from '../../hooks'
 import { DashAmount } from '../home/DashAmount'
-import { CORE_MOCK } from './mock'
 import { BalanceActions } from '../../components/common'
 
 interface CoreBalanceProps {
+  balance: GetCoreBalanceResponse | null
+  loading: boolean
+  rate: number | null
   hide: boolean
   onToggleHide: () => void
   onRefresh: () => void
@@ -13,8 +17,15 @@ interface CoreBalanceProps {
 
 const bagelClassName = 'pointer-events-none absolute max-w-none h-auto select-none'
 
-export function CoreBalance ({ hide, onToggleHide, onRefresh }: CoreBalanceProps): React.JSX.Element {
+export function CoreBalance ({ balance, loading, rate, hide, onToggleHide, onRefresh }: CoreBalanceProps): React.JSX.Element {
   const bagel = useStaticAsset('coin_bagel.png')
+
+  // Core amounts arrive in duffs (10^8), never in credits.
+  const dash = balance != null ? fromBaseUnit(balance.balance, 8) : null
+  const [whole, fraction = '00'] = (dash ?? '').split('.')
+  const fiat = dash != null && rate != null
+    ? `~ $${(Number(dash) * rate).toFixed(2)} USD`
+    : null
 
   return (
     <div className='relative overflow-hidden rounded-[14px] px-[15px] py-[15px] bg-[rgba(12,28,51,0.04)]'>
@@ -34,24 +45,29 @@ export function CoreBalance ({ hide, onToggleHide, onRefresh }: CoreBalanceProps
             Total <span className='text-dash-brand'>Core</span> Balance:
           </Text>
           <div className='flex items-center gap-3'>
-            <DashAmount
-              whole={CORE_MOCK.dashWhole}
-              fraction={CORE_MOCK.dashFraction}
-              hide={hide}
-              className='!text-[2.25rem] !leading-none !tracking-[-0.03em] !text-dash-brand'
-            />
+            {dash == null
+              ? (
+                <div
+                  className={`h-9 w-[180px] rounded-lg bg-dash-primary-dark-blue/10 ${loading ? 'animate-pulse' : ''}`}
+                  aria-hidden='true'
+                />
+                )
+              : (
+                <DashAmount
+                  whole={whole}
+                  fraction={fraction}
+                  hide={hide}
+                  className='!text-[2.25rem] !leading-none !tracking-[-0.03em] !text-dash-brand'
+                />
+                )}
             <BalanceActions hide={hide} onToggleHide={onToggleHide} onRefresh={onRefresh} />
           </div>
         </div>
-        <div className='flex items-center gap-3'>
+        {fiat != null && (
           <Text size='sm' weight='medium' className='!leading-[1.2] !text-dash-brand'>
-            {hide ? '~ ••• USD' : CORE_MOCK.fiat}
+            {hide ? '~ ••• USD' : fiat}
           </Text>
-          <div className='w-px h-4 bg-dash-primary-dark-blue/16' />
-          <Text size='sm' weight='medium' className='!leading-[1.2] !text-dash-brand'>
-            {hide ? '••••••' : <BigNumber>{CORE_MOCK.credits}</BigNumber>} Credits
-          </Text>
-        </div>
+        )}
       </div>
     </div>
   )

@@ -1,14 +1,18 @@
 import React from 'react'
 import { DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
-import { DASHBOARD_MOCK } from './mock'
 import { StatCard, StatValue } from '../../components/common'
 
 interface StatisticsProps {
   identityCount: number
+  /** Core transaction count, null while unknown. */
+  coreTxCount: number | null
+  /** Platform transaction count summed over the wallet identities, null while unknown. */
+  platformTxCount: number | null
 }
 
-export function Statistics ({ identityCount }: StatisticsProps): React.JSX.Element {
-  const count = identityCount > 0 ? identityCount : DASHBOARD_MOCK.identityCountFallback
+export function Statistics ({ identityCount, coreTxCount, platformTxCount }: StatisticsProps): React.JSX.Element {
+  const totalTxCount = coreTxCount != null && platformTxCount != null ? coreTxCount + platformTxCount : null
+  const hint = `${coreTxCount ?? '-'} Core - ${platformTxCount ?? '-'} Platform`
 
   return (
     <div className='flex flex-col gap-4'>
@@ -19,14 +23,14 @@ export function Statistics ({ identityCount }: StatisticsProps): React.JSX.Eleme
         <StatCard
           icon={<DocumentIcon size={12} className='!text-dash-brand' />}
           label='Transactions'
-          hint={`${DASHBOARD_MOCK.txReceived} received - ${DASHBOARD_MOCK.txSent} sent`}
-          value={<StatValue value={DASHBOARD_MOCK.txCount} unit='TXs' />}
+          hint={hint}
+          value={<StatValue value={totalTxCount ?? '-'} unit='TXs' />}
         />
         <StatCard
           icon={<FingerprintIcon size={12} className='!text-dash-brand' />}
           label='Identities'
           hint='In this wallet'
-          value={<StatValue value={count} unit='Identities' />}
+          value={<StatValue value={identityCount} unit='Identities' />}
         />
       </div>
     </div>

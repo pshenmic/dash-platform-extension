@@ -108,8 +108,22 @@ export class PlatformExplorerClient {
   }
 
   async fetchTokens (identityId: string, network: NetworkType = 'testnet', limit: number = 10, page: number = 1): Promise<TokenData[]> {
+    const data = await this.fetchTokensPage(identityId, network, limit, page)
+
+    return data.resultSet
+  }
+
+  // Single page of identity tokens, pagination envelope included.
+  async fetchTokensPage (
+    identityId: string,
+    network: NetworkType = 'testnet',
+    limit: number = 10,
+    page: number = 1,
+    signal?: AbortSignal
+  ): Promise<TokensResponse> {
     const baseUrl = getBaseUrl(network)
-    const response = await fetch(`${baseUrl}/identity/${identityId}/tokens?limit=${limit}&page=${page}&order=desc`)
+    const url = `${baseUrl}/identity/${identityId}/tokens?limit=${limit}&page=${page}&order=desc`
+    const response = await fetch(url, { signal })
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -121,7 +135,7 @@ export class PlatformExplorerClient {
       throw new Error(data.error)
     }
 
-    return data.resultSet
+    return data
   }
 
   async fetchNames (identityId: string, network: NetworkType = 'testnet'): Promise<any[]> {

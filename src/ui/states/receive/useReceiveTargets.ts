@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import {
   useAsyncState,
+  useCoreBalance,
+  useDashRate,
+  useExtensionAPI,
   usePlatformAddresses,
-  usePlatformExplorerClient,
   useSdk,
   useShieldedAddresses,
   type UsePlatformAddressesResult,
@@ -12,7 +14,7 @@ import {
 import type { OutletContext } from '../../types'
 import type { NetworkType } from '../../../types'
 import { getIdentityExplorerUrl, getPlatformAddressExplorerUrl } from '../../../utils'
-import { RECEIVE_CORE_MOCK } from './mock'
+import { fromBaseUnit } from '../../../utils/bigintUtils'
 import {
   DEFAULT_TARGET_TYPE_BY_SCOPE,
   RECEIVE_LAYER_BY_TARGET,
@@ -42,8 +44,7 @@ function buildTarget (
   type: ReceiveTargetType,
   value: string,
   balance: string | null,
-  explorerUrl: string | null,
-  isMock = false
+  explorerUrl: string | null
 ): ReceiveTarget {
   return {
     type,
@@ -51,8 +52,7 @@ function buildTarget (
     layer: RECEIVE_LAYER_BY_TARGET[type],
     unit: type === 'core' ? 'Dash' : 'Credits',
     balance,
-    explorerUrl,
-    isMock
+    explorerUrl
   }
 }
 
@@ -63,12 +63,14 @@ function buildTarget (
  */
 export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsParams): UseReceiveTargetsResult {
   const sdk = useSdk()
-  const platformExplorerClient = usePlatformExplorerClient()
+  const extensionAPI = useExtensionAPI()
   const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
   const network: NetworkType = currentNetwork ?? 'testnet'
   const platform = usePlatformAddresses(network, currentWallet)
   const shielded = useShieldedAddresses(network, currentWallet)
-  const [rate, setRate] = useState<number | null>(null)
+  const rate = useDashRate(network)
+  const core = useCoreBalance(currentWallet)
+  const [coreAddressState, loadCoreAddress] = useAsyncState<string>()
   const [identityBalanceState, loadIdentityBalance] = useAsyncState<bigint>()
 
   // An identity dashboard pins its own destination; every other entry point only picks where the picker starts.
@@ -76,10 +78,11 @@ export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsPara
   const activeType = showPicker && type != null ? type : DEFAULT_TARGET_TYPE_BY_SCOPE[scope]
 
   useEffect(() => {
-    platformExplorerClient.fetchRate(network)
-      .then(setRate)
-      .catch(e => console.log('fetchRate error', e))
-  }, [network, platformExplorerClient])
+    if (activeType !== 'core') return
+
+    loadCoreAddress(async () => (await extensionAPI.getCoreReceiveAddress()).address)
+      .catch(e => console.log('getCoreReceiveAddress error', e))
+  }, [activeType, currentWallet, extensionAPI, loadCoreAddress])
 
   const identityValue = activeType === 'identity'
     ? value ?? availableIdentities[0]?.identifier ?? null
@@ -95,7 +98,13 @@ export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsPara
 
   const targets = useMemo((): ReceiveTarget[] => {
     if (activeType === 'core') {
-      return [buildTarget('core', RECEIVE_CORE_MOCK.address, RECEIVE_CORE_MOCK.balance, null, true)]
+      const address = coreAddressState.data
+      if (address == null) return []
+
+      // Core balances arrive in duffs (10^8), and this screen shows Dash.
+      const balance = core.balance != null ? fromBaseUnit(core.balance.balance, 8) : null
+
+      return [buildTarget('core', address, balance, null)]
     }
 
     if (activeType === 'platformAddress') {
@@ -124,7 +133,7 @@ export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsPara
         : null,
       getIdentityExplorerUrl(identifier, network)
     ))
-  }, [activeType, platform.addresses, shielded.rows, availableIdentities, network, identityValue, identityBalanceState.data, showPicker])
+  }, [activeType, coreAddressState.data, core.balance, platform.addresses, shielded.rows, availableIdentities, network, identityValue, identityBalanceState.data, showPicker])
 
   const selected = useMemo((): ReceiveTarget | null => {
     if (targets.length === 0) return null
@@ -134,7 +143,9 @@ export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsPara
 
   const loading = activeType === 'platformAddress'
     ? platform.isLoading
-    : activeType === 'shielded' ? shielded.isLoading : false
+    : activeType === 'shielded'
+      ? shielded.isLoading
+      : activeType === 'core' ? coreAddressState.loading : false
 
   return { showPicker, activeType, targets, selected, rate, platform, shielded, loading }
 }

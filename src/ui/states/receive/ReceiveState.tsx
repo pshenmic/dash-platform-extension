@@ -96,11 +96,6 @@ function ReceiveState (): React.JSX.Element {
         <Text size='sm' weight='medium' className='!text-dash-primary-dark-blue/48 !tracking-[-0.03em]'>
           {SCOPE_LABELS[scope]} - {RECEIVE_TYPE_FULL_LABELS[activeType]}
         </Text>
-        {selected?.isMock === true && (
-          <Text size='xs' weight='medium' className='!text-dash-primary-dark-blue/35'>
-            The Core address is mock data
-          </Text>
-        )}
       </div>
 
       <TargetSwitch

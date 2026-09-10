@@ -1,19 +1,5 @@
+/** Core transaction rows, still generated: Core has no transaction API yet. */
 export const CORE_MOCK = {
-  dashWhole: '320',
-  dashFraction: '00',
-  fiat: '~ $6221.00 USD',
-  credits: '32000000000',
-  txCount: 132,
-  txReceived: 15,
-  txSent: 117,
-  dataContractCount: 45,
-  documentsCreated: 12,
-  totalSent: '1.826',
-  totalReceived: '1.826',
-  lastTxAmount: '-1.826',
-  lastTxHash: 'ba406f3b20a79d59f83af9504a57b0851a7b6fdbb17b91eee1380e6af0fc609e',
-  lastTxLayer: 'Core',
-  lastTxType: 'Normal',
   operations: [
     {
       id: 'send-1',

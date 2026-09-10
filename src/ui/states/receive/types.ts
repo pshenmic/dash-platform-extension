@@ -15,8 +15,6 @@ export interface ReceiveTarget {
   // Credits as a raw string, or null while unknown.
   balance: string | null
   explorerUrl: string | null
-  // Core has no wallet receive address API yet, so its target is generated.
-  isMock: boolean
 }
 
 export const RECEIVE_LAYER_BY_TARGET: Record<ReceiveTargetType, 'Core' | 'Platform'> = {

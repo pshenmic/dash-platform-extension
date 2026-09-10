@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { Text } from 'dash-ui-kit/react'
 import { useStaticAsset } from '../../hooks'
 import { DashAmount, FiatChip } from './DashAmount'
-import { DASHBOARD_MOCK } from './mock'
+import { duffsToDashParts, duffsToFiatLabel } from './amount'
 
 interface LayerCardProps {
   title: string
-  whole: string
+  /** Null while the balance is unknown. */
+  whole: string | null
   fraction: string
-  fiat: string
+  fiat: string | null
   hide: boolean
   image: string
   toneClassName: string
@@ -73,20 +74,28 @@ function LayerCard ({
 
 interface LayerCardsProps {
   hide: boolean
+  /** Core balance in duffs, null while loading. */
+  coreDuffs: bigint | null
+  /** Identity credits converted to duffs, null while loading. */
+  platformDuffs: bigint | null
+  rate: number | null
 }
 
-export function LayerCards ({ hide }: LayerCardsProps): React.JSX.Element {
+export function LayerCards ({ hide, coreDuffs, platformDuffs, rate }: LayerCardsProps): React.JSX.Element {
   const navigate = useNavigate()
   const coreImage = useStaticAsset('3d-triangles-circle.png')
   const platformImage = useStaticAsset('asset-chain.png')
+
+  const coreParts = coreDuffs != null ? duffsToDashParts(coreDuffs) : null
+  const platformParts = platformDuffs != null ? duffsToDashParts(platformDuffs) : null
 
   return (
     <div className='flex gap-2 w-full'>
       <LayerCard
         title='Core'
-        whole={DASHBOARD_MOCK.coreDashWhole}
-        fraction={DASHBOARD_MOCK.coreDashFraction}
-        fiat={DASHBOARD_MOCK.coreFiat}
+        whole={coreParts?.whole ?? null}
+        fraction={coreParts?.fraction ?? ''}
+        fiat={coreDuffs != null ? duffsToFiatLabel(coreDuffs, rate) : null}
         hide={hide}
         image={coreImage}
         toneClassName='bg-[#4C7EFF]'
@@ -96,9 +105,9 @@ export function LayerCards ({ hide }: LayerCardsProps): React.JSX.Element {
       />
       <LayerCard
         title='Platform'
-        whole={DASHBOARD_MOCK.platformDashWhole}
-        fraction={DASHBOARD_MOCK.platformDashFraction}
-        fiat={DASHBOARD_MOCK.platformFiat}
+        whole={platformParts?.whole ?? null}
+        fraction={platformParts?.fraction ?? ''}
+        fiat={platformDuffs != null ? duffsToFiatLabel(platformDuffs, rate) : null}
         hide={hide}
         image={platformImage}
         toneClassName='bg-[#0C1C33]'
