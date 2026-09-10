@@ -64,10 +64,10 @@ function buildTarget (
 export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsParams): UseReceiveTargetsResult {
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
-  const { availableIdentities, currentNetwork } = useOutletContext<OutletContext>()
+  const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
   const network: NetworkType = currentNetwork ?? 'testnet'
-  const platform = usePlatformAddresses(network)
-  const shielded = useShieldedAddresses(network)
+  const platform = usePlatformAddresses(network, currentWallet)
+  const shielded = useShieldedAddresses(network, currentWallet)
   const [rate, setRate] = useState<number | null>(null)
   const [identityBalanceState, loadIdentityBalance] = useAsyncState<bigint>()
 

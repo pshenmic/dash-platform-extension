@@ -1,6 +1,5 @@
 import { BatchActions, TransactionTypesInfo } from '../../../enums'
 import { type TransactionData } from '../../../types'
-import { creditsToDash } from '../../../utils'
 import { type TransactionDirection, type TransactionRowItem } from './TransactionRow'
 
 const OUTGOING_TYPES = new Set([
@@ -27,15 +26,10 @@ function titleFromTransaction (transaction: TransactionData): string {
   return type ?? 'Unknown Transaction'
 }
 
-export function toTransactionRowItem (
-  transaction: TransactionData,
-  rate: number | null
-): TransactionRowItem {
+export function toTransactionRowItem (transaction: TransactionData): TransactionRowItem {
   const hash = transaction.hash ?? 'unknown'
   const gasUsedNumber = Number(transaction.gasUsed)
   const gasAmount = Number.isNaN(gasUsedNumber) ? 0 : gasUsedNumber
-  const dashAmount = gasAmount > 0 ? creditsToDash(gasAmount) : 0
-  const usdAmount = rate != null && dashAmount > 0 ? dashAmount * rate : 0
   const direction = directionFromTransaction(transaction)
 
   return {
@@ -45,7 +39,9 @@ export function toTransactionRowItem (
     detailValue: hash,
     detailAsIdentifier: true,
     credits: Math.abs(Math.round(gasAmount)),
-    fiatLabel: usdAmount > 0 ? `~ $${usdAmount.toFixed(3)}` : '',
+    // The explorer exposes no transfer amount - only gas. Label it for what it
+    // is rather than passing a fee off as the amount sent.
+    amountLabel: 'Fee:',
     direction,
     hash,
     timestamp: transaction.timestamp

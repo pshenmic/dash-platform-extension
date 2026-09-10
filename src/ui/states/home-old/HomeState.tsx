@@ -303,7 +303,8 @@ function HomeState (): React.JSX.Element {
               label: 'Transactions',
               content: (
                 <TransactionsList
-                  items={(transactionsState.data ?? []).map(tx => toTransactionRowItem(tx, rateState.data))}
+                  items={(transactionsState.data ?? []).map(tx => toTransactionRowItem(tx))}
+                  rate={rateState.data}
                   loading={transactionsState.loading}
                   error={transactionsState.error}
                   hideAmounts={hideBalance}

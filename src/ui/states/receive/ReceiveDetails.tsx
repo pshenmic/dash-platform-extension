@@ -1,6 +1,6 @@
 import React from 'react'
 import { BigNumber, Text, Tooltip } from 'dash-ui-kit/react'
-import { creditsToDashDisplay, creditsToUsdEquivalent } from '../../../utils'
+import { creditsToDashDisplay, creditsToUsdEquivalent, toCreditsBigInt } from '../../../utils'
 import { RECEIVE_TYPE_FULL_LABELS, type ReceiveTarget } from './types'
 
 interface ReceiveDetailsProps {
@@ -13,7 +13,7 @@ interface ReceiveDetailsProps {
 export function ReceiveDetails ({ target, hide, rate }: ReceiveDetailsProps): React.JSX.Element {
   // Platform balances arrive in credits; Dash is the unit people think in, so
   // it leads and credits move into the tooltip.
-  const credits = target.unit === 'Credits' && target.balance != null ? BigInt(target.balance) : null
+  const credits = target.unit === 'Credits' ? toCreditsBigInt(target.balance) : null
   const dashAmount = credits != null ? creditsToDashDisplay(credits) : target.balance
   const fiat = creditsToUsdEquivalent(credits, rate)
 

@@ -4,6 +4,8 @@ import { DASHBOARD_MOCK } from './mock'
 
 interface LastTransactionProps {
   hide: boolean
+  /** Set when the figure is a fee rather than the amount transferred. */
+  amountLabel?: string
   amount?: string
   hash?: string
   layer?: string
@@ -12,6 +14,7 @@ interface LastTransactionProps {
 
 export function LastTransaction ({
   hide,
+  amountLabel,
   amount = DASHBOARD_MOCK.lastTxAmount,
   hash = DASHBOARD_MOCK.lastTxHash,
   layer = DASHBOARD_MOCK.lastTxLayer,
@@ -41,6 +44,7 @@ export function LastTransaction ({
       </div>
       <div className='flex flex-col gap-2'>
         <Text className='!text-dash-brand !text-2xl !font-extrabold !leading-[1.2]'>
+          {amountLabel != null && <Text as='span' size='sm' weight='medium' className='!text-dash-primary-dark-blue/64'>{amountLabel}{' '}</Text>}
           {hide ? '••••••' : amount}{' '}
           <Text as='span' size='sm' weight='medium' className='!text-dash-primary-dark-blue'>Dash</Text>
         </Text>

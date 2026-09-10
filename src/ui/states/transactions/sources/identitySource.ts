@@ -1,4 +1,3 @@
-import type { MutableRefObject } from 'react'
 import type { NetworkType, PlatformExplorerClient } from '../../../../types'
 import { toTransactionRowItem } from '../../../components/transactions'
 import type { TransactionRowItem } from '../../../components/transactions'
@@ -8,7 +7,6 @@ interface IdentitySourceOptions {
   client: PlatformExplorerClient
   identifier: string
   network: NetworkType
-  rateRef: MutableRefObject<number | null>
   pageSize?: number
 }
 
@@ -17,7 +15,6 @@ export function createIdentitySource ({
   client,
   identifier,
   network,
-  rateRef,
   pageSize = TRANSACTIONS_PAGE_SIZE
 }: IdentitySourceOptions): TransactionsSource {
   let page = 1
@@ -38,7 +35,7 @@ export function createIdentitySource ({
       hasMore = resultSet.length >= pageSize
 
       const items: TransactionRowItem[] = resultSet.map((transaction, index) => {
-        const item = toTransactionRowItem(transaction, rateRef.current)
+        const item = toTransactionRowItem(transaction)
 
         // Hashless transactions would otherwise collide on the 'unknown' id.
         if (transaction.hash == null || transaction.hash === '') {

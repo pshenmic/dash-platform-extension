@@ -32,20 +32,19 @@ export function TransactionsTab ({
   lastName
 }: TransactionsTabProps): React.JSX.Element {
   const { identifier } = useParams<{ identifier: string }>()
-  const items: TransactionRowItem[] = transactions.map(tx => toTransactionRowItem(tx, rate))
+  const items: TransactionRowItem[] = transactions.map(tx => toTransactionRowItem(tx))
   const received = items.filter(item => item.direction === 'in').length
   const sent = items.filter(item => item.direction === 'out').length
   const first = transactions[0]
   const firstItem = items[0]
-  const lastDash = first != null ? creditsToDash(Number(first.gasUsed ?? 0)) : null
-  const lastSigned = lastDash != null && firstItem != null
-    ? `${firstItem.direction === 'out' ? '-' : firstItem.direction === 'in' ? '+' : ''}${lastDash.toFixed(3)}`
-    : null
+  // gasUsed is the fee, not the amount sent, so it carries no direction sign.
+  const lastFeeDash = first != null ? creditsToDash(Number(first.gasUsed ?? 0)) : null
 
   return (
     <div className='flex flex-col gap-4'>
       <TransactionsList
         items={items}
+        rate={rate}
         loading={loading}
         error={error}
         hideAmounts={hide}
@@ -97,10 +96,11 @@ export function TransactionsTab ({
           value={<StatValue value={nameCount} unit='Names' />}
         />
       </div>
-      {lastSigned != null && firstItem?.hash != null && (
+      {lastFeeDash != null && firstItem?.hash != null && (
         <LastTransaction
           hide={hide}
-          amount={lastSigned}
+          amount={lastFeeDash.toFixed(3)}
+          amountLabel='Fee:'
           hash={firstItem.hash}
           layer='Platform'
           transactionType={firstItem.title}

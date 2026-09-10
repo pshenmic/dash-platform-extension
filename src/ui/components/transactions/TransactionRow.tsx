@@ -1,5 +1,6 @@
 import React from 'react'
 import { BigNumber, DocumentIcon, Identifier, Text, TopRightArrowIcon } from 'dash-ui-kit/react'
+import { creditsToDash } from '../../../utils'
 
 export type TransactionDirection = 'in' | 'out' | 'neutral'
 
@@ -10,7 +11,10 @@ export interface TransactionRowItem {
   detailValue: string
   credits: string | number
   unit?: string
-  fiatLabel: string
+  /** Set when the number is not the transfer amount (explorer only gives us the fee). */
+  amountLabel?: string
+  /** Explicit override; live rows leave it unset and get fiat from `rate`. */
+  fiatLabel?: string
   direction: TransactionDirection
   hash?: string | null
   timestamp?: string | null
@@ -27,6 +31,18 @@ interface TransactionRowProps {
   item: TransactionRowItem
   hide: boolean
   onClick?: () => void
+  rate?: number | null
+}
+
+/** Fiat is derived at render time so a late-arriving rate repaints every row. */
+export function fiatLabelFor (item: TransactionRowItem, rate: number | null | undefined): string {
+  if (item.fiatLabel != null) return item.fiatLabel
+  if (rate == null) return ''
+
+  const credits = typeof item.credits === 'number' ? item.credits : Number(item.credits)
+  if (!Number.isFinite(credits) || credits <= 0) return ''
+
+  return `~ $${(creditsToDash(credits) * rate).toFixed(3)}`
 }
 
 function TypeIcon ({ direction }: { direction: TransactionDirection }): React.JSX.Element {
@@ -44,9 +60,11 @@ function TypeIcon ({ direction }: { direction: TransactionDirection }): React.JS
   )
 }
 
-export function TransactionRow ({ item, hide, onClick }: TransactionRowProps): React.JSX.Element {
+export function TransactionRow ({ item, hide, onClick, rate }: TransactionRowProps): React.JSX.Element {
   const isIn = item.direction === 'in'
-  const amountClass = isIn ? '!text-dash-brand' : ''
+  // A fee is a cost, not a directional amount, so it gets neither colour nor sign.
+  const isFee = item.amountLabel != null
+  const amountClass = isIn && !isFee ? '!text-dash-brand' : ''
   const unit = item.unit ?? 'Credits'
 
   return (
@@ -85,15 +103,15 @@ export function TransactionRow ({ item, hide, onClick }: TransactionRowProps): R
               ? '••••••'
               : (
                 <>
-                  {creditSign(item.direction)}
+                  {isFee ? `${item.amountLabel ?? ''} ` : creditSign(item.direction)}
                   <BigNumber>{item.credits}</BigNumber>
                 </>
                 )}
           </span>
           {' '}{unit}
         </Text>
-        <Text size='xs' weight='medium' className={`!leading-[1.2] ${isIn ? '!text-dash-brand' : '!text-dash-primary-dark-blue/35'}`}>
-          {hide ? '~ •••' : item.fiatLabel}
+        <Text size='xs' weight='medium' className={`!leading-[1.2] ${isIn && !isFee ? '!text-dash-brand' : '!text-dash-primary-dark-blue/35'}`}>
+          {hide ? '~ •••' : fiatLabelFor(item, rate)}
         </Text>
       </div>
     </button>

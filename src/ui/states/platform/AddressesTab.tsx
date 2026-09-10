@@ -21,7 +21,7 @@ import {
 import type { AddressData, ShieldedAddressData } from '../../components/addresses'
 import type { OutletContext } from '../../types/OutletContext'
 import type { NetworkType } from '../../../types'
-import { creditsToUsdEquivalent, getPlatformAddressExplorerUrl } from '../../../utils'
+import { creditsToUsdEquivalent, getPlatformAddressExplorerUrl, toCreditsBigInt } from '../../../utils'
 
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
 const subTabClassName = 'flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border-0 cursor-pointer'
@@ -172,15 +172,15 @@ function ShieldedAddressRow ({
 }
 
 export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
-  const { currentNetwork } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentWallet } = useOutletContext<OutletContext>()
   const network: NetworkType = currentNetwork ?? 'testnet'
   const platformExplorerClient = usePlatformExplorerClient()
   const [addressType, setAddressType] = useState<AddressType>('platform')
   const [rate, setRate] = useState<number | null>(null)
   const [creatingShielded, setCreatingShielded] = useState(false)
 
-  const platform = usePlatformAddresses(network)
-  const shielded = useShieldedAddresses(network)
+  const platform = usePlatformAddresses(network, currentWallet)
+  const shielded = useShieldedAddresses(network, currentWallet)
 
   useEffect(() => {
     platformExplorerClient.fetchRate(network)
@@ -190,7 +190,7 @@ export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
 
   const fiatFor = (credits: string | null): string | null => {
     if (credits == null) return null
-    return creditsToUsdEquivalent(BigInt(credits), rate)
+    return creditsToUsdEquivalent(toCreditsBigInt(credits), rate)
   }
 
   const handlePlatformPassword = async (password: string): Promise<string | null> => {

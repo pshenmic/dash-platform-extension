@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text } from 'dash-ui-kit/react'
+import { Button, Text } from 'dash-ui-kit/react'
 import EntityList from '../common/EntityList'
 import { TransactionRow, type TransactionRowItem } from './TransactionRow'
 
@@ -11,6 +11,9 @@ interface TransactionsListProps {
   groupByDate?: boolean
   limit?: number
   footer?: React.ReactNode
+  rate?: number | null
+  /** Shows a retry control when the first page failed. */
+  onRetry?: () => void
   onItemClick?: (item: TransactionRowItem) => void
 }
 
@@ -55,6 +58,8 @@ function TransactionsList ({
   groupByDate = true,
   limit,
   footer,
+  rate,
+  onRetry,
   onItemClick
 }: TransactionsListProps): React.JSX.Element {
   const visible = limit != null ? items.slice(0, limit) : items
@@ -83,6 +88,7 @@ function TransactionsList ({
               <TransactionRow
                 key={item.id}
                 item={item}
+                rate={rate}
                 hide={hideAmounts}
                 onClick={onItemClick != null ? () => { onItemClick(item) } : undefined}
               />
@@ -91,6 +97,20 @@ function TransactionsList ({
         ))}
       </EntityList>
       {!loading && error === null && !isEmpty && footer}
+      {!loading && error !== null && onRetry != null && (
+        <div className='flex justify-center'>
+          <Button
+            type='button'
+            colorScheme='lightBlue'
+            className='!h-auto !min-h-0 !rounded-xl !py-2 !px-6'
+            onClick={onRetry}
+          >
+            <Text size='sm' weight='medium' className='!text-dash-brand'>
+              Try Again
+            </Text>
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

@@ -119,3 +119,51 @@ describe('mergeSources', () => {
     expect(page.total).toBe(20)
   })
 })
+
+describe('mergeSources failure handling', () => {
+  function failingSource (key: string): TransactionsSource {
+    return {
+      key,
+      async loadMore (): Promise<TransactionsPage> {
+        throw new Error('network down')
+      }
+    }
+  }
+
+  const signal = new AbortController().signal
+
+  it('keeps serving what loaded when only some sources fail', async () => {
+    const merged = mergeSources('k', [
+      pagedSource('ok', [[row('a', '2026-01-02T00:00:00Z')]]),
+      failingSource('bad')
+    ])
+
+    const page = await merged.loadMore(signal)
+
+    expect(page.items.map(item => item.id)).toEqual(['a'])
+  })
+
+  it('throws when every source fails so the screen can offer a retry', async () => {
+    const merged = mergeSources('k', [failingSource('a'), failingSource('b')])
+
+    await expect(merged.loadMore(signal)).rejects.toThrow('Could not load transactions')
+  })
+
+  it('retries failed sources on the next call', async () => {
+    let attempt = 0
+    const flaky: TransactionsSource = {
+      key: 'flaky',
+      async loadMore (): Promise<TransactionsPage> {
+        attempt += 1
+        if (attempt === 1) throw new Error('network down')
+        return { items: [row('a', '2026-01-02T00:00:00Z')], hasMore: false, total: 1 }
+      }
+    }
+    const merged = mergeSources('k', [flaky])
+
+    await expect(merged.loadMore(signal)).rejects.toThrow('Could not load transactions')
+
+    const page = await merged.loadMore(signal)
+    expect(page.items.map(item => item.id)).toEqual(['a'])
+  })
+})

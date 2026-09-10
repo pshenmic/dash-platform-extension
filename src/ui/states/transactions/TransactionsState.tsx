@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { Heading, Text } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
@@ -32,14 +32,22 @@ function TransactionsState (): React.JSX.Element {
   const scope = parseTransactionsScope(searchParams.get('scope'))
   const identityId = searchParams.get('id')
   const { hideBalance } = useHideBalance()
-  const rateRef = useRef<number | null>(null)
+  const [rate, setRate] = useState<number | null>(null)
 
   useEffect(() => {
     if (currentNetwork == null) return
 
+    let cancelled = false
+
     client.fetchRate(currentNetwork)
-      .then(rate => { rateRef.current = rate })
+      .then(value => {
+        if (!cancelled) setRate(value)
+      })
       .catch(e => console.log('fetchRate error', e))
+
+    return () => {
+      cancelled = true
+    }
   }, [client, currentNetwork])
 
   // A picked identity belongs to the wallet it was picked in, so switching
@@ -62,11 +70,10 @@ function TransactionsState (): React.JSX.Element {
     identities: availableIdentities,
     network: currentNetwork,
     walletId: currentWallet,
-    client,
-    rateRef
+    client
   })
 
-  const { items, total, loading, loadingMore, error, loadMoreError, hasMore, loadMore } =
+  const { items, total, loading, loadingMore, error, loadMoreError, hasMore, loadMore, retry } =
     useInfiniteTransactions(source)
 
   const changeScope = useCallback((next: TransactionsScope): void => {
@@ -119,8 +126,10 @@ function TransactionsState (): React.JSX.Element {
 
       <TransactionsList
         items={items}
+        rate={rate}
         loading={loading && items.length === 0}
         error={items.length === 0 ? error : null}
+        onRetry={retry}
         hideAmounts={hideBalance}
         groupByDate
         onItemClick={(item) => {

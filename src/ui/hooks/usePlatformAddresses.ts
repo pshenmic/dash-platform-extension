@@ -19,7 +19,10 @@ export interface UsePlatformAddressesResult {
 }
 
 // Owns the platform addresses list and the generation flow.
-export function usePlatformAddresses (currentNetwork?: NetworkType | null): UsePlatformAddressesResult {
+export function usePlatformAddresses (
+  currentNetwork?: NetworkType | null,
+  walletId?: string | null
+): UsePlatformAddressesResult {
   const extensionAPI = useExtensionAPI()
   const platformExplorerClient = usePlatformExplorerClient()
   const [addresses, setAddresses] = useState<AddressData[]>([])
@@ -29,10 +32,16 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
   const [needsPassword, setNeedsPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const loadingRef = useRef(false)
+  // Addresses belong to one wallet on one network. A response for the previous
+  // pair must never repaint the list - on Receive that would be a QR code for
+  // the wallet the user just left.
+  const epochRef = useRef(0)
 
   // Fetch the created addresses and enrich with balances and transaction counts.
   const refreshList = useCallback(async (): Promise<void> => {
+    const epoch = epochRef.current
     const created = await extensionAPI.listPlatformAddresses()
+    if (epoch !== epochRef.current) return
 
     const initial: AddressData[] = created.map((entry) => ({
       index: entry.index,
@@ -62,6 +71,8 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
       }))
     ])
 
+    if (epoch !== epochRef.current) return
+
     const balanceByAddress = new Map(infos.map((info) => [info.address, info.balance]))
 
     setAddresses(initial.map((item, i) => ({
@@ -72,27 +83,33 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
     })))
   }, [extensionAPI, platformExplorerClient, currentNetwork])
 
-  // Load the existing list on mount.
+  // Reload whenever the wallet or the network changes, not just on mount.
   useEffect(() => {
+    epochRef.current += 1
+    const epoch = epochRef.current
+
+    setAddresses([])
+    setHasLoaded(false)
+    setNeedsPassword(false)
+
     const loadList = async (): Promise<void> => {
-      if (loadingRef.current) return
       loadingRef.current = true
       setIsLoading(true)
       setError(null)
 
       try {
         await refreshList()
-        setHasLoaded(true)
+        if (epoch === epochRef.current) setHasLoaded(true)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load addresses')
+        if (epoch === epochRef.current) setError(err instanceof Error ? err.message : 'Failed to load addresses')
       } finally {
-        setIsLoading(false)
         loadingRef.current = false
+        if (epoch === epochRef.current) setIsLoading(false)
       }
     }
 
     void loadList()
-  }, [])
+  }, [currentNetwork, walletId, refreshList])
 
   // Generate the next batch of addresses
   const generate = useCallback(async (): Promise<void> => {

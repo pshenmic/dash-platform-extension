@@ -11,6 +11,8 @@ export interface InfiniteTransactionsState {
   loadMoreError: string | null
   hasMore: boolean
   loadMore: () => void
+  /** Re-runs the first page after an initial load failure. */
+  retry: () => void
 }
 
 function errorMessage (error: unknown): string {
@@ -101,5 +103,10 @@ export function useInfiniteTransactions (source: TransactionsSource | null): Inf
 
   const loadMore = useCallback((): void => { runLoad(false) }, [runLoad])
 
-  return { items, total, loading, loadingMore, error, loadMoreError, hasMore, loadMore }
+  const retry = useCallback((): void => {
+    setError(null)
+    runLoad(true)
+  }, [runLoad])
+
+  return { items, total, loading, loadingMore, error, loadMoreError, hasMore, loadMore, retry }
 }

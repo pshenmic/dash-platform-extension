@@ -1,4 +1,4 @@
-import { useMemo, type MutableRefObject } from 'react'
+import { useMemo } from 'react'
 import type { Identity, NetworkType, PlatformExplorerClient } from '../../../types'
 import { createIdentitySource } from './sources/identitySource'
 import { createMockSource } from './sources/mockSource'
@@ -13,7 +13,6 @@ interface UseTransactionsSourceOptions {
   network: NetworkType | null
   walletId: string | null
   client: PlatformExplorerClient
-  rateRef: MutableRefObject<number | null>
 }
 
 /**
@@ -26,8 +25,7 @@ export function useTransactionsSource ({
   identities,
   network,
   walletId,
-  client,
-  rateRef
+  client
 }: UseTransactionsSourceOptions): TransactionsSource | null {
   const identifiers = identities.map(identity => identity.identifier).join(',')
 
@@ -44,7 +42,7 @@ export function useTransactionsSource ({
     const coreSource = (): TransactionsSource => createMockSource(`core:${key}`, buildCoreMockRows())
     const platformSources = (): TransactionsSource[] => identifiers === ''
       ? []
-      : identifiers.split(',').map(identifier => createIdentitySource({ client, identifier, network, rateRef }))
+      : identifiers.split(',').map(identifier => createIdentitySource({ client, identifier, network }))
 
     const build = (): TransactionsSource | null => {
       if (scope === 'core') return coreSource()
@@ -52,7 +50,7 @@ export function useTransactionsSource ({
       if (scope === 'identity') {
         if (identityId == null || identityId === '') return null
 
-        return createIdentitySource({ client, identifier: identityId, network, rateRef })
+        return createIdentitySource({ client, identifier: identityId, network })
       }
 
       if (scope === 'platform') return mergeSources(key, platformSources())
@@ -65,6 +63,6 @@ export function useTransactionsSource ({
     // Stamped here so no branch can hand back a source keyed on less than the
     // full scope. Consumers reset their loaded pages on this key alone.
     return built == null ? null : { ...built, key }
-    // rateRef and client are stable singletons, intentionally not in the key.
-  }, [scope, identityId, identifiers, network, walletId, client, rateRef])
+    // client is a stable singleton, intentionally not in the key.
+  }, [scope, identityId, identifiers, network, walletId, client])
 }

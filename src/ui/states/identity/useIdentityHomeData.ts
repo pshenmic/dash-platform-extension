@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { useAsyncState, usePlatformExplorerClient, useSdk } from '../../hooks'
 import type { TransactionData, TokenData } from '../../hooks/usePlatformExplorerApi'
@@ -23,12 +23,17 @@ export function useIdentityHomeData (identifier: string): {
   const [namesState, loadNames] = useAsyncState<NameData[]>()
   const [rateState, loadRate] = useAsyncState<number>()
 
+  // Depending on the array itself restarts every request on each loadWallets();
+  // only the active wallet's network actually gates the fetches.
+  const walletNetwork = useMemo(
+    () => allWallets.find(item => item.walletId === currentWallet)?.network ?? null,
+    [allWallets, currentWallet]
+  )
+
   const refreshData = useCallback(async (): Promise<void> => {
     if (identifier === '' || currentNetwork == null) return
     if (sdk.getNetwork() !== currentNetwork) return
-
-    const wallet = allWallets.find(item => item.walletId === currentWallet)
-    if (wallet != null && wallet.network !== currentNetwork) return
+    if (walletNetwork != null && walletNetwork !== currentNetwork) return
 
     const network = currentNetwork
 
@@ -43,8 +48,7 @@ export function useIdentityHomeData (identifier: string): {
   }, [
     identifier,
     currentNetwork,
-    currentWallet,
-    allWallets,
+    walletNetwork,
     sdk,
     platformExplorerClient,
     loadBalance,

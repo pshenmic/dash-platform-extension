@@ -83,6 +83,14 @@ export function mergeSources (
   return {
     key,
     async loadMore (signal: AbortSignal) {
+      // Retry after a total failure: give every source another chance.
+      if (cursors.length > 0 && cursors.every(cursor => cursor.failed)) {
+        cursors.forEach(cursor => {
+          cursor.failed = false
+          cursor.hasMore = true
+        })
+      }
+
       const items: TransactionRowItem[] = []
 
       while (items.length < pageSize) {
@@ -109,6 +117,13 @@ export function mergeSources (
 
         seen.add(dedupeKey)
         items.push(next.item)
+      }
+
+      // A partial failure stays silent on purpose - we show what did load. A
+      // total one must surface, so the screen offers a retry instead of
+      // claiming the wallet has no transactions.
+      if (items.length === 0 && cursors.length > 0 && cursors.every(cursor => cursor.failed)) {
+        throw new Error('Could not load transactions')
       }
 
       const hasMore = cursors.some(cursor =>
