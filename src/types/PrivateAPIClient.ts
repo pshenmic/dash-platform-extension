@@ -2,6 +2,8 @@ import { ext } from '../platform'
 import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT, BLOCKCHAIN_MESSAGING_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
+import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
+import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -417,6 +419,30 @@ export class PrivateAPIClient {
     const payload: SetSettingsPayload = { hideBalance }
 
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
+  }
+
+  // The address to receive on. Reading it does not consume it: the same address
+  // comes back until something is paid to it.
+  async getCoreReceiveAddress (): Promise<GetCoreAddressesResponse['addresses'][number]> {
+    const payload: EmptyPayload = {}
+
+    const response: GetCoreAddressesResponse = await this._rpcCall(MessagingMethods.GET_CORE_RECEIVE_ADDRESS, payload)
+
+    return response.addresses[0]
+  }
+
+  async listCoreAddresses (): Promise<GetCoreAddressesResponse['addresses']> {
+    const payload: EmptyPayload = {}
+
+    const response: GetCoreAddressesResponse = await this._rpcCall(MessagingMethods.LIST_CORE_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  async getCoreBalance (): Promise<GetCoreBalanceResponse> {
+    const payload: EmptyPayload = {}
+
+    return await this._rpcCall(MessagingMethods.GET_CORE_BALANCE, payload)
   }
 
   async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
