@@ -1,27 +1,9 @@
 import React from 'react'
-import { EyeClosedIcon, EyeOpenIcon, RefreshIcon, Text } from 'dash-ui-kit/react'
+import { Text } from 'dash-ui-kit/react'
 import { useStaticAsset } from '../../hooks'
 import { DashAmount, FiatChip } from '../home/DashAmount'
 import { PLATFORM_MOCK } from './mock'
-
-interface IconButtonProps {
-  label: string
-  onClick: () => void
-  children: React.ReactNode
-}
-
-function IconButton ({ label, onClick, children }: IconButtonProps): React.JSX.Element {
-  return (
-    <button
-      type='button'
-      onClick={onClick}
-      aria-label={label}
-      className='w-[27px] h-[27px] flex items-center justify-center rounded-lg bg-[rgba(12,28,51,0.12)] cursor-pointer hover:bg-[rgba(12,28,51,0.18)] transition-colors'
-    >
-      {children}
-    </button>
-  )
-}
+import { BalanceActions } from '../../components/common'
 
 interface SliceProps {
   label: string
@@ -94,16 +76,7 @@ export function BalanceBlock ({ hide, onToggleHide, onRefresh }: BalanceBlockPro
                 hide={hide}
                 className='!text-[2.25rem] !leading-none !tracking-[-0.03em] !text-dash-brand'
               />
-              <div className='flex items-center gap-2'>
-                <IconButton label={hide ? 'Show balance' : 'Hide balance'} onClick={onToggleHide}>
-                  {hide
-                    ? <EyeClosedIcon size={10} className='text-dash-primary-dark-blue' />
-                    : <EyeOpenIcon size={10} className='text-dash-primary-dark-blue' />}
-                </IconButton>
-                <IconButton label='Refresh' onClick={onRefresh}>
-                  <RefreshIcon size={10} className='text-dash-primary-dark-blue' />
-                </IconButton>
-              </div>
+              <BalanceActions hide={hide} onToggleHide={onToggleHide} onRefresh={onRefresh} />
             </div>
           </div>
           <FiatChip

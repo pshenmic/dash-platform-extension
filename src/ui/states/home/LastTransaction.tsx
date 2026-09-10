@@ -7,7 +7,7 @@ interface LastTransactionProps {
   amount?: string
   hash?: string
   layer?: string
-  kind?: string
+  transactionType?: string
 }
 
 export function LastTransaction ({
@@ -15,14 +15,14 @@ export function LastTransaction ({
   amount = DASHBOARD_MOCK.lastTxAmount,
   hash = DASHBOARD_MOCK.lastTxHash,
   layer = DASHBOARD_MOCK.lastTxLayer,
-  kind = DASHBOARD_MOCK.lastTxKind
+  transactionType = DASHBOARD_MOCK.lastTxType
 }: LastTransactionProps): React.JSX.Element {
   return (
     <div className='relative flex flex-col gap-4 p-4 rounded-3xl bg-[rgba(12,28,51,0.03)]'>
       <div className='absolute top-4 right-4 flex items-center gap-1.5'>
         <div className='flex px-3 py-1.5 rounded-full bg-[rgba(12,28,51,0.04)]'>
           <Text weight='medium' className='!text-[10px] !tracking-[-0.03em] !text-dash-primary-dark-blue'>
-            {kind}
+            {transactionType}
           </Text>
         </div>
         <div className='flex px-3 py-1.5 rounded-full bg-[rgba(76,126,255,0.12)]'>

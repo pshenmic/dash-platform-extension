@@ -42,7 +42,7 @@ interface TargetSwitchProps {
 }
 
 /**
- * Destination picker, narrowing left to right: layer, then what kind of
+ * Destination picker, narrowing left to right: layer, then what type of
  * Platform destination, then which one. Each level appears only when it has a
  * choice to offer - an identity dashboard names its destination outright.
  */

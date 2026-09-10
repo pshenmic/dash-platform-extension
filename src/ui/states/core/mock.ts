@@ -13,7 +13,7 @@ export const CORE_MOCK = {
   lastTxAmount: '-1.826',
   lastTxHash: 'ba406f3b20a79d59f83af9504a57b0851a7b6fdbb17b91eee1380e6af0fc609e',
   lastTxLayer: 'Core',
-  lastTxKind: 'Normal',
+  lastTxType: 'Normal',
   operations: [
     {
       id: 'send-1',

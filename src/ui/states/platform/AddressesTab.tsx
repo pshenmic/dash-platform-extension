@@ -26,7 +26,7 @@ import { creditsToUsdEquivalent, getPlatformAddressExplorerUrl } from '../../../
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
 const subTabClassName = 'flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border-0 cursor-pointer'
 
-type AddressKind = 'platform' | 'shield'
+type AddressType = 'platform' | 'shield'
 
 interface AddressesTabProps {
   hide: boolean
@@ -175,7 +175,7 @@ export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
   const { currentNetwork } = useOutletContext<OutletContext>()
   const network: NetworkType = currentNetwork ?? 'testnet'
   const platformExplorerClient = usePlatformExplorerClient()
-  const [kind, setKind] = useState<AddressKind>('platform')
+  const [addressType, setAddressType] = useState<AddressType>('platform')
   const [rate, setRate] = useState<number | null>(null)
   const [creatingShielded, setCreatingShielded] = useState(false)
 
@@ -206,7 +206,7 @@ export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
   }
 
   const handleAdd = (): void => {
-    if (kind === 'platform') {
+    if (addressType === 'platform') {
       void platform.generate()
       return
     }
@@ -214,7 +214,7 @@ export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
     setCreatingShielded(true)
   }
 
-  const addDisabled = kind === 'platform'
+  const addDisabled = addressType === 'platform'
     ? platform.isLoading || platform.isGenerating
     : !shielded.hasLoaded || shielded.isLoading || shielded.isGenerating || creatingShielded
 
@@ -235,26 +235,26 @@ export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
         <div className='flex items-center gap-2'>
           <button
             type='button'
-            className={`${subTabClassName} ${kind === 'platform' ? 'bg-[rgba(12,28,51,0.04)]' : 'bg-transparent'}`}
-            onClick={() => { setKind('platform') }}
+            className={`${subTabClassName} ${addressType === 'platform' ? 'bg-[rgba(12,28,51,0.04)]' : 'bg-transparent'}`}
+            onClick={() => { setAddressType('platform') }}
           >
-            <Text weight='medium' className={`!text-base !tracking-[-0.03em] ${kind === 'platform' ? '!text-dash-primary-dark-blue' : '!text-dash-primary-dark-blue/35'}`}>
+            <Text weight='medium' className={`!text-base !tracking-[-0.03em] ${addressType === 'platform' ? '!text-dash-primary-dark-blue' : '!text-dash-primary-dark-blue/35'}`}>
               Platform
             </Text>
-            <Text weight='medium' className={`!text-base !tracking-[-0.03em] ${kind === 'platform' ? '!text-dash-primary-dark-blue/48' : '!text-dash-primary-dark-blue/35'}`}>
+            <Text weight='medium' className={`!text-base !tracking-[-0.03em] ${addressType === 'platform' ? '!text-dash-primary-dark-blue/48' : '!text-dash-primary-dark-blue/35'}`}>
               {platform.addresses.length}
             </Text>
           </button>
           <button
             type='button'
-            className={`${subTabClassName} ${kind === 'shield' ? 'bg-[rgba(12,28,51,0.04)]' : 'bg-transparent'}`}
-            onClick={() => { setKind('shield') }}
+            className={`${subTabClassName} ${addressType === 'shield' ? 'bg-[rgba(12,28,51,0.04)]' : 'bg-transparent'}`}
+            onClick={() => { setAddressType('shield') }}
           >
-            <Text weight='medium' className={`!text-base !tracking-[-0.03em] ${kind === 'shield' ? '!text-dash-primary-dark-blue' : '!text-dash-primary-dark-blue/35'}`}>
+            <Text weight='medium' className={`!text-base !tracking-[-0.03em] ${addressType === 'shield' ? '!text-dash-primary-dark-blue' : '!text-dash-primary-dark-blue/35'}`}>
               Shield
             </Text>
             {shielded.hasLoaded && (
-              <Text weight='medium' className={`!text-base !tracking-[-0.03em] ${kind === 'shield' ? '!text-dash-primary-dark-blue/48' : '!text-dash-primary-dark-blue/35'}`}>
+              <Text weight='medium' className={`!text-base !tracking-[-0.03em] ${addressType === 'shield' ? '!text-dash-primary-dark-blue/48' : '!text-dash-primary-dark-blue/35'}`}>
                 {shielded.rows.length}
               </Text>
             )}
@@ -274,7 +274,7 @@ export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
         </Button>
       </div>
 
-      {kind === 'shield' && creatingShielded && (
+      {addressType === 'shield' && creatingShielded && (
         <PasswordGate
           description='Enter your password to show more shielded addresses.'
           submitLabel='Show addresses'
@@ -285,7 +285,7 @@ export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
         />
       )}
 
-      {kind === 'platform' && (
+      {addressType === 'platform' && (
         <>
           {platform.error != null && (
             <ValueCard colorScheme='red' size='xl'>
@@ -321,7 +321,7 @@ export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
         </>
       )}
 
-      {kind === 'shield' && (
+      {addressType === 'shield' && (
         <>
           {!shielded.hasLoaded && (
             <PasswordGate

@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useOutletContext, useParams } from 'react-router-dom'
 import { Tabs } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { useExtensionAPI } from '../../hooks'
+import { useHideBalance } from '../../hooks'
 import { IdentityType } from '../../../types/enums/IdentityType'
 import type { NetworkType } from '../../../types'
 import type { OutletContext } from '../../types/OutletContext'
@@ -16,14 +16,13 @@ import { useIdentityHomeData } from './useIdentityHomeData'
 
 function IdentityHomeState (): React.JSX.Element {
   const { identifier: routeIdentifier } = useParams<{ identifier: string }>()
-  const extensionAPI = useExtensionAPI()
   const {
     availableIdentities,
     currentIdentity,
     currentNetwork,
     setCurrentIdentity
   } = useOutletContext<OutletContext>()
-  const [hideBalance, setHideBalance] = useState(false)
+  const { hideBalance, toggleHide } = useHideBalance()
   const [activeTab, setActiveTab] = useState('transactions')
   const identifier = routeIdentifier ?? currentIdentity ?? ''
   const network: NetworkType = currentNetwork ?? 'testnet'
@@ -48,22 +47,10 @@ function IdentityHomeState (): React.JSX.Element {
   }, [identifier, setCurrentIdentity])
 
   useEffect(() => {
-    extensionAPI.getSettings()
-      .then(settings => { setHideBalance(settings.hideBalance) })
-      .catch(e => console.log('getSettings error', e))
-  }, [extensionAPI])
-
-  useEffect(() => {
     if (isMasternodeIdentity && activeTab === 'names') {
       setActiveTab('transactions')
     }
   }, [isMasternodeIdentity, activeTab])
-
-  const toggleHide = useCallback((): void => {
-    const next = !hideBalance
-    setHideBalance(next)
-    extensionAPI.setSettings(next).catch(e => console.log('setSettings error', e))
-  }, [extensionAPI, hideBalance])
 
   const names = namesState.data ?? []
   const tokens = tokensState.data ?? []

@@ -4,8 +4,6 @@ import {
   Avatar,
   BigNumber,
   Button,
-  CopyButton,
-  ExternalLinkIcon,
   Identifier,
   PlusIcon,
   Text
@@ -15,8 +13,8 @@ import { fetchNames, getIdentityExplorerUrl, splitDpns } from '../../../utils'
 import { usePlatformExplorerClient, useSdk } from '../../hooks'
 import { locationReturnState, type OutletContext } from '../../types'
 import { PLATFORM_MOCK } from './mock'
+import { ExplorerCopyChips } from '../../components/common'
 
-const iconChipClassName = 'flex items-center justify-center size-6 p-1 rounded-[5px] bg-[rgba(12,28,51,0.05)] shrink-0 transition-colors hover:bg-[rgba(12,28,51,0.12)]'
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
 const MOCK_STATS = PLATFORM_MOCK.identities
 
@@ -31,38 +29,6 @@ interface IdentityRow {
 interface IdentitiesTabProps {
   hide: boolean
   identities: Identity[]
-}
-
-function IdActions ({
-  identifier,
-  explorerUrl,
-  onStop
-}: {
-  identifier: string
-  explorerUrl: string
-  onStop: (event: React.MouseEvent) => void
-}): React.JSX.Element {
-  return (
-    <>
-      <a
-        href={explorerUrl}
-        target='_blank'
-        rel='noreferrer'
-        aria-label='View in explorer'
-        className={iconChipClassName}
-        onClick={onStop}
-      >
-        <ExternalLinkIcon size={14} color='#000000' />
-      </a>
-      <div className={iconChipClassName} onClick={onStop}>
-        <CopyButton
-          text={identifier}
-          aria-label='Copy identifier'
-          className='!p-0 !bg-transparent [&_svg]:!size-3.5'
-        />
-      </div>
-    </>
-  )
 }
 
 function IdentityCard ({
@@ -117,7 +83,7 @@ function IdentityCard ({
           <Identifier highlight='both' className='!text-sm !leading-[1.2] flex-1'>
             {row.identifier}
           </Identifier>
-          <IdActions identifier={row.identifier} explorerUrl={explorerUrl} onStop={stop} />
+          <ExplorerCopyChips value={row.identifier} explorerUrl={explorerUrl} copyLabel='Copy identifier' onStop={stop} />
         </div>
 
         <div className='flex gap-4'>

@@ -1,47 +1,12 @@
 import React from 'react'
 import { useParams } from 'react-router-dom'
-import { Button, CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
+import { CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
 import { LastTransaction } from '../home/LastTransaction'
-import { TransactionsList, toTransactionRowItem, type TransactionRowItem } from '../../components/transactions'
-import { useOpenTransactions } from '../../hooks'
+import { SeeAllTransactionsButton, TransactionsList, toTransactionRowItem, type TransactionRowItem } from '../../components/transactions'
 import { creditsToDash, getTransactionExplorerUrl } from '../../../utils'
 import type { NetworkType } from '../../../types'
 import type { TransactionData } from '../../hooks/usePlatformExplorerApi'
-
-interface StatCardProps {
-  icon: React.ReactNode
-  label: string
-  value: React.ReactNode
-  hint?: React.ReactNode
-}
-
-function StatCard ({ icon, label, value, hint }: StatCardProps): React.JSX.Element {
-  return (
-    <div className='flex-1 min-w-0 flex flex-col justify-center gap-4 p-4 rounded-3xl bg-[rgba(12,28,51,0.03)]'>
-      <div className='flex items-center gap-2'>
-        <div className='w-6 h-6 rounded-full bg-white flex items-center justify-center shrink-0'>
-          {icon}
-        </div>
-        <Text size='sm' weight='medium' className='!text-dash-primary-dark-blue/64 !leading-[1.1]'>
-          {label}
-        </Text>
-      </div>
-      <div className='flex flex-col gap-2'>
-        {value}
-        {hint}
-      </div>
-    </div>
-  )
-}
-
-function CountValue ({ count, unit }: { count: number, unit: string }): React.JSX.Element {
-  return (
-    <Text className='!text-dash-brand !text-2xl !font-extrabold !leading-[1.2]'>
-      {count}{' '}
-      <Text as='span' size='sm' weight='medium' className='!text-dash-primary-dark-blue'>{unit}</Text>
-    </Text>
-  )
-}
+import { StatCard, StatValue } from '../../components/common'
 
 interface TransactionsTabProps {
   hide: boolean
@@ -67,7 +32,6 @@ export function TransactionsTab ({
   lastName
 }: TransactionsTabProps): React.JSX.Element {
   const { identifier } = useParams<{ identifier: string }>()
-  const openTransactions = useOpenTransactions('identity', identifier)
   const items: TransactionRowItem[] = transactions.map(tx => toTransactionRowItem(tx, rate))
   const received = items.filter(item => item.direction === 'in').length
   const sent = items.filter(item => item.direction === 'out').length
@@ -93,16 +57,7 @@ export function TransactionsTab ({
           }
         }}
         footer={(
-          <Button
-            type='button'
-            colorScheme='lightBlue'
-            className='!h-auto !min-h-0 !rounded-xl !py-2 !px-6'
-            onClick={openTransactions}
-          >
-            <Text size='sm' weight='medium' className='!text-dash-brand'>
-              See All Transactions
-            </Text>
-          </Button>
+          <SeeAllTransactionsButton scope='identity' identityId={identifier} />
         )}
       />
       <Text size='lg' weight='medium' className='!text-dash-primary-dark-blue/48 !tracking-[-0.03em]'>
@@ -112,7 +67,7 @@ export function TransactionsTab ({
         <StatCard
           icon={<CreditsIcon size={12} className='!text-dash-brand' />}
           label='Tokens'
-          value={<CountValue count={tokenCount} unit='Tokens' />}
+          value={<StatValue value={tokenCount} unit='Tokens' />}
         />
         <StatCard
           icon={<DocumentIcon size={12} className='!text-dash-brand' />}
@@ -122,7 +77,7 @@ export function TransactionsTab ({
               {received} received - {sent} sent
             </Text>
           )}
-          value={<CountValue count={items.length} unit='TXs' />}
+          value={<StatValue value={items.length} unit='TXs' />}
         />
         <StatCard
           icon={<FingerprintIcon size={12} className='!text-dash-brand' />}
@@ -139,7 +94,7 @@ export function TransactionsTab ({
               </div>
               )
             : undefined}
-          value={<CountValue count={nameCount} unit='Names' />}
+          value={<StatValue value={nameCount} unit='Names' />}
         />
       </div>
       {lastSigned != null && firstItem?.hash != null && (
@@ -148,7 +103,7 @@ export function TransactionsTab ({
           amount={lastSigned}
           hash={firstItem.hash}
           layer='Platform'
-          kind={firstItem.title}
+          transactionType={firstItem.title}
         />
       )}
     </div>

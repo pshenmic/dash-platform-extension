@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { Heading, Text } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { TransactionsFooter, TransactionsList } from '../../components/transactions'
-import { useExtensionAPI, useInfiniteTransactions, usePlatformExplorerClient } from '../../hooks'
+import { useHideBalance, useInfiniteTransactions, usePlatformExplorerClient } from '../../hooks'
 import type { OutletContext } from '../../types/OutletContext'
 import { getTransactionExplorerUrl } from '../../../utils'
 import { parseTransactionsScope, transactionsPath } from '../../utils/transactionsPath'
@@ -26,20 +26,13 @@ function TransactionsState (): React.JSX.Element {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const location = useLocation()
-  const extensionAPI = useExtensionAPI()
   const client = usePlatformExplorerClient()
   const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
 
   const scope = parseTransactionsScope(searchParams.get('scope'))
   const identityId = searchParams.get('id')
-  const [hideBalance, setHideBalance] = useState(false)
+  const { hideBalance } = useHideBalance()
   const rateRef = useRef<number | null>(null)
-
-  useEffect(() => {
-    extensionAPI.getSettings()
-      .then(settings => { setHideBalance(settings.hideBalance) })
-      .catch(e => console.log('getSettings error', e))
-  }, [extensionAPI])
 
   useEffect(() => {
     if (currentNetwork == null) return

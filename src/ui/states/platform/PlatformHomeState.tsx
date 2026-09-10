@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Tabs, Text } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { useExtensionAPI } from '../../hooks'
+import { useHideBalance } from '../../hooks'
 import type { OutletContext } from '../../types/OutletContext'
 import { ActionRow } from '../home/ActionRow'
 import { AddressesTab } from './AddressesTab'
@@ -22,26 +22,9 @@ function TabStub ({ label }: { label: string }): React.JSX.Element {
  * Platform layer home (Figma 10681:876). Mock balances / ops until explorer + credits APIs wire in.
  */
 function PlatformHomeState (): React.JSX.Element {
-  const extensionAPI = useExtensionAPI()
   const { availableIdentities } = useOutletContext<OutletContext>()
-  const [hideBalance, setHideBalance] = useState(false)
+  const { hideBalance, toggleHide, refresh } = useHideBalance()
   const [activeTab, setActiveTab] = useState('overview')
-
-  useEffect(() => {
-    extensionAPI.getSettings()
-      .then(settings => { setHideBalance(settings.hideBalance) })
-      .catch(e => console.log('getSettings error', e))
-  }, [extensionAPI])
-
-  const toggleHide = useCallback((): void => {
-    const next = !hideBalance
-    setHideBalance(next)
-    extensionAPI.setSettings(next).catch(e => console.log('setSettings error', e))
-  }, [extensionAPI, hideBalance])
-
-  const refresh = useCallback((): void => {
-    extensionAPI.getIdentities().catch(e => console.log('refresh identities error', e))
-  }, [extensionAPI])
 
   return (
     <div className='flex flex-col gap-6'>

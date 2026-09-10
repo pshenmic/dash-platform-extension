@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { Button, Heading, Text, ValueCard } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { PasswordGate } from '../../components/forms'
-import { useExtensionAPI } from '../../hooks'
+import { useHideBalance } from '../../hooks'
 import type { OutletContext } from '../../types'
 import { buildTopUpUrl } from '../../utils/topUpTabUrl'
 import { parseReceiveScope, parseReceiveTargetType, receivePath } from '../../utils/receivePath'
@@ -29,22 +29,15 @@ function ReceiveState (): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
-  const extensionAPI = useExtensionAPI()
   const { currentWallet, currentNetwork } = useOutletContext<OutletContext>()
 
   const scope = parseReceiveScope(searchParams.get('scope'))
   const type = parseReceiveTargetType(searchParams.get('type'))
   const value = searchParams.get('value')
-  const [hideBalance, setHideBalance] = useState(false)
+  const { hideBalance } = useHideBalance()
 
   const { showPicker, activeType, targets, selected, rate, platform, shielded, loading } =
     useReceiveTargets({ scope, type, value })
-
-  useEffect(() => {
-    extensionAPI.getSettings()
-      .then(settings => { setHideBalance(settings.hideBalance) })
-      .catch(e => console.log('getSettings error', e))
-  }, [extensionAPI])
 
   // A picked identity belongs to the wallet it was picked in, so switching
   // wallets widens the screen back to the whole Platform layer.
