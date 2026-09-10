@@ -9,10 +9,9 @@ import {
   Text
 } from 'dash-ui-kit/react'
 import { PLATFORM_EXPLORER_URLS } from '../../../constants'
-import type { NetworkType } from '../../../types'
-import type { TokenData } from '../../hooks/usePlatformExplorerApi'
+import type { NetworkType, TokenData } from '../../../types'
 import { fromBaseUnit, getTokenName } from '../../../utils'
-import { IconChip } from './IconChip'
+import { IconChip } from '../../components/common'
 
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
 

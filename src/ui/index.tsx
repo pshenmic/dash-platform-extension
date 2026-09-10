@@ -142,10 +142,10 @@ const App: React.FC = function () {
         },
         {
           path: '/receive',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ReceiveState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><ReceiveState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'simple'
+              variant: 'receive'
             }
           }
         },

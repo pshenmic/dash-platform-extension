@@ -11,6 +11,7 @@ import {
   Text,
   ValueCard
 } from 'dash-ui-kit/react'
+import { IconChip } from '../../components/common'
 import { PasswordGate } from '../../components/forms'
 import {
   usePlatformAddresses,
@@ -22,7 +23,6 @@ import type { OutletContext } from '../../types/OutletContext'
 import type { NetworkType } from '../../../types'
 import { creditsToUsdEquivalent, getPlatformAddressExplorerUrl } from '../../../utils'
 
-const iconChipClassName = 'flex items-center justify-center size-6 p-1 rounded-[5px] bg-[rgba(12,28,51,0.05)] shrink-0 transition-colors hover:bg-[rgba(12,28,51,0.12)]'
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
 const subTabClassName = 'flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border-0 cursor-pointer'
 
@@ -42,23 +42,17 @@ function AddressActions ({
   return (
     <>
       {explorerUrl != null && (
-        <a
-          href={explorerUrl}
-          target='_blank'
-          rel='noreferrer'
-          aria-label='View in explorer'
-          className={iconChipClassName}
-        >
+        <IconChip label='View in explorer' href={explorerUrl}>
           <ExternalLinkIcon size={14} color='#000000' />
-        </a>
+        </IconChip>
       )}
-      <div className={iconChipClassName}>
+      <IconChip label='Copy address'>
         <CopyButton
           text={address}
           aria-label='Copy address'
           className='!p-0 !bg-transparent [&_svg]:!size-3.5'
         />
-      </div>
+      </IconChip>
     </>
   )
 }

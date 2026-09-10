@@ -10,3 +10,16 @@ export const WITHDRAW_TO_CORE_WARNING = 'This withdrawal leaves Platform for the
 
 // Withdrawing from the pool to Core loses the exit's privacy.
 export const SHIELDED_WITHDRAW_WARNING = 'Withdrawing to Core reveals the amount and the destination on L1 — the privacy of this exit is lost. It is irreversible and pays an additional L1 network fee.'
+
+// Receiving on the wrong layer is the easiest way to lose funds: Platform
+// addresses and identities take credits, not L1 Dash. The title carries the
+// rule, the body only what happens when it is broken - the destination row
+// above already says which layer this is.
+export const RECEIVE_PLATFORM_LAYER_NOTICE = {
+  title: 'Credits Only',
+  text: 'Dash sent here from an exchange or an L1 wallet will not arrive. Top up an identity from Core instead.'
+}
+export const RECEIVE_CORE_LAYER_NOTICE = {
+  title: 'Dash Only',
+  text: 'This is a Dash (L1) address. Platform credits cannot be sent here - use a platform address or an identity for those.'
+}

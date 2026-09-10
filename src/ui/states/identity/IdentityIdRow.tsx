@@ -2,7 +2,7 @@ import React from 'react'
 import { Avatar, CopyButton, ExternalLinkIcon, Identifier } from 'dash-ui-kit/react'
 import type { NetworkType } from '../../../types'
 import { getIdentityExplorerUrl } from '../../../utils'
-import { IconChip } from './IconChip'
+import { IconChip } from '../../components/common/IconChip'
 
 interface IdentityIdRowProps {
   identifier: string

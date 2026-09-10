@@ -146,6 +146,13 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
     showBurgerMenu: true
   },
 
+  // Receive screen: back to origin + wallet + menu
+  receive: {
+    hideLeftSection: false,
+    showWalletSelector: true,
+    showBurgerMenu: true
+  },
+
   identity: {
     hideLeftSection: false,
     showIdentitySelector: true,
@@ -303,7 +310,7 @@ export default function Header (): React.JSX.Element {
       return
     }
 
-    if (variantKey === 'transactions') {
+    if (variantKey === 'transactions' || variantKey === 'receive') {
       void navigate(locationReturnPath(location.state, '/home'))
       return
     }
@@ -324,7 +331,7 @@ export default function Header (): React.JSX.Element {
   }
 
   const headerIdentityId = routeIdentifier ?? currentIdentity ?? ''
-  const isLightChrome = variantKey === 'dashboard' || variantKey === 'platform' || variantKey === 'identity' || variantKey === 'core' || variantKey === 'transactions'
+  const isLightChrome = variantKey === 'dashboard' || variantKey === 'platform' || variantKey === 'identity' || variantKey === 'core' || variantKey === 'transactions' || variantKey === 'receive'
 
   return (
     <header
