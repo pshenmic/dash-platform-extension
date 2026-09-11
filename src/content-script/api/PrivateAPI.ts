@@ -48,6 +48,7 @@ import { TopUpIdentityHandler } from './private/identities/topUpIdentity'
 import { WalletSettingsRepository } from '../repository/WalletSettingsRepository'
 import { GetSettingsHandler } from './private/settings/getSettings'
 import { SetSettingsHandler } from './private/settings/setSettings'
+import { InitAccountXpubsHandler } from './private/wallet/initAccountXpubs'
 import { GetCoreReceiveAddressHandler } from './private/core/getCoreReceiveAddress'
 import { ListCoreAddressesHandler } from './private/core/listCoreAddresses'
 import { GetCoreBalanceHandler } from './private/core/getCoreBalance'
@@ -138,6 +139,7 @@ export class PrivateAPI {
       [MessagingMethods.APPROVE_STATE_TRANSITION]: new ApproveStateTransitionHandler(stateTransitionsRepository, identitiesRepository, walletRepository, keypairRepository, this.storageAdapter, this.sdk),
       [MessagingMethods.GET_STATE_TRANSITION]: new GetStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.REJECT_STATE_TRANSITION]: new RejectStateTransitionHandler(stateTransitionsRepository, walletRepository),
+      [MessagingMethods.INIT_ACCOUNT_XPUBS]: new InitAccountXpubsHandler(walletRepository, this.sdk),
       [MessagingMethods.CREATE_WALLET]: new CreateWalletHandler(walletRepository, this.sdk, this.storageAdapter),
       [MessagingMethods.REMOVE_WALLET]: new RemoveWalletHandler(walletRepository, this.storageAdapter),
       [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository, this.storageAdapter),

@@ -4,6 +4,8 @@ import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
 import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
+import { InitAccountXpubsPayload } from './messages/payloads/InitAccountXpubsPayload'
+import { InitAccountXpubsResponse } from './messages/response/InitAccountXpubsResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -120,6 +122,14 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.CHECK_PASSWORD, payload)
+  }
+
+  // Caches the Platform and Core account xpubs so later reads need no password.
+  // Idempotent: call it right after a successful unlock, every time.
+  async initAccountXpubs (password: string): Promise<InitAccountXpubsResponse> {
+    const payload: InitAccountXpubsPayload = { password }
+
+    return await this._rpcCall(MessagingMethods.INIT_ACCOUNT_XPUBS, payload)
   }
 
   async createWallet (walletType: WalletType, mnemonic?: string): Promise<CreateWalletResponse> {
