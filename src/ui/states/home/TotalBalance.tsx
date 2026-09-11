@@ -6,9 +6,11 @@ import { BalanceActions } from '../../components/common'
 
 interface TotalBalanceProps {
   hideBalance: boolean
-  /** Core balance plus identity credits, both already in duffs. Null while loading. */
+  /** Core plus Platform in duffs, set only once both requests are done. Null until then. */
   totalDuffs: bigint | null
   rate: number | null
+  /** Core or Platform is still loading, so the spinner replaces the total. */
+  loading: boolean
   onToggleHide: () => void
   onRefresh: () => void
 }
@@ -17,6 +19,7 @@ export function TotalBalance ({
   hideBalance,
   totalDuffs,
   rate,
+  loading,
   onToggleHide,
   onRefresh
 }: TotalBalanceProps): React.JSX.Element {
@@ -36,14 +39,19 @@ export function TotalBalance ({
           whole={parts?.whole ?? null}
           fraction={parts?.fraction ?? ''}
           hide={hideBalance}
+          loading={loading}
           className='!text-[2.25rem] !leading-none !tracking-[-0.03em] !text-dash-brand'
+          spinnerClassName='w-7 h-7 text-dash-brand'
         />
-        <FiatChip
-          label={fiat}
-          hide={hideBalance}
-          className='bg-white px-2 py-[5px] shadow-[0_0_48px_0_rgba(12,28,51,0.08)]'
-          textClassName='!text-dash-brand !text-sm !leading-[1.2]'
-        />
+        {/* The amount already carries a spinner, so the chip only appears once it has a value. */}
+        {(hideBalance || fiat != null) && (
+          <FiatChip
+            label={fiat}
+            hide={hideBalance}
+            className='bg-white px-2 py-[5px] shadow-[0_0_48px_0_rgba(12,28,51,0.08)]'
+            textClassName='!text-dash-brand !text-sm !leading-[1.2]'
+          />
+        )}
       </div>
     </div>
   )

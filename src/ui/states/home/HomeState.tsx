@@ -26,7 +26,11 @@ function HomeState (): React.JSX.Element {
 
   const coreDuffs = coreBalance != null ? BigInt(coreBalance.balance) : null
   const platformDuffs = platformLoading ? null : creditsToDuffs(totalCredits)
-  const totalDuffs = coreDuffs != null && platformDuffs != null ? coreDuffs + platformDuffs : null
+  const balancesLoading = coreLoading || platformLoading
+  // The total stays a spinner until both layers are done, then sums whatever answered.
+  const totalDuffs = balancesLoading || (coreDuffs == null && platformDuffs == null)
+    ? null
+    : (coreDuffs ?? 0n) + (platformDuffs ?? 0n)
 
   const onRefresh = (): void => {
     refresh()
@@ -40,15 +44,25 @@ function HomeState (): React.JSX.Element {
         hideBalance={hideBalance}
         totalDuffs={totalDuffs}
         rate={rate}
+        loading={balancesLoading}
         onToggleHide={toggleHide}
         onRefresh={onRefresh}
       />
-      <LayerCards hide={hideBalance} coreDuffs={coreDuffs} platformDuffs={platformDuffs} rate={rate} />
+      <LayerCards
+        hide={hideBalance}
+        coreDuffs={coreDuffs}
+        platformDuffs={platformDuffs}
+        coreLoading={coreLoading}
+        platformLoading={platformLoading}
+        rate={rate}
+      />
       <ActionRow />
       <Statistics
         identityCount={availableIdentities.length}
         coreTxCount={coreLoading ? null : (coreBalance?.txCount ?? null)}
         platformTxCount={platformLoading ? null : totalTxCount}
+        coreLoading={coreLoading}
+        platformLoading={platformLoading}
       />
       <LastTransaction
         hide={hideBalance}

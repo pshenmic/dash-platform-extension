@@ -12,6 +12,7 @@ interface LayerCardProps {
   fraction: string
   fiat: string | null
   hide: boolean
+  loading: boolean
   image: string
   toneClassName: string
   imageClassName: string
@@ -25,6 +26,7 @@ function LayerCard ({
   fraction,
   fiat,
   hide,
+  loading,
   image,
   toneClassName,
   imageClassName,
@@ -57,14 +59,19 @@ function LayerCard ({
               whole={whole}
               fraction={fraction}
               hide={hide}
+              loading={loading}
               className='!text-white !text-base !leading-none !tracking-[-0.03em]'
+              spinnerClassName='w-4 h-4 text-white'
             />
-            <FiatChip
-              label={fiat}
-              hide={hide}
-              className='w-fit bg-white/12 px-2 py-[5px]'
-              textClassName='!text-white'
-            />
+            {/* The amount already carries a spinner, so the chip only appears once it has a value. */}
+            {(hide || fiat != null) && (
+              <FiatChip
+                label={fiat}
+                hide={hide}
+                className='w-fit bg-white/12 px-2 py-[5px]'
+                textClassName='!text-white'
+              />
+            )}
           </div>
         </div>
       </div>
@@ -74,14 +81,23 @@ function LayerCard ({
 
 interface LayerCardsProps {
   hide: boolean
-  /** Core balance in duffs, null while loading. */
+  /** Core balance in duffs, null until it loads. */
   coreDuffs: bigint | null
-  /** Identity credits converted to duffs, null while loading. */
+  /** Identity credits converted to duffs, null until they load. */
   platformDuffs: bigint | null
+  coreLoading: boolean
+  platformLoading: boolean
   rate: number | null
 }
 
-export function LayerCards ({ hide, coreDuffs, platformDuffs, rate }: LayerCardsProps): React.JSX.Element {
+export function LayerCards ({
+  hide,
+  coreDuffs,
+  platformDuffs,
+  coreLoading,
+  platformLoading,
+  rate
+}: LayerCardsProps): React.JSX.Element {
   const navigate = useNavigate()
   const coreImage = useStaticAsset('3d-triangles-circle.png')
   const platformImage = useStaticAsset('asset-chain.png')
@@ -97,6 +113,7 @@ export function LayerCards ({ hide, coreDuffs, platformDuffs, rate }: LayerCards
         fraction={coreParts?.fraction ?? ''}
         fiat={coreDuffs != null ? duffsToFiatLabel(coreDuffs, rate) : null}
         hide={hide}
+        loading={coreLoading}
         image={coreImage}
         toneClassName='bg-[#4C7EFF]'
         imageClassName='right-[-26%] top-[-46%] w-[170px] h-auto opacity-30'
@@ -109,6 +126,7 @@ export function LayerCards ({ hide, coreDuffs, platformDuffs, rate }: LayerCards
         fraction={platformParts?.fraction ?? ''}
         fiat={platformDuffs != null ? duffsToFiatLabel(platformDuffs, rate) : null}
         hide={hide}
+        loading={platformLoading}
         image={platformImage}
         toneClassName='bg-[#0C1C33]'
         imageClassName='right-[-18%] top-[-32%] w-[115px] h-auto rotate-[-46deg]'
