@@ -42,6 +42,7 @@ export function toTransactionRowItem (transaction: TransactionData): Transaction
     // The explorer exposes no transfer amount - only gas. Label it for what it
     // is rather than passing a fee off as the amount sent.
     amountLabel: 'Fee:',
+    layer: 'platform',
     direction,
     hash,
     timestamp: transaction.timestamp

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
 import { LastTransaction } from '../home/LastTransaction'
 import { SeeAllTransactionsButton, TransactionsList, toTransactionRowItem, type TransactionRowItem } from '../../components/transactions'
-import { creditsToDash, getTransactionExplorerUrl } from '../../../utils'
+import { getTransactionExplorerUrl } from '../../../utils'
 import type { NetworkType } from '../../../types'
 import type { TransactionData } from '../../hooks/usePlatformExplorerApi'
 import { StatCard, StatValue } from '../../components/common'
@@ -35,10 +35,7 @@ export function TransactionsTab ({
   const items: TransactionRowItem[] = transactions.map(tx => toTransactionRowItem(tx))
   const received = items.filter(item => item.direction === 'in').length
   const sent = items.filter(item => item.direction === 'out').length
-  const first = transactions[0]
   const firstItem = items[0]
-  // gasUsed is the fee, not the amount sent, so it carries no direction sign.
-  const lastFeeDash = first != null ? creditsToDash(Number(first.gasUsed ?? 0)) : null
 
   return (
     <div className='flex flex-col gap-4'>
@@ -96,12 +93,10 @@ export function TransactionsTab ({
           value={<StatValue value={nameCount} unit='Names' />}
         />
       </div>
-      {lastFeeDash != null && firstItem?.hash != null && (
+      {firstItem?.hash != null && (
         <LastTransaction
-          hide={hide}
-          amount={lastFeeDash.toFixed(3)}
-          amountLabel='Fee:'
           hash={firstItem.hash}
+          explorerUrl={getTransactionExplorerUrl(firstItem.hash, network)}
           layer='Platform'
           transactionType={firstItem.title}
         />

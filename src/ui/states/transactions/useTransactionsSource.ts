@@ -1,9 +1,8 @@
 import { useMemo } from 'react'
-import type { Identity, NetworkType, PlatformExplorerClient } from '../../../types'
+import type { CoreExplorerClient, Identity, NetworkType, PlatformExplorerClient } from '../../../types'
 import { createIdentitySource } from './sources/identitySource'
-import { createMockSource } from './sources/mockSource'
+import { createCoreSource } from './sources/coreSource'
 import { mergeSources } from './sources/mergeSources'
-import { buildCoreMockRows } from './mock'
 import { transactionsSourceKey, type TransactionsScope, type TransactionsSource } from './types'
 
 interface UseTransactionsSourceOptions {
@@ -13,6 +12,9 @@ interface UseTransactionsSourceOptions {
   network: NetworkType | null
   walletId: string | null
   client: PlatformExplorerClient
+  coreClient: CoreExplorerClient
+  /** Null while the wallet's Core addresses are still loading. */
+  coreAddresses: string[] | null
 }
 
 /**
@@ -25,9 +27,12 @@ export function useTransactionsSource ({
   identities,
   network,
   walletId,
-  client
+  client,
+  coreClient,
+  coreAddresses
 }: UseTransactionsSourceOptions): TransactionsSource | null {
   const identifiers = identities.map(identity => identity.identifier).join(',')
+  const coreAddressList = coreAddresses?.join(',') ?? null
 
   return useMemo(() => {
     if (network == null) return null
@@ -39,7 +44,13 @@ export function useTransactionsSource ({
       walletId,
       identifiers: identifiers === '' ? [] : identifiers.split(',')
     })
-    const coreSource = (): TransactionsSource => createMockSource(`core:${key}`, buildCoreMockRows())
+    const coreSource = (): TransactionsSource | null => {
+      if (coreAddressList == null) return null
+
+      const addresses = coreAddressList === '' ? [] : coreAddressList.split(',')
+
+      return createCoreSource(`core:${key}`, { client: coreClient, addresses, network })
+    }
     const platformSources = (): TransactionsSource[] => identifiers === ''
       ? []
       : identifiers.split(',').map(identifier => createIdentitySource({ client, identifier, network }))
@@ -55,7 +66,10 @@ export function useTransactionsSource ({
 
       if (scope === 'platform') return mergeSources(key, platformSources())
 
-      return mergeSources(key, [...platformSources(), coreSource()])
+      const core = coreSource()
+      if (core == null) return null
+
+      return mergeSources(key, [...platformSources(), core])
     }
 
     const built = build()
@@ -63,6 +77,6 @@ export function useTransactionsSource ({
     // Stamped here so no branch can hand back a source keyed on less than the
     // full scope. Consumers reset their loaded pages on this key alone.
     return built == null ? null : { ...built, key }
-    // client is a stable singleton, intentionally not in the key.
-  }, [scope, identityId, identifiers, network, walletId, client])
+    // Both clients are stable singletons, intentionally not in the key.
+  }, [scope, identityId, identifiers, network, walletId, client, coreClient, coreAddressList])
 }

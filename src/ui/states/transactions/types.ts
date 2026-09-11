@@ -26,6 +26,17 @@ export function transactionSortKey (item: TransactionRowItem): number {
   return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed
 }
 
+/** Newer of two rows, either of which may be missing. */
+export function newerTransaction (
+  first: TransactionRowItem | null,
+  second: TransactionRowItem | null
+): TransactionRowItem | null {
+  if (first == null) return second
+  if (second == null) return first
+
+  return transactionSortKey(second) > transactionSortKey(first) ? second : first
+}
+
 interface SourceKeyParts {
   scope: TransactionsScope
   identityId: string | null

@@ -9,9 +9,9 @@ import { createIdentitySource } from '../transactions/sources/identitySource'
 import { mergeSources } from '../transactions/sources/mergeSources'
 import type { TransactionsSource } from '../transactions/types'
 import type { Identity, NetworkType } from '../../../types'
-import { creditsToDashDisplay } from '../../../utils'
+import { getTransactionExplorerUrl } from '../../../utils'
 
-const OPERATIONS_LIMIT = 3
+const PREVIEW_LIMIT = 3
 // Shown instead of a number whenever the value is unknown, never a made-up one.
 const PLACEHOLDER = '-'
 
@@ -38,10 +38,10 @@ export function OverviewTab ({ hide, identities, network, platformData, rate }: 
       client: platformExplorerClient,
       identifier,
       network,
-      pageSize: OPERATIONS_LIMIT
+      pageSize: PREVIEW_LIMIT
     }))
 
-    return { ...mergeSources(key, sources, OPERATIONS_LIMIT), key }
+    return { ...mergeSources(key, sources, PREVIEW_LIMIT), key }
   }, [platformExplorerClient, identifiers, network])
 
   const operations = useInfiniteTransactions(source)
@@ -97,7 +97,7 @@ export function OverviewTab ({ hide, identities, network, platformData, rate }: 
         rate={rate}
         hideAmounts={hide}
         groupByDate={false}
-        limit={OPERATIONS_LIMIT}
+        limit={PREVIEW_LIMIT}
         onRetry={handleRetry}
         footer={(
           <SeeAllTransactionsButton scope='platform' />
@@ -148,11 +148,9 @@ export function OverviewTab ({ hide, identities, network, platformData, rate }: 
         />
       </div>
       <LastTransaction
-        hide={hide}
         loading={operations.loading}
-        amountLabel={lastOperation?.amountLabel}
-        amount={lastOperation != null ? creditsToDashDisplay(String(lastOperation.credits)) : undefined}
         hash={lastOperation?.hash ?? undefined}
+        explorerUrl={lastOperation?.hash != null ? getTransactionExplorerUrl(lastOperation.hash, network) : undefined}
         layer='Platform'
         transactionType={lastOperation?.title}
         emptyHint='No Platform transactions yet'

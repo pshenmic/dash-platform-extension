@@ -1,15 +1,31 @@
 import React from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { useCoreBalance, useDashRate, useHideBalance, useWalletPlatformData } from '../../hooks'
+import { getCoreTransactionExplorerUrl, getTransactionExplorerUrl } from '../../../utils'
+import { useCoreBalance, useCoreTransactions, useDashRate, useHideBalance, useWalletPlatformData } from '../../hooks'
+import type { TransactionRowItem } from '../../components/transactions'
+import type { NetworkType } from '../../../types'
 import type { OutletContext } from '../../types/OutletContext'
 import { ActionRow } from './ActionRow'
 import { LastTransaction } from './LastTransaction'
 import { LayerCards } from './LayerCards'
 import { Statistics } from './Statistics'
 import { TotalBalance } from './TotalBalance'
+import { newerTransaction } from '../transactions/types'
 import { creditsToDuffs } from './amount'
 import { useLastPlatformTransaction } from './useLastPlatformTransaction'
+
+// A row links out to the explorer of its own layer.
+const explorerUrlFor = (
+  transaction: TransactionRowItem | null,
+  network: NetworkType | null
+): string | undefined => {
+  if (transaction?.hash == null || transaction.hash === '') return undefined
+
+  return transaction.layer === 'core'
+    ? getCoreTransactionExplorerUrl(transaction.hash, network ?? 'testnet')
+    : getTransactionExplorerUrl(transaction.hash, network ?? 'testnet')
+}
 
 /**
  * Wallet dashboard (Figma 10681:2603). Route: `#/home`.
@@ -20,8 +36,10 @@ function HomeState (): React.JSX.Element {
   const { balance: coreBalance, loading: coreLoading, reload: reloadCore } = useCoreBalance(currentWallet)
   const { totalCredits, totalTxCount, loading: platformLoading, reload: reloadPlatform } =
     useWalletPlatformData(availableIdentities, currentNetwork)
-  const { transaction: lastTransaction, loading: lastTransactionLoading } =
+  const { transaction: lastPlatformTransaction, loading: lastPlatformLoading } =
     useLastPlatformTransaction(availableIdentities, currentNetwork)
+  const { transactions: lastCoreTransactions, loading: lastCoreLoading } =
+    useCoreTransactions(1, currentNetwork, currentWallet)
   const rate = useDashRate(currentNetwork)
 
   const coreDuffs = coreBalance != null ? BigInt(coreBalance.balance) : null
@@ -31,6 +49,9 @@ function HomeState (): React.JSX.Element {
   const totalDuffs = balancesLoading || (coreDuffs == null && platformDuffs == null)
     ? null
     : (coreDuffs ?? 0n) + (platformDuffs ?? 0n)
+
+  const lastTransaction = newerTransaction(lastPlatformTransaction, lastCoreTransactions[0] ?? null)
+  const lastTransactionLoading = lastPlatformLoading || lastCoreLoading
 
   const onRefresh = (): void => {
     refresh()
@@ -65,11 +86,10 @@ function HomeState (): React.JSX.Element {
         platformLoading={platformLoading}
       />
       <LastTransaction
-        hide={hideBalance}
         loading={lastTransactionLoading}
         transaction={lastTransaction}
-        layer={lastTransaction != null ? 'Platform' : undefined}
-        emptyHint='No Platform transactions yet. Core history is not available.'
+        explorerUrl={explorerUrlFor(lastTransaction, currentNetwork)}
+        layer={lastTransaction != null ? (lastTransaction.layer === 'core' ? 'Core' : 'Platform') : undefined}
       />
     </div>
   )

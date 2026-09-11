@@ -32,13 +32,16 @@ export const TOPUP_FUNDING_GAP_LIMIT = 20
 // Upper bound for scanning identity indexes when picking the next free one.
 export const IDENTITY_INDEX_SCAN_LIMIT = 20
 
-// dashscan (L1 / Dash Core) REST API — address usage + UTXOs for the top-up gap-scan.
+// dashscan (L1 / Dash Core): REST API for balances, addresses and transaction
+// history, plus the web explorer the UI links rows out to.
 export const CORE_EXPLORER_URLS = {
   testnet: {
-    api: 'https://testnet.dashscan.pshenmic.dev'
+    api: 'https://testnet.dashscan.pshenmic.dev',
+    explorer: 'https://testnet.dashscan.io'
   },
   mainnet: {
-    api: 'https://dashscan.pshenmic.dev'
+    api: 'https://dashscan.pshenmic.dev',
+    explorer: 'https://dashscan.io'
   }
 }
 

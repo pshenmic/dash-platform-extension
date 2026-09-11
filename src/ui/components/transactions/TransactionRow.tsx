@@ -4,17 +4,20 @@ import { creditsToDash } from '../../../utils'
 
 export type TransactionDirection = 'in' | 'out' | 'neutral'
 
+export type TransactionLayer = 'core' | 'platform'
+
 export interface TransactionRowItem {
   id: string
   title: string
   detailLabel: string
   detailValue: string
+  /** Credits on Platform rows, Dash on Core ones - `unit` says which. */
   credits: string | number
   unit?: string
   /** Set when the number is not the transfer amount (explorer only gives us the fee). */
   amountLabel?: string
-  /** Explicit override; live rows leave it unset and get fiat from `rate`. */
-  fiatLabel?: string
+  /** Which chain the row came from; decides where its hash links out to. */
+  layer?: TransactionLayer
   direction: TransactionDirection
   hash?: string | null
   timestamp?: string | null
@@ -36,13 +39,14 @@ interface TransactionRowProps {
 
 /** Fiat is derived at render time so a late-arriving rate repaints every row. */
 export function fiatLabelFor (item: TransactionRowItem, rate: number | null | undefined): string {
-  if (item.fiatLabel != null) return item.fiatLabel
   if (rate == null) return ''
 
-  const credits = typeof item.credits === 'number' ? item.credits : Number(item.credits)
-  if (!Number.isFinite(credits) || credits <= 0) return ''
+  const amount = typeof item.credits === 'number' ? item.credits : Number(item.credits)
+  if (!Number.isFinite(amount) || amount <= 0) return ''
 
-  return `~ $${(creditsToDash(credits) * rate).toFixed(3)}`
+  const dash = item.unit === 'Dash' ? amount : creditsToDash(amount)
+
+  return `~ $${(dash * rate).toFixed(3)}`
 }
 
 function TypeIcon ({ direction }: { direction: TransactionDirection }): React.JSX.Element {

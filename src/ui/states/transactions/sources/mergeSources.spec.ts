@@ -9,7 +9,6 @@ function row (id: string, timestamp: string | null, hash?: string): TransactionR
     detailLabel: 'Hash:',
     detailValue: id,
     credits: 1,
-    fiatLabel: '',
     direction: 'neutral',
     hash: hash ?? id,
     timestamp

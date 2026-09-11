@@ -13,7 +13,8 @@
   "type": "module",
   "ts-standard": {
     "ignore": [
-      "dist"
+      "dist",
+      "ai_docs"
     ]
   },
   "author": "",

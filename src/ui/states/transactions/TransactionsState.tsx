@@ -3,9 +3,15 @@ import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'rea
 import { Heading, Text } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { TransactionsFooter, TransactionsList } from '../../components/transactions'
-import { useHideBalance, useInfiniteTransactions, usePlatformExplorerClient } from '../../hooks'
+import {
+  useCoreAddresses,
+  useCoreExplorerClient,
+  useHideBalance,
+  useInfiniteTransactions,
+  usePlatformExplorerClient
+} from '../../hooks'
 import type { OutletContext } from '../../types/OutletContext'
-import { getTransactionExplorerUrl } from '../../../utils'
+import { getCoreTransactionExplorerUrl, getTransactionExplorerUrl } from '../../../utils'
 import { parseTransactionsScope, transactionsPath } from '../../utils/transactionsPath'
 import { ScopeSwitch } from './ScopeSwitch'
 import { useTransactionsSource } from './useTransactionsSource'
@@ -27,7 +33,9 @@ function TransactionsState (): React.JSX.Element {
   const [searchParams] = useSearchParams()
   const location = useLocation()
   const client = usePlatformExplorerClient()
+  const coreClient = useCoreExplorerClient()
   const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
+  const { addresses: coreAddresses } = useCoreAddresses(currentWallet)
 
   const scope = parseTransactionsScope(searchParams.get('scope'))
   const identityId = searchParams.get('id')
@@ -70,7 +78,9 @@ function TransactionsState (): React.JSX.Element {
     identities: availableIdentities,
     network: currentNetwork,
     walletId: currentWallet,
-    client
+    client,
+    coreClient,
+    coreAddresses
   })
 
   const { items, total, loading, loadingMore, error, loadMoreError, hasMore, loadMore, retry } =
@@ -87,17 +97,15 @@ function TransactionsState (): React.JSX.Element {
     void navigate(path, { replace: true, state: location.state })
   }, [navigate, location.state])
 
-  // Core has no API yet, so its rows are generated and must be called out.
-  const includesCoreMock = scope === 'all' || scope === 'core'
-
   const counter = useMemo(() => {
     if (items.length === 0) return SCOPE_LABELS[scope]
     if (total == null) return `${SCOPE_LABELS[scope]} - ${items.length} loaded`
 
-    // Merging several identity streams drops cross-identity duplicates, so the
-    // summed total is an upper bound. A single stream counts exactly.
-    const merged = (scope === 'all' || scope === 'platform') && availableIdentities.length > 1
-    const approximate = merged ? '~' : ''
+    // Merging streams drops duplicates that appear in more than one of them, so
+    // the summed total is an upper bound. A single stream counts exactly.
+    const mergedPlatform = (scope === 'all' || scope === 'platform') && availableIdentities.length > 1
+    const mergedCore = scope === 'all' || scope === 'core'
+    const approximate = mergedPlatform || mergedCore ? '~' : ''
 
     return `${SCOPE_LABELS[scope]} - ${items.length} of ${approximate}${total} loaded`
   }, [items.length, scope, total, availableIdentities.length])
@@ -109,11 +117,6 @@ function TransactionsState (): React.JSX.Element {
         <Text size='sm' weight='medium' className='!text-dash-primary-dark-blue/48 !tracking-[-0.03em]'>
           {counter}
         </Text>
-        {includesCoreMock && (
-          <Text size='xs' weight='medium' className='!text-dash-primary-dark-blue/35'>
-            Core transactions are mock data
-          </Text>
-        )}
       </div>
 
       <ScopeSwitch
@@ -133,9 +136,13 @@ function TransactionsState (): React.JSX.Element {
         hideAmounts={hideBalance}
         groupByDate
         onItemClick={(item) => {
-          if (currentNetwork != null && item.hash != null && item.hash !== '') {
-            window.open(getTransactionExplorerUrl(item.hash, currentNetwork), '_blank')
-          }
+          if (currentNetwork == null || item.hash == null || item.hash === '') return
+
+          const url = item.layer === 'core'
+            ? getCoreTransactionExplorerUrl(item.hash, currentNetwork)
+            : getTransactionExplorerUrl(item.hash, currentNetwork)
+
+          window.open(url, '_blank')
         }}
         footer={(
           <TransactionsFooter
