@@ -1,6 +1,7 @@
 import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { InlineSpinner } from '../../components/common'
+import { amountFractionScale } from '../../../utils'
 
 interface DashAmountProps {
   /** Null when the amount is unknown - nothing has loaded yet. */
@@ -31,11 +32,14 @@ export function DashAmount ({
       : <Text as='span' className={className}><span className='font-extrabold'>-</span></Text>
   }
 
+  // Long amounts get a smaller fraction so the balance stays narrow.
+  const fractionScale = amountFractionScale(whole, fraction)
+
   return (
     <span className='inline-flex items-center gap-2 min-w-0'>
       <Text as='span' className={className}>
         <span className='font-extrabold'>{whole}</span>
-        <span className='font-medium'>.{fraction} Dash</span>
+        <span className='font-medium' style={{ fontSize: `${fractionScale}em` }}>.{fraction} Dash</span>
       </Text>
       {loading && <InlineSpinner className={spinnerClassName} />}
     </span>
@@ -52,8 +56,8 @@ interface FiatChipProps {
 
 export function FiatChip ({ label, hide, className, textClassName }: FiatChipProps): React.JSX.Element {
   return (
-    <div className={`flex rounded-full backdrop-blur-[4px] ${className ?? ''}`}>
-      <Text size='xs' weight='medium' className={textClassName}>
+    <div className={`flex shrink-0 rounded-full backdrop-blur-[4px] ${className ?? ''}`}>
+      <Text size='xs' weight='medium' className={`whitespace-nowrap ${textClassName ?? ''}`}>
         {hide ? '~ ••• USD' : (label ?? '-')}
       </Text>
     </div>
