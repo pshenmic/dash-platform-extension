@@ -4,7 +4,6 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import { useCoreBalance, useDashRate, useHideBalance, useWalletPlatformData } from '../../hooks'
 import type { OutletContext } from '../../types/OutletContext'
 import { ActionRow } from './ActionRow'
-import { DashPrice } from './DashPrice'
 import { LastTransaction } from './LastTransaction'
 import { LayerCards } from './LayerCards'
 import { Statistics } from './Statistics'
@@ -14,7 +13,6 @@ import { useLastPlatformTransaction } from './useLastPlatformTransaction'
 
 /**
  * Wallet dashboard (Figma 10681:2603). Route: `#/home`.
- * Core and Platform data are live; the price chart stays hidden until a history API exists.
  */
 function HomeState (): React.JSX.Element {
   const { availableIdentities, currentNetwork } = useOutletContext<OutletContext>()
@@ -59,7 +57,6 @@ function HomeState (): React.JSX.Element {
         layer={lastTransaction != null ? 'Platform' : undefined}
         emptyHint='No Platform transactions yet. Core history is not available.'
       />
-      <DashPrice rate={rate} />
     </div>
   )
 }
