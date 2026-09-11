@@ -32,6 +32,7 @@ export function useCoreBalance (walletId?: string | null): UseCoreBalanceResult 
       .catch((e: unknown) => {
         console.log('getCoreBalance error', e)
         if (cancelled) return
+        setBalance(null)
         setError(e instanceof Error ? e.message : 'Failed to load Core balance')
         setLoading(false)
       })

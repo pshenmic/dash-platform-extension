@@ -15,9 +15,9 @@ import { useLastPlatformTransaction } from './useLastPlatformTransaction'
  * Wallet dashboard (Figma 10681:2603). Route: `#/home`.
  */
 function HomeState (): React.JSX.Element {
-  const { availableIdentities, currentNetwork } = useOutletContext<OutletContext>()
+  const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
   const { hideBalance, toggleHide, refresh } = useHideBalance()
-  const { balance: coreBalance, loading: coreLoading, reload: reloadCore } = useCoreBalance()
+  const { balance: coreBalance, loading: coreLoading, reload: reloadCore } = useCoreBalance(currentWallet)
   const { totalCredits, totalTxCount, loading: platformLoading, reload: reloadPlatform } =
     useWalletPlatformData(availableIdentities, currentNetwork)
   const { transaction: lastTransaction, loading: lastTransactionLoading } =
