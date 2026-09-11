@@ -8,6 +8,18 @@ export interface CoreAddressInfo {
   sent: bigint
 }
 
+// Everything POST /xpub reports for one account.
+export interface CoreXpubSummary {
+  balance: bigint
+  received: bigint
+  sent: bigint
+  txCount: number
+  addressCount: number
+  usedAddressCount: number
+  // The explorer's own gap-scan: the next index it considers free on each chain.
+  nextUnused: { receiving: number, change: number }
+}
+
 export interface CoreAddressUtxo {
   txid: string
   vout: number
@@ -68,6 +80,38 @@ export class CoreExplorerService {
       balance: toBigInt(data.balance),
       received: toBigInt(data.received),
       sent: toBigInt(data.sent)
+    }
+  }
+
+  // Account totals for an extended public key. The explorer walks the xpub's
+  // own chains, so this covers every address it derives, including ones this
+  // install never created. `nextUnused` is the explorer's own gap-scan result.
+  async getXpubSummary (xpub: string, network: NetworkType = 'testnet'): Promise<CoreXpubSummary> {
+    const baseUrl = getBaseUrl(network)
+
+    const response = await fetch(`${baseUrl}/xpub`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ xpub })
+    })
+
+    if (!response.ok) {
+      throw new Error(`Core explorer error for xpub summary: HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    return {
+      balance: toBigInt(data.balance),
+      received: toBigInt(data.received),
+      sent: toBigInt(data.sent),
+      txCount: toCount(data.txCount),
+      addressCount: toCount(data.addressCount),
+      usedAddressCount: toCount(data.usedAddressCount),
+      nextUnused: {
+        receiving: toCount(data.nextUnused?.receive),
+        change: toCount(data.nextUnused?.change)
+      }
     }
   }
 

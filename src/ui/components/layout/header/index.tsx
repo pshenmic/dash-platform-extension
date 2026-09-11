@@ -1,15 +1,17 @@
 import React, { useState, Suspense } from 'react'
 import { cva } from 'class-variance-authority'
-import { useNavigate, useMatches, useOutletContext } from 'react-router-dom'
+import { useNavigate, useMatches, useLocation, useOutletContext, useParams } from 'react-router-dom'
 import { useStaticAsset } from '../../../hooks/useStaticAsset'
 import { useWalletName } from '../../../hooks/useWalletName'
 import { Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
 import { BackButton } from '../../common'
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
+import { IdentitySelector } from '../../controls/IdentitySelector'
 import type { LayoutContext } from '../Layout'
 import type { NetworkType } from '../../../../types'
 import { isTabView, closeCurrentExtensionTab } from '../../../utils/extensionTab'
+import { locationReturnPath } from '../../../types'
 const SettingsMenu = React.lazy(async () => ({
   default: (await import('../../settings/SettingsMenu')).SettingsMenu
 }))
@@ -54,6 +56,7 @@ interface HeaderVariantConfig {
   hideLeftSection?: boolean
   showNetworkSelector?: boolean
   showWalletSelector?: boolean
+  showIdentitySelector?: boolean
   showBurgerMenu?: boolean
   showNetworkRightReadOnly?: boolean
   showNetworkRightSelector?: boolean
@@ -111,6 +114,48 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
     hideLeftSection: true,
     showNetworkSelector: true,
     showWalletSelector: true,
+    showBurgerMenu: true
+  },
+
+  // Wallet dashboard — Figma nav is wallet + menu (network lives in settings)
+  dashboard: {
+    hideLeftSection: true,
+    showWalletSelector: true,
+    showBurgerMenu: true
+  },
+
+  // Platform layer home — back to dashboard + wallet + menu
+  platform: {
+    hideLeftSection: false,
+    showWalletSelector: true,
+    showBurgerMenu: true
+  },
+
+  // Core layer home — back to dashboard + wallet + menu
+  core: {
+    hideLeftSection: false,
+    showWalletSelector: true,
+    showBurgerMenu: true
+  },
+
+  // Identity home — back + identity selector (wallet identities) + menu
+  // Transactions list: back to origin + wallet + menu
+  transactions: {
+    hideLeftSection: false,
+    showWalletSelector: true,
+    showBurgerMenu: true
+  },
+
+  // Receive screen: back to origin + wallet + menu
+  receive: {
+    hideLeftSection: false,
+    showWalletSelector: true,
+    showBurgerMenu: true
+  },
+
+  identity: {
+    hideLeftSection: false,
+    showIdentitySelector: true,
     showBurgerMenu: true
   },
 
@@ -178,7 +223,7 @@ interface Match {
 }
 
 const headerStyles = cva(
-  'relative flex justify-between items-start',
+  'relative z-50 flex justify-between items-start',
   {
     variants: {
       rightType: {
@@ -201,13 +246,17 @@ export default function Header (): React.JSX.Element {
     currentWallet,
     setCurrentWallet,
     currentIdentity,
+    setCurrentIdentity,
     allWallets,
     reloadWallets,
+    availableIdentities,
     headerComponent,
     headerConfigOverride
   } = context ?? ({} satisfies Partial<LayoutContext>)
   const matches = useMatches() as Match[]
+  const { identifier: routeIdentifier } = useParams<{ identifier: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const walletName = useWalletName()
   const deepestRoute = [...matches].reverse().find((m): boolean =>
@@ -244,6 +293,7 @@ export default function Header (): React.JSX.Element {
       (headerConfigOverride?.showBackButton !== true && (variant.hideLeftSection ?? false)),
     showNetworkSelector: variant.showNetworkSelector ?? false,
     showWalletSelector: variant.showWalletSelector ?? false,
+    showIdentitySelector: variant.showIdentitySelector ?? false,
     showBurgerMenu: variant.showBurgerMenu ?? false,
     showNetworkRightReadOnly: headerConfigOverride?.showBackButton !== true && (variant.showNetworkRightReadOnly ?? false),
     showNetworkRightSelector: variant.showNetworkRightSelector ?? false,
@@ -255,6 +305,16 @@ export default function Header (): React.JSX.Element {
   }
 
   const handleBack = (): void => {
+    if (variantKey === 'core') {
+      void navigate('/home')
+      return
+    }
+
+    if (variantKey === 'transactions' || variantKey === 'receive') {
+      void navigate(locationReturnPath(location.state, '/home'))
+      return
+    }
+
     if (isTabView() && window.history.length <= 1) {
       // Opened straight into a fresh tab - there is no previous entry to return to.
       void closeCurrentExtensionTab()
@@ -269,6 +329,9 @@ export default function Header (): React.JSX.Element {
     if (config.imageType != null) return 'image'
     return 'none'
   }
+
+  const headerIdentityId = routeIdentifier ?? currentIdentity ?? ''
+  const isLightChrome = variantKey === 'dashboard' || variantKey === 'platform' || variantKey === 'identity' || variantKey === 'core' || variantKey === 'transactions' || variantKey === 'receive'
 
   return (
     <header
@@ -291,6 +354,13 @@ export default function Header (): React.JSX.Element {
               )}
 
           {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} onRemoved={() => { void reloadWallets?.() }} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
+          {config.showIdentitySelector && headerIdentityId !== '' && (
+            <IdentitySelector
+              identifier={headerIdentityId}
+              identities={availableIdentities ?? []}
+              onSelect={(id) => { void setCurrentIdentity?.(id) }}
+            />
+          )}
         </div>
       )}
 
@@ -312,11 +382,14 @@ export default function Header (): React.JSX.Element {
       {config.showBurgerMenu && (
         <Button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          colorScheme='brand'
+          colorScheme={isLightChrome ? 'lightGray' : 'brand'}
           size='xl'
           className='w-12 h-12 p-0 relative z-10'
         >
-          <BurgerMenuIcon color='white' />
+          <BurgerMenuIcon
+            color={isLightChrome ? undefined : 'white'}
+            className={isLightChrome ? '!text-dash-primary-dark-blue' : undefined}
+          />
         </Button>
       )}
 
@@ -377,6 +450,7 @@ export default function Header (): React.JSX.Element {
           onClose={() => setIsMenuOpen(false)}
           currentIdentity={currentIdentity}
           currentNetwork={currentNetwork}
+          setCurrentNetwork={setCurrentNetwork}
           currentWallet={allWallets?.find(wallet => wallet.walletId === currentWallet) ?? null}
         />
       </Suspense>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { useOutletContext, useLocation } from 'react-router-dom'
+import { useOutletContext, useLocation, useSearchParams } from 'react-router-dom'
 import { Button, Text } from 'dash-ui-kit/react'
 import { AssetSelectionMenu, AssetSelectorBadge, buildAssetOptions } from '../../components/controls'
 import { TransferSummaryCard } from '../../components/cards'
@@ -24,6 +24,7 @@ import {
 import { AssetBalanceLabel } from '../../components/data'
 import { parseCreditsAmount } from '../../../utils'
 import type { SenderType, TransferMode } from './types'
+import { parseSendScope } from '../../utils/sendPath'
 import { SHIELDED_POOL_OPTIONS } from './constants'
 import { buildTransferSummary } from './transferSummary'
 import { usePlatformAddresses } from './hooks/usePlatformAddresses'
@@ -41,19 +42,28 @@ function SendTransactionState (): React.JSX.Element {
   const location = useLocation()
   const { currentNetwork, currentIdentity, setHeaderComponent, allWallets, currentWallet, availableIdentities } = useOutletContext<OutletContext>()
   const locationState = location.state as { selectedToken?: string } | null
+  const [searchParams] = useSearchParams()
   const [showAssetSelection, setShowAssetSelection] = useState(false)
+
+  // Tokens belong to a single identity, so they are only offered when the screen
+  // was opened from that identity's dashboard. Every other entry sends credits.
+  const sendScope = parseSendScope(searchParams.get('scope'))
+  const scopeIdentity = sendScope === 'identity' ? searchParams.get('identity') : null
+  const tokensEnabled = scopeIdentity != null && scopeIdentity !== ''
 
   const [assetChosen, setAssetChosen] = useState(locationState?.selectedToken != null)
   const [senderType, setSenderType] = useState<SenderType>('identity')
   const [selectedPlatformAddress, setSelectedPlatformAddress] = useState<string | null>(null)
   const [selectedShieldedAddress, setSelectedShieldedAddress] = useState<string | null>(null)
-  const [selectedIdentity, setSelectedIdentity] = useState<string | null>(null)
+  // An identity scope names its sender, so the selector starts there instead of
+  // on whichever identity happens to be current.
+  const [selectedIdentity, setSelectedIdentity] = useState<string | null>(tokensEnabled ? scopeIdentity : null)
   const senderIdentity = selectedIdentity ?? currentIdentity
 
   // Sender balance, exchange rate and token list.
   const { balance, rate, tokensState } = useSendScreenData({
     senderIdentity,
-    currentIdentity,
+    tokensIdentity: tokensEnabled ? scopeIdentity : null,
     currentNetwork
   })
 
@@ -318,7 +328,7 @@ function SendTransactionState (): React.JSX.Element {
 
   const hasTokens = (tokensState.data?.length ?? 0) > 0
 
-  const tokensReady = tokensState.data !== null || tokensState.error !== null || currentIdentity == null
+  const tokensReady = tokensState.data !== null || tokensState.error !== null
 
   // Options for the initial "what to send" step (Credits + any tokens).
   const assetOptions = useMemo(() => buildAssetOptions(tokensState.data ?? []), [tokensState.data])
@@ -395,11 +405,13 @@ function SendTransactionState (): React.JSX.Element {
               Transfer
             </Text>
 
-            <AssetSelectorBadge
-              selectedAsset={formState.formData.selectedAsset}
-              token={token}
-              onClick={() => setShowAssetSelection(true)}
-            />
+            {tokensEnabled && (
+              <AssetSelectorBadge
+                selectedAsset={formState.formData.selectedAsset}
+                token={token}
+                onClick={() => setShowAssetSelection(true)}
+              />
+            )}
           </div>
 
           {/* Balance Display — shown here when the sender block isn't */}
@@ -528,7 +540,7 @@ function SendTransactionState (): React.JSX.Element {
 
       {/* Asset Selection Menu */}
       <AssetSelectionMenu
-        isOpen={showAssetSelection}
+        isOpen={tokensEnabled && showAssetSelection}
         onClose={() => setShowAssetSelection(false)}
         selectedAsset={formState.formData.selectedAsset}
         onAssetSelect={formState.handleAssetSelect}

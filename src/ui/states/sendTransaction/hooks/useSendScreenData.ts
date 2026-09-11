@@ -5,7 +5,8 @@ import type { NetworkType, TokenData } from '../../../../types'
 
 interface UseSendScreenDataParams {
   senderIdentity: string | null
-  currentIdentity: string | null
+  // Identity whose tokens are offered, or null when the screen sends credits only.
+  tokensIdentity: string | null
   currentNetwork: NetworkType | null
 }
 
@@ -20,7 +21,7 @@ interface UseSendScreenDataResult {
  */
 export function useSendScreenData ({
   senderIdentity,
-  currentIdentity,
+  tokensIdentity,
   currentNetwork
 }: UseSendScreenDataParams): UseSendScreenDataResult {
   const sdk = useSdk()
@@ -56,14 +57,18 @@ export function useSendScreenData ({
     void loadRate().catch(e => console.log('loadRate error:', e))
   }, [senderIdentity, sdk, currentNetwork, platformExplorerClient])
 
-  // Load tokens for the current identity
+  // Load the tokens of the identity the screen was opened for. Without one the
+  // list resolves empty, so the screen still leaves the loading state.
   useEffect(() => {
-    if (currentIdentity === null) return
+    if (tokensIdentity === null) {
+      loadTokens(async () => []).catch(e => console.log('loadTokens error:', e))
+      return
+    }
 
     loadTokens(async () => {
-      return await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork as NetworkType, 100, 1)
+      return await platformExplorerClient.fetchTokens(tokensIdentity, currentNetwork as NetworkType, 100, 1)
     }).catch(e => console.log('loadTokens error:', e))
-  }, [currentIdentity, currentNetwork, platformExplorerClient, loadTokens])
+  }, [tokensIdentity, currentNetwork, platformExplorerClient, loadTokens])
 
   return { balance, rate, tokensState }
 }

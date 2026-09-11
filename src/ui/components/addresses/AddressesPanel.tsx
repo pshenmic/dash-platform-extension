@@ -5,10 +5,11 @@ import { ShieldedAddresses } from './ShieldedAddresses'
 import type { NetworkType } from '../../../types'
 
 interface AddressesPanelProps {
+  walletId?: string | null
   currentNetwork?: NetworkType | null
 }
 
-export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }) => {
+export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork, walletId }) => {
   const [activeTab, setActiveTab] = useState('platform')
 
   return (
@@ -19,12 +20,12 @@ export const AddressesPanel: React.FC<AddressesPanelProps> = ({ currentNetwork }
         {
           value: 'platform',
           label: 'Platform',
-          content: <PlatformAddresses currentNetwork={currentNetwork} />
+          content: <PlatformAddresses currentNetwork={currentNetwork} walletId={walletId} />
         },
         {
           value: 'shielded',
           label: 'Shielded',
-          content: <ShieldedAddresses currentNetwork={currentNetwork} />
+          content: <ShieldedAddresses currentNetwork={currentNetwork} walletId={walletId} />
         }
       ]}
     />

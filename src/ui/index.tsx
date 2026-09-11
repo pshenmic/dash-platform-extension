@@ -28,6 +28,12 @@ const CreateSeedWalletState = React.lazy(async () => await import('./states/wall
 const IdentityRegistrationState = React.lazy(async () => await import('./states/identityRegistration/IdentityRegistrationState'))
 const TopUpIdentityState = React.lazy(async () => await import('./states/topup/TopUpIdentityState'))
 const PlatformTransferConfirmState = React.lazy(async () => await import('./states/platformTransfer/PlatformTransferConfirmState'))
+const HomeOldState = React.lazy(async () => await import('./states/home-old/HomeState'))
+const CoreHomeState = React.lazy(async () => await import('./states/core/CoreHomeState'))
+const PlatformHomeState = React.lazy(async () => await import('./states/platform/PlatformHomeState'))
+const IdentityHomeState = React.lazy(async () => await import('./states/identity/IdentityHomeState'))
+const ReceiveState = React.lazy(async () => await import('./states/receive/ReceiveState'))
+const TransactionsState = React.lazy(async () => await import('./states/transactions/TransactionsState'))
 
 const App: React.FC = function () {
   const router = createHashRouter([
@@ -82,10 +88,64 @@ const App: React.FC = function () {
         },
         {
           path: '/home',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><HomeState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><HomeState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'dashboard'
+            }
+          }
+        },
+        {
+          path: '/home-old',
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><HomeOldState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'main'
+            }
+          }
+        },
+        {
+          path: '/platform',
+          element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><PlatformHomeState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'platform'
+            }
+          }
+        },
+        {
+          path: '/identity/:identifier',
+          element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><IdentityHomeState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'identity'
+            }
+          }
+        },
+        {
+          path: '/core',
+          element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><CoreHomeState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'core'
+            }
+          }
+        },
+        {
+          path: '/transactions',
+          element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><TransactionsState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'transactions'
+            }
+          }
+        },
+        {
+          path: '/receive',
+          element: <PageWithHeader showGrid><Suspense fallback={<LoadingScreen />}><ReceiveState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'receive'
             }
           }
         },
@@ -190,7 +250,7 @@ const App: React.FC = function () {
         },
         {
           path: '/topup-identity',
-          element: <PageWithHeader><TopUpIdentityState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><TopUpIdentityState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'topupIdentity'

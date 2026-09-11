@@ -7,10 +7,11 @@ import { useShieldedAddresses } from '../../hooks/useShieldedAddresses'
 import type { NetworkType } from '../../../types'
 
 interface ShieldedAddressesProps {
+  walletId?: string | null
   currentNetwork?: NetworkType | null
 }
 
-export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNetwork }) => {
+export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNetwork, walletId }) => {
   const {
     rows,
     balance,
@@ -22,7 +23,7 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
     error,
     load,
     generate
-  } = useShieldedAddresses(currentNetwork)
+  } = useShieldedAddresses(currentNetwork, walletId)
   const [isCreating, setIsCreating] = useState(false)
 
   const handleGenerate = async (password: string): Promise<string | null> => {

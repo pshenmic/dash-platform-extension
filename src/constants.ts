@@ -32,13 +32,16 @@ export const TOPUP_FUNDING_GAP_LIMIT = 20
 // Upper bound for scanning identity indexes when picking the next free one.
 export const IDENTITY_INDEX_SCAN_LIMIT = 20
 
-// dashscan (L1 / Dash Core) REST API — address usage + UTXOs for the top-up gap-scan.
+// dashscan (L1 / Dash Core): REST API for balances, addresses and transaction
+// history, plus the web explorer the UI links rows out to.
 export const CORE_EXPLORER_URLS = {
   testnet: {
-    api: 'https://testnet.dashscan.pshenmic.dev'
+    api: 'https://testnet.dashscan.pshenmic.dev',
+    explorer: 'https://testnet.dashscan.io'
   },
   mainnet: {
-    api: 'https://dashscan.pshenmic.dev'
+    api: 'https://dashscan.pshenmic.dev',
+    explorer: 'https://dashscan.io'
   }
 }
 
@@ -59,6 +62,14 @@ export const TRANSFER_FEE_CREDITS = 15_000_000n
 export const CORE_ADDRESS_VERSIONS = {
   testnet: { pubKeyHash: 0x8c, scriptHash: 0x13 },
   mainnet: { pubKeyHash: 0x4c, scriptHash: 0x10 }
+}
+// BIP32 serialization version bytes for Core extended keys (xprv/xpub on
+// mainnet, tprv/tpub on testnet — Dash reuses the Bitcoin values). Needed to
+// parse a stored account xpub: @scure/bip32 defaults to the mainnet pair and
+// rejects a tpub with "Version mismatch".
+export const CORE_BIP32_VERSIONS = {
+  testnet: { private: 0x04358394, public: 0x043587cf },
+  mainnet: { private: 0x0488ade4, public: 0x0488b21e }
 }
 // Defaults for the L1 tx a withdrawal produces. Pooling must be 'Never' (0) —
 // the platform hasn't implemented the other pooling mechanisms yet.
@@ -99,3 +110,11 @@ export const PLATFORM_EXPLORER_URLS = {
     explorer: 'https://platform-explorer.com'
   }
 }
+
+// ── Auto-lock ────────────────────────────────────────────────────────────────
+// Idle time after which the UI asks for the password again.
+export const AUTO_LOCK_TIMEOUT_MS = 15 * 60 * 1000
+// Minimum gap between activity writes to the session marker.
+export const AUTO_LOCK_TOUCH_THROTTLE_MS = 30 * 1000
+// How often an open UI re-checks whether the session went stale.
+export const AUTO_LOCK_CHECK_INTERVAL_MS = 30 * 1000

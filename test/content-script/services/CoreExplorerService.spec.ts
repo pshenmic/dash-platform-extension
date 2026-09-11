@@ -109,4 +109,70 @@ describe('CoreExplorerService', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(`${CORE_EXPLORER_URLS.mainnet.api}/address/Xaddr`)
   })
+
+  describe('getXpubSummary', () => {
+    const XPUB = 'tpubTestAccountXpub'
+
+    const okSummary = (body: unknown): void => {
+      fetchMock.mockResolvedValue({ status: 200, ok: true, json: async () => body })
+    }
+
+    it('posts the xpub and parses the account totals', async () => {
+      okSummary({
+        balance: '399337281',
+        received: '4827233218',
+        sent: '4427895937',
+        txCount: 21,
+        addressCount: 51,
+        usedAddressCount: 11,
+        nextUnused: { receive: 2, change: 9 }
+      })
+
+      const summary = await service.getXpubSummary(XPUB, 'testnet')
+
+      expect(fetchMock).toHaveBeenCalledWith(`${testnetBase}/xpub`, expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ xpub: XPUB })
+      }))
+      expect(summary).toEqual({
+        balance: 399337281n,
+        received: 4827233218n,
+        sent: 4427895937n,
+        txCount: 21,
+        addressCount: 51,
+        usedAddressCount: 11,
+        nextUnused: { receiving: 2, change: 9 }
+      })
+    })
+
+    it('renames the explorer receive chain to receiving, matching CoreAddressChain', async () => {
+      okSummary({ balance: '0', nextUnused: { receive: 4, change: 7 } })
+
+      const summary = await service.getXpubSummary(XPUB, 'testnet')
+
+      expect(summary.nextUnused).toEqual({ receiving: 4, change: 7 })
+    })
+
+    it('degrades missing fields to zeros rather than throwing', async () => {
+      okSummary({})
+
+      const summary = await service.getXpubSummary(XPUB, 'testnet')
+
+      expect(summary).toEqual({
+        balance: 0n,
+        received: 0n,
+        sent: 0n,
+        txCount: 0,
+        addressCount: 0,
+        usedAddressCount: 0,
+        nextUnused: { receiving: 0, change: 0 }
+      })
+    })
+
+    it('throws on a non-ok response', async () => {
+      fetchMock.mockResolvedValue({ status: 500, ok: false, json: async () => ({}) })
+
+      await expect(service.getXpubSummary(XPUB, 'testnet')).rejects.toThrow('HTTP 500')
+    })
+  })
 })

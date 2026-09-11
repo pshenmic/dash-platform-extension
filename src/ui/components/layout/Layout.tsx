@@ -2,6 +2,7 @@ import React, { FC, useState, useEffect, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
 import { ThemeProvider } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { useAutoLock } from '../../hooks/useAutoLock'
 import { getSdkPromise } from '../../../utils/sdkLoader'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { GetStatusResponse } from '../../../types/messages/response/GetStatusResponse'
@@ -30,6 +31,8 @@ export interface LayoutContext {
 
 const Layout: FC = () => {
   const extensionAPI = useExtensionAPI()
+
+  useAutoLock()
 
   const [isApiReady, setIsApiReady] = useState<boolean>(false)
   const [currentNetwork, setCurrentNetwork] = useState<NetworkType>('mainnet')
@@ -84,6 +87,9 @@ const Layout: FC = () => {
       const status: GetStatusResponse = await extensionAPI.getStatus()
       setCurrentNetwork(status.network as NetworkType)
       setCurrentWallet(status.currentWalletId)
+      // Identities belong to the previous network - drop them until the new wallet reloads its own.
+      setCurrentIdentity(null)
+      setAvailableIdentities([])
 
       await loadWallets()
     } catch (error) {

@@ -9,6 +9,8 @@ export interface MenuItem {
   onAction?: () => void
   hasSubMenu?: boolean
   disabled?: boolean
+  control?: React.ReactNode
+  external?: boolean
 }
 
 export interface MenuSection {
@@ -23,6 +25,7 @@ export interface SettingsScreenProps {
   onItemSelect?: (itemId: string) => void
   currentIdentity?: string | null
   currentNetwork?: NetworkType | null
+  setCurrentNetwork?: (network: NetworkType) => Promise<void>
   currentWallet?: WalletAccountInfo | null
 }
 

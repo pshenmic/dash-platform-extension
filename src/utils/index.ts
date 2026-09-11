@@ -21,11 +21,15 @@ import { generateRandomHex } from './random'
 
 export { formatBigNumber }
 export { loadSigningKeys, isKeyCompatible } from './signingKeys'
-export { fetchNames, normalizeName } from './names'
+export { fetchNames, normalizeName, splitDpns } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
+export { amountFractionScale } from './amountFontScale'
 export { generateRandomHex } from './random'
-export { getTransactionExplorerUrl, getPlatformAddressExplorerUrl } from './explorerUrls'
+export { getTransactionExplorerUrl, getPlatformAddressExplorerUrl, getIdentityExplorerUrl, buildIdentityTransactionsUrl } from './explorerUrls'
+export { getCoreTransactionExplorerUrl, getCoreAddressExplorerUrl, buildCoreAddressTransactionsUrl } from './explorerUrls'
+export { coreTransactionEffect } from './coreTransactions'
+export type { CoreTransactionDirection, CoreTransactionEffect } from './coreTransactions'
 export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
 export type { PlatformSourceCandidate } from './platformTransfer'
 

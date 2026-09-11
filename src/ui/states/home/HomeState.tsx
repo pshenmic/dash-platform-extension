@@ -1,371 +1,95 @@
-import React, { useEffect, useState, useMemo } from 'react'
-import { useNavigate, useOutletContext, Navigate } from 'react-router-dom'
-import NoIdentities from './NoIdentities'
-import NoWallets from './NoWallets'
-import SelectIdentityDialog from '../../components/Identities/SelectIdentityDialog'
-import { Text, Identifier, NotActive, BigNumber, ChevronIcon, ValueCard, Tabs, RefreshIcon, EyeOpenIcon, EyeClosedIcon, Button } from 'dash-ui-kit/react'
-import LoadingScreen from '../../components/layout/screens/LoadingScreen'
-import { useExtensionAPI, useAsyncState, useSdk } from '../../hooks'
+import React from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { usePlatformExplorerClient, type TransactionData, type NetworkType } from '../../hooks/usePlatformExplorerApi'
-import { type TokenData } from '../../../types'
-import { IdentityType } from '../../../types/enums/IdentityType'
-import { WalletType } from '../../../types/WalletType'
+import { getCoreTransactionExplorerUrl, getTransactionExplorerUrl } from '../../../utils'
+import { useCoreBalance, useCoreTransactions, useDashRate, useHideBalance, useWalletPlatformData } from '../../hooks'
+import type { TransactionRowItem } from '../../components/transactions'
+import type { NetworkType } from '../../../types'
 import type { OutletContext } from '../../types/OutletContext'
-import { TransactionsList } from '../../components/transactions'
-import { TokensList } from '../../components/tokens'
-import { NamesList, type NameData } from '../../components/names'
-import { BalanceInfo } from '../../components/data'
-import { fetchNames } from '../../../utils'
-import { findOpenExtensionTab, focusExtensionTab, openExtensionTab, type OpenExtensionTab } from '../../utils/extensionTab'
-import { buildTopUpUrl } from '../../utils/topUpTabUrl'
-import { ConfirmDialog } from '../../components/controls'
+import { ActionRow } from './ActionRow'
+import { LastTransaction } from './LastTransaction'
+import { LayerCards } from './LayerCards'
+import { Statistics } from './Statistics'
+import { TotalBalance } from './TotalBalance'
+import { newerTransaction } from '../transactions/types'
+import { creditsToDuffs } from './amount'
+import { useLastPlatformTransaction } from './useLastPlatformTransaction'
 
+// A row links out to the explorer of its own layer.
+const explorerUrlFor = (
+  transaction: TransactionRowItem | null,
+  network: NetworkType | null
+): string | undefined => {
+  if (transaction?.hash == null || transaction.hash === '') return undefined
+
+  return transaction.layer === 'core'
+    ? getCoreTransactionExplorerUrl(transaction.hash, network ?? 'testnet')
+    : getTransactionExplorerUrl(transaction.hash, network ?? 'testnet')
+}
+
+/**
+ * Wallet dashboard (Figma 10681:2603). Route: `#/home`.
+ */
 function HomeState (): React.JSX.Element {
-  const navigate = useNavigate()
-  const extensionAPI = useExtensionAPI()
-  const sdk = useSdk()
-  const platformExplorerClient = usePlatformExplorerClient()
-  const { currentNetwork, currentWallet, currentIdentity, setCurrentIdentity, allWallets, hasAnyWallet, availableIdentities } = useOutletContext<OutletContext>()
-  const [identities, setIdentities] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [transactionsState, loadTransactions] = useAsyncState<TransactionData[]>()
-  const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
-  const [namesState, loadNames] = useAsyncState<NameData[]>()
-  const [balanceState, loadBalance] = useAsyncState<bigint>()
-  const [rateState, loadRate] = useAsyncState<number>()
-  const [activeTab, setActiveTab] = useState('transactions')
-  const [hideBalance, setHideBalance] = useState(false)
-  const [busyTopUpTab, setBusyTopUpTab] = useState<OpenExtensionTab | null>(null)
+  const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
+  const { hideBalance, toggleHide, refresh } = useHideBalance()
+  const { balance: coreBalance, loading: coreLoading, reload: reloadCore } = useCoreBalance(currentWallet)
+  const { totalCredits, totalTxCount, loading: platformLoading, reload: reloadPlatform } =
+    useWalletPlatformData(availableIdentities, currentNetwork)
+  const { transaction: lastPlatformTransaction, loading: lastPlatformLoading } =
+    useLastPlatformTransaction(availableIdentities, currentNetwork)
+  const { transactions: lastCoreTransactions, loading: lastCoreLoading } =
+    useCoreTransactions(1, currentNetwork, currentWallet)
+  const rate = useDashRate(currentNetwork)
 
-  useEffect(() => {
-    extensionAPI.getSettings()
-      .then(settings => { setHideBalance(settings.hideBalance) })
-      .catch(e => console.log('getSettings error', e))
-  }, [extensionAPI])
+  const coreDuffs = coreBalance != null ? BigInt(coreBalance.balance) : null
+  const platformDuffs = platformLoading ? null : creditsToDuffs(totalCredits)
+  const balancesLoading = coreLoading || platformLoading
+  // The total stays a spinner until both layers are done, then sums whatever answered.
+  const totalDuffs = balancesLoading || (coreDuffs == null && platformDuffs == null)
+    ? null
+    : (coreDuffs ?? 0n) + (platformDuffs ?? 0n)
 
-  const isMasternodeIdentity = useMemo(() => {
-    const identity = availableIdentities.find(i => i.identifier === currentIdentity)
-    return identity?.type === IdentityType.masternode
-  }, [availableIdentities, currentIdentity])
+  const lastTransaction = newerTransaction(lastPlatformTransaction, lastCoreTransactions[0] ?? null)
+  const lastTransactionLoading = lastPlatformLoading || lastCoreLoading
 
-  // Top-up derives its funding key from the seed phrase, which keystore wallets do not have.
-  const isKeystoreWallet = useMemo(() => {
-    const wallet = allWallets.find(item => item.walletId === currentWallet)
-    return wallet?.type === WalletType.keystore
-  }, [allWallets, currentWallet])
-
-  useEffect(() => {
-    if (isMasternodeIdentity && activeTab === 'names') {
-      setActiveTab('transactions')
-    }
-  }, [isMasternodeIdentity, activeTab])
-
-  useEffect(() => {
-    const loadIdentities = async (): Promise<void> => {
-      try {
-        setIsLoading(true)
-
-        // Load identities
-        const identitiesData = await extensionAPI.getIdentities()
-
-        // Set identities
-        const availableIdentities = identitiesData.map(identity => identity.identifier)
-        setIdentities(availableIdentities ?? [])
-      } catch (error) {
-        console.log('Failed to load data:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadIdentities()
-      .catch(e => console.log('loadIdentities error', e))
-  }, [currentNetwork, currentWallet, extensionAPI])
-
-  const refreshData = async (): Promise<void> => {
-    if (currentIdentity === null) return
-
-    const sdkNetwork = sdk.getNetwork()
-    if (currentNetwork !== sdkNetwork) {
-      return
-    }
-
-    const currentWalletInfo = allWallets.find(wallet => wallet.walletId === currentWallet)
-    if ((currentWalletInfo != null) && currentWalletInfo.network !== currentNetwork) {
-      return
-    }
-
-    const storageIdentities = await extensionAPI.getIdentities()
-    const currentIdentityExists = storageIdentities.some(identity => identity.identifier === currentIdentity)
-    if (!currentIdentityExists) {
-      return
-    }
-
-    loadBalance(async () => {
-      return await sdk.identities.getIdentityBalance(currentIdentity)
-    }).catch(e => console.log('loadBalance error', e))
-
-    loadTransactions(async () => {
-      return await platformExplorerClient.fetchTransactions(currentIdentity, currentNetwork, 'desc')
-    }).catch(e => console.log('loadTransactions error', e))
-
-    loadTokens(async () => {
-      return await platformExplorerClient.fetchTokens(currentIdentity, currentNetwork, 100, 1)
-    }).catch(e => console.log('loadTokens error:', e))
-
-    loadNames(async () => {
-      return await fetchNames(sdk, platformExplorerClient, currentIdentity, currentNetwork)
-    }).catch(e => console.log('loadNames error:', e))
-  }
-
-  // Load Balance and Transactions by Identity
-  useEffect(() => {
-    refreshData().catch(e => console.log('loadData error:', e))
-  }, [
-    currentIdentity,
-    currentNetwork,
-    currentWallet,
-    platformExplorerClient,
-    sdk,
-    loadBalance,
-    loadTransactions,
-    loadTokens,
-    loadNames,
-    identities.length,
-    allWallets.length
-  ])
-
-  // load rate
-  useEffect(() => {
-    loadRate(async () => {
-      return await platformExplorerClient.fetchRate(currentNetwork as NetworkType)
-    }).catch(e => console.log('loadRate error:', e))
-  }, [currentNetwork, platformExplorerClient, loadRate])
-
-  const handleTopUp = async (): Promise<void> => {
-    // The tab registry holds one top-up tab, so a second one would lose track of the first.
-    const openTab = await findOpenExtensionTab('topup')
-
-    if (openTab != null) {
-      setBusyTopUpTab(openTab)
-      return
-    }
-
-    const scope = {
-      identityId: currentIdentity,
-      walletId: currentWallet,
-      network: currentNetwork as NetworkType
-    }
-
-    await openExtensionTab('topup', buildTopUpUrl(scope, 1), scope)
-  }
-
-  if (isLoading) {
-    return <LoadingScreen message='Loading wallet data...' />
-  }
-
-  if (!hasAnyWallet) {
-    return <Navigate to='/welcome' replace />
-  }
-
-  // Check if there are wallets available in the current network
-  const availableWallets = allWallets.filter(wallet => wallet.network === currentNetwork)
-
-  if (availableWallets.length === 0) {
-    return <NoWallets />
-  }
-
-  if (identities.length === 0) {
-    const currentWalletInfo = allWallets.find(wallet => wallet.walletId === currentWallet)
-    return <NoIdentities walletType={currentWalletInfo?.type} />
+  const onRefresh = (): void => {
+    refresh()
+    reloadCore()
+    reloadPlatform()
   }
 
   return (
-    <div className='screen-content'>
-      {currentIdentity !== null && (
-        <div className='flex items-center gap-3'>
-          <SelectIdentityDialog
-            identities={identities}
-            currentIdentity={currentIdentity}
-            onSelectIdentity={setCurrentIdentity}
-            currentWallet={allWallets.find(wallet => wallet.walletId === currentWallet) ?? null}
-          >
-            <div className='flex items-center gap-2 cursor-pointer'>
-              <Identifier
-                avatar
-                ellipsis={false}
-                highlight='both'
-              >
-                {currentIdentity}
-              </Identifier>
-
-              <div className='flex items-center gap-2'>
-                <ChevronIcon size={12} className='text-gray-800' />
-              </div>
-            </div>
-          </SelectIdentityDialog>
-        </div>
-      )}
-
-      <div className='flex flex-col gap-4 w-full'>
-        <div className='flex flex-col gap-[0.625rem]'>
-          <div className='flex items-center gap-2'>
-            <Text className='!text-[2.25rem] text-dash-primary-dark-blue !leading-[100%]'>
-              Balance:
-            </Text>
-            <button
-              onClick={() => {
-                const next = !hideBalance
-                setHideBalance(next)
-                extensionAPI.setSettings(next).catch(e => console.log('setSettings error', e))
-              }}
-              className='w-6 h-6 flex items-center justify-center rounded-[5px] bg-[rgba(12,28,51,0.05)] cursor-pointer hover:bg-[rgba(12,28,51,0.1)] active:bg-[rgba(12,28,51,0.15)] transition-colors mt-[5px]'
-              aria-label={hideBalance ? 'Show balance' : 'Hide balance'}
-            >
-              {hideBalance
-                ? <EyeClosedIcon size={12} className='text-[#0C1C33]' />
-                : <EyeOpenIcon size={12} className='text-[#0C1C33]' />}
-            </button>
-            <button
-              onClick={() => { void refreshData() }}
-              disabled={balanceState.loading || transactionsState.loading}
-              className='w-6 h-6 flex items-center justify-center rounded-[5px] bg-[rgba(12,28,51,0.05)] cursor-pointer hover:bg-[rgba(12,28,51,0.1)] active:bg-[rgba(12,28,51,0.15)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-[5px]'
-              aria-label='Refresh data'
-            >
-              <RefreshIcon
-                size={12}
-                className={(balanceState.loading || transactionsState.loading) ? 'animate-spin text-gray-400' : 'text-[#0C1C33]'}
-              />
-            </button>
-          </div>
-          <span>
-            {balanceState.loading
-              ? (
-                <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                  <span className='text-gray-500'>...</span>
-                </Text>
-                )
-              : (balanceState.error != null && balanceState.error !== '')
-                  ? (
-                    <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                      <span className='text-red-500'>Error</span>
-                    </Text>
-                    )
-                  : balanceState.data !== null && balanceState.data !== undefined && !Number.isNaN(Number(balanceState.data))
-                    ? (
-                      <Text className='!text-[2.25rem] !leading-[100%]' weight='bold' monospace>
-                        {hideBalance
-                          ? <span className='text-dash-brand'>••••••</span>
-                          : (
-                            <BigNumber className='!text-dash-brand gap-2'>
-                              {balanceState.data.toString()}
-                            </BigNumber>
-                            )}
-                      </Text>
-                      )
-                    : <NotActive>N/A</NotActive>}
-          </span>
-
-          <BalanceInfo balanceState={balanceState} rateState={rateState} hideAmounts={hideBalance} />
-        </div>
-      </div>
-
-      <div className='flex gap-2 w-full'>
-        <Button
-          className='flex-1'
-          disabled={currentIdentity === null || balanceState.data === null}
-          onClick={() => { void navigate('/send-transaction') }}
-        >
-          Send
-        </Button>
-        {!isKeystoreWallet && (
-          <Button
-            className='flex-1'
-            disabled={currentIdentity === null || balanceState.data === null}
-            onClick={() => { void handleTopUp() }}
-          >
-            Top Up
-          </Button>
-        )}
-      </div>
-
-      <ValueCard
-        border={false}
-        className='relative z-5  flex flex-col flex-grow gap-6 -mx-[0.875rem] -mb-[0.875rem] !rounded-b-none p-4 dash-shadow-lg'
-      >
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          items={[
-            {
-              value: 'transactions',
-              label: 'Transactions',
-              content: (
-                <TransactionsList
-                  transactions={transactionsState.data ?? []}
-                  loading={transactionsState.loading}
-                  error={transactionsState.error}
-                  rate={rateState.data}
-                  currentNetwork={currentNetwork as NetworkType}
-                  hideAmounts={hideBalance}
-                />
-              )
-            },
-            {
-              value: 'tokens',
-              label: 'Tokens',
-              content: (
-                <TokensList
-                  tokens={tokensState.data ?? []}
-                  loading={tokensState.loading}
-                  error={tokensState.error}
-                  currentNetwork={currentNetwork as NetworkType}
-                />
-              )
-            },
-            {
-              value: 'names',
-              label: 'Names',
-              disabled: isMasternodeIdentity,
-              content: (
-                <NamesList
-                  names={namesState.data ?? []}
-                  loading={namesState.loading}
-                  error={namesState.error}
-                  currentNetwork={currentNetwork as NetworkType}
-                />
-              )
-            }
-          ]}
-        />
-      </ValueCard>
-
-      <ConfirmDialog
-        open={busyTopUpTab !== null}
-        onOpenChange={(open) => { if (!open) setBusyTopUpTab(null) }}
-        title='Top-up already in progress'
-        message={
-          <span className='flex flex-col gap-2'>
-            <span>A top-up is already open in another tab{busyTopUpTab?.identityId != null ? ' for identity:' : '.'}</span>
-
-            {busyTopUpTab?.identityId != null && (
-              <Identifier ellipsis={false} highlight='both'>
-                {busyTopUpTab.identityId}
-              </Identifier>
-            )}
-
-            <span>Finish or close that tab first.</span>
-          </span>
-        }
-        confirmText='Open That Tab'
-        confirmColorScheme='brand'
-        cancelText='Cancel'
-        onConfirm={() => {
-          const tabId = busyTopUpTab?.tabId
-          setBusyTopUpTab(null)
-          if (tabId != null) void focusExtensionTab(tabId)
-        }}
+    <div className='flex flex-col gap-6'>
+      <TotalBalance
+        hideBalance={hideBalance}
+        totalDuffs={totalDuffs}
+        rate={rate}
+        loading={balancesLoading}
+        onToggleHide={toggleHide}
+        onRefresh={onRefresh}
+      />
+      <LayerCards
+        hide={hideBalance}
+        coreDuffs={coreDuffs}
+        platformDuffs={platformDuffs}
+        coreLoading={coreLoading}
+        platformLoading={platformLoading}
+        rate={rate}
+      />
+      <ActionRow />
+      <Statistics
+        identityCount={availableIdentities.length}
+        coreTxCount={coreLoading ? null : (coreBalance?.txCount ?? null)}
+        platformTxCount={platformLoading ? null : totalTxCount}
+        coreLoading={coreLoading}
+        platformLoading={platformLoading}
+      />
+      <LastTransaction
+        loading={lastTransactionLoading}
+        transaction={lastTransaction}
+        explorerUrl={explorerUrlFor(lastTransaction, currentNetwork)}
+        layer={lastTransaction != null ? (lastTransaction.layer === 'core' ? 'Core' : 'Platform') : undefined}
       />
     </div>
   )
