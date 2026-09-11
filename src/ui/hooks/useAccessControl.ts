@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from './useExtensionAPI'
 import { buildLoginPath, isSessionUnlocked } from '../utils/lockSession'
@@ -34,6 +34,12 @@ export function useAccessControl (config: Partial<AccessControlConfig> = {}): Ac
 
   const finalConfig = { ...DEFAULT_CONFIG, ...config }
 
+  // The check depends on the pathname only. Query params change while staying on
+  // the same screen (multi-stage flows), and re-running would unmount the screen
+  // and drop its state.
+  const locationRef = useRef({ pathname, search })
+  locationRef.current = { pathname, search }
+
   useEffect(() => {
     const checkAuth = async (): Promise<void> => {
       try {
@@ -50,7 +56,7 @@ export function useAccessControl (config: Partial<AccessControlConfig> = {}): Ac
 
         // Check auto-lock
         if (finalConfig.allowLocked !== true && !await isSessionUnlocked()) {
-          void navigate(buildLoginPath(pathname, search))
+          void navigate(buildLoginPath(locationRef.current.pathname, locationRef.current.search))
           setState({ isLoading: false, isAuthenticated: false, error: null })
           return
         }
@@ -70,7 +76,7 @@ export function useAccessControl (config: Partial<AccessControlConfig> = {}): Ac
     }
 
     void checkAuth()
-  }, [extensionAPI, navigate, pathname, search, finalConfig.requirePassword, finalConfig.requireWallet, finalConfig.allowLocked])
+  }, [extensionAPI, navigate, pathname, finalConfig.requirePassword, finalConfig.requireWallet, finalConfig.allowLocked])
 
   return state
 }
