@@ -16,6 +16,11 @@ global.chrome = {
       dispatch (message) {
         eventBus.emit('message', message)
       }
+    },
+    // Mirrors chrome.runtime.sendMessage: delivers to every registered
+    // listener in the extension and resolves like the real promise-based API.
+    async sendMessage (message) {
+      eventBus.emit('message', message)
     }
   }
 }

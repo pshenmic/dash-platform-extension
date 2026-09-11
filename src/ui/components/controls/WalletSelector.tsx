@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { OverlayMenu, PlusIcon, WalletIcon, KeyIcon, ValueCard, DeleteIcon, EditIcon, KebabMenuIcon, Tooltip } from 'dash-ui-kit/react'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { useNavigate } from 'react-router-dom'
-import { useExtensionAPI } from '../../hooks'
+import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { ConfirmDialog } from './ConfirmDialog'
 import { RenameWalletDialog } from './RenameWalletDialog'
 
