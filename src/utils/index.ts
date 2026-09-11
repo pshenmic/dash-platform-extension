@@ -1,7 +1,7 @@
 import { base58 } from '@scure/base'
 import { RecoveredNoteWASM, CoreScriptWASM, OrchardAddressWASM, SpendableNoteWASM, PlatformAddressWASM } from 'pshenmic-dpp'
 import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
-import { DashPlatformSDK } from 'dash-platform-sdk'
+import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
 import {
@@ -17,12 +17,14 @@ import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
 import { decrypt, PrivateKey } from 'eciesjs'
 import { KeypairRepository } from '../content-script/repository/KeypairRepository'
+import { generateRandomHex } from './random'
 
 export { formatBigNumber }
 export { loadSigningKeys, isKeyCompatible } from './signingKeys'
 export { fetchNames, normalizeName } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
+export { generateRandomHex } from './random'
 export { getTransactionExplorerUrl, getPlatformAddressExplorerUrl } from './explorerUrls'
 export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
 export type { PlatformSourceCandidate } from './platformTransfer'
@@ -53,8 +55,6 @@ export const validateWalletId = (walletId: string): boolean => {
 export const generateWalletId = (): string => {
   return generateRandomHex(6)
 }
-
-export const generateRandomHex = (size: number): string => [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('')
 
 export const findNextLocalIdentityIndex = (existingIndices: number[]): number => {
   const occupied = new Set(existingIndices.filter((index) => Number.isSafeInteger(index) && index >= 0))

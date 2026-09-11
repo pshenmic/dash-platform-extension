@@ -1,3 +1,4 @@
+import { ext } from '../platform'
 import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT, BLOCKCHAIN_MESSAGING_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
@@ -52,7 +53,7 @@ import { ApproveStateTransitionPayload } from './messages/payloads/ApproveStateT
 import { ApproveStateTransitionResponse } from './messages/response/ApproveStateTransitionResponse'
 import { RejectStateTransitionResponse } from './messages/response/RejectStateTransitionResponse'
 import { RejectStateTransitionPayload } from './messages/payloads/RejectStateTransitionPayload'
-import { generateRandomHex } from '../utils'
+import { generateRandomHex } from '../utils/random'
 import { GetAppConnectPayload } from './messages/payloads/GetAppConnectPayload'
 import { GetAppConnectResponse } from './messages/response/GetAppConnectResponse'
 import { ApproveAppConnectPayload } from './messages/payloads/ApproveAppConnectPayload'
@@ -96,7 +97,7 @@ import { SetSettingsPayload } from './messages/payloads/SetSettingsPayload'
 export class PrivateAPIClient {
   constructor () {
     // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-    if (!chrome?.runtime?.onMessage) {
+    if (!ext?.runtime?.onMessage) {
       throw new Error('PrivateAPIClient could only be used inside extension context')
     }
   }
@@ -576,7 +577,7 @@ export class PrivateAPIClient {
 
     return await new Promise((resolve, reject) => {
       const rejectWithError = (message: string, errorPayload?: any): void => {
-        chrome.runtime.onMessage.removeListener(handleMessage)
+        ext.runtime.onMessage.removeListener(handleMessage)
 
         const error: any = new Error(message)
         if (errorPayload != null) {
@@ -591,13 +592,13 @@ export class PrivateAPIClient {
             return rejectWithError(data.error, data.payload)
           }
 
-          chrome.runtime.onMessage.removeListener(handleMessage)
+          ext.runtime.onMessage.removeListener(handleMessage)
 
           resolve(data.payload)
         }
       }
 
-      chrome.runtime.onMessage.addListener(handleMessage)
+      ext.runtime.onMessage.addListener(handleMessage)
 
       setTimeout(() => {
         rejectWithError(`Timed out waiting for response of ${method}`)
@@ -611,8 +612,20 @@ export class PrivateAPIClient {
         type: 'request'
       }
 
-      // @ts-expect-error
-      chrome.runtime.onMessage.dispatch(message)
+      // Real extension messaging: this reaches the service worker, which spins
+      // up the offscreen backend and forwards. The reply comes back as its own
+      // 'response' message handled above, NOT as this promise's resolution —
+      // which is why the id matching and the explicit timeout above stay. It
+      // also keeps the service worker off the response path, so a 20-minute
+      // shielded proof cannot lose its reply to a worker that idled out.
+      //
+      // Previously this was `chrome.runtime.onMessage.dispatch(message)`, an
+      // undocumented same-document dispatch that forced the whole backend to be
+      // loaded into the popup just to have something to answer.
+      ext.runtime.sendMessage(message).catch(() => {
+        // No receiver yet (worker still waking). The worker will be started by
+        // this send regardless; the timeout above covers a genuine failure.
+      })
     })
   }
 }

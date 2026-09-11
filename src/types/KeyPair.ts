@@ -1,4 +1,4 @@
-import { KeyType, Purpose, SecurityLevel } from 'dash-platform-sdk/types'
+import type { KeyType, Purpose, SecurityLevel } from 'dash-platform-sdk/types'
 
 export interface KeyPair {
   keyId: number
