@@ -6,7 +6,7 @@ import { SeeAllTransactionsButton, TransactionsList, toTransactionRowItem, type 
 import { getTransactionExplorerUrl } from '../../../utils'
 import type { NetworkType } from '../../../types'
 import type { TransactionData } from '../../hooks/usePlatformExplorerApi'
-import { StatCard, StatValue } from '../../components/common'
+import { StatCard, StatValue, Username } from '../../components/common'
 
 interface TransactionsTabProps {
   hide: boolean
@@ -59,12 +59,7 @@ export function TransactionsTab ({
       <Text size='lg' weight='medium' className='!text-dash-primary-dark-blue/48 !tracking-[-0.03em]'>
         Identity Statistics
       </Text>
-      <div className='flex gap-3 w-full'>
-        <StatCard
-          icon={<CreditsIcon size={12} className='!text-dash-brand' />}
-          label='Tokens'
-          value={<StatValue value={tokenCount} unit='Tokens' />}
-        />
+      <div className='grid grid-cols-2 gap-3 w-full'>
         <StatCard
           icon={<DocumentIcon size={12} className='!text-dash-brand' />}
           label='Transactions'
@@ -76,31 +71,34 @@ export function TransactionsTab ({
           value={<StatValue value={items.length} unit='TXs' />}
         />
         <StatCard
+          icon={<CreditsIcon size={12} className='!text-dash-brand' />}
+          label='Tokens'
+          value={<StatValue value={tokenCount} unit='Tokens' />}
+        />
+        <StatCard
           icon={<FingerprintIcon size={12} className='!text-dash-brand' />}
           label='Usernames'
           hint={lastName != null && lastName !== ''
             ? (
-              <div className='flex items-center gap-1'>
-                <div className='flex px-2 py-1 rounded-lg bg-[rgba(12,28,51,0.04)]'>
+              <div className='flex items-center gap-1 min-w-0'>
+                <div className='flex px-2 py-1 rounded-lg bg-[rgba(12,28,51,0.04)] shrink-0'>
                   <Text size='xs' weight='medium' className='!text-dash-primary-dark-blue/64'>Last</Text>
                 </div>
-                <Text size='xs' weight='bold' className='!text-dash-primary-dark-blue/64'>
-                  {lastName}
-                </Text>
+                <Username name={lastName} />
               </div>
               )
             : undefined}
           value={<StatValue value={nameCount} unit='Names' />}
         />
+        {firstItem?.hash != null && (
+          <LastTransaction
+            compact
+            transaction={firstItem}
+            hash={firstItem.hash}
+            transactionType={firstItem.title}
+          />
+        )}
       </div>
-      {firstItem?.hash != null && (
-        <LastTransaction
-          hash={firstItem.hash}
-          explorerUrl={getTransactionExplorerUrl(firstItem.hash, network)}
-          layer='Platform'
-          transactionType={firstItem.title}
-        />
-      )}
     </div>
   )
 }
