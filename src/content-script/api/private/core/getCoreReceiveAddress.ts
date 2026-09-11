@@ -38,7 +38,7 @@ export class GetCoreReceiveAddressHandler implements APIHandler {
     const xpub = await this.walletRepository.getCoreAccountXpub(account)
 
     if (xpub == null) {
-      throw new Error('Core xpub is not initialized. Reopen the wallet to derive it')
+      throw new Error('Core xpub is not initialized. Call INIT_ACCOUNT_XPUBS with the wallet password after unlocking')
     }
 
     const { nextUnused } = await this.coreExplorer.getXpubSummary(xpub, wallet.network as NetworkType)
