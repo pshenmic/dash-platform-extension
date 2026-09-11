@@ -1,5 +1,5 @@
 import { CoreExplorerService } from '../../../src/content-script/services/CoreExplorerService'
-import { CORE_EXPLORER_URLS } from '../../../src/constants'
+import { CORE_EXPLORER_URLS, CORE_UTXO_ADDRESS_BATCH } from '../../../src/constants'
 
 describe('CoreExplorerService', () => {
   const testnetBase = CORE_EXPLORER_URLS.testnet.api
@@ -173,6 +173,49 @@ describe('CoreExplorerService', () => {
       fetchMock.mockResolvedValue({ status: 500, ok: false, json: async () => ({}) })
 
       await expect(service.getXpubSummary(XPUB, 'testnet')).rejects.toThrow('HTTP 500')
+    })
+  })
+  describe('getAddressesUtxos', () => {
+    const okUtxos = (body: unknown): void => {
+      fetchMock.mockResolvedValue({ status: 200, ok: true, json: async () => body })
+    }
+
+    it('asks for every address in one call and tags each utxo with its address', async () => {
+      okUtxos([
+        { prevTxHash: 'aa', vOutIndex: 0, address: 'yOne', amount: '1000' },
+        { prevTxHash: 'bb', vOutIndex: 1, address: 'yTwo', amount: '2500' }
+      ])
+
+      const utxos = await service.getAddressesUtxos(['yOne', 'yTwo'], 'testnet')
+
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock).toHaveBeenCalledWith(`${testnetBase}/addresses/utxo?addresses=yOne,yTwo`)
+      expect(utxos).toEqual([
+        { txid: 'aa', vout: 0, amount: 1000n, address: 'yOne' },
+        { txid: 'bb', vout: 1, amount: 2500n, address: 'yTwo' }
+      ])
+    })
+
+    it('chunks a long address list so the query string stays bounded', async () => {
+      okUtxos([])
+
+      const addresses = Array.from({ length: CORE_UTXO_ADDRESS_BATCH + 1 }, (_, index) => `yAddr${index}`)
+
+      await service.getAddressesUtxos(addresses, 'testnet')
+
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(fetchMock).toHaveBeenLastCalledWith(`${testnetBase}/addresses/utxo?addresses=yAddr${CORE_UTXO_ADDRESS_BATCH}`)
+    })
+
+    it('makes no request for an empty address list', async () => {
+      expect(await service.getAddressesUtxos([], 'testnet')).toEqual([])
+      expect(fetchMock).not.toHaveBeenCalled()
+    })
+
+    it('throws on a non-ok response', async () => {
+      fetchMock.mockResolvedValue({ status: 503, ok: false, json: async () => ({}) })
+
+      await expect(service.getAddressesUtxos(['yOne'], 'testnet')).rejects.toThrow('HTTP 503')
     })
   })
 })
