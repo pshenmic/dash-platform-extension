@@ -1,5 +1,6 @@
 export { useAccessControl } from './useAccessControl'
 export { useAsyncState } from './useAsyncState'
+export { useAutoLock } from './useAutoLock'
 export type { AsyncState } from './useAsyncState'
 export { useChromeStorage } from './useChromeStorage'
 export { useCoreBalance } from './useCoreBalance'

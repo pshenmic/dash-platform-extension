@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useExtensionAPI } from './useExtensionAPI'
+import { buildLoginPath, isSessionUnlocked } from '../utils/lockSession'
 
 export interface AccessControlConfig {
   requirePassword?: boolean
   requireWallet?: boolean
+  // Screens that are themselves the way out of a locked session set this.
+  allowLocked?: boolean
 }
 
 interface AccessControlState {
@@ -15,11 +18,13 @@ interface AccessControlState {
 
 const DEFAULT_CONFIG: AccessControlConfig = {
   requirePassword: true,
-  requireWallet: true
+  requireWallet: true,
+  allowLocked: false
 }
 
 export function useAccessControl (config: Partial<AccessControlConfig> = {}): AccessControlState {
   const navigate = useNavigate()
+  const { pathname, search } = useLocation()
   const extensionAPI = useExtensionAPI()
   const [state, setState] = useState<AccessControlState>({
     isLoading: true,
@@ -43,6 +48,13 @@ export function useAccessControl (config: Partial<AccessControlConfig> = {}): Ac
           return
         }
 
+        // Check auto-lock
+        if (finalConfig.allowLocked !== true && !await isSessionUnlocked()) {
+          void navigate(buildLoginPath(pathname, search))
+          setState({ isLoading: false, isAuthenticated: false, error: null })
+          return
+        }
+
         // Check wallet requirement
         if (finalConfig.requireWallet === true && (status.currentWalletId == null || status.currentWalletId === '')) {
           void navigate('/home')
@@ -58,7 +70,7 @@ export function useAccessControl (config: Partial<AccessControlConfig> = {}): Ac
     }
 
     void checkAuth()
-  }, [extensionAPI, navigate, finalConfig.requirePassword, finalConfig.requireWallet])
+  }, [extensionAPI, navigate, pathname, search, finalConfig.requirePassword, finalConfig.requireWallet, finalConfig.allowLocked])
 
   return state
 }

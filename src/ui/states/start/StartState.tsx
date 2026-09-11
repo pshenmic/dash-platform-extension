@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Text } from 'dash-ui-kit/react'
 
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { isSessionUnlocked } from '../../utils/lockSession'
 
 export default function StartState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -23,6 +24,12 @@ export default function StartState (): React.JSX.Element {
 
         if (status.currentWalletId == null) {
           // Password set but wallet not created - go to login
+          void navigate('/login')
+          return
+        }
+
+        if (!await isSessionUnlocked()) {
+          // Session expired or browser restarted - ask for the password again
           void navigate('/login')
           return
         }

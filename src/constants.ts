@@ -107,3 +107,12 @@ export const PLATFORM_EXPLORER_URLS = {
     explorer: 'https://platform-explorer.com'
   }
 }
+
+// ── Auto-lock ────────────────────────────────────────────────────────────────
+// Idle time after which the UI asks for the password again.
+// export const AUTO_LOCK_TIMEOUT_MS = 15 * 60 * 1000
+export const AUTO_LOCK_TIMEOUT_MS =  6 * 1000
+// Minimum gap between activity writes to the session marker.
+export const AUTO_LOCK_TOUCH_THROTTLE_MS = 30 * 1000
+// How often an open UI re-checks whether the session went stale.
+export const AUTO_LOCK_CHECK_INTERVAL_MS = 30 * 1000
