@@ -102,12 +102,13 @@ export function TransactionRow ({ item, hide, onClick, rate }: TransactionRowPro
       </div>
       <div className='flex flex-col items-end gap-1 shrink-0'>
         <Text size='sm' weight='medium' className={`!leading-[1.2] ${amountClass}`}>
+          {isFee && !hide && <span className='font-normal'>{item.amountLabel ?? ''} </span>}
           <span className='font-extrabold inline-flex items-baseline'>
             {hide
               ? '••••••'
               : (
                 <>
-                  {isFee ? `${item.amountLabel ?? ''} ` : creditSign(item.direction)}
+                  {!isFee && creditSign(item.direction)}
                   <BigNumber>{item.credits}</BigNumber>
                 </>
                 )}
