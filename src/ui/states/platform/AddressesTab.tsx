@@ -13,11 +13,8 @@ import {
 } from 'dash-ui-kit/react'
 import { IconChip } from '../../components/common'
 import { PasswordGate } from '../../components/forms'
-import {
-  usePlatformAddresses,
-  usePlatformExplorerClient,
-  useShieldedAddresses
-} from '../../hooks'
+import { usePlatformExplorerClient } from '../../hooks'
+import type { UsePlatformAddressesResult, UseShieldedAddressesResult } from '../../hooks'
 import type { AddressData, ShieldedAddressData } from '../../components/addresses'
 import type { OutletContext } from '../../types/OutletContext'
 import type { NetworkType } from '../../../types'
@@ -26,10 +23,17 @@ import { creditsToUsdEquivalent, getPlatformAddressExplorerUrl, toCreditsBigInt 
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
 const subTabClassName = 'flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border-0 cursor-pointer'
 
-type AddressType = 'platform' | 'shield'
+export type AddressType = 'platform' | 'shield'
 
 interface AddressesTabProps {
   hide: boolean
+  /** Platform addresses shared with the rest of the dashboard. */
+  platform: UsePlatformAddressesResult
+  /** Shielded addresses and balance shared with the balance block. */
+  shielded: UseShieldedAddressesResult
+  /** Owned by the dashboard so the balance block can open the Shield sub-tab. */
+  addressType: AddressType
+  onAddressTypeChange: (type: AddressType) => void
 }
 
 function AddressActions ({
@@ -171,16 +175,18 @@ function ShieldedAddressRow ({
   )
 }
 
-export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
-  const { currentNetwork, currentWallet } = useOutletContext<OutletContext>()
+export function AddressesTab ({
+  hide,
+  platform,
+  shielded,
+  addressType,
+  onAddressTypeChange
+}: AddressesTabProps): React.JSX.Element {
+  const { currentNetwork } = useOutletContext<OutletContext>()
   const network: NetworkType = currentNetwork ?? 'testnet'
   const platformExplorerClient = usePlatformExplorerClient()
-  const [addressType, setAddressType] = useState<AddressType>('platform')
   const [rate, setRate] = useState<number | null>(null)
   const [creatingShielded, setCreatingShielded] = useState(false)
-
-  const platform = usePlatformAddresses(network, currentWallet)
-  const shielded = useShieldedAddresses(network, currentWallet)
 
   useEffect(() => {
     platformExplorerClient.fetchRate(network)
@@ -236,7 +242,7 @@ export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
           <button
             type='button'
             className={`${subTabClassName} ${addressType === 'platform' ? 'bg-[rgba(12,28,51,0.04)]' : 'bg-transparent'}`}
-            onClick={() => { setAddressType('platform') }}
+            onClick={() => { onAddressTypeChange('platform') }}
           >
             <Text weight='medium' className={`!text-base !tracking-[-0.03em] ${addressType === 'platform' ? '!text-dash-primary-dark-blue' : '!text-dash-primary-dark-blue/35'}`}>
               Platform
@@ -248,7 +254,7 @@ export function AddressesTab ({ hide }: AddressesTabProps): React.JSX.Element {
           <button
             type='button'
             className={`${subTabClassName} ${addressType === 'shield' ? 'bg-[rgba(12,28,51,0.04)]' : 'bg-transparent'}`}
-            onClick={() => { setAddressType('shield') }}
+            onClick={() => { onAddressTypeChange('shield') }}
           >
             <Text weight='medium' className={`!text-base !tracking-[-0.03em] ${addressType === 'shield' ? '!text-dash-primary-dark-blue' : '!text-dash-primary-dark-blue/35'}`}>
               Shield

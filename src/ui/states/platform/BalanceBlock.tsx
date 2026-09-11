@@ -1,12 +1,9 @@
-import React, { useEffect, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import React from 'react'
 import { Text } from 'dash-ui-kit/react'
-import { usePlatformAddresses, useStaticAsset, useExtensionAPI } from '../../hooks'
-import { PasswordGate } from '../../components/forms'
+import { useStaticAsset } from '../../hooks'
+import type { UsePlatformAddressesResult } from '../../hooks'
 import { DashAmount, FiatChip } from '../home/DashAmount'
 import { BalanceActions } from '../../components/common'
-import type { OutletContext } from '../../types/OutletContext'
-import type { NetworkType } from '../../../types'
 import { creditsToDash, toCreditsBigInt } from '../../../utils'
 
 // Shown instead of a number whenever the value is unknown, never a made-up one.
@@ -76,6 +73,12 @@ interface BalanceBlockProps {
   onRefresh: () => void
   /** Sum of the credits held by the wallet identities. Null while loading. */
   identityCredits: bigint | null
+  /** Platform addresses shared with the rest of the dashboard. */
+  platform: UsePlatformAddressesResult
+  /** Shielded credits, null until the user unlocks them with the password. */
+  shieldedCredits: bigint | null
+  /** Sends the user to the Shield addresses sub-tab, where the password is entered. */
+  onUnlockShielded: () => void
   rate: number | null
   loading: boolean
 }
@@ -87,24 +90,13 @@ export function BalanceBlock ({
   onToggleHide,
   onRefresh,
   identityCredits,
+  platform,
+  shieldedCredits,
+  onUnlockShielded,
   rate,
   loading
 }: BalanceBlockProps): React.JSX.Element {
   const bagel = useStaticAsset('coin_bagel.png')
-  const extensionAPI = useExtensionAPI()
-  const { currentNetwork, currentWallet } = useOutletContext<OutletContext>()
-  const network: NetworkType = currentNetwork ?? 'testnet'
-  const platform = usePlatformAddresses(network, currentWallet)
-  const [shieldedCredits, setShieldedCredits] = useState<bigint | null>(null)
-  const [unlockingShielded, setUnlockingShielded] = useState(false)
-  const [shieldedPending, setShieldedPending] = useState(false)
-
-  // The shielded balance is unlocked by password, so it is dropped on a wallet
-  // or network switch rather than shown for the wallet the user just left.
-  useEffect(() => {
-    setShieldedCredits(null)
-    setUnlockingShielded(false)
-  }, [network, currentWallet])
 
   const addressesCredits = platform.hasLoaded && !platform.isLoading
     ? platform.addresses.reduce((sum, item) => sum + (toCreditsBigInt(item.balance) ?? 0n), 0n)
@@ -118,26 +110,6 @@ export function BalanceBlock ({
     : null
   const totalParts = totalCredits != null ? dashParts(totalCredits) : null
   const totalFiat = fiatLabel(totalCredits, rate)
-
-  const loadShieldedBalance = async (password: string): Promise<string | null> => {
-    setShieldedPending(true)
-
-    const passwordCheck = await extensionAPI.checkPassword(password).catch(() => null)
-
-    if (passwordCheck == null || !passwordCheck.success) {
-      setShieldedPending(false)
-      return 'Invalid password'
-    }
-
-    const balance = await extensionAPI.getShieldedBalance(password).catch(() => null)
-    setShieldedPending(false)
-
-    if (balance == null) return 'Failed to load the shielded balance'
-
-    setShieldedCredits(toCreditsBigInt(balance.balance) ?? 0n)
-    setUnlockingShielded(false)
-    return null
-  }
 
   return (
     <div className='flex flex-col'>
@@ -199,12 +171,12 @@ export function BalanceBlock ({
           rate={rate}
           hide={hide}
           className='rounded-bl-[14px]'
-          action={!unlockingShielded
+          action={shieldedCredits == null
             ? (
               <button
                 type='button'
-                className='w-fit px-2 py-[5px] rounded-full bg-[rgba(12,28,51,0.04)] border-0 cursor-pointer'
-                onClick={() => { setUnlockingShielded(true) }}
+                className='flex shrink-0 w-fit items-center px-2 py-[5px] rounded-full bg-[rgba(12,28,51,0.04)] border-0 cursor-pointer'
+                onClick={onUnlockShielded}
               >
                 <Text size='xs' weight='medium' className='!text-[10px] !leading-[1.2] !text-dash-brand'>
                   Unlock
@@ -228,18 +200,6 @@ export function BalanceBlock ({
           className='rounded-br-[14px]'
         />
       </div>
-      {unlockingShielded && (
-        <div className='pt-4'>
-          <PasswordGate
-            description='Enter your password to include the shielded balance.'
-            submitLabel='Show shielded balance'
-            pendingLabel='Loading...'
-            isPending={shieldedPending}
-            onSubmit={loadShieldedBalance}
-            onCancel={() => { setUnlockingShielded(false) }}
-          />
-        </div>
-      )}
     </div>
   )
 }
