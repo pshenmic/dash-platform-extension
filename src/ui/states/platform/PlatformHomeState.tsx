@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { Tabs, Text } from 'dash-ui-kit/react'
+import { Tabs } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import {
   useDashRate,
@@ -18,17 +18,9 @@ import { BalanceBlock } from './BalanceBlock'
 import { IdentitiesTab } from './IdentitiesTab'
 import { OverviewTab } from './OverviewTab'
 
-function TabStub ({ label }: { label: string }): React.JSX.Element {
-  return (
-    <Text size='sm' dim>
-      {label} list is not wired to the explorer yet.
-    </Text>
-  )
-}
-
 /**
  * Platform layer home (Figma 10681:876). Balances, statistics and operations
- * come from the explorer; the Tokens tab is still a stub.
+ * come from the explorer.
  */
 function PlatformHomeState (): React.JSX.Element {
   const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
@@ -111,11 +103,6 @@ function PlatformHomeState (): React.JSX.Element {
                 onAddressTypeChange={setAddressType}
               />
             )
-          },
-          {
-            value: 'tokens',
-            label: 'Tokens',
-            content: <TabStub label='Tokens' />
           }
         ]}
       />

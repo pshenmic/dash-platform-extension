@@ -1,5 +1,7 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
+  AirplaneIcon,
   Avatar,
   Button,
   CopyButton,
@@ -12,6 +14,7 @@ import { PLATFORM_EXPLORER_URLS } from '../../../constants'
 import type { NetworkType, TokenData } from '../../../types'
 import { fromBaseUnit, getTokenName } from '../../../utils'
 import { IconChip } from '../../components/common'
+import { sendPath } from '../../utils/sendPath'
 
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
 
@@ -21,16 +24,20 @@ interface TokensTabProps {
   loading: boolean
   error: string | null
   tokens: TokenData[]
+  // Holder of these tokens, and the sender of a transfer started from here.
+  identityId: string
 }
 
 function TokenCard ({
   token,
   hide,
-  explorerUrl
+  explorerUrl,
+  onTransfer
 }: {
   token: TokenData
   hide: boolean
   explorerUrl: string
+  onTransfer: () => void
 }): React.JSX.Element {
   const stop = (event: React.MouseEvent): void => {
     event.stopPropagation()
@@ -55,6 +62,15 @@ function TokenCard ({
           <Identifier highlight='both' className='!text-sm !leading-[1.2] flex-1'>
             {token.identifier}
           </Identifier>
+          <IconChip
+            label='Transfer'
+            onClick={(event) => {
+              stop(event)
+              onTransfer()
+            }}
+          >
+            <AirplaneIcon size={14} color='#000000' />
+          </IconChip>
           <IconChip label='View in explorer' href={explorerUrl} onClick={stop}>
             <ExternalLinkIcon size={14} color='#000000' />
           </IconChip>
@@ -88,7 +104,8 @@ function TokenCard ({
   )
 }
 
-export function TokensTab ({ hide, network, loading, error, tokens }: TokensTabProps): React.JSX.Element {
+export function TokensTab ({ hide, network, loading, error, tokens, identityId }: TokensTabProps): React.JSX.Element {
+  const navigate = useNavigate()
   const explorerBase = PLATFORM_EXPLORER_URLS[network].explorer
 
   return (
@@ -120,6 +137,11 @@ export function TokensTab ({ hide, network, loading, error, tokens }: TokensTabP
           token={token}
           hide={hide}
           explorerUrl={`${explorerBase}/token/${token.identifier}`}
+          onTransfer={() => {
+            void navigate(sendPath('identity', identityId), {
+              state: { selectedToken: token.identifier }
+            })
+          }}
         />
       ))}
     </div>

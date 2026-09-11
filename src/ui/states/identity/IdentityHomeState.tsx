@@ -102,6 +102,7 @@ function IdentityHomeState (): React.JSX.Element {
                 loading={tokensState.loading}
                 error={tokensState.error}
                 tokens={tokens}
+                identityId={identifier}
               />
             )
           },
