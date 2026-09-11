@@ -59,7 +59,7 @@ export class SendCoreTransferHandler implements APIHandler {
     if (xpub == null) {
       // The xpub is cached only by CreateWallet, and nothing backfills it, so a
       // wallet made before Core support has none and cannot spend on L1.
-      throw new Error('Core xpub is not initialized. Call INIT_CORE_XPUB with the wallet password first')
+      throw new Error('Core xpub is not initialized. Call INIT_ACCOUNT_XPUBS with the wallet password after unlocking')
     }
 
     const { nextUnused } = await this.coreExplorer.getXpubSummary(xpub, wallet.network as NetworkType)

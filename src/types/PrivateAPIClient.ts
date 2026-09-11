@@ -3,9 +3,8 @@ import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
 import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
-import { InitCoreXpubPayload } from './messages/payloads/InitCoreXpubPayload'
-import { GetCoreTransactionsPayload } from './messages/payloads/GetCoreTransactionsPayload'
-import { GetCoreTransactionsResponse } from './messages/response/GetCoreTransactionsResponse'
+import { InitAccountXpubsPayload } from './messages/payloads/InitAccountXpubsPayload'
+import { InitAccountXpubsResponse } from './messages/response/InitAccountXpubsResponse'
 import { SendCoreTransferPayload } from './messages/payloads/SendCoreTransferPayload'
 import { SendCoreTransferResponse } from './messages/response/SendCoreTransferResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
@@ -124,6 +123,14 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.CHECK_PASSWORD, payload)
+  }
+
+  // Caches the Platform and Core account xpubs so later reads need no password.
+  // Idempotent: call it right after a successful unlock, every time.
+  async initAccountXpubs (password: string): Promise<InitAccountXpubsResponse> {
+    const payload: InitAccountXpubsPayload = { password }
+
+    return await this._rpcCall(MessagingMethods.INIT_ACCOUNT_XPUBS, payload)
   }
 
   async createWallet (walletType: WalletType, mnemonic?: string): Promise<CreateWalletResponse> {
@@ -423,20 +430,6 @@ export class PrivateAPIClient {
     const payload: SetSettingsPayload = { hideBalance }
 
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
-  }
-
-  // Derives and caches the Core account xpub. Needed once for wallets created
-  // before Core support; a no-op afterwards, so it is safe to call on unlock.
-  async initCoreXpub (password: string): Promise<{ ready: boolean }> {
-    const payload: InitCoreXpubPayload = { password }
-
-    return await this._rpcCall(MessagingMethods.INIT_CORE_XPUB, payload)
-  }
-
-  async getCoreTransactions (limit?: number, cursor?: string): Promise<GetCoreTransactionsResponse> {
-    const payload: GetCoreTransactionsPayload = { limit, cursor }
-
-    return await this._rpcCall(MessagingMethods.GET_CORE_TRANSACTIONS, payload)
   }
 
   // The address to receive on. Reading it does not consume it: the same address

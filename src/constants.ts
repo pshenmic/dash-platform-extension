@@ -33,11 +33,6 @@ export const TOPUP_FUNDING_GAP_LIMIT = 20
 export const IDENTITY_INDEX_SCAN_LIMIT = 20
 
 // dashscan (L1 / Dash Core) REST API — address usage + UTXOs for the top-up gap-scan.
-// How many Core transactions a single GET_CORE_TRANSACTIONS call returns, and
-// how many the explorer is asked for per page while collecting them.
-export const CORE_TRANSACTIONS_DEFAULT_LIMIT = 50
-export const CORE_TRANSACTIONS_PAGE_LIMIT = 25
-
 export const CORE_EXPLORER_URLS = {
   testnet: {
     api: 'https://testnet.dashscan.pshenmic.dev'

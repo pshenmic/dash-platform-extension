@@ -1,6 +1,4 @@
 import { GetCoreReceiveAddressHandler } from '../../../../src/content-script/api/private/core/getCoreReceiveAddress'
-import { InitCoreXpubHandler } from '../../../../src/content-script/api/private/core/initCoreXpub'
-import { GetCoreTransactionsHandler } from '../../../../src/content-script/api/private/core/getCoreTransactions'
 import { ListCoreAddressesHandler } from '../../../../src/content-script/api/private/core/listCoreAddresses'
 import { GetCoreBalanceHandler } from '../../../../src/content-script/api/private/core/getCoreBalance'
 import { CoreAddressChain } from '../../../../src/types/enums/CoreAddressChain'
@@ -259,106 +257,6 @@ describe('core address handlers', () => {
     test('validatePayload rejects an account', () => {
       expect(handler.validatePayload({})).toBeNull()
       expect(handler.validatePayload({ account: 0 } as any)).toBe('Account is not supported')
-    })
-  })
-
-  describe('InitCoreXpubHandler', () => {
-    let handler: InitCoreXpubHandler
-
-    const init = async (password = 'test'): Promise<any> =>
-      await handler.handle({ context: 'dash-platform-extension', id: 'id', method: 'INIT_CORE_XPUB', type: 'request', payload: { password } } as any)
-
-    beforeEach(() => {
-      handler = new InitCoreXpubHandler(walletRepository, sdk)
-      deriveCoreAccountXpubMock.mockResolvedValue(XPUB)
-    })
-
-    test('derives and caches the xpub for a wallet that has none', async () => {
-      walletRepository.getCoreAccountXpub.mockResolvedValueOnce(null)
-
-      await expect(init('secret')).resolves.toEqual({ ready: true })
-
-      expect(deriveCoreAccountXpubMock).toHaveBeenCalledWith(expect.objectContaining({ walletId: 'wallet1' }), 'secret', 0, sdk)
-      expect(walletRepository.setCoreAccountXpub).toHaveBeenCalledWith(0, XPUB)
-    })
-
-    test('is a no-op when the xpub is already cached, so it is safe to call on unlock', async () => {
-      await expect(init()).resolves.toEqual({ ready: true })
-
-      expect(deriveCoreAccountXpubMock).not.toHaveBeenCalled()
-      expect(walletRepository.setCoreAccountXpub).not.toHaveBeenCalled()
-    })
-
-    test('throws when no wallet is chosen', async () => {
-      walletRepository.getCurrent.mockResolvedValueOnce(null)
-
-      await expect(init()).rejects.toThrow('No wallet is chosen')
-    })
-
-    test('refuses a non-seedphrase wallet', async () => {
-      walletRepository.getCurrent.mockResolvedValueOnce({ walletId: 'wallet1', type: 'keystore', network: 'testnet' })
-
-      await expect(init()).rejects.toThrow('Core addresses are only available for a seedphrase wallet')
-    })
-
-    test('validatePayload demands a password', () => {
-      expect(handler.validatePayload({ password: 'x' })).toBeNull()
-      expect(handler.validatePayload({ password: '' })).toBe('Password must be provided')
-      expect(handler.validatePayload({} as any)).toBe('Password must be provided')
-    })
-  })
-
-  describe('GetCoreTransactionsHandler', () => {
-    let coreExplorer: any
-    let handler: GetCoreTransactionsHandler
-
-    const tx = (hash: string): any => ({
-      hash, type: 'CLASSIC', blockHeight: 1, timestamp: null, amount: '1', confirmations: 1, instantLocked: true, chainLocked: true
-    })
-
-    const handle = async (payload: any = {}): Promise<any> =>
-      await handler.handle({ context: 'dash-platform-extension', id: 'id', method: 'GET_CORE_TRANSACTIONS', type: 'request', payload } as any)
-
-    beforeEach(() => {
-      coreExplorer = {
-        getXpubTransactions: jest.fn(async () => ({ transactions: [tx('aa'), tx('bb')], nextCursor: 'cursor2' }))
-      }
-
-      handler = new GetCoreTransactionsHandler(walletRepository, coreExplorer)
-    })
-
-    test('asks the explorer by xpub on the wallet network', async () => {
-      const result = await handle()
-
-      expect(coreExplorer.getXpubTransactions).toHaveBeenCalledWith(XPUB, 'testnet', undefined, undefined)
-      expect(result).toEqual({ transactions: [tx('aa'), tx('bb')], nextCursor: 'cursor2' })
-    })
-
-    test('passes limit and cursor through for paging', async () => {
-      await handle({ limit: 10, cursor: 'cursor1' })
-
-      expect(coreExplorer.getXpubTransactions).toHaveBeenCalledWith(XPUB, 'testnet', 10, 'cursor1')
-    })
-
-    test('throws when the xpub was never cached', async () => {
-      walletRepository.getCoreAccountXpub.mockResolvedValueOnce(null)
-
-      await expect(handle()).rejects.toThrow('Core xpub is not initialized')
-      expect(coreExplorer.getXpubTransactions).not.toHaveBeenCalled()
-    })
-
-    test('throws when no wallet is chosen', async () => {
-      walletRepository.getCurrent.mockResolvedValueOnce(null)
-
-      await expect(handle()).rejects.toThrow('No wallet is chosen')
-    })
-
-    test('validatePayload', () => {
-      expect(handler.validatePayload({})).toBeNull()
-      expect(handler.validatePayload({ limit: 10, cursor: 'c' })).toBeNull()
-      expect(handler.validatePayload({ limit: 0 })).toBe('Limit must be a positive integer')
-      expect(handler.validatePayload({ limit: 1.5 })).toBe('Limit must be a positive integer')
-      expect(handler.validatePayload({ cursor: '' })).toBe('Cursor must be a non-empty string')
     })
   })
 })

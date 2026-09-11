@@ -30,7 +30,7 @@ export class GetCoreBalanceHandler implements APIHandler {
     const xpub = await this.walletRepository.getCoreAccountXpub(account)
 
     if (xpub == null) {
-      throw new Error('Core xpub is not initialized. Call INIT_CORE_XPUB with the wallet password first')
+      throw new Error('Core xpub is not initialized. Call INIT_ACCOUNT_XPUBS with the wallet password after unlocking')
     }
 
     const summary = await this.coreExplorer.getXpubSummary(xpub, wallet.network as NetworkType)
