@@ -450,6 +450,7 @@ export default function Header (): React.JSX.Element {
           onClose={() => setIsMenuOpen(false)}
           currentIdentity={currentIdentity}
           currentNetwork={currentNetwork}
+          setCurrentNetwork={setCurrentNetwork}
           currentWallet={allWallets?.find(wallet => wallet.walletId === currentWallet) ?? null}
         />
       </Suspense>

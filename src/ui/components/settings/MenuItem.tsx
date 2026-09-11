@@ -8,6 +8,7 @@ interface MenuItemProps {
   onClick?: () => void
   hasSubMenu?: boolean
   disabled?: boolean
+  control?: React.ReactNode
 }
 
 const menuItemStyles = cva(
@@ -16,6 +17,7 @@ const menuItemStyles = cva(
     variants: {
       variant: {
         default: 'hover:cursor-pointer',
+        control: 'cursor-default',
         disabled: 'opacity-50 cursor-not-allowed',
         account: 'border-b-0 hover:cursor-pointer'
       },
@@ -58,22 +60,16 @@ export const MenuItem: React.FC<MenuItemProps> = ({
   icon,
   onClick,
   hasSubMenu = false,
-  disabled = false
+  disabled = false,
+  control
 }) => {
   const { theme } = useTheme()
   const getVariant = (): 'disabled' | 'default' => {
     if (disabled) return 'disabled'
     return 'default'
   }
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={menuItemStyles({
-        variant: getVariant(),
-        theme
-      })}
-    >
+  const content = (
+    <>
       <div className='flex items-center gap-4'>
         {(icon != null) && (
           <div className='flex-shrink-0 rounded-full flex items-center justify-center w-[35px] h-[35px] bg-white'>
@@ -93,11 +89,39 @@ export const MenuItem: React.FC<MenuItemProps> = ({
         </div>
       </div>
 
-      {hasSubMenu && (
-        <div className='flex-shrink-0'>
-          <ChevronIcon className='-rotate-90 w-4 h-4' />
-        </div>
-      )}
+      {control != null
+        ? (
+          <div className='flex-shrink-0'>
+            {control}
+          </div>
+          )
+        : hasSubMenu && (
+          <div className='flex-shrink-0'>
+            <ChevronIcon className='-rotate-90 w-4 h-4' />
+          </div>
+        )}
+    </>
+  )
+
+  // A row holding its own control is not clickable itself, so it renders as a div.
+  if (control != null) {
+    return (
+      <div className={menuItemStyles({ variant: 'control', theme })}>
+        {content}
+      </div>
+    )
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={menuItemStyles({
+        variant: getVariant(),
+        theme
+      })}
+    >
+      {content}
     </button>
   )
 }

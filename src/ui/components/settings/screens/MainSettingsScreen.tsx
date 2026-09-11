@@ -8,10 +8,13 @@ import {
   CreditsIcon,
   SettingsIcon,
   DashLogo,
-  QuestionMessageIcon
+  QuestionMessageIcon,
+  WebIcon
 } from 'dash-ui-kit/react'
+import { NetworkSelector } from '../../controls'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import type { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
+import type { NetworkType } from '../../../../types'
 
 export const walletSettingsConfig: ScreenConfig = {
   id: 'current-wallet',
@@ -149,13 +152,28 @@ interface MainSettingsScreenProps extends SettingsScreenProps {
 
 const createDynamicMainScreenConfig = (
   currentWallet?: WalletAccountInfo | null,
-  currentIdentity?: string | null
+  currentIdentity?: string | null,
+  networkControl?: React.ReactNode
 ): ScreenConfig => {
   const isPrivateKeysDisabled = currentWallet == null || currentIdentity == null
 
   return {
     ...mainScreenConfig,
     content: [
+      ...(networkControl != null
+        ? [{
+            id: 'network',
+            title: 'Network',
+            items: [
+              {
+                id: 'network-item',
+                title: 'Network',
+                icon: <WebIcon size={16} className='!text-dash-primary-dark-blue' />,
+                control: networkControl
+              }
+            ]
+          }]
+        : []),
       {
         id: 'identity-settings',
         title: 'Identity Settings',
@@ -178,9 +196,23 @@ const createDynamicMainScreenConfig = (
 export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
   onItemSelect,
   currentWallet,
-  currentIdentity
+  currentIdentity,
+  currentNetwork,
+  setCurrentNetwork
 }) => {
-  const dynamicConfig = createDynamicMainScreenConfig(currentWallet, currentIdentity)
+  const networkControl = setCurrentNetwork != null
+    ? (
+      <NetworkSelector
+        currentNetwork={currentNetwork ?? undefined}
+        onSelect={(network) => {
+          if (network === currentNetwork) return
+          void setCurrentNetwork(network as NetworkType)
+        }}
+      />
+      )
+    : undefined
+
+  const dynamicConfig = createDynamicMainScreenConfig(currentWallet, currentIdentity, networkControl)
 
   return (
     <div className='menu-sections-container'>

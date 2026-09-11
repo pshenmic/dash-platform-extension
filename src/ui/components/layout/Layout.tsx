@@ -87,6 +87,9 @@ const Layout: FC = () => {
       const status: GetStatusResponse = await extensionAPI.getStatus()
       setCurrentNetwork(status.network as NetworkType)
       setCurrentWallet(status.currentWalletId)
+      // Identities belong to the previous network - drop them until the new wallet reloads its own.
+      setCurrentIdentity(null)
+      setAvailableIdentities([])
 
       await loadWallets()
     } catch (error) {

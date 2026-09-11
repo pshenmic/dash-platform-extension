@@ -38,6 +38,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }>
   onClose,
   currentIdentity,
   currentNetwork,
+  setCurrentNetwork,
   currentWallet,
   onItemSelect
 }) => {
@@ -54,6 +55,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }>
         onClose={onClose}
         currentIdentity={currentIdentity}
         currentNetwork={currentNetwork}
+        setCurrentNetwork={setCurrentNetwork}
         currentWallet={currentWallet}
         onItemSelect={onItemSelect ?? (() => {})}
       />
@@ -68,6 +70,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }>
         onClose={onClose}
         currentIdentity={currentIdentity}
         currentNetwork={currentNetwork}
+        setCurrentNetwork={setCurrentNetwork}
         currentWallet={currentWallet}
         onItemSelect={onItemSelect}
       />
@@ -94,10 +97,11 @@ interface SettingsMenuProps {
   onClose: () => void
   currentIdentity?: string | null
   currentNetwork?: NetworkType | null
+  setCurrentNetwork?: (network: NetworkType) => Promise<void>
   currentWallet?: WalletAccountInfo | null
 }
 
-export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, currentIdentity, currentNetwork, currentWallet }) => {
+export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, currentIdentity, currentNetwork, setCurrentNetwork, currentWallet }) => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('main')
   const [screenHistory, setScreenHistory] = useState<ScreenType[]>(['main'])
 
@@ -162,6 +166,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
         onClose={handleClose}
         currentIdentity={currentIdentity}
         currentNetwork={currentNetwork}
+        setCurrentNetwork={setCurrentNetwork}
         currentWallet={currentWallet}
         onItemSelect={navigateToScreen}
       />

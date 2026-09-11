@@ -47,10 +47,6 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({ onSelect, vari
       console.error('Failed to switch network:', error)
     }
   }
-  useEffect(() => {
-    if (typeof onSelect === 'function') onSelect(localCurrentNetwork)
-  }, [localCurrentNetwork, onSelect])
-
   if (loading) {
     return (
       <div className='w-[80px] h-[32px] bg-gray-100 rounded animate-pulse' />
