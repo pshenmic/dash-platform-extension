@@ -10,6 +10,7 @@ export interface MenuItem {
   hasSubMenu?: boolean
   disabled?: boolean
   control?: React.ReactNode
+  external?: boolean
 }
 
 export interface MenuSection {

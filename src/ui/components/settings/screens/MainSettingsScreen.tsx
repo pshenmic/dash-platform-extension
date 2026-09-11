@@ -3,10 +3,8 @@ import { MenuSection } from '../MenuSection'
 import {
   KeyIcon,
   WalletIcon,
-  ShieldSmallIcon,
   ChainSmallIcon,
   CreditsIcon,
-  SettingsIcon,
   DashLogo,
   QuestionMessageIcon,
   WebIcon
@@ -21,14 +19,6 @@ export const walletSettingsConfig: ScreenConfig = {
   title: 'Wallet Settings',
   icon: <WalletIcon className='text-dash-primary-dark-blue' />,
   category: 'account',
-  content: []
-}
-
-export const preferencesConfig: ScreenConfig = {
-  id: 'preferences',
-  title: 'Preferences',
-  icon: <SettingsIcon className='text-dash-primary-dark-blue' />,
-  category: 'wallet',
   content: []
 }
 
@@ -52,14 +42,6 @@ export const privateKeysConfig: ScreenConfig = {
   id: 'private-keys',
   title: 'Private Keys',
   icon: <KeyIcon className='text-dash-primary-dark-blue' />,
-  category: 'wallet',
-  content: []
-}
-
-export const securityPrivacyConfig: ScreenConfig = {
-  id: 'security-privacy',
-  title: 'Security & Privacy',
-  icon: <ShieldSmallIcon className='text-dash-primary-dark-blue' />,
   category: 'wallet',
   content: []
 }
@@ -102,14 +84,6 @@ export const mainScreenConfig: ScreenConfig = {
           icon: platformAddressesConfig.icon,
           screenId: platformAddressesConfig.id,
           hasSubMenu: true
-        },
-        {
-          id: 'security-privacy-item',
-          title: securityPrivacyConfig.title,
-          icon: securityPrivacyConfig.icon,
-          screenId: securityPrivacyConfig.id,
-          hasSubMenu: true,
-          disabled: true
         }
       ]
     },
@@ -118,28 +92,18 @@ export const mainScreenConfig: ScreenConfig = {
       title: 'Other',
       items: [
         {
-          id: 'preferences-item',
-          title: preferencesConfig.title,
-          icon: preferencesConfig.icon,
-          screenId: preferencesConfig.id,
-          hasSubMenu: true,
-          disabled: true
-        },
-        {
           id: 'help-support-item',
           title: helpSupportConfig.title,
           icon: helpSupportConfig.icon,
           screenId: helpSupportConfig.id,
-          hasSubMenu: true,
-          disabled: true
+          hasSubMenu: true
         },
         {
           id: 'about-dash-item',
           title: aboutDashConfig.title,
           icon: aboutDashConfig.icon,
           screenId: aboutDashConfig.id,
-          hasSubMenu: true,
-          disabled: true
+          hasSubMenu: true
         }
       ]
     }

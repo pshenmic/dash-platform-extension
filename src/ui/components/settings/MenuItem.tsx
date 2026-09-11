@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, useTheme, ChevronIcon } from 'dash-ui-kit/react'
+import { Text, useTheme, ChevronIcon, ExternalLinkIcon } from 'dash-ui-kit/react'
 import { cva } from 'class-variance-authority'
 
 interface MenuItemProps {
@@ -9,6 +9,7 @@ interface MenuItemProps {
   hasSubMenu?: boolean
   disabled?: boolean
   control?: React.ReactNode
+  external?: boolean
 }
 
 const menuItemStyles = cva(
@@ -61,7 +62,8 @@ export const MenuItem: React.FC<MenuItemProps> = ({
   onClick,
   hasSubMenu = false,
   disabled = false,
-  control
+  control,
+  external = false
 }) => {
   const { theme } = useTheme()
   const getVariant = (): 'disabled' | 'default' => {
@@ -95,11 +97,13 @@ export const MenuItem: React.FC<MenuItemProps> = ({
             {control}
           </div>
           )
-        : hasSubMenu && (
+        : (external || hasSubMenu) && (
           <div className='flex-shrink-0'>
-            <ChevronIcon className='-rotate-90 w-4 h-4' />
+            {external
+              ? <ExternalLinkIcon size={14} className='text-dash-primary-dark-blue' />
+              : <ChevronIcon className='-rotate-90 w-4 h-4' />}
           </div>
-        )}
+          )}
     </>
   )
 
