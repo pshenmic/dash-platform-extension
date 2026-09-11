@@ -1,11 +1,25 @@
 import { NetworkType } from '../../types/PlatformExplorer'
-import { CORE_EXPLORER_URLS, CORE_UTXO_ADDRESS_BATCH } from '../../constants'
+import { CORE_EXPLORER_URLS, CORE_TRANSACTIONS_DEFAULT_LIMIT, CORE_TRANSACTIONS_PAGE_LIMIT, CORE_UTXO_ADDRESS_BATCH } from '../../constants'
 
 export interface CoreAddressInfo {
   txCount: number
   balance: bigint
   received: bigint
   sent: bigint
+}
+
+// One transaction as the explorer reports it for an account. Amounts stay
+// strings all the way to the caller: they are duffs, and bigint does not
+// survive the messaging boundary.
+export interface CoreXpubTransaction {
+  hash: string
+  type: string
+  blockHeight: number | null
+  timestamp: string | null
+  amount: string
+  confirmations: number
+  instantLocked: boolean
+  chainLocked: boolean
 }
 
 // Everything POST /xpub reports for one account.
@@ -119,6 +133,70 @@ export class CoreExplorerService {
         change: toCount(data.nextUnused?.change)
       }
     }
+  }
+
+  // Transactions touching any address the xpub derives, newest first. The
+  // explorer pages with an opaque cursor, so this walks the pages itself and
+  // stops at `limit`, which keeps an account with a long history from hanging
+  // the caller. Returns `null` for `nextCursor` once the history is exhausted.
+  async getXpubTransactions (
+    xpub: string,
+    network: NetworkType = 'testnet',
+    limit: number = CORE_TRANSACTIONS_DEFAULT_LIMIT,
+    cursor?: string
+  ): Promise<{ transactions: CoreXpubTransaction[], nextCursor: string | null }> {
+    const baseUrl = getBaseUrl(network)
+    const transactions: CoreXpubTransaction[] = []
+
+    let next: string | null = cursor ?? null
+
+    while (transactions.length < limit) {
+      const body: Record<string, unknown> = {
+        xpub,
+        limit: Math.min(CORE_TRANSACTIONS_PAGE_LIMIT, limit - transactions.length)
+      }
+
+      if (next != null) {
+        body.cursor = next
+      }
+
+      const response = await fetch(`${baseUrl}/xpub/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      if (!response.ok) {
+        throw new Error(`Core explorer error for xpub transactions: HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      const rows: any[] = Array.isArray(data?.resultSet) ? data.resultSet : []
+
+      transactions.push(...rows.map((row) => ({
+        hash: String(row.hash),
+        type: String(row.type),
+        blockHeight: row.blockHeight ?? null,
+        timestamp: row.timestamp ?? null,
+        amount: toBigInt(row.amount).toString(),
+        confirmations: toCount(row.confirmations),
+        instantLocked: row.instantLock != null && row.instantLock !== '',
+        chainLocked: row.chainLocked === true
+      })))
+
+      const pageCursor: string | null = data?.pagination?.nextCursor ?? null
+
+      // A cursor that does not move means the explorer has nothing further;
+      // trusting it blindly would spin here forever.
+      if (pageCursor == null || pageCursor === next || rows.length === 0) {
+        next = pageCursor === next ? null : pageCursor
+        break
+      }
+
+      next = pageCursor
+    }
+
+    return { transactions, nextCursor: next }
   }
 
   // An address counts as used once it has appeared in at least one transaction.
