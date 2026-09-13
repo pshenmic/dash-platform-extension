@@ -67,6 +67,7 @@ function PlatformHomeState (): React.JSX.Element {
         onUnlockShielded={handleUnlockShielded}
         rate={rate}
         loading={platformData.loading}
+        hasAddressLayer={hasAddressLayer}
       />
       <ActionRow scope='platform' />
       <Tabs

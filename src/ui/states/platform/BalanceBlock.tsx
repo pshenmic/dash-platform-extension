@@ -9,6 +9,10 @@ import { creditsToDash, toCreditsBigInt } from '../../../utils'
 // Shown instead of a number whenever the value is unknown, never a made-up one.
 const PLACEHOLDER = '-'
 
+// Shown where the wallet has no such layer at all. Three slices share the popup
+// width, so this has to stay on one short line.
+const SEED_ONLY_LABEL = 'Seed only'
+
 function dashParts (credits: bigint): { whole: string, fraction: string } {
   const [whole, fraction = '00'] = creditsToDash(credits).toFixed(2).split('.')
   return { whole, fraction }
@@ -26,9 +30,12 @@ interface SliceProps {
   hide: boolean
   className: string
   action?: React.ReactNode
+  // Set when the slice is not merely unknown but absent for this wallet, which
+  // reads better as a reason than as a dash.
+  unavailableLabel?: string
 }
 
-function AllocationSlice ({ label, credits, rate, hide, className, action }: SliceProps): React.JSX.Element {
+function AllocationSlice ({ label, credits, rate, hide, className, action, unavailableLabel }: SliceProps): React.JSX.Element {
   const parts = credits != null ? dashParts(credits) : null
   const fiat = fiatLabel(credits, rate)
 
@@ -48,8 +55,11 @@ function AllocationSlice ({ label, credits, rate, hide, className, action }: Sli
             />
             )
           : (
-            <Text size='sm' className='!leading-none !tracking-[-0.03em] !text-dash-primary-dark-blue/35'>
-              {PLACEHOLDER}
+            <Text
+              size={unavailableLabel != null ? 'xs' : 'sm'}
+              className='!leading-none !tracking-[-0.03em] !text-dash-primary-dark-blue/35'
+            >
+              {unavailableLabel ?? PLACEHOLDER}
             </Text>
             )}
         {fiat != null
@@ -81,6 +91,8 @@ interface BalanceBlockProps {
   onUnlockShielded: () => void
   rate: number | null
   loading: boolean
+  /** False for wallets with no address layer: both slices stay a placeholder. */
+  hasAddressLayer: boolean
 }
 
 const bagelClassName = 'pointer-events-none absolute max-w-none h-auto select-none'
@@ -94,11 +106,12 @@ export function BalanceBlock ({
   shieldedCredits,
   onUnlockShielded,
   rate,
-  loading
+  loading,
+  hasAddressLayer
 }: BalanceBlockProps): React.JSX.Element {
   const bagel = useStaticAsset('coin_bagel.png')
 
-  const addressesCredits = platform.hasLoaded && !platform.isLoading
+  const addressesCredits = hasAddressLayer && platform.hasLoaded && !platform.isLoading
     ? platform.addresses.reduce((sum, item) => sum + (toCreditsBigInt(item.balance) ?? 0n), 0n)
     : null
 
@@ -171,7 +184,8 @@ export function BalanceBlock ({
           rate={rate}
           hide={hide}
           className='rounded-bl-[14px]'
-          action={shieldedCredits == null
+          unavailableLabel={hasAddressLayer ? undefined : SEED_ONLY_LABEL}
+          action={shieldedCredits == null && hasAddressLayer
             ? (
               <button
                 type='button'
@@ -191,6 +205,7 @@ export function BalanceBlock ({
           rate={rate}
           hide={hide}
           className=''
+          unavailableLabel={hasAddressLayer ? undefined : SEED_ONLY_LABEL}
         />
         <AllocationSlice
           label='Identities'
