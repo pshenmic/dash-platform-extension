@@ -48,7 +48,7 @@ function LayerCard ({
       <img
         src={image}
         alt=''
-        className={`pointer-events-none absolute max-w-none select-none transition-transform duration-300 ease-out group-hover:scale-110 ${imageClassName}`}
+        className={`pointer-events-none absolute max-w-none select-none ${disabled ? '' : 'transition-transform duration-300 ease-out group-hover:scale-110'} ${imageClassName}`}
       />
       {!disabled && (
         <div className='pointer-events-none absolute inset-0 bg-white/0 transition-colors duration-200 ease-out group-hover:bg-white/12' />
