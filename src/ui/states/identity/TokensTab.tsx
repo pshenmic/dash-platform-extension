@@ -3,11 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import {
   AirplaneIcon,
   Avatar,
-  Button,
   CopyButton,
   ExternalLinkIcon,
   Identifier,
-  PlusIcon,
   Text
 } from 'dash-ui-kit/react'
 import { PLATFORM_EXPLORER_URLS } from '../../../constants'
@@ -114,16 +112,6 @@ export function TokensTab ({ hide, network, loading, error, tokens, identityId }
         <Text weight='medium' className={`${headerTextClassName} !text-dash-primary-dark-blue/35`}>
           {loading ? '...' : tokens.length} Tokens
         </Text>
-        <Button
-          type='button'
-          colorScheme='lightBlue'
-          className='!h-[25px] !min-h-0 !rounded-lg !px-2 !py-2 !border-0 !normal-case gap-2.5 !text-xs'
-        >
-          <PlusIcon size={10} className='!text-dash-brand' />
-          <Text weight='medium' className={`${headerTextClassName} !text-dash-brand`}>
-            Add Token
-          </Text>
-        </Button>
       </div>
       {loading && (
         <Text size='sm' dim>Loading tokens...</Text>

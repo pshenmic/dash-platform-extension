@@ -1,6 +1,7 @@
 import { BatchActions, TransactionTypesInfo } from '../../../enums'
 import { type TransactionData } from '../../../types'
 import { type TransactionDirection, type TransactionRowItem } from './TransactionRow'
+import { toStatusKey } from './transactionStatus'
 
 const OUTGOING_TYPES = new Set([
   'IDENTITY_CREDIT_WITHDRAWAL',
@@ -44,6 +45,7 @@ export function toTransactionRowItem (transaction: TransactionData): Transaction
     amountLabel: 'Fee:',
     layer: 'platform',
     direction,
+    status: toStatusKey(transaction.status),
     hash,
     timestamp: transaction.timestamp
   }
