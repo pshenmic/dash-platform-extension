@@ -33,7 +33,7 @@ function TargetRow ({ target }: { target: ReceiveTarget }): React.JSX.Element {
 }
 
 interface TargetSwitchProps {
-  showPicker: boolean
+  showTypeSwitch: boolean
   activeType: ReceiveTargetType
   targets: ReceiveTarget[]
   selected: ReceiveTarget | null
@@ -47,7 +47,7 @@ interface TargetSwitchProps {
  * choice to offer - an identity dashboard names its destination outright.
  */
 export function TargetSwitch ({
-  showPicker,
+  showTypeSwitch,
   activeType,
   targets,
   selected,
@@ -62,7 +62,7 @@ export function TargetSwitch ({
     onTypeChange(next === 'core' ? 'core' : 'platformAddress')
   }
 
-  if (!showPicker && !showMenu) {
+  if (!showTypeSwitch && !showMenu) {
     return selected != null
       ? (
         <div className='flex items-center gap-[15px] p-3 rounded-[15px] bg-[rgba(12,28,51,0.04)]'>
@@ -74,11 +74,11 @@ export function TargetSwitch ({
 
   return (
     <div className='flex flex-col gap-2'>
-      {showPicker && (
+      {showTypeSwitch && (
         <Switch size='sm' options={LAYER_OPTIONS} value={layer} onChange={changeLayer} />
       )}
 
-      {showPicker && layer === 'platform' && (
+      {showTypeSwitch && layer === 'platform' && (
         <Switch size='sm' options={TYPE_OPTIONS} value={activeType} onChange={onTypeChange} />
       )}
 

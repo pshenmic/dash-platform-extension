@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'rea
 import { Button, Heading, Text, ValueCard } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { PasswordGate } from '../../components/forms'
-import { useHideBalance } from '../../hooks'
+import { useHideBalance, useWalletCapabilities } from '../../hooks'
 import type { OutletContext } from '../../types'
 import { buildTopUpUrl } from '../../utils/topUpTabUrl'
 import { parseReceiveScope, parseReceiveTargetType, receivePath } from '../../utils/receivePath'
@@ -35,8 +35,9 @@ function ReceiveState (): React.JSX.Element {
   const type = parseReceiveTargetType(searchParams.get('type'))
   const value = searchParams.get('value')
   const { hideBalance } = useHideBalance()
+  const { hasAddressLayer } = useWalletCapabilities()
 
-  const { showPicker, activeType, targets, selected, rate, platform, shielded, loading } =
+  const { showTypeSwitch, activeType, targets, selected, rate, platform, shielded, loading } =
     useReceiveTargets({ scope, type, value })
 
   // A picked identity belongs to the wallet it was picked in, so switching
@@ -86,6 +87,10 @@ function ReceiveState (): React.JSX.Element {
     platform.cancelPassword()
   }, [platform])
 
+  // A wallet with no address layer only ever reaches Platform, whatever scope it
+  // was opened with, so naming Core in the subtitle would be a lie.
+  const scopeLabel = !hasAddressLayer && scope === 'all' ? SCOPE_LABELS.platform : SCOPE_LABELS[scope]
+
   const needsShieldedPassword = activeType === 'shielded' && !shielded.hasLoaded
   const needsPlatformPassword = activeType === 'platformAddress' && platform.needsPassword
 
@@ -94,12 +99,12 @@ function ReceiveState (): React.JSX.Element {
       <div className='flex flex-col gap-1'>
         <Heading as='h1' size='2xl'>Receive</Heading>
         <Text size='sm' weight='medium' className='!text-dash-primary-dark-blue/48 !tracking-[-0.03em]'>
-          {SCOPE_LABELS[scope]} - {RECEIVE_TYPE_FULL_LABELS[activeType]}
+          {scopeLabel} - {RECEIVE_TYPE_FULL_LABELS[activeType]}
         </Text>
       </div>
 
       <TargetSwitch
-        showPicker={showPicker}
+        showTypeSwitch={showTypeSwitch}
         activeType={activeType}
         targets={targets}
         selected={selected}

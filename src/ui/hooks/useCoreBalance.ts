@@ -9,8 +9,11 @@ export interface UseCoreBalanceResult {
   reload: () => void
 }
 
-/** Core (L1) wallet balance and totals. All amounts are duffs (10^8), as strings. */
-export function useCoreBalance (walletId?: string | null): UseCoreBalanceResult {
+/**
+ * Core (L1) wallet balance and totals. All amounts are duffs (10^8), as strings.
+ * `enabled` is false for wallets with no Core layer, which have nothing to read.
+ */
+export function useCoreBalance (walletId?: string | null, enabled: boolean = true): UseCoreBalanceResult {
   const extensionAPI = useExtensionAPI()
   const [balance, setBalance] = useState<GetCoreBalanceResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -19,6 +22,13 @@ export function useCoreBalance (walletId?: string | null): UseCoreBalanceResult 
 
   useEffect(() => {
     let cancelled = false
+
+    if (!enabled) {
+      setBalance(null)
+      setError(null)
+      setLoading(false)
+      return
+    }
 
     setLoading(true)
     setError(null)
@@ -40,7 +50,7 @@ export function useCoreBalance (walletId?: string | null): UseCoreBalanceResult 
     return () => {
       cancelled = true
     }
-  }, [extensionAPI, walletId, epoch])
+  }, [extensionAPI, walletId, epoch, enabled])
 
   const reload = useCallback((): void => {
     setEpoch(previous => previous + 1)

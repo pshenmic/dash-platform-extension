@@ -7,9 +7,10 @@ import {
   useHideBalance,
   usePlatformAddresses,
   useShieldedAddresses,
+  useWalletCapabilities,
   useWalletPlatformData
 } from '../../hooks'
-import type { OutletContext } from '../../types/OutletContext'
+import type { OutletContext } from '../../types'
 import type { NetworkType } from '../../../types'
 import { toCreditsBigInt } from '../../../utils'
 import { ActionRow } from '../home/ActionRow'
@@ -25,6 +26,7 @@ import { OverviewTab } from './OverviewTab'
 function PlatformHomeState (): React.JSX.Element {
   const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
   const { hideBalance, toggleHide, refresh } = useHideBalance()
+  const { hasAddressLayer } = useWalletCapabilities()
   const [activeTab, setActiveTab] = useState('overview')
   const [addressType, setAddressType] = useState<AddressType>('platform')
   const network: NetworkType = currentNetwork ?? 'testnet'
@@ -91,19 +93,21 @@ function PlatformHomeState (): React.JSX.Element {
               <IdentitiesTab hide={hideBalance} identities={availableIdentities} platformData={platformData} />
             )
           },
-          {
-            value: 'addresses',
-            label: 'Addresses',
-            content: (
-              <AddressesTab
-                hide={hideBalance}
-                platform={platform}
-                shielded={shielded}
-                addressType={addressType}
-                onAddressTypeChange={setAddressType}
-              />
-            )
-          }
+          ...(hasAddressLayer
+            ? [{
+                value: 'addresses',
+                label: 'Addresses',
+                content: (
+                  <AddressesTab
+                    hide={hideBalance}
+                    platform={platform}
+                    shielded={shielded}
+                    addressType={addressType}
+                    onAddressTypeChange={setAddressType}
+                  />
+                )
+              }]
+            : [])
         ]}
       />
     </div>

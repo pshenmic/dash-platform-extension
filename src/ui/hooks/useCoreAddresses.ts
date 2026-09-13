@@ -14,7 +14,7 @@ export interface UseCoreAddressesResult {
  * the next free one. The extent comes from the explorer's gap scan, so it also
  * covers addresses another install created on the same seed.
  */
-export function useCoreAddresses (walletId?: string | null): UseCoreAddressesResult {
+export function useCoreAddresses (walletId?: string | null, enabled: boolean = true): UseCoreAddressesResult {
   const extensionAPI = useExtensionAPI()
   const [addresses, setAddresses] = useState<string[] | null>(null)
   const [loading, setLoading] = useState(true)
@@ -23,6 +23,13 @@ export function useCoreAddresses (walletId?: string | null): UseCoreAddressesRes
 
   useEffect(() => {
     let cancelled = false
+
+    if (!enabled) {
+      setAddresses([])
+      setError(null)
+      setLoading(false)
+      return
+    }
 
     setLoading(true)
     setError(null)
@@ -44,7 +51,7 @@ export function useCoreAddresses (walletId?: string | null): UseCoreAddressesRes
     return () => {
       cancelled = true
     }
-  }, [extensionAPI, walletId, epoch])
+  }, [extensionAPI, walletId, epoch, enabled])
 
   const reload = useCallback((): void => {
     setEpoch(previous => previous + 1)
