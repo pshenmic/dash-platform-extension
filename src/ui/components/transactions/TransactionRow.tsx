@@ -1,5 +1,5 @@
 import React from 'react'
-import { BigNumber, DocumentIcon, Identifier, Text, TopRightArrowIcon } from 'dash-ui-kit/react'
+import { BigNumber, CopyButton, DocumentIcon, Identifier, Text, TopRightArrowIcon } from 'dash-ui-kit/react'
 import { creditsToDash } from '../../../utils'
 
 export type TransactionDirection = 'in' | 'out' | 'neutral'
@@ -71,11 +71,21 @@ export function TransactionRow ({ item, hide, onClick, rate }: TransactionRowPro
   const amountClass = isIn && !isFee ? '!text-dash-brand' : ''
   const unit = item.unit ?? 'Credits'
 
+  const clickable = onClick != null
+
+  // A div, not a button: the copy control below is itself a button and cannot nest inside one.
   return (
-    <button
-      type='button'
+    <div
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
       onClick={onClick}
-      className={`flex items-center justify-between gap-3 rounded-[14px] bg-[rgba(12,28,51,0.04)] py-2 pl-2 pr-[15px] w-full text-left border-0 ${onClick != null ? 'cursor-pointer hover:bg-[rgba(12,28,51,0.07)] transition-colors' : 'cursor-default'}`}
+      onKeyDown={(event) => {
+        if (!clickable) return
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        onClick?.()
+      }}
+      className={`flex items-center justify-between gap-3 rounded-[14px] bg-[rgba(12,28,51,0.04)] py-2 pl-2 pr-[15px] w-full text-left border-0 ${clickable ? 'cursor-pointer hover:bg-[rgba(12,28,51,0.07)] transition-colors' : 'cursor-default'}`}
     >
       <div className='flex items-center gap-3 min-w-0'>
         <TypeIcon direction={item.direction} />
@@ -83,21 +93,34 @@ export function TransactionRow ({ item, hide, onClick, rate }: TransactionRowPro
           <Text size='sm' weight='medium' className='!leading-[1.2]'>
             {item.title}
           </Text>
-          <Text size='xs' className='!font-sans !leading-[1.2] !text-dash-primary-dark-blue/35'>
-            {item.detailLabel}{' '}
+          <div className='flex items-center gap-1 min-w-0'>
+            <Text size='xs' className='!font-sans !leading-[1.2] !text-dash-primary-dark-blue/35 shrink-0'>
+              {item.detailLabel}
+            </Text>
             {item.detailAsIdentifier === true
               ? (
                 <Identifier
                   middleEllipsis
                   edgeChars={4}
                   highlight='both'
-                  className='!text-[0.625rem] !font-light'
+                  className='!text-[0.625rem] !font-light !leading-[1.2] min-w-0'
                 >
                   {item.detailValue}
                 </Identifier>
                 )
-              : <span className='text-dash-primary-dark-blue'>{item.detailValue}</span>}
-          </Text>
+              : (
+                <Text size='xs' className='!font-sans !leading-[1.2] text-dash-primary-dark-blue truncate'>
+                  {item.detailValue}
+                </Text>
+                )}
+            {item.detailValue !== '' && (
+              <CopyButton
+                text={item.detailValue}
+                aria-label='Copy hash'
+                className='opacity-40 hover:opacity-100 [&_svg]:w-3 [&_svg]:h-3'
+              />
+            )}
+          </div>
         </div>
       </div>
       <div className='flex flex-col items-end gap-1 shrink-0'>
@@ -119,6 +142,6 @@ export function TransactionRow ({ item, hide, onClick, rate }: TransactionRowPro
           {hide ? '~ •••' : fiatLabelFor(item, rate)}
         </Text>
       </div>
-    </button>
+    </div>
   )
 }
