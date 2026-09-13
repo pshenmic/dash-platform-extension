@@ -80,8 +80,12 @@ function SendTransactionState (): React.JSX.Element {
   // have already initialized (created) platform addresses.
   const platformFlowEnabled = walletType === WalletType.seedphrase && platformAddresses.length > 0
 
-  // Balances for the sender identity selector — only needed for the platform flow.
-  const { identityBalances, identityBalancesLoading } = useIdentityBalances(platformFlowEnabled, availableIdentities)
+  // A keystore wallet has no address layers, but it can still hold several
+  // identities — it gets the identity picker alone, without the sender types.
+  const senderSelectEnabled = platformFlowEnabled || availableIdentities.length > 1
+
+  // Balances for the sender identity selector.
+  const { identityBalances, identityBalancesLoading } = useIdentityBalances(senderSelectEnabled, availableIdentities)
 
   // Shielded balance — password-gated, so it stays null until the user unlocks it.
   const shielded = useShieldedBalance()
@@ -320,9 +324,10 @@ function SendTransactionState (): React.JSX.Element {
     return formattedBalance !== '0' ? formattedBalance : null
   }, [isCredits, senderBalance, senderType, currentNetwork, formState.selectedRecipient, formattedBalance])
 
-  // The sender block (with its own balance display) only shows for the platform
-  // flow with credits. Otherwise the balance is shown under the title.
-  const senderBlockShown = platformFlowEnabled && isCredits
+  // The sender block (with its own balance display) only shows when there is a
+  // sender to pick and the asset is credits. Otherwise the balance is shown
+  // under the title.
+  const senderBlockShown = senderSelectEnabled && isCredits
   const showHeaderBalance = !senderBlockShown &&
     ((isCredits && balance !== null) || (!isCredits && token != null))
 
@@ -450,8 +455,9 @@ function SendTransactionState (): React.JSX.Element {
       </div>
 
       {/* Sender selection (platform flow only, credits only) */}
-      {platformFlowEnabled && isCredits && (
+      {senderBlockShown && (
         <SenderSelector
+          showSenderTypes={platformFlowEnabled}
           senderType={senderType}
           onSenderTypeChange={setSenderType}
           availableIdentities={availableIdentities}
