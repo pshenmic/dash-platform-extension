@@ -9,6 +9,7 @@ import type { OutletContext } from '../../types'
 import { ActionRow } from './ActionRow'
 import { LastTransaction } from './LastTransaction'
 import { LayerCards } from './LayerCards'
+import { NoIdentities } from './NoIdentities'
 import { NoWallets } from './NoWallets'
 import { Statistics } from './Statistics'
 import { TotalBalance } from './TotalBalance'
@@ -32,10 +33,17 @@ const explorerUrlFor = (
  * Wallet dashboard (Figma 10681:2603). Route: `#/home`.
  */
 function HomeState (): React.JSX.Element {
-  const { allWallets, availableIdentities, currentNetwork, currentWallet, hasAnyWallet, walletsLoaded } =
-    useOutletContext<OutletContext>()
+  const {
+    allWallets,
+    availableIdentities,
+    currentNetwork,
+    currentWallet,
+    hasAnyWallet,
+    identitiesLoaded,
+    walletsLoaded
+  } = useOutletContext<OutletContext>()
   const { hideBalance, toggleHide, refresh } = useHideBalance()
-  const { hasCoreLayer } = useWalletCapabilities()
+  const { hasCoreLayer, hasAddressLayer } = useWalletCapabilities()
   const { balance: coreBalance, loading: coreLoading, reload: reloadCore } = useCoreBalance(currentWallet, hasCoreLayer)
   const { totalCredits, totalTxCount, loading: platformLoading, reload: reloadPlatform } =
     useWalletPlatformData(availableIdentities, currentNetwork)
@@ -70,6 +78,12 @@ function HomeState (): React.JSX.Element {
   // Wallets are per network, so switching to an empty one leaves nothing to show.
   if (walletsLoaded && allWallets.every(wallet => wallet.network !== currentNetwork)) {
     return <NoWallets />
+  }
+
+  // A wallet with neither layer is keystore: its identities are the whole
+  // dashboard, so with none there is nothing to render but the way in.
+  if (!hasCoreLayer && !hasAddressLayer && identitiesLoaded && availableIdentities.length === 0) {
+    return <NoIdentities />
   }
 
   return (
