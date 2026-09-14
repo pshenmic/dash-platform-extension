@@ -101,4 +101,22 @@ describe('GetShieldedBalanceHandler', () => {
 
     await expect(handle()).rejects.toThrow('No wallet is chosen')
   })
+  it('reads the balance of a wallet holding more notes than one nullifier query allows', async () => {
+    // 110 own notes: the case that failed in production with
+    // "trying to check 110 nullifiers, maximum is 100".
+    const notes = Array.from({ length: 110 }, (_, i) => recoveredNote(i, 1n, ADDR_0))
+    sdk.shielded.recoverNotes.mockReturnValue(notes)
+    sdk.shielded.getShieldedNullifiers.mockImplementation(async (chunk: Uint8Array[]) => {
+      if (chunk.length > 100) {
+        throw new Error(`trying to check ${chunk.length} nullifiers, maximum is 100`)
+      }
+
+      return []
+    })
+
+    const result = await handle()
+
+    expect(result.balance).toBe('110')
+    expect(sdk.shielded.getShieldedNullifiers).toHaveBeenCalledTimes(2)
+  })
 })

@@ -3,7 +3,7 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { coreAddressToScript, decryptMnemonic, prepareShieldedSpend } from '../../../../utils'
-import { SHIELDED_SPEND_FEE_CREDITS, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING, MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../../../constants'
+import { WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING, MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../../../constants'
 import { WithdrawShieldedToCorePayload } from '../../../../types/messages/payloads/WithdrawShieldedToCorePayload'
 import { WithdrawShieldedToCoreResponse } from '../../../../types/messages/response/WithdrawShieldedToCoreResponse'
 
@@ -36,7 +36,7 @@ export class WithdrawShieldedToCoreHandler implements APIHandler {
     const outputScript = coreAddressToScript(payload.toCoreAddress, wallet.network)
     const seed = this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, payload.password))
 
-    const { spends, anchor, changeAddress, coinType } = await prepareShieldedSpend(this.sdk, seed, wallet.network, account, amountCredits + SHIELDED_SPEND_FEE_CREDITS)
+    const { spends, anchor, changeAddress, coinType } = await prepareShieldedSpend(this.sdk, seed, wallet.network, account, amountCredits, 'withdrawal')
 
     console.time('[shielded] withdrawal: build + prove')
     const stateTransition = await this.sdk.shielded.createStateTransition('shieldedWithdrawal', {
