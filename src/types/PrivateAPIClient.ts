@@ -16,6 +16,9 @@ import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddr
 import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
 import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
 import { GetShieldedBalanceResponse } from './messages/response/GetShieldedBalanceResponse'
+import { EstimateShieldedFeePayload } from './messages/payloads/EstimateShieldedFeePayload'
+import { EstimateShieldedFeeResponse } from './messages/response/EstimateShieldedFeeResponse'
+import { ShieldedSpendKind } from './ShieldedSpendKind'
 import { ShieldToPoolPayload } from './messages/payloads/ShieldToPoolPayload'
 import { ShieldToPoolResponse } from './messages/response/ShieldToPoolResponse'
 import { SendShieldedTransferPayload } from './messages/payloads/SendShieldedTransferPayload'
@@ -504,6 +507,15 @@ export class PrivateAPIClient {
     const payload: GetShieldedBalancePayload = { password, account }
 
     return await this._rpcCall(MessagingMethods.GET_SHIELDED_BALANCE, payload)
+  }
+
+  // Estimates a shielded spend's fee before sending it, and the largest amount one
+  // spend can send. Without an amount the fee and note count describe that
+  // largest spend.
+  async estimateShieldedFee (kind: ShieldedSpendKind, password: string, amountCredits?: string, account?: number, fromAddresses?: string[]): Promise<EstimateShieldedFeeResponse> {
+    const payload: EstimateShieldedFeePayload = { kind, password, amountCredits, account, fromAddresses }
+
+    return await this._rpcCall(MessagingMethods.ESTIMATE_SHIELDED_FEE, payload)
   }
 
   // Initializes the Halo2 shielded prover once so later spends reuse it.

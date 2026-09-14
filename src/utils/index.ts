@@ -4,8 +4,10 @@ import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedN
 import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
-import { CORE_ADDRESS_VERSIONS, PLATFORM_ADDRESS_COIN_TYPE, PLATFORM_ADDRESS_FEATURE, PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS, SHIELDED_MAX_SPEND_NOTES, SHIELDED_NOTES_PAGE_SIZE, SHIELDED_NULLIFIER_QUERY_LIMIT } from '../constants'
+import { CORE_ADDRESS_VERSIONS, PLATFORM_ADDRESS_COIN_TYPE, PLATFORM_ADDRESS_FEATURE, PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS, SHIELDED_NOTES_PAGE_SIZE, SHIELDED_NULLIFIER_QUERY_LIMIT } from '../constants'
+import { ShieldedSpendKind } from '../types/ShieldedSpendKind'
 import type { PlatformSourceCandidate } from './platformTransfer'
+import { selectShieldedNotes } from './shieldedFee'
 import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
 import { decrypt, PrivateKey } from 'eciesjs'
@@ -21,6 +23,8 @@ export { generateRandomHex } from './random'
 export { getTransactionExplorerUrl, getPlatformAddressExplorerUrl } from './explorerUrls'
 export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
 export type { PlatformSourceCandidate } from './platformTransfer'
+export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, maxShieldedSpend } from './shieldedFee'
+export type { ShieldedNoteSelection, ShieldedSpendEstimate } from './shieldedFee'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -504,42 +508,16 @@ export const filterRecoveredNotesByAddress = (notes: RecoveredNoteWASM[], fromAd
   return notes.filter(recoveredNote => wanted.has(recoveredNote.note.address.toBech32m(network)))
 }
 
-// Selects the fewest notes (largest first) whose combined value covers
-// `requiredCredits`. Minimizing the note count keeps the Orchard bundle — one
-// action per note — under Platform's state-transition size limit. Throws if the
-// notes cannot cover the amount, or if even the minimal set exceeds the action cap.
-const selectShieldedNotes = (spendable: RecoveredNoteWASM[], requiredCredits: bigint): RecoveredNoteWASM[] => {
-  const byValueDesc = [...spendable].sort((a, b) => (a.note.value < b.note.value ? 1 : -1))
-
-  const selected: RecoveredNoteWASM[] = []
-  let total = 0n
-  for (const note of byValueDesc) {
-    if (total >= requiredCredits) {
-      break
-    }
-    selected.push(note)
-    total += note.note.value
-  }
-
-  if (total < requiredCredits) {
-    throw new Error('Insufficient shielded balance for this amount plus fee')
-  }
-  if (selected.length > SHIELDED_MAX_SPEND_NOTES) {
-    throw new Error(`This spend requires ${selected.length} notes, over the ${SHIELDED_MAX_SPEND_NOTES}-note limit per shielded transaction — consolidate notes first`)
-  }
-
-  return selected
+export interface UnspentShieldedNotes {
+  // The whole synced note set: witnessing the selected notes needs it.
+  allNotes: ShieldedEncryptedNote[]
+  unspent: RecoveredNoteWASM[]
 }
 
-// Prepares the shared inputs for any shielded spend (transfer / unshield /
-// withdrawal): syncs the full note set, recovers the wallet's own notes, keeps
-// only the unspent ones, selects the minimal set covering `requiredCredits`
-// (amount + fee), witnesses just those against the commitment tree, and derives
-// the change address. The Halo2 builder is not touched here — proving happens
-// inside the createStateTransition call the handler makes with these inputs.
-// `fromAddresses` (optional) restricts the spend to notes on those source
-// shielded addresses; when omitted, the whole account's notes are eligible.
-export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, requiredCredits: bigint, fromAddresses?: string[]): Promise<ShieldedSpendInputs> => {
+// Syncs the full note set, recovers the wallet's own notes and keeps only the
+// unspent ones. `fromAddresses` (optional) restricts them to notes received on
+// those source shielded addresses; when omitted, the whole account's notes count.
+export const loadUnspentShieldedNotes = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, fromAddresses?: string[]): Promise<UnspentShieldedNotes> => {
   console.time('[shielded] sync notes')
   const allNotes = await fetchAllShieldedNotes(sdk)
   console.timeEnd('[shielded] sync notes')
@@ -574,8 +552,20 @@ export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Arra
     throw new Error('No unspent shielded notes on the selected source address(es)')
   }
 
-  const selected = selectShieldedNotes(scoped, requiredCredits)
-  console.log(`[shielded] selected ${selected.length}/${scoped.length} notes; witnessing against the tree…`)
+  return { allNotes, unspent: scoped }
+}
+
+// Prepares the shared inputs for any shielded spend (transfer / unshield /
+// withdrawal): loads the unspent notes, selects the minimal set covering
+// `amountCredits` plus the fee `kind` is charged for spending them, witnesses just
+// those against the commitment tree, and derives the change address. The Halo2
+// builder is not touched here — proving happens inside the createStateTransition
+// call the handler makes with these inputs.
+export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, amountCredits: bigint, kind: ShieldedSpendKind, fromAddresses?: string[]): Promise<ShieldedSpendInputs> => {
+  const { allNotes, unspent } = await loadUnspentShieldedNotes(sdk, seed, network, account, fromAddresses)
+
+  const { notes: selected } = selectShieldedNotes(unspent, amountCredits, kind)
+  console.log(`[shielded] selected ${selected.length}/${unspent.length} notes; witnessing against the tree…`)
 
   console.time('[shielded] build spendable notes')
   const { spends, anchor } = sdk.shielded.buildSpendableNotes(allNotes, selected)
