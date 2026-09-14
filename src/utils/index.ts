@@ -4,15 +4,10 @@ import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedN
 import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
-import {
-  CORE_ADDRESS_VERSIONS,
-  PLATFORM_ADDRESS_COIN_TYPE,
-  PLATFORM_ADDRESS_FEATURE,
-  PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS,
-  SHIELDED_MAX_SPEND_NOTES,
-  SHIELDED_NOTES_PAGE_SIZE
-} from '../constants'
+import { CORE_ADDRESS_VERSIONS, PLATFORM_ADDRESS_COIN_TYPE, PLATFORM_ADDRESS_FEATURE, PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS, SHIELDED_NOTES_PAGE_SIZE, SHIELDED_NULLIFIER_QUERY_LIMIT } from '../constants'
+import { ShieldedSpendKind } from '../types/ShieldedSpendKind'
 import type { PlatformSourceCandidate } from './platformTransfer'
+import { selectShieldedNotes } from './shieldedFee'
 import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
 import { decrypt, PrivateKey } from 'eciesjs'
@@ -28,6 +23,8 @@ export { generateRandomHex } from './random'
 export { getTransactionExplorerUrl, getPlatformAddressExplorerUrl } from './explorerUrls'
 export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
 export type { PlatformSourceCandidate } from './platformTransfer'
+export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, maxShieldedSpend } from './shieldedFee'
+export type { ShieldedNoteSelection, ShieldedSpendEstimate } from './shieldedFee'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -399,6 +396,24 @@ export const fetchAllShieldedNotes = async (sdk: DashPlatformSDK): Promise<Shiel
   return notes
 }
 
+// Spent status for any number of nullifiers. Platform caps a single
+// getShieldedNullifiers query at SHIELDED_NULLIFIER_QUERY_LIMIT and rejects the
+// whole request past it, so a wallet holding more notes than that could neither
+// read its balance nor spend. Queries in consecutive chunks, each with its own
+// verified proof. Results are matched by nullifier bytes downstream, never by
+// position, so concatenating the chunks is safe.
+export const getShieldedNullifierStatuses = async (sdk: DashPlatformSDK, nullifiers: Uint8Array[]): Promise<Array<{ nullifier: Uint8Array, isSpent: boolean }>> => {
+  const statuses: Array<{ nullifier: Uint8Array, isSpent: boolean }> = []
+
+  for (let offset = 0; offset < nullifiers.length; offset += SHIELDED_NULLIFIER_QUERY_LIMIT) {
+    const chunk = nullifiers.slice(offset, offset + SHIELDED_NULLIFIER_QUERY_LIMIT)
+
+    statuses.push(...await sdk.shielded.getShieldedNullifiers(chunk))
+  }
+
+  return statuses
+}
+
 // The nullifier of a recovered note as derived from the wallet's viewing key —
 // the value to check against getShieldedNullifiers to tell whether THIS note has
 // been spent.
@@ -493,42 +508,16 @@ export const filterRecoveredNotesByAddress = (notes: RecoveredNoteWASM[], fromAd
   return notes.filter(recoveredNote => wanted.has(recoveredNote.note.address.toBech32m(network)))
 }
 
-// Selects the fewest notes (largest first) whose combined value covers
-// `requiredCredits`. Minimizing the note count keeps the Orchard bundle — one
-// action per note — under Platform's state-transition size limit. Throws if the
-// notes cannot cover the amount, or if even the minimal set exceeds the action cap.
-const selectShieldedNotes = (spendable: RecoveredNoteWASM[], requiredCredits: bigint): RecoveredNoteWASM[] => {
-  const byValueDesc = [...spendable].sort((a, b) => (a.note.value < b.note.value ? 1 : -1))
-
-  const selected: RecoveredNoteWASM[] = []
-  let total = 0n
-  for (const note of byValueDesc) {
-    if (total >= requiredCredits) {
-      break
-    }
-    selected.push(note)
-    total += note.note.value
-  }
-
-  if (total < requiredCredits) {
-    throw new Error('Insufficient shielded balance for this amount plus fee')
-  }
-  if (selected.length > SHIELDED_MAX_SPEND_NOTES) {
-    throw new Error(`This spend requires ${selected.length} notes, over the ${SHIELDED_MAX_SPEND_NOTES}-note limit per shielded transaction — consolidate notes first`)
-  }
-
-  return selected
+export interface UnspentShieldedNotes {
+  // The whole synced note set: witnessing the selected notes needs it.
+  allNotes: ShieldedEncryptedNote[]
+  unspent: RecoveredNoteWASM[]
 }
 
-// Prepares the shared inputs for any shielded spend (transfer / unshield /
-// withdrawal): syncs the full note set, recovers the wallet's own notes, keeps
-// only the unspent ones, selects the minimal set covering `requiredCredits`
-// (amount + fee), witnesses just those against the commitment tree, and derives
-// the change address. The Halo2 builder is not touched here — proving happens
-// inside the createStateTransition call the handler makes with these inputs.
-// `fromAddresses` (optional) restricts the spend to notes on those source
-// shielded addresses; when omitted, the whole account's notes are eligible.
-export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, requiredCredits: bigint, fromAddresses?: string[]): Promise<ShieldedSpendInputs> => {
+// Syncs the full note set, recovers the wallet's own notes and keeps only the
+// unspent ones. `fromAddresses` (optional) restricts them to notes received on
+// those source shielded addresses; when omitted, the whole account's notes count.
+export const loadUnspentShieldedNotes = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, fromAddresses?: string[]): Promise<UnspentShieldedNotes> => {
   console.time('[shielded] sync notes')
   const allNotes = await fetchAllShieldedNotes(sdk)
   console.timeEnd('[shielded] sync notes')
@@ -545,7 +534,7 @@ export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Arra
   // nullifier (recoveredNoteNullifier), not the action leaf's, so a note we
   // already spent is excluded instead of being reselected and rejected on-chain.
   const nullifiers = recovered.map(recoveredNoteNullifier)
-  const statuses = nullifiers.length > 0 ? await sdk.shielded.getShieldedNullifiers(nullifiers) : []
+  const statuses = await getShieldedNullifierStatuses(sdk, nullifiers)
   const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
 
   const unspent = recovered.filter(recoveredNote => !spent.has(bytesToHex(recoveredNoteNullifier(recoveredNote))))
@@ -563,8 +552,20 @@ export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Arra
     throw new Error('No unspent shielded notes on the selected source address(es)')
   }
 
-  const selected = selectShieldedNotes(scoped, requiredCredits)
-  console.log(`[shielded] selected ${selected.length}/${scoped.length} notes; witnessing against the tree…`)
+  return { allNotes, unspent: scoped }
+}
+
+// Prepares the shared inputs for any shielded spend (transfer / unshield /
+// withdrawal): loads the unspent notes, selects the minimal set covering
+// `amountCredits` plus the fee `kind` is charged for spending them, witnesses just
+// those against the commitment tree, and derives the change address. The Halo2
+// builder is not touched here — proving happens inside the createStateTransition
+// call the handler makes with these inputs.
+export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, amountCredits: bigint, kind: ShieldedSpendKind, fromAddresses?: string[]): Promise<ShieldedSpendInputs> => {
+  const { allNotes, unspent } = await loadUnspentShieldedNotes(sdk, seed, network, account, fromAddresses)
+
+  const { notes: selected } = selectShieldedNotes(unspent, amountCredits, kind)
+  console.log(`[shielded] selected ${selected.length}/${unspent.length} notes; witnessing against the tree…`)
 
   console.time('[shielded] build spendable notes')
   const { spends, anchor } = sdk.shielded.buildSpendableNotes(allNotes, selected)
