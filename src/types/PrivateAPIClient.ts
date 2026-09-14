@@ -449,8 +449,8 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SEND_PLATFORM_TRANSFER, payload)
   }
 
-  async identityCreditTransferToAddresses (toAddress: string, amountCredits: string, password: string): Promise<IdentityCreditTransferToAddressesResponse> {
-    const payload: IdentityCreditTransferToAddressesPayload = { toAddress, amountCredits, password }
+  async identityCreditTransferToAddresses (toAddress: string, amountCredits: string, password: string, fromIdentity?: string): Promise<IdentityCreditTransferToAddressesResponse> {
+    const payload: IdentityCreditTransferToAddressesPayload = { toAddress, amountCredits, password, fromIdentity }
 
     return await this._rpcCall(MessagingMethods.IDENTITY_CREDIT_TRANSFER_TO_ADDRESSES, payload)
   }
