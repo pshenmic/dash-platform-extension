@@ -19,6 +19,10 @@ export interface OutletContext {
   setCurrentIdentity: (identity: string | null) => void
   allWallets: WalletAccountInfo[]
   hasAnyWallet: boolean
+  /** False until the first wallet list arrives. */
+  walletsLoaded: boolean
+  /** False until the current wallet's identities arrive. */
+  identitiesLoaded: boolean
   availableIdentities: Identity[]
   createWallet: (walletType: WalletType, mnemonic?: string) => Promise<{ walletId: string }>
   headerComponent: React.ReactNode

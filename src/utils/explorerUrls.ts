@@ -1,5 +1,5 @@
 import { NetworkType } from '../types'
-import { PLATFORM_EXPLORER_URLS } from '../constants'
+import { CORE_EXPLORER_URLS, PLATFORM_EXPLORER_URLS } from '../constants'
 
 const getExplorerUrl = (network: NetworkType = 'testnet'): string => {
   return PLATFORM_EXPLORER_URLS[network].explorer
@@ -13,4 +13,61 @@ export const getTransactionExplorerUrl = (transactionHash: string, network: Netw
 // Explorer page link for a platform address.
 export const getPlatformAddressExplorerUrl = (address: string, network: NetworkType = 'testnet'): string => {
   return `${getExplorerUrl(network)}/platformAddress/${address}`
+}
+
+// Explorer page link for an identity.
+export const getIdentityExplorerUrl = (identifier: string, network: NetworkType = 'testnet'): string => {
+  return `${getExplorerUrl(network)}/identity/${identifier}`
+}
+
+interface IdentityTransactionsQuery {
+  limit?: number
+  page?: number
+  order?: 'desc' | 'asc'
+}
+
+// Explorer API endpoint for an identity transaction page.
+export const buildIdentityTransactionsUrl = (
+  apiUrl: string,
+  identityId: string,
+  { limit, page, order = 'desc' }: IdentityTransactionsQuery = {}
+): string => {
+  const params = new URLSearchParams({ order })
+  if (limit != null) params.set('limit', String(limit))
+  if (page != null) params.set('page', String(page))
+
+  return `${apiUrl}/identity/${identityId}/transactions?${params.toString()}`
+}
+
+const getCoreExplorerUrl = (network: NetworkType = 'testnet'): string => {
+  return CORE_EXPLORER_URLS[network].explorer
+}
+
+// dashscan page link for a Core (L1) transaction.
+export const getCoreTransactionExplorerUrl = (transactionHash: string, network: NetworkType = 'testnet'): string => {
+  return `${getCoreExplorerUrl(network)}/transactions/${transactionHash}`
+}
+
+// dashscan page link for a Core (L1) address.
+export const getCoreAddressExplorerUrl = (address: string, network: NetworkType = 'testnet'): string => {
+  return `${getCoreExplorerUrl(network)}/address/${address}`
+}
+
+interface CoreAddressTransactionsQuery {
+  limit?: number
+  page?: number
+  order?: 'desc' | 'asc'
+}
+
+// dashscan API endpoint for one page of an address' transactions.
+export const buildCoreAddressTransactionsUrl = (
+  apiUrl: string,
+  address: string,
+  { limit, page, order = 'desc' }: CoreAddressTransactionsQuery = {}
+): string => {
+  const params = new URLSearchParams({ order })
+  if (limit != null) params.set('limit', String(limit))
+  if (page != null) params.set('page', String(page))
+
+  return `${apiUrl}/address/${address}/transactions?${params.toString()}`
 }

@@ -128,6 +128,25 @@ export function parseCreditsAmount (amount: string): bigint | null {
 }
 
 /**
+ * Parse a credits value coming from an API into a bigint.
+ * Balances arrive as strings, so a malformed or empty one would otherwise throw
+ * from a bare BigInt() in the middle of a render. Returns null instead.
+ */
+export function toCreditsBigInt (value: string | number | bigint | null | undefined): bigint | null {
+  if (value == null) return null
+  if (typeof value === 'bigint') return value
+
+  const raw = String(value).trim()
+  if (raw === '') return null
+
+  // Integer credits are the contract; tolerate a decimal tail by truncating it.
+  const match = /^(-?\d+)(?:\.\d+)?$/.exec(raw)
+  if (match == null) return null
+
+  return BigInt(match[1])
+}
+
+/**
  * Multiply a bigint by a percentage (0-1 range)
  * @param value - The bigint value to multiply
  * @param percentage - The percentage as a decimal (0.5 for 50%, 1 for 100%)

@@ -2,13 +2,11 @@ import React, { useState } from 'react'
 import { OverlayMenu } from '../common'
 import { MainSettingsScreen } from './screens/MainSettingsScreen'
 import { WalletSettingsScreen } from './screens/WalletSettingsScreen'
-import { PreferencesScreen } from './screens/PreferencesScreen'
 import { ConnectedWebsitesScreen } from './screens/ConnectedWebsitesScreen'
 import { AddressesScreen } from './screens/AddressesScreen'
 import { PrivateKeysScreen } from './screens/PrivateKeysScreen'
 import { ImportPrivateKeysScreen } from './screens/ImportPrivateKeysScreen'
 import { CreateKeyScreen } from './screens/CreateKeyScreen'
-import { SecuritySettingsScreen } from './screens/SecuritySettingsScreen'
 import { HelpSupportScreen } from './screens/HelpSupportScreen'
 import { AboutScreen } from './screens/AboutScreen'
 import { MenuSection } from './MenuSection'
@@ -17,17 +15,15 @@ import type { MenuSection as MenuSectionType, SettingsScreenProps } from './type
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { NetworkType } from '../../../types'
 
-type ScreenType = 'main' | 'current-wallet' | 'preferences' | 'connected-websites' | 'platform-addresses' | 'private-keys' | 'import-private-keys-settings' | 'create-key-settings' | 'security-privacy' | 'help-support' | 'about-dash'
+type ScreenType = 'main' | 'current-wallet' | 'connected-websites' | 'platform-addresses' | 'private-keys' | 'import-private-keys-settings' | 'create-key-settings' | 'help-support' | 'about-dash'
 
 const SCREEN_COMPONENTS: Record<string, React.ComponentType<SettingsScreenProps>> = {
   'current-wallet': WalletSettingsScreen,
-  preferences: PreferencesScreen,
   'connected-websites': ConnectedWebsitesScreen,
   'platform-addresses': AddressesScreen,
   'private-keys': PrivateKeysScreen,
   'import-private-keys-settings': ImportPrivateKeysScreen,
   'create-key-settings': CreateKeyScreen,
-  'security-privacy': SecuritySettingsScreen,
   'help-support': HelpSupportScreen,
   'about-dash': AboutScreen
 }
@@ -38,6 +34,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }>
   onClose,
   currentIdentity,
   currentNetwork,
+  setCurrentNetwork,
   currentWallet,
   onItemSelect
 }) => {
@@ -54,6 +51,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }>
         onClose={onClose}
         currentIdentity={currentIdentity}
         currentNetwork={currentNetwork}
+        setCurrentNetwork={setCurrentNetwork}
         currentWallet={currentWallet}
         onItemSelect={onItemSelect ?? (() => {})}
       />
@@ -68,6 +66,7 @@ const ScreenRenderer: React.FC<SettingsScreenProps & { screenType: ScreenType }>
         onClose={onClose}
         currentIdentity={currentIdentity}
         currentNetwork={currentNetwork}
+        setCurrentNetwork={setCurrentNetwork}
         currentWallet={currentWallet}
         onItemSelect={onItemSelect}
       />
@@ -94,10 +93,11 @@ interface SettingsMenuProps {
   onClose: () => void
   currentIdentity?: string | null
   currentNetwork?: NetworkType | null
+  setCurrentNetwork?: (network: NetworkType) => Promise<void>
   currentWallet?: WalletAccountInfo | null
 }
 
-export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, currentIdentity, currentNetwork, currentWallet }) => {
+export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, currentIdentity, currentNetwork, setCurrentNetwork, currentWallet }) => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('main')
   const [screenHistory, setScreenHistory] = useState<ScreenType[]>(['main'])
 
@@ -162,6 +162,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose, cur
         onClose={handleClose}
         currentIdentity={currentIdentity}
         currentNetwork={currentNetwork}
+        setCurrentNetwork={setCurrentNetwork}
         currentWallet={currentWallet}
         onItemSelect={navigateToScreen}
       />
