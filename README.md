@@ -24,12 +24,17 @@ interface for developers to integrate their application and create transactions.
 
 ## Versioning
 
-### 1.4.x (WIP)
+### 1.5.x (WIP)
+- Dash Core chain support
+- New Dashboards (per wallet, per core, per platform)
+- Major UX rehaul
+
+### 1.4.x (Current)
 - Platform Addresses support
 - Shielded Transfers support
 - Dash Core support
 
-### 1.3.x (Current)
+### 1.3.x
 - Identities Registration
 - Withdrawals to Dash Core
 
