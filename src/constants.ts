@@ -85,9 +85,22 @@ export const SHIELDED_NULLIFIER_QUERY_LIMIT = 100
 // Max notes per spend: proof size grows per input note and the state transition
 // must stay under Platform's ~20KB limit (observed to fail around 9 actions).
 export const SHIELDED_MAX_SPEND_NOTES = 5
-// Fee headroom added when selecting notes, so they cover amount + fee (change
-// absorbs the rest). Estimate — Platform computes the real fee on-chain.
+// Flat fee shown by the send UI. Spends no longer use it: they reserve the exact
+// fee from computeShieldedSpendFee.
 export const SHIELDED_SPEND_FEE_CREDITS = 15_000_000n
+// Platform's shielded fee constants (rs-platform-version event constants and
+// storage fee v1). A pool-paid spend is charged exactly
+// proof fee + actions × (processing fee + storage bytes × per-byte rate), plus a
+// flat storage component for the address an unshield credits and the document a
+// withdrawal inserts.
+export const SHIELDED_PROOF_VERIFICATION_FEE_CREDITS = 100_000_000n
+export const SHIELDED_PER_ACTION_PROCESSING_FEE_CREDITS = 22_000_000n
+export const SHIELDED_STORAGE_BYTES_PER_ACTION = 344n
+export const SHIELDED_STORAGE_CREDITS_PER_BYTE = 27_400n
+export const SHIELDED_UNSHIELD_ADDRESS_STORAGE_BYTES = 222n
+export const SHIELDED_WITHDRAWAL_DOCUMENT_STORAGE_BYTES = 4100n
+// Orchard pads every bundle to at least this many actions.
+export const SHIELDED_MIN_ACTIONS = 2
 // Sentinel recipient for `shieldToPool` (which derives the destination from the
 // seed and takes no recipient) — carries "own pool" from send form to confirm.
 export const SHIELDED_POOL_RECIPIENT = 'shielded-pool'
