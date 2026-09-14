@@ -4,14 +4,7 @@ import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedN
 import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
-import {
-  CORE_ADDRESS_VERSIONS,
-  PLATFORM_ADDRESS_COIN_TYPE,
-  PLATFORM_ADDRESS_FEATURE,
-  PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS,
-  SHIELDED_MAX_SPEND_NOTES,
-  SHIELDED_NOTES_PAGE_SIZE
-} from '../constants'
+import { CORE_ADDRESS_VERSIONS, PLATFORM_ADDRESS_COIN_TYPE, PLATFORM_ADDRESS_FEATURE, PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS, SHIELDED_MAX_SPEND_NOTES, SHIELDED_NOTES_PAGE_SIZE, SHIELDED_NULLIFIER_QUERY_LIMIT } from '../constants'
 import type { PlatformSourceCandidate } from './platformTransfer'
 import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
@@ -399,6 +392,24 @@ export const fetchAllShieldedNotes = async (sdk: DashPlatformSDK): Promise<Shiel
   return notes
 }
 
+// Spent status for any number of nullifiers. Platform caps a single
+// getShieldedNullifiers query at SHIELDED_NULLIFIER_QUERY_LIMIT and rejects the
+// whole request past it, so a wallet holding more notes than that could neither
+// read its balance nor spend. Queries in consecutive chunks, each with its own
+// verified proof. Results are matched by nullifier bytes downstream, never by
+// position, so concatenating the chunks is safe.
+export const getShieldedNullifierStatuses = async (sdk: DashPlatformSDK, nullifiers: Uint8Array[]): Promise<Array<{ nullifier: Uint8Array, isSpent: boolean }>> => {
+  const statuses: Array<{ nullifier: Uint8Array, isSpent: boolean }> = []
+
+  for (let offset = 0; offset < nullifiers.length; offset += SHIELDED_NULLIFIER_QUERY_LIMIT) {
+    const chunk = nullifiers.slice(offset, offset + SHIELDED_NULLIFIER_QUERY_LIMIT)
+
+    statuses.push(...await sdk.shielded.getShieldedNullifiers(chunk))
+  }
+
+  return statuses
+}
+
 // The nullifier of a recovered note as derived from the wallet's viewing key —
 // the value to check against getShieldedNullifiers to tell whether THIS note has
 // been spent.
@@ -545,7 +556,7 @@ export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Arra
   // nullifier (recoveredNoteNullifier), not the action leaf's, so a note we
   // already spent is excluded instead of being reselected and rejected on-chain.
   const nullifiers = recovered.map(recoveredNoteNullifier)
-  const statuses = nullifiers.length > 0 ? await sdk.shielded.getShieldedNullifiers(nullifiers) : []
+  const statuses = await getShieldedNullifierStatuses(sdk, nullifiers)
   const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
 
   const unspent = recovered.filter(recoveredNote => !spent.has(bytesToHex(recoveredNoteNullifier(recoveredNote))))

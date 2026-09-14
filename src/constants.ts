@@ -79,6 +79,9 @@ export const SHIELDED_ADDRESS_DEFAULT_COUNT = 5
 export const SHIELDED_ADDRESS_GENERATE_BATCH = 10
 // Page size when paging the note set; mirrors the SDK's gRPC query limit.
 export const SHIELDED_NOTES_PAGE_SIZE = 8192
+// Most nullifiers Platform checks in one getShieldedNullifiers query; it rejects
+// a larger batch with "trying to check N nullifiers, maximum is 100".
+export const SHIELDED_NULLIFIER_QUERY_LIMIT = 100
 // Max notes per spend: proof size grows per input note and the state transition
 // must stay under Platform's ~20KB limit (observed to fail around 9 actions).
 export const SHIELDED_MAX_SPEND_NOTES = 5

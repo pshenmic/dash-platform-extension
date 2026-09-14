@@ -2,7 +2,7 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { decryptMnemonic, deriveShieldedAddresses, fetchAllShieldedNotes, recoveredNoteNullifier, sumUnspentShieldedValue } from '../../../../utils'
+import { decryptMnemonic, deriveShieldedAddresses, fetchAllShieldedNotes, getShieldedNullifierStatuses, recoveredNoteNullifier, sumUnspentShieldedValue } from '../../../../utils'
 import { SHIELDED_ADDRESS_DEFAULT_COUNT } from '../../../../constants'
 import { GetShieldedBalancePayload } from '../../../../types/messages/payloads/GetShieldedBalancePayload'
 import { GetShieldedBalanceResponse } from '../../../../types/messages/response/GetShieldedBalanceResponse'
@@ -41,9 +41,7 @@ export class GetShieldedBalanceHandler implements APIHandler {
 
     const nullifiers = recovered.map(recoveredNoteNullifier)
 
-    const statuses = nullifiers.length > 0
-      ? await this.sdk.shielded.getShieldedNullifiers(nullifiers)
-      : []
+    const statuses = await getShieldedNullifierStatuses(this.sdk, nullifiers)
 
     // Map our known diversified addresses to their derivation index so the
     // per-address breakdown can label them; notes to an address outside this
