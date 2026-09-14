@@ -51,7 +51,9 @@ export class InitAccountXpubsHandler implements APIHandler {
     for (const network of [Network.mainnet, Network.testnet]) {
       for (const walletId of walletIds) {
         const scoped = this.walletRepository.forScope({ network: network as NetworkType, walletId })
-        const wallet = await scoped.getCurrent()
+        // getById, not getCurrent: getCurrent throws when the record is missing,
+        // and a wallet absent on this network is expected here.
+        const wallet = await scoped.getById(walletId)
 
         // Absent on this network, or a keystore wallet with no seed to derive from.
         if (wallet == null || wallet.type !== 'seedphrase') {

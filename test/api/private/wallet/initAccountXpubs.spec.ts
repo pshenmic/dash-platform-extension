@@ -35,16 +35,21 @@ describe('InitAccountXpubsHandler', () => {
     await handler.handle({ context: 'dash-platform-extension', id: 'id', method: 'INIT_ACCOUNT_XPUBS', type: 'request', payload: { password } } as any)
 
   // A repository pinned to one (network, wallet) pair, backed by `records`.
+  // Mirrors the real repository: getCurrent throws for a missing record, getById
+  // returns null.
   const scopedFor = (scope: { network: string, walletId: string }): any => ({
     getCurrent: jest.fn(async () => {
-      const record = records.get(key(scope.network, scope.walletId))
+      throw new Error(`Could not find wallet by id ${scope.walletId}`)
+    }),
+    getById: jest.fn(async (walletId: string) => {
+      const record = records.get(key(scope.network, walletId))
 
       if (record == null) {
         return null
       }
 
       return {
-        walletId: scope.walletId,
+        walletId,
         network: scope.network,
         type: record.type ?? WalletType.seedphrase,
         encryptedMnemonic: 'encryptedMnemonic'
