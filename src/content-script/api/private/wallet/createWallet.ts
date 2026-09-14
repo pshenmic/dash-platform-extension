@@ -61,7 +61,20 @@ export class CreateWalletHandler implements APIHandler {
     const seed = this.sdk.keyPair.mnemonicToSeed(mnemonic)
     const platformXpub = await this.sdk.keyPair.derivePlatformAccountXpub(seed, network, 0)
 
-    const wallet = await this.walletRepository.create(WalletType.seedphrase, mnemonic, platformXpub)
+    // Same for the BIP44 Core account xpub, so L1 addresses can be listed
+    // without a password too. Both are handed to `create`, which writes them
+    // with the wallet it is creating — `currentWalletId` still points at the
+    // previously selected wallet at this point, so the repository's "current
+    // wallet" setters would target the wrong record.
+    const coreAccountKey = await this.sdk.keyPair.derivePath(
+      this.sdk.keyPair.seedToHdKey(seed, network),
+      `m/44'/${network === 'mainnet' ? 5 : 1}'/0'`
+    )
+
+    const wallet = await this.walletRepository.create(WalletType.seedphrase, mnemonic, {
+      platform: platformXpub,
+      core: coreAccountKey.publicExtendedKey
+    })
 
     return { walletId: wallet.walletId }
   }

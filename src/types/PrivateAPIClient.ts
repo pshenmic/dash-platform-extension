@@ -2,6 +2,10 @@ import { ext } from '../platform'
 import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT, BLOCKCHAIN_MESSAGING_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
+import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
+import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
+import { InitAccountXpubsPayload } from './messages/payloads/InitAccountXpubsPayload'
+import { InitAccountXpubsResponse } from './messages/response/InitAccountXpubsResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -118,6 +122,14 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.CHECK_PASSWORD, payload)
+  }
+
+  // Caches the Platform and Core account xpubs so later reads need no password.
+  // Idempotent: call it right after a successful unlock, every time.
+  async initAccountXpubs (password: string): Promise<InitAccountXpubsResponse> {
+    const payload: InitAccountXpubsPayload = { password }
+
+    return await this._rpcCall(MessagingMethods.INIT_ACCOUNT_XPUBS, payload)
   }
 
   async createWallet (walletType: WalletType, mnemonic?: string): Promise<CreateWalletResponse> {
@@ -417,6 +429,30 @@ export class PrivateAPIClient {
     const payload: SetSettingsPayload = { hideBalance }
 
     await this._rpcCall(MessagingMethods.SET_SETTINGS, payload)
+  }
+
+  // The address to receive on. Reading it does not consume it: the same address
+  // comes back until something is paid to it.
+  async getCoreReceiveAddress (): Promise<GetCoreAddressesResponse['addresses'][number]> {
+    const payload: EmptyPayload = {}
+
+    const response: GetCoreAddressesResponse = await this._rpcCall(MessagingMethods.GET_CORE_RECEIVE_ADDRESS, payload)
+
+    return response.addresses[0]
+  }
+
+  async listCoreAddresses (): Promise<GetCoreAddressesResponse['addresses']> {
+    const payload: EmptyPayload = {}
+
+    const response: GetCoreAddressesResponse = await this._rpcCall(MessagingMethods.LIST_CORE_ADDRESSES, payload)
+
+    return response.addresses
+  }
+
+  async getCoreBalance (): Promise<GetCoreBalanceResponse> {
+    const payload: EmptyPayload = {}
+
+    return await this._rpcCall(MessagingMethods.GET_CORE_BALANCE, payload)
   }
 
   async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {

@@ -60,6 +60,14 @@ export const CORE_ADDRESS_VERSIONS = {
   testnet: { pubKeyHash: 0x8c, scriptHash: 0x13 },
   mainnet: { pubKeyHash: 0x4c, scriptHash: 0x10 }
 }
+// BIP32 serialization version bytes for Core extended keys (xprv/xpub on
+// mainnet, tprv/tpub on testnet — Dash reuses the Bitcoin values). Needed to
+// parse a stored account xpub: @scure/bip32 defaults to the mainnet pair and
+// rejects a tpub with "Version mismatch".
+export const CORE_BIP32_VERSIONS = {
+  testnet: { private: 0x04358394, public: 0x043587cf },
+  mainnet: { private: 0x0488ade4, public: 0x0488b21e }
+}
 // Defaults for the L1 tx a withdrawal produces. Pooling must be 'Never' (0) —
 // the platform hasn't implemented the other pooling mechanisms yet.
 export const WITHDRAWAL_CORE_FEE_PER_BYTE = 1
