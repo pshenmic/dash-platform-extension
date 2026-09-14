@@ -2,6 +2,7 @@ import { coreTransactionEffect } from '../../../utils'
 import { fromBaseUnit } from '../../../utils/bigintUtils'
 import { type CoreTransactionData } from '../../../types'
 import { type TransactionRowItem } from './TransactionRow'
+import { coreStatusKey } from './transactionStatus'
 
 const TITLES: Record<string, string> = {
   in: 'Receive',
@@ -40,6 +41,7 @@ export function toCoreTransactionRowItem (
     unit: 'Dash',
     layer: 'core',
     direction,
+    status: coreStatusKey(transaction),
     hash,
     timestamp: transaction.timestamp
   }

@@ -1,14 +1,16 @@
 import React from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { Navigate, useOutletContext } from 'react-router-dom'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { getCoreTransactionExplorerUrl, getTransactionExplorerUrl } from '../../../utils'
-import { useCoreBalance, useCoreTransactions, useDashRate, useHideBalance, useWalletPlatformData } from '../../hooks'
+import { useCoreBalance, useCoreTransactions, useDashRate, useHideBalance, useWalletCapabilities, useWalletPlatformData } from '../../hooks'
 import type { TransactionRowItem } from '../../components/transactions'
 import type { NetworkType } from '../../../types'
-import type { OutletContext } from '../../types/OutletContext'
+import type { OutletContext } from '../../types'
 import { ActionRow } from './ActionRow'
 import { LastTransaction } from './LastTransaction'
 import { LayerCards } from './LayerCards'
+import { NoIdentities } from './NoIdentities'
+import { NoWallets } from './NoWallets'
 import { Statistics } from './Statistics'
 import { TotalBalance } from './TotalBalance'
 import { newerTransaction } from '../transactions/types'
@@ -31,18 +33,27 @@ const explorerUrlFor = (
  * Wallet dashboard (Figma 10681:2603). Route: `#/home`.
  */
 function HomeState (): React.JSX.Element {
-  const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
+  const {
+    allWallets,
+    availableIdentities,
+    currentNetwork,
+    currentWallet,
+    hasAnyWallet,
+    identitiesLoaded,
+    walletsLoaded
+  } = useOutletContext<OutletContext>()
   const { hideBalance, toggleHide, refresh } = useHideBalance()
-  const { balance: coreBalance, loading: coreLoading, reload: reloadCore } = useCoreBalance(currentWallet)
+  const { hasCoreLayer, hasAddressLayer } = useWalletCapabilities()
+  const { balance: coreBalance, loading: coreLoading, reload: reloadCore } = useCoreBalance(currentWallet, hasCoreLayer)
   const { totalCredits, totalTxCount, loading: platformLoading, reload: reloadPlatform } =
     useWalletPlatformData(availableIdentities, currentNetwork)
   const { transaction: lastPlatformTransaction, loading: lastPlatformLoading } =
     useLastPlatformTransaction(availableIdentities, currentNetwork)
   const { transactions: lastCoreTransactions, loading: lastCoreLoading } =
-    useCoreTransactions(1, currentNetwork, currentWallet)
+    useCoreTransactions(1, currentNetwork, currentWallet, hasCoreLayer)
   const rate = useDashRate(currentNetwork)
 
-  const coreDuffs = coreBalance != null ? BigInt(coreBalance.balance) : null
+  const coreDuffs = hasCoreLayer && coreBalance != null ? BigInt(coreBalance.balance) : null
   const platformDuffs = platformLoading ? null : creditsToDuffs(totalCredits)
   const balancesLoading = coreLoading || platformLoading
   // The total stays a spinner until both layers are done, then sums whatever answered.
@@ -57,6 +68,22 @@ function HomeState (): React.JSX.Element {
     refresh()
     reloadCore()
     reloadPlatform()
+  }
+
+  // A fresh install has nowhere to go but onboarding.
+  if (walletsLoaded && !hasAnyWallet) {
+    return <Navigate to='/welcome' replace />
+  }
+
+  // Wallets are per network, so switching to an empty one leaves nothing to show.
+  if (walletsLoaded && allWallets.every(wallet => wallet.network !== currentNetwork)) {
+    return <NoWallets />
+  }
+
+  // A wallet with neither layer is keystore: its identities are the whole
+  // dashboard, so with none there is nothing to render but the way in.
+  if (!hasCoreLayer && !hasAddressLayer && identitiesLoaded && availableIdentities.length === 0) {
+    return <NoIdentities />
   }
 
   return (
@@ -76,6 +103,7 @@ function HomeState (): React.JSX.Element {
         coreLoading={coreLoading}
         platformLoading={platformLoading}
         rate={rate}
+        coreDisabled={!hasCoreLayer}
       />
       <ActionRow />
       <Statistics
@@ -84,6 +112,7 @@ function HomeState (): React.JSX.Element {
         platformTxCount={platformLoading ? null : totalTxCount}
         coreLoading={coreLoading}
         platformLoading={platformLoading}
+        showCore={hasCoreLayer}
       />
       <LastTransaction
         loading={lastTransactionLoading}

@@ -32,10 +32,11 @@ const timestampValue = (transaction: CoreTransactionData): number => {
 export function useCoreTransactions (
   limit: number,
   network?: NetworkType | null,
-  walletId?: string | null
+  walletId?: string | null,
+  enabled: boolean = true
 ): UseCoreTransactionsResult {
   const coreClient = useCoreExplorerClient()
-  const { addresses, loading: addressesLoading, error: addressesError } = useCoreAddresses(walletId)
+  const { addresses, loading: addressesLoading, error: addressesError } = useCoreAddresses(walletId, enabled)
   const [transactions, setTransactions] = useState<TransactionRowItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

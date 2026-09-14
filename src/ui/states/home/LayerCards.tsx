@@ -18,6 +18,9 @@ interface LayerCardProps {
   imageClassName: string
   contentClassName: string
   onClick: () => void
+  // Layers this wallet does not have: greyed out and inert, so the card still
+  // shows the layer exists without pretending it has a balance.
+  disabled?: boolean
 }
 
 function LayerCard ({
@@ -31,21 +34,28 @@ function LayerCard ({
   toneClassName,
   imageClassName,
   contentClassName,
-  onClick
+  onClick,
+  disabled = false
 }: LayerCardProps): React.JSX.Element {
   return (
     <button
       type='button'
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       aria-label={`${title} layer`}
-      className={`group relative flex-1 min-w-0 overflow-hidden rounded-[14px] text-left cursor-pointer border-0 p-0 ${toneClassName}`}
+      className={`group relative flex-1 min-w-0 overflow-hidden rounded-[14px] text-left border-0 p-0 ${toneClassName} ${disabled ? 'cursor-default' : 'cursor-pointer'}`}
     >
       <img
         src={image}
         alt=''
-        className={`pointer-events-none absolute max-w-none select-none transition-transform duration-300 ease-out group-hover:scale-110 ${imageClassName}`}
+        className={`pointer-events-none absolute max-w-none select-none ${disabled ? '' : 'transition-transform duration-300 ease-out group-hover:scale-110'} ${imageClassName}`}
       />
-      <div className='pointer-events-none absolute inset-0 bg-white/0 transition-colors duration-200 ease-out group-hover:bg-white/12' />
+      {!disabled && (
+        <div className='pointer-events-none absolute inset-0 bg-white/0 transition-colors duration-200 ease-out group-hover:bg-white/12' />
+      )}
+      {disabled && (
+        <div className='pointer-events-none absolute inset-0 z-20 bg-[#8E95A3]/65' />
+      )}
       <div className={`relative z-10 flex flex-col gap-5 ${contentClassName}`}>
         <Text size='sm' weight='medium' className='!text-white !tracking-[-0.03em] !leading-none'>
           {title}
@@ -88,6 +98,8 @@ interface LayerCardsProps {
   coreLoading: boolean
   platformLoading: boolean
   rate: number | null
+  /** Set for wallets with no Core layer: the card stays, greyed out and inert. */
+  coreDisabled?: boolean
 }
 
 export function LayerCards ({
@@ -96,7 +108,8 @@ export function LayerCards ({
   platformDuffs,
   coreLoading,
   platformLoading,
-  rate
+  rate,
+  coreDisabled = false
 }: LayerCardsProps): React.JSX.Element {
   const navigate = useNavigate()
   const coreImage = useStaticAsset('3d-triangles-circle.png')
@@ -119,6 +132,7 @@ export function LayerCards ({
         imageClassName='right-[-26%] top-[-46%] w-[170px] h-auto opacity-30'
         contentClassName='p-4 pr-8'
         onClick={() => { void navigate('/core') }}
+        disabled={coreDisabled}
       />
       <LayerCard
         title='Platform'

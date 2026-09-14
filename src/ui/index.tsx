@@ -28,7 +28,6 @@ const CreateSeedWalletState = React.lazy(async () => await import('./states/wall
 const IdentityRegistrationState = React.lazy(async () => await import('./states/identityRegistration/IdentityRegistrationState'))
 const TopUpIdentityState = React.lazy(async () => await import('./states/topup/TopUpIdentityState'))
 const PlatformTransferConfirmState = React.lazy(async () => await import('./states/platformTransfer/PlatformTransferConfirmState'))
-const HomeOldState = React.lazy(async () => await import('./states/home-old/HomeState'))
 const CoreHomeState = React.lazy(async () => await import('./states/core/CoreHomeState'))
 const PlatformHomeState = React.lazy(async () => await import('./states/platform/PlatformHomeState'))
 const IdentityHomeState = React.lazy(async () => await import('./states/identity/IdentityHomeState'))
@@ -92,15 +91,6 @@ const App: React.FC = function () {
           handle: {
             headerProps: {
               variant: 'dashboard'
-            }
-          }
-        },
-        {
-          path: '/home-old',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><HomeOldState /></Suspense></PageWithHeader>,
-          handle: {
-            headerProps: {
-              variant: 'main'
             }
           }
         },

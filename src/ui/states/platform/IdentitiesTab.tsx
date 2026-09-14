@@ -166,8 +166,12 @@ export function IdentitiesTab ({ hide, identities, platformData }: IdentitiesTab
     void navigate(`/identity/${identifier}`, { state: locationReturnState('/platform') })
   }
 
-  const createIdentity = (): void => {
-    void navigate(walletType === 'seedphrase' ? '/register-identity' : '/select-import-type')
+  // The two wallet types have opposite ways in: registration needs a seedphrase,
+  // import is keystore-only, so the action is named after the one that applies.
+  const isSeedWallet = walletType === 'seedphrase'
+
+  const addIdentity = (): void => {
+    void navigate(isSeedWallet ? '/register-identity' : '/select-import-type')
   }
 
   return (
@@ -180,11 +184,11 @@ export function IdentitiesTab ({ hide, identities, platformData }: IdentitiesTab
           type='button'
           colorScheme='lightBlue'
           className='!h-[25px] !min-h-0 !rounded-lg !px-2 !py-2 !border-0 !normal-case gap-2.5 !text-xs'
-          onClick={createIdentity}
+          onClick={addIdentity}
         >
           <PlusIcon size={10} className='!text-dash-brand' />
           <Text weight='medium' className={`${headerTextClassName} !text-dash-brand`}>
-            Create Identity
+            {isSeedWallet ? 'Create Identity' : 'Import Identity'}
           </Text>
         </Button>
       </div>
@@ -194,7 +198,9 @@ export function IdentitiesTab ({ hide, identities, platformData }: IdentitiesTab
             No identities yet
           </Text>
           <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/48'>
-            Create your first identity to start using Dash Platform.
+            {isSeedWallet
+              ? 'Create your first identity to start using Dash Platform.'
+              : 'Import an identity by its private key to start using Dash Platform.'}
           </Text>
         </div>
       )}

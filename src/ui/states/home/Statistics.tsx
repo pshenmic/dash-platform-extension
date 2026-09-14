@@ -10,6 +10,8 @@ interface StatisticsProps {
   platformTxCount: number | null
   coreLoading: boolean
   platformLoading: boolean
+  /** False for wallets with no Core layer, whose hint names Platform only. */
+  showCore?: boolean
 }
 
 export function Statistics ({
@@ -17,7 +19,8 @@ export function Statistics ({
   coreTxCount,
   platformTxCount,
   coreLoading,
-  platformLoading
+  platformLoading,
+  showCore = true
 }: StatisticsProps): React.JSX.Element {
   const loading = coreLoading || platformLoading
   // Counts the parts that already loaded, so the number grows instead of staying a dash.
@@ -34,9 +37,12 @@ export function Statistics ({
       </span>
       )
 
+  const platformHint = `${platformLoading ? '...' : String(platformTxCount ?? '-')} Platform`
+  const coreHint = `${coreLoading ? '...' : String(coreTxCount ?? '-')} Core`
+
   const hint = (
     <Text size='xs' weight='medium' className='!text-[0.75rem] !text-dash-primary-dark-blue/50 !leading-[1.1]'>
-      {coreLoading ? '...' : (coreTxCount ?? '-')} Core - {platformLoading ? '...' : (platformTxCount ?? '-')} Platform
+      {showCore ? `${coreHint} - ${platformHint}` : platformHint}
     </Text>
   )
 

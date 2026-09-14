@@ -8,13 +8,13 @@ import {
   usePlatformAddresses,
   useSdk,
   useShieldedAddresses,
+  useWalletCapabilities,
   type UsePlatformAddressesResult,
   type UseShieldedAddressesResult
 } from '../../hooks'
 import type { OutletContext } from '../../types'
 import type { NetworkType } from '../../../types'
-import { getIdentityExplorerUrl, getPlatformAddressExplorerUrl } from '../../../utils'
-import { fromBaseUnit } from '../../../utils/bigintUtils'
+import { getIdentityExplorerUrl, getPlatformAddressExplorerUrl, fromBaseUnit } from '../../../utils'
 import {
   DEFAULT_TARGET_TYPE_BY_SCOPE,
   RECEIVE_LAYER_BY_TARGET,
@@ -30,7 +30,7 @@ interface UseReceiveTargetsParams {
 }
 
 export interface UseReceiveTargetsResult {
-  showPicker: boolean
+  showTypeSwitch: boolean
   activeType: ReceiveTargetType
   targets: ReceiveTarget[]
   selected: ReceiveTarget | null
@@ -66,6 +66,7 @@ export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsPara
   const extensionAPI = useExtensionAPI()
   const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
   const network: NetworkType = currentNetwork ?? 'testnet'
+  const { hasAddressLayer } = useWalletCapabilities()
   const platform = usePlatformAddresses(network, currentWallet)
   const shielded = useShieldedAddresses(network, currentWallet)
   const rate = useDashRate(network)
@@ -75,7 +76,12 @@ export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsPara
 
   // An identity dashboard pins its own destination; every other entry point only picks where the picker starts.
   const showPicker = scope !== 'identity'
-  const activeType = showPicker && type != null ? type : DEFAULT_TARGET_TYPE_BY_SCOPE[scope]
+  // Without the address layers an identity is the only thing to receive into, so
+  // the layer and type switches have nothing left to offer.
+  const showTypeSwitch = showPicker && hasAddressLayer
+  const activeType = !hasAddressLayer
+    ? 'identity'
+    : showPicker && type != null ? type : DEFAULT_TARGET_TYPE_BY_SCOPE[scope]
 
   useEffect(() => {
     if (activeType !== 'core') return
@@ -147,5 +153,5 @@ export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsPara
       ? shielded.isLoading
       : activeType === 'core' ? coreAddressState.loading : false
 
-  return { showPicker, activeType, targets, selected, rate, platform, shielded, loading }
+  return { showTypeSwitch, activeType, targets, selected, rate, platform, shielded, loading }
 }
