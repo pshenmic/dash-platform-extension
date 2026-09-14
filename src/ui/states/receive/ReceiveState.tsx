@@ -3,9 +3,9 @@ import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'rea
 import { Button, Heading, Text, ValueCard } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { PasswordGate } from '../../components/forms'
-import { useHideBalance, useWalletCapabilities } from '../../hooks'
+import { TopUpBusyDialog } from '../../components/topup'
+import { useHideBalance, useOpenTopUp, useWalletCapabilities } from '../../hooks'
 import type { OutletContext } from '../../types'
-import { buildTopUpUrl } from '../../utils/topUpTabUrl'
 import { parseReceiveScope, parseReceiveTargetType, receivePath } from '../../utils/receivePath'
 import { ReceiveCard } from './ReceiveCard'
 import { ReceiveDetails } from './ReceiveDetails'
@@ -29,13 +29,14 @@ function ReceiveState (): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
-  const { currentWallet, currentNetwork } = useOutletContext<OutletContext>()
+  const { currentWallet } = useOutletContext<OutletContext>()
 
   const scope = parseReceiveScope(searchParams.get('scope'))
   const type = parseReceiveTargetType(searchParams.get('type'))
   const value = searchParams.get('value')
   const { hideBalance } = useHideBalance()
   const { hasAddressLayer } = useWalletCapabilities()
+  const { canTopUp, openTopUp, busyTab, dismissBusyTab, focusBusyTab } = useOpenTopUp()
 
   const { showTypeSwitch, activeType, targets, selected, rate, platform, shielded, loading } =
     useReceiveTargets({ scope, type, value })
@@ -66,14 +67,11 @@ function ReceiveState (): React.JSX.Element {
     })
   }, [navigate, scope, location.state])
 
-  const openTopUp = useCallback((): void => {
+  const handleTopUp = useCallback((): void => {
     if (selected == null) return
 
-    void navigate(buildTopUpUrl(
-      { identityId: selected.value, walletId: currentWallet, network: currentNetwork },
-      1
-    ))
-  }, [navigate, selected, currentWallet, currentNetwork])
+    openTopUp(selected.value)
+  }, [openTopUp, selected])
 
   const handleShieldedLoad = useCallback(async (password: string): Promise<string | null> => {
     return await shielded.load(password)
@@ -159,12 +157,12 @@ function ReceiveState (): React.JSX.Element {
           <ReceiveNotice target={selected} />
           <ReceiveCard target={selected} />
           <ReceiveDetails target={selected} hide={hideBalance} rate={rate} />
-          {selected.type === 'identity' && (
+          {selected.type === 'identity' && canTopUp && (
             <Button
               type='button'
               colorScheme='lightBlue'
               className='!h-auto !min-h-0 !rounded-xl !py-3 w-full'
-              onClick={openTopUp}
+              onClick={handleTopUp}
             >
               <Text size='sm' weight='medium' className='!text-dash-brand'>
                 Top up from Dash
@@ -173,6 +171,8 @@ function ReceiveState (): React.JSX.Element {
           )}
         </>
       )}
+
+      <TopUpBusyDialog tab={busyTab} onDismiss={dismissBusyTab} onFocus={focusBusyTab} />
     </div>
   )
 }

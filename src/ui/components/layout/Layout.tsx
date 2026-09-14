@@ -20,6 +20,8 @@ export interface LayoutContext {
   setCurrentIdentity: (identity: string) => Promise<void>
   allWallets: WalletAccountInfo[]
   hasAnyWallet: boolean
+  // False until the first wallet list arrives, so screens do not read an empty list as "no wallets".
+  walletsLoaded: boolean
   reloadWallets: () => Promise<void>
   availableIdentities: Identity[]
   createWallet: (walletType: any, mnemonic?: string) => Promise<any>
@@ -39,6 +41,7 @@ const Layout: FC = () => {
   const [currentWallet, setCurrentWallet] = useState<string | null>(null)
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
+  const [walletsLoaded, setWalletsLoaded] = useState<boolean>(false)
   const [hasAnyWallet, setHasAnyWallet] = useState<boolean>(false)
   const [availableIdentities, setAvailableIdentities] = useState<Identity[]>([])
   const [headerComponent, setHeaderComponent] = useState<React.ReactNode>(null)
@@ -49,9 +52,11 @@ const Layout: FC = () => {
     try {
       const wallets = await extensionAPI.getAllWallets()
       setAllWallets(wallets)
+      setWalletsLoaded(true)
       return wallets
     } catch (error) {
       console.log('Failed to load wallets:', error)
+      setWalletsLoaded(true)
       return []
     }
   }, [isApiReady, extensionAPI])
@@ -212,6 +217,7 @@ const Layout: FC = () => {
             setCurrentIdentity: applyIdentityChange,
             allWallets,
             hasAnyWallet,
+            walletsLoaded,
             reloadWallets,
             availableIdentities,
             createWallet,

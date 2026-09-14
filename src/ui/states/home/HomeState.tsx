@@ -1,5 +1,5 @@
 import React from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { Navigate, useOutletContext } from 'react-router-dom'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { getCoreTransactionExplorerUrl, getTransactionExplorerUrl } from '../../../utils'
 import { useCoreBalance, useCoreTransactions, useDashRate, useHideBalance, useWalletCapabilities, useWalletPlatformData } from '../../hooks'
@@ -9,6 +9,7 @@ import type { OutletContext } from '../../types'
 import { ActionRow } from './ActionRow'
 import { LastTransaction } from './LastTransaction'
 import { LayerCards } from './LayerCards'
+import { NoWallets } from './NoWallets'
 import { Statistics } from './Statistics'
 import { TotalBalance } from './TotalBalance'
 import { newerTransaction } from '../transactions/types'
@@ -31,7 +32,8 @@ const explorerUrlFor = (
  * Wallet dashboard (Figma 10681:2603). Route: `#/home`.
  */
 function HomeState (): React.JSX.Element {
-  const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
+  const { allWallets, availableIdentities, currentNetwork, currentWallet, hasAnyWallet, walletsLoaded } =
+    useOutletContext<OutletContext>()
   const { hideBalance, toggleHide, refresh } = useHideBalance()
   const { hasCoreLayer } = useWalletCapabilities()
   const { balance: coreBalance, loading: coreLoading, reload: reloadCore } = useCoreBalance(currentWallet, hasCoreLayer)
@@ -58,6 +60,16 @@ function HomeState (): React.JSX.Element {
     refresh()
     reloadCore()
     reloadPlatform()
+  }
+
+  // A fresh install has nowhere to go but onboarding.
+  if (walletsLoaded && !hasAnyWallet) {
+    return <Navigate to='/welcome' replace />
+  }
+
+  // Wallets are per network, so switching to an empty one leaves nothing to show.
+  if (walletsLoaded && allWallets.every(wallet => wallet.network !== currentNetwork)) {
+    return <NoWallets />
   }
 
   return (
