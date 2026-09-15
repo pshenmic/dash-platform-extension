@@ -1,5 +1,5 @@
 import { NetworkType } from '../../types/PlatformExplorer'
-import { CORE_EXPLORER_URLS } from '../../constants'
+import { CORE_EXPLORER_URLS, CORE_UTXO_ADDRESS_BATCH } from '../../constants'
 
 export interface CoreAddressInfo {
   txCount: number
@@ -24,6 +24,12 @@ export interface CoreAddressUtxo {
   txid: string
   vout: number
   amount: bigint
+}
+
+// A UTXO read across several addresses at once, so it has to say which address
+// it pays to — that is what tells the spender which key signs its input.
+export interface CoreWalletUtxo extends CoreAddressUtxo {
+  address: string
 }
 
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
@@ -145,5 +151,46 @@ export class CoreExplorerService {
       vout: toCount(utxo.vOutIndex),
       amount: toBigInt(utxo.amount)
     }))
+  }
+
+  // Confirmed UTXOs across many addresses in one call — the spendable set of a
+  // wallet, tagged with the address each output pays to. The addresses go in the
+  // query string, so the list is chunked to stay under the URL length limit.
+  //
+  // dashscan indexes blocks, so an output that is still in the mempool (change
+  // from a send that has not been mined yet) is not listed here.
+  async getAddressesUtxos (addresses: string[], network: NetworkType = 'testnet'): Promise<CoreWalletUtxo[]> {
+    if (addresses.length === 0) {
+      return []
+    }
+
+    const baseUrl = getBaseUrl(network)
+    const utxos: CoreWalletUtxo[] = []
+
+    for (let offset = 0; offset < addresses.length; offset += CORE_UTXO_ADDRESS_BATCH) {
+      const batch = addresses.slice(offset, offset + CORE_UTXO_ADDRESS_BATCH)
+      const response = await fetch(`${baseUrl}/addresses/utxo?addresses=${batch.join(',')}`)
+
+      if (!response.ok) {
+        throw new Error(`Core explorer error for addresses utxo: HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!Array.isArray(data)) {
+        continue
+      }
+
+      for (const utxo of data) {
+        utxos.push({
+          txid: utxo.prevTxHash,
+          vout: toCount(utxo.vOutIndex),
+          amount: toBigInt(utxo.amount),
+          address: utxo.address
+        })
+      }
+    }
+
+    return utxos
   }
 }

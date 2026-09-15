@@ -104,6 +104,30 @@ export interface AssetLockFundingAddressesSchema {
   [address: string]: AssetLockFundingAddressSchema
 }
 
+// A Core (L1) transaction this wallet broadcast that the explorer has not indexed
+// yet. dashscan reads blocks, so between broadcast and the next block its unspent
+// set is stale: the inputs we just spent still look spendable and the change we
+// just created is invisible. Holding the transaction locally bridges that gap.
+export interface CorePendingSpendSchema {
+  txid: string
+  // outpoints this transaction consumed, as `txid:vout`
+  spentOutpoints: string[]
+  // the change it paid back to us, spendable before it is mined. Absent when the
+  // leftover was dust and went to the fee instead.
+  change?: {
+    txid: string
+    vout: number
+    // duffs as a string: chrome storage is JSON, and bigint does not serialize
+    amount: string
+    address: string
+  }
+  broadcastedAt: number
+}
+
+export interface CorePendingSpendsSchema {
+  [txid: string]: CorePendingSpendSchema
+}
+
 export interface WalletSettingsStoreSchema {
   hideBalance: boolean
 }
