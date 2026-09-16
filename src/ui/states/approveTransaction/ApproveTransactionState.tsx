@@ -377,7 +377,7 @@ function ApproveTransactionState (): React.JSX.Element {
               className='w-full'
               onClick={() => {
                 if (returnToHome) {
-                  void navigate('/')
+                  void navigate('/', { replace: true })
                 } else {
                   window.close()
                 }
@@ -466,7 +466,7 @@ function ApproveTransactionState (): React.JSX.Element {
           ? (
             <div className='w-full'>
               <Button
-                onClick={() => { void navigate('/') }}
+                onClick={() => { void navigate('/', { replace: true }) }}
                 className='w-full'
                 colorScheme='lightBlue'
               >

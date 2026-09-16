@@ -11,6 +11,7 @@ import { IdentitySelector } from '../../controls/IdentitySelector'
 import type { LayoutContext } from '../Layout'
 import type { NetworkType } from '../../../../types'
 import { isTabView, closeCurrentExtensionTab } from '../../../utils/extensionTab'
+import { hasAppHistory } from '../../../utils/appHistory'
 import { locationReturnPath } from '../../../types'
 const SettingsMenu = React.lazy(async () => ({
   default: (await import('../../settings/SettingsMenu')).SettingsMenu
@@ -197,6 +198,16 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
 
 type HeaderVariant = keyof typeof HEADER_VARIANTS
 
+// Where back lands when there is no history to pop, keyed by header variant.
+// Screens that remember their origin override this through location state.
+const BACK_FALLBACKS: Record<string, string> = {
+  core: '/home',
+  platform: '/home',
+  identity: '/platform',
+  transactions: '/home',
+  receive: '/home'
+}
+
 const NetworkCard: React.FC<{ network: string }> = ({ network }) => {
   return (
     <div className='backdrop-blur-[15px] bg-[rgba(12,28,51,0.15)] border border-[rgba(255,255,255,0.15)] rounded-[15px] px-4 py-[15px] flex items-center justify-center gap-1 h-12'>
@@ -305,23 +316,24 @@ export default function Header (): React.JSX.Element {
   }
 
   const handleBack = (): void => {
-    if (variantKey === 'core') {
-      void navigate('/home')
+    // History is the single source of truth: navigating back always pops an
+    // entry, never pushes a return one, or the two screens ping-pong forever.
+    if (hasAppHistory()) {
+      void navigate(-1)
       return
     }
 
-    if (variantKey === 'transactions' || variantKey === 'receive') {
-      void navigate(locationReturnPath(location.state, '/home'))
-      return
-    }
-
-    if (isTabView() && window.history.length <= 1) {
-      // Opened straight into a fresh tab - there is no previous entry to return to.
+    // Nothing behind us - opened straight into a fresh tab or via a deep link.
+    if (isTabView()) {
       void closeCurrentExtensionTab()
       return
     }
 
-    void navigate(-1)
+    const fallback = variantKey != null ? BACK_FALLBACKS[variantKey] : undefined
+
+    if (fallback == null) return
+
+    void navigate(locationReturnPath(location.state, fallback), { replace: true })
   }
 
   const getRightSectionType = (): 'image' | 'burger' | 'none' => {
