@@ -32,11 +32,9 @@ function PlatformHomeState (): React.JSX.Element {
   const network: NetworkType = currentNetwork ?? 'testnet'
   const platformData = useWalletPlatformData(availableIdentities, network)
   const rate = useDashRate(network)
-  // One source of platform addresses for the whole dashboard: the balance block
-  // and the Addresses tab share it, so switching tabs does not refetch.
+  // Lives here, not in the tab: the balance block shares it and tab switches keep the data.
   const platform = usePlatformAddresses(network, currentWallet)
-  // One password unlocks both halves of the shielded data: the balance slice in
-  // the block above and the rows in the Shield sub-tab.
+  // Lives here so one password unlocks both the balance slice and the Shield sub-tab rows.
   const shielded = useShieldedAddresses(network, currentWallet)
   const shieldedCredits = shielded.balance != null
     ? toCreditsBigInt(shielded.balance.balance) ?? 0n

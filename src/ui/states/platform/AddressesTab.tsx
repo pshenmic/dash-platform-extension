@@ -27,11 +27,11 @@ export type AddressType = 'platform' | 'shield'
 
 interface AddressesTabProps {
   hide: boolean
-  /** Platform addresses shared with the rest of the dashboard. */
+  /** Owned by the dashboard, shared with the balance block. */
   platform: UsePlatformAddressesResult
-  /** Shielded addresses and balance shared with the balance block. */
+  /** Owned by the dashboard, shared with the balance block. */
   shielded: UseShieldedAddressesResult
-  /** Owned by the dashboard so the balance block can open the Shield sub-tab. */
+  /** Controlled by the dashboard: the balance block's Unlock opens the Shield sub-tab. */
   addressType: AddressType
   onAddressTypeChange: (type: AddressType) => void
 }

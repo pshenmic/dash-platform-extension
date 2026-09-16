@@ -38,10 +38,7 @@ function LoginState (): React.JSX.Element {
 
         const status = await extensionAPI.getStatus()
 
-        // Wallets created before the xpubs were cached have no other chance to
-        // catch up: deriving needs the seed, and the password is only in hand
-        // here. Covers the current wallet only, which is all the handler does.
-        // Idempotent, and a failure must not keep the user locked out.
+        // Backfills xpubs for older wallets; login is the only place the password is in hand.
         if (status.currentWalletId != null) {
           await extensionAPI.initAccountXpubs(password)
             .catch(e => console.log('initAccountXpubs error: ', e))

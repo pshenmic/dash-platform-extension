@@ -8,7 +8,6 @@ const IDENTITY_FETCH_CONCURRENCY = 4
 export interface WalletIdentityData {
   identifier: string
   label: string | null
-  // Credits (10^11), as a string. Null when the explorer has no data.
   credits: string | null
   txCount: number | null
   transferCount: number | null

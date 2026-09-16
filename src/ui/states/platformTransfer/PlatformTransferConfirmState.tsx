@@ -186,8 +186,6 @@ function PlatformTransferConfirmState (): React.JSX.Element {
         const response = await extensionAPI.withdrawShieldedToCore(toAddress, amountCredits, password)
         setTxHash(response.stHash)
       } else {
-        // The sender identity is passed explicitly, so the wallet's selected
-        // identity stays untouched.
         const response = await extensionAPI.identityCreditTransferToAddresses(toAddress, amountCredits, password, state.fromIdentity)
         setTxHash(response.stHash)
       }

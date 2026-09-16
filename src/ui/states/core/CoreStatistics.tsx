@@ -12,7 +12,6 @@ interface CoreStatisticsProps {
 const PLACEHOLDER = '...'
 
 export function CoreStatistics ({ balance, hide }: CoreStatisticsProps): React.JSX.Element {
-  // Core amounts arrive in duffs (10^8).
   const sent = balance != null ? fromBaseUnit(balance.sent, 8) : PLACEHOLDER
   const received = balance != null ? fromBaseUnit(balance.received, 8) : PLACEHOLDER
 

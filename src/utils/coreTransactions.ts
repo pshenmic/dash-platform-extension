@@ -6,12 +6,11 @@ export interface CoreTransactionEffect {
   direction: CoreTransactionDirection
   // Net movement for the wallet, in duffs, always positive.
   amount: bigint
-  // The other side of the transfer, empty when the chain does not name one.
+  // The other side of the transfer, empty when unknown.
   counterparty: string
 }
 
-// dashscan returns amounts as integer strings on some endpoints and numbers on
-// others; anything unparsable counts as zero rather than throwing.
+// dashscan returns amounts as strings on some endpoints and numbers on others.
 const toDuffs = (value: unknown): bigint => {
   if (value == null) return 0n
 
@@ -23,10 +22,8 @@ const toDuffs = (value: unknown): bigint => {
 }
 
 /**
- * Net effect of a Core transaction on the wallet: what its own addresses
- * received minus what they spent. Both sides of a transaction can be ours
- * (change outputs), so the direction follows the net, not the presence of
- * an owned address.
+ * Net effect of a Core transaction on the wallet: received minus spent. Both
+ * sides can be ours (change outputs), so direction follows the net.
  */
 export function coreTransactionEffect (
   transaction: CoreTransactionData,
