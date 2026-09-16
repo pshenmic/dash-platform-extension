@@ -80,12 +80,7 @@ export function usePlatformAddresses (
 
     const infoByAddress = new Map(infos.map((info) => [info.address, info]))
 
-    // The explorer knows nothing about an address that was never funded and
-    // never spent from, and answers with a 404 the browser logs no matter how
-    // we handle it. So the explorer is asked only about addresses the batch
-    // proved to have history: a 0/0 address counts zero transactions locally,
-    // and one the batch could not describe at all stays unknown rather than
-    // costing a request that would most likely 404.
+    // Only addresses with history are queried; the explorer 404s on unused ones.
     const txCounts = await Promise.all(initial.map(async (item) => {
       const info = infoByAddress.get(item.address)
 

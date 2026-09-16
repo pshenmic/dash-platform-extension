@@ -4,13 +4,14 @@ import {
   Avatar,
   BigNumber,
   Button,
+  CopyButton,
   ExternalLinkIcon,
   Identifier,
   PlusIcon,
   Text,
   ValueCard
 } from 'dash-ui-kit/react'
-import { CopyControl, IconChip } from '../../components/common'
+import { IconChip } from '../../components/common'
 import { PasswordGate } from '../../components/forms'
 import { usePlatformExplorerClient } from '../../hooks'
 import type { UsePlatformAddressesResult, UseShieldedAddressesResult } from '../../hooks'
@@ -50,7 +51,7 @@ function AddressActions ({
         </IconChip>
       )}
       <IconChip label='Copy address'>
-        <CopyControl
+        <CopyButton
           text={address}
           aria-label='Copy address'
           className='!p-0 !bg-transparent [&_svg]:!size-3.5'

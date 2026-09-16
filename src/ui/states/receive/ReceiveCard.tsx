@@ -1,7 +1,7 @@
 import React from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { ExternalLinkIcon, Identifier, Text } from 'dash-ui-kit/react'
-import { CopyControl, IconChip } from '../../components/common'
+import { CopyButton, ExternalLinkIcon, Identifier, Text } from 'dash-ui-kit/react'
+import { IconChip } from '../../components/common'
 import type { ReceiveTarget } from './types'
 
 interface ReceiveCardProps {
@@ -31,7 +31,7 @@ export function ReceiveCard ({ target }: ReceiveCardProps): React.JSX.Element {
           </IconChip>
         )}
         <IconChip label='Copy address'>
-          <CopyControl
+          <CopyButton
             text={target.value}
             aria-label='Copy address'
             className='!p-0 !bg-transparent [&_svg]:!size-3.5'
