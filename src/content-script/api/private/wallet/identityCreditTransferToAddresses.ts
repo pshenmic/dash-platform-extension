@@ -7,7 +7,7 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PlatformAddressWASM, OutputAddressWASM } from 'pshenmic-dpp'
 import { Purpose } from 'dash-platform-sdk/types'
 import { WalletType } from '../../../../types/WalletType'
-import { deriveIdentityPrivateKey, deriveKeystorePrivateKey } from '../../../../utils'
+import { deriveIdentityPrivateKey, deriveKeystorePrivateKey, validateIdentifier } from '../../../../utils'
 import { IdentityCreditTransferToAddressesPayload } from '../../../../types/messages/payloads/IdentityCreditTransferToAddressesPayload'
 import { IdentityCreditTransferToAddressesResponse } from '../../../../types/messages/response/IdentityCreditTransferToAddressesResponse'
 
@@ -31,14 +31,21 @@ export class IdentityCreditTransferToAddressesHandler implements APIHandler {
     if (wallet == null) {
       throw new Error('No wallet is chosen')
     }
-    if (wallet.currentIdentity == null) {
+
+    // The sender defaults to the selected identity. A keystore wallet can hold
+    // several identities, so the caller may pick another one explicitly; the
+    // repository only holds the current wallet's identities, so an identity from
+    // another wallet is not found.
+    const fromIdentity = payload.fromIdentity ?? wallet.currentIdentity
+
+    if (fromIdentity == null) {
       throw new Error('No identity is selected')
     }
 
-    const identity = await this.identitiesRepository.getByIdentifier(wallet.currentIdentity)
+    const identity = await this.identitiesRepository.getByIdentifier(fromIdentity)
 
     if (identity == null) {
-      throw new Error(`Identity ${wallet.currentIdentity} not found`)
+      throw new Error(`Identity ${fromIdentity} not found`)
     }
 
     try {
@@ -95,6 +102,9 @@ export class IdentityCreditTransferToAddressesHandler implements APIHandler {
     }
     if (typeof payload.password !== 'string' || payload.password.length === 0) {
       return 'Password must be provided'
+    }
+    if (payload.fromIdentity != null && !validateIdentifier(payload.fromIdentity)) {
+      return 'fromIdentity must be a valid identifier'
     }
 
     return null
