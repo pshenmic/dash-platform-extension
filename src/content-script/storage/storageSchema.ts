@@ -43,6 +43,11 @@ export interface WalletStoreSchema {
   // index. Acts as the next diversifier index — created addresses are
   // 0..count-1, the next one created is `count`.
   shieldedAddressCounts?: Record<string, number>
+  // Cached BIP44 account-level extended public keys (xpub) for Core (L1),
+  // m/44'/coin'/account', keyed by account index. Same contract as
+  // platformXpubs: stored once (needs the password) so Core addresses can be
+  // re-derived publicly afterwards without unlocking the seed.
+  coreXpubs?: Record<string, string>
 }
 
 export interface StateTransitionsStoreSchema {

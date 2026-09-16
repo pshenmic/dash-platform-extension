@@ -46,7 +46,9 @@ export class WalletRepository {
     return await this.storageAdapter.get('currentWalletId') as string | null
   }
 
-  async create (walletType: WalletType, mnemonic?: string, platformXpub?: string): Promise<Wallet> {
+  // Account-level xpubs cached at creation time (account 0), so addresses can be
+  // derived later without re-entering the password. Omitted for keystore wallets.
+  async create (walletType: WalletType, mnemonic?: string, xpubs?: { platform?: string, core?: string }): Promise<Wallet> {
     let encryptedMnemonic: string | null = null
     let seedHash: string | null = null
 
@@ -87,10 +89,8 @@ export class WalletRepository {
       encryptedMnemonic,
       seedHash,
       currentIdentity: null,
-      // Platform account xpub derived at creation time so platform addresses can
-      // be generated later without re-entering the password (account 0). Omitted
-      // entirely when not provided (e.g. keystore wallets).
-      ...(platformXpub != null ? { platformXpubs: { 0: platformXpub } } : {})
+      ...(xpubs?.platform != null ? { platformXpubs: { 0: xpubs.platform } } : {}),
+      ...(xpubs?.core != null ? { coreXpubs: { 0: xpubs.core } } : {})
     }
 
     await this.storageAdapter.set(storageKey, walletSchema)
@@ -234,6 +234,22 @@ export class WalletRepository {
     const shieldedAddressCounts = { ...walletStoreSchema.shieldedAddressCounts, [String(account)]: count }
 
     await this.storageAdapter.set(storageKey, { ...walletStoreSchema, shieldedAddressCounts })
+  }
+
+  async getCoreAccountXpub (account: number): Promise<string | null> {
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+
+    return walletStoreSchema.coreXpubs?.[String(account)] ?? null
+  }
+
+  async setCoreAccountXpub (account: number, xpub: string): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletStoreSchema = await this.getCurrentStoreSchema()
+    const storageKey = `wallet_${network}_${walletStoreSchema.walletId}`
+
+    const coreXpubs = { ...walletStoreSchema.coreXpubs, [String(account)]: xpub }
+
+    await this.storageAdapter.set(storageKey, { ...walletStoreSchema, coreXpubs })
   }
 
   private async getCurrentStoreSchema (): Promise<WalletStoreSchema> {

@@ -1,6 +1,5 @@
 import { SendShieldedTransferHandler } from '../../../../src/content-script/api/private/wallet/sendShieldedTransfer'
 import { decryptMnemonic, prepareShieldedSpend } from '../../../../src/utils'
-import { SHIELDED_SPEND_FEE_CREDITS } from '../../../../src/constants'
 
 jest.mock('../../../../src/utils', () => {
   const actual = jest.requireActual('../../../../src/utils')
@@ -91,7 +90,8 @@ describe('SendShieldedTransferHandler', () => {
       expect.any(Uint8Array),
       'testnet',
       0,
-      1000n + SHIELDED_SPEND_FEE_CREDITS,
+      1000n,
+      'transfer',
       [SOURCE_ADDRESS]
     )
   })
@@ -104,7 +104,8 @@ describe('SendShieldedTransferHandler', () => {
       expect.any(Uint8Array),
       'testnet',
       0,
-      1000n + SHIELDED_SPEND_FEE_CREDITS,
+      1000n,
+      'transfer',
       undefined
     )
   })

@@ -60,6 +60,14 @@ export const CORE_ADDRESS_VERSIONS = {
   testnet: { pubKeyHash: 0x8c, scriptHash: 0x13 },
   mainnet: { pubKeyHash: 0x4c, scriptHash: 0x10 }
 }
+// BIP32 serialization version bytes for Core extended keys (xprv/xpub on
+// mainnet, tprv/tpub on testnet — Dash reuses the Bitcoin values). Needed to
+// parse a stored account xpub: @scure/bip32 defaults to the mainnet pair and
+// rejects a tpub with "Version mismatch".
+export const CORE_BIP32_VERSIONS = {
+  testnet: { private: 0x04358394, public: 0x043587cf },
+  mainnet: { private: 0x0488ade4, public: 0x0488b21e }
+}
 // Defaults for the L1 tx a withdrawal produces. Pooling must be 'Never' (0) —
 // the platform hasn't implemented the other pooling mechanisms yet.
 export const WITHDRAWAL_CORE_FEE_PER_BYTE = 1
@@ -79,12 +87,28 @@ export const SHIELDED_ADDRESS_DEFAULT_COUNT = 5
 export const SHIELDED_ADDRESS_GENERATE_BATCH = 10
 // Page size when paging the note set; mirrors the SDK's gRPC query limit.
 export const SHIELDED_NOTES_PAGE_SIZE = 8192
+// Most nullifiers Platform checks in one getShieldedNullifiers query; it rejects
+// a larger batch with "trying to check N nullifiers, maximum is 100".
+export const SHIELDED_NULLIFIER_QUERY_LIMIT = 100
 // Max notes per spend: proof size grows per input note and the state transition
 // must stay under Platform's ~20KB limit (observed to fail around 9 actions).
 export const SHIELDED_MAX_SPEND_NOTES = 5
-// Fee headroom added when selecting notes, so they cover amount + fee (change
-// absorbs the rest). Estimate — Platform computes the real fee on-chain.
+// Flat fee shown by the send UI. Spends no longer use it: they reserve the exact
+// fee from computeShieldedSpendFee.
 export const SHIELDED_SPEND_FEE_CREDITS = 15_000_000n
+// Platform's shielded fee constants (rs-platform-version event constants and
+// storage fee v1). A pool-paid spend is charged exactly
+// proof fee + actions × (processing fee + storage bytes × per-byte rate), plus a
+// flat storage component for the address an unshield credits and the document a
+// withdrawal inserts.
+export const SHIELDED_PROOF_VERIFICATION_FEE_CREDITS = 100_000_000n
+export const SHIELDED_PER_ACTION_PROCESSING_FEE_CREDITS = 22_000_000n
+export const SHIELDED_STORAGE_BYTES_PER_ACTION = 344n
+export const SHIELDED_STORAGE_CREDITS_PER_BYTE = 27_400n
+export const SHIELDED_UNSHIELD_ADDRESS_STORAGE_BYTES = 222n
+export const SHIELDED_WITHDRAWAL_DOCUMENT_STORAGE_BYTES = 4100n
+// Orchard pads every bundle to at least this many actions.
+export const SHIELDED_MIN_ACTIONS = 2
 // Sentinel recipient for `shieldToPool` (which derives the destination from the
 // seed and takes no recipient) — carries "own pool" from send form to confirm.
 export const SHIELDED_POOL_RECIPIENT = 'shielded-pool'
