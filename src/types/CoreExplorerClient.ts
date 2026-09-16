@@ -14,13 +14,7 @@ const getBaseUrl = (network: NetworkType = 'testnet'): string => {
   return CORE_EXPLORER_URLS[network].api
 }
 
-/**
- * Reads Core (L1) chain data from the dashscan REST API, straight from the UI.
- *
- * The content-script side only reports balances and addresses by account xpub;
- * transaction history is read here, per address, because that is the only shape
- * the explorer offers for it.
- */
+/** Reads Core (L1) chain data from the dashscan REST API. */
 export class CoreExplorerClient {
   // Single page of the transactions an address takes part in, on either side.
   // Pending transactions are included, with a null timestamp and block.
