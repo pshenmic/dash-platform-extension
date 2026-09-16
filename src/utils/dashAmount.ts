@@ -1,4 +1,4 @@
-import { fromBaseUnit } from '../../../utils/bigintUtils'
+import { fromBaseUnit } from './bigintUtils'
 
 // 1 duff (10^8) is 1000 credits (10^11).
 const CREDITS_PER_DUFF = 1000n

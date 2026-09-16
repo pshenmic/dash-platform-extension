@@ -8,9 +8,11 @@ const actionButtonClassName = '!h-[3.375rem] !min-h-0 !border-0 !rounded-2xl !p-
 interface ActionRowProps {
   scope?: TransactionsScope
   identityId?: string
+  /** Layers without a send flow yet keep the button visible but inert. */
+  sendDisabled?: boolean
 }
 
-export function ActionRow ({ scope = 'all', identityId }: ActionRowProps): React.JSX.Element {
+export function ActionRow ({ scope = 'all', identityId, sendDisabled = false }: ActionRowProps): React.JSX.Element {
   const openTransactions = useOpenTransactions(scope, identityId)
   const openReceive = useOpenReceive(scope, identityId)
   const openSend = useOpenSend(scope, identityId)
@@ -29,8 +31,9 @@ export function ActionRow ({ scope = 'all', identityId }: ActionRowProps): React
       <Button
         type='button'
         colorScheme='lightBlue'
-        className={`${actionButtonClassName} flex-1`}
-        onClick={openSend}
+        className={`${actionButtonClassName} flex-1 ${sendDisabled ? 'opacity-50 cursor-default' : ''}`}
+        disabled={sendDisabled}
+        onClick={sendDisabled ? undefined : openSend}
       >
         <TopRightArrowIcon size={12} className='!text-dash-brand' />
         <Text size='md' weight='medium' className='!text-dash-brand !leading-none'>Send</Text>

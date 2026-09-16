@@ -1,8 +1,7 @@
 import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { creditsToDash } from '../../../utils'
-import { DashAmount, FiatChip } from '../home/DashAmount'
-import { BalanceActions } from '../../components/common'
+import { BalanceActions, DashAmount, FiatChip } from '../../components/common'
 
 function dashParts (credits: bigint): { whole: string, fraction: string } {
   const [whole, fraction = '00'] = creditsToDash(credits).toFixed(2).split('.')

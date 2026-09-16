@@ -1,8 +1,7 @@
 import React from 'react'
 import { Text } from 'dash-ui-kit/react'
-import { DashAmount, FiatChip } from './DashAmount'
-import { duffsToDashParts, duffsToFiatLabel } from './amount'
-import { BalanceActions } from '../../components/common'
+import { BalanceActions, DashAmount, FiatChip } from '../../components/common'
+import { duffsToDashParts, duffsToFiatLabel } from '../../../utils'
 
 interface TotalBalanceProps {
   hideBalance: boolean

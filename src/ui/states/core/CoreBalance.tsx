@@ -3,8 +3,7 @@ import { Text } from 'dash-ui-kit/react'
 import { fromBaseUnit } from '../../../utils/bigintUtils'
 import type { GetCoreBalanceResponse } from '../../../types/messages/response/GetCoreBalanceResponse'
 import { useStaticAsset } from '../../hooks'
-import { DashAmount } from '../home/DashAmount'
-import { BalanceActions } from '../../components/common'
+import { BalanceActions, DashAmount } from '../../components/common'
 
 interface CoreBalanceProps {
   balance: GetCoreBalanceResponse | null

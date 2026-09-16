@@ -2,8 +2,7 @@ import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { useStaticAsset } from '../../hooks'
 import type { UsePlatformAddressesResult } from '../../hooks'
-import { DashAmount, FiatChip } from '../home/DashAmount'
-import { BalanceActions } from '../../components/common'
+import { BalanceActions, DashAmount, FiatChip } from '../../components/common'
 import { creditsToDash, toCreditsBigInt } from '../../../utils'
 
 // Shown instead of a number whenever the value is unknown, never a made-up one.

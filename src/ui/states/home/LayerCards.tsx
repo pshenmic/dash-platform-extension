@@ -2,8 +2,8 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Text } from 'dash-ui-kit/react'
 import { useStaticAsset } from '../../hooks'
-import { DashAmount, FiatChip } from './DashAmount'
-import { duffsToDashParts, duffsToFiatLabel } from './amount'
+import { DashAmount, FiatChip } from '../../components/common'
+import { duffsToDashParts, duffsToFiatLabel } from '../../../utils'
 
 interface LayerCardProps {
   title: string

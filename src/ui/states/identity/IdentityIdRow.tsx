@@ -11,7 +11,7 @@ interface IdentityIdRowProps {
 
 export function IdentityIdRow ({ identifier, network }: IdentityIdRowProps): React.JSX.Element {
   return (
-    <div className='flex items-start gap-2'>
+    <div className='flex items-center gap-2'>
       <div className='w-6 h-6 rounded-full overflow-hidden shrink-0'>
         <Avatar username={identifier} className='w-6 h-6' />
       </div>

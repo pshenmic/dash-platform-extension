@@ -1,7 +1,7 @@
 import React from 'react'
 import { Navigate, useOutletContext } from 'react-router-dom'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { getCoreTransactionExplorerUrl, getTransactionExplorerUrl } from '../../../utils'
+import { creditsToDuffs, getCoreTransactionExplorerUrl, getTransactionExplorerUrl } from '../../../utils'
 import { useCoreBalance, useCoreTransactions, useDashRate, useHideBalance, useWalletCapabilities, useWalletPlatformData } from '../../hooks'
 import type { TransactionRowItem } from '../../components/transactions'
 import type { NetworkType } from '../../../types'
@@ -14,7 +14,6 @@ import { NoWallets } from './NoWallets'
 import { Statistics } from './Statistics'
 import { TotalBalance } from './TotalBalance'
 import { newerTransaction } from '../transactions/types'
-import { creditsToDuffs } from './amount'
 import { useLastPlatformTransaction } from './useLastPlatformTransaction'
 
 // A row links out to the explorer of its own layer.

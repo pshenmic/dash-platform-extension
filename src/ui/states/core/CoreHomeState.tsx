@@ -38,7 +38,7 @@ function CoreHomeState (): React.JSX.Element {
         onToggleHide={toggleHide}
         onRefresh={handleRefresh}
       />
-      <ActionRow scope='core' />
+      <ActionRow scope='core' sendDisabled />
       <div className='flex flex-col gap-4'>
         <TransactionsList
           items={transactions}
