@@ -113,7 +113,7 @@ function PlatformTransferConfirmState (): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const extensionAPI = useExtensionAPI()
-  const { currentNetwork, setCurrentIdentity } = useOutletContext<OutletContext>()
+  const { currentNetwork } = useOutletContext<OutletContext>()
 
   const state = location.state as PlatformTransferConfirmLocationState | null
 
@@ -186,11 +186,9 @@ function PlatformTransferConfirmState (): React.JSX.Element {
         const response = await extensionAPI.withdrawShieldedToCore(toAddress, amountCredits, password)
         setTxHash(response.stHash)
       } else {
-        if (state.fromIdentity != null) {
-          await extensionAPI.switchIdentity(state.fromIdentity)
-          setCurrentIdentity(state.fromIdentity)
-        }
-        const response = await extensionAPI.identityCreditTransferToAddresses(toAddress, amountCredits, password)
+        // The sender identity is passed explicitly, so the wallet's selected
+        // identity stays untouched.
+        const response = await extensionAPI.identityCreditTransferToAddresses(toAddress, amountCredits, password, state.fromIdentity)
         setTxHash(response.stHash)
       }
     } catch (err) {
