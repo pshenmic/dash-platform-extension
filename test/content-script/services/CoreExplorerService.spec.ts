@@ -175,4 +175,108 @@ describe('CoreExplorerService', () => {
       await expect(service.getXpubSummary(XPUB, 'testnet')).rejects.toThrow('HTTP 500')
     })
   })
+
+  describe('getXpubAddresses', () => {
+    const page = (addresses: string[], total: number): unknown => ({
+      resultSet: addresses.map((address, index) => ({ address, branch: 0, index, used: false })),
+      pagination: { page: 1, limit: 100, total }
+    })
+
+    it('walks every page the explorer reports and posts the xpub in the body', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ status: 200, ok: true, json: async () => page(Array.from({ length: 100 }, (_, i) => `yA${i}`), 130) })
+        .mockResolvedValueOnce({ status: 200, ok: true, json: async () => page(Array.from({ length: 30 }, (_, i) => `yB${i}`), 130) })
+
+      const addresses = await service.getXpubAddresses('tpubXpub', 'testnet')
+
+      expect(addresses).toHaveLength(130)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(fetchMock.mock.calls[0][0]).toBe(`${testnetBase}/xpub/addresses`)
+      expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ xpub: 'tpubXpub', page: 2, limit: 100 })
+    })
+
+    it('stops on an empty page even when the total says otherwise', async () => {
+      mockResponse({ json: page([], 50) })
+
+      expect(await service.getXpubAddresses('tpubXpub', 'testnet')).toEqual([])
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('throws on a non-OK response', async () => {
+      mockResponse({ status: 400, json: {} })
+
+      await expect(service.getXpubAddresses('tpubXpub', 'testnet')).rejects.toThrow('HTTP 400')
+    })
+  })
+
+  describe('getXpubTransactions', () => {
+    // Trimmed from the explorer's real reply for testnet transaction 96a08147…
+    const confirmed = {
+      hash: '96a0814779b2f98cf43a8972e49c2d645bfcd7d2c6a91372f3108c17da83ebaa',
+      type: 'CLASSIC',
+      blockHeight: 1553518,
+      timestamp: '2026-09-14T09:42:38.000Z',
+      amount: '99998396',
+      vIn: [{ prevTxHash: 'e2'.repeat(32), vOutIndex: 0, address: 'yTSMr4iAQBQaafgQ6R6T1PmqZZttkmJdWY', amount: '99998622' }],
+      vOut: [
+        { value: 3000000, number: 0, address: 'yg9HuGtwizYXEGcqFUMUtmkLQCnzMqiXVa' },
+        { value: 96998396, number: 1, address: 'ych5Yv7zmCs1XeZxcpXXpgpJsU36D5v923' }
+      ],
+      confirmations: 1856,
+      instantLock: '0101',
+      chainLocked: true
+    }
+
+    it('parses transactions, output values given as numbers', async () => {
+      mockResponse({ json: { resultSet: [confirmed], pagination: { limit: 25, nextCursor: null } } })
+
+      const result = await service.getXpubTransactions('tpubXpub', 'testnet', 25)
+
+      expect(result).toEqual({
+        transactions: [{
+          hash: confirmed.hash,
+          type: 'CLASSIC',
+          blockHeight: 1553518,
+          timestamp: '2026-09-14T09:42:38.000Z',
+          confirmations: 1856,
+          instantLocked: true,
+          chainLocked: true,
+          inputs: [{ address: 'yTSMr4iAQBQaafgQ6R6T1PmqZZttkmJdWY', amount: 99998622n }],
+          outputs: [
+            { address: 'yg9HuGtwizYXEGcqFUMUtmkLQCnzMqiXVa', amount: 3000000n },
+            { address: 'ych5Yv7zmCs1XeZxcpXXpgpJsU36D5v923', amount: 96998396n }
+          ]
+        }],
+        nextCursor: null
+      })
+    })
+
+    it('reads a mempool transaction as unconfirmed and not yet locked', async () => {
+      const pending = { ...confirmed, blockHeight: null, timestamp: null, confirmations: null, instantLock: null, chainLocked: false }
+      mockResponse({ json: { resultSet: [pending], pagination: { limit: 25, nextCursor: null } } })
+
+      const [transaction] = (await service.getXpubTransactions('tpubXpub', 'testnet', 25)).transactions
+
+      expect(transaction).toMatchObject({ blockHeight: null, timestamp: null, confirmations: 0, instantLocked: false, chainLocked: false })
+    })
+
+    it('sends the cursor only when there is one, and returns the next one', async () => {
+      const cursor = 'c'.repeat(64)
+      mockResponse({ json: { resultSet: [], pagination: { limit: 10, nextCursor: cursor } } })
+
+      const first = await service.getXpubTransactions('tpubXpub', 'testnet', 10)
+      await service.getXpubTransactions('tpubXpub', 'testnet', 10, cursor)
+
+      expect(first.nextCursor).toBe(cursor)
+      expect(fetchMock.mock.calls[0][0]).toBe(`${testnetBase}/xpub/transactions`)
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ xpub: 'tpubXpub', limit: 10 })
+      expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ xpub: 'tpubXpub', limit: 10, cursor })
+    })
+
+    it('throws on a non-OK response, such as an unknown cursor', async () => {
+      mockResponse({ status: 400, json: { error: 'Unknown cursor transaction' } })
+
+      await expect(service.getXpubTransactions('tpubXpub', 'testnet', 25, 'd'.repeat(64))).rejects.toThrow('HTTP 400')
+    })
+  })
 })
