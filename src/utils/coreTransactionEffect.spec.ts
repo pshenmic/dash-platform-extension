@@ -1,4 +1,4 @@
-import { coreTransactionEffect } from './coreTransactions'
+import { coreTransactionEffect } from './coreTransactionEffect'
 import type { CoreTransactionData } from '../types/CoreExplorer'
 
 const OURS = 'yOurAddress0000000000000000000000'

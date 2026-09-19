@@ -44,6 +44,10 @@ export const CORE_EXPLORER_URLS = {
     explorer: 'https://dashscan.io'
   }
 }
+// Largest page the explorer serves for its /xpub list endpoints.
+export const CORE_EXPLORER_MAX_PAGE_LIMIT = 100
+// Transactions per page when the caller does not ask for a size (the explorer's own default).
+export const CORE_TRANSACTIONS_DEFAULT_LIMIT = 25
 
 // ── DIP-17 Platform payment addresses ────────────────────────────
 // Derived at m/9'/coin'/17'/account'/keyClass'/index; keyClass 0 = clear funds.
