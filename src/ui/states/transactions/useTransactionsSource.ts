@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import type { CoreExplorerClient, Identity, NetworkType, PlatformExplorerClient } from '../../../types'
+import type { Identity, NetworkType, PlatformExplorerClient } from '../../../types'
+import type { PrivateAPIClient } from '../../../types/PrivateAPIClient'
 import { createIdentitySource } from './sources/identitySource'
 import { createCoreSource } from './sources/coreSource'
 import { mergeSources } from './sources/mergeSources'
@@ -12,9 +13,7 @@ interface UseTransactionsSourceOptions {
   network: NetworkType | null
   walletId: string | null
   client: PlatformExplorerClient
-  coreClient: CoreExplorerClient
-  /** Null while the wallet's Core addresses are still loading. */
-  coreAddresses: string[] | null
+  extensionAPI: PrivateAPIClient
 }
 
 /**
@@ -28,11 +27,9 @@ export function useTransactionsSource ({
   network,
   walletId,
   client,
-  coreClient,
-  coreAddresses
+  extensionAPI
 }: UseTransactionsSourceOptions): TransactionsSource | null {
   const identifiers = identities.map(identity => identity.identifier).join(',')
-  const coreAddressList = coreAddresses?.join(',') ?? null
 
   return useMemo(() => {
     if (network == null) return null
@@ -44,13 +41,7 @@ export function useTransactionsSource ({
       walletId,
       identifiers: identifiers === '' ? [] : identifiers.split(',')
     })
-    const coreSource = (): TransactionsSource | null => {
-      if (coreAddressList == null) return null
-
-      const addresses = coreAddressList === '' ? [] : coreAddressList.split(',')
-
-      return createCoreSource(`core:${key}`, { client: coreClient, addresses, network })
-    }
+    const coreSource = (): TransactionsSource => createCoreSource(`core:${key}`, { extensionAPI })
     const platformSources = (): TransactionsSource[] => identifiers === ''
       ? []
       : identifiers.split(',').map(identifier => createIdentitySource({ client, identifier, network }))
@@ -66,10 +57,7 @@ export function useTransactionsSource ({
 
       if (scope === 'platform') return mergeSources(key, platformSources())
 
-      const core = coreSource()
-      if (core == null) return null
-
-      return mergeSources(key, [...platformSources(), core])
+      return mergeSources(key, [...platformSources(), coreSource()])
     }
 
     const built = build()
@@ -78,5 +66,5 @@ export function useTransactionsSource ({
     // full scope. Consumers reset their loaded pages on this key alone.
     return built == null ? null : { ...built, key }
     // Both clients are stable singletons, intentionally not in the key.
-  }, [scope, identityId, identifiers, network, walletId, client, coreClient, coreAddressList])
+  }, [scope, identityId, identifiers, network, walletId, client, extensionAPI])
 }

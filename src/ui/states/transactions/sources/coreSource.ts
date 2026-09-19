@@ -1,75 +1,43 @@
-import type { CoreExplorerClient, CoreTransactionData, NetworkType } from '../../../../types'
+import type { PrivateAPIClient } from '../../../../types/PrivateAPIClient'
 import { toCoreTransactionRowItem } from '../../../components/transactions'
 import type { TransactionRowItem } from '../../../components/transactions'
 import { TRANSACTIONS_PAGE_SIZE, type TransactionsSource } from '../types'
-import { mergeSources } from './mergeSources'
 
 interface CoreSourceOptions {
-  client: CoreExplorerClient
-  /** Every Core address of the wallet - it decides direction and amount of each row. */
-  addresses: string[]
-  network: NetworkType
+  extensionAPI: PrivateAPIClient
   pageSize?: number
 }
 
-interface CoreAddressSourceOptions extends Omit<CoreSourceOptions, 'addresses'> {
-  address: string
-  ownedAddresses: Set<string>
-}
-
-/** Paginated dashscan cursor for a single Core address. */
-function createCoreAddressSource ({
-  client,
-  address,
-  ownedAddresses,
-  network,
-  pageSize = TRANSACTIONS_PAGE_SIZE
-}: CoreAddressSourceOptions): TransactionsSource {
-  let page = 1
+/**
+ * Core transaction history for the whole wallet. The explorer lists it by the
+ * account xpub of the current wallet, so a single cursor covers every address
+ * the wallet derives and each row arrives with its direction already resolved.
+ */
+export function createCoreSource (
+  key: string,
+  { extensionAPI, pageSize = TRANSACTIONS_PAGE_SIZE }: CoreSourceOptions
+): TransactionsSource {
+  let cursor: string | undefined
   let hasMore = true
-  let total: number | null = null
 
   return {
-    key: `core:${network}:${address}`,
+    key,
     async loadMore (signal: AbortSignal) {
-      if (!hasMore) return { items: [], hasMore: false, total }
+      if (!hasMore) return { items: [], hasMore: false, total: null }
 
-      const currentPage = page
-      const response = await client.fetchAddressTransactionsPage(address, network, pageSize, currentPage, 'desc', signal)
-      const resultSet = response.resultSet ?? []
+      // The call goes over extension messaging, which cannot be aborted; a stale
+      // page is dropped instead.
+      const page = await extensionAPI.getCoreTransactions(pageSize, cursor)
 
-      // An empty index reports -1 rather than 0.
-      const reported = response.pagination?.total
-      total = reported != null && reported >= 0 ? reported : total
-      page += 1
-      hasMore = resultSet.length >= pageSize
+      if (signal.aborted) return { items: [], hasMore: true, total: null }
 
-      const items: TransactionRowItem[] = resultSet.map((transaction: CoreTransactionData, index) => {
-        const item = toCoreTransactionRowItem(transaction, ownedAddresses)
+      cursor = page.nextCursor ?? undefined
+      hasMore = page.nextCursor != null
 
-        // Hashless transactions would otherwise collide on the 'unknown' id.
-        if (transaction.hash == null || transaction.hash === '') {
-          return { ...item, id: `${address}:${currentPage}:${index}` }
-        }
+      const items: TransactionRowItem[] = page.transactions.map(toCoreTransactionRowItem)
 
-        return item
-      })
-
-      return { items, hasMore, total }
+      // The explorer reports no count for an xpub.
+      return { items, hasMore, total: null }
     }
   }
-}
-
-/**
- * Core transaction history for the whole wallet. dashscan indexes history per
- * address and has no per-xpub list, so every wallet address is its own cursor
- * and the merge drops the duplicates a transaction between two of them makes.
- */
-export function createCoreSource (key: string, { client, addresses, network, pageSize }: CoreSourceOptions): TransactionsSource {
-  const ownedAddresses = new Set(addresses)
-  const sources = addresses.map(address =>
-    createCoreAddressSource({ client, address, ownedAddresses, network, pageSize })
-  )
-
-  return mergeSources(key, sources, pageSize)
 }

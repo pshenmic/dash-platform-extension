@@ -1,5 +1,4 @@
 import type { StatusKey } from 'dash-ui-kit/react'
-import type { CoreTransactionData } from '../../../types'
 
 const STATUS_KEYS = new Set(['SUCCESS', 'FAIL', 'QUEUED', 'POOLED', 'BROADCASTED'])
 
@@ -12,8 +11,13 @@ export function toStatusKey (status: string | null | undefined): StatusKey | nul
   return STATUS_KEYS.has(upper) ? upper as StatusKey : null
 }
 
+interface CoreSettlement {
+  chainLocked: boolean | null
+  confirmations: number | null
+}
+
 /** Core reports no status, so settlement is read off the chain lock / confirmations. */
-export function coreStatusKey (transaction: CoreTransactionData): StatusKey {
+export function coreStatusKey (transaction: CoreSettlement): StatusKey {
   const settled = transaction.chainLocked === true || (transaction.confirmations ?? 0) > 0
 
   return settled ? 'SUCCESS' : 'QUEUED'

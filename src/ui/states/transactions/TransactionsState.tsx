@@ -4,8 +4,7 @@ import { Heading, Text } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { TransactionsFooter, TransactionsList } from '../../components/transactions'
 import {
-  useCoreAddresses,
-  useCoreExplorerClient,
+  useExtensionAPI,
   useHideBalance,
   useInfiniteTransactions,
   usePlatformExplorerClient
@@ -33,9 +32,8 @@ function TransactionsState (): React.JSX.Element {
   const [searchParams] = useSearchParams()
   const location = useLocation()
   const client = usePlatformExplorerClient()
-  const coreClient = useCoreExplorerClient()
+  const extensionAPI = useExtensionAPI()
   const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
-  const { addresses: coreAddresses } = useCoreAddresses(currentWallet)
 
   const scope = parseTransactionsScope(searchParams.get('scope'))
   const identityId = searchParams.get('id')
@@ -79,8 +77,7 @@ function TransactionsState (): React.JSX.Element {
     network: currentNetwork,
     walletId: currentWallet,
     client,
-    coreClient,
-    coreAddresses
+    extensionAPI
   })
 
   const { items, total, loading, loadingMore, error, loadMoreError, hasMore, loadMore, retry } =
