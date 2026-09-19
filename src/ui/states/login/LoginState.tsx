@@ -1,13 +1,15 @@
 import React, { useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PasswordField } from '../../components/forms'
+import { unlockSession } from '../../utils/lockSession'
 
 function LoginState (): React.JSX.Element {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const extensionAPI = useExtensionAPI()
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -32,10 +34,22 @@ function LoginState (): React.JSX.Element {
     try {
       const result = await extensionAPI.checkPassword(password)
       if (result.success) {
+        await unlockSession()
+
         const status = await extensionAPI.getStatus()
+
+        // Backfills xpubs for older wallets; login is the only place the password is in hand.
+        if (status.currentWalletId != null) {
+          await extensionAPI.initAccountXpubs(password)
+            .catch(e => console.log('initAccountXpubs error: ', e))
+        }
+
+        const returnTo = searchParams.get('returnTo')
 
         if (!status.hasAnyWallet) {
           void navigate('/welcome')
+        } else if (returnTo != null && returnTo !== '') {
+          void navigate(returnTo)
         } else {
           void navigate('/home')
         }
@@ -90,5 +104,6 @@ function LoginState (): React.JSX.Element {
 }
 
 export default withAccessControl(LoginState, {
-  requireWallet: false
+  requireWallet: false,
+  allowLocked: true
 })

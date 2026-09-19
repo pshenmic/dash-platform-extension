@@ -51,8 +51,8 @@ export default function formatBigNumber (input: bigint | string, precision: numb
     // Normal case: 1-3 digits depending on position in suffix range
     digitsBeforeDecimal = ((intPart.length - 1) % 3) + 1
   } else {
-    // Number is too large even for the last suffix - Show all excess digits
-    digitsBeforeDecimal = intPart.length - ((suffixes.length - 1) * 3 + 1) // How many digits beyond maximum Y range (25 digits)
+    // Past the last suffix: keep every digit beyond its own 3-digit window.
+    digitsBeforeDecimal = intPart.length - (suffixes.length - 1) * 3
   }
 
   const mainDigits = intPart.slice(0, digitsBeforeDecimal)

@@ -7,10 +7,11 @@ import { getPlatformAddressExplorerUrl } from '../../../utils'
 import type { NetworkType } from '../../../types'
 
 interface PlatformAddressesProps {
+  walletId?: string | null
   currentNetwork?: NetworkType | null
 }
 
-export const PlatformAddresses: React.FC<PlatformAddressesProps> = ({ currentNetwork }) => {
+export const PlatformAddresses: React.FC<PlatformAddressesProps> = ({ currentNetwork, walletId }) => {
   const {
     addresses,
     isLoading,
@@ -21,7 +22,7 @@ export const PlatformAddresses: React.FC<PlatformAddressesProps> = ({ currentNet
     generate,
     generateWithPassword,
     cancelPassword
-  } = usePlatformAddresses(currentNetwork)
+  } = usePlatformAddresses(currentNetwork, walletId)
 
   return (
     <div className='flex flex-col gap-4 pt-4'>

@@ -2,9 +2,19 @@ import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { type NameData } from '../ui/components/names'
 import type { NetworkType, PlatformExplorerClient } from '../types'
 
+const DPNS_TLD = '.dash'
+
 export const normalizeName = (name: string, sdk?: DashPlatformSDK): string => {
   const nameWithoutDash = name.replace(/\.dash$/, '')
   return sdk?.names.normalizeLabel(nameWithoutDash) ?? nameWithoutDash
+}
+
+export function splitDpns (name: string): { local: string, tld: string | null } {
+  if (!name.endsWith(DPNS_TLD)) {
+    return { local: name, tld: null }
+  }
+
+  return { local: name.slice(0, -DPNS_TLD.length), tld: DPNS_TLD }
 }
 
 export const fetchNames = async (
