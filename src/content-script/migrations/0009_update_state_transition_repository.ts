@@ -3,7 +3,6 @@ import {
   StateTransitionsStoreSchema,
   WalletStoreSchema
 } from '../storage/storageSchema'
-import { SCHEMA_VERSION } from '../../constants'
 
 // hash -> unsignedHash
 // + signedHash field
@@ -39,6 +38,6 @@ export default async function updateStateTransitionRepository (storageAdapter: S
       await storageAdapter.set(`stateTransitions_${wallet.network}_${wallet.walletId}`, stateTransitionsStoreSchema)
     }
 
-    await storageAdapter.set('schema_version', SCHEMA_VERSION)
+    await storageAdapter.set('schema_version', 9)
   }
 }
