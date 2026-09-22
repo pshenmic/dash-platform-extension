@@ -40,6 +40,14 @@ import { CreateStateTransitionHandler } from './private/stateTransitions/createS
 import { CreateIdentityPrivateKeyHandler } from './private/identities/createIdentityPrivateKey'
 import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFundingAddressesRepository'
 import { CoreExplorerService } from '../services/CoreExplorerService'
+import { IdentityFundingService } from '../services/IdentityFundingService'
+import { canConflictWithFunding, findConflictingFunding } from './fundingConflicts'
+import { PrepareIdentityFundingHandler } from './private/identities/prepareIdentityFunding'
+import { GetIdentityFundingSourcesHandler } from './private/identities/getIdentityFundingSources'
+import { GetIdentityFundingOperationsHandler } from './private/identities/getIdentityFundingOperations'
+import { CancelIdentityFundingHandler } from './private/identities/cancelIdentityFunding'
+import { RegisterIdentityFromCoreHandler } from './private/identities/registerIdentityFromCore'
+import { TopUpIdentityFromCoreHandler } from './private/identities/topUpIdentityFromCore'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
@@ -89,6 +97,8 @@ export class PrivateAPI {
     [key: string]: APIHandler
   }
 
+  identityFunding: IdentityFundingService
+
   async handleMessage (data: EventData): Promise<any> {
     const { method, payload } = data
 
@@ -104,7 +114,28 @@ export class PrivateAPI {
       throw new Error(`Invalid payload: ${validation}`)
     }
 
+    if (canConflictWithFunding(method)) {
+      await this.assertNoConflictingFunding(method)
+    }
+
     return await handler.handle(data)
+  }
+
+  // Refuses a request that would draw on what a pending identity funding
+  // operation of the selected wallet has reserved.
+  private async assertNoConflictingFunding (method: string): Promise<void> {
+    const wallet = await this.identityFunding.walletRepository.getCurrent()
+
+    if (wallet == null) {
+      return
+    }
+
+    const operations = await this.identityFunding.repository({ walletId: wallet.walletId, network: wallet.network }).getAll()
+    const conflicting = findConflictingFunding(method, operations)
+
+    if (conflicting != null) {
+      throw new Error(`Resume or cancel the pending ${conflicting.source} identity funding operation first`)
+    }
   }
 
   /**
@@ -122,6 +153,8 @@ export class PrivateAPI {
     const assetLockFundingAddressesRepository = new AssetLockFundingAddressesRepository(this.storageAdapter)
     const walletSettingsRepository = new WalletSettingsRepository(this.storageAdapter)
     const coreExplorer = new CoreExplorerService()
+    const identityFunding = new IdentityFundingService(walletRepository, this.sdk, this.coreSDK, coreExplorer)
+    this.identityFunding = identityFunding
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter, walletRepository),
@@ -177,6 +210,12 @@ export class PrivateAPI {
       [MessagingMethods.GET_CORE_RECEIVE_ADDRESS]: new GetCoreReceiveAddressHandler(walletRepository, coreExplorer, this.sdk),
       [MessagingMethods.LIST_CORE_ADDRESSES]: new ListCoreAddressesHandler(walletRepository, coreExplorer, this.sdk),
       [MessagingMethods.GET_CORE_BALANCE]: new GetCoreBalanceHandler(walletRepository, coreExplorer),
+      [MessagingMethods.PREPARE_IDENTITY_FUNDING]: new PrepareIdentityFundingHandler(walletRepository, identityFunding),
+      [MessagingMethods.GET_IDENTITY_FUNDING_SOURCES]: new GetIdentityFundingSourcesHandler(walletRepository, identityFunding),
+      [MessagingMethods.GET_IDENTITY_FUNDING_OPERATIONS]: new GetIdentityFundingOperationsHandler(identityFunding),
+      [MessagingMethods.CANCEL_IDENTITY_FUNDING]: new CancelIdentityFundingHandler(identityFunding),
+      [MessagingMethods.REGISTER_IDENTITY_FROM_CORE]: new RegisterIdentityFromCoreHandler(walletRepository, identityFunding),
+      [MessagingMethods.TOP_UP_IDENTITY_FROM_CORE]: new TopUpIdentityFromCoreHandler(walletRepository, identityFunding),
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk),

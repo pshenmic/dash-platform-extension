@@ -4,6 +4,11 @@ import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
 import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
+import { RepositoryScope } from './RepositoryScope'
+import { IdentityFundingOperation } from './IdentityFundingOperation'
+import { PrepareIdentityFundingPayload } from './messages/payloads/PrepareIdentityFundingPayload'
+import { ExecuteIdentityFundingPayload } from './messages/payloads/ExecuteIdentityFundingPayload'
+import { GetIdentityFundingSourcesResponse } from './messages/response/GetIdentityFundingSourcesResponse'
 import { InitAccountXpubsPayload } from './messages/payloads/InitAccountXpubsPayload'
 import { InitAccountXpubsResponse } from './messages/response/InitAccountXpubsResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
@@ -456,6 +461,35 @@ export class PrivateAPIClient {
     const payload: EmptyPayload = {}
 
     return await this._rpcCall(MessagingMethods.GET_CORE_BALANCE, payload)
+  }
+
+  // Quotes an identity registration or top-up paid from the wallet's own Core
+  // coins. Nothing is sent: confirm it with registerIdentityFromCore or
+  // topUpIdentityFromCore, or release it with cancelIdentityFunding.
+  async prepareIdentityFunding (payload: PrepareIdentityFundingPayload): Promise<IdentityFundingOperation> {
+    return await this._rpcCall(MessagingMethods.PREPARE_IDENTITY_FUNDING, payload)
+  }
+
+  async getIdentityFundingSources (scope: RepositoryScope): Promise<GetIdentityFundingSourcesResponse> {
+    return await this._rpcCall(MessagingMethods.GET_IDENTITY_FUNDING_SOURCES, scope)
+  }
+
+  // The wallet's funding operations, and unfinished legacy deposits that can still be resumed.
+  async getIdentityFundingOperations (scope: RepositoryScope): Promise<{ operations: IdentityFundingOperation[], legacy: Array<{ address: string, purpose: string, identityId?: string, assetLockTxid?: string }> }> {
+    return await this._rpcCall(MessagingMethods.GET_IDENTITY_FUNDING_OPERATIONS, scope)
+  }
+
+  async cancelIdentityFunding (scope: RepositoryScope, operationId: string): Promise<{ cancelled: boolean }> {
+    return await this._rpcCall(MessagingMethods.CANCEL_IDENTITY_FUNDING, { ...scope, operationId })
+  }
+
+  // Long timeout: these wait for the asset lock's InstantLock or ChainLock proof.
+  async registerIdentityFromCore (payload: ExecuteIdentityFundingPayload): Promise<IdentityFundingOperation> {
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY_FROM_CORE, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
+  async topUpIdentityFromCore (payload: ExecuteIdentityFundingPayload): Promise<IdentityFundingOperation> {
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_CORE, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
   async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {

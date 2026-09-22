@@ -175,4 +175,35 @@ describe('CoreExplorerService', () => {
       await expect(service.getXpubSummary(XPUB, 'testnet')).rejects.toThrow('HTTP 500')
     })
   })
+
+  describe('getXpubUtxos', () => {
+    const row = (i: number): unknown => ({ prevTxHash: String(i % 10).repeat(64), vOutIndex: i, address: `yAddr${i}`, amount: String(1000 + i) })
+    const page = (rows: unknown[], total: number): unknown => ({ resultSet: rows, pagination: { page: 1, limit: 100, total } })
+
+    it('walks every page and posts the xpub in the body', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ status: 200, ok: true, json: async () => page(Array.from({ length: 100 }, (_, i) => row(i)), 120) })
+        .mockResolvedValueOnce({ status: 200, ok: true, json: async () => page(Array.from({ length: 20 }, (_, i) => row(100 + i)), 120) })
+
+      const utxos = await service.getXpubUtxos('tpubXpub', 'testnet')
+
+      expect(utxos).toHaveLength(120)
+      expect(utxos[0]).toEqual({ address: 'yAddr0', txid: '0'.repeat(64), vout: 0, amount: 1000n })
+      expect(fetchMock.mock.calls[0][0]).toBe(`${testnetBase}/xpub/utxo`)
+      expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ xpub: 'tpubXpub', page: 2, limit: 100 })
+    })
+
+    it('stops on an empty page', async () => {
+      mockResponse({ json: page([], 5) })
+
+      expect(await service.getXpubUtxos('tpubXpub', 'testnet')).toEqual([])
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('throws on a non-OK response', async () => {
+      mockResponse({ status: 500, json: {} })
+
+      await expect(service.getXpubUtxos('tpubXpub', 'testnet')).rejects.toThrow('HTTP 500')
+    })
+  })
 })

@@ -243,7 +243,7 @@ export class WalletRepository {
   }
 
   async setCoreAccountXpub (account: number, xpub: string): Promise<void> {
-    const network = await this.storageAdapter.get('network') as string
+    const network = await this.getNetwork()
     const walletStoreSchema = await this.getCurrentStoreSchema()
     const storageKey = `wallet_${network}_${walletStoreSchema.walletId}`
 

@@ -30,13 +30,18 @@ export const waitForAssetLockProof = async (
   txid: string,
   subscription: ReturnType<DashCoreSDK['subscribeToTransactions']>,
   pollIntervalMs: number = LOCK_POLL_INTERVAL_MS,
-  timeoutMs: number = LOCK_TIMEOUT_MS
+  timeoutMs: number = LOCK_TIMEOUT_MS,
+  signal?: AbortSignal
 ): Promise<AssetLockProof> => {
   let settled = false
+  const iterator = subscription[Symbol.asyncIterator]()
 
   // Race 1: instant lock via subscription
   const instantLockRace = async (): Promise<AssetLockProof> => {
-    for await (const event of subscription) {
+    while (true) {
+      const next = await iterator.next()
+      if (next.done === true) throw new Error('Instant lock subscription ended without result')
+      const event = next.value
       if (settled) return await Promise.reject(new Error('cancelled'))
 
       if (event.event !== 'instantSendLockMessage') continue
@@ -52,8 +57,6 @@ export const waitForAssetLockProof = async (
 
       return utils.createAssetLockProof({ transaction: assetLockTx, instantLock, outputIndex: 0 }) as InstantAssetLockProofParams
     }
-
-    return await Promise.reject(new Error('Instant lock subscription ended without result'))
   }
 
   // Race 2: chain lock via polling
@@ -108,11 +111,25 @@ export const waitForAssetLockProof = async (
     ))
   }
 
-  const result = await Promise.race([
-    instantLockRace(),
-    chainLockRace()
-  ])
-
-  settled = true
-  return result
+  let onAbort: (() => void) | undefined
+  const aborted = new Promise<never>((resolve, reject) => {
+    onAbort = () => { reject(new Error('Asset lock proof wait cancelled')) }
+    if (signal?.aborted === true) onAbort()
+    else signal?.addEventListener('abort', onAbort, { once: true })
+  })
+  try {
+    return await Promise.race([
+      // Subscription failure must not disable chain-lock recovery. The polling
+      // branch still enforces a finite deadline if no InstantLock arrives.
+      instantLockRace().catch(async () => await new Promise<AssetLockProof>(() => {})),
+      chainLockRace(),
+      aborted
+    ])
+  } finally {
+    settled = true
+    if (onAbort != null) signal?.removeEventListener('abort', onAbort)
+    // Some SDK iterators wait for the next stream event before returning.
+    // Do not let their shutdown delay a confirmed result or a timeout.
+    void iterator.return?.().catch(() => {})
+  }
 }

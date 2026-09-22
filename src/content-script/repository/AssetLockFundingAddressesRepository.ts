@@ -110,6 +110,10 @@ export class AssetLockFundingAddressesRepository {
     return addresses[address] ?? null
   }
 
+  async getAll (): Promise<AssetLockFundingAddressSchema[]> {
+    return Object.values(await this.storageAdapter.get(await this.getStorageKey()) ?? {}) as AssetLockFundingAddressSchema[]
+  }
+
   // `identityId` narrows the result to addresses reserved for that identity.
   // Entries with no owner still match: they predate per-identity reservation, and
   // may already hold a deposit, so the caller reuses and claims them rather than
