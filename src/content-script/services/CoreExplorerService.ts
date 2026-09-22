@@ -26,6 +26,14 @@ export interface CoreAddressUtxo {
   amount: bigint
 }
 
+// An account output, with the address that received it.
+export interface CoreXpubUtxo extends CoreAddressUtxo {
+  address: string
+}
+
+// Largest page the explorer serves for its /xpub list endpoints.
+const XPUB_PAGE_LIMIT = 100
+
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
   return CORE_EXPLORER_URLS[network].api
 }
@@ -111,6 +119,40 @@ export class CoreExplorerService {
       nextUnused: {
         receiving: toCount(data.nextUnused?.receive),
         change: toCount(data.nextUnused?.change)
+      }
+    }
+  }
+
+  // Every confirmed output held by an address the xpub derives, in one walk over
+  // the explorer's pages instead of one request per address.
+  async getXpubUtxos (xpub: string, network: NetworkType = 'testnet'): Promise<CoreXpubUtxo[]> {
+    const baseUrl = getBaseUrl(network)
+    const utxos: CoreXpubUtxo[] = []
+
+    let fetched = 0
+    for (let page = 1; ; page++) {
+      const response = await fetch(`${baseUrl}/xpub/utxo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ xpub, page, limit: XPUB_PAGE_LIMIT })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Core explorer error for xpub utxo: HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      const rows: any[] = Array.isArray(data?.resultSet) ? data.resultSet : []
+
+      fetched += rows.length
+      for (const row of rows) {
+        if (typeof row.address === 'string' && typeof row.prevTxHash === 'string') {
+          utxos.push({ address: row.address, txid: row.prevTxHash, vout: toCount(row.vOutIndex), amount: toBigInt(row.amount) })
+        }
+      }
+
+      if (rows.length === 0 || fetched >= toCount(data?.pagination?.total)) {
+        return utxos
       }
     }
   }
