@@ -80,3 +80,15 @@ ext.runtime.onMessage.addListener((data: any, sender, sendResponse) => {
     .then(async () => await ext.runtime.sendMessage({ ...event, target: 'offscreen' }))
     .catch(e => console.error('Failed to route request to offscreen backend', e))
 })
+
+// Pre-warm the backend when the browser starts (or the extension is installed or
+// updated), so the WASM compile happens before the user clicks rather than on
+// the click. The offscreen document shares a renderer process — and therefore a
+// main thread — with the popup, so a compile that coincides with opening the
+// popup blocks the popup's first paint.
+chrome.runtime.onStartup.addListener(() => {
+  ensureOffscreen().catch(e => console.error('Failed to pre-warm offscreen backend', e))
+})
+chrome.runtime.onInstalled.addListener(() => {
+  ensureOffscreen().catch(e => console.error('Failed to pre-warm offscreen backend', e))
+})
