@@ -4,6 +4,7 @@ import { Button, Heading, Text, ValueCard } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import { PasswordGate } from '../../components/forms'
 import { TopUpBusyDialog } from '../../components/topup'
+import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 import { useHideBalance, useOpenTopUp, useWalletCapabilities } from '../../hooks'
 import type { OutletContext } from '../../types'
 import { parseReceiveScope, parseReceiveTargetType, receivePath } from '../../utils/receivePath'
@@ -142,7 +143,7 @@ function ReceiveState (): React.JSX.Element {
         </ValueCard>
       )}
 
-      {loading && selected == null && <Text size='sm' dim>Loading destinations…</Text>}
+      {loading && selected == null && <ScreenLoader className='min-h-[120px]' />}
 
       {!loading && selected == null && !needsShieldedPassword && !needsPlatformPassword && (
         <Text size='sm' dim>

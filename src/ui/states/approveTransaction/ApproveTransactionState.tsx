@@ -13,7 +13,7 @@ import { StateTransitionWASM } from 'dash-platform-sdk/types'
 import type { PurposeLike } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types'
-import LoadingScreen from '../../components/layout/screens/LoadingScreen'
+import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
 import { TransactionDetails } from './details'
@@ -211,9 +211,7 @@ function ApproveTransactionState (): React.JSX.Element {
 
   if (isCheckingWallet || isLoadingIdentities) {
     return (
-      <LoadingScreen
-        message={isCheckingWallet ? 'Checking wallet...' : 'Loading identities...'}
-      />
+      <ScreenLoader />
     )
   }
 
@@ -402,7 +400,7 @@ function ApproveTransactionState (): React.JSX.Element {
         />
 
         {/* Transaction details */}
-        {isLoadingTransaction && <Banner variant='info' message='Loading transaction...' />}
+        {isLoadingTransaction && <ScreenLoader className='min-h-[120px]' />}
         {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
         <Banner variant='error' message={transactionDecodeError} />
 

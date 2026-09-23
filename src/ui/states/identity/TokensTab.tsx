@@ -9,6 +9,7 @@ import {
   Text
 } from 'dash-ui-kit/react'
 import { PLATFORM_EXPLORER_URLS } from '../../../constants'
+import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 import type { NetworkType, TokenData } from '../../../types'
 import { fromBaseUnit, getTokenName } from '../../../utils'
 import { IconChip } from '../../components/common'
@@ -113,9 +114,7 @@ export function TokensTab ({ hide, network, loading, error, tokens, identityId }
           {loading ? '...' : tokens.length} Tokens
         </Text>
       </div>
-      {loading && (
-        <Text size='sm' dim>Loading tokens...</Text>
-      )}
+      {loading && <ScreenLoader className='min-h-[120px]' />}
       {!loading && error != null && error !== '' && (
         <Text size='sm' className='!text-red-500'>Error loading tokens: {error}</Text>
       )}

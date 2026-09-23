@@ -4,6 +4,7 @@ import { Text } from 'dash-ui-kit/react'
 
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { isSessionUnlocked } from '../../utils/lockSession'
+import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 
 export default function StartState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -54,11 +55,7 @@ export default function StartState (): React.JSX.Element {
           Dash Platform Extension
         </Text>
 
-        {isLoading && (
-          <Text color='blue'>
-            Loading...
-          </Text>
-        )}
+        {isLoading && <ScreenLoader className='min-h-0' />}
       </div>
       )
     : (

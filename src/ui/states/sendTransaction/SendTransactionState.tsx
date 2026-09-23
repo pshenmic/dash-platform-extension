@@ -10,7 +10,7 @@ import {
   useTransactionCalculations
 } from '../../hooks'
 import { RecipientSearchInput } from '../../components/Identities'
-import LoadingScreen from '../../components/layout/screens/LoadingScreen'
+import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 import type { TokenData } from '../../../types'
 import type { OutletContext } from '../../types'
 import { WalletType } from '../../../types'
@@ -379,7 +379,7 @@ function SendTransactionState (): React.JSX.Element {
   if (!tokensReady) {
     return (
       <div className='screen-content'>
-        <LoadingScreen />
+        <ScreenLoader />
       </div>
     )
   }

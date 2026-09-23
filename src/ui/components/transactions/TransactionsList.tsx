@@ -76,7 +76,6 @@ function TransactionsList ({
         error={error}
         isEmpty={isEmpty}
         variant='spaced'
-        loadingText='Loading transactions...'
         errorText={error != null && error !== '' ? `Error loading transactions: ${error}` : undefined}
         emptyText={emptyText}
       >

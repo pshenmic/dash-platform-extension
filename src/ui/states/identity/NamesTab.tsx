@@ -4,6 +4,7 @@ import { Button, PlusIcon, Text } from 'dash-ui-kit/react'
 import type { NameData } from '../../components/names'
 import StatusBadge from '../../components/names/StatusBadge'
 import { splitDpns } from '../../../utils'
+import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
 
@@ -67,9 +68,7 @@ export function NamesTab ({ loading, error, names }: NamesTabProps): React.JSX.E
           </Text>
         </Button>
       </div>
-      {loading && (
-        <Text size='sm' dim>Loading names...</Text>
-      )}
+      {loading && <ScreenLoader className='min-h-[120px]' />}
       {!loading && error != null && error !== '' && (
         <Text size='sm' className='!text-red-500'>Error loading names: {error}</Text>
       )}

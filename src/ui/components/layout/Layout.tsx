@@ -8,7 +8,7 @@ import { WalletAccountInfo } from '../../../types/messages/response/GetAllWallet
 import { GetStatusResponse } from '../../../types/messages/response/GetStatusResponse'
 import { NetworkType, Identity } from '../../../types'
 import type { HeaderConfigOverride } from '../../types'
-import LoadingScreen from './screens/LoadingScreen'
+import ScreenLoader from './screens/ScreenLoader'
 import { isTabView } from '../../utils/extensionTab'
 
 export interface LayoutContext {
@@ -235,7 +235,7 @@ const Layout: FC = () => {
             setHeaderConfigOverride
           }}
             />
-          : <LoadingScreen message='Initializing application...' />}
+          : <ScreenLoader />}
 
       </div>
     </ThemeProvider>
