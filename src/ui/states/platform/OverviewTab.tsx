@@ -8,8 +8,8 @@ import type { UseWalletPlatformDataResult } from '../../hooks'
 import { createIdentitySource } from '../transactions/sources/identitySource'
 import { mergeSources } from '../transactions/sources/mergeSources'
 import type { TransactionsSource } from '../transactions/types'
-import type { Identity, NetworkType } from '../../../types'
-import { getTransactionExplorerUrl } from '../../../utils'
+import type { Identity, NetworkType, TokenData } from '../../../types'
+import { countHeldTokens, getTransactionExplorerUrl } from '../../../utils'
 
 const PREVIEW_LIMIT = 3
 // Shown instead of a number whenever the value is unknown, never a made-up one.
@@ -46,7 +46,7 @@ export function OverviewTab ({ hide, identities, network, platformData, rate }: 
 
   const operations = useInfiniteTransactions(source)
 
-  // Token counter comes from the pagination envelope, the list itself is unused here.
+  // Distinct tokens with a positive balance across all identities.
   useEffect(() => {
     let cancelled = false
 
@@ -56,18 +56,15 @@ export function OverviewTab ({ hide, identities, network, platformData, rate }: 
     }
 
     const load = async (): Promise<void> => {
-      const totals = await Promise.all(identifiers.split(',').map(async (identifier) => {
-        const page = await platformExplorerClient
-          .fetchTokensPage(identifier, network, 1, 1)
-          .catch(() => null)
-
-        return page?.pagination?.total ?? null
-      }))
+      const lists = await Promise.all(identifiers.split(',').map(async identifier => await platformExplorerClient
+        .fetchAllTokens(identifier, network)
+        .catch(() => null)
+      ))
 
       if (cancelled) return
 
-      const known = totals.filter((total): total is number => total != null)
-      setTokenCount(known.length > 0 ? known.reduce((sum, total) => sum + total, 0) : null)
+      const known = lists.filter((list): list is TokenData[] => list != null)
+      setTokenCount(known.length > 0 ? countHeldTokens(known) : null)
     }
 
     void load().catch(e => console.log('load tokens count error', e))

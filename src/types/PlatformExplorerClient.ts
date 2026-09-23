@@ -10,6 +10,9 @@ import {
 import { PLATFORM_EXPLORER_URLS } from '../constants'
 import { buildIdentityTransactionsUrl } from '../utils/explorerUrls'
 
+// Largest tokens page the explorer serves.
+const TOKENS_PAGE_LIMIT = 100
+
 export {
   NetworkType,
   TransactionData,
@@ -111,6 +114,23 @@ export class PlatformExplorerClient {
     const data = await this.fetchTokensPage(identityId, network, limit, page)
 
     return data.resultSet
+  }
+
+  // Every identity token, walking all pages.
+  async fetchAllTokens (identityId: string, network: NetworkType = 'testnet', signal?: AbortSignal): Promise<TokenData[]> {
+    const tokens: TokenData[] = []
+
+    for (let page = 1; ; page++) {
+      const data = await this.fetchTokensPage(identityId, network, TOKENS_PAGE_LIMIT, page, signal)
+      tokens.push(...data.resultSet)
+
+      const isLastPage = data.resultSet.length < TOKENS_PAGE_LIMIT
+      const hasAllTokens = tokens.length >= data.pagination.total
+
+      if (isLastPage || hasAllTokens) {
+        return tokens
+      }
+    }
   }
 
   // Single page of identity tokens, pagination envelope included.
