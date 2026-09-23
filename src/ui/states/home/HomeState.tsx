@@ -112,12 +112,14 @@ function HomeState (): React.JSX.Element {
         coreLoading={coreLoading}
         platformLoading={platformLoading}
         showCore={hasCoreLayer}
-      />
-      <LastTransaction
-        loading={lastTransactionLoading}
-        transaction={lastTransaction}
-        explorerUrl={explorerUrlFor(lastTransaction, currentNetwork)}
-        layer={lastTransaction != null ? (lastTransaction.layer === 'core' ? 'Core' : 'Platform') : undefined}
+        lastTransaction={(
+          <LastTransaction
+            loading={lastTransactionLoading}
+            transaction={lastTransaction}
+            explorerUrl={explorerUrlFor(lastTransaction, currentNetwork)}
+            layer={lastTransaction != null ? (lastTransaction.layer === 'core' ? 'Core' : 'Platform') : undefined}
+          />
+        )}
       />
     </div>
   )

@@ -12,6 +12,8 @@ interface StatisticsProps {
   platformLoading: boolean
   /** False for wallets with no Core layer, whose hint names Platform only. */
   showCore?: boolean
+  /** Rendered at the top of the section, above the stat cards. */
+  lastTransaction?: React.ReactNode
 }
 
 export function Statistics ({
@@ -20,7 +22,8 @@ export function Statistics ({
   platformTxCount,
   coreLoading,
   platformLoading,
-  showCore = true
+  showCore = true,
+  lastTransaction
 }: StatisticsProps): React.JSX.Element {
   const loading = coreLoading || platformLoading
   // Counts the parts that already loaded, so the number grows instead of staying a dash.
@@ -51,6 +54,7 @@ export function Statistics ({
       <Text size='lg' weight='medium' className='!text-dash-primary-dark-blue/48 !tracking-[-0.03em]'>
         General Statistics
       </Text>
+      {lastTransaction}
       <div className='flex items-center gap-3 w-full'>
         <StatCard
           icon={<DocumentIcon size={12} className='!text-dash-brand' />}
