@@ -188,7 +188,7 @@ export function IdentitiesTab ({ hide, identities, platformData }: IdentitiesTab
         >
           <PlusIcon size={10} className='!text-dash-brand' />
           <Text weight='medium' className={`${headerTextClassName} !text-dash-brand`}>
-            {isSeedWallet ? 'Create Identity' : 'Import Identity'}
+            {isSeedWallet ? 'Register Identity' : 'Import Identity'}
           </Text>
         </Button>
       </div>
