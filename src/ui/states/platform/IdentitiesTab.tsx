@@ -80,8 +80,8 @@ function IdentityCard ({
           )}
         </div>
 
-        <div className='flex items-start gap-2'>
-          <Identifier highlight='both' className='!text-sm !leading-[1.2] flex-1'>
+        <div className='flex items-center gap-2'>
+          <Identifier linesAdjustment={false} highlight='both' className='!text-[0.625rem] !leading-[1.2] whitespace-nowrap overflow-hidden min-w-0 mr-auto'>
             {row.identifier}
           </Identifier>
           <ExplorerCopyChips value={row.identifier} explorerUrl={explorerUrl} copyLabel='Copy identifier' onStop={stop} />
