@@ -52,7 +52,7 @@ export default function StartState (): React.JSX.Element {
     ? (
       <div className='flex flex-col gap-4 items-center justify-center min-h-[200px]'>
         <Text size='xl' weight='bold'>
-          Dash Platform Extension
+          Dash Extension
         </Text>
 
         {isLoading && <ScreenLoader className='min-h-0' />}

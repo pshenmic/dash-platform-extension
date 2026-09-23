@@ -62,7 +62,7 @@ export const AboutScreen: React.FC<SettingsScreenProps> = () => {
       <div className='flex flex-col items-center text-center gap-2 py-4'>
         <DashLogo />
         <Text size='lg' weight='medium' className='text-dash-primary-dark-blue'>
-          Dash Platform Extension
+          Dash Extension
         </Text>
         <Text size='sm' dim className='text-dash-primary-dark-blue'>
           Version {getExtensionVersion()}
