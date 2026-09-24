@@ -9,6 +9,7 @@ import {
   Identifier,
   PlusIcon,
   Text,
+  Tooltip,
   ValueCard
 } from 'dash-ui-kit/react'
 import { IconChip } from '../../components/common'
@@ -18,7 +19,7 @@ import type { UsePlatformAddressesResult, UseShieldedAddressesResult } from '../
 import type { AddressData, ShieldedAddressData } from '../../components/addresses'
 import type { OutletContext } from '../../types/OutletContext'
 import type { NetworkType } from '../../../types'
-import { creditsToUsdEquivalent, getPlatformAddressExplorerUrl, toCreditsBigInt } from '../../../utils'
+import { creditsToDashDisplay, creditsToUsdEquivalent, getPlatformAddressExplorerUrl, toCreditsBigInt } from '../../../utils'
 
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
 const subTabClassName = 'flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg border-0 cursor-pointer'
@@ -80,48 +81,63 @@ function AddressRow ({
   fiat: string | null
   explorerUrl: string | null
 }): React.JSX.Element {
+  const creditsBigInt = toCreditsBigInt(credits)
+  const dashAmount = creditsBigInt != null ? creditsToDashDisplay(creditsBigInt) : null
+
+  const amount = (
+    <Text size='sm' weight='medium' className='!text-[0.875rem] !leading-[17px] !text-dash-primary-dark-blue whitespace-nowrap'>
+      {hide ? '••••••' : dashAmount != null ? <BigNumber>{dashAmount}</BigNumber> : '—'}{' '}
+      <Text as='span' size='sm' weight='medium' className='!text-[0.875rem] !leading-[17px] !text-dash-primary-dark-blue'>
+        Dash
+      </Text>
+    </Text>
+  )
+
   return (
-    <div className='flex items-center gap-[15px] p-3 rounded-[15px] bg-[rgba(12,28,51,0.04)]'>
-      <div className='flex items-center gap-2 min-w-0 flex-1'>
+    <div className='flex flex-col gap-2 p-3 rounded-[15px] bg-[rgba(12,28,51,0.04)]'>
+      <div className='flex items-center gap-2 min-w-0'>
         <div className='w-6 h-6 rounded-full overflow-hidden shrink-0 bg-[rgba(76,126,255,0.05)]'>
           <Avatar username={address} className='w-6 h-6' />
         </div>
-        <div className='flex flex-col justify-center gap-0.5 min-w-0'>
-          <div className='flex items-center gap-2 min-w-0'>
-            <Identifier
-              highlight='both'
-              middleEllipsis
-              edgeChars={5}
-              className='!text-sm !leading-[1.2]'
-            >
-              {address}
-            </Identifier>
-            <AddressActions address={address} explorerUrl={explorerUrl} />
-          </div>
-          <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/32'>
-            {metaLabel}:{' '}
-            <Text as='span' size='xs' weight='bold' className='!font-extrabold !text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/32'>
-              {loading ? '…' : metaValue}
-            </Text>
-          </Text>
-        </div>
+        <Identifier linesAdjustment={false} highlight='both' className='!text-[0.625rem] !leading-[1.2] min-w-0 mr-auto'>
+          {address}
+        </Identifier>
+        <AddressActions address={address} explorerUrl={explorerUrl} />
       </div>
-      <div className='flex flex-col items-end gap-[5px] shrink-0'>
-        {loading
-          ? <Text size='sm' dim>…</Text>
-          : (
-            <>
-              <Text size='sm' weight='medium' className='!text-[0.875rem] !leading-[17px] !text-dash-primary-dark-blue whitespace-nowrap'>
-                {hide ? '••••••' : credits != null ? <BigNumber>{credits}</BigNumber> : '—'}{' '}
-                <Text as='span' size='sm' weight='medium' className='!text-[0.875rem] !leading-[17px] !text-dash-primary-dark-blue'>
-                  Credits
+      <div className='flex items-end justify-between gap-2'>
+        <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/32'>
+          {metaLabel}:{' '}
+          <Text as='span' size='xs' weight='bold' className='!font-extrabold !text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/32'>
+            {loading ? '…' : metaValue}
+          </Text>
+        </Text>
+        <div className='flex flex-col items-end gap-[5px] shrink-0'>
+          {loading
+            ? <Text size='sm' dim>…</Text>
+            : (
+              <>
+                {credits != null && !hide
+                  ? (
+                    <Tooltip
+                      content={(
+                        <span className='inline-flex items-baseline gap-1 whitespace-nowrap text-dash-primary-dark-blue'>
+                          <span className='text-[0.875rem] font-medium'>
+                            <BigNumber>{credits}</BigNumber>
+                          </span>
+                          <span className='text-[0.625rem] font-medium text-dash-primary-dark-blue/64'>Credits</span>
+                        </span>
+                        )}
+                    >
+                      <span className='cursor-help'>{amount}</span>
+                    </Tooltip>
+                    )
+                  : amount}
+                <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-brand'>
+                  {hide ? '••••••' : fiat ?? '—'}
                 </Text>
-              </Text>
-              <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-brand'>
-                {hide ? '••••••' : fiat ?? '—'}
-              </Text>
-            </>
-            )}
+              </>
+              )}
+        </div>
       </div>
     </div>
   )
