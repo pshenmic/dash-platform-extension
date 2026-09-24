@@ -8,7 +8,7 @@ import { WalletType } from '../../../../types/WalletType'
 import { ShieldedAccountCache, ShieldedCachedNote } from '../../../../types/ShieldedCache'
 import { SyncShieldedCachePayload } from '../../../../types/messages/payloads/SyncShieldedCachePayload'
 import { ShieldedCacheEntry, SyncShieldedCacheResponse } from '../../../../types/messages/response/GetShieldedCacheResponse'
-import { emptyShieldedCache, shieldedCacheResponse, validateShieldedCacheAccount } from './shieldedCachePayload'
+import { emptyShieldedCache, shieldedCacheResponse, validateShieldedCacheAccount } from '../../../../utils'
 
 // Brings the shielded cache up to date with the pool, for every seedphrase
 // wallet by default. Meant to be called once right after the user unlocks: from
@@ -36,7 +36,7 @@ export class SyncShieldedCacheHandler implements APIHandler {
       return { wallets: [] }
     }
 
-    const poolTotal = await this.service.poolTotal()
+    const poolTotal = await this.service.getPoolTotal()
     const scanned = await Promise.all(wallets.map(async wallet => await this.scannedNotes(wallet, account, poolTotal)))
     // Rewound to a chunk boundary: Platform refuses a read that starts inside one.
     const behind = scanned.filter(offset => offset < poolTotal)
@@ -81,11 +81,11 @@ export class SyncShieldedCacheHandler implements APIHandler {
       const stored = await repository.get(account)
       const cache = stored != null && stored.scannedNotes <= poolTotal ? stored : emptyShieldedCache(account)
 
-      const seed = this.service.seed(wallet, password)
+      const seed = this.service.deriveSeed(wallet, password)
       const addressCount = await this.walletRepository
         .forScope({ walletId: wallet.walletId, network: wallet.network })
         .getShieldedAddressCount(account)
-      const addresses = this.service.addresses(wallet, password, account, addressCount)
+      const addresses = this.service.deriveAddresses(wallet, password, account, addressCount)
       const diversifierIndexByAddress = new Map(addresses.map(entry => [entry.address, entry.diversifierIndex]))
 
       // What this wallet has not trial-decrypted yet, out of the shared slice.

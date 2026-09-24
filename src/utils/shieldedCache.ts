@@ -1,5 +1,5 @@
-import { ShieldedAccountCache } from '../../../../types/ShieldedCache'
-import { ShieldedCacheEntry } from '../../../../types/messages/response/GetShieldedCacheResponse'
+import { ShieldedAccountCache } from '../types/ShieldedCache'
+import { ShieldedCacheEntry } from '../types/messages/response/GetShieldedCacheResponse'
 
 // An account with nothing cached yet: the shape callers get before the first
 // sync, so a UI never has to special-case a missing wallet.
