@@ -31,6 +31,7 @@ export type { CoreTransactionDirection, CoreTransactionEffect } from './coreTran
 export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
 export type { PlatformSourceCandidate } from './platformTransfer'
 export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, maxShieldedSpend } from './shieldedFee'
+export { emptyShieldedCache, shieldedCacheResponse, validateShieldedCacheAccount } from './shieldedCache'
 export type { ShieldedNoteSelection, ShieldedSpendEstimate } from './shieldedFee'
 
 export const hexToBytes = (hex: string): Uint8Array => {
