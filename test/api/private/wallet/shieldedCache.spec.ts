@@ -203,6 +203,20 @@ describe('shielded cache handlers', () => {
     expect(entry.scannedNotes).toBe(10_001)
   })
 
+  it('does not read the pool again when nothing was added to it', async () => {
+    pool = [{ owner: 'wallet1', value: 700n, address: 'orchard_wallet1_0', nullifier: 2 }]
+    await runSync()
+    sdk.shielded.getShieldedEncryptedNotes.mockClear()
+
+    const { wallets: [entry] } = await runSync()
+
+    expect(sdk.shielded.getShieldedEncryptedNotes).not.toHaveBeenCalled()
+    // Spending still has to be re-checked: that is a nullifier query, not a scan.
+    expect(getShieldedNullifierStatusesMock).toHaveBeenCalled()
+    expect(entry.balance).toBe('700')
+    expect(entry.scannedNotes).toBe(1)
+  })
+
   it('reads the pool once for every wallet, starting at the furthest behind', async () => {
     wallets = [wallet('wallet1'), wallet('wallet2'), wallet('keystore1', 'keystore')]
     pool = [{ owner: 'wallet1', value: 700n, address: 'orchard_wallet1_0', nullifier: 2 }]
