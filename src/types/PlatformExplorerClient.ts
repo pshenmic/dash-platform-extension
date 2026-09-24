@@ -8,6 +8,10 @@ import {
   AddressApiData
 } from './PlatformExplorer'
 import { PLATFORM_EXPLORER_URLS } from '../constants'
+import { buildIdentityTransactionsUrl } from '../utils/explorerUrls'
+
+// Largest tokens page the explorer serves.
+const TOKENS_PAGE_LIMIT = 100
 
 export {
   NetworkType,
@@ -17,7 +21,8 @@ export {
   TokenData,
   TokensResponse,
   AddressApiData,
-  ApiState
+  ApiState,
+  ApiPagination
 } from './PlatformExplorer'
 
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
@@ -64,7 +69,7 @@ export class PlatformExplorerClient {
 
   async fetchTransactions (identityId: string, network: NetworkType = 'testnet', order: 'desc' | 'asc' = 'desc'): Promise<TransactionData[]> {
     const baseUrl = getBaseUrl(network)
-    const response = await fetch(`${baseUrl}/identity/${identityId}/transactions?order=${order}`)
+    const response = await fetch(buildIdentityTransactionsUrl(baseUrl, identityId, { order }))
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -79,9 +84,66 @@ export class PlatformExplorerClient {
     return data.resultSet
   }
 
-  async fetchTokens (identityId: string, network: NetworkType = 'testnet', limit: number = 10, page: number = 1): Promise<TokenData[]> {
+  // Single page of identity transactions, pagination envelope included.
+  async fetchTransactionsPage (
+    identityId: string,
+    network: NetworkType = 'testnet',
+    limit: number = 10,
+    page: number = 1,
+    order: 'desc' | 'asc' = 'desc',
+    signal?: AbortSignal
+  ): Promise<TransactionsResponse> {
     const baseUrl = getBaseUrl(network)
-    const response = await fetch(`${baseUrl}/identity/${identityId}/tokens?limit=${limit}&page=${page}&order=desc`)
+    const url = buildIdentityTransactionsUrl(baseUrl, identityId, { limit, page, order })
+    const response = await fetch(url, { signal })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data: TransactionsResponse = await response.json()
+
+    if (data.error != null) {
+      throw new Error(data.error)
+    }
+
+    return data
+  }
+
+  async fetchTokens (identityId: string, network: NetworkType = 'testnet', limit: number = 10, page: number = 1): Promise<TokenData[]> {
+    const data = await this.fetchTokensPage(identityId, network, limit, page)
+
+    return data.resultSet
+  }
+
+  // Every identity token, walking all pages.
+  async fetchAllTokens (identityId: string, network: NetworkType = 'testnet', signal?: AbortSignal): Promise<TokenData[]> {
+    const tokens: TokenData[] = []
+
+    for (let page = 1; ; page++) {
+      const data = await this.fetchTokensPage(identityId, network, TOKENS_PAGE_LIMIT, page, signal)
+      tokens.push(...data.resultSet)
+
+      const isLastPage = data.resultSet.length < TOKENS_PAGE_LIMIT
+      const hasAllTokens = tokens.length >= data.pagination.total
+
+      if (isLastPage || hasAllTokens) {
+        return tokens
+      }
+    }
+  }
+
+  // Single page of identity tokens, pagination envelope included.
+  async fetchTokensPage (
+    identityId: string,
+    network: NetworkType = 'testnet',
+    limit: number = 10,
+    page: number = 1,
+    signal?: AbortSignal
+  ): Promise<TokensResponse> {
+    const baseUrl = getBaseUrl(network)
+    const url = `${baseUrl}/identity/${identityId}/tokens?limit=${limit}&page=${page}&order=desc`
+    const response = await fetch(url, { signal })
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -93,7 +155,7 @@ export class PlatformExplorerClient {
       throw new Error(data.error)
     }
 
-    return data.resultSet
+    return data
   }
 
   async fetchNames (identityId: string, network: NetworkType = 'testnet'): Promise<any[]> {

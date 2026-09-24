@@ -1,6 +1,6 @@
 import React from 'react'
 import { useAccessControl, type AccessControlConfig } from '../../hooks/useAccessControl'
-import LoadingScreen from '../layout/screens/LoadingScreen'
+import ScreenLoader from '../layout/screens/ScreenLoader'
 import { Text } from 'dash-ui-kit/react'
 
 export function withAccessControl<T extends object> (
@@ -11,7 +11,7 @@ export function withAccessControl<T extends object> (
     const { isLoading, isAuthenticated, error } = useAccessControl(config)
 
     if (isLoading) {
-      return <LoadingScreen message='Checking authentication...' />
+      return <ScreenLoader />
     }
 
     if (error != null) {
@@ -28,7 +28,7 @@ export function withAccessControl<T extends object> (
     }
 
     if (!isAuthenticated) {
-      return <LoadingScreen message='Redirecting...' />
+      return <ScreenLoader />
     }
 
     return <Component {...props} />

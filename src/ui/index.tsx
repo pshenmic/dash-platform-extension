@@ -2,7 +2,7 @@ import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import './styles/app.pcss'
-import LoadingScreen from './components/layout/screens/LoadingScreen'
+import ScreenLoader from './components/layout/screens/ScreenLoader'
 import { loadSdk } from '../utils/sdkLoader'
 import Layout from './components/layout/Layout'
 import PageWithHeader from './components/layout/PageWithHeader'
@@ -28,6 +28,11 @@ const CreateSeedWalletState = React.lazy(async () => await import('./states/wall
 const IdentityRegistrationState = React.lazy(async () => await import('./states/identityRegistration/IdentityRegistrationState'))
 const TopUpIdentityState = React.lazy(async () => await import('./states/topup/TopUpIdentityState'))
 const PlatformTransferConfirmState = React.lazy(async () => await import('./states/platformTransfer/PlatformTransferConfirmState'))
+const CoreHomeState = React.lazy(async () => await import('./states/core/CoreHomeState'))
+const PlatformHomeState = React.lazy(async () => await import('./states/platform/PlatformHomeState'))
+const IdentityHomeState = React.lazy(async () => await import('./states/identity/IdentityHomeState'))
+const ReceiveState = React.lazy(async () => await import('./states/receive/ReceiveState'))
+const TransactionsState = React.lazy(async () => await import('./states/transactions/TransactionsState'))
 
 const App: React.FC = function () {
   const router = createHashRouter([
@@ -37,7 +42,7 @@ const App: React.FC = function () {
         {
           index: true,
           path: '/',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><StartState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><StartState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'minimal'
@@ -46,7 +51,7 @@ const App: React.FC = function () {
         },
         {
           path: '/choose-wallet-type',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ChooseWalletType /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><ChooseWalletType /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'chooseWalletType'
@@ -55,7 +60,7 @@ const App: React.FC = function () {
         },
         {
           path: '/welcome',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><WelcomeState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><WelcomeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'welcome'
@@ -64,7 +69,7 @@ const App: React.FC = function () {
         },
         {
           path: '/import-seed-phrase',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ImportSeedPhrase /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><ImportSeedPhrase /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -73,7 +78,7 @@ const App: React.FC = function () {
         },
         {
           path: '/create-seed-wallet',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><CreateSeedWalletState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><CreateSeedWalletState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -82,16 +87,61 @@ const App: React.FC = function () {
         },
         {
           path: '/home',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><HomeState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader showGrid><Suspense fallback={<ScreenLoader />}><HomeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'main'
+              variant: 'dashboard'
+            }
+          }
+        },
+        {
+          path: '/platform',
+          element: <PageWithHeader showGrid><Suspense fallback={<ScreenLoader />}><PlatformHomeState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'platform'
+            }
+          }
+        },
+        {
+          path: '/identity/:identifier',
+          element: <PageWithHeader showGrid><Suspense fallback={<ScreenLoader />}><IdentityHomeState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'identity'
+            }
+          }
+        },
+        {
+          path: '/core',
+          element: <PageWithHeader showGrid><Suspense fallback={<ScreenLoader />}><CoreHomeState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'core'
+            }
+          }
+        },
+        {
+          path: '/transactions',
+          element: <PageWithHeader showGrid><Suspense fallback={<ScreenLoader />}><TransactionsState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'transactions'
+            }
+          }
+        },
+        {
+          path: '/receive',
+          element: <PageWithHeader showGrid><Suspense fallback={<ScreenLoader />}><ReceiveState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'receive'
             }
           }
         },
         {
           path: '/setup-password',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><SetupPasswordState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><SetupPasswordState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'onboarding'
@@ -100,7 +150,7 @@ const App: React.FC = function () {
         },
         {
           path: '/login',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><LoginState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><LoginState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'landing'
@@ -109,7 +159,7 @@ const App: React.FC = function () {
         },
         {
           path: '/create-wallet',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><CreateWalletState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><CreateWalletState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'simple'
@@ -118,7 +168,7 @@ const App: React.FC = function () {
         },
         {
           path: '/import-regular-identity',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ImportRegularState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><ImportRegularState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -127,7 +177,7 @@ const App: React.FC = function () {
         },
         {
           path: '/import-masternode-identity',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ImportMasternodeState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><ImportMasternodeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -136,7 +186,7 @@ const App: React.FC = function () {
         },
         {
           path: '/select-import-type',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><SelectImportTypesState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><SelectImportTypesState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'seedImport'
@@ -145,7 +195,7 @@ const App: React.FC = function () {
         },
         {
           path: '/approve/:txhash',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><ApproveTransactionState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><ApproveTransactionState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'transaction'
@@ -154,7 +204,7 @@ const App: React.FC = function () {
         },
         {
           path: '/connect/:id',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><AppConnectState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><AppConnectState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'simple'
@@ -163,7 +213,7 @@ const App: React.FC = function () {
         },
         {
           path: '/wallet-created',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><WalletSuccessfullyCreated /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><WalletSuccessfullyCreated /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'minimal'
@@ -172,7 +222,7 @@ const App: React.FC = function () {
         },
         {
           path: '/name-registration',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><NameRegistrationState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><NameRegistrationState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'simple'
@@ -181,7 +231,7 @@ const App: React.FC = function () {
         },
         {
           path: '/register-identity',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><IdentityRegistrationState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><IdentityRegistrationState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'identityRegistration'
@@ -190,7 +240,7 @@ const App: React.FC = function () {
         },
         {
           path: '/topup-identity',
-          element: <PageWithHeader><TopUpIdentityState /></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><TopUpIdentityState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'topupIdentity'
@@ -199,7 +249,7 @@ const App: React.FC = function () {
         },
         {
           path: '/send-transaction',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><SendTransactionState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><SendTransactionState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'sendTransaction'
@@ -208,7 +258,7 @@ const App: React.FC = function () {
         },
         {
           path: '/platform-transfer-confirm',
-          element: <PageWithHeader><Suspense fallback={<LoadingScreen />}><PlatformTransferConfirmState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><PlatformTransferConfirmState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'sendTransaction'
@@ -232,12 +282,6 @@ const rootDiv = ReactDOM.createRoot(root)
 rootDiv.render(
   <App />
 )
-
-// Hide initial HTML loader after React is ready
-const initialLoader = document.getElementById('initial-loader')
-if (initialLoader != null) {
-  initialLoader.classList.add('hidden')
-}
 
 // Load SDK in background - non-blocking
 loadSdk()

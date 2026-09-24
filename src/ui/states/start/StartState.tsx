@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Text } from 'dash-ui-kit/react'
 
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { isSessionUnlocked } from '../../utils/lockSession'
+import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 
 export default function StartState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -27,6 +29,12 @@ export default function StartState (): React.JSX.Element {
           return
         }
 
+        if (!await isSessionUnlocked()) {
+          // Session expired or browser restarted - ask for the password again
+          void navigate('/login')
+          return
+        }
+
         void navigate('/home')
       } catch (err) {
         setError('Failed to check status: ' + String(err))
@@ -44,14 +52,10 @@ export default function StartState (): React.JSX.Element {
     ? (
       <div className='flex flex-col gap-4 items-center justify-center min-h-[200px]'>
         <Text size='xl' weight='bold'>
-          Dash Platform Extension
+          Dash Extension
         </Text>
 
-        {isLoading && (
-          <Text color='blue'>
-            Loading...
-          </Text>
-        )}
+        {isLoading && <ScreenLoader className='min-h-0' />}
       </div>
       )
     : (

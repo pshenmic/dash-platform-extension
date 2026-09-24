@@ -53,7 +53,10 @@ const buildRows = (
 }
 
 // Owns the shielded addresses list, its balance and the generation flow.
-export function useShieldedAddresses (currentNetwork?: NetworkType | null): UseShieldedAddressesResult {
+export function useShieldedAddresses (
+  currentNetwork?: NetworkType | null,
+  walletId?: string | null
+): UseShieldedAddressesResult {
   const extensionAPI = useExtensionAPI()
   const platformExplorerClient = usePlatformExplorerClient()
   const [addresses, setAddresses] = useState<ShieldedAddressList>([])
@@ -64,6 +67,17 @@ export function useShieldedAddresses (currentNetwork?: NetworkType | null): UseS
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [rate, setRate] = useState<number | null>(null)
+
+  // Shielded data is per wallet and unlocked by password, so on a wallet or
+  // network switch it is dropped rather than refetched - otherwise the previous
+  // wallet's addresses stay on screen.
+  useEffect(() => {
+    setAddresses([])
+    setBalance(null)
+    setBalanceUnavailable(false)
+    setHasLoaded(false)
+    setError(null)
+  }, [currentNetwork, walletId])
 
   // Fetch USD rate per Dash
   useEffect(() => {

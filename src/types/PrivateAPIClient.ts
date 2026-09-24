@@ -4,6 +4,8 @@ import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
 import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
+import { GetCoreTransactionsPayload } from './messages/payloads/GetCoreTransactionsPayload'
+import { GetCoreTransactionsResponse } from './messages/response/GetCoreTransactionsResponse'
 import { InitAccountXpubsPayload } from './messages/payloads/InitAccountXpubsPayload'
 import { InitAccountXpubsResponse } from './messages/response/InitAccountXpubsResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
@@ -458,6 +460,14 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.GET_CORE_BALANCE, payload)
   }
 
+  // The wallet's Core (L1) transactions by account xpub, newest first, one page at
+  // a time. Pass the returned nextCursor to get the next page; it is null on the last.
+  async getCoreTransactions (limit?: number, cursor?: string): Promise<GetCoreTransactionsResponse> {
+    const payload: GetCoreTransactionsPayload = { limit, cursor }
+
+    return await this._rpcCall(MessagingMethods.GET_CORE_TRANSACTIONS, payload)
+  }
+
   async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
     const payload: GeneratePlatformAddressesPayload = { password, count }
 
@@ -488,8 +498,8 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SEND_PLATFORM_TRANSFER, payload)
   }
 
-  async identityCreditTransferToAddresses (toAddress: string, amountCredits: string, password: string): Promise<IdentityCreditTransferToAddressesResponse> {
-    const payload: IdentityCreditTransferToAddressesPayload = { toAddress, amountCredits, password }
+  async identityCreditTransferToAddresses (toAddress: string, amountCredits: string, password: string, fromIdentity?: string): Promise<IdentityCreditTransferToAddressesResponse> {
+    const payload: IdentityCreditTransferToAddressesPayload = { toAddress, amountCredits, password, fromIdentity }
 
     return await this._rpcCall(MessagingMethods.IDENTITY_CREDIT_TRANSFER_TO_ADDRESSES, payload)
   }

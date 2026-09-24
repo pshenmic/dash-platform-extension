@@ -12,7 +12,7 @@ function WelcomeState (): React.JSX.Element {
       <div className='flex flex-col items-center text-center mb-3'>
         <div className='mb-8'>
           <TitleBlock
-            title={<><span className='!font-normal'>Welcome to</span> Dash Platform Extension</>}
+            title={<><span className='!font-normal'>Welcome to</span> Dash Extension</>}
             description='Enjoy all the benefits of Dash Platform in your browser'
             centered
             titleClassName='font-extrabold leading-tight'

@@ -71,6 +71,8 @@ function PlatformAddressOptionContent ({ address, balance }: {
 }
 
 export interface SenderSelectorProps {
+  /** Off for keystore wallets, which can only ever spend from an identity. */
+  showSenderTypes: boolean
   senderType: SenderType
   onSenderTypeChange: (type: SenderType) => void
   availableIdentities: Identity[]
@@ -98,10 +100,12 @@ const SELECTED_SENDER_BUTTON_CLASS =
   'disabled:!opacity-100 disabled:!bg-dash-brand disabled:!text-white disabled:hover:!bg-dash-brand disabled:hover:!cursor-default'
 
 /**
- * Sender picker for the platform credit flow: choose between spending from an
- * identity or from a platform address, then pick the specific source.
+ * Sender picker for the credit flow: choose between spending from an identity
+ * or from a platform address, then pick the specific source. Without the
+ * address layers it collapses to the identity picker alone.
  */
 export function SenderSelector ({
+  showSenderTypes,
   senderType,
   onSenderTypeChange,
   availableIdentities,
@@ -123,25 +127,27 @@ export function SenderSelector ({
         Send from
       </Text>
 
-      <div className='flex flex-wrap gap-2'>
-        {SENDER_TYPES.map(option => {
-          const isSelected = senderType === option.id
+      {showSenderTypes && (
+        <div className='flex flex-wrap gap-2'>
+          {SENDER_TYPES.map(option => {
+            const isSelected = senderType === option.id
 
-          return (
-            <Button
-              key={option.id}
-              type='button'
-              size='sm'
-              colorScheme={isSelected ? 'lightBlue' : 'lightGray'}
-              disabled={isSelected}
-              className={`flex-auto whitespace-nowrap !normal-case ${isSelected ? SELECTED_SENDER_BUTTON_CLASS : ''}`}
-              onClick={() => onSenderTypeChange(option.id)}
-            >
-              {option.label}
-            </Button>
-          )
-        })}
-      </div>
+            return (
+              <Button
+                key={option.id}
+                type='button'
+                size='sm'
+                colorScheme={isSelected ? 'lightBlue' : 'lightGray'}
+                disabled={isSelected}
+                className={`flex-auto whitespace-nowrap !normal-case ${isSelected ? SELECTED_SENDER_BUTTON_CLASS : ''}`}
+                onClick={() => onSenderTypeChange(option.id)}
+              >
+                {option.label}
+              </Button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Sender detail */}
       {senderType === 'shielded'
