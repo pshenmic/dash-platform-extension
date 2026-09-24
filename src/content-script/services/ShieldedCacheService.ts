@@ -28,7 +28,7 @@ export class ShieldedCacheService {
   }
 
   // Number of notes (commitment-tree leaves) the pool holds right now.
-  async poolTotal (): Promise<number> {
+  async getPoolTotal (): Promise<number> {
     return Number(await this.sdk.shielded.getShieldedNotesCount() ?? 0n)
   }
 
@@ -102,13 +102,13 @@ export class ShieldedCacheService {
     return notes.map(note => note.isSpent || !spent.has(note.nullifier) ? note : { ...note, isSpent: true })
   }
 
-  seed (wallet: Wallet, password: string): Uint8Array {
+  deriveSeed (wallet: Wallet, password: string): Uint8Array {
     return this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
   }
 
   // The wallet's generated diversified addresses, used both to label notes and
   // to serve the cached address list to callers without a password.
-  addresses (wallet: Wallet, password: string, account: number, count: number): ShieldedCachedAddress[] {
+  deriveAddresses (wallet: Wallet, password: string, account: number, count: number): ShieldedCachedAddress[] {
     if (count === 0) {
       return []
     }

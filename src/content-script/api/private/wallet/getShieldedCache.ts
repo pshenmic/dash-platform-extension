@@ -4,7 +4,7 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { ShieldedCacheService } from '../../../services/ShieldedCacheService'
 import { GetShieldedCachePayload } from '../../../../types/messages/payloads/GetShieldedCachePayload'
 import { GetShieldedCacheResponse } from '../../../../types/messages/response/GetShieldedCacheResponse'
-import { emptyShieldedCache, shieldedCacheResponse, validateShieldedCacheAccount } from './shieldedCachePayload'
+import { emptyShieldedCache, shieldedCacheResponse, validateShieldedCacheAccount } from '../../../../utils'
 
 // Serves what SYNC_SHIELDED_CACHE last recovered. Needs no password and makes no
 // network call: everything comes from storage, which is what lets the UI show

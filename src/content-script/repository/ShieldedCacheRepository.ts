@@ -51,7 +51,7 @@ export class ShieldedCacheRepository {
   // Serializes syncs of one wallet against each other. The backend runs in a
   // single offscreen document, but the popup and a background refresh can ask
   // for the same wallet at once, and both would rescan the same pool notes.
-  async withLock<T>(callback: () => Promise<T>): Promise<T> {
+  async withLock<T> (callback: () => Promise<T>): Promise<T> {
     const storageKey = await this.getStorageKey()
 
     if (typeof navigator === 'undefined' || navigator.locks == null) {
