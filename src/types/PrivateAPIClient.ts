@@ -20,6 +20,9 @@ import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddr
 import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
 import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
 import { GetShieldedBalanceResponse } from './messages/response/GetShieldedBalanceResponse'
+import { SyncShieldedCachePayload } from './messages/payloads/SyncShieldedCachePayload'
+import { GetShieldedCachePayload } from './messages/payloads/GetShieldedCachePayload'
+import { GetShieldedCacheResponse, SyncShieldedCacheResponse } from './messages/response/GetShieldedCacheResponse'
 import { EstimateShieldedFeePayload } from './messages/payloads/EstimateShieldedFeePayload'
 import { EstimateShieldedFeeResponse } from './messages/response/EstimateShieldedFeeResponse'
 import { ShieldedSpendKind } from './ShieldedSpendKind'
@@ -543,6 +546,24 @@ export class PrivateAPIClient {
     const payload: GetShieldedBalancePayload = { password, account }
 
     return await this._rpcCall(MessagingMethods.GET_SHIELDED_BALANCE, payload)
+  }
+
+  // Rescans the shielded pool for what this wallet owns and stores it, so the
+  // balance, addresses and notes can be read afterwards without the password.
+  // Covers every seedphrase wallet unless one is named. Long: the first sync
+  // trial-decrypts the whole pool.
+  async syncShieldedCache (password: string, account?: number, walletId?: string): Promise<SyncShieldedCacheResponse> {
+    const payload: SyncShieldedCachePayload = { password, account, walletId }
+
+    return await this._rpcCall(MessagingMethods.SYNC_SHIELDED_CACHE, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  // The shielded state left by the last syncShieldedCache. No password, no
+  // network call — an account never synced comes back empty with updatedAt null.
+  async getShieldedCache (account?: number, walletId?: string): Promise<GetShieldedCacheResponse> {
+    const payload: GetShieldedCachePayload = { account, walletId }
+
+    return await this._rpcCall(MessagingMethods.GET_SHIELDED_CACHE, payload)
   }
 
   // Estimates a shielded spend's fee before sending it, and the largest amount one
