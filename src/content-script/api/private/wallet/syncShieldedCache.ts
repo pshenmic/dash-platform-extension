@@ -39,10 +39,12 @@ export class SyncShieldedCacheHandler implements APIHandler {
     const poolTotal = await this.service.poolTotal()
     const scanned = await Promise.all(wallets.map(async wallet => await this.scannedNotes(wallet, account, poolTotal)))
     // Rewound to a chunk boundary: Platform refuses a read that starts inside one.
-    const from = this.service.chunkStart(Math.min(...scanned))
+    const behind = scanned.filter(offset => offset < poolTotal)
+    const from = behind.length > 0 ? this.service.chunkStart(Math.min(...behind)) : 0
     // One pass over the pool for every wallet: each of them slices out the part
-    // it has not seen.
-    const notes = poolTotal > from ? await this.service.fetchNotesFrom(from, poolTotal) : []
+    // it has not seen. When every wallet is already at the end of the pool there
+    // is nothing to read, and the sync only re-checks what has been spent.
+    const notes = behind.length > 0 ? await this.service.fetchNotesFrom(from, poolTotal) : []
 
     const entries: Array<ShieldedCacheEntry & { error?: string }> = []
 
