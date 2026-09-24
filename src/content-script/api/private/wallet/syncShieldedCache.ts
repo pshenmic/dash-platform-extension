@@ -38,7 +38,8 @@ export class SyncShieldedCacheHandler implements APIHandler {
 
     const poolTotal = await this.service.poolTotal()
     const scanned = await Promise.all(wallets.map(async wallet => await this.scannedNotes(wallet, account, poolTotal)))
-    const from = Math.min(...scanned)
+    // Rewound to a chunk boundary: Platform refuses a read that starts inside one.
+    const from = this.service.chunkStart(Math.min(...scanned))
     // One pass over the pool for every wallet: each of them slices out the part
     // it has not seen.
     const notes = poolTotal > from ? await this.service.fetchNotesFrom(from, poolTotal) : []

@@ -32,8 +32,19 @@ export class ShieldedCacheService {
     return Number(await this.sdk.shielded.getShieldedNotesCount() ?? 0n)
   }
 
+  // Where a scan that has seen `scanned` notes may start reading. Platform serves
+  // the pool in chunks the size of a full query and refuses a start inside one
+  // ("start_index is not chunk-aligned; must be a multiple of max_elements"), so
+  // the offset rewinds to its chunk boundary. The notes between the boundary and
+  // `scanned` are read again; the caller skips them instead of decrypting them
+  // twice, which is where the cost is.
+  chunkStart (scanned: number): number {
+    return Math.floor(scanned / SHIELDED_NOTES_PAGE_SIZE) * SHIELDED_NOTES_PAGE_SIZE
+  }
+
   // Pages the pool from `start` to its end, preserving global leaf order so a
   // note's position in the returned array plus `start` is its leaf position.
+  // `start` must be a chunk boundary — see `chunkStart`.
   async fetchNotesFrom (start: number, total: number): Promise<ShieldedEncryptedNote[]> {
     const notes: ShieldedEncryptedNote[] = []
 

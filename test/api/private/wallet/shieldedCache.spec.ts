@@ -177,10 +177,30 @@ describe('shielded cache handlers', () => {
 
     const { wallets: [entry] } = await runSync()
 
-    expect(sdk.shielded.getShieldedEncryptedNotes.mock.calls[0][0]).toBe(1n)
+    // Notes already scanned are read again, because the chunk holding the offset
+    // is re-read, but they are neither trial-decrypted nor stored twice.
     expect(entry.notes.map((note: any) => note.index)).toEqual([0, 2])
     expect(entry.balance).toBe('1000')
     expect(entry.scannedNotes).toBe(3)
+  })
+
+  // Platform serves whole chunks and rejects a read that starts inside one, so a
+  // resumed scan rewinds to the chunk boundary below its offset.
+  it('resumes reading at a chunk boundary', async () => {
+    const filler = (index: number): PoolNote => ({ owner: 'other', value: 1n, address: 'orchard_other_0', nullifier: 100 + index })
+    pool = Array.from({ length: 10_000 }, (_, index) => filler(index))
+    pool[10] = { owner: 'wallet1', value: 700n, address: 'orchard_wallet1_0', nullifier: 2 }
+    await runSync()
+
+    pool.push({ owner: 'wallet1', value: 300n, address: 'orchard_wallet1_1', nullifier: 3 })
+    sdk.shielded.getShieldedEncryptedNotes.mockClear()
+
+    const { wallets: [entry] } = await runSync()
+
+    expect(sdk.shielded.getShieldedEncryptedNotes.mock.calls[0][0]).toBe(8192n)
+    expect(entry.notes.map((note: any) => note.index)).toEqual([10, 10_000])
+    expect(entry.balance).toBe('1000')
+    expect(entry.scannedNotes).toBe(10_001)
   })
 
   it('reads the pool once for every wallet, starting at the furthest behind', async () => {
