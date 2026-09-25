@@ -1,6 +1,6 @@
-import { SyncShieldedCacheHandler } from '../../../../src/content-script/api/private/wallet/syncShieldedCache'
-import { GetShieldedCacheHandler } from '../../../../src/content-script/api/private/wallet/getShieldedCache'
-import { ShieldedCacheService } from '../../../../src/content-script/services/ShieldedCacheService'
+import { SyncShieldedNotesHandler } from '../../../../src/content-script/api/private/wallet/syncShieldedNotes'
+import { GetShieldedSyncStateHandler } from '../../../../src/content-script/api/private/wallet/getShieldedSyncState'
+import { ShieldedService } from '../../../../src/content-script/services/ShieldedService'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
 import { decryptMnemonic, deriveShieldedAddresses, getShieldedNullifierStatuses, recoveredNoteNullifier } from '../../../../src/utils'
 import { installWebLocks } from '../../../helpers/webLocks'
@@ -59,7 +59,7 @@ const wallet = (walletId: string, type = 'seedphrase'): any => ({
   currentIdentity: null
 })
 
-describe('shielded cache handlers', () => {
+describe('shielded notes handlers', () => {
   let storage: TestStorage
   let pool: PoolNote[]
   let spent: Set<number>
@@ -67,8 +67,8 @@ describe('shielded cache handlers', () => {
   let shieldedAddressCount: number
   let walletRepository: any
   let sdk: any
-  let sync: SyncShieldedCacheHandler
-  let read: GetShieldedCacheHandler
+  let sync: SyncShieldedNotesHandler
+  let read: GetShieldedSyncStateHandler
   let restoreWebLocks: () => void
 
   beforeEach(() => {
@@ -127,9 +127,9 @@ describe('shielded cache handlers', () => {
       isSpent: spent.has(nullifier[0])
     })))
 
-    const service = new ShieldedCacheService(storage, sdk)
-    sync = new SyncShieldedCacheHandler(walletRepository, service)
-    read = new GetShieldedCacheHandler(walletRepository, service)
+    const service = new ShieldedService(storage, sdk)
+    sync = new SyncShieldedNotesHandler(walletRepository, service)
+    read = new GetShieldedSyncStateHandler(walletRepository, service)
   })
 
   afterEach(() => {
@@ -137,11 +137,11 @@ describe('shielded cache handlers', () => {
   })
 
   const runSync = async (payload: any = { password: 'password' }): Promise<any> => await sync.handle({
-    context: 'dash-platform-extension', id: 'id', method: 'SYNC_SHIELDED_CACHE', type: 'request', payload
+    context: 'dash-platform-extension', id: 'id', method: 'SYNC_SHIELDED_NOTES', type: 'request', payload
   } as any)
 
   const runRead = async (payload: any = {}): Promise<any> => await read.handle({
-    context: 'dash-platform-extension', id: 'id', method: 'GET_SHIELDED_CACHE', type: 'request', payload
+    context: 'dash-platform-extension', id: 'id', method: 'GET_SHIELDED_SYNC_STATE', type: 'request', payload
   } as any)
 
   it('stores the wallet notes, addresses and balance recovered from the pool', async () => {
@@ -156,13 +156,13 @@ describe('shielded cache handlers', () => {
     expect(entry.error).toBeUndefined()
     expect(entry.balance).toBe('1000')
     expect(entry.spendableNotes).toBe(2)
-    expect(entry.scannedNotes).toBe(3)
-    expect(entry.poolTotal).toBe(3)
+    expect(entry.fetched).toBe(3)
+    expect(entry.total).toBe(3)
     expect(entry.addresses.map((address: any) => address.address)).toEqual(['orchard_wallet1_0', 'orchard_wallet1_1'])
     // Leaf positions of the notes in the pool, not their position among ours.
     expect(entry.notes.map((note: any) => [note.index, note.value, note.diversifierIndex]))
       .toEqual([[1, '700', 0], [2, '300', 1]])
-    expect(storage.entries.shieldedCache_testnet_wallet1['0'].notes).toHaveLength(2)
+    expect(storage.entries.shieldedNotes_testnet_wallet1['0'].notes).toHaveLength(2)
   })
 
   it('scans only what the pool gained since the last sync and keeps leaf positions', async () => {
@@ -181,7 +181,7 @@ describe('shielded cache handlers', () => {
     // is re-read, but they are neither trial-decrypted nor stored twice.
     expect(entry.notes.map((note: any) => note.index)).toEqual([0, 2])
     expect(entry.balance).toBe('1000')
-    expect(entry.scannedNotes).toBe(3)
+    expect(entry.fetched).toBe(3)
   })
 
   // Platform serves whole chunks and rejects a read that starts inside one, so a
@@ -200,7 +200,7 @@ describe('shielded cache handlers', () => {
     expect(sdk.shielded.getShieldedEncryptedNotes.mock.calls[0][0]).toBe(8192n)
     expect(entry.notes.map((note: any) => note.index)).toEqual([10, 10_000])
     expect(entry.balance).toBe('1000')
-    expect(entry.scannedNotes).toBe(10_001)
+    expect(entry.fetched).toBe(10_001)
   })
 
   it('does not read the pool again when nothing was added to it', async () => {
@@ -214,7 +214,7 @@ describe('shielded cache handlers', () => {
     // Spending still has to be re-checked: that is a nullifier query, not a scan.
     expect(getShieldedNullifierStatusesMock).toHaveBeenCalled()
     expect(entry.balance).toBe('700')
-    expect(entry.scannedNotes).toBe(1)
+    expect(entry.fetched).toBe(1)
   })
 
   it('reads the pool once for every wallet, starting at the furthest behind', async () => {
@@ -231,7 +231,7 @@ describe('shielded cache handlers', () => {
     expect(sdk.shielded.getShieldedEncryptedNotes).toHaveBeenCalledTimes(1)
     expect(sdk.shielded.getShieldedEncryptedNotes.mock.calls[0][0]).toBe(0n)
     // The keystore wallet holds no seed, so it is not synced at all.
-    expect(entries.map((entry: any) => [entry.walletId, entry.balance, entry.scannedNotes]))
+    expect(entries.map((entry: any) => [entry.walletId, entry.balance, entry.fetched]))
       .toEqual([['wallet1', '700', 2], ['wallet2', '400', 2]])
   })
 
@@ -258,7 +258,7 @@ describe('shielded cache handlers', () => {
     expect(getShieldedNullifierStatusesMock.mock.calls[0][1]).toHaveLength(1)
   })
 
-  it('rescans from the start when the cache claims more notes than the pool holds', async () => {
+  it('rescans from the start when the stored state claims more notes than the pool holds', async () => {
     pool = [
       { owner: 'wallet1', value: 700n, address: 'orchard_wallet1_0', nullifier: 2 },
       { owner: 'wallet1', value: 300n, address: 'orchard_wallet1_1', nullifier: 3 }
@@ -272,7 +272,7 @@ describe('shielded cache handlers', () => {
 
     expect(sdk.shielded.getShieldedEncryptedNotes.mock.calls[0][0]).toBe(0n)
     expect(entry.notes.map((note: any) => note.index)).toEqual([0])
-    expect(entry.scannedNotes).toBe(1)
+    expect(entry.fetched).toBe(1)
   })
 
   it('reports a wallet that failed without dropping the others or its stored state', async () => {
@@ -298,10 +298,10 @@ describe('shielded cache handlers', () => {
     expect(entries[0].error).toBeUndefined()
     expect(entries[1]).toMatchObject({ walletId: 'wallet2', balance: '400', error: 'Failed to decrypt' })
     // The failed wallet keeps what the previous sync stored.
-    expect(storage.entries.shieldedCache_testnet_wallet2['0'].scannedNotes).toBe(2)
+    expect(storage.entries.shieldedNotes_testnet_wallet2['0'].fetched).toBe(2)
   })
 
-  it('serves the cache without a password and without touching the pool', async () => {
+  it('serves the stored state without a password and without touching the pool', async () => {
     pool = [{ owner: 'wallet1', value: 700n, address: 'orchard_wallet1_0', nullifier: 2 }]
     await runSync()
 
@@ -311,14 +311,14 @@ describe('shielded cache handlers', () => {
 
     const entry = await runRead()
 
-    expect(entry).toMatchObject({ walletId: 'wallet1', balance: '700', spendableNotes: 1, scannedNotes: 1 })
+    expect(entry).toMatchObject({ walletId: 'wallet1', balance: '700', spendableNotes: 1, fetched: 1 })
     expect(entry.updatedAt).toBeGreaterThan(0)
     expect(decryptMnemonicMock).not.toHaveBeenCalled()
     expect(sdk.shielded.getShieldedNotesCount).not.toHaveBeenCalled()
     expect(sdk.shielded.getShieldedEncryptedNotes).not.toHaveBeenCalled()
   })
 
-  it('answers an account that was never synced with an empty cache', async () => {
+  it('answers an account that was never synced with an empty state', async () => {
     const entry = await runRead({ account: 3 })
 
     expect(entry).toMatchObject({ account: 3, balance: '0', spendableNotes: 0, notes: [], addresses: [], updatedAt: null })
