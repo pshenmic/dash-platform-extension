@@ -2,24 +2,7 @@ import { SyncShieldedNotesHandler } from '../../../../src/content-script/api/pri
 import { GetShieldedSyncStateHandler } from '../../../../src/content-script/api/private/wallet/getShieldedSyncState'
 import { ShieldedService } from '../../../../src/content-script/services/ShieldedService'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
-import { decryptMnemonic, deriveShieldedAddresses, getShieldedNullifierStatuses, recoveredNoteNullifier } from '../../../../src/utils'
 import { installWebLocks } from '../../../helpers/webLocks'
-
-jest.mock('../../../../src/utils', () => {
-  const actual = jest.requireActual('../../../../src/utils')
-  return {
-    ...actual,
-    decryptMnemonic: jest.fn(),
-    deriveShieldedAddresses: jest.fn(),
-    getShieldedNullifierStatuses: jest.fn(),
-    recoveredNoteNullifier: jest.fn()
-  }
-})
-
-const decryptMnemonicMock = decryptMnemonic as jest.MockedFunction<typeof decryptMnemonic>
-const deriveShieldedAddressesMock = deriveShieldedAddresses as jest.MockedFunction<typeof deriveShieldedAddresses>
-const getShieldedNullifierStatusesMock = getShieldedNullifierStatuses as jest.MockedFunction<typeof getShieldedNullifierStatuses>
-const recoveredNoteNullifierMock = recoveredNoteNullifier as jest.MockedFunction<typeof recoveredNoteNullifier>
 
 // A pool leaf: `owner` is the wallet whose viewing key recovers it, so the fake
 // recoverNotes can play the part of trial-decryption.
@@ -70,6 +53,8 @@ describe('shielded notes handlers', () => {
   let sync: SyncShieldedNotesHandler
   let read: GetShieldedSyncStateHandler
   let restoreWebLocks: () => void
+  let deriveSeed: jest.SpyInstance
+  let nullifierStatuses: jest.SpyInstance
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -90,10 +75,6 @@ describe('shielded notes handlers', () => {
     }
 
     sdk = {
-      keyPair: {
-        // The seed stands in for the wallet: 'mnemonic_wallet1' → 'wallet1'.
-        mnemonicToSeed: jest.fn((mnemonic: string) => mnemonic.replace('mnemonic_', ''))
-      },
       shielded: {
         getShieldedNotesCount: jest.fn(async () => BigInt(pool.length)),
         getShieldedEncryptedNotes: jest.fn(async (start: bigint, count: number) => pool.slice(Number(start), Number(start) + count)),
@@ -113,21 +94,24 @@ describe('shielded notes handlers', () => {
       }
     }
 
-    decryptMnemonicMock.mockImplementation((walletRecord: any) => `mnemonic_${String(walletRecord.walletId)}`)
-    deriveShieldedAddressesMock.mockImplementation((walletRecord: any, _password, account, count) => (
+    const service = new ShieldedService(storage, sdk)
+
+    // The seed stands in for the wallet, so the fake recoverNotes can tell whose
+    // notes it is handed.
+    deriveSeed = jest.spyOn(service, 'deriveSeed').mockImplementation((walletRecord: any) => walletRecord.walletId)
+    jest.spyOn(service, 'deriveAddresses').mockImplementation((walletRecord: any, _password, account, count) => (
       Array.from({ length: count }, (_, diversifierIndex) => ({
         address: `orchard_${String(walletRecord.walletId)}_${diversifierIndex}`,
         derivationPath: `m/32'/1'/${account}'`,
         diversifierIndex
       }))
     ))
-    recoveredNoteNullifierMock.mockImplementation((recovered: any) => Uint8Array.from([recovered.note.nullifier]))
-    getShieldedNullifierStatusesMock.mockImplementation(async (_sdk, nullifiers) => nullifiers.map(nullifier => ({
+    jest.spyOn(service, 'noteNullifier').mockImplementation((recovered: any) => Uint8Array.from([recovered.note.nullifier]))
+    nullifierStatuses = jest.spyOn(service, 'nullifierStatuses').mockImplementation(async (nullifiers: Uint8Array[]) => nullifiers.map(nullifier => ({
       nullifier,
       isSpent: spent.has(nullifier[0])
     })))
 
-    const service = new ShieldedService(storage, sdk)
     sync = new SyncShieldedNotesHandler(walletRepository, service)
     read = new GetShieldedSyncStateHandler(walletRepository, service)
   })
@@ -212,7 +196,7 @@ describe('shielded notes handlers', () => {
 
     expect(sdk.shielded.getShieldedEncryptedNotes).not.toHaveBeenCalled()
     // Spending still has to be re-checked: that is a nullifier query, not a scan.
-    expect(getShieldedNullifierStatusesMock).toHaveBeenCalled()
+    expect(nullifierStatuses).toHaveBeenCalled()
     expect(entry.balance).toBe('700')
     expect(entry.fetched).toBe(1)
   })
@@ -243,7 +227,7 @@ describe('shielded notes handlers', () => {
     await runSync()
 
     spent.add(2)
-    getShieldedNullifierStatusesMock.mockClear()
+    nullifierStatuses.mockClear()
 
     const { wallets: [entry] } = await runSync()
 
@@ -251,11 +235,11 @@ describe('shielded notes handlers', () => {
     expect(entry.spendableNotes).toBe(1)
     expect(entry.notes.map((note: any) => note.isSpent)).toEqual([true, false])
 
-    getShieldedNullifierStatusesMock.mockClear()
+    nullifierStatuses.mockClear()
     await runSync()
 
     // The spent note is never queried again: spending cannot be undone.
-    expect(getShieldedNullifierStatusesMock.mock.calls[0][1]).toHaveLength(1)
+    expect(nullifierStatuses.mock.calls[0][0]).toHaveLength(1)
   })
 
   it('rescans from the start when the stored state claims more notes than the pool holds', async () => {
@@ -283,12 +267,12 @@ describe('shielded notes handlers', () => {
     ]
     await runSync()
 
-    decryptMnemonicMock.mockImplementation((walletRecord: any) => {
+    deriveSeed.mockImplementation((walletRecord: any) => {
       if (walletRecord.walletId === 'wallet2') {
         throw new Error('Failed to decrypt')
       }
 
-      return `mnemonic_${String(walletRecord.walletId)}`
+      return walletRecord.walletId
     })
     pool.push({ owner: 'wallet2', value: 100n, address: 'orchard_wallet2_0', nullifier: 7 })
 
@@ -305,7 +289,7 @@ describe('shielded notes handlers', () => {
     pool = [{ owner: 'wallet1', value: 700n, address: 'orchard_wallet1_0', nullifier: 2 }]
     await runSync()
 
-    decryptMnemonicMock.mockClear()
+    deriveSeed.mockClear()
     sdk.shielded.getShieldedNotesCount.mockClear()
     sdk.shielded.getShieldedEncryptedNotes.mockClear()
 
@@ -313,7 +297,7 @@ describe('shielded notes handlers', () => {
 
     expect(entry).toMatchObject({ walletId: 'wallet1', balance: '700', spendableNotes: 1, fetched: 1 })
     expect(entry.updatedAt).toBeGreaterThan(0)
-    expect(decryptMnemonicMock).not.toHaveBeenCalled()
+    expect(deriveSeed).not.toHaveBeenCalled()
     expect(sdk.shielded.getShieldedNotesCount).not.toHaveBeenCalled()
     expect(sdk.shielded.getShieldedEncryptedNotes).not.toHaveBeenCalled()
   })

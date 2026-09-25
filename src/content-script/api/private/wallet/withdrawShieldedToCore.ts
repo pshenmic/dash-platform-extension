@@ -2,7 +2,8 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { coreAddressToScript, decryptMnemonic, prepareShieldedSpend } from '../../../../utils'
+import { coreAddressToScript } from '../../../../utils'
+import { ShieldedService } from '../../../services/ShieldedService'
 import { WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING, MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../../../constants'
 import { WithdrawShieldedToCorePayload } from '../../../../types/messages/payloads/WithdrawShieldedToCorePayload'
 import { WithdrawShieldedToCoreResponse } from '../../../../types/messages/response/WithdrawShieldedToCoreResponse'
@@ -14,10 +15,12 @@ import { WithdrawShieldedToCoreResponse } from '../../../../types/messages/respo
 export class WithdrawShieldedToCoreHandler implements APIHandler {
   walletRepository: WalletRepository
   sdk: DashPlatformSDK
+  shielded: ShieldedService
 
-  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK, shielded: ShieldedService) {
     this.walletRepository = walletRepository
     this.sdk = sdk
+    this.shielded = shielded
   }
 
   async handle (event: EventData): Promise<WithdrawShieldedToCoreResponse> {
@@ -34,9 +37,9 @@ export class WithdrawShieldedToCoreHandler implements APIHandler {
     const account = payload.account ?? 0
     const amountCredits = BigInt(payload.amountCredits)
     const outputScript = coreAddressToScript(payload.toCoreAddress, wallet.network)
-    const seed = this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, payload.password))
+    const seed = this.shielded.deriveSeed(wallet, payload.password)
 
-    const { spends, anchor, changeAddress, coinType } = await prepareShieldedSpend(this.sdk, seed, wallet.network, account, amountCredits, 'withdrawal')
+    const { spends, anchor, changeAddress, coinType } = await this.shielded.prepareSpend(seed, wallet.network, account, amountCredits, 'withdrawal')
 
     console.time('[shielded] withdrawal: build + prove')
     const stateTransition = await this.sdk.shielded.createStateTransition('shieldedWithdrawal', {

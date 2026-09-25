@@ -3,7 +3,7 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { OrchardAddressWASM } from 'pshenmic-dpp'
-import { decryptMnemonic, prepareShieldedSpend } from '../../../../utils'
+import { ShieldedService } from '../../../services/ShieldedService'
 import { SendShieldedTransferPayload } from '../../../../types/messages/payloads/SendShieldedTransferPayload'
 import { SendShieldedTransferResponse } from '../../../../types/messages/response/SendShieldedTransferResponse'
 
@@ -14,10 +14,12 @@ import { SendShieldedTransferResponse } from '../../../../types/messages/respons
 export class SendShieldedTransferHandler implements APIHandler {
   walletRepository: WalletRepository
   sdk: DashPlatformSDK
+  shielded: ShieldedService
 
-  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK, shielded: ShieldedService) {
     this.walletRepository = walletRepository
     this.sdk = sdk
+    this.shielded = shielded
   }
 
   async handle (event: EventData): Promise<SendShieldedTransferResponse> {
@@ -33,9 +35,9 @@ export class SendShieldedTransferHandler implements APIHandler {
 
     const account = payload.account ?? 0
     const amountCredits = BigInt(payload.amountCredits)
-    const seed = this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, payload.password))
+    const seed = this.shielded.deriveSeed(wallet, payload.password)
 
-    const { spends, anchor, changeAddress, coinType } = await prepareShieldedSpend(this.sdk, seed, wallet.network, account, amountCredits, 'transfer', payload.fromAddresses)
+    const { spends, anchor, changeAddress, coinType } = await this.shielded.prepareSpend(seed, wallet.network, account, amountCredits, 'transfer', payload.fromAddresses)
 
     console.time('[shielded] transfer: build + prove')
     const stateTransition = await this.sdk.shielded.createStateTransition('shieldedTransfer', {

@@ -1,19 +1,11 @@
 import { GenerateShieldedAddressesHandler } from '../../../../src/content-script/api/private/wallet/generateShieldedAddresses'
-import { deriveShieldedAddresses } from '../../../../src/utils'
-
-jest.mock('../../../../src/utils', () => {
-  const actual = jest.requireActual('../../../../src/utils')
-  return {
-    ...actual,
-    deriveShieldedAddresses: jest.fn()
-  }
-})
-
-const deriveShieldedAddressesMock = deriveShieldedAddresses as jest.MockedFunction<typeof deriveShieldedAddresses>
+import { ShieldedService } from '../../../../src/content-script/services/ShieldedService'
 
 describe('GenerateShieldedAddressesHandler', () => {
   let walletRepository: any
   let sdk: any
+  let shielded: ShieldedService
+  let deriveAddresses: jest.SpyInstance
   let handler: GenerateShieldedAddressesHandler
 
   beforeEach(() => {
@@ -35,7 +27,8 @@ describe('GenerateShieldedAddressesHandler', () => {
 
     sdk = {}
 
-    deriveShieldedAddressesMock.mockImplementation((_wallet, _password, account, count, _sdk, start = 0) => {
+    shielded = new ShieldedService({} as any, sdk)
+    deriveAddresses = jest.spyOn(shielded, 'deriveAddresses').mockImplementation((_wallet, _password, account, count, start = 0) => {
       const entries: Array<{ address: string, derivationPath: string, diversifierIndex: number }> = []
       for (let index = start; index < start + count; index++) {
         entries.push({ address: `orchardAddress${index}`, derivationPath: `m/32'/1'/${account}'`, diversifierIndex: index })
@@ -44,7 +37,7 @@ describe('GenerateShieldedAddressesHandler', () => {
       return entries
     })
 
-    handler = new GenerateShieldedAddressesHandler(walletRepository, sdk)
+    handler = new GenerateShieldedAddressesHandler(walletRepository, shielded)
   })
 
   const handle = async (payload: any = { password: 'password' }): Promise<any> => {
@@ -59,7 +52,7 @@ describe('GenerateShieldedAddressesHandler', () => {
   it('should derive the first address and persist the count', async () => {
     const response = await handle()
 
-    expect(deriveShieldedAddressesMock).toHaveBeenCalledWith(expect.anything(), 'password', 0, 1, sdk, 0)
+    expect(deriveAddresses).toHaveBeenCalledWith(expect.anything(), 'password', 0, 1, 0)
     expect(response.addresses).toEqual([
       { address: 'orchardAddress0', derivationPath: "m/32'/1'/0'", diversifierIndex: 0 }
     ])
@@ -71,7 +64,7 @@ describe('GenerateShieldedAddressesHandler', () => {
 
     const response = await handle()
 
-    expect(deriveShieldedAddressesMock).toHaveBeenCalledWith(expect.anything(), 'password', 0, 1, sdk, 3)
+    expect(deriveAddresses).toHaveBeenCalledWith(expect.anything(), 'password', 0, 1, 3)
     expect(response.addresses[0].diversifierIndex).toEqual(3)
     expect(walletRepository.setShieldedAddressCount).toHaveBeenCalledWith(0, 4)
   })
@@ -107,7 +100,7 @@ describe('GenerateShieldedAddressesHandler', () => {
 
     const response = await handle({ password: 'password', count: 3 })
 
-    expect(deriveShieldedAddressesMock).toHaveBeenCalledWith(expect.anything(), 'password', 0, 3, sdk, 2)
+    expect(deriveAddresses).toHaveBeenCalledWith(expect.anything(), 'password', 0, 3, 2)
     expect(response.addresses.map((entry: any) => entry.diversifierIndex)).toEqual([2, 3, 4])
     expect(walletRepository.setShieldedAddressCount).toHaveBeenCalledWith(0, 5)
   })
