@@ -75,8 +75,11 @@ export class SyncShieldedNotesHandler implements APIHandler {
       service.setPhase(network, wallet.walletId, account, 'syncing')
 
       try {
-        entries.push(await this.syncWallet(service, wallet, account, notes, from, poolTotal, payload.password))
+        const synced = await this.syncWallet(service, wallet, account, notes, from, poolTotal, payload.password)
         service.setPhase(network, wallet.walletId, account, 'done')
+        // The phase goes into the response only now, so the caller is not handed
+        // its own sync still marked as running.
+        entries.push(service.syncState(wallet, synced, true))
       } catch (error) {
         service.setPhase(network, wallet.walletId, account, 'error')
 
@@ -103,7 +106,7 @@ export class SyncShieldedNotesHandler implements APIHandler {
     from: number,
     poolTotal: number,
     password: string
-  ): Promise<ShieldedSyncState> {
+  ): Promise<ShieldedNotesAccount> {
     const repository = service.repository({ walletId: wallet.walletId, network: wallet.network })
 
     return await repository.withLock(async () => {
@@ -139,7 +142,7 @@ export class SyncShieldedNotesHandler implements APIHandler {
 
       await repository.save(next)
 
-      return service.syncState(wallet, next, true)
+      return next
     })
   }
 

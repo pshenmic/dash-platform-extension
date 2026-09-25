@@ -148,6 +148,8 @@ describe('shielded notes handlers', () => {
     const { wallets: [entry] } = await runSync()
 
     expect(entry.error).toBeUndefined()
+    // The response carries the finished phase, not the sync's own 'syncing'.
+    expect(entry.phase).toBe('done')
     expect(entry.balance).toBe('1000')
     expect(entry.spendableNotes).toBe(2)
     expect(entry.fetched).toBe(3)
@@ -350,8 +352,23 @@ describe('shielded notes handlers', () => {
 
     expect(byWallet(entries.map((entry: any) => [entry.walletId, entry.network, entry.balance])))
       .toEqual(byWallet([['wallet1', 'testnet', '700'], ['wallet2', 'mainnet', '400']]))
+    expect(entries.every((entry: any) => entry.phase === 'done')).toBe(true)
     expect(storage.entries.shieldedNotes_testnet_wallet1).toBeDefined()
     expect(storage.entries.shieldedNotes_mainnet_wallet2).toBeDefined()
+  })
+
+  // Wallet records are per network and are created only for the network that was
+  // selected at the time, so a wallet made on testnet has nothing to sync on
+  // mainnet. One entry is the whole answer then.
+  it('syncs only the networks the wallet exists on', async () => {
+    wallets = [wallet('wallet1')]
+    pool = [{ owner: 'wallet1', value: 700n, address: 'orchard_wallet1_0', nullifier: 2 }]
+
+    const { wallets: entries } = await runSync()
+
+    expect(entries.map((entry: any) => [entry.network, entry.phase])).toEqual([['testnet', 'done']])
+    expect(walletRepository.getAllForNetwork).toHaveBeenCalledWith('mainnet')
+    expect(storage.entries.shieldedNotes_mainnet_wallet1).toBeUndefined()
   })
 
   it('reports the phase while a sync is running, so a reopened popup can tell', async () => {
