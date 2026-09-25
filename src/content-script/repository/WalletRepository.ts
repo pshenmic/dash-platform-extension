@@ -128,10 +128,16 @@ export class WalletRepository {
   }
 
   async getAll (): Promise<Wallet[]> {
-    const network = await this.getNetwork()
-    const walletIds = await this.storageAdapter.get('wallets') as string[]
+    return await this.getAllForNetwork(await this.getNetwork())
+  }
 
-    const wallets = await Promise.all(walletIds.map(async walletId => (await this.storageAdapter.get(`wallet_${network}_${walletId}`)) as WalletStoreSchema))
+  // Wallets of one network, whichever network is selected. A wallet exists per
+  // network under its own record, so this is how a caller reaches the ones the
+  // extension is not currently showing.
+  async getAllForNetwork (network: string): Promise<Wallet[]> {
+    const walletIds = await this.storageAdapter.get('wallets') as string[] | null
+
+    const wallets = await Promise.all((walletIds ?? []).map(async walletId => (await this.storageAdapter.get(`wallet_${network}_${walletId}`)) as WalletStoreSchema))
 
     return wallets
       .filter(wallet => wallet != null)

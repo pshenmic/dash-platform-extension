@@ -1,3 +1,8 @@
+// Where a wallet's sync stands right now. Held in memory by the backend, which
+// outlives the popup, so a UI that reopens mid-sync sees 'syncing' instead of an
+// account that looks like it was never synced.
+export type ShieldedSyncPhase = 'idle' | 'syncing' | 'done' | 'error'
+
 // A note of this wallet, recovered from the shielded pool and kept in storage so
 // the UI can show shielded funds without the password. Values cross the
 // messaging boundary and are stored as strings (bigint does not serialize).

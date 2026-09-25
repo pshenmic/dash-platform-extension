@@ -6,12 +6,19 @@ import { ShieldedNotesRepository } from '../repository/ShieldedNotesRepository'
 import { RepositoryScope } from '../../types/RepositoryScope'
 import { Wallet } from '../../types/Wallet'
 import { NetworkType } from '../../types/NetworkType'
-import { ShieldedAddressBalance, ShieldedNote, ShieldedNotesAccount, ShieldedStoredAddress } from '../../types/ShieldedNotes'
+import { ShieldedAddressBalance, ShieldedNote, ShieldedNotesAccount, ShieldedStoredAddress, ShieldedSyncPhase } from '../../types/ShieldedNotes'
 import { Network } from '../../types/enums/Network'
 import { ShieldedSpendKind } from '../../types/ShieldedSpendKind'
 import { PLATFORM_ADDRESS_COIN_TYPE, SHIELDED_NOTES_PAGE_SIZE, SHIELDED_NULLIFIER_QUERY_LIMIT } from '../../constants'
 import { ShieldedSyncState } from '../../types/messages/response/GetShieldedSyncStateResponse'
 import { bytesToHex, decryptMnemonic, hexToBytes, selectShieldedNotes } from '../../utils'
+
+// What every network-bound copy of the service shares: one SDK per extra network
+// and the in-memory sync phases.
+export interface ShieldedServiceShared {
+  sdks: Map<NetworkType, DashPlatformSDK>
+  phases: Map<string, ShieldedSyncPhase>
+}
 
 interface RawRecoveredNoteWithNullifier {
   _rawRecoveredNote: { nullifier: Uint8Array }
@@ -36,10 +43,41 @@ export interface ShieldedSpendInputs {
 export class ShieldedService {
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
+  shared: ShieldedServiceShared
 
-  constructor (storageAdapter: StorageAdapter, sdk: DashPlatformSDK) {
+  constructor (storageAdapter: StorageAdapter, sdk: DashPlatformSDK, shared?: ShieldedServiceShared) {
     this.storageAdapter = storageAdapter
     this.sdk = sdk
+    this.shared = shared ?? { sdks: new Map(), phases: new Map() }
+  }
+
+  // A service reading the pool of `network`. The extension's own SDK follows the
+  // selected network, so any other network gets its own instance, created once and
+  // shared by every copy of this service. Sync phases are shared too, so a phase
+  // set while syncing one network is visible through the base instance.
+  forNetwork (network: NetworkType): ShieldedService {
+    if (this.sdk.getNetwork() === network) {
+      return this
+    }
+
+    let sdk = this.shared.sdks.get(network)
+
+    if (sdk == null) {
+      sdk = new DashPlatformSDK({ network: Network[network] })
+      this.shared.sdks.set(network, sdk)
+    }
+
+    return new ShieldedService(this.storageAdapter, sdk, this.shared)
+  }
+
+  // Where a wallet's sync stands. Kept in memory: a restarted backend reports
+  // 'idle', which is also what it is.
+  getPhase (network: string, walletId: string, account: number): ShieldedSyncPhase {
+    return this.shared.phases.get(`${network}_${walletId}_${account}`) ?? 'idle'
+  }
+
+  setPhase (network: string, walletId: string, account: number, phase: ShieldedSyncPhase): void {
+    this.shared.phases.set(`${network}_${walletId}_${account}`, phase)
   }
 
   repository (scope?: RepositoryScope): ShieldedNotesRepository {
@@ -300,12 +338,14 @@ export class ShieldedService {
   }
 
   // The stored account as callers see it, summing the notes still unspent.
-  syncState (walletId: string, stored: ShieldedNotesAccount, synced: boolean): ShieldedSyncState {
+  syncState (wallet: { walletId: string, network: string }, stored: ShieldedNotesAccount, synced: boolean): ShieldedSyncState {
     const unspent = stored.notes.filter(note => !note.isSpent)
 
     return {
-      walletId,
+      walletId: wallet.walletId,
+      network: wallet.network,
       account: stored.account,
+      phase: this.getPhase(wallet.network, wallet.walletId, stored.account),
       balance: unspent.reduce((total, note) => total + BigInt(note.value), 0n).toString(),
       spendableNotes: unspent.length,
       addresses: stored.addresses,
@@ -313,6 +353,18 @@ export class ShieldedService {
       fetched: stored.fetched,
       total: stored.total,
       updatedAt: synced ? stored.updatedAt : null
+    }
+  }
+
+  // Re-checks the stored notes against the nullifier index and re-reads the pool
+  // size. Needs no password: nothing is trial-decrypted, so notes that appeared
+  // since the last sync are counted in `total` but not recovered.
+  async refreshStored (stored: ShieldedNotesAccount): Promise<ShieldedNotesAccount> {
+    return {
+      ...stored,
+      notes: await this.refreshSpentFlags(stored.notes),
+      total: await this.getPoolTotal(),
+      updatedAt: Date.now()
     }
   }
 

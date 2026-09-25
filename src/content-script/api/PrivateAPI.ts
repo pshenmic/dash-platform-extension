@@ -66,6 +66,7 @@ import { GetShieldedAddressesHandler } from './private/wallet/getShieldedAddress
 import { GetShieldedBalanceHandler } from './private/wallet/getShieldedBalance'
 import { SyncShieldedNotesHandler } from './private/wallet/syncShieldedNotes'
 import { GetShieldedSyncStateHandler } from './private/wallet/getShieldedSyncState'
+import { RefreshShieldedNotesHandler } from './private/wallet/refreshShieldedNotes'
 import { ShieldedService } from '../services/ShieldedService'
 import { EstimateShieldedFeeHandler } from './private/wallet/estimateShieldedFee'
 import { InitShieldHandler } from './private/wallet/initShield'
@@ -195,6 +196,7 @@ export class PrivateAPI {
       [MessagingMethods.GET_SHIELDED_BALANCE]: new GetShieldedBalanceHandler(walletRepository, shielded),
       [MessagingMethods.SYNC_SHIELDED_NOTES]: new SyncShieldedNotesHandler(walletRepository, shielded),
       [MessagingMethods.GET_SHIELDED_SYNC_STATE]: new GetShieldedSyncStateHandler(walletRepository, shielded),
+      [MessagingMethods.REFRESH_SHIELDED_NOTES]: new RefreshShieldedNotesHandler(walletRepository, shielded),
       [MessagingMethods.ESTIMATE_SHIELDED_FEE]: new EstimateShieldedFeeHandler(walletRepository, shielded),
       [MessagingMethods.INIT_SHIELD]: new InitShieldHandler(this.sdk),
       [MessagingMethods.SHIELD_TO_POOL]: new ShieldToPoolHandler(walletRepository, this.sdk),
