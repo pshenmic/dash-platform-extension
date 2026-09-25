@@ -1,4 +1,4 @@
-import { ShieldedNote, ShieldedStoredAddress } from '../../ShieldedNotes'
+import { ShieldedNote, ShieldedStoredAddress, ShieldedSyncPhase } from '../../ShieldedNotes'
 
 // One account's shielded state as the last sync left it. Balances are strings
 // (bigint does not serialize) and count unspent notes only. Reading it touches
@@ -6,7 +6,11 @@ import { ShieldedNote, ShieldedStoredAddress } from '../../ShieldedNotes'
 // `updatedAt` it tells the caller how far behind the numbers may be.
 export interface ShieldedSyncState {
   walletId: string
+  network: string
   account: number
+  // 'syncing' while a sync of this wallet is running, so a UI that reopens can
+  // tell a running sync from one that never happened.
+  phase: ShieldedSyncPhase
   balance: string
   spendableNotes: number
   addresses: ShieldedStoredAddress[]
