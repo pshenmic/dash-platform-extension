@@ -36,3 +36,13 @@ export interface ShieldedNotesAccount {
 export interface ShieldedNotesStore {
   [account: string]: ShieldedNotesAccount
 }
+
+// A diversified address with what its unspent notes hold.
+export interface ShieldedAddressBalance {
+  address: string
+  // Our derivation index for this address, or null when it falls outside the
+  // derived window (the balance is still counted, only the index is unknown).
+  diversifierIndex: number | null
+  balance: bigint
+  spendableNotes: number
+}

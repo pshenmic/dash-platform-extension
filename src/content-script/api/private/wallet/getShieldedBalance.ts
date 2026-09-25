@@ -1,8 +1,7 @@
 import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
-import { DashPlatformSDK } from 'dash-platform-sdk'
-import { decryptMnemonic, deriveShieldedAddresses, fetchAllShieldedNotes, getShieldedNullifierStatuses, recoveredNoteNullifier, sumUnspentShieldedValue } from '../../../../utils'
+import { ShieldedService } from '../../../services/ShieldedService'
 import { SHIELDED_ADDRESS_DEFAULT_COUNT } from '../../../../constants'
 import { GetShieldedBalancePayload } from '../../../../types/messages/payloads/GetShieldedBalancePayload'
 import { GetShieldedBalanceResponse } from '../../../../types/messages/response/GetShieldedBalanceResponse'
@@ -14,11 +13,11 @@ import { GetShieldedBalanceResponse } from '../../../../types/messages/response/
 // Balance crosses the messaging boundary as a string (bigint does not serialize).
 export class GetShieldedBalanceHandler implements APIHandler {
   walletRepository: WalletRepository
-  sdk: DashPlatformSDK
+  shielded: ShieldedService
 
-  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, shielded: ShieldedService) {
     this.walletRepository = walletRepository
-    this.sdk = sdk
+    this.shielded = shielded
   }
 
   async handle (event: EventData): Promise<GetShieldedBalanceResponse> {
@@ -34,22 +33,20 @@ export class GetShieldedBalanceHandler implements APIHandler {
     }
 
     const account = payload.account ?? 0
-    const seed = this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, payload.password))
+    const seed = this.shielded.deriveSeed(wallet, payload.password)
 
-    const allNotes = await fetchAllShieldedNotes(this.sdk)
-    const recovered = this.sdk.shielded.recoverNotes(allNotes, seed, account)
+    const allNotes = await this.shielded.fetchAllNotes()
+    const recovered = this.shielded.recoverOwnNotes(allNotes, seed, account)
 
-    const nullifiers = recovered.map(recoveredNoteNullifier)
-
-    const statuses = await getShieldedNullifierStatuses(this.sdk, nullifiers)
+    const statuses = await this.shielded.nullifierStatuses(recovered.map(note => this.shielded.noteNullifier(note)))
 
     // Map our known diversified addresses to their derivation index so the
     // per-address breakdown can label them; notes to an address outside this
     // window still count, with diversifierIndex null.
-    const derived = deriveShieldedAddresses(wallet, payload.password, account, SHIELDED_ADDRESS_DEFAULT_COUNT, this.sdk)
+    const derived = this.shielded.deriveAddresses(wallet, payload.password, account, SHIELDED_ADDRESS_DEFAULT_COUNT)
     const diversifierIndexByAddress = new Map(derived.map(entry => [entry.address, entry.diversifierIndex]))
 
-    const { balance, spendableNotes, byAddress } = sumUnspentShieldedValue(recovered, statuses, wallet.network, diversifierIndexByAddress)
+    const { balance, spendableNotes, byAddress } = this.shielded.sumUnspentValue(recovered, statuses, wallet.network, diversifierIndexByAddress)
 
     return {
       balance: balance.toString(),

@@ -1,14 +1,34 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { ShieldedEncryptedNote } from 'dash-platform-sdk/types'
+import { ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
+import { OrchardAddressWASM, RecoveredNoteWASM, SpendableNoteWASM } from 'pshenmic-dpp'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { ShieldedNotesRepository } from '../repository/ShieldedNotesRepository'
 import { RepositoryScope } from '../../types/RepositoryScope'
 import { Wallet } from '../../types/Wallet'
 import { NetworkType } from '../../types/NetworkType'
-import { ShieldedNote, ShieldedNotesAccount, ShieldedStoredAddress } from '../../types/ShieldedNotes'
-import { SHIELDED_NOTES_PAGE_SIZE } from '../../constants'
+import { ShieldedAddressBalance, ShieldedNote, ShieldedNotesAccount, ShieldedStoredAddress } from '../../types/ShieldedNotes'
+import { Network } from '../../types/enums/Network'
+import { ShieldedSpendKind } from '../../types/ShieldedSpendKind'
+import { PLATFORM_ADDRESS_COIN_TYPE, SHIELDED_NOTES_PAGE_SIZE, SHIELDED_NULLIFIER_QUERY_LIMIT } from '../../constants'
 import { ShieldedSyncState } from '../../types/messages/response/GetShieldedSyncStateResponse'
-import { bytesToHex, decryptMnemonic, deriveShieldedAddresses, getShieldedNullifierStatuses, hexToBytes, recoveredNoteNullifier } from '../../utils'
+import { bytesToHex, decryptMnemonic, hexToBytes, selectShieldedNotes } from '../../utils'
+
+interface RawRecoveredNoteWithNullifier {
+  _rawRecoveredNote: { nullifier: Uint8Array }
+}
+
+export interface UnspentShieldedNotes {
+  // The whole note set: witnessing the selected notes needs it.
+  allNotes: ShieldedEncryptedNote[]
+  unspent: RecoveredNoteWASM[]
+}
+
+export interface ShieldedSpendInputs {
+  spends: SpendableNoteWASM[]
+  anchor: Uint8Array
+  changeAddress: OrchardAddressWASM
+  coinType: number
+}
 
 // Domain primitives for the shielded (Orchard) pool: reading it, recovering this
 // wallet's notes out of it, re-checking what has been spent and shaping what is
@@ -62,6 +82,51 @@ export class ShieldedService {
     return notes
   }
 
+  // The whole note set, in leaf order. Spends need it: witnessing the notes they
+  // select happens against the full tree.
+  async fetchAllNotes (): Promise<ShieldedEncryptedNote[]> {
+    const total = await this.getPoolTotal()
+
+    return total === 0 ? [] : await this.fetchNotesFrom(0, total)
+  }
+
+  // The wallet's own notes inside `notes`, as the SDK returns them. Spends work
+  // with these objects; `recoverNotes` below is the storage-shaped view.
+  recoverOwnNotes (notes: ShieldedEncryptedNote[], seed: Uint8Array, account: number): RecoveredNoteWASM[] {
+    return this.sdk.shielded.recoverNotes(notes, seed, account)
+  }
+
+  // Spent status for any number of nullifiers. Platform caps a single
+  // getShieldedNullifiers query at SHIELDED_NULLIFIER_QUERY_LIMIT and rejects the
+  // whole request past it, so a wallet holding more notes than that could neither
+  // read its balance nor spend. Queries in consecutive chunks, each with its own
+  // verified proof. Results are matched by nullifier bytes downstream, never by
+  // position, so concatenating the chunks is safe.
+  async nullifierStatuses (nullifiers: Uint8Array[]): Promise<ShieldedNullifierStatus[]> {
+    const statuses: ShieldedNullifierStatus[] = []
+
+    for (let offset = 0; offset < nullifiers.length; offset += SHIELDED_NULLIFIER_QUERY_LIMIT) {
+      const chunk = nullifiers.slice(offset, offset + SHIELDED_NULLIFIER_QUERY_LIMIT)
+
+      statuses.push(...await this.sdk.shielded.getShieldedNullifiers(chunk))
+    }
+
+    return statuses
+  }
+
+  // The nullifier of a recovered note as derived from the wallet's viewing key —
+  // the value to check against getShieldedNullifiers to tell whether THIS note has
+  // been spent. NOT the action leaf's nullifier (`ShieldedEncryptedNote.nullifier`),
+  // which belongs to whatever note that action spent, i.e. someone else's.
+  //
+  // STOPGAP: the SDK's RecoveredNoteWASM wrapper does not expose this yet (only
+  // `index` / `note`), so we reach into the raw NAPI. TODO: drop the cast once
+  // dash-platform-sdk / pshenmic-dpp add a public RecoveredNoteWASM.nullifier
+  // getter.
+  noteNullifier (recoveredNote: RecoveredNoteWASM): Uint8Array {
+    return (recoveredNote as unknown as RawRecoveredNoteWithNullifier)._rawRecoveredNote.nullifier
+  }
+
   // Trial-decrypts a slice of the pool with the wallet's viewing key and returns
   // the notes that belong to it. `recoverNotes` numbers what it is given from
   // zero, so `start` turns that back into a global leaf position.
@@ -81,7 +146,7 @@ export class ShieldedService {
         value: recoveredNote.note.value.toString(),
         address,
         diversifierIndex: diversifierIndexByAddress.get(address) ?? null,
-        nullifier: bytesToHex(recoveredNoteNullifier(recoveredNote)),
+        nullifier: bytesToHex(this.noteNullifier(recoveredNote)),
         isSpent: false
       }
     })
@@ -97,7 +162,7 @@ export class ShieldedService {
       return notes
     }
 
-    const statuses = await getShieldedNullifierStatuses(this.sdk, unspent.map(note => hexToBytes(note.nullifier)))
+    const statuses = await this.nullifierStatuses(unspent.map(note => hexToBytes(note.nullifier)))
     const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
 
     return notes.map(note => note.isSpent || !spent.has(note.nullifier) ? note : { ...note, isSpent: true })
@@ -107,14 +172,125 @@ export class ShieldedService {
     return this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
   }
 
-  // The wallet's generated diversified addresses, used both to label notes and
-  // to serve the stored address list to callers without a password.
-  deriveAddresses (wallet: Wallet, password: string, account: number, count: number): ShieldedStoredAddress[] {
-    if (count === 0) {
-      return []
+  // `count` diversified Orchard addresses of an account, from diversifier index
+  // `start`. ZIP-32 m/32'/coinType'/account'; each index yields a distinct
+  // receiving address sharing the account's viewing key. Needs the password.
+  deriveAddresses (wallet: Wallet, password: string, account: number, count: number, start: number = 0): ShieldedStoredAddress[] {
+    if (wallet.type !== 'seedphrase') {
+      throw new Error('Shielded addresses can only be derived from a seedphrase wallet')
     }
 
-    return deriveShieldedAddresses(wallet, password, account, count, this.sdk)
+    const networkType = wallet.network
+    const network = Network[networkType as keyof typeof Network]
+    const seed = this.deriveSeed(wallet, password)
+    const coinType = PLATFORM_ADDRESS_COIN_TYPE[networkType]
+    const derivationPath = `m/32'/${coinType}'/${account}'`
+
+    const entries: ShieldedStoredAddress[] = []
+    for (let diversifierIndex = start; diversifierIndex < start + count; diversifierIndex++) {
+      const orchardAddress = this.sdk.keyPair.deriveShieldedAddress(seed, network, account, diversifierIndex)
+      entries.push({ address: orchardAddress.toBech32m(networkType), derivationPath, diversifierIndex })
+    }
+
+    return entries
+  }
+
+  // Sums the recovered notes that are not spent, in aggregate and grouped by the
+  // diversified address that received each one. Spent status is matched by
+  // nullifier hex, never by array order: getShieldedNullifiers does not promise
+  // to answer in the order it was asked.
+  sumUnspentValue (
+    recovered: RecoveredNoteWASM[],
+    statuses: ShieldedNullifierStatus[],
+    network: NetworkType,
+    diversifierIndexByAddress: Map<string, number> = new Map()
+  ): { balance: bigint, spendableNotes: number, byAddress: ShieldedAddressBalance[] } {
+    const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
+
+    let balance = 0n
+    let spendableNotes = 0
+    const buckets = new Map<string, { balance: bigint, spendableNotes: number }>()
+
+    for (const recoveredNote of recovered) {
+      if (spent.has(bytesToHex(this.noteNullifier(recoveredNote)))) {
+        continue
+      }
+
+      const value = recoveredNote.note.value
+      balance += value
+      spendableNotes += 1
+
+      const address = recoveredNote.note.address.toBech32m(network)
+      const bucket = buckets.get(address) ?? { balance: 0n, spendableNotes: 0 }
+      bucket.balance += value
+      bucket.spendableNotes += 1
+      buckets.set(address, bucket)
+    }
+
+    const byAddress: ShieldedAddressBalance[] = Array.from(buckets.entries()).map(([address, bucket]) => ({
+      address,
+      diversifierIndex: diversifierIndexByAddress.get(address) ?? null,
+      balance: bucket.balance,
+      spendableNotes: bucket.spendableNotes
+    }))
+
+    return { balance, spendableNotes, byAddress }
+  }
+
+  // Narrows recovered notes to those received on one of `fromAddresses`, so a
+  // spend can draw only from specific source shielded addresses.
+  filterNotesByAddress (notes: RecoveredNoteWASM[], fromAddresses: string[], network: NetworkType): RecoveredNoteWASM[] {
+    const wanted = new Set(fromAddresses)
+
+    return notes.filter(recoveredNote => wanted.has(recoveredNote.note.address.toBech32m(network)))
+  }
+
+  // Reads the pool, recovers this wallet's notes and keeps the unspent ones.
+  // `fromAddresses` restricts them to those source addresses.
+  async loadUnspentNotes (seed: Uint8Array, network: NetworkType, account: number, fromAddresses?: string[]): Promise<UnspentShieldedNotes> {
+    const allNotes = await this.fetchAllNotes()
+    const recovered = this.recoverOwnNotes(allNotes, seed, account)
+
+    if (recovered.length === 0) {
+      throw new Error('No shielded notes available to spend')
+    }
+
+    // Drop already-spent notes so they never enter a spend, matching how the
+    // balance is computed. Uses each note's own nullifier, not the action leaf's,
+    // so a note we already spent is excluded instead of being reselected and
+    // rejected on-chain.
+    const statuses = await this.nullifierStatuses(recovered.map(note => this.noteNullifier(note)))
+    const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
+    const unspent = recovered.filter(note => !spent.has(bytesToHex(this.noteNullifier(note))))
+
+    if (unspent.length === 0) {
+      throw new Error('No unspent shielded notes available to spend')
+    }
+
+    const scoped = fromAddresses != null && fromAddresses.length > 0
+      ? this.filterNotesByAddress(unspent, fromAddresses, network)
+      : unspent
+
+    if (scoped.length === 0) {
+      throw new Error('No unspent shielded notes on the selected source address(es)')
+    }
+
+    return { allNotes, unspent: scoped }
+  }
+
+  // The shared inputs of any shielded spend (transfer / unshield / withdrawal):
+  // the unspent notes, the minimal set covering `amountCredits` plus the fee this
+  // `kind` is charged, those notes witnessed against the commitment tree, and the
+  // change address. The Halo2 builder is not touched here — proving happens in the
+  // createStateTransition call the handler makes with these inputs.
+  async prepareSpend (seed: Uint8Array, network: NetworkType, account: number, amountCredits: bigint, kind: ShieldedSpendKind, fromAddresses?: string[]): Promise<ShieldedSpendInputs> {
+    const { allNotes, unspent } = await this.loadUnspentNotes(seed, network, account, fromAddresses)
+
+    const { notes: selected } = selectShieldedNotes(unspent, amountCredits, kind)
+    const { spends, anchor } = this.sdk.shielded.buildSpendableNotes(allNotes, selected)
+    const changeAddress = this.sdk.keyPair.deriveShieldedAddress(seed, network, account)
+
+    return { spends, anchor, changeAddress, coinType: PLATFORM_ADDRESS_COIN_TYPE[network] }
   }
 
   // An account with nothing stored yet: the shape callers get before the first
