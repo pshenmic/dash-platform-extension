@@ -1,4 +1,4 @@
-export interface SyncShieldedCachePayload {
+export interface SyncShieldedNotesPayload {
   password: string
   // Defaults to account 0.
   account?: number

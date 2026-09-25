@@ -20,9 +20,9 @@ import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddr
 import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
 import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
 import { GetShieldedBalanceResponse } from './messages/response/GetShieldedBalanceResponse'
-import { SyncShieldedCachePayload } from './messages/payloads/SyncShieldedCachePayload'
-import { GetShieldedCachePayload } from './messages/payloads/GetShieldedCachePayload'
-import { GetShieldedCacheResponse, SyncShieldedCacheResponse } from './messages/response/GetShieldedCacheResponse'
+import { SyncShieldedNotesPayload } from './messages/payloads/SyncShieldedNotesPayload'
+import { GetShieldedSyncStatePayload } from './messages/payloads/GetShieldedSyncStatePayload'
+import { GetShieldedSyncStateResponse, SyncShieldedNotesResponse } from './messages/response/GetShieldedSyncStateResponse'
 import { EstimateShieldedFeePayload } from './messages/payloads/EstimateShieldedFeePayload'
 import { EstimateShieldedFeeResponse } from './messages/response/EstimateShieldedFeeResponse'
 import { ShieldedSpendKind } from './ShieldedSpendKind'
@@ -552,18 +552,18 @@ export class PrivateAPIClient {
   // balance, addresses and notes can be read afterwards without the password.
   // Covers every seedphrase wallet unless one is named. Long: the first sync
   // trial-decrypts the whole pool.
-  async syncShieldedCache (password: string, account?: number, walletId?: string): Promise<SyncShieldedCacheResponse> {
-    const payload: SyncShieldedCachePayload = { password, account, walletId }
+  async syncShieldedNotes (password: string, account?: number, walletId?: string): Promise<SyncShieldedNotesResponse> {
+    const payload: SyncShieldedNotesPayload = { password, account, walletId }
 
-    return await this._rpcCall(MessagingMethods.SYNC_SHIELDED_CACHE, payload, SHIELDED_PROVE_TIMEOUT)
+    return await this._rpcCall(MessagingMethods.SYNC_SHIELDED_NOTES, payload, SHIELDED_PROVE_TIMEOUT)
   }
 
-  // The shielded state left by the last syncShieldedCache. No password, no
+  // The shielded state left by the last syncShieldedNotes. No password, no
   // network call — an account never synced comes back empty with updatedAt null.
-  async getShieldedCache (account?: number, walletId?: string): Promise<GetShieldedCacheResponse> {
-    const payload: GetShieldedCachePayload = { account, walletId }
+  async getShieldedSyncState (account?: number, walletId?: string): Promise<GetShieldedSyncStateResponse> {
+    const payload: GetShieldedSyncStatePayload = { account, walletId }
 
-    return await this._rpcCall(MessagingMethods.GET_SHIELDED_CACHE, payload)
+    return await this._rpcCall(MessagingMethods.GET_SHIELDED_SYNC_STATE, payload)
   }
 
   // Estimates a shielded spend's fee before sending it, and the largest amount one

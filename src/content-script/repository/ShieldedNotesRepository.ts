@@ -1,11 +1,11 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { RepositoryScope } from '../../types/RepositoryScope'
-import { ShieldedAccountCache, ShieldedWalletCache } from '../../types/ShieldedCache'
+import { ShieldedNotesAccount, ShieldedNotesStore } from '../../types/ShieldedNotes'
 
 // Stores what the last shielded sync recovered, per wallet and account. Pure
 // storage: it never talks to the pool and never derives anything, so reading it
 // needs no password.
-export class ShieldedCacheRepository {
+export class ShieldedNotesRepository {
   storageAdapter: StorageAdapter
   scope?: RepositoryScope
 
@@ -17,32 +17,32 @@ export class ShieldedCacheRepository {
   // Returns a repository pinned to one (network, wallet) pair. A sync walks every
   // wallet, so it addresses each one through its own scope instead of the shared
   // instance, which re-reads the selected wallet on every call.
-  forScope (scope: RepositoryScope): ShieldedCacheRepository {
-    return new ShieldedCacheRepository(this.storageAdapter, scope)
+  forScope (scope: RepositoryScope): ShieldedNotesRepository {
+    return new ShieldedNotesRepository(this.storageAdapter, scope)
   }
 
-  async get (account: number): Promise<ShieldedAccountCache | null> {
-    const cache = await this.getAll()
+  async get (account: number): Promise<ShieldedNotesAccount | null> {
+    const accounts = await this.getAll()
 
-    return cache[String(account)] ?? null
+    return accounts[String(account)] ?? null
   }
 
-  async getAll (): Promise<ShieldedWalletCache> {
+  async getAll (): Promise<ShieldedNotesStore> {
     const storageKey = await this.getStorageKey()
 
-    return (await this.storageAdapter.get(storageKey) ?? {}) as ShieldedWalletCache
+    return (await this.storageAdapter.get(storageKey) ?? {}) as ShieldedNotesStore
   }
 
-  async save (entry: ShieldedAccountCache): Promise<void> {
+  async save (entry: ShieldedNotesAccount): Promise<void> {
     const storageKey = await this.getStorageKey()
-    const cache = (await this.storageAdapter.get(storageKey) ?? {}) as ShieldedWalletCache
+    const accounts = (await this.storageAdapter.get(storageKey) ?? {}) as ShieldedNotesStore
 
-    cache[String(entry.account)] = entry
+    accounts[String(entry.account)] = entry
 
-    await this.storageAdapter.set(storageKey, cache)
+    await this.storageAdapter.set(storageKey, accounts)
   }
 
-  // Drops everything cached for the wallet. Used when the pool no longer matches
+  // Drops everything stored for the wallet. Used when the pool no longer matches
   // what was scanned, so the next sync starts from an empty tree.
   async clear (): Promise<void> {
     await this.storageAdapter.set(await this.getStorageKey(), {})
@@ -55,7 +55,7 @@ export class ShieldedCacheRepository {
     const storageKey = await this.getStorageKey()
 
     if (typeof navigator === 'undefined' || navigator.locks == null) {
-      throw new Error('Shielded cache requires Web Locks support')
+      throw new Error('Shielded sync requires Web Locks support')
     }
 
     return await navigator.locks.request(storageKey, async () => await callback())
@@ -63,7 +63,7 @@ export class ShieldedCacheRepository {
 
   private async getStorageKey (): Promise<string> {
     if (this.scope != null) {
-      return `shieldedCache_${this.scope.network}_${this.scope.walletId}`
+      return `shieldedNotes_${this.scope.network}_${this.scope.walletId}`
     }
 
     const network = await this.storageAdapter.get('network') as string
@@ -73,6 +73,6 @@ export class ShieldedCacheRepository {
       throw new Error('No wallet is chosen')
     }
 
-    return `shieldedCache_${network}_${walletId}`
+    return `shieldedNotes_${network}_${walletId}`
   }
 }

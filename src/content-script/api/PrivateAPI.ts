@@ -64,9 +64,9 @@ import { FundPlatformAddressFromCoreHandler } from './private/wallet/fundPlatfor
 import { GenerateShieldedAddressesHandler } from './private/wallet/generateShieldedAddresses'
 import { GetShieldedAddressesHandler } from './private/wallet/getShieldedAddresses'
 import { GetShieldedBalanceHandler } from './private/wallet/getShieldedBalance'
-import { SyncShieldedCacheHandler } from './private/wallet/syncShieldedCache'
-import { GetShieldedCacheHandler } from './private/wallet/getShieldedCache'
-import { ShieldedCacheService } from '../services/ShieldedCacheService'
+import { SyncShieldedNotesHandler } from './private/wallet/syncShieldedNotes'
+import { GetShieldedSyncStateHandler } from './private/wallet/getShieldedSyncState'
+import { ShieldedService } from '../services/ShieldedService'
 import { EstimateShieldedFeeHandler } from './private/wallet/estimateShieldedFee'
 import { InitShieldHandler } from './private/wallet/initShield'
 import { ShieldToPoolHandler } from './private/wallet/shieldToPool'
@@ -125,7 +125,7 @@ export class PrivateAPI {
     const assetLockFundingAddressesRepository = new AssetLockFundingAddressesRepository(this.storageAdapter)
     const walletSettingsRepository = new WalletSettingsRepository(this.storageAdapter)
     const coreExplorer = new CoreExplorerService()
-    const shieldedCache = new ShieldedCacheService(this.storageAdapter, this.sdk)
+    const shielded = new ShieldedService(this.storageAdapter, this.sdk)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter, walletRepository),
@@ -193,8 +193,8 @@ export class PrivateAPI {
       [MessagingMethods.GENERATE_SHIELDED_ADDRESSES]: new GenerateShieldedAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_SHIELDED_ADDRESSES]: new GetShieldedAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_SHIELDED_BALANCE]: new GetShieldedBalanceHandler(walletRepository, this.sdk),
-      [MessagingMethods.SYNC_SHIELDED_CACHE]: new SyncShieldedCacheHandler(walletRepository, shieldedCache),
-      [MessagingMethods.GET_SHIELDED_CACHE]: new GetShieldedCacheHandler(walletRepository, shieldedCache),
+      [MessagingMethods.SYNC_SHIELDED_NOTES]: new SyncShieldedNotesHandler(walletRepository, shielded),
+      [MessagingMethods.GET_SHIELDED_SYNC_STATE]: new GetShieldedSyncStateHandler(walletRepository, shielded),
       [MessagingMethods.ESTIMATE_SHIELDED_FEE]: new EstimateShieldedFeeHandler(walletRepository, this.sdk),
       [MessagingMethods.INIT_SHIELD]: new InitShieldHandler(this.sdk),
       [MessagingMethods.SHIELD_TO_POOL]: new ShieldToPoolHandler(walletRepository, this.sdk),
