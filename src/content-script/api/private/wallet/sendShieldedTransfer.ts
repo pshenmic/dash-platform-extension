@@ -85,8 +85,10 @@ export class SendShieldedTransferHandler implements APIHandler {
         return 'fromAddresses must contain only non-empty address strings'
       }
     }
-    if (payload.memo != null && typeof payload.memo !== 'string') {
-      return 'memo must be a string'
+    const memoError = this.shielded.validateMemo(payload.memo)
+
+    if (memoError != null) {
+      return memoError
     }
 
     return null
