@@ -15,11 +15,14 @@ import {
   deriveWalletHdKey,
   deriveIdentityPrivateKey,
   deriveIdentityRegistrationKey,
-  deriveIdentityTopUpKey
+  deriveIdentityTopUpKey,
+  derivePlatformAddressPrivateKey,
+  buildPlatformSourceCandidates
 } from '../../utils'
 import { CoreAddressEntry, deriveCoreAccountXpub, deriveCoreAddressesFromXpub } from '../../utils/coreAddresses'
 import { CoreAssetLockPlan, buildAssetLockFromUtxos } from '../../utils/buildAssetLockFromUtxos'
-import { buildIdentityCreateTransition, IDENTITY_KEY_DEFINITIONS } from '../../utils/identityRegistration'
+import { buildIdentityCreateTransition, buildSignedIdentityCreateFromAddress, IDENTITY_KEY_DEFINITIONS } from '../../utils/identityRegistration'
+import { PlatformSourceCandidate, selectPlatformSource } from '../../utils/platformTransfer'
 import { isTransitionAlreadyKnownError } from '../../utils/identityFundingErrors'
 import { isIdentityNotFoundError } from '../../utils/isIdentityNotFoundError'
 import { AssetLockProof } from '../../types/AssetLockProof'
@@ -28,6 +31,16 @@ import { IDENTITY_INDEX_SCAN_LIMIT } from '../../constants'
 export interface IdentityFundingClients {
   sdk: DashPlatformSDK
   core: DashCoreSDK
+}
+
+// What a source hands back once its transition is signed: a Platform source pays
+// straight from its balance, so nothing is left to build at execute time.
+export interface IdentityFundingQuote {
+  stateTransition: string
+  stateTransitionHash: string
+  balanceCredits: string
+  feeCredits: string
+  fromAddress?: string
 }
 
 // Largest address window read from the explorer on one chain.
@@ -333,5 +346,52 @@ export class IdentityFundingService {
     }
 
     return false
+  }
+  // ── Platform address source ──────────────────────────────────────────────────
+
+  // The wallet's Platform addresses with what each one holds, read from its
+  // cached account xpub — no password needed to look, only to spend.
+  async platformCandidates (walletRepository: WalletRepository, network: Wallet['network'], sdk: DashPlatformSDK): Promise<PlatformSourceCandidate[]> {
+    const xpub = await walletRepository.getPlatformAccountXpub(0)
+
+    if (xpub == null) {
+      throw new Error('Platform xpub is not initialized; unlock this wallet first')
+    }
+
+    const count = await walletRepository.getPlatformAddressCount(0)
+
+    if (count === 0) {
+      throw new Error('No Platform addresses have been created yet')
+    }
+
+    return await buildPlatformSourceCandidates(sdk, xpub, network, 0, count)
+  }
+
+  // Signs the identity create transition funded from one Platform address: the one
+  // asked for, or the largest covering the amount. The nonce is baked into the
+  // signature here, which is why the journal stores the bytes and a retry sends
+  // exactly these — a re-signed transition with a stale nonce would be rejected,
+  // and one with a fresh nonce could pay twice.
+  async quotePlatform (operation: IdentityFundingOperation, walletRepository: WalletRepository, wallet: Wallet, password: string, sdk: DashPlatformSDK): Promise<IdentityFundingQuote> {
+    const candidates = await this.platformCandidates(walletRepository, wallet.network, sdk)
+    const source = selectPlatformSource(candidates, BigInt(operation.amountCredits), operation.requestedFromAddress)
+    const key = await derivePlatformAddressPrivateKey(wallet, password, 0, source.index, sdk)
+
+    const transition = buildSignedIdentityCreateFromAddress(
+      sdk,
+      await this.identityKeys(operation, wallet, password, sdk),
+      source.platformAddress,
+      source.nonce,
+      BigInt(operation.amountCredits),
+      key
+    )
+
+    return {
+      stateTransition: transition.hex(),
+      stateTransitionHash: transition.hash(false),
+      balanceCredits: source.balanceCredits.toString(),
+      feeCredits: transition.calculateMinRequiredFee().toString(),
+      fromAddress: source.platformAddress
+    }
   }
 }

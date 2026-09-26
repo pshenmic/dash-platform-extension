@@ -47,6 +47,7 @@ import { GetIdentityFundingSourcesHandler } from './private/identities/getIdenti
 import { GetIdentityFundingOperationsHandler } from './private/identities/getIdentityFundingOperations'
 import { CancelIdentityFundingHandler } from './private/identities/cancelIdentityFunding'
 import { RegisterIdentityFromCoreHandler } from './private/identities/registerIdentityFromCore'
+import { RegisterIdentityFromPlatformAddressHandler } from './private/identities/registerIdentityFromPlatformAddress'
 import { TopUpIdentityFromCoreHandler } from './private/identities/topUpIdentityFromCore'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
@@ -215,6 +216,7 @@ export class PrivateAPI {
       [MessagingMethods.GET_IDENTITY_FUNDING_OPERATIONS]: new GetIdentityFundingOperationsHandler(identityFunding),
       [MessagingMethods.CANCEL_IDENTITY_FUNDING]: new CancelIdentityFundingHandler(identityFunding),
       [MessagingMethods.REGISTER_IDENTITY_FROM_CORE]: new RegisterIdentityFromCoreHandler(walletRepository, identityFunding),
+      [MessagingMethods.REGISTER_IDENTITY_FROM_PLATFORM_ADDRESS]: new RegisterIdentityFromPlatformAddressHandler(walletRepository, identityFunding),
       [MessagingMethods.TOP_UP_IDENTITY_FROM_CORE]: new TopUpIdentityFromCoreHandler(walletRepository, identityFunding),
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository, this.sdk),

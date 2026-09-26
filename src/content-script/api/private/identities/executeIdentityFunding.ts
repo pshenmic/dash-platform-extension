@@ -15,10 +15,12 @@ import { isOutcomeUnknownError } from '../../../../utils/identityFundingErrors'
 import { fundingResponse, validateFundingScope } from './identityFundingPayload'
 
 // Confirms a prepared identity funding operation, or resumes one that was cut off.
-// Every step sends bytes saved in the journal, so a retry never reselects coins.
-// It broadcasts the asset lock, waits for its lock proof, builds the identity
-// transition that spends it, then sends that and waits for Platform to confirm
-// it. The subclasses fix which source and kind each API method drives.
+// Every step sends bytes saved in the journal, so a retry never reselects coins
+// or advances a Platform nonce. A Core operation broadcasts its asset lock, waits
+// for a lock proof and builds the identity transition; a Platform operation has
+// its transition signed already. Both then send that transition and wait for
+// Platform to confirm it. The subclasses fix which source and kind each API
+// method drives.
 export class ExecuteIdentityFundingHandler implements APIHandler {
   walletRepository: WalletRepository
   service: IdentityFundingService
@@ -78,7 +80,7 @@ export class ExecuteIdentityFundingHandler implements APIHandler {
   private async execute (run: FundingRun, walletRepository: WalletRepository, wallet: Wallet, password: string, clients: IdentityFundingClients): Promise<void> {
     const { sdk } = clients
 
-    if (run.operation.stateTransition == null) {
+    if (run.operation.source === 'core' && run.operation.stateTransition == null) {
       await this.fundAssetLock(run, wallet, password, clients)
     }
 

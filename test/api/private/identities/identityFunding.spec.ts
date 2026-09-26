@@ -6,6 +6,9 @@ import { IdentityFundingService } from '../../../../src/content-script/services/
 import { PrepareIdentityFundingHandler } from '../../../../src/content-script/api/private/identities/prepareIdentityFunding'
 import { ExecuteIdentityFundingHandler } from '../../../../src/content-script/api/private/identities/executeIdentityFunding'
 import { CancelIdentityFundingHandler } from '../../../../src/content-script/api/private/identities/cancelIdentityFunding'
+import { GetIdentityFundingSourcesHandler } from '../../../../src/content-script/api/private/identities/getIdentityFundingSources'
+import { findConflictingFunding } from '../../../../src/content-script/api/fundingConflicts'
+import { MessagingMethods } from '../../../../src/types/enums/MessagingMethods'
 import { IdentitiesRepository } from '../../../../src/content-script/repository/IdentitiesRepository'
 import { WalletRepository } from '../../../../src/content-script/repository/WalletRepository'
 import { bytesToHex, utf8ToBytes, derivePlatformAccountXpub, derivePlatformAddressesFromXpub } from '../../../../src/utils'
@@ -83,6 +86,10 @@ describe('identity funding handlers', () => {
   const prepare = async (payload: PrepareIdentityFundingPayload): Promise<any> => await call(new PrepareIdentityFundingHandler(walletRepository, service), payload)
   const execute = async (): Promise<any> => await call(new ExecuteIdentityFundingHandler(walletRepository, service, request.source, request.kind), { ...scope, operationId: request.operationId, password })
   const cancel = async (operationId: string): Promise<any> => await call(new CancelIdentityFundingHandler(service), { ...scope, operationId })
+  const sources = async (): Promise<any> => await call(new GetIdentityFundingSourcesHandler(walletRepository, service), scope)
+  // A registration paid from a Platform address, the request shape PR A adds.
+  const platformRequest = (overrides: Partial<PrepareIdentityFundingPayload> = {}): PrepareIdentityFundingPayload =>
+    ({ ...request, source: 'platform', kind: 'registration', identityId: undefined, amountCredits: '3000000000', ...overrides })
   // Signed bytes stay in the journal: the handlers never return them.
   const stored = async (operationId: string): Promise<any> => await service.repository(scope).get(operationId)
 
@@ -221,5 +228,64 @@ describe('identity funding handlers', () => {
     expect(core.broadcastTransaction).toHaveBeenCalledTimes(1)
     expect(core.subscribeToTransactions).toHaveBeenCalledTimes(1)
     expect(proofMock).toHaveBeenCalledTimes(2)
+  })
+  test('quotes a Platform registration against the funding address without writing anywhere', async () => {
+    const operation = await prepare(platformRequest())
+
+    expect(operation.fromAddress).toBe(platformAddress)
+    expect(operation.balanceCredits).toBe('10000000000')
+    expect(BigInt(operation.feeCredits as string)).toBeGreaterThan(0n)
+    // A Platform source signs its transition now, so nothing is left to build.
+    expect((await stored(operation.id)).stateTransition).toBeDefined()
+    expect(operation.assetLockTxid).toBeUndefined()
+    expect(core.broadcastTransaction).not.toHaveBeenCalled()
+    expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
+    // The nonce is signed into those bytes, so a repeat prepare must not re-sign.
+    expect((await prepare(platformRequest())).stateTransitionHash).toBe(operation.stateTransitionHash)
+  })
+
+  test('confirms a Platform registration by sending exactly the signed bytes', async () => {
+    const quote = await prepare(platformRequest())
+    const saved = (await stored(quote.id)).stateTransition
+    ;(sdk.identities.getIdentityByPublicKeyHash as jest.Mock).mockResolvedValue({ id: { base58: () => identityId } })
+
+    request = { ...platformRequest() }
+    const result = await execute()
+
+    expect(result.identityId).toBe(identityId)
+    expect(result.status).toBe('completed')
+    expect((sdk.stateTransitions.broadcast as jest.Mock).mock.calls[0][0].hex()).toBe(saved)
+    // The Core side is untouched: this source never builds an asset lock.
+    expect(core.broadcastTransaction).not.toHaveBeenCalled()
+    expect(proofMock).not.toHaveBeenCalled()
+  })
+
+  test('refuses a source address the wallet does not own', async () => {
+    await expect(prepare(platformRequest({ fromAddress: 'tdash1notours' })))
+      .rejects.toThrow(/not/)
+    expect(await service.repository(scope).getAll()).toHaveLength(0)
+  })
+
+  test('holds the address nonce against other spends while the operation is pending', async () => {
+    await prepare(platformRequest())
+    const operations = await service.repository(scope).getAll()
+
+    expect(findConflictingFunding(MessagingMethods.SEND_PLATFORM_TRANSFER, operations)?.source).toBe('platform')
+    expect(findConflictingFunding(MessagingMethods.SHIELD_TO_POOL, operations)?.source).toBe('platform')
+    // Reads and other funds are untouched by the reservation.
+    expect(findConflictingFunding(MessagingMethods.GET_CORE_BALANCE, operations)).toBeUndefined()
+  })
+
+  test('lists both sources with their balances, each reporting its own failure', async () => {
+    const result = await sources()
+
+    expect(result.platform.addresses).toEqual([{ address: platformAddress, balanceCredits: '10000000000' }])
+    expect(result.platform.error).toBeUndefined()
+
+    explorer.getXpubSummary.mockRejectedValueOnce(new Error('explorer down'))
+    const degraded = await sources()
+
+    expect(degraded.core.error).toContain('explorer down')
+    expect(degraded.platform.addresses).toHaveLength(1)
   })
 })

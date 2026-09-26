@@ -11,4 +11,7 @@ export interface PrepareIdentityFundingPayload extends RepositoryScope {
   password: string
   // the identity to top up; not accepted for a registration
   identityId?: string
+  // Platform source only: one address to pay from; omitted, the largest covering
+  // address is used.
+  fromAddress?: string
 }

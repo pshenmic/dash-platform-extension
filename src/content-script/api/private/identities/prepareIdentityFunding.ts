@@ -15,10 +15,11 @@ import { fundingResponse, validateFundingScope } from './identityFundingPayload'
 
 const CREDITS_PER_DUFF = 1000n
 
-// Quotes an identity registration or top-up paid from the wallet's own Core
-// coins, and saves it to the journal with the asset lock signed, so confirming it
-// never reselects coins. The same operation id returns the saved quote; a pending
-// Core operation (or another registration) has to be resumed or cancelled first.
+// Quotes an identity registration paid from the wallet's own funds — Core coins
+// or one of its Platform addresses — and saves it to the journal with everything
+// signed, so confirming it never reselects funds or advances a nonce twice. The
+// same operation id returns the saved quote; a pending operation on the same
+// source (or another registration) has to be resumed or cancelled first.
 export class PrepareIdentityFundingHandler implements APIHandler {
   walletRepository: WalletRepository
   service: IdentityFundingService
@@ -55,8 +56,9 @@ export class PrepareIdentityFundingHandler implements APIHandler {
       }
 
       const operations = await repository.getAll()
-      // One pending operation per source: two would select the same coins.
-      // Registrations also share the identity index sequence.
+      // One pending operation per source: two would select the same coins or
+      // advance the same Platform nonce. Registrations also share the identity
+      // index sequence.
       const conflicting = operations.find(op => isPendingFundingOperation(op) &&
         (op.source === payload.source || (op.kind === 'registration' && payload.kind === 'registration')))
 
@@ -82,6 +84,7 @@ export class PrepareIdentityFundingHandler implements APIHandler {
         source: payload.source,
         amountCredits: payload.amountCredits,
         identityId: payload.identityId,
+        requestedFromAddress: payload.fromAddress,
         status: 'prepared',
         createdAt: Date.now()
       }
@@ -97,7 +100,11 @@ export class PrepareIdentityFundingHandler implements APIHandler {
         operation.identityIndex = await this.service.reserveIdentityIndex(wallet, payload.password, clients.sdk, taken)
       }
 
-      await this.quoteCore(operation, operations, legacy, walletRepository, wallet, payload.password, clients)
+      if (operation.source === 'core') {
+        await this.quoteCore(operation, operations, legacy, walletRepository, wallet, payload.password, clients)
+      } else {
+        Object.assign(operation, await this.service.quotePlatform(operation, walletRepository, wallet, payload.password, clients.sdk))
+      }
 
       const feeCredits = BigInt(operation.feeCredits ?? '0')
 
@@ -187,7 +194,7 @@ export class PrepareIdentityFundingHandler implements APIHandler {
     if (typeof payload.operationId !== 'string' || !/^[a-zA-Z0-9-]{16,80}$/.test(payload.operationId)) {
       return 'Invalid operation id'
     }
-    if (payload.source !== 'core') {
+    if (!['core', 'platform'].includes(payload.source)) {
       return 'Invalid funding source'
     }
     if (payload.kind !== 'registration' && payload.kind !== 'topUp') {

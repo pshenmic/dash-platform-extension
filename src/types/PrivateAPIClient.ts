@@ -488,6 +488,13 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY_FROM_CORE, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
+  // Confirms a registration quoted against a Platform address. The transition was
+  // signed when the quote was prepared, so this broadcasts it and waits for the
+  // identity; a retry sends the same bytes.
+  async registerIdentityFromPlatformAddress (payload: ExecuteIdentityFundingPayload): Promise<IdentityFundingOperation> {
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY_FROM_PLATFORM_ADDRESS, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
   async topUpIdentityFromCore (payload: ExecuteIdentityFundingPayload): Promise<IdentityFundingOperation> {
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_CORE, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }

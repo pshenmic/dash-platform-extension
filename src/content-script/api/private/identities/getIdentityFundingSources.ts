@@ -8,8 +8,9 @@ import { validateFundingScope } from './identityFundingPayload'
 
 const errorMessage = (error: unknown): string => error instanceof Error ? error.message : String(error)
 
-// What the wallet can put towards an identity: its Core balance, read by account
-// xpub. A balance that cannot be read reports its error instead.
+// What the wallet can put towards an identity: its Core balance and its Platform
+// addresses, both read by account xpub — no password. Each source reports its own
+// error, so one unreachable source does not hide the other.
 export class GetIdentityFundingSourcesHandler implements APIHandler {
   walletRepository: WalletRepository
   service: IdentityFundingService
@@ -28,11 +29,33 @@ export class GetIdentityFundingSourcesHandler implements APIHandler {
       throw new Error('Native funding requires a seedphrase wallet')
     }
 
-    try {
-      return { core: { balanceCredits: await this.service.coreBalanceCredits(walletRepository, wallet.network) } }
-    } catch (error) {
-      return { core: { error: errorMessage(error) } }
+    const { sdk } = this.service.clientsFor(payload)
+    const result: GetIdentityFundingSourcesResponse = { core: {}, platform: { addresses: [] } }
+
+    const readCore = async (): Promise<void> => {
+      try {
+        result.core.balanceCredits = await this.service.coreBalanceCredits(walletRepository, wallet.network)
+      } catch (error) {
+        result.core.error = errorMessage(error)
+      }
     }
+
+    const readPlatform = async (): Promise<void> => {
+      try {
+        const candidates = await this.service.platformCandidates(walletRepository, wallet.network, sdk)
+
+        result.platform.addresses = candidates.map(candidate => ({
+          address: candidate.platformAddress,
+          balanceCredits: candidate.balanceCredits.toString()
+        }))
+      } catch (error) {
+        result.platform.error = errorMessage(error)
+      }
+    }
+
+    await Promise.all([readCore(), readPlatform()])
+
+    return result
   }
 
   validatePayload (payload: RepositoryScope): string | null {
