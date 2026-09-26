@@ -20,6 +20,10 @@ import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddr
 import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
 import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
 import { GetShieldedBalanceResponse } from './messages/response/GetShieldedBalanceResponse'
+import { SyncShieldedNotesPayload } from './messages/payloads/SyncShieldedNotesPayload'
+import { GetShieldedSyncStatePayload } from './messages/payloads/GetShieldedSyncStatePayload'
+import { RefreshShieldedNotesPayload } from './messages/payloads/RefreshShieldedNotesPayload'
+import { GetShieldedSyncStateResponse, SyncShieldedNotesResponse } from './messages/response/GetShieldedSyncStateResponse'
 import { EstimateShieldedFeePayload } from './messages/payloads/EstimateShieldedFeePayload'
 import { EstimateShieldedFeeResponse } from './messages/response/EstimateShieldedFeeResponse'
 import { ShieldedSpendKind } from './ShieldedSpendKind'
@@ -543,6 +547,34 @@ export class PrivateAPIClient {
     const payload: GetShieldedBalancePayload = { password, account }
 
     return await this._rpcCall(MessagingMethods.GET_SHIELDED_BALANCE, payload)
+  }
+
+  // Rescans the shielded pool for what this wallet owns and stores it, so the
+  // balance, addresses and notes can be read afterwards without the password.
+  // Covers every seedphrase wallet unless one is named. Long: the first sync
+  // trial-decrypts the whole pool.
+  async syncShieldedNotes (password: string, account?: number, walletId?: string, network?: NetworkType): Promise<SyncShieldedNotesResponse> {
+    const payload: SyncShieldedNotesPayload = { password, account, walletId, network }
+
+    return await this._rpcCall(MessagingMethods.SYNC_SHIELDED_NOTES, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  // A refresh for a dashboard button: re-checks the stored notes against the
+  // nullifier index (a spend made elsewhere lowers the balance) and re-reads the
+  // pool size. No password, so notes added since the last sync are counted in
+  // `total` but not recovered — compare it with `fetched` to offer a full sync.
+  async refreshShieldedNotes (account?: number, walletId?: string, network?: NetworkType): Promise<SyncShieldedNotesResponse> {
+    const payload: RefreshShieldedNotesPayload = { account, walletId, network }
+
+    return await this._rpcCall(MessagingMethods.REFRESH_SHIELDED_NOTES, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
+  // The shielded state left by the last syncShieldedNotes. No password, no
+  // network call — an account never synced comes back empty with updatedAt null.
+  async getShieldedSyncState (account?: number, walletId?: string, network?: NetworkType): Promise<GetShieldedSyncStateResponse> {
+    const payload: GetShieldedSyncStatePayload = { account, walletId, network }
+
+    return await this._rpcCall(MessagingMethods.GET_SHIELDED_SYNC_STATE, payload)
   }
 
   // Estimates a shielded spend's fee before sending it, and the largest amount one

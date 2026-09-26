@@ -1,8 +1,8 @@
 import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
-import { DashPlatformSDK } from 'dash-platform-sdk'
-import { decryptMnemonic, loadUnspentShieldedNotes, maxShieldedSpend, selectShieldedNotes, SHIELDED_SPEND_KINDS } from '../../../../utils'
+import { maxShieldedSpend, selectShieldedNotes, SHIELDED_SPEND_KINDS } from '../../../../utils'
+import { ShieldedService } from '../../../services/ShieldedService'
 import { EstimateShieldedFeePayload } from '../../../../types/messages/payloads/EstimateShieldedFeePayload'
 import { EstimateShieldedFeeResponse } from '../../../../types/messages/response/EstimateShieldedFeeResponse'
 
@@ -13,11 +13,11 @@ import { EstimateShieldedFeeResponse } from '../../../../types/messages/response
 // way: an amount estimated here is funded when it is sent.
 export class EstimateShieldedFeeHandler implements APIHandler {
   walletRepository: WalletRepository
-  sdk: DashPlatformSDK
+  shielded: ShieldedService
 
-  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, shielded: ShieldedService) {
     this.walletRepository = walletRepository
-    this.sdk = sdk
+    this.shielded = shielded
   }
 
   async handle (event: EventData): Promise<EstimateShieldedFeeResponse> {
@@ -32,9 +32,9 @@ export class EstimateShieldedFeeHandler implements APIHandler {
     }
 
     const account = payload.account ?? 0
-    const seed = this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, payload.password))
+    const seed = this.shielded.deriveSeed(wallet, payload.password)
 
-    const { unspent } = await loadUnspentShieldedNotes(this.sdk, seed, wallet.network, account, payload.fromAddresses)
+    const { unspent } = await this.shielded.loadUnspentNotes(seed, wallet.network, account, payload.fromAddresses)
 
     const max = maxShieldedSpend(unspent, payload.kind)
 

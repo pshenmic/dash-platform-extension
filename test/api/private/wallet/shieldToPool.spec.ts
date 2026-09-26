@@ -1,4 +1,5 @@
 import { ShieldToPoolHandler } from '../../../../src/content-script/api/private/wallet/shieldToPool'
+import { ShieldedService } from '../../../../src/content-script/services/ShieldedService'
 import { buildPlatformSourceCandidates, decryptMnemonic, selectPlatformSource } from '../../../../src/utils'
 
 jest.mock('../../../../src/utils', () => {
@@ -86,7 +87,7 @@ describe('ShieldToPoolHandler', () => {
     selectPlatformSourceMock.mockReturnValue(source as any)
     decryptMnemonicMock.mockReturnValue('mnemonic words')
 
-    handler = new ShieldToPoolHandler(walletRepository, sdk)
+    handler = new ShieldToPoolHandler(walletRepository, sdk, new ShieldedService({} as any, sdk))
   })
 
   const handle = async (payload: any = {}): Promise<any> => {
@@ -179,6 +180,9 @@ describe('ShieldToPoolHandler', () => {
     test('rejects non-string fromAddress and memo', () => {
       expect(handler.validatePayload({ amountCredits: '1000', password, fromAddress: 1 } as any)).toBe('fromAddress must be a string')
       expect(handler.validatePayload({ amountCredits: '1000', password, memo: 1 } as any)).toBe('memo must be a string')
+      expect(handler.validatePayload({ amountCredits: '1000', password, memo: 'x'.repeat(33) } as any)).toBe('memo must be at most 32 bytes (got 33)')
+      // Counted in bytes: 32 Cyrillic characters are 64 bytes.
+      expect(handler.validatePayload({ amountCredits: '1000', password, memo: 'я'.repeat(32) } as any)).toBe('memo must be at most 32 bytes (got 64)')
     })
   })
 })

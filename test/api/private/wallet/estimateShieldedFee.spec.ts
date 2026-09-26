@@ -1,17 +1,5 @@
 import { EstimateShieldedFeeHandler } from '../../../../src/content-script/api/private/wallet/estimateShieldedFee'
-import { decryptMnemonic, loadUnspentShieldedNotes } from '../../../../src/utils'
-
-jest.mock('../../../../src/utils', () => {
-  const actual = jest.requireActual('../../../../src/utils')
-  return {
-    ...actual,
-    decryptMnemonic: jest.fn(),
-    loadUnspentShieldedNotes: jest.fn()
-  }
-})
-
-const decryptMnemonicMock = decryptMnemonic as jest.MockedFunction<typeof decryptMnemonic>
-const loadUnspentShieldedNotesMock = loadUnspentShieldedNotes as jest.MockedFunction<typeof loadUnspentShieldedNotes>
+import { ShieldedService } from '../../../../src/content-script/services/ShieldedService'
 
 const M = 1_000_000n
 const TRANSFER_FEE_2 = 162_851_200n
@@ -22,6 +10,8 @@ const note = (value: bigint): any => ({ note: { value } })
 describe('EstimateShieldedFeeHandler', () => {
   let walletRepository: any
   let sdk: any
+  let shielded: ShieldedService
+  let loadUnspentNotes: jest.SpyInstance
   let handler: EstimateShieldedFeeHandler
 
   beforeEach(() => {
@@ -41,10 +31,11 @@ describe('EstimateShieldedFeeHandler', () => {
 
     sdk = { keyPair: { mnemonicToSeed: jest.fn(() => new Uint8Array([1, 2, 3])) } }
 
-    decryptMnemonicMock.mockReturnValue('mnemonic words')
-    loadUnspentShieldedNotesMock.mockResolvedValue({ allNotes: [], unspent: [note(500n * M), note(300n * M)] })
+    shielded = new ShieldedService({} as any, sdk)
+    jest.spyOn(shielded, 'deriveSeed').mockReturnValue(new Uint8Array([1, 2, 3]))
+    loadUnspentNotes = jest.spyOn(shielded, 'loadUnspentNotes').mockResolvedValue({ allNotes: [], unspent: [note(500n * M), note(300n * M)] })
 
-    handler = new EstimateShieldedFeeHandler(walletRepository, sdk)
+    handler = new EstimateShieldedFeeHandler(walletRepository, shielded)
   })
 
   const handle = async (payload: any): Promise<any> => {
@@ -65,7 +56,7 @@ describe('EstimateShieldedFeeHandler', () => {
       notesCount: 1,
       maxAmountCredits: (800n * M - TRANSFER_FEE_2).toString()
     })
-    expect(loadUnspentShieldedNotesMock).toHaveBeenCalledWith(sdk, expect.any(Uint8Array), 'testnet', 0, undefined)
+    expect(loadUnspentNotes).toHaveBeenCalledWith(expect.any(Uint8Array), 'testnet', 0, undefined)
   })
 
   it('describes the largest spend when no amount is given', async () => {
@@ -88,7 +79,7 @@ describe('EstimateShieldedFeeHandler', () => {
   it('loads notes only from the requested source addresses', async () => {
     await handle({ kind: 'transfer', password: 'test', amountCredits: '1000', account: 1, fromAddresses: [SOURCE_ADDRESS] })
 
-    expect(loadUnspentShieldedNotesMock).toHaveBeenCalledWith(sdk, expect.any(Uint8Array), 'testnet', 1, [SOURCE_ADDRESS])
+    expect(loadUnspentNotes).toHaveBeenCalledWith(expect.any(Uint8Array), 'testnet', 1, [SOURCE_ADDRESS])
   })
 
   it('rejects an amount the notes cannot cover with its fee', async () => {
@@ -100,7 +91,7 @@ describe('EstimateShieldedFeeHandler', () => {
     walletRepository.getCurrent.mockResolvedValueOnce({ walletId: 'wallet1', type: 'keystore', network: 'testnet' })
 
     await expect(handle({ kind: 'transfer', password: 'test' })).rejects.toThrow(/seedphrase wallet/)
-    expect(loadUnspentShieldedNotesMock).not.toHaveBeenCalled()
+    expect(loadUnspentNotes).not.toHaveBeenCalled()
   })
 
   describe('validatePayload', () => {

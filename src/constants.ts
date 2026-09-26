@@ -87,6 +87,9 @@ export const SHIELDED_ADDRESS_DEFAULT_COUNT = 5
 export const SHIELDED_ADDRESS_GENERATE_BATCH = 10
 // Page size when paging the note set; mirrors the SDK's gRPC query limit.
 export const SHIELDED_NOTES_PAGE_SIZE = 8192
+// A shielded memo is a fixed-size field: the pool takes exactly this many bytes,
+// so a shorter one is padded and a longer one cannot be sent at all.
+export const SHIELDED_MEMO_BYTES = 32
 // Most nullifiers Platform checks in one getShieldedNullifiers query; it rejects
 // a larger batch with "trying to check N nullifiers, maximum is 100".
 export const SHIELDED_NULLIFIER_QUERY_LIMIT = 100
