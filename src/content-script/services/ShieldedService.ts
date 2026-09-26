@@ -9,9 +9,9 @@ import { NetworkType } from '../../types/NetworkType'
 import { ShieldedAddressBalance, ShieldedNote, ShieldedNotesAccount, ShieldedStoredAddress, ShieldedSyncPhase } from '../../types/ShieldedNotes'
 import { Network } from '../../types/enums/Network'
 import { ShieldedSpendKind } from '../../types/ShieldedSpendKind'
-import { PLATFORM_ADDRESS_COIN_TYPE, SHIELDED_NOTES_PAGE_SIZE, SHIELDED_NULLIFIER_QUERY_LIMIT } from '../../constants'
+import { PLATFORM_ADDRESS_COIN_TYPE, SHIELDED_MEMO_BYTES, SHIELDED_NOTES_PAGE_SIZE, SHIELDED_NULLIFIER_QUERY_LIMIT } from '../../constants'
 import { ShieldedSyncState } from '../../types/messages/response/GetShieldedSyncStateResponse'
-import { bytesToHex, decryptMnemonic, hexToBytes, selectShieldedNotes } from '../../utils'
+import { bytesToHex, decryptMnemonic, hexToBytes, selectShieldedNotes, utf8ToBytes } from '../../utils'
 
 // What every network-bound copy of the service shares: one SDK per extra network
 // and the in-memory sync phases.
@@ -366,6 +366,28 @@ export class ShieldedService {
       total: await this.getPoolTotal(),
       updatedAt: Date.now()
     }
+  }
+
+  // The pool's memo field holds SHIELDED_MEMO_BYTES bytes, and the SDK refuses
+  // anything longer — but only once the password has been taken and, for a spend,
+  // the proof built. Checking here keeps that failure out of the slow path.
+  // Counted in bytes, not characters: a 32-character Cyrillic memo is 64 bytes.
+  validateMemo (text?: string): string | null {
+    if (text == null) {
+      return null
+    }
+
+    if (typeof text !== 'string') {
+      return 'memo must be a string'
+    }
+
+    const length = utf8ToBytes(text).length
+
+    if (length > SHIELDED_MEMO_BYTES) {
+      return `memo must be at most ${SHIELDED_MEMO_BYTES} bytes (got ${length})`
+    }
+
+    return null
   }
 
   validateAccount (account?: number): string | null {

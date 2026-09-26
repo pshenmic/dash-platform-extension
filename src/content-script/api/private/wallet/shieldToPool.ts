@@ -2,6 +2,7 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { ShieldedService } from '../../../services/ShieldedService'
 import { InputAddressWASM, AddressFundsFeeStrategyStepWASM } from 'pshenmic-dpp'
 import { buildPlatformSourceCandidates, decryptMnemonic, selectPlatformSource } from '../../../../utils'
 import { ShieldToPoolPayload } from '../../../../types/messages/payloads/ShieldToPoolPayload'
@@ -15,10 +16,12 @@ import { ShieldToPoolResponse } from '../../../../types/messages/response/Shield
 export class ShieldToPoolHandler implements APIHandler {
   walletRepository: WalletRepository
   sdk: DashPlatformSDK
+  shielded: ShieldedService
 
-  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK, shielded: ShieldedService) {
     this.walletRepository = walletRepository
     this.sdk = sdk
+    this.shielded = shielded
   }
 
   async handle (event: EventData): Promise<ShieldToPoolResponse> {
@@ -91,8 +94,10 @@ export class ShieldToPoolHandler implements APIHandler {
     if (payload.fromAddress != null && typeof payload.fromAddress !== 'string') {
       return 'fromAddress must be a string'
     }
-    if (payload.memo != null && typeof payload.memo !== 'string') {
-      return 'memo must be a string'
+    const memoError = this.shielded.validateMemo(payload.memo)
+
+    if (memoError != null) {
+      return memoError
     }
 
     return null

@@ -84,8 +84,10 @@ export class WithdrawShieldedToCoreHandler implements APIHandler {
     if (payload.account != null && (!Number.isInteger(payload.account) || payload.account < 0)) {
       return 'Account must be a non-negative integer'
     }
-    if (payload.memo != null && typeof payload.memo !== 'string') {
-      return 'memo must be a string'
+    const memoError = this.shielded.validateMemo(payload.memo)
+
+    if (memoError != null) {
+      return memoError
     }
 
     return null
