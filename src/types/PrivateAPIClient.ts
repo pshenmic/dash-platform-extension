@@ -43,12 +43,9 @@ import { SendPlatformTransferPayload } from './messages/payloads/SendPlatformTra
 import { SendPlatformTransferResponse } from './messages/response/SendPlatformTransferResponse'
 import { IdentityCreditTransferToAddressesPayload } from './messages/payloads/IdentityCreditTransferToAddressesPayload'
 import { IdentityCreditTransferToAddressesResponse } from './messages/response/IdentityCreditTransferToAddressesResponse'
-import { TopUpIdentityFromAddressPayload } from './messages/payloads/TopUpIdentityFromAddressPayload'
 import { TopUpIdentityFromAddressResponse } from './messages/response/TopUpIdentityFromAddressResponse'
 import { WithdrawPlatformAddressToCorePayload } from './messages/payloads/WithdrawPlatformAddressToCorePayload'
 import { WithdrawPlatformAddressToCoreResponse } from './messages/response/WithdrawPlatformAddressToCoreResponse'
-import { RegisterIdentityFromAddressPayload } from './messages/payloads/RegisterIdentityFromAddressPayload'
-import { RegisterIdentityFromAddressResponse } from './messages/response/RegisterIdentityFromAddressResponse'
 import { FundPlatformAddressFromCorePayload } from './messages/payloads/FundPlatformAddressFromCorePayload'
 import { FundPlatformAddressFromCoreResponse } from './messages/response/FundPlatformAddressFromCoreResponse'
 import { CheckPasswordResponse } from './messages/response/CheckPasswordResponse'
@@ -554,22 +551,46 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.IDENTITY_CREDIT_TRANSFER_TO_ADDRESSES, payload)
   }
 
+  // Kept for callers written against the old one-shot method, now driven by the
+  // funding journal: quote, then confirm. New callers should use
+  // prepareIdentityFunding and topUpIdentityFromPlatformAddress directly, which is
+  // what gives them the quote to show and a resumable operation.
   async topUpIdentityFromAddress (identityId: string, amountCredits: string, password: string, fromAddress?: string): Promise<TopUpIdentityFromAddressResponse> {
-    const payload: TopUpIdentityFromAddressPayload = { identityId, amountCredits, password, fromAddress }
+    const { network, currentWalletId } = await this.getStatus()
 
-    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_ADDRESS, payload)
+    if (currentWalletId == null) {
+      throw new Error('No wallet is chosen')
+    }
+
+    const scope = { walletId: currentWalletId, network: network as NetworkType }
+    const operationId = `legacy-topup-${generateRandomHex(16)}`
+
+    await this.prepareIdentityFunding({
+      ...scope,
+      operationId,
+      source: 'platform',
+      kind: 'topUp',
+      amountCredits,
+      password,
+      identityId,
+      fromAddress: fromAddress != null && fromAddress.length > 0 ? fromAddress : undefined
+    })
+
+    const operation = await this.topUpIdentityFromPlatformAddress({ ...scope, operationId, password })
+
+    return {
+      stHash: operation.stateTransitionHash as string,
+      amountCredits: operation.amountCredits,
+      feeCredits: operation.feeCredits ?? '0',
+      fromAddress: operation.fromAddress as string,
+      identityId
+    }
   }
 
   async withdrawPlatformAddressToCore (toCoreAddress: string, amountCredits: string, password: string, fromAddress?: string): Promise<WithdrawPlatformAddressToCoreResponse> {
     const payload: WithdrawPlatformAddressToCorePayload = { toCoreAddress, amountCredits, password, fromAddress }
 
     return await this._rpcCall(MessagingMethods.WITHDRAW_PLATFORM_ADDRESS_TO_CORE, payload)
-  }
-
-  async registerIdentityFromAddress (amountCredits: string, password: string, fromAddress?: string): Promise<RegisterIdentityFromAddressResponse> {
-    const payload: RegisterIdentityFromAddressPayload = { amountCredits, password, fromAddress }
-
-    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY_FROM_ADDRESS, payload)
   }
 
   async fundPlatformAddressFromCore (platformAddress: string, assetLockFundingAddress: string, assetLockFundingTxid: string, password: string): Promise<FundPlatformAddressFromCoreResponse> {
