@@ -34,14 +34,13 @@ function PlatformHomeState (): React.JSX.Element {
   const rate = useDashRate(network)
   // Lives here, not in the tab: the balance block shares it and tab switches keep the data.
   const platform = usePlatformAddresses(network, currentWallet)
-  // Lives here so one password unlocks both the balance slice and the Shield sub-tab rows.
+  // Shared by the balance slice and the Shield sub-tab.
   const shielded = useShieldedAddresses(network, currentWallet)
   const shieldedCredits = shielded.balance != null
-    ? toCreditsBigInt(shielded.balance.balance) ?? 0n
+    ? toCreditsBigInt(shielded.balance) ?? 0n
     : null
 
-  // The shielded password is entered in the Shield sub-tab, so Unlock just
-  // takes the user there.
+  // The shielded password is entered in the Shield sub-tab.
   const handleUnlockShielded = (): void => {
     setActiveTab('addresses')
     setAddressType('shield')
@@ -51,6 +50,7 @@ function PlatformHomeState (): React.JSX.Element {
     refresh()
     platformData.reload()
     void platform.reload()
+    void shielded.refresh()
   }
 
   return (
@@ -62,9 +62,10 @@ function PlatformHomeState (): React.JSX.Element {
         identityCredits={platformData.loading ? null : platformData.totalCredits}
         platform={platform}
         shieldedCredits={shieldedCredits}
+        shieldedSyncing={shielded.isSyncing}
         onUnlockShielded={handleUnlockShielded}
         rate={rate}
-        loading={platformData.loading}
+        loading={platformData.loading || shielded.isRefreshing}
         hasAddressLayer={hasAddressLayer}
       />
       <ActionRow scope='platform' />

@@ -74,8 +74,8 @@ function ReceiveState (): React.JSX.Element {
     openTopUp(selected.value)
   }, [openTopUp, selected])
 
-  const handleShieldedLoad = useCallback(async (password: string): Promise<string | null> => {
-    return await shielded.load(password)
+  const handleShieldedSync = useCallback(async (password: string): Promise<string | null> => {
+    return await shielded.sync(password)
   }, [shielded])
 
   const handlePlatformPassword = useCallback(async (password: string): Promise<string | null> => {
@@ -90,7 +90,7 @@ function ReceiveState (): React.JSX.Element {
   // was opened with, so naming Core in the subtitle would be a lie.
   const scopeLabel = !hasAddressLayer && scope === 'all' ? SCOPE_LABELS.platform : SCOPE_LABELS[scope]
 
-  const needsShieldedPassword = activeType === 'shielded' && !shielded.hasLoaded
+  const needsShieldedPassword = activeType === 'shielded' && !shielded.hasLoaded && !shielded.isSyncing
   const needsPlatformPassword = activeType === 'platformAddress' && platform.needsPassword
 
   return (
@@ -113,10 +113,9 @@ function ReceiveState (): React.JSX.Element {
 
       {needsShieldedPassword && (
         <PasswordGate
-          description='Enter your password to view shielded addresses.'
-          submitLabel='Show Shielded Addresses'
-          isPending={shielded.isLoading}
-          onSubmit={handleShieldedLoad}
+          description='Enter your password to sync shielded addresses.'
+          submitLabel='Sync Shielded Addresses'
+          onSubmit={handleShieldedSync}
         />
       )}
 

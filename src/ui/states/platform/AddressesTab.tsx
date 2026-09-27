@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import {
-  Avatar,
   BigNumber,
   Button,
   CopyButton,
@@ -16,7 +15,7 @@ import { IconChip } from '../../components/common'
 import { PasswordGate } from '../../components/forms'
 import { usePlatformExplorerClient } from '../../hooks'
 import type { UsePlatformAddressesResult, UseShieldedAddressesResult } from '../../hooks'
-import type { AddressData, ShieldedAddressData } from '../../components/addresses'
+import { ShieldedSyncStatus, type AddressData, type ShieldedAddressData } from '../../components/addresses'
 import type { OutletContext } from '../../types/OutletContext'
 import type { NetworkType } from '../../../types'
 import { creditsToDashDisplay, creditsToUsdEquivalent, getPlatformAddressExplorerUrl, toCreditsBigInt } from '../../../utils'
@@ -96,9 +95,6 @@ function AddressRow ({
   return (
     <div className='flex flex-col gap-2 p-3 rounded-[15px] bg-[rgba(12,28,51,0.04)]'>
       <div className='flex items-center gap-2 min-w-0'>
-        <div className='w-6 h-6 rounded-full overflow-hidden shrink-0 bg-[rgba(76,126,255,0.05)]'>
-          <Avatar username={address} className='w-6 h-6' />
-        </div>
         <Identifier linesAdjustment={false} highlight='both' className='!text-[0.625rem] !leading-[1.2] min-w-0 mr-auto'>
           {address}
         </Identifier>
@@ -223,8 +219,8 @@ export function AddressesTab ({
     platform.cancelPassword()
   }
 
-  const handleShieldedLoad = async (password: string): Promise<string | null> => {
-    return await shielded.load(password)
+  const handleShieldedSync = async (password: string): Promise<string | null> => {
+    return await shielded.sync(password)
   }
 
   const handleAdd = (): void => {
@@ -238,7 +234,7 @@ export function AddressesTab ({
 
   const addDisabled = addressType === 'platform'
     ? platform.isLoading || platform.isGenerating
-    : !shielded.hasLoaded || shielded.isLoading || shielded.isGenerating || creatingShielded
+    : !shielded.hasLoaded || shielded.isSyncing || shielded.isGenerating || creatingShielded
 
   const handleShieldedGenerate = async (password: string): Promise<string | null> => {
     const generateError = await shielded.generate(password)
@@ -345,14 +341,12 @@ export function AddressesTab ({
 
       {addressType === 'shield' && (
         <>
-          {!shielded.hasLoaded && (
-            <PasswordGate
-              description='Enter your password to view shielded addresses.'
-              submitLabel='Show Shielded Addresses'
-              isPending={shielded.isLoading}
-              onSubmit={handleShieldedLoad}
-            />
-          )}
+          <ShieldedSyncStatus
+            hasLoaded={shielded.hasLoaded}
+            updatedAt={shielded.updatedAt}
+            isSyncing={shielded.isSyncing}
+            onSync={handleShieldedSync}
+          />
           {shielded.error != null && (
             <ValueCard colorScheme='red' size='xl'>
               <Text size='sm' color='red'>{shielded.error}</Text>

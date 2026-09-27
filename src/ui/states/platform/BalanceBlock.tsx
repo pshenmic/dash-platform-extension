@@ -84,8 +84,9 @@ interface BalanceBlockProps {
   identityCredits: bigint | null
   /** Platform addresses shared with the rest of the dashboard. */
   platform: UsePlatformAddressesResult
-  /** Shielded credits, null until the user unlocks them with the password. */
+  /** Shielded credits, null until the wallet's shielded notes are synced. */
   shieldedCredits: bigint | null
+  shieldedSyncing: boolean
   /** Sends the user to the Shield addresses sub-tab, where the password is entered. */
   onUnlockShielded: () => void
   rate: number | null
@@ -103,6 +104,7 @@ export function BalanceBlock ({
   identityCredits,
   platform,
   shieldedCredits,
+  shieldedSyncing,
   onUnlockShielded,
   rate,
   loading,
@@ -122,6 +124,26 @@ export function BalanceBlock ({
     : null
   const totalParts = totalCredits != null ? dashParts(totalCredits) : null
   const totalFiat = fiatLabel(totalCredits, rate)
+
+  const shieldedAction = shieldedCredits != null || !hasAddressLayer
+    ? undefined
+    : shieldedSyncing
+      ? (
+        <Text size='xs' className='!text-[10px] !leading-[1.2] !text-dash-primary-dark-blue/35'>
+          Syncing...
+        </Text>
+        )
+      : (
+        <button
+          type='button'
+          className='flex shrink-0 w-fit items-center px-2 py-[5px] rounded-full bg-[rgba(12,28,51,0.04)] border-0 cursor-pointer'
+          onClick={onUnlockShielded}
+        >
+          <Text size='xs' weight='medium' className='!text-[10px] !leading-[1.2] !text-dash-brand'>
+            Unlock
+          </Text>
+        </button>
+        )
 
   return (
     <div className='flex flex-col'>
@@ -184,19 +206,7 @@ export function BalanceBlock ({
           hide={hide}
           className='rounded-bl-[14px]'
           unavailableLabel={hasAddressLayer ? undefined : SEED_ONLY_LABEL}
-          action={shieldedCredits == null && hasAddressLayer
-            ? (
-              <button
-                type='button'
-                className='flex shrink-0 w-fit items-center px-2 py-[5px] rounded-full bg-[rgba(12,28,51,0.04)] border-0 cursor-pointer'
-                onClick={onUnlockShielded}
-              >
-                <Text size='xs' weight='medium' className='!text-[10px] !leading-[1.2] !text-dash-brand'>
-                  Unlock
-                </Text>
-              </button>
-              )
-            : undefined}
+          action={shieldedAction}
         />
         <AllocationSlice
           label='Addresses:'

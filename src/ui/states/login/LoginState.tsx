@@ -6,6 +6,7 @@ import { withAccessControl } from '../../components/auth/withAccessControl'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { PasswordField } from '../../components/forms'
 import { unlockSession } from '../../utils/lockSession'
+import { trackShieldedSync } from '../../utils/shieldedSync'
 
 function LoginState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -42,6 +43,10 @@ function LoginState (): React.JSX.Element {
         if (status.currentWalletId != null) {
           await extensionAPI.initAccountXpubs(password)
             .catch(e => console.log('initAccountXpubs error: ', e))
+
+          // Runs in the background so shielded balances are readable without the password.
+          trackShieldedSync(extensionAPI.syncShieldedNotes(password))
+            .catch(e => console.log('syncShieldedNotes error: ', e))
         }
 
         const returnTo = searchParams.get('returnTo')

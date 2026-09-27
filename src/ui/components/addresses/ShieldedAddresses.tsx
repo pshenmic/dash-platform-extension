@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Text, Button, ValueCard, BigNumber, NotActive, ShieldSmallIcon } from 'dash-ui-kit/react'
 import { PasswordGate } from '../forms'
 import { ShieldedAddressItem } from './ShieldedAddressItem'
+import { ShieldedSyncStatus } from './ShieldedSyncStatus'
 import { BalanceInfo } from '../data'
 import { useShieldedAddresses } from '../../hooks/useShieldedAddresses'
 import type { NetworkType } from '../../../types'
@@ -15,13 +16,15 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
   const {
     rows,
     balance,
-    balanceUnavailable,
+    spendableNotes,
+    totalNotes,
     rate,
+    updatedAt,
     hasLoaded,
-    isLoading,
+    isSyncing,
     isGenerating,
     error,
-    load,
+    sync,
     generate
   } = useShieldedAddresses(currentNetwork, walletId)
   const [isCreating, setIsCreating] = useState(false)
@@ -41,14 +44,12 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
         Your shielded (private) addresses. They share one account balance, shown per address below.
       </Text>
 
-      {!hasLoaded && (
-        <PasswordGate
-          description='Enter your password to view shielded addresses.'
-          submitLabel='Show Shielded Addresses'
-          isPending={isLoading}
-          onSubmit={load}
-        />
-      )}
+      <ShieldedSyncStatus
+        hasLoaded={hasLoaded}
+        updatedAt={updatedAt}
+        isSyncing={isSyncing}
+        onSync={sync}
+      />
 
       {error != null && (
         <ValueCard colorScheme='red' size='xl'>
@@ -73,7 +74,7 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
                     <div className='flex items-baseline gap-1.5'>
                       <Text weight='bold' monospace className='!text-[2rem] !leading-none text-dash-brand'>
                         <BigNumber className='!text-[2rem] gap-1'>
-                          {balance.balance}
+                          {balance}
                         </BigNumber>
                       </Text>
                       <Text dim className='!text-[0.7rem]'>Credits</Text>
@@ -81,7 +82,7 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
 
                     {/* Dash + USD equivalents pill (same style as the home balance) */}
                     <BalanceInfo
-                      balanceState={{ loading: false, error: null, data: BigInt(balance.balance) }}
+                      balanceState={{ loading: false, error: null, data: BigInt(balance) }}
                       rateState={{ loading: false, error: null, data: rate }}
                     />
 
@@ -89,16 +90,16 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
                     <div className='grid grid-cols-2 gap-2 w-full'>
                       <div className='rounded-[10px] bg-[rgba(12,28,51,0.04)] px-2.5 py-2 flex flex-col gap-1'>
                         <Text dim className='!text-[0.7rem]'>Spendable notes:</Text>
-                        <Text weight='medium' className='!text-base text-dash-primary-dark-blue'>{balance.spendableNotes}</Text>
+                        <Text weight='medium' className='!text-base text-dash-primary-dark-blue'>{spendableNotes}</Text>
                       </div>
                       <div className='rounded-[10px] bg-[rgba(12,28,51,0.04)] px-2.5 py-2 flex flex-col gap-1'>
                         <Text dim className='!text-[0.7rem]'>Total notes:</Text>
-                        <Text weight='medium' className='!text-base text-dash-primary-dark-blue'>{balance.totalNotes}</Text>
+                        <Text weight='medium' className='!text-base text-dash-primary-dark-blue'>{totalNotes}</Text>
                       </div>
                     </div>
                   </>
                   )
-                : <NotActive>{balanceUnavailable ? 'Unavailable' : 'n/a'}</NotActive>}
+                : <NotActive>n/a</NotActive>}
             </div>
           </ValueCard>
 
@@ -131,7 +132,7 @@ export const ShieldedAddresses: React.FC<ShieldedAddressesProps> = ({ currentNet
               <Button
                 colorScheme='brand'
                 onClick={() => setIsCreating(true)}
-                disabled={isLoading || isGenerating}
+                disabled={isSyncing || isGenerating}
               >
                 Show more addresses
               </Button>

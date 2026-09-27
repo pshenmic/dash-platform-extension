@@ -6,6 +6,7 @@ export {
   WITHDRAW_TO_CORE_WARNING,
   SHIELDED_WITHDRAW_WARNING
 } from './transferWarnings'
+export { SHIELDED_SYNC_POLL_MS } from './shielded'
 export {
   EXTENSION_REPO_URL,
   EXTENSION_ISSUES_URL,

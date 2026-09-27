@@ -11,21 +11,24 @@ import type { OutletContext } from '../../types'
 import { TRANSFER_FEE_CREDITS, SHIELDED_SPEND_FEE_CREDITS } from '../../../constants'
 import { PROVING_WARNING, WITHDRAW_TO_CORE_WARNING, SHIELDED_WITHDRAW_WARNING } from '../../constants/transferWarnings'
 import { creditsToDashDisplay } from '../../../utils'
+import { trackShieldedSync } from '../../utils/shieldedSync'
 
 // Stands in for a party that is the wallet's own shielded pool — it has no
 // address the user chose, so there is nothing meaningful to render as an identifier.
 const SHIELDED_PARTY_LABEL = 'Your shielded balance'
 
-// 'send'             — platform address → platform address
-// 'fund'             — identity → platform address
-// 'topup'            — platform address → identity (recipient is an identity)
-// 'withdraw'         — platform address → Core (L1) address
-// 'shield'           — platform address → the wallet's own shielded pool
-// 'unshield'         — shielded pool → platform address
-// 'shieldedTransfer' — shielded pool → someone else's shielded address
-// 'shieldedWithdraw' — shielded pool → Core (L1) address
+// 'send'             — platform address -> platform address
+// 'fund'             — identity -> platform address
+// 'topup'            — platform address -> identity (recipient is an identity)
+// 'withdraw'         — platform address -> Core (L1) address
+// 'shield'           — platform address -> the wallet's own shielded pool
+// 'unshield'         — shielded pool -> platform address
+// 'shieldedTransfer' — shielded pool -> someone else's shielded address
+// 'shieldedWithdraw' — shielded pool -> Core (L1) address
 const TRANSFER_DIRECTIONS = ['fund', 'send', 'topup', 'withdraw', 'shield', 'unshield', 'shieldedTransfer', 'shieldedWithdraw'] as const
 type TransferDirection = typeof TRANSFER_DIRECTIONS[number]
+// Directions that change the wallet's shielded notes.
+const SHIELDED_DIRECTIONS: readonly TransferDirection[] = ['shield', 'unshield', 'shieldedTransfer', 'shieldedWithdraw']
 
 interface DirectionDescriptor {
   // What the transfer spends from. 'shielded' has no identifier to display.
@@ -113,7 +116,7 @@ function PlatformTransferConfirmState (): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const extensionAPI = useExtensionAPI()
-  const { currentNetwork } = useOutletContext<OutletContext>()
+  const { currentNetwork, currentWallet } = useOutletContext<OutletContext>()
 
   const state = location.state as PlatformTransferConfirmLocationState | null
 
@@ -188,6 +191,11 @@ function PlatformTransferConfirmState (): React.JSX.Element {
       } else {
         const response = await extensionAPI.identityCreditTransferToAddresses(toAddress, amountCredits, password, state.fromIdentity)
         setTxHash(response.stHash)
+      }
+
+      if (SHIELDED_DIRECTIONS.includes(direction)) {
+        trackShieldedSync(extensionAPI.syncShieldedNotes(password, undefined, currentWallet ?? undefined, currentNetwork ?? undefined))
+          .catch(e => console.log('syncShieldedNotes error', e))
       }
     } catch (err) {
       console.error('Platform transfer failed:', err)

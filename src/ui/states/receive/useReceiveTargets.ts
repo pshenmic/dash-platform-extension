@@ -58,8 +58,7 @@ function buildTarget (
 
 /**
  * Candidate receive destinations for a scope, plus the one currently selected.
- * Shielded addresses stay behind their password gate until that type is picked,
- * so opening Receive never greets the user with a password prompt.
+ * Shielded addresses come from the stored notes, so they need no password once synced.
  */
 export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsParams): UseReceiveTargetsResult {
   const sdk = useSdk()
@@ -150,7 +149,7 @@ export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsPara
   const loading = activeType === 'platformAddress'
     ? platform.isLoading
     : activeType === 'shielded'
-      ? shielded.isLoading
+      ? shielded.isSyncing
       : activeType === 'core' ? coreAddressState.loading : false
 
   return { showTypeSwitch, activeType, targets, selected, rate, platform, shielded, loading }

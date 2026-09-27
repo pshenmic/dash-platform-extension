@@ -1,170 +1,206 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useExtensionAPI } from './useExtensionAPI'
 import { usePlatformExplorerClient } from './usePlatformExplorerClient'
 import type { ShieldedAddressData } from '../components/addresses'
 import type { NetworkType } from '../../types'
-import type { GetShieldedAddressesResponse } from '../../types/messages/response/GetShieldedAddressesResponse'
-import type { GetShieldedBalanceResponse } from '../../types/messages/response/GetShieldedBalanceResponse'
+import type { ShieldedSyncState } from '../../types/messages/response/GetShieldedSyncStateResponse'
 import { SHIELDED_ADDRESS_GENERATE_BATCH } from '../../constants'
-
-type ShieldedAddressList = GetShieldedAddressesResponse['addresses']
-type ShieldedBalance = GetShieldedBalanceResponse
+import { SHIELDED_SYNC_POLL_MS } from '../constants'
+import { toCreditsBigInt } from '../../utils'
+import { isShieldedSyncRunning, onShieldedSyncChange, trackShieldedSync } from '../utils/shieldedSync'
 
 export interface UseShieldedAddressesResult {
   rows: ShieldedAddressData[]
-  balance: ShieldedBalance | null
-  balanceUnavailable: boolean
+  // Unspent credits, null until the wallet has been synced.
+  balance: string | null
+  spendableNotes: number
+  totalNotes: number
   rate: number | null
+  // When incoming notes were last looked for, null if never.
+  updatedAt: number | null
   hasLoaded: boolean
-  isLoading: boolean
+  isSyncing: boolean
+  isRefreshing: boolean
   isGenerating: boolean
   error: string | null
-  load: (password: string) => Promise<string | null>
+  sync: (password: string) => Promise<string | null>
   generate: (password: string) => Promise<string | null>
+  refresh: () => Promise<void>
 }
 
-// Merges the derived addresses with the per-address balances.
-const buildRows = (
-  addresses: ShieldedAddressList,
-  balance: ShieldedBalance | null
-): ShieldedAddressData[] => {
-  const unmatched = new Map((balance?.byAddress ?? []).map((entry) => [entry.address, entry]))
+interface AddressTotals {
+  address: string
+  diversifierIndex: number | null
+  balance: bigint
+  spendableNotes: number
+}
 
-  const derived = addresses.map((item) => {
-    const entry = unmatched.get(item.address)
-    unmatched.delete(item.address)
+const toRow = (totals: AddressTotals): ShieldedAddressData => ({
+  ...totals,
+  balance: totals.balance.toString()
+})
 
-    return {
+// Derived addresses with their unspent notes, then funded addresses outside the derived window.
+const buildRows = (state: ShieldedSyncState): ShieldedAddressData[] => {
+  const funded = new Map<string, AddressTotals>()
+
+  for (const note of state.notes) {
+    if (note.isSpent) continue
+
+    const totals = funded.get(note.address) ??
+      { address: note.address, diversifierIndex: note.diversifierIndex, balance: 0n, spendableNotes: 0 }
+
+    totals.balance += toCreditsBigInt(note.value) ?? 0n
+    totals.spendableNotes += 1
+    funded.set(note.address, totals)
+  }
+
+  const derived = state.addresses.map(item => {
+    const totals = funded.get(item.address)
+    funded.delete(item.address)
+
+    return toRow({
       address: item.address,
       diversifierIndex: item.diversifierIndex,
-      balance: balance == null ? null : entry?.balance ?? '0',
-      spendableNotes: balance == null ? null : entry?.spendableNotes ?? 0
-    }
+      balance: totals?.balance ?? 0n,
+      spendableNotes: totals?.spendableNotes ?? 0
+    })
   })
 
-  const external = [...unmatched.values()].map((entry) => ({
-    address: entry.address,
-    diversifierIndex: entry.diversifierIndex,
-    balance: entry.balance,
-    spendableNotes: entry.spendableNotes
-  }))
-
-  return [...derived, ...external]
+  return [...derived, ...[...funded.values()].map(toRow)]
 }
 
-// Owns the shielded addresses list, its balance and the generation flow.
+const errorMessage = (err: unknown, fallback: string): string =>
+  err instanceof Error ? err.message : fallback
+
+// Shielded addresses and balance from the stored notes, readable without the password.
 export function useShieldedAddresses (
   currentNetwork?: NetworkType | null,
   walletId?: string | null
 ): UseShieldedAddressesResult {
   const extensionAPI = useExtensionAPI()
   const platformExplorerClient = usePlatformExplorerClient()
-  const [addresses, setAddresses] = useState<ShieldedAddressList>([])
-  const [balance, setBalance] = useState<ShieldedBalance | null>(null)
-  const [balanceUnavailable, setBalanceUnavailable] = useState(false)
-  const [hasLoaded, setHasLoaded] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const network = currentNetwork ?? undefined
+  const wallet = walletId ?? undefined
+  const [state, setState] = useState<ShieldedSyncState | null>(null)
+  const [isLocalSync, setIsLocalSync] = useState(isShieldedSyncRunning)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [rate, setRate] = useState<number | null>(null)
+  const requestRef = useRef(0)
 
-  // Shielded data is per wallet and unlocked by password, so on a wallet or
-  // network switch it is dropped rather than refetched - otherwise the previous
-  // wallet's addresses stay on screen.
+  const reload = useCallback(async (): Promise<void> => {
+    const request = ++requestRef.current
+
+    try {
+      const next = await extensionAPI.getShieldedSyncState(undefined, wallet, network)
+      if (request === requestRef.current) setState(next)
+    } catch (err) {
+      if (request === requestRef.current) setError(errorMessage(err, 'Failed to load shielded addresses'))
+    }
+  }, [extensionAPI, wallet, network])
+
   useEffect(() => {
-    setAddresses([])
-    setBalance(null)
-    setBalanceUnavailable(false)
-    setHasLoaded(false)
+    setState(null)
     setError(null)
-  }, [currentNetwork, walletId])
+    void reload()
+  }, [reload])
 
-  // Fetch USD rate per Dash
+  useEffect(() => onShieldedSyncChange(() => {
+    const running = isShieldedSyncRunning()
+    setIsLocalSync(running)
+    if (!running) void reload()
+  }), [reload])
+
+  // A sync started before this popup opened is only visible through the stored phase.
   useEffect(() => {
-    const network = currentNetwork ?? 'testnet'
-    platformExplorerClient.fetchRate(network)
+    if (state?.phase !== 'syncing' || isLocalSync) return
+
+    const timer = setTimeout(() => { void reload() }, SHIELDED_SYNC_POLL_MS)
+
+    return () => { clearTimeout(timer) }
+  }, [state, isLocalSync, reload])
+
+  useEffect(() => {
+    platformExplorerClient.fetchRate(currentNetwork ?? 'testnet')
       .then(setRate)
       .catch(() => setRate(null))
   }, [currentNetwork, platformExplorerClient])
 
-  // Fetch the addresses and their balances. Both need the password every time,
-  // the seed is never kept unlocked.
-  const refreshList = useCallback(async (password: string): Promise<string | null> => {
-    setBalanceUnavailable(false)
+  const runSync = useCallback(async (password: string): Promise<string | null> => {
+    const response = await trackShieldedSync(extensionAPI.syncShieldedNotes(password, undefined, wallet, network))
+    const failed = response.wallets.find(entry => entry.error != null)
 
-    const [addrResult, balanceResult] = await Promise.allSettled([
-      extensionAPI.getShieldedAddresses(password),
-      extensionAPI.getShieldedBalance(password)
-    ])
+    return failed?.error ?? null
+  }, [extensionAPI, wallet, network])
 
-    if (addrResult.status === 'rejected') {
-      setError(addrResult.reason instanceof Error ? addrResult.reason.message : 'Failed to load shielded addresses')
-      return null
-    }
-
-    setAddresses(addrResult.value)
-    setHasLoaded(true)
-
-    if (balanceResult.status === 'fulfilled') {
-      setBalance(balanceResult.value)
-    } else {
-      setBalanceUnavailable(true)
-    }
-
-    return null
-  }, [extensionAPI])
-
-  const load = useCallback(async (password: string): Promise<string | null> => {
-    setIsLoading(true)
+  const sync = useCallback(async (password: string): Promise<string | null> => {
     setError(null)
 
     try {
       const passwordCheck = await extensionAPI.checkPassword(password)
-      if (!passwordCheck.success) {
-        return 'Invalid password'
-      }
+      if (!passwordCheck.success) return 'Invalid password'
 
-      return await refreshList(password)
+      const syncError = await runSync(password)
+      if (syncError != null) setError(syncError)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load shielded addresses')
-      return null
-    } finally {
-      setIsLoading(false)
+      setError(errorMessage(err, 'Failed to sync shielded addresses'))
     }
-  }, [extensionAPI, refreshList])
 
-  // Generate the next batch of diversified addresses and reload the list.
+    return null
+  }, [extensionAPI, runSync])
+
   const generate = useCallback(async (password: string): Promise<string | null> => {
     setIsGenerating(true)
     setError(null)
 
     try {
       const passwordCheck = await extensionAPI.checkPassword(password)
-      if (!passwordCheck.success) {
-        return 'Invalid password'
-      }
+      if (!passwordCheck.success) return 'Invalid password'
 
       await extensionAPI.generateShieldedAddresses(password, SHIELDED_ADDRESS_GENERATE_BATCH)
 
-      return await refreshList(password)
+      const syncError = await runSync(password)
+      if (syncError != null) setError(syncError)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create shielded addresses')
-      return null
+      setError(errorMessage(err, 'Failed to create shielded addresses'))
     } finally {
       setIsGenerating(false)
     }
-  }, [extensionAPI, refreshList])
+
+    return null
+  }, [extensionAPI, runSync])
+
+  const refresh = useCallback(async (): Promise<void> => {
+    setIsRefreshing(true)
+
+    try {
+      await extensionAPI.refreshShieldedNotes(undefined, wallet, network)
+      await reload()
+    } catch (err) {
+      console.log('refreshShieldedNotes error', err)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [extensionAPI, wallet, network, reload])
+
+  const hasLoaded = state?.updatedAt != null
 
   return {
-    rows: buildRows(addresses, balance),
-    balance,
-    balanceUnavailable,
+    rows: hasLoaded ? buildRows(state) : [],
+    balance: hasLoaded ? state.balance : null,
+    spendableNotes: state?.spendableNotes ?? 0,
+    totalNotes: state?.notes.length ?? 0,
     rate,
+    updatedAt: state?.updatedAt ?? null,
     hasLoaded,
-    isLoading,
+    isSyncing: isLocalSync || state?.phase === 'syncing',
+    isRefreshing,
     isGenerating,
     error,
-    load,
-    generate
+    sync,
+    generate,
+    refresh
   }
 }
