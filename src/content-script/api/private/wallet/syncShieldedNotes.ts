@@ -1,0 +1,185 @@
+import { ShieldedEncryptedNote } from 'dash-platform-sdk/types'
+import { EventData } from '../../../../types/EventData'
+import { APIHandler } from '../../APIHandler'
+import { WalletRepository } from '../../../repository/WalletRepository'
+import { ShieldedService } from '../../../services/ShieldedService'
+import { Wallet } from '../../../../types/Wallet'
+import { WalletType } from '../../../../types/WalletType'
+import { Network } from '../../../../types/enums/Network'
+import { NetworkType } from '../../../../types/NetworkType'
+import { ShieldedNote, ShieldedNotesAccount } from '../../../../types/ShieldedNotes'
+import { SyncShieldedNotesPayload } from '../../../../types/messages/payloads/SyncShieldedNotesPayload'
+import { ShieldedSyncState, SyncShieldedNotesResponse } from '../../../../types/messages/response/GetShieldedSyncStateResponse'
+
+// Brings the wallet's stored shielded notes up to date with the pool, for every
+// seedphrase wallet on both networks by default. Meant to be called once right
+// after the user unlocks: from then on GET_SHIELDED_SYNC_STATE serves the same
+// numbers without a password, whichever network the user then switches to.
+//
+// Only the part of the pool that has not been trial-decrypted yet is scanned,
+// which is what makes a repeat sync cheap. The pool is shared by all wallets, so
+// it is fetched once here and each wallet decrypts its own view of it. A wallet
+// that fails is reported in its own entry and does not stop the others.
+export class SyncShieldedNotesHandler implements APIHandler {
+  walletRepository: WalletRepository
+  service: ShieldedService
+
+  constructor (walletRepository: WalletRepository, service: ShieldedService) {
+    this.walletRepository = walletRepository
+    this.service = service
+  }
+
+  async handle (event: EventData): Promise<SyncShieldedNotesResponse> {
+    const payload: SyncShieldedNotesPayload = event.payload
+    const account = payload.account ?? 0
+    const networks = payload.network != null ? [payload.network] : Object.values(Network)
+
+    const entries: Array<ShieldedSyncState & { error?: string }> = []
+
+    // Each network holds its own pool and its own wallet records, so they are
+    // synced one after the other rather than together.
+    for (const network of networks) {
+      entries.push(...await this.syncNetwork(network, account, payload))
+    }
+
+    if (payload.walletId != null && entries.length === 0) {
+      throw new Error(`Wallet ${payload.walletId} cannot hold shielded funds`)
+    }
+
+    return { wallets: entries }
+  }
+
+  private async syncNetwork (network: NetworkType, account: number, payload: SyncShieldedNotesPayload): Promise<Array<ShieldedSyncState & { error?: string }>> {
+    const wallets = await this.selectWallets(network, payload.walletId)
+
+    if (wallets.length === 0) {
+      return []
+    }
+
+    // Reads this network's pool; the extension's own SDK serves the selected one.
+    const service = this.service.forNetwork(network)
+    const poolTotal = await service.getPoolTotal()
+    const scanned = await Promise.all(wallets.map(async wallet => await this.fetchedNotes(service, wallet, account, poolTotal)))
+    // Rewound to a chunk boundary: Platform refuses a read that starts inside one.
+    const behind = scanned.filter(offset => offset < poolTotal)
+    const from = behind.length > 0 ? service.chunkStart(Math.min(...behind)) : 0
+    // One pass over the pool for every wallet: each of them slices out the part
+    // it has not seen. When every wallet is already at the end of the pool there
+    // is nothing to read, and the sync only re-checks what has been spent.
+    const notes = behind.length > 0 ? await service.fetchNotesFrom(from, poolTotal) : []
+
+    const entries: Array<ShieldedSyncState & { error?: string }> = []
+
+    for (const wallet of wallets) {
+      // The phase is visible to a popup that reopens while this runs.
+      service.setPhase(network, wallet.walletId, account, 'syncing')
+
+      try {
+        const synced = await this.syncWallet(service, wallet, account, notes, from, poolTotal, payload.password)
+        service.setPhase(network, wallet.walletId, account, 'done')
+        // The phase goes into the response only now, so the caller is not handed
+        // its own sync still marked as running.
+        entries.push(service.syncState(wallet, synced, true))
+      } catch (error) {
+        service.setPhase(network, wallet.walletId, account, 'error')
+
+        const stored = await this.storedAccount(service, wallet, account)
+
+        entries.push({
+          ...service.syncState(wallet, stored ?? service.emptyAccount(account), stored != null),
+          error: error instanceof Error ? error.message : String(error)
+        })
+      }
+    }
+
+    return entries
+  }
+
+  // Scans this wallet's share of the fetched pool slice, re-checks what has been
+  // spent and stores the result. Held under the wallet's lock so a second sync of
+  // the same wallet cannot append the same notes twice.
+  private async syncWallet (
+    service: ShieldedService,
+    wallet: Wallet,
+    account: number,
+    notes: ShieldedEncryptedNote[],
+    from: number,
+    poolTotal: number,
+    password: string
+  ): Promise<ShieldedNotesAccount> {
+    const repository = service.repository({ walletId: wallet.walletId, network: wallet.network })
+
+    return await repository.withLock(async () => {
+      const stored = await repository.get(account)
+      const known = stored != null && stored.fetched <= poolTotal ? stored : service.emptyAccount(account)
+
+      const seed = service.deriveSeed(wallet, password)
+      const addressCount = await this.walletRepository
+        .forScope({ walletId: wallet.walletId, network: wallet.network })
+        .getShieldedAddressCount(account)
+      const addresses = service.deriveAddresses(wallet, password, account, addressCount)
+      const diversifierIndexByAddress = new Map(addresses.map(entry => [entry.address, entry.diversifierIndex]))
+
+      // What this wallet has not trial-decrypted yet, out of the shared slice.
+      const unscanned = notes.slice(known.fetched - from)
+      const recovered = service.recoverNotes(unscanned, known.fetched, seed, account, wallet.network, diversifierIndexByAddress)
+
+      // Notes stored earlier are relabelled too: addresses generated since the
+      // last sync turn a null diversifier index into a real one.
+      const labelled = known.notes.map(note => ({
+        ...note,
+        diversifierIndex: diversifierIndexByAddress.get(note.address) ?? null
+      }))
+
+      const next: ShieldedNotesAccount = {
+        account,
+        addresses,
+        notes: await service.refreshSpentFlags([...labelled, ...recovered] as ShieldedNote[]),
+        fetched: known.fetched + unscanned.length,
+        total: poolTotal,
+        updatedAt: Date.now()
+      }
+
+      await repository.save(next)
+
+      return next
+    })
+  }
+
+  // Shielded funds live in the seed, so keystore wallets have none to store. A
+  // named wallet missing from this network is not an error here: it may live on
+  // the other one, which the caller checks after both have been walked.
+  private async selectWallets (network: NetworkType, walletId?: string): Promise<Wallet[]> {
+    const wallets = (await this.walletRepository.getAllForNetwork(network))
+      .filter(wallet => wallet.type === WalletType.seedphrase && wallet.encryptedMnemonic != null)
+
+    return walletId == null ? wallets : wallets.filter(wallet => wallet.walletId === walletId)
+  }
+
+  // Where this wallet's next scan starts. A record claiming more notes than the
+  // pool holds cannot be trusted — the pool it was built against is gone — so it
+  // is rescanned from the beginning.
+  private async fetchedNotes (service: ShieldedService, wallet: Wallet, account: number, poolTotal: number): Promise<number> {
+    const stored = await this.storedAccount(service, wallet, account)
+
+    return stored != null && stored.fetched <= poolTotal ? stored.fetched : 0
+  }
+
+  private async storedAccount (service: ShieldedService, wallet: Wallet, account: number): Promise<ShieldedNotesAccount | null> {
+    return await service
+      .repository({ walletId: wallet.walletId, network: wallet.network })
+      .get(account)
+  }
+
+  validatePayload (payload: SyncShieldedNotesPayload): string | null {
+    if (typeof payload?.password !== 'string' || payload.password.length === 0) {
+      return 'Password must be provided'
+    }
+
+    if (payload.network != null && Network[payload.network] == null) {
+      return `Unknown network ${String(payload.network)}`
+    }
+
+    return this.service.validateAccount(payload.account)
+  }
+}

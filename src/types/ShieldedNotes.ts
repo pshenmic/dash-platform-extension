@@ -1,7 +1,12 @@
+// Where a wallet's sync stands right now. Held in memory by the backend, which
+// outlives the popup, so a UI that reopens mid-sync sees 'syncing' instead of an
+// account that looks like it was never synced.
+export type ShieldedSyncPhase = 'idle' | 'syncing' | 'done' | 'error'
+
 // A note of this wallet, recovered from the shielded pool and kept in storage so
 // the UI can show shielded funds without the password. Values cross the
 // messaging boundary and are stored as strings (bigint does not serialize).
-export interface ShieldedCachedNote {
+export interface ShieldedNote {
   // Global leaf position of the note's action in the commitment tree.
   index: number
   value: string
@@ -14,25 +19,35 @@ export interface ShieldedCachedNote {
   isSpent: boolean
 }
 
-export interface ShieldedCachedAddress {
+export interface ShieldedStoredAddress {
   address: string
   derivationPath: string
   diversifierIndex: number
 }
 
 // One account's shielded state as of the last sync.
-export interface ShieldedAccountCache {
+export interface ShieldedNotesAccount {
   account: number
-  addresses: ShieldedCachedAddress[]
-  notes: ShieldedCachedNote[]
+  addresses: ShieldedStoredAddress[]
+  notes: ShieldedNote[]
   // How many pool notes have been trial-decrypted so far. The pool only grows at
   // the end, so this doubles as the offset the next sync starts from.
-  scannedNotes: number
+  fetched: number
   // Size of the pool at that moment, so a caller can tell how far behind it is.
-  poolTotal: number
+  total: number
   updatedAt: number
 }
 
-export interface ShieldedWalletCache {
-  [account: string]: ShieldedAccountCache
+export interface ShieldedNotesStore {
+  [account: string]: ShieldedNotesAccount
+}
+
+// A diversified address with what its unspent notes hold.
+export interface ShieldedAddressBalance {
+  address: string
+  // Our derivation index for this address, or null when it falls outside the
+  // derived window (the balance is still counted, only the index is unknown).
+  diversifierIndex: number | null
+  balance: bigint
+  spendableNotes: number
 }

@@ -2,7 +2,7 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { decryptMnemonic, prepareShieldedSpend } from '../../../../utils'
+import { ShieldedService } from '../../../services/ShieldedService'
 import { UnshieldToAddressPayload } from '../../../../types/messages/payloads/UnshieldToAddressPayload'
 import { UnshieldToAddressResponse } from '../../../../types/messages/response/UnshieldToAddressResponse'
 
@@ -13,10 +13,12 @@ import { UnshieldToAddressResponse } from '../../../../types/messages/response/U
 export class UnshieldToAddressHandler implements APIHandler {
   walletRepository: WalletRepository
   sdk: DashPlatformSDK
+  shielded: ShieldedService
 
-  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK, shielded: ShieldedService) {
     this.walletRepository = walletRepository
     this.sdk = sdk
+    this.shielded = shielded
   }
 
   async handle (event: EventData): Promise<UnshieldToAddressResponse> {
@@ -32,9 +34,9 @@ export class UnshieldToAddressHandler implements APIHandler {
 
     const account = payload.account ?? 0
     const amountCredits = BigInt(payload.amountCredits)
-    const seed = this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, payload.password))
+    const seed = this.shielded.deriveSeed(wallet, payload.password)
 
-    const { spends, anchor, changeAddress, coinType } = await prepareShieldedSpend(this.sdk, seed, wallet.network, account, amountCredits, 'unshield')
+    const { spends, anchor, changeAddress, coinType } = await this.shielded.prepareSpend(seed, wallet.network, account, amountCredits, 'unshield')
 
     console.time('[shielded] unshield: build + prove')
     const stateTransition = await this.sdk.shielded.createStateTransition('unshield', {
@@ -74,8 +76,10 @@ export class UnshieldToAddressHandler implements APIHandler {
     if (payload.account != null && (!Number.isInteger(payload.account) || payload.account < 0)) {
       return 'Account must be a non-negative integer'
     }
-    if (payload.memo != null && typeof payload.memo !== 'string') {
-      return 'memo must be a string'
+    const memoError = this.shielded.validateMemo(payload.memo)
+
+    if (memoError != null) {
+      return memoError
     }
 
     return null

@@ -1,8 +1,7 @@
 import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
-import { DashPlatformSDK } from 'dash-platform-sdk'
-import { deriveShieldedAddresses } from '../../../../utils'
+import { ShieldedService } from '../../../services/ShieldedService'
 import { GenerateShieldedAddressesPayload } from '../../../../types/messages/payloads/GenerateShieldedAddressesPayload'
 import { GetShieldedAddressesResponse } from '../../../../types/messages/response/GetShieldedAddressesResponse'
 
@@ -12,11 +11,11 @@ import { GetShieldedAddressesResponse } from '../../../../types/messages/respons
 // publicly — the password is always required to unlock the seed.
 export class GenerateShieldedAddressesHandler implements APIHandler {
   walletRepository: WalletRepository
-  sdk: DashPlatformSDK
+  shielded: ShieldedService
 
-  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, shielded: ShieldedService) {
     this.walletRepository = walletRepository
-    this.sdk = sdk
+    this.shielded = shielded
   }
 
   async handle (event: EventData): Promise<GetShieldedAddressesResponse> {
@@ -34,7 +33,7 @@ export class GenerateShieldedAddressesHandler implements APIHandler {
     const account = 0
     const count = payload.count ?? 1
     const start = await this.walletRepository.getShieldedAddressCount(account)
-    const addresses = deriveShieldedAddresses(wallet, payload.password, account, count, this.sdk, start)
+    const addresses = this.shielded.deriveAddresses(wallet, payload.password, account, count, start)
 
     await this.walletRepository.setShieldedAddressCount(account, start + count)
 
