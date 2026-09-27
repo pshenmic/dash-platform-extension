@@ -206,6 +206,11 @@ export class PrepareIdentityFundingHandler implements APIHandler {
     if (typeof payload.amountCredits !== 'string' || !/^[1-9]\d{0,18}$/.test(payload.amountCredits)) {
       return 'Amount must be a positive integer string of credits'
     }
+    // Only a Platform source picks an address; an empty or non-string one would
+    // otherwise reach the selection and fail there with a vaguer message.
+    if (payload.fromAddress != null && (payload.source !== 'platform' || typeof payload.fromAddress !== 'string' || payload.fromAddress.length === 0)) {
+      return 'Select one Platform source address or automatic selection'
+    }
     if (payload.kind === 'topUp' && !validateIdentifier(payload.identityId ?? '')) {
       return 'Invalid target identity'
     }

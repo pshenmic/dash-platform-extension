@@ -260,6 +260,16 @@ describe('identity funding handlers', () => {
     expect(proofMock).not.toHaveBeenCalled()
   })
 
+  test('validates the source address before anything is selected', async () => {
+    const handler = new PrepareIdentityFundingHandler(walletRepository, service)
+
+    expect(handler.validatePayload(platformRequest({ fromAddress: '' }))).toMatch(/Platform source address/)
+    expect(handler.validatePayload(platformRequest({ fromAddress: 42 as any }))).toMatch(/Platform source address/)
+    // A Core operation has no address to pick.
+    expect(handler.validatePayload({ ...request, fromAddress: platformAddress })).toMatch(/Platform source address/)
+    expect(handler.validatePayload(platformRequest({ fromAddress: platformAddress }))).toBeNull()
+  })
+
   test('refuses a source address the wallet does not own', async () => {
     await expect(prepare(platformRequest({ fromAddress: 'tdash1notours' })))
       .rejects.toThrow(/not/)
