@@ -22,7 +22,7 @@ import {
 import { CoreAddressEntry, deriveCoreAccountXpub, deriveCoreAddressesFromXpub } from '../../utils/coreAddresses'
 import { CoreAssetLockPlan, buildAssetLockFromUtxos } from '../../utils/buildAssetLockFromUtxos'
 import { buildIdentityCreateTransition, buildSignedIdentityCreateFromAddress, IDENTITY_KEY_DEFINITIONS } from '../../utils/identityRegistration'
-import { PlatformSourceCandidate, selectPlatformSource } from '../../utils/platformTransfer'
+import { buildSignedIdentityTopUpFromAddress, PlatformSourceCandidate, selectPlatformSource } from '../../utils/platformTransfer'
 import { isTransitionAlreadyKnownError } from '../../utils/identityFundingErrors'
 import { isIdentityNotFoundError } from '../../utils/isIdentityNotFoundError'
 import { AssetLockProof } from '../../types/AssetLockProof'
@@ -367,24 +367,34 @@ export class IdentityFundingService {
     return await buildPlatformSourceCandidates(sdk, xpub, network, 0, count)
   }
 
-  // Signs the identity create transition funded from one Platform address: the one
+  // Signs the transition funded from one Platform address — create for a
+  // registration, top-up for an existing identity — against the address the caller
   // asked for, or the largest covering the amount. The nonce is baked into the
   // signature here, which is why the journal stores the bytes and a retry sends
-  // exactly these — a re-signed transition with a stale nonce would be rejected,
-  // and one with a fresh nonce could pay twice.
+  // exactly these: a re-signed transition with a stale nonce would be rejected, and
+  // one with a fresh nonce could pay twice.
   async quotePlatform (operation: IdentityFundingOperation, walletRepository: WalletRepository, wallet: Wallet, password: string, sdk: DashPlatformSDK): Promise<IdentityFundingQuote> {
     const candidates = await this.platformCandidates(walletRepository, wallet.network, sdk)
     const source = selectPlatformSource(candidates, BigInt(operation.amountCredits), operation.requestedFromAddress)
     const key = await derivePlatformAddressPrivateKey(wallet, password, 0, source.index, sdk)
 
-    const transition = buildSignedIdentityCreateFromAddress(
-      sdk,
-      await this.identityKeys(operation, wallet, password, sdk),
-      source.platformAddress,
-      source.nonce,
-      BigInt(operation.amountCredits),
-      key
-    )
+    const transition = operation.kind === 'registration'
+      ? buildSignedIdentityCreateFromAddress(
+        sdk,
+        await this.identityKeys(operation, wallet, password, sdk),
+        source.platformAddress,
+        source.nonce,
+        BigInt(operation.amountCredits),
+        key
+      )
+      : buildSignedIdentityTopUpFromAddress(
+        sdk,
+        operation.identityId as string,
+        source.platformAddress,
+        source.nonce,
+        BigInt(operation.amountCredits),
+        key
+      )
 
     return {
       stateTransition: transition.hex(),

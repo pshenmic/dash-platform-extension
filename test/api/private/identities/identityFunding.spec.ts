@@ -298,4 +298,48 @@ describe('identity funding handlers', () => {
     expect(degraded.core.error).toContain('explorer down')
     expect(degraded.platform.addresses).toHaveLength(1)
   })
+  test('quotes a Platform top-up of an existing identity against the same address', async () => {
+    const operation = await prepare(platformRequest({ kind: 'topUp', identityId, operationId: 'operation-0000000003' }))
+
+    expect(operation.kind).toBe('topUp')
+    expect(operation.identityId).toBe(identityId)
+    expect(operation.fromAddress).toBe(platformAddress)
+    expect((await stored(operation.id)).stateTransition).toBeDefined()
+    // A top-up needs no identity key and no index: the identity already exists.
+    expect(operation.identityIndex).toBeUndefined()
+    expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
+  })
+
+  test('confirms a Platform top-up by sending the signed bytes and keeps the identity', async () => {
+    request = platformRequest({ kind: 'topUp', identityId, operationId: 'operation-0000000003' })
+    const quote = await prepare(request)
+    const saved = (await stored(quote.id)).stateTransition
+
+    const result = await execute()
+
+    expect(result.status).toBe('completed')
+    expect(result.identityId).toBe(identityId)
+    expect((sdk.stateTransitions.broadcast as jest.Mock).mock.calls[0][0].hex()).toBe(saved)
+    // Crediting an identity creates nothing, so no identity lookup is made.
+    expect(sdk.identities.getIdentityByPublicKeyHash).not.toHaveBeenCalled()
+    expect(core.broadcastTransaction).not.toHaveBeenCalled()
+  })
+
+  test('refuses a Platform top-up without a valid identity', async () => {
+    const handler = new PrepareIdentityFundingHandler(walletRepository, service)
+
+    expect(handler.validatePayload(platformRequest({ kind: 'topUp', identityId: undefined }))).toMatch(/identity/i)
+    expect(handler.validatePayload(platformRequest({ kind: 'topUp', identityId: 'not-an-identifier' }))).toMatch(/identity/i)
+    expect(handler.validatePayload(platformRequest({ kind: 'topUp', identityId }))).toBeNull()
+  })
+
+  test('keeps a pending top-up from being confirmed as a registration', async () => {
+    request = platformRequest({ kind: 'topUp', identityId, operationId: 'operation-0000000003' })
+    await prepare(request)
+
+    const asRegistration = new ExecuteIdentityFundingHandler(walletRepository, service, 'platform', 'registration')
+
+    await expect(call(asRegistration, { ...scope, operationId: request.operationId, password }))
+      .rejects.toThrow('Funding operation does not match this request')
+  })
 })
