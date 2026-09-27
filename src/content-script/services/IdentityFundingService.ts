@@ -23,7 +23,8 @@ import {
   derivePlatformAddressesFromXpub,
   loadUnspentShieldedNotes,
   decryptMnemonic,
-  UnspentShieldedNotes
+  UnspentShieldedNotes,
+  selectShieldedNotes
 } from '../../utils'
 import { CoreAddressEntry, deriveCoreAccountXpub, deriveCoreAddressesFromXpub } from '../../utils/coreAddresses'
 import { CoreAssetLockPlan, buildAssetLockFromUtxos } from '../../utils/buildAssetLockFromUtxos'
@@ -491,6 +492,76 @@ export class IdentityFundingService {
     }
 
     return derivePlatformAddressesFromXpub(sdk, derived, wallet.network, 0, 1, 0)[0].address
+  }
+
+  // Builds and proves the pool exit that funds a top-up: the notes leave the pool
+  // onto one of the wallet's own Platform addresses, which then credits the
+  // identity. The pool cannot credit an identity itself, so the amount asked for
+  // has to cover the address transition's fee as well, and the caller sees both.
+  async quoteShieldedUnshield (operation: IdentityFundingOperation, walletRepository: WalletRepository, wallet: Wallet, password: string, sdk: DashPlatformSDK): Promise<IdentityFundingQuote & { unshieldToAddress: string }> {
+    const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+    const { allNotes, unspent } = await this.loadShieldedNotes(seed, wallet.network, operation.fromAddresses)
+    const amount = BigInt(operation.amountCredits)
+
+    const { notes, feeCredits } = selectShieldedNotes(unspent, amount, 'unshield')
+    const { spends, anchor: treeAnchor } = sdk.shielded.buildSpendableNotes(allNotes, notes)
+    const unshieldToAddress = await this.shieldedFallbackAddress(walletRepository, wallet, password, sdk)
+
+    const transition = await sdk.shielded.createStateTransition('unshield', {
+      spends,
+      anchor: treeAnchor,
+      seed,
+      account: 0,
+      coinType: PLATFORM_ADDRESS_COIN_TYPE[wallet.network],
+      changeAddress: sdk.keyPair.deriveShieldedAddress(seed, wallet.network, 0),
+      outputAddress: unshieldToAddress,
+      unshieldAmount: amount
+    })
+
+    return {
+      stateTransition: transition.hex(),
+      stateTransitionHash: transition.hash(false),
+      balanceCredits: unspent.reduce((total, note) => total + note.note.value, 0n).toString(),
+      feeCredits: feeCredits.toString(),
+      unshieldToAddress
+    }
+  }
+
+  // Signs the top-up that spends what the pool exit put on the address. Called
+  // only once that exit is confirmed, because the nonce it signs is the address's
+  // nonce at that moment.
+  async signAddressTopUp (operation: IdentityFundingOperation, walletRepository: WalletRepository, wallet: Wallet, password: string, sdk: DashPlatformSDK): Promise<{ stateTransition: string, stateTransitionHash: string, feeCredits: string, fromAddress: string }> {
+    const address = operation.unshieldToAddress
+
+    if (address == null) {
+      throw new Error('Missing the address the pool exit paid to')
+    }
+
+    const candidates = await this.platformCandidates(walletRepository, wallet.network, sdk)
+    const source = candidates.find(candidate => candidate.platformAddress === address)
+
+    if (source == null) {
+      throw new Error(`Platform address ${address} is no longer derived by this wallet`)
+    }
+
+    const key = await derivePlatformAddressPrivateKey(wallet, password, 0, source.index, sdk)
+    // Everything the exit left on the address goes to the identity, less the fee
+    // this transition costs; the balance is whatever arrived, fees deducted.
+    const transition = buildSignedIdentityTopUpFromAddress(
+      sdk,
+      operation.identityId as string,
+      address,
+      source.nonce,
+      source.balanceCredits,
+      key
+    )
+
+    return {
+      stateTransition: transition.hex(),
+      stateTransitionHash: transition.hash(false),
+      feeCredits: transition.calculateMinRequiredFee().toString(),
+      fromAddress: address
+    }
   }
 
   // Builds and proves the identity create transition that spends shielded notes.

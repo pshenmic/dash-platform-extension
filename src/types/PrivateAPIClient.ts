@@ -507,6 +507,13 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY_FROM_SHIELDED_POOL, payload, SHIELDED_PROVE_TIMEOUT)
   }
 
+  // Confirms a top-up funded from the pool. Drives both stages — the pool exit
+  // onto the wallet's own Platform address and the top-up from there — and resumes
+  // at whichever one it stopped on.
+  async topUpIdentityFromShieldedPool (payload: ExecuteIdentityFundingPayload): Promise<IdentityFundingOperation> {
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_SHIELDED_POOL, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
   async topUpIdentityFromCore (payload: ExecuteIdentityFundingPayload): Promise<IdentityFundingOperation> {
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_CORE, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }

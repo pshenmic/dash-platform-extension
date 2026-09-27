@@ -26,6 +26,9 @@ const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abando
 const password = 'test-password'
 const scope = { walletId: 'wallet1', network: 'testnet' as const }
 const identityId = 'HT3pUBM1Uv2mKgdPEN1gxa7A4PdsvNY89aJbdSKQb5wR'
+// Captured before any spy: a later spy would otherwise be what the next test
+// takes for the real parser.
+const parseTransition = StateTransitionWASM.fromHex.bind(StateTransitionWASM)
 
 describe('identity funding handlers', () => {
   let storage: IsolatedStorage
@@ -98,6 +101,12 @@ describe('identity funding handlers', () => {
   // A registration paid out of the shielded pool, at a protocol v13 denomination.
   const shieldedRequest = (overrides: Partial<PrepareIdentityFundingPayload> = {}): PrepareIdentityFundingPayload =>
     ({ ...request, source: 'shielded', kind: 'registration', identityId: undefined, amountCredits: '3000000000', operationId: 'operation-0000000004', ...overrides })
+  // The pool's proving is mocked, so its bytes are not parseable; everything else
+  // in this spec carries real transitions and must still parse.
+  const stubPoolBytes = (): void => {
+    jest.spyOn(StateTransitionWASM, 'fromHex').mockImplementation((hex: string) =>
+      hex === 'deadbeef' ? ({ hash: () => 'shielded-transition-hash', hex: () => 'deadbeef' } as any) : parseTransition(hex))
+  }
   const shieldedNote = (value: bigint): any => ({ note: { value, address: { toBech32m: () => 'orchard1' } }, _rawRecoveredNote: { nullifier: Uint8Array.from([1]) } })
   // A registration paid from a Platform address, the request shape PR A adds.
   const platformRequest = (overrides: Partial<PrepareIdentityFundingPayload> = {}): PrepareIdentityFundingPayload =>
@@ -376,9 +385,58 @@ describe('identity funding handlers', () => {
     expect(sdk.shielded.createStateTransition).not.toHaveBeenCalled()
   })
 
-  test('refuses a shielded top-up until the protocol supports it', async () => {
-    await expect(prepare(shieldedRequest({ kind: 'topUp', identityId })))
-      .rejects.toThrow(/protocol v14/)
+  test('quotes a shielded top-up as the pool exit onto the wallet own address', async () => {
+    jest.spyOn(service, 'loadShieldedNotes' as any).mockResolvedValue({ allNotes: ['note'], unspent: [shieldedNote(4000000000n)] })
+
+    const operation = await prepare(shieldedRequest({ kind: 'topUp', identityId }))
+
+    // Stage one only: the address top-up is signed after the exit lands, because
+    // its nonce is the address's nonce at that point.
+    expect(operation.stage).toBe('unshield')
+    expect(operation.unshieldToAddress).toBe(platformAddress)
+    expect((await stored(operation.id)).unshieldTransition).toBe('deadbeef')
+    expect(operation.stateTransition).toBeUndefined()
+    expect(sdk.shielded.createStateTransition).toHaveBeenCalledWith('unshield', expect.objectContaining({
+      outputAddress: platformAddress,
+      unshieldAmount: 3000000000n
+    }))
+  })
+
+  test('drives a shielded top-up through both stages and leaves the pool once', async () => {
+    jest.spyOn(service, 'loadShieldedNotes' as any).mockResolvedValue({ allNotes: ['note'], unspent: [shieldedNote(4000000000n)] })
+    stubPoolBytes()
+
+    request = shieldedRequest({ kind: 'topUp', identityId })
+    await prepare(request)
+    const result = await execute()
+
+    expect(result.status).toBe('completed')
+    expect(result.stage).toBe('topUp')
+    // The exit and the address top-up: two transitions, in that order.
+    expect((sdk.stateTransitions.broadcast as jest.Mock)).toHaveBeenCalledTimes(2)
+    expect(result.fromAddress).toBe(platformAddress)
+    // What the exit left on the address, less this transition's fee.
+    expect(result.stateTransition).toBeUndefined()
+    expect((await stored(result.id)).stateTransition).toBeDefined()
+  })
+
+  test('resumes a shielded top-up at its second stage without touching the pool again', async () => {
+    jest.spyOn(service, 'loadShieldedNotes' as any).mockResolvedValue({ allNotes: ['note'], unspent: [shieldedNote(4000000000n)] })
+    stubPoolBytes()
+
+    request = shieldedRequest({ kind: 'topUp', identityId })
+    const quote = await prepare(request)
+    // The exit landed and the address top-up was signed, then the popup died.
+    const signed = await service.signAddressTopUp({ ...(await stored(quote.id)) }, walletRepository, (await walletRepository.forScope(scope).getCurrent()) as any, password, sdk)
+    await service.repository(scope).save({ ...(await stored(quote.id)), ...signed, stage: 'topUp', status: 'proving' })
+    ;(sdk.stateTransitions.broadcast as jest.Mock).mockClear()
+    ;(sdk.shielded.createStateTransition as jest.Mock).mockClear()
+
+    const result = await execute()
+
+    expect(result.status).toBe('completed')
+    expect(sdk.shielded.createStateTransition).not.toHaveBeenCalled()
+    expect(sdk.stateTransitions.broadcast).toHaveBeenCalledTimes(1)
   })
 
   test('refuses notes spread over more than the action limit allows', async () => {
@@ -392,7 +450,7 @@ describe('identity funding handlers', () => {
     jest.spyOn(service, 'loadShieldedNotes' as any).mockResolvedValue({ allNotes: ['note'], unspent: [shieldedNote(4000000000n)] })
     // The stored bytes are a mocked proof, so parsing them back is mocked too;
     // what matters here is the outcome Platform reports.
-    jest.spyOn(StateTransitionWASM, 'fromHex').mockReturnValue({ hash: () => 'shielded-transition-hash', hex: () => 'deadbeef' } as any)
+    stubPoolBytes()
 
     request = shieldedRequest()
     await prepare(request)
@@ -424,7 +482,6 @@ describe('identity funding handlers', () => {
     expect(anonymous.shielded.protocolVersion).toBe(13)
     expect(anonymous.shielded.denominations).toContain('3000000000')
     expect(anonymous.shielded.balanceCredits).toBeUndefined()
-    expect(anonymous.shielded.topUpError).toMatch(/protocol v14/)
 
     const withPassword = await sources({ ...scope, password })
     expect(withPassword.shielded.balanceCredits).toBe('4000000000')

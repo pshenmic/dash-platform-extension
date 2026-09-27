@@ -84,6 +84,10 @@ export class ExecuteIdentityFundingHandler implements APIHandler {
       await this.fundAssetLock(run, wallet, password, clients)
     }
 
+    if (run.operation.stage === 'unshield') {
+      await this.leavePool(run, walletRepository, wallet, password, clients)
+    }
+
     const saved = run.operation.stateTransition
 
     if (saved == null) {
@@ -117,6 +121,39 @@ export class ExecuteIdentityFundingHandler implements APIHandler {
     }
 
     await run.update({ status: 'completed', error: undefined })
+  }
+
+  // First stage of a shielded top-up: the notes leave the pool onto the wallet's
+  // own Platform address. Once that is confirmed the stage moves on and the pool
+  // is never touched again — the proved exit bytes are sent as they are, and a
+  // resumed operation picks up here.
+  //
+  // The address top-up is only signed afterwards, because its nonce is the
+  // address's nonce once the exit has landed. That is also why it is not part of
+  // the quote: signing it earlier would bind a nonce the exit is about to change.
+  private async leavePool (run: FundingRun, walletRepository: WalletRepository, wallet: Wallet, password: string, clients: IdentityFundingClients): Promise<void> {
+    const { sdk } = clients
+    const saved = run.operation.unshieldTransition
+
+    if (saved == null) {
+      throw new Error('Missing the proved pool exit')
+    }
+
+    const exit = StateTransitionWASM.fromHex(saved)
+
+    if (exit.hash(false) !== run.operation.unshieldTransitionHash) {
+      throw new Error('Saved pool exit hash mismatch')
+    }
+
+    await run.claim('platformBroadcast')
+    await this.service.broadcastTransition(sdk, exit)
+    await sdk.stateTransitions.waitForStateTransitionResult(exit)
+
+    // The funds are on the address now, so the amount that reaches the identity is
+    // what arrived there less this transition's own fee.
+    const topUp = await this.service.signAddressTopUp(run.operation, walletRepository, wallet, password, sdk)
+
+    await run.update({ ...topUp, stage: 'topUp', status: 'proving' })
   }
 
   // The transition executed but created no identity. Out of the shielded pool that

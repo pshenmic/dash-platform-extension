@@ -50,6 +50,7 @@ import { RegisterIdentityFromCoreHandler } from './private/identities/registerId
 import { RegisterIdentityFromPlatformAddressHandler } from './private/identities/registerIdentityFromPlatformAddress'
 import { TopUpIdentityFromPlatformAddressHandler } from './private/identities/topUpIdentityFromPlatformAddress'
 import { RegisterIdentityFromShieldedPoolHandler } from './private/identities/registerIdentityFromShieldedPool'
+import { TopUpIdentityFromShieldedPoolHandler } from './private/identities/topUpIdentityFromShieldedPool'
 import { TopUpIdentityFromCoreHandler } from './private/identities/topUpIdentityFromCore'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
@@ -221,6 +222,7 @@ export class PrivateAPI {
       [MessagingMethods.REGISTER_IDENTITY_FROM_PLATFORM_ADDRESS]: new RegisterIdentityFromPlatformAddressHandler(walletRepository, identityFunding),
       [MessagingMethods.TOP_UP_IDENTITY_FROM_PLATFORM_ADDRESS]: new TopUpIdentityFromPlatformAddressHandler(walletRepository, identityFunding),
       [MessagingMethods.REGISTER_IDENTITY_FROM_SHIELDED_POOL]: new RegisterIdentityFromShieldedPoolHandler(walletRepository, identityFunding),
+      [MessagingMethods.TOP_UP_IDENTITY_FROM_SHIELDED_POOL]: new TopUpIdentityFromShieldedPoolHandler(walletRepository, identityFunding),
       [MessagingMethods.TOP_UP_IDENTITY_FROM_CORE]: new TopUpIdentityFromCoreHandler(walletRepository, identityFunding),
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository, this.sdk),

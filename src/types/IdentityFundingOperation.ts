@@ -2,6 +2,9 @@ import { RepositoryScope } from './RepositoryScope'
 import { CoreAssetLockPlan } from '../utils/buildAssetLockFromUtxos'
 import { AssetLockProof } from './AssetLockProof'
 
+// Which half of a two-stage funding operation comes next.
+export type IdentityFundingStage = 'unshield' | 'topUp'
+
 // The wallet funds an identity is paid from.
 export type IdentityFundingSource = 'core' | 'platform' | 'shielded'
 
@@ -22,6 +25,15 @@ export interface IdentityFundingOperation extends RepositoryScope {
   fromAddresses?: string[]
   fallbackAddress?: string
   protocolVersion?: number
+  // Shielded top-up only. The pool cannot credit an identity directly (that needs
+  // drive protocol v14), so the operation runs in two stages: leave the pool onto
+  // one of the wallet's own Platform addresses, then top up from there. `stage`
+  // says which one is next, and the pool exit keeps its own proved bytes so a
+  // resumed operation never proves or leaves the pool twice.
+  stage?: IdentityFundingStage
+  unshieldTransition?: string
+  unshieldTransitionHash?: string
+  unshieldToAddress?: string
   identityIndex?: number
   topUpIndex?: number
   changeIndex?: number

@@ -7,5 +7,7 @@ export interface GetIdentityFundingSourcesResponse {
   // The pool creates an identity only at fixed denominations, which depend on the
   // drive protocol; an empty list means this SDK cannot do it on that protocol.
   // The balance is included only when the request carried a password.
-  shielded: { denominations: string[], protocolVersion?: number, balanceCredits?: string, error?: string, topUpError: string }
+  // `denominations` applies to registration only: a top-up may be any amount,
+  // because it leaves the pool onto the wallet's own Platform address first.
+  shielded: { denominations: string[], protocolVersion?: number, balanceCredits?: string, error?: string }
 }

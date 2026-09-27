@@ -4,7 +4,7 @@ import { GetIdentityFundingSourcesPayload } from '../../../../types/messages/pay
 import { GetIdentityFundingSourcesResponse } from '../../../../types/messages/response/GetIdentityFundingSourcesResponse'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentityFundingService } from '../../../services/IdentityFundingService'
-import { validateFundingScope, SHIELDED_TOP_UP_UNAVAILABLE } from './identityFundingPayload'
+import { validateFundingScope } from './identityFundingPayload'
 
 const errorMessage = (error: unknown): string => error instanceof Error ? error.message : String(error)
 
@@ -35,7 +35,7 @@ export class GetIdentityFundingSourcesHandler implements APIHandler {
     const result: GetIdentityFundingSourcesResponse = {
       core: {},
       platform: { addresses: [] },
-      shielded: { denominations: [], topUpError: SHIELDED_TOP_UP_UNAVAILABLE }
+      shielded: { denominations: [] }
     }
 
     const readCore = async (): Promise<void> => {
@@ -67,6 +67,8 @@ export class GetIdentityFundingSourcesHandler implements APIHandler {
         result.shielded.denominations = this.service.shieldedDenominations(protocolVersion)
 
         if (result.shielded.denominations.length === 0) {
+          // Only registration is denomination-bound, so this is not fatal for a
+          // top-up: it says which of the two the pool can do right now.
           result.shielded.error = `Shielded registration is unsupported on protocol ${protocolVersion ?? 'unknown'} by this SDK`
         }
 

@@ -1,3 +1,4 @@
+import { DashPlatformSDK } from 'dash-platform-sdk'
 import { APIHandler } from '../../APIHandler'
 import { EventData } from '../../../../types/EventData'
 import { IdentityFundingOperation } from '../../../../types/IdentityFundingOperation'
@@ -11,7 +12,7 @@ import { IdentityFundingClients, IdentityFundingService } from '../../../service
 import { AssetLockFundingAddressSchema } from '../../../storage/storageSchema'
 import { decryptMnemonic, validateIdentifier } from '../../../../utils'
 import { selectAssetLockUtxos } from '../../../../utils/buildAssetLockFromUtxos'
-import { fundingResponse, validateFundingScope, SHIELDED_TOP_UP_UNAVAILABLE } from './identityFundingPayload'
+import { fundingResponse, validateFundingScope } from './identityFundingPayload'
 
 const CREDITS_PER_DUFF = 1000n
 
@@ -67,12 +68,6 @@ export class PrepareIdentityFundingHandler implements APIHandler {
         throw new Error(`Resume or cancel the pending ${conflicting.source} funding operation first`)
       }
 
-      // The pool can create an identity but cannot credit one yet, so a shielded
-      // top-up is refused here rather than after a proof was built.
-      if (payload.source === 'shielded' && payload.kind === 'topUp') {
-        throw new Error(SHIELDED_TOP_UP_UNAVAILABLE)
-      }
-
       const clients = this.service.clientsFor(payload)
       const legacy = await new AssetLockFundingAddressesRepository(repository.storageAdapter, payload).getAll()
 
@@ -111,11 +106,7 @@ export class PrepareIdentityFundingHandler implements APIHandler {
       if (operation.source === 'core') {
         await this.quoteCore(operation, operations, legacy, walletRepository, wallet, payload.password, clients)
       } else {
-        const quote = operation.source === 'platform'
-          ? await this.service.quotePlatform(operation, walletRepository, wallet, payload.password, clients.sdk)
-          : await this.service.quoteShielded(operation, walletRepository, wallet, payload.password, clients.sdk)
-
-        Object.assign(operation, quote)
+        Object.assign(operation, await this.quoteFromBalance(operation, walletRepository, wallet, payload.password, clients.sdk))
       }
 
       const feeCredits = BigInt(operation.feeCredits ?? '0')
@@ -195,6 +186,32 @@ export class PrepareIdentityFundingHandler implements APIHandler {
       previous.source === payload.source &&
       previous.amountCredits === payload.amountCredits &&
       (payload.kind !== 'topUp' || previous.identityId === payload.identityId)
+  }
+
+  // A source that pays out of a Platform balance or the pool signs its transition
+  // now. The pool cannot credit an identity directly, so a shielded top-up is
+  // quoted as its first stage — the exit onto one of the wallet's own addresses —
+  // and the address top-up is signed later, once that exit is confirmed and the
+  // address nonce is settled.
+  private async quoteFromBalance (operation: IdentityFundingOperation, walletRepository: WalletRepository, wallet: Wallet, password: string, sdk: DashPlatformSDK): Promise<Partial<IdentityFundingOperation>> {
+    if (operation.source === 'platform') {
+      return await this.service.quotePlatform(operation, walletRepository, wallet, password, sdk)
+    }
+
+    if (operation.kind === 'registration') {
+      return await this.service.quoteShielded(operation, walletRepository, wallet, password, sdk)
+    }
+
+    const { unshieldToAddress, stateTransition, stateTransitionHash, ...quote } =
+      await this.service.quoteShieldedUnshield(operation, walletRepository, wallet, password, sdk)
+
+    return {
+      ...quote,
+      stage: 'unshield',
+      unshieldToAddress,
+      unshieldTransition: stateTransition,
+      unshieldTransitionHash: stateTransitionHash
+    }
   }
 
   validatePayload (payload: PrepareIdentityFundingPayload): string | null {
