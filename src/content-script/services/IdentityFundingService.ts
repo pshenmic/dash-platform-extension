@@ -1,4 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { PlatformVersionWASM, RecoveredNoteWASM } from 'pshenmic-dpp'
 import { DashCoreSDK, Output, PrivateKey, Transaction } from 'dash-core-sdk'
 import { KeyType, Network, PrivateKeyWASM, StateTransitionWASM } from 'dash-platform-sdk/types'
 import { WalletRepository } from '../repository/WalletRepository'
@@ -17,7 +18,12 @@ import {
   deriveIdentityRegistrationKey,
   deriveIdentityTopUpKey,
   derivePlatformAddressPrivateKey,
-  buildPlatformSourceCandidates
+  buildPlatformSourceCandidates,
+  derivePlatformAccountXpub,
+  derivePlatformAddressesFromXpub,
+  loadUnspentShieldedNotes,
+  decryptMnemonic,
+  UnspentShieldedNotes
 } from '../../utils'
 import { CoreAddressEntry, deriveCoreAccountXpub, deriveCoreAddressesFromXpub } from '../../utils/coreAddresses'
 import { CoreAssetLockPlan, buildAssetLockFromUtxos } from '../../utils/buildAssetLockFromUtxos'
@@ -26,7 +32,7 @@ import { buildSignedIdentityTopUpFromAddress, PlatformSourceCandidate, selectPla
 import { isTransitionAlreadyKnownError } from '../../utils/identityFundingErrors'
 import { isIdentityNotFoundError } from '../../utils/isIdentityNotFoundError'
 import { AssetLockProof } from '../../types/AssetLockProof'
-import { IDENTITY_INDEX_SCAN_LIMIT } from '../../constants'
+import { IDENTITY_INDEX_SCAN_LIMIT, PLATFORM_ADDRESS_COIN_TYPE, SHIELDED_MAX_SPEND_NOTES } from '../../constants'
 
 export interface IdentityFundingClients {
   sdk: DashPlatformSDK
@@ -41,6 +47,8 @@ export interface IdentityFundingQuote {
   balanceCredits: string
   feeCredits: string
   fromAddress?: string
+  fallbackAddress?: string
+  protocolVersion?: number
 }
 
 // Largest address window read from the explorer on one chain.
@@ -402,6 +410,133 @@ export class IdentityFundingService {
       balanceCredits: source.balanceCredits.toString(),
       feeCredits: transition.calculateMinRequiredFee().toString(),
       fromAddress: source.platformAddress
+    }
+  }
+  // ── Shielded pool source ─────────────────────────────────────────────────────
+
+  // The drive protocol the network runs, which decides both the denominations an
+  // identity may be created with and the platform version the proof is built for.
+  async shieldedProtocolVersion (sdk: DashPlatformSDK): Promise<number | undefined> {
+    return (await sdk.node.status()).version?.protocol?.drive?.current
+  }
+
+  // Creating an identity out of the pool is only allowed at fixed denominations,
+  // so the amount is not free-form. An unknown protocol yields an empty list,
+  // which is how the caller learns the source is unavailable.
+  shieldedDenominations (protocolVersion: number | undefined): string[] {
+    if (protocolVersion === 12) {
+      return ['10000000000', '30000000000', '50000000000', '100000000000']
+    }
+    if (protocolVersion === 13) {
+      return ['3000000000', '10000000000', '25000000000', '50000000000', '100000000000']
+    }
+
+    return []
+  }
+
+  // The wallet's unspent notes, plus the whole note set the spend has to be
+  // witnessed against. `fromAddresses` narrows the notes to those receiving
+  // addresses. (Reads the pool through the shared helper for now; it moves into
+  // ShieldedService with #170.)
+  async loadShieldedNotes (seed: Uint8Array, network: Wallet['network'], fromAddresses?: string[]): Promise<UnspentShieldedNotes> {
+    return await loadUnspentShieldedNotes(this.sdk, seed, network, 0, fromAddresses)
+  }
+
+  // What the pool holds for this wallet, for showing the source alongside the
+  // others. Needs the password: the notes are recovered with the viewing key.
+  async shieldedBalanceCredits (wallet: Wallet, password: string, sdk: DashPlatformSDK): Promise<string> {
+    const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+    const { unspent } = await this.loadShieldedNotes(seed, wallet.network)
+
+    return unspent.reduce((total, note) => total + note.note.value, 0n).toString()
+  }
+
+  // The notes that cover a denomination, largest first. One transition may spend
+  // at most SHIELDED_MAX_SPEND_NOTES notes, so a balance spread over more notes
+  // than that cannot fund the identity even when the total looks sufficient.
+  selectShieldedIdentityNotes (notes: RecoveredNoteWASM[], denomination: bigint): RecoveredNoteWASM[] {
+    const sorted = [...notes].sort((left, right) => left.note.value > right.note.value ? -1 : 1)
+    let total = 0n
+
+    for (let count = 0; count < Math.min(sorted.length, SHIELDED_MAX_SPEND_NOTES); count++) {
+      // The denomination is the gross pool exit; the fee comes out of it.
+      total += sorted[count].note.value
+
+      if (total >= denomination) {
+        return sorted.slice(0, count + 1)
+      }
+    }
+
+    throw new Error(`Insufficient shielded funds within the ${SHIELDED_MAX_SPEND_NOTES}-note action limit`)
+  }
+
+  // The Platform address the protocol returns the funds to when creation fails.
+  // It is the wallet's first Platform address, cached like any other so it can be
+  // shown later without the password; an xpub that does not match this seed means
+  // the record belongs to another wallet and is never overwritten silently.
+  async shieldedFallbackAddress (walletRepository: WalletRepository, wallet: Wallet, password: string, sdk: DashPlatformSDK): Promise<string> {
+    const stored = await walletRepository.getPlatformAccountXpub(0)
+    const derived = await derivePlatformAccountXpub(wallet, password, 0, sdk)
+
+    if (stored != null && stored !== derived) {
+      throw new Error('Platform fallback xpub does not belong to this seed')
+    }
+
+    if (stored == null) {
+      await walletRepository.setPlatformAccountXpub(0, derived)
+    }
+
+    if (await walletRepository.getPlatformAddressCount(0) < 1) {
+      await walletRepository.setPlatformAddressCount(0, 1)
+    }
+
+    return derivePlatformAddressesFromXpub(sdk, derived, wallet.network, 0, 1, 0)[0].address
+  }
+
+  // Builds and proves the identity create transition that spends shielded notes.
+  // Proving is the slow part (Halo 2), and it happens here, at quote time: the
+  // journal then holds a transition that a retry can send unchanged.
+  async quoteShielded (operation: IdentityFundingOperation, walletRepository: WalletRepository, wallet: Wallet, password: string, sdk: DashPlatformSDK): Promise<IdentityFundingQuote> {
+    const protocolVersion = await this.shieldedProtocolVersion(sdk)
+
+    if (!this.shieldedDenominations(protocolVersion).includes(operation.amountCredits)) {
+      throw new Error(`Shielded identity registration is unavailable for this denomination or protocol (${protocolVersion ?? 'unknown'}); this SDK supports v12 and v13`)
+    }
+
+    const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
+    const { allNotes, unspent } = await this.loadShieldedNotes(seed, wallet.network, operation.fromAddresses)
+    const notes = this.selectShieldedIdentityNotes(unspent, BigInt(operation.amountCredits))
+    const { spends, anchor } = sdk.shielded.buildSpendableNotes(allNotes, notes)
+
+    const fallbackAddress = await this.shieldedFallbackAddress(walletRepository, wallet, password, sdk)
+    const privateKeys = await this.identityKeys(operation, wallet, password, sdk)
+
+    const transition = await sdk.shielded.createStateTransition('identityCreateFromShieldedPool', {
+      publicKeys: IDENTITY_KEY_DEFINITIONS.map((definition, index) => ({
+        ...definition,
+        readOnly: false,
+        data: Uint8Array.from(privateKeys[index].getPublicKey().bytes())
+      })),
+      privateKeys,
+      denomination: BigInt(operation.amountCredits),
+      sendToAddressOnCreationFailure: fallbackAddress,
+      spends,
+      anchor,
+      seed,
+      account: 0,
+      coinType: PLATFORM_ADDRESS_COIN_TYPE[wallet.network],
+      changeAddress: sdk.keyPair.deriveShieldedAddress(seed, wallet.network, 0),
+      platformVersion: protocolVersion === 12 ? PlatformVersionWASM.PLATFORM_V12 : PlatformVersionWASM.PLATFORM_V13
+    })
+
+    return {
+      stateTransition: transition.hex(),
+      stateTransitionHash: transition.hash(false),
+      balanceCredits: unspent.reduce((total, note) => total + note.note.value, 0n).toString(),
+      // The SDK's minimum estimate; the protocol settles the final net balance.
+      feeCredits: transition.calculateMinRequiredFee().toString(),
+      fallbackAddress,
+      protocolVersion
     }
   }
 }

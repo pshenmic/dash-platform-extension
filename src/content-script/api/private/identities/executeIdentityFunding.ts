@@ -109,13 +109,31 @@ export class ExecuteIdentityFundingHandler implements APIHandler {
       const identityId = await this.service.saveRegisteredIdentity(run.operation, walletRepository, wallet, password, sdk)
 
       if (identityId == null) {
-        throw new Error('Confirmed registration has no identity yet; retry to resolve it')
+        await this.reportMissingIdentity(run)
+        return
       }
 
       await run.update({ identityId })
     }
 
     await run.update({ status: 'completed', error: undefined })
+  }
+
+  // The transition executed but created no identity. Out of the shielded pool that
+  // is a real outcome: when creation fails the protocol sends the denomination to
+  // the fallback Platform address instead, and there is nothing left to retry.
+  // Everywhere else the identity must exist, and a retry looks it up again.
+  private async reportMissingIdentity (run: FundingRun): Promise<void> {
+    const { source, fallbackAddress } = run.operation
+
+    if (source !== 'shielded' || fallbackAddress == null) {
+      throw new Error('Confirmed registration has no identity yet; retry to resolve it')
+    }
+
+    await run.update({
+      status: 'failed',
+      error: `Platform executed the transition but created no identity. The protocol returns the funds of a failed creation to your Platform address ${fallbackAddress}; check its balance`
+    })
   }
 
   // Broadcasts the saved asset lock, waits for its InstantLock or ChainLock proof

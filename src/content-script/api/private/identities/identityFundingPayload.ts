@@ -1,6 +1,11 @@
 import { RepositoryScope } from '../../../../types/RepositoryScope'
 import { IdentityFundingOperation } from '../../../../types/IdentityFundingOperation'
 
+// The pool can create an identity but cannot credit an existing one: that
+// transition needs drive protocol v14, which is not released. Callers get this
+// message instead of a failure after a proof.
+export const SHIELDED_TOP_UP_UNAVAILABLE = 'Direct shielded identity top-up requires protocol v14 support that is not published yet'
+
 // Funding requests always name the wallet and network they run against, so a
 // switch of the selected wallet can never retarget an operation.
 export const validateFundingScope = (payload: RepositoryScope): string | null => {

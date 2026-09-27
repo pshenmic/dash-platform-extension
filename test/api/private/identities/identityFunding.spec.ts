@@ -1,4 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { StateTransitionWASM } from 'dash-platform-sdk/types'
 import { Transaction, Output } from 'dash-core-sdk'
 import { PrivateKey, encrypt } from 'eciesjs'
 import hash from 'hash.js'
@@ -76,6 +77,13 @@ describe('identity funding handlers', () => {
     jest.spyOn(sdk.stateTransitions, 'broadcast').mockResolvedValue(undefined)
     jest.spyOn(sdk.stateTransitions, 'waitForStateTransitionResult').mockResolvedValue(undefined)
     proofMock.mockImplementation(async (_core, _sdk, _tx, txid) => ({ type: 'chainLock', txid, outputIndex: 0, coreChainLockedHeight: 100 }))
+    jest.spyOn(sdk.node, 'status').mockResolvedValue({ version: { protocol: { drive: { current: 13 } } } } as any)
+    jest.spyOn(sdk.shielded, 'buildSpendableNotes').mockReturnValue({ spends: ['spend'], anchor: Uint8Array.from([1]) } as any)
+    jest.spyOn(sdk.shielded, 'createStateTransition').mockResolvedValue({
+      hex: () => 'deadbeef',
+      hash: () => 'shielded-transition-hash',
+      calculateMinRequiredFee: () => 111n
+    } as any)
     service = new IdentityFundingService(walletRepository, sdk, core, explorer)
     jest.spyOn(service, 'clientsFor').mockReturnValue({ sdk, core })
     request = { ...scope, operationId: 'operation-0000000001', source: 'core', kind: 'topUp', amountCredits: '3000000000', password, identityId }
@@ -86,7 +94,11 @@ describe('identity funding handlers', () => {
   const prepare = async (payload: PrepareIdentityFundingPayload): Promise<any> => await call(new PrepareIdentityFundingHandler(walletRepository, service), payload)
   const execute = async (): Promise<any> => await call(new ExecuteIdentityFundingHandler(walletRepository, service, request.source, request.kind), { ...scope, operationId: request.operationId, password })
   const cancel = async (operationId: string): Promise<any> => await call(new CancelIdentityFundingHandler(service), { ...scope, operationId })
-  const sources = async (): Promise<any> => await call(new GetIdentityFundingSourcesHandler(walletRepository, service), scope)
+  const sources = async (payload: any = scope): Promise<any> => await call(new GetIdentityFundingSourcesHandler(walletRepository, service), payload)
+  // A registration paid out of the shielded pool, at a protocol v13 denomination.
+  const shieldedRequest = (overrides: Partial<PrepareIdentityFundingPayload> = {}): PrepareIdentityFundingPayload =>
+    ({ ...request, source: 'shielded', kind: 'registration', identityId: undefined, amountCredits: '3000000000', operationId: 'operation-0000000004', ...overrides })
+  const shieldedNote = (value: bigint): any => ({ note: { value, address: { toBech32m: () => 'orchard1' } }, _rawRecoveredNote: { nullifier: Uint8Array.from([1]) } })
   // A registration paid from a Platform address, the request shape PR A adds.
   const platformRequest = (overrides: Partial<PrepareIdentityFundingPayload> = {}): PrepareIdentityFundingPayload =>
     ({ ...request, source: 'platform', kind: 'registration', identityId: undefined, amountCredits: '3000000000', ...overrides })
@@ -341,5 +353,89 @@ describe('identity funding handlers', () => {
 
     await expect(call(asRegistration, { ...scope, operationId: request.operationId, password }))
       .rejects.toThrow('Funding operation does not match this request')
+  })
+  test('quotes a shielded registration at an allowed denomination, proving once', async () => {
+    jest.spyOn(service, 'loadShieldedNotes' as any).mockResolvedValue({ allNotes: ['note'], unspent: [shieldedNote(4000000000n)] })
+
+    const operation = await prepare(shieldedRequest())
+
+    expect(operation.protocolVersion).toBe(13)
+    expect(operation.fallbackAddress).toBe(platformAddress)
+    expect(operation.balanceCredits).toBe('4000000000')
+    expect(operation.feeCredits).toBe('111')
+    expect((await stored(operation.id)).stateTransition).toBe('deadbeef')
+    expect(sdk.shielded.createStateTransition).toHaveBeenCalledTimes(1)
+    // Proving is expensive: a repeated prepare returns the stored proof.
+    await prepare(shieldedRequest())
+    expect(sdk.shielded.createStateTransition).toHaveBeenCalledTimes(1)
+  })
+
+  test('refuses a denomination the protocol does not allow', async () => {
+    await expect(prepare(shieldedRequest({ amountCredits: '1234500000' })))
+      .rejects.toThrow(/denomination or protocol/)
+    expect(sdk.shielded.createStateTransition).not.toHaveBeenCalled()
+  })
+
+  test('refuses a shielded top-up until the protocol supports it', async () => {
+    await expect(prepare(shieldedRequest({ kind: 'topUp', identityId })))
+      .rejects.toThrow(/protocol v14/)
+  })
+
+  test('refuses notes spread over more than the action limit allows', async () => {
+    const many = Array.from({ length: 8 }, () => shieldedNote(500000000n))
+    jest.spyOn(service, 'loadShieldedNotes' as any).mockResolvedValue({ allNotes: ['note'], unspent: many })
+
+    await expect(prepare(shieldedRequest())).rejects.toThrow(/note action limit/)
+  })
+
+  test('ends a shielded registration that created no identity, pointing at the fallback address', async () => {
+    jest.spyOn(service, 'loadShieldedNotes' as any).mockResolvedValue({ allNotes: ['note'], unspent: [shieldedNote(4000000000n)] })
+    // The stored bytes are a mocked proof, so parsing them back is mocked too;
+    // what matters here is the outcome Platform reports.
+    jest.spyOn(StateTransitionWASM, 'fromHex').mockReturnValue({ hash: () => 'shielded-transition-hash', hex: () => 'deadbeef' } as any)
+
+    request = shieldedRequest()
+    await prepare(request)
+
+    const result = await execute()
+
+    expect(result.status).toBe('failed')
+    expect(result.error).toContain(platformAddress)
+    // Nothing is left to retry: the denomination went back to that address.
+    expect(result.identityId).toBeUndefined()
+  })
+
+  test('holds the notes against other shielded spends while the operation is pending', async () => {
+    jest.spyOn(service, 'loadShieldedNotes' as any).mockResolvedValue({ allNotes: ['note'], unspent: [shieldedNote(4000000000n)] })
+    await prepare(shieldedRequest())
+    const operations = await service.repository(scope).getAll()
+
+    for (const method of [MessagingMethods.SEND_SHIELDED_TRANSFER, MessagingMethods.UNSHIELD_TO_ADDRESS, MessagingMethods.WITHDRAW_SHIELDED_TO_CORE]) {
+      expect(findConflictingFunding(method, operations)?.source).toBe('shielded')
+    }
+    // A Platform spend draws on other funds.
+    expect(findConflictingFunding(MessagingMethods.SEND_PLATFORM_TRANSFER, operations)).toBeUndefined()
+  })
+
+  test('reports the pool denominations, and its balance only when a password is given', async () => {
+    jest.spyOn(service, 'loadShieldedNotes' as any).mockResolvedValue({ allNotes: ['note'], unspent: [shieldedNote(4000000000n)] })
+
+    const anonymous = await sources()
+    expect(anonymous.shielded.protocolVersion).toBe(13)
+    expect(anonymous.shielded.denominations).toContain('3000000000')
+    expect(anonymous.shielded.balanceCredits).toBeUndefined()
+    expect(anonymous.shielded.topUpError).toMatch(/protocol v14/)
+
+    const withPassword = await sources({ ...scope, password })
+    expect(withPassword.shielded.balanceCredits).toBe('4000000000')
+  })
+
+  test('says the pool is unsupported on a protocol this SDK does not know', async () => {
+    ;(sdk.node.status as jest.Mock).mockResolvedValue({ version: { protocol: { drive: { current: 99 } } } })
+
+    const result = await sources()
+
+    expect(result.shielded.denominations).toEqual([])
+    expect(result.shielded.error).toContain('protocol 99')
   })
 })

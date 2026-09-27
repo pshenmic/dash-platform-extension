@@ -14,4 +14,6 @@ export interface PrepareIdentityFundingPayload extends RepositoryScope {
   // Platform source only: one address to pay from; omitted, the largest covering
   // address is used.
   fromAddress?: string
+  // Shielded source only: restrict the notes to these receiving addresses.
+  fromAddresses?: string[]
 }

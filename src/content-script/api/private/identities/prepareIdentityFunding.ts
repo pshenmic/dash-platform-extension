@@ -11,15 +11,16 @@ import { IdentityFundingClients, IdentityFundingService } from '../../../service
 import { AssetLockFundingAddressSchema } from '../../../storage/storageSchema'
 import { decryptMnemonic, validateIdentifier } from '../../../../utils'
 import { selectAssetLockUtxos } from '../../../../utils/buildAssetLockFromUtxos'
-import { fundingResponse, validateFundingScope } from './identityFundingPayload'
+import { fundingResponse, validateFundingScope, SHIELDED_TOP_UP_UNAVAILABLE } from './identityFundingPayload'
 
 const CREDITS_PER_DUFF = 1000n
 
-// Quotes an identity registration paid from the wallet's own funds — Core coins
-// or one of its Platform addresses — and saves it to the journal with everything
-// signed, so confirming it never reselects funds or advances a nonce twice. The
-// same operation id returns the saved quote; a pending operation on the same
-// source (or another registration) has to be resumed or cancelled first.
+// Quotes an identity registration or top-up paid from the wallet's own funds —
+// Core coins, one of its Platform addresses or the shielded pool — and saves it to
+// the journal with everything signed, so confirming it never reselects funds,
+// advances a nonce twice or proves again. The same operation id returns the saved
+// quote; a pending operation on the same source (or another registration) has to
+// be resumed or cancelled first.
 export class PrepareIdentityFundingHandler implements APIHandler {
   walletRepository: WalletRepository
   service: IdentityFundingService
@@ -56,14 +57,20 @@ export class PrepareIdentityFundingHandler implements APIHandler {
       }
 
       const operations = await repository.getAll()
-      // One pending operation per source: two would select the same coins or
-      // advance the same Platform nonce. Registrations also share the identity
-      // index sequence.
+      // One pending operation per source: two would select the same coins, advance
+      // the same Platform nonce or spend the same notes. Registrations also share
+      // the identity index sequence.
       const conflicting = operations.find(op => isPendingFundingOperation(op) &&
         (op.source === payload.source || (op.kind === 'registration' && payload.kind === 'registration')))
 
       if (conflicting != null) {
         throw new Error(`Resume or cancel the pending ${conflicting.source} funding operation first`)
+      }
+
+      // The pool can create an identity but cannot credit one yet, so a shielded
+      // top-up is refused here rather than after a proof was built.
+      if (payload.source === 'shielded' && payload.kind === 'topUp') {
+        throw new Error(SHIELDED_TOP_UP_UNAVAILABLE)
       }
 
       const clients = this.service.clientsFor(payload)
@@ -85,6 +92,7 @@ export class PrepareIdentityFundingHandler implements APIHandler {
         amountCredits: payload.amountCredits,
         identityId: payload.identityId,
         requestedFromAddress: payload.fromAddress,
+        fromAddresses: payload.fromAddresses == null ? undefined : [...payload.fromAddresses].sort(),
         status: 'prepared',
         createdAt: Date.now()
       }
@@ -103,7 +111,11 @@ export class PrepareIdentityFundingHandler implements APIHandler {
       if (operation.source === 'core') {
         await this.quoteCore(operation, operations, legacy, walletRepository, wallet, payload.password, clients)
       } else {
-        Object.assign(operation, await this.service.quotePlatform(operation, walletRepository, wallet, payload.password, clients.sdk))
+        const quote = operation.source === 'platform'
+          ? await this.service.quotePlatform(operation, walletRepository, wallet, payload.password, clients.sdk)
+          : await this.service.quoteShielded(operation, walletRepository, wallet, payload.password, clients.sdk)
+
+        Object.assign(operation, quote)
       }
 
       const feeCredits = BigInt(operation.feeCredits ?? '0')
@@ -194,7 +206,7 @@ export class PrepareIdentityFundingHandler implements APIHandler {
     if (typeof payload.operationId !== 'string' || !/^[a-zA-Z0-9-]{16,80}$/.test(payload.operationId)) {
       return 'Invalid operation id'
     }
-    if (!['core', 'platform'].includes(payload.source)) {
+    if (!['core', 'platform', 'shielded'].includes(payload.source)) {
       return 'Invalid funding source'
     }
     if (payload.kind !== 'registration' && payload.kind !== 'topUp') {
@@ -210,6 +222,14 @@ export class PrepareIdentityFundingHandler implements APIHandler {
     // otherwise reach the selection and fail there with a vaguer message.
     if (payload.fromAddress != null && (payload.source !== 'platform' || typeof payload.fromAddress !== 'string' || payload.fromAddress.length === 0)) {
       return 'Select one Platform source address or automatic selection'
+    }
+    if (payload.fromAddresses != null) {
+      const valid = payload.source === 'shielded' && Array.isArray(payload.fromAddresses) && payload.fromAddresses.length > 0 &&
+        payload.fromAddresses.every(address => typeof address === 'string' && address.length > 0)
+
+      if (!valid) {
+        return 'Invalid shielded receiving-address filter'
+      }
     }
     if (payload.kind === 'topUp' && !validateIdentifier(payload.identityId ?? '')) {
       return 'Invalid target identity'

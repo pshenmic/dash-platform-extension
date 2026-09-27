@@ -3,7 +3,7 @@ import { CoreAssetLockPlan } from '../utils/buildAssetLockFromUtxos'
 import { AssetLockProof } from './AssetLockProof'
 
 // The wallet funds an identity is paid from.
-export type IdentityFundingSource = 'core' | 'platform'
+export type IdentityFundingSource = 'core' | 'platform' | 'shielded'
 
 export interface IdentityFundingOperation extends RepositoryScope {
   id: string
@@ -16,6 +16,12 @@ export interface IdentityFundingOperation extends RepositoryScope {
   // asked for (kept so a repeated prepare can tell the same request apart).
   fromAddress?: string
   requestedFromAddress?: string
+  // Shielded source: the receiving addresses the notes may be drawn from, the
+  // Platform address the protocol pays back to if creation fails, and the drive
+  // protocol the denomination and proof were built for.
+  fromAddresses?: string[]
+  fallbackAddress?: string
+  protocolVersion?: number
   identityIndex?: number
   topUpIndex?: number
   changeIndex?: number

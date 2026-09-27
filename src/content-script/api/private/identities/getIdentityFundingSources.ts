@@ -1,16 +1,18 @@
 import { APIHandler } from '../../APIHandler'
 import { EventData } from '../../../../types/EventData'
-import { RepositoryScope } from '../../../../types/RepositoryScope'
+import { GetIdentityFundingSourcesPayload } from '../../../../types/messages/payloads/GetIdentityFundingSourcesPayload'
 import { GetIdentityFundingSourcesResponse } from '../../../../types/messages/response/GetIdentityFundingSourcesResponse'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentityFundingService } from '../../../services/IdentityFundingService'
-import { validateFundingScope } from './identityFundingPayload'
+import { validateFundingScope, SHIELDED_TOP_UP_UNAVAILABLE } from './identityFundingPayload'
 
 const errorMessage = (error: unknown): string => error instanceof Error ? error.message : String(error)
 
-// What the wallet can put towards an identity: its Core balance and its Platform
-// addresses, both read by account xpub — no password. Each source reports its own
-// error, so one unreachable source does not hide the other.
+// What the wallet can put towards an identity: its Core balance, its Platform
+// addresses and what the shielded pool allows. Core and Platform are read by
+// account xpub, so they need no password; the shielded balance is included only
+// when one is given, because the notes are recovered with the viewing key. Each
+// source reports its own error, so one unreachable source does not hide the rest.
 export class GetIdentityFundingSourcesHandler implements APIHandler {
   walletRepository: WalletRepository
   service: IdentityFundingService
@@ -21,7 +23,7 @@ export class GetIdentityFundingSourcesHandler implements APIHandler {
   }
 
   async handle (event: EventData): Promise<GetIdentityFundingSourcesResponse> {
-    const payload: RepositoryScope = event.payload
+    const payload: GetIdentityFundingSourcesPayload = event.payload
     const walletRepository = this.walletRepository.forScope(payload)
     const wallet = await walletRepository.getCurrent()
 
@@ -30,7 +32,11 @@ export class GetIdentityFundingSourcesHandler implements APIHandler {
     }
 
     const { sdk } = this.service.clientsFor(payload)
-    const result: GetIdentityFundingSourcesResponse = { core: {}, platform: { addresses: [] } }
+    const result: GetIdentityFundingSourcesResponse = {
+      core: {},
+      platform: { addresses: [] },
+      shielded: { denominations: [], topUpError: SHIELDED_TOP_UP_UNAVAILABLE }
+    }
 
     const readCore = async (): Promise<void> => {
       try {
@@ -53,12 +59,41 @@ export class GetIdentityFundingSourcesHandler implements APIHandler {
       }
     }
 
-    await Promise.all([readCore(), readPlatform()])
+    const readShielded = async (): Promise<void> => {
+      try {
+        const protocolVersion = await this.service.shieldedProtocolVersion(sdk)
+
+        result.shielded.protocolVersion = protocolVersion
+        result.shielded.denominations = this.service.shieldedDenominations(protocolVersion)
+
+        if (result.shielded.denominations.length === 0) {
+          result.shielded.error = `Shielded registration is unsupported on protocol ${protocolVersion ?? 'unknown'} by this SDK`
+        }
+
+        if (payload.password != null && payload.password.length > 0) {
+          result.shielded.balanceCredits = await this.service.shieldedBalanceCredits(wallet, payload.password, sdk)
+        }
+      } catch (error) {
+        result.shielded.error = errorMessage(error)
+      }
+    }
+
+    await Promise.all([readCore(), readPlatform(), readShielded()])
 
     return result
   }
 
-  validatePayload (payload: RepositoryScope): string | null {
-    return validateFundingScope(payload)
+  validatePayload (payload: GetIdentityFundingSourcesPayload): string | null {
+    const scopeError = validateFundingScope(payload)
+
+    if (scopeError != null) {
+      return scopeError
+    }
+
+    if (payload.password != null && typeof payload.password !== 'string') {
+      return 'Invalid password'
+    }
+
+    return null
   }
 }

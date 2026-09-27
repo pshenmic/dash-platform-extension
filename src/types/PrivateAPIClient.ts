@@ -501,6 +501,12 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_PLATFORM_ADDRESS, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
+  // Confirms a registration quoted against the shielded pool. The proof is already
+  // in the journal, so this sends it; a retry sends the same bytes.
+  async registerIdentityFromShieldedPool (payload: ExecuteIdentityFundingPayload): Promise<IdentityFundingOperation> {
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY_FROM_SHIELDED_POOL, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
   async topUpIdentityFromCore (payload: ExecuteIdentityFundingPayload): Promise<IdentityFundingOperation> {
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_CORE, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
