@@ -2,8 +2,7 @@ import type { ScreenConfig } from '../types'
 import {
   mainScreenConfig,
   walletSettingsConfig,
-  connectedWebsitesConfig,
-  platformAddressesConfig
+  connectedWebsitesConfig
 } from './MainSettingsScreen'
 import { helpSupportScreenConfig } from './HelpSupportScreen'
 import { aboutScreenConfig } from './AboutScreen'
@@ -15,7 +14,6 @@ export const screenConfigs: Record<string, ScreenConfig> = {
   main: mainScreenConfig,
   'current-wallet': walletSettingsConfig,
   'connected-websites': connectedWebsitesConfig,
-  'platform-addresses': platformAddressesConfig,
   'private-keys': privateKeysScreenConfig,
   'import-private-keys-settings': importPrivateKeysScreenConfig,
   'create-key-settings': createKeyScreenConfig,
