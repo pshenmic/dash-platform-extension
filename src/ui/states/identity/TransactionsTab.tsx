@@ -6,7 +6,7 @@ import { SeeAllTransactionsButton, TransactionsList, toTransactionRowItem, type 
 import { getTransactionExplorerUrl } from '../../../utils'
 import type { NetworkType } from '../../../types'
 import type { TransactionData } from '../../hooks/usePlatformExplorerApi'
-import { StatCard, StatValue, Username } from '../../components/common'
+import { StatCard, StatValue, StatValueSkeleton, TextSkeleton, Username } from '../../components/common'
 import { BigNumberDisplay } from '../../components/data'
 
 interface TransactionsTabProps {
@@ -16,8 +16,10 @@ interface TransactionsTabProps {
   transactions: TransactionData[]
   rate: number | null
   network: NetworkType
-  tokenCount: number
-  nameCount: number
+  /** Null while the tokens are loading. */
+  tokenCount: number | null
+  /** Null while the names are loading. */
+  nameCount: number | null
   lastName: string | null
 }
 
@@ -66,15 +68,17 @@ export function TransactionsTab ({
           label='Transactions'
           hint={(
             <Text size='xs' weight='medium' className='!text-[0.75rem] !text-dash-primary-dark-blue/50 !leading-[1.1]'>
-              <BigNumberDisplay unit='TXs'>{received}</BigNumberDisplay> received - <BigNumberDisplay unit='TXs'>{sent}</BigNumberDisplay> sent
+              {loading
+                ? <><TextSkeleton className='w-4' /> received - <TextSkeleton className='w-4' /> sent</>
+                : <><BigNumberDisplay unit='TXs'>{received}</BigNumberDisplay> received - <BigNumberDisplay unit='TXs'>{sent}</BigNumberDisplay> sent</>}
             </Text>
           )}
-          value={<StatValue value={items.length} unit='TXs' />}
+          value={loading ? <StatValueSkeleton /> : <StatValue value={items.length} unit='TXs' />}
         />
         <StatCard
           icon={<CreditsIcon size={12} className='!text-dash-brand' />}
           label='Tokens'
-          value={<StatValue value={tokenCount} unit='Tokens' />}
+          value={tokenCount == null ? <StatValueSkeleton /> : <StatValue value={tokenCount} unit='Tokens' />}
         />
         <StatCard
           icon={<FingerprintIcon size={12} className='!text-dash-brand' />}
@@ -89,7 +93,7 @@ export function TransactionsTab ({
               </div>
               )
             : undefined}
-          value={<StatValue value={nameCount} unit='Names' />}
+          value={nameCount == null ? <StatValueSkeleton /> : <StatValue value={nameCount} unit='Names' />}
         />
         {firstItem?.hash != null && (
           <LastTransaction

@@ -9,10 +9,9 @@ import {
   Text
 } from 'dash-ui-kit/react'
 import { PLATFORM_EXPLORER_URLS } from '../../../constants'
-import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 import type { NetworkType, TokenData } from '../../../types'
 import { fromBaseUnit, getTokenName } from '../../../utils'
-import { IconChip } from '../../components/common'
+import { IconChip, Skeleton, TextSkeleton } from '../../components/common'
 import { sendPath } from '../../utils/sendPath'
 
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
@@ -103,6 +102,21 @@ function TokenCard ({
   )
 }
 
+const SKELETON_CARDS = 2
+
+function TokenCardSkeleton (): React.JSX.Element {
+  return (
+    <div className='flex flex-col gap-2 p-3 rounded-[15px] bg-[rgba(12,28,51,0.04)]'>
+      <div className='flex items-center gap-2'>
+        <Skeleton className='w-6 h-6 !rounded-full' />
+        <Skeleton className='h-4 w-24' />
+      </div>
+      <Skeleton className='h-4 w-full' />
+      <Skeleton className='h-3 w-20' />
+    </div>
+  )
+}
+
 export function TokensTab ({ hide, network, loading, error, tokens, identityId }: TokensTabProps): React.JSX.Element {
   const navigate = useNavigate()
   const explorerBase = PLATFORM_EXPLORER_URLS[network].explorer
@@ -111,10 +125,10 @@ export function TokensTab ({ hide, network, loading, error, tokens, identityId }
     <div className='flex flex-col gap-2'>
       <div className='flex items-center justify-between'>
         <Text weight='medium' className={`${headerTextClassName} !text-dash-primary-dark-blue/35`}>
-          {loading ? '...' : tokens.length} Tokens
+          {loading ? <TextSkeleton className='w-4' /> : tokens.length} Tokens
         </Text>
       </div>
-      {loading && <ScreenLoader className='min-h-[120px]' />}
+      {loading && Array.from({ length: SKELETON_CARDS }, (_, index) => <TokenCardSkeleton key={index} />)}
       {!loading && error != null && error !== '' && (
         <Text size='sm' className='!text-red-500'>Error loading tokens: {error}</Text>
       )}

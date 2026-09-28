@@ -65,6 +65,7 @@ function AddressRow ({
   address,
   hide,
   loading,
+  metaLoading = loading,
   metaLabel,
   metaValue,
   credits,
@@ -74,6 +75,7 @@ function AddressRow ({
   address: string
   hide: boolean
   loading: boolean
+  metaLoading?: boolean
   metaLabel: string
   metaValue: string
   credits: string | null
@@ -104,7 +106,7 @@ function AddressRow ({
         <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/32'>
           {metaLabel}:{' '}
           <Text as='span' size='xs' weight='bold' className='!font-extrabold !text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/32'>
-            {loading ? '…' : metaValue}
+            {metaLoading ? '…' : metaValue}
           </Text>
         </Text>
         <div className='flex flex-col items-end gap-[5px] shrink-0'>
@@ -155,6 +157,7 @@ function PlatformAddressRow ({
       address={item.address}
       hide={hide}
       loading={item.loading}
+      metaLoading={item.txsLoading}
       metaLabel='Transactions'
       metaValue={item.totalTxs != null ? String(item.totalTxs) : '—'}
       credits={item.balance}

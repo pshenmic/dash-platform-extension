@@ -1,6 +1,7 @@
 import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { InlineSpinner } from './InlineSpinner'
+import { TextSkeleton } from './Skeleton'
 import { amountFractionScale } from '../../../utils'
 
 interface DashAmountProps {
@@ -27,9 +28,14 @@ export function DashAmount ({
   }
 
   if (whole == null) {
-    return loading
-      ? <InlineSpinner className={spinnerClassName} />
-      : <Text as='span' className={className}><span className='font-extrabold'>-</span></Text>
+    // The skeleton takes the text size and color from className, so it fits any card.
+    return (
+      <Text as='span' className={className}>
+        {loading
+          ? <TextSkeleton className='w-[4.5em]' colorClassName='bg-current/15' />
+          : <span className='font-extrabold'>-</span>}
+      </Text>
+    )
   }
 
   // Long amounts get a smaller fraction so the balance stays narrow.

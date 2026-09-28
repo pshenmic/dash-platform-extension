@@ -48,8 +48,41 @@ export function usePlatformAddresses (
   // pair must never repaint the list - on Receive that would be a QR code for
   // the wallet the user just left.
   const runIdRef = useRef(0)
+  // Bumped per transaction-count load so only the latest one lands.
+  const txVersionRef = useRef(0)
 
-  // Fetch the created addresses and enrich with balances and transaction counts.
+  // Fills in transaction counts from the explorer once balances are on screen.
+  const loadTxCounts = useCallback(async (
+    runId: number,
+    key: string,
+    network: NetworkType,
+    list: AddressData[],
+    infoByAddress: Map<string, PlatformAddressBalance>
+  ): Promise<void> => {
+    const version = ++txVersionRef.current
+
+    // Only addresses with history are queried; the explorer 404s on unused ones.
+    const txCounts = await Promise.all(list.map(async (item) => {
+      const info = infoByAddress.get(item.address)
+
+      if (info == null) return null
+      if (info.balance === '0' && info.nonce === 0) return 0
+
+      return await platformExplorerClient.fetchAddress(item.address, network)
+        .then(data => data.totalTxs ?? null)
+        .catch(() => null)
+    }))
+
+    // A newer list or another wallet/network has taken over meanwhile.
+    if (runId !== runIdRef.current || version !== txVersionRef.current) return
+
+    const loaded = list.map((item, i) => ({ ...item, totalTxs: txCounts[i], txsLoading: false }))
+
+    listCache.set(key, loaded)
+    setAddresses(loaded)
+  }, [platformExplorerClient])
+
+  // Fetch the created addresses and their balances; transaction counts follow.
   const refreshList = useCallback(async (): Promise<void> => {
     const runId = runIdRef.current
     const network = currentNetwork ?? 'testnet'
@@ -63,7 +96,8 @@ export function usePlatformAddresses (
       address: entry.address,
       balance: null,
       totalTxs: null,
-      loading: true
+      loading: true,
+      txsLoading: true
     }))
 
     // A reload keeps the balances already known until the new ones arrive, so the
@@ -89,33 +123,17 @@ export function usePlatformAddresses (
 
     const infoByAddress = new Map(infos.map((info) => [info.address, info]))
 
-    // Only addresses with history are queried; the explorer 404s on unused ones.
-    const txCounts = await Promise.all(initial.map(async (item) => {
-      const info = infoByAddress.get(item.address)
-
-      if (info == null) return null
-      if (info.balance === '0' && info.nonce === 0) return 0
-
-      try {
-        const data = await platformExplorerClient.fetchAddress(item.address, network)
-        return data.totalTxs ?? null
-      } catch {
-        return null
-      }
-    }))
-
-    if (runId !== runIdRef.current) return
-
-    const loaded = initial.map((item, i) => ({
+    // Balances come from Platform itself, so they are shown without waiting for the explorer.
+    const withBalances = initial.map((item) => ({
       ...item,
       balance: infoByAddress.get(item.address)?.balance ?? null,
-      totalTxs: txCounts[i],
       loading: false
     }))
 
-    listCache.set(key, loaded)
-    setAddresses(loaded)
-  }, [extensionAPI, platformExplorerClient, currentNetwork, walletId])
+    setAddresses(withBalances)
+
+    void loadTxCounts(runId, key, network, withBalances, infoByAddress)
+  }, [extensionAPI, loadTxCounts, currentNetwork, walletId])
 
   const loadList = useCallback(async (): Promise<void> => {
     const runId = runIdRef.current

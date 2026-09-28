@@ -1,6 +1,6 @@
 import React from 'react'
 import { DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
-import { InlineSpinner, StatCard, StatValue } from '../../components/common'
+import { StatCard, StatValue, StatValueSkeleton, TextSkeleton } from '../../components/common'
 import { BigNumberDisplay } from '../../components/data'
 
 interface StatisticsProps {
@@ -33,11 +33,11 @@ export function Statistics ({
     : null
 
   const txValue = loadedTxCount == null && loading
-    ? <InlineSpinner className='w-6 h-6 text-dash-brand' />
+    ? <StatValueSkeleton />
     : <StatValue value={loadedTxCount ?? '-'} unit='TXs' loading={loading} />
 
   const hintCount = (count: number | null, countLoading: boolean): React.ReactNode =>
-    count != null ? <BigNumberDisplay unit='TXs'>{count}</BigNumberDisplay> : (countLoading ? '...' : '-')
+    count != null ? <BigNumberDisplay unit='TXs'>{count}</BigNumberDisplay> : (countLoading ? <TextSkeleton className='w-6' /> : '-')
   const platformHint = <>{hintCount(platformTxCount, platformLoading)} Platform</>
   const coreHint = <>{hintCount(coreTxCount, coreLoading)} Core</>
 

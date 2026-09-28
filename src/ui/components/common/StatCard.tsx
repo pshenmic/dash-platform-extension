@@ -1,6 +1,7 @@
 import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { InlineSpinner } from './InlineSpinner'
+import { Skeleton } from './Skeleton'
 import { BigNumberDisplay } from '../data'
 
 interface StatCardProps {
@@ -61,5 +62,26 @@ export function StatValue ({ value, unit, hide = false, loading = false }: StatV
       {text}
       <InlineSpinner className='w-4 h-4 text-dash-brand' />
     </span>
+  )
+}
+
+/** Placeholder of a StatValue line while its figure has not loaded yet. */
+export function StatValueSkeleton (): React.JSX.Element {
+  return <Skeleton className='h-[1.8rem] w-24' />
+}
+
+/** Whole StatCard stand-in used by the page skeletons. */
+export function StatCardSkeleton ({ withHint = false }: { withHint?: boolean }): React.JSX.Element {
+  return (
+    <div className='flex-1 min-w-0 flex flex-col justify-center gap-4 p-4 rounded-3xl bg-[rgba(12,28,51,0.03)]'>
+      <div className='flex items-center gap-2'>
+        <div className='w-6 h-6 rounded-full bg-white shrink-0' />
+        <Skeleton className='h-3.5 w-20' />
+      </div>
+      <div className='flex flex-col gap-2'>
+        <StatValueSkeleton />
+        {withHint && <Skeleton className='h-3 w-28' />}
+      </div>
+    </div>
   )
 }

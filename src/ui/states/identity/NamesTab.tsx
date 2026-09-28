@@ -4,7 +4,7 @@ import { Button, PlusIcon, Text } from 'dash-ui-kit/react'
 import type { NameData } from '../../components/names'
 import StatusBadge from '../../components/names/StatusBadge'
 import { splitDpns } from '../../../utils'
-import ScreenLoader from '../../components/layout/screens/ScreenLoader'
+import { Skeleton, TextSkeleton } from '../../components/common'
 
 const headerTextClassName = '!text-xs !leading-none !tracking-[-0.03em]'
 
@@ -41,6 +41,20 @@ function NameCard ({ item }: { item: NameData }): React.JSX.Element {
   )
 }
 
+const SKELETON_CARDS = 2
+
+function NameCardSkeleton (): React.JSX.Element {
+  return (
+    <div className='flex flex-col gap-[15px] p-3 rounded-[15px] bg-[rgba(12,28,51,0.04)]'>
+      <div className='flex items-start justify-between gap-2'>
+        <Skeleton className='h-4 w-28' />
+        <Skeleton className='h-4 w-14' />
+      </div>
+      <Skeleton className='h-3 w-32' />
+    </div>
+  )
+}
+
 interface NamesTabProps {
   loading: boolean
   error: string | null
@@ -54,7 +68,7 @@ export function NamesTab ({ loading, error, names }: NamesTabProps): React.JSX.E
     <div className='flex flex-col gap-2'>
       <div className='flex items-center justify-between'>
         <Text weight='medium' className={`${headerTextClassName} !text-dash-primary-dark-blue/35`}>
-          {loading ? '...' : names.length} Names
+          {loading ? <TextSkeleton className='w-4' /> : names.length} Names
         </Text>
         <Button
           type='button'
@@ -68,7 +82,7 @@ export function NamesTab ({ loading, error, names }: NamesTabProps): React.JSX.E
           </Text>
         </Button>
       </div>
-      {loading && <ScreenLoader className='min-h-[120px]' />}
+      {loading && Array.from({ length: SKELETON_CARDS }, (_, index) => <NameCardSkeleton key={index} />)}
       {!loading && error != null && error !== '' && (
         <Text size='sm' className='!text-red-500'>Error loading names: {error}</Text>
       )}

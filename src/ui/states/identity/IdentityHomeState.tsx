@@ -86,8 +86,8 @@ function IdentityHomeState (): React.JSX.Element {
                 transactions={transactions}
                 rate={rateState.data}
                 network={network}
-                tokenCount={tokens.length}
-                nameCount={names.length}
+                tokenCount={tokensState.loading ? null : tokens.length}
+                nameCount={namesState.loading ? null : names.length}
                 lastName={names[0]?.name ?? null}
               />
             )

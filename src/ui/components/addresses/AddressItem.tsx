@@ -8,7 +8,10 @@ export interface AddressData {
   address: string
   balance: string | null
   totalTxs: number | null
+  /** Balance is being fetched. */
   loading: boolean
+  /** Transaction count is being fetched from the explorer. */
+  txsLoading: boolean
 }
 
 interface AddressItemProps {
@@ -21,7 +24,7 @@ export const AddressItem: React.FC<AddressItemProps> = ({ item, explorerUrl }) =
     {/* Bottom: transactions + credits in two columns */}
     <div className='flex flex-row items-start justify-between gap-4'>
       <div className='flex flex-col gap-0.5 min-w-0'>
-        {item.loading
+        {item.txsLoading
           ? <Text size='sm' dim>Loading...</Text>
           : (
             <Text size='sm' dim>

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { creditsToDash } from '../../../utils'
-import { BalanceActions, DashAmount, FiatChip } from '../../components/common'
+import { BalanceActions, DashAmount, FiatChip, Skeleton } from '../../components/common'
 
 function dashParts (credits: bigint): { whole: string, fraction: string } {
   const [whole, fraction = '00'] = creditsToDash(credits).toFixed(2).split('.')
@@ -39,9 +39,7 @@ export function IdentityBalance ({
       </Text>
       <div className='flex items-center gap-3'>
         {loading
-          ? (
-            <Text className='!text-[2.25rem] !leading-none !tracking-[-0.03em] !text-dash-brand'>...</Text>
-            )
+          ? <Skeleton className='h-9 w-[180px]' />
           : (error != null && error !== '')
               ? (
                 <Text className='!text-[2.25rem] !leading-none !tracking-[-0.03em] !text-red-500'>Error</Text>

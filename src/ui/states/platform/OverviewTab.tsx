@@ -2,7 +2,7 @@ import React from 'react'
 import { CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
 import { LastTransaction } from '../home/LastTransaction'
 import { SeeAllTransactionsButton, TransactionsList } from '../../components/transactions'
-import { StatCard, StatValue } from '../../components/common'
+import { StatCard, StatValue, StatValueSkeleton, TextSkeleton } from '../../components/common'
 import { BigNumberDisplay } from '../../components/data'
 import type { UseWalletPlatformDataResult } from '../../hooks'
 import type { Identity, NetworkType } from '../../../types'
@@ -66,7 +66,9 @@ export function OverviewTab ({ hide, identities, network, platformData, overview
         <StatCard
           icon={<CreditsIcon size={12} className='!text-dash-brand' />}
           label='Tokens'
-          value={<StatValue value={tokenCount ?? PLACEHOLDER} unit='Tokens' loading={tokenCountLoading && tokenCount != null} />}
+          value={tokenCountLoading && tokenCount == null
+            ? <StatValueSkeleton />
+            : <StatValue value={tokenCount ?? PLACEHOLDER} unit='Tokens' loading={tokenCountLoading} />}
         />
       </div>
       <div className='flex gap-3 w-full'>
@@ -75,10 +77,14 @@ export function OverviewTab ({ hide, identities, network, platformData, overview
           label='Transactions'
           hint={(
             <Text size='xs' weight='medium' className='!text-[0.75rem] !text-dash-primary-dark-blue/50 !leading-[1.1]'>
-              <BigNumberDisplay unit='transfers'>{statValue(platformData.totalTransferCount)}</BigNumberDisplay> transfers
+              {platformKnown
+                ? <BigNumberDisplay unit='transfers'>{statValue(platformData.totalTransferCount)}</BigNumberDisplay>
+                : <TextSkeleton className='w-6' />} transfers
             </Text>
           )}
-          value={<StatValue value={statValue(platformData.totalTxCount)} unit='TXs' loading={platformRefreshing} />}
+          value={platformKnown
+            ? <StatValue value={statValue(platformData.totalTxCount)} unit='TXs' loading={platformRefreshing} />
+            : <StatValueSkeleton />}
         />
         <StatCard
           icon={<FingerprintIcon size={12} className='!text-dash-brand' />}
@@ -95,7 +101,9 @@ export function OverviewTab ({ hide, identities, network, platformData, overview
               </div>
               )
             : undefined}
-          value={<StatValue value={statValue(platformData.nameCount)} unit='Names' loading={platformRefreshing} />}
+          value={platformKnown
+            ? <StatValue value={statValue(platformData.nameCount)} unit='Names' loading={platformRefreshing} />
+            : <StatValueSkeleton />}
         />
       </div>
       <LastTransaction

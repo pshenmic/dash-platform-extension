@@ -1,7 +1,7 @@
 import React from 'react'
 import { ExternalLinkIcon, Text, TopRightArrowIcon, Identifier } from 'dash-ui-kit/react'
 import type { TransactionRowItem } from '../../components/transactions'
-import { StatCard } from '../../components/common'
+import { Skeleton, StatCard, StatValueSkeleton } from '../../components/common'
 
 interface LastTransactionProps {
   /** Shown while the transaction is still being fetched. */
@@ -57,11 +57,13 @@ export function LastTransaction ({
       <StatCard
         icon={<TopRightArrowIcon size={10} className='!text-[#CD2E00]' />}
         label='Last Transaction'
-        value={(
-          <Text className='!text-dash-brand !text-base !font-extrabold !leading-[1.2] break-words'>
-            {resolvedType ?? '-'}
-          </Text>
-        )}
+        value={loading && resolvedType == null
+          ? <Skeleton className='h-[1.2rem] w-24' />
+          : (
+            <Text className='!text-dash-brand !text-base !font-extrabold !leading-[1.2] break-words'>
+              {resolvedType ?? '-'}
+            </Text>
+            )}
         hint={resolvedHash != null
           ? (
             <div className='flex items-center gap-1 min-w-0'>
@@ -75,7 +77,7 @@ export function LastTransaction ({
               </Identifier>
             </div>
             )
-          : (loading ? 'Loading' : (emptyHint ?? 'No transactions yet'))}
+          : (loading ? <Skeleton className='h-3 w-28' /> : (emptyHint ?? 'No transactions yet'))}
       />
     )
   }
@@ -84,12 +86,21 @@ export function LastTransaction ({
     return (
       <div className='flex flex-col gap-4 p-4 rounded-3xl bg-[rgba(12,28,51,0.03)]'>
         <Header />
-        <div className='flex flex-col gap-2'>
-          <Text className='!text-dash-brand !text-2xl !font-extrabold !leading-[1.2]'>-</Text>
-          <Text size='xs' weight='medium' className='!text-[0.75rem] !text-dash-primary-dark-blue/50 !leading-[1.1]'>
-            {loading ? 'Loading' : (emptyHint ?? 'No transactions yet')}
-          </Text>
-        </div>
+        {loading
+          ? (
+            <div className='flex flex-col gap-2'>
+              <StatValueSkeleton />
+              <Skeleton className='h-3 w-40' />
+            </div>
+            )
+          : (
+            <div className='flex flex-col gap-2'>
+              <Text className='!text-dash-brand !text-2xl !font-extrabold !leading-[1.2]'>-</Text>
+              <Text size='xs' weight='medium' className='!text-[0.75rem] !text-dash-primary-dark-blue/50 !leading-[1.1]'>
+                {emptyHint ?? 'No transactions yet'}
+              </Text>
+            </div>
+            )}
       </div>
     )
   }

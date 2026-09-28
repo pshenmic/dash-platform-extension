@@ -25,6 +25,9 @@ export {
   ApiPagination
 } from './PlatformExplorer'
 
+// An unreachable explorer must not keep address rows loading forever.
+const ADDRESS_INFO_TIMEOUT_MS = 10_000
+
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
   return PLATFORM_EXPLORER_URLS[network].api
 }
@@ -171,7 +174,9 @@ export class PlatformExplorerClient {
 
   async fetchAddress (address: string, network: NetworkType = 'testnet'): Promise<AddressApiData> {
     const baseUrl = getBaseUrl(network)
-    const response = await fetch(`${baseUrl}/platformAddress/${address}/info`)
+    const response = await fetch(`${baseUrl}/platformAddress/${address}/info`, {
+      signal: AbortSignal.timeout(ADDRESS_INFO_TIMEOUT_MS)
+    })
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)

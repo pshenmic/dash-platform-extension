@@ -2,7 +2,7 @@ import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { useStaticAsset } from '../../hooks'
 import type { UsePlatformAddressesResult } from '../../hooks'
-import { BalanceActions, DashAmount, FiatChip } from '../../components/common'
+import { BalanceActions, DashAmount, FiatChip, Skeleton } from '../../components/common'
 import { creditsToDash, toCreditsBigInt } from '../../../utils'
 
 // Shown instead of a number whenever the value is unknown, never a made-up one.
@@ -57,14 +57,16 @@ function AllocationSlice ({ label, credits, rate, hide, className, action, loadi
               spinnerClassName='w-3 h-3 text-dash-brand'
             />
             )
-          : (
-            <Text
-              size={unavailableLabel != null ? 'xs' : 'sm'}
-              className='!leading-none !tracking-[-0.03em] !text-dash-primary-dark-blue/35'
-            >
-              {unavailableLabel ?? PLACEHOLDER}
-            </Text>
-            )}
+          : loading && unavailableLabel == null
+            ? <Skeleton className='h-3.5 w-16' />
+            : (
+              <Text
+                size={unavailableLabel != null ? 'xs' : 'sm'}
+                className='!leading-none !tracking-[-0.03em] !text-dash-primary-dark-blue/35'
+              >
+                {unavailableLabel ?? PLACEHOLDER}
+              </Text>
+              )}
         {fiat != null
           ? (
             <FiatChip
@@ -184,11 +186,13 @@ export function BalanceBlock ({
                     className='!text-[2.25rem] !leading-none !tracking-[-0.03em] !text-dash-brand'
                   />
                   )
-                : (
-                  <Text className='!text-[2.25rem] !leading-none !tracking-[-0.03em] !text-dash-primary-dark-blue/35'>
-                    {PLACEHOLDER}
-                  </Text>
-                  )}
+                : loading
+                  ? <Skeleton className='h-9 w-[180px]' />
+                  : (
+                    <Text className='!text-[2.25rem] !leading-none !tracking-[-0.03em] !text-dash-primary-dark-blue/35'>
+                      {PLACEHOLDER}
+                    </Text>
+                    )}
               <BalanceActions
                 hide={hide}
                 onToggleHide={onToggleHide}

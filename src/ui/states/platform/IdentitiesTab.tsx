@@ -10,7 +10,8 @@ import {
 } from 'dash-ui-kit/react'
 import type { Identity, NetworkType } from '../../../types'
 import { fetchNames, getIdentityExplorerUrl, splitDpns } from '../../../utils'
-import { usePlatformExplorerClient, useSdk } from '../../hooks'
+import { getSdkPromise } from '../../../utils/sdkLoader'
+import { usePlatformExplorerClient } from '../../hooks'
 import type { UseWalletPlatformDataResult } from '../../hooks'
 import { locationReturnState, type OutletContext } from '../../types'
 import { ExplorerCopyChips } from '../../components/common'
@@ -112,7 +113,6 @@ function IdentityCard ({
 
 export function IdentitiesTab ({ hide, identities, platformData }: IdentitiesTabProps): React.JSX.Element {
   const navigate = useNavigate()
-  const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
   const { currentNetwork, currentWallet, allWallets, setCurrentIdentity } = useOutletContext<OutletContext>()
   const network: NetworkType = currentNetwork ?? 'testnet'
@@ -127,7 +127,9 @@ export function IdentitiesTab ({ hide, identities, platformData }: IdentitiesTab
 
     let cancelled = false
 
+    // Awaited here rather than via useSdk, which would suspend the whole page on the first tab open.
     const load = async (): Promise<void> => {
+      const sdk = await getSdkPromise()
       const entries = await Promise.all(identities.map(async (identity) => {
         const names = await fetchNames(sdk, platformExplorerClient, identity.identifier, network)
         const first = names[0]?.name
@@ -144,7 +146,7 @@ export function IdentitiesTab ({ hide, identities, platformData }: IdentitiesTab
     return () => {
       cancelled = true
     }
-  }, [identities, network, platformExplorerClient, sdk])
+  }, [identities, network, platformExplorerClient])
 
   const rows = useMemo((): IdentityRow[] => {
     const dataById = new Map(platformData.identities.map(item => [item.identifier, item]))

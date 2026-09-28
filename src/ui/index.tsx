@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import './styles/app.pcss'
 import ScreenLoader from './components/layout/screens/ScreenLoader'
+import RouteLoader from './components/layout/screens/RouteLoader'
+import { CoreSkeleton, HomeSkeleton, IdentitySkeleton, PlatformSkeleton } from './components/skeletons'
 import Layout from './components/layout/Layout'
 import PageWithHeader from './components/layout/PageWithHeader'
 
@@ -86,38 +88,42 @@ const App: React.FC = function () {
         },
         {
           path: '/home',
-          element: <PageWithHeader showGrid><Suspense fallback={<ScreenLoader />}><HomeState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader showGrid><Suspense fallback={<RouteLoader />}><HomeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'dashboard'
-            }
+            },
+            loader: HomeSkeleton
           }
         },
         {
           path: '/platform',
-          element: <PageWithHeader showGrid><Suspense fallback={<ScreenLoader />}><PlatformHomeState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader showGrid><Suspense fallback={<RouteLoader />}><PlatformHomeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'platform'
-            }
+            },
+            loader: PlatformSkeleton
           }
         },
         {
           path: '/identity/:identifier',
-          element: <PageWithHeader showGrid><Suspense fallback={<ScreenLoader />}><IdentityHomeState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader showGrid><Suspense fallback={<RouteLoader />}><IdentityHomeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'identity'
-            }
+            },
+            loader: IdentitySkeleton
           }
         },
         {
           path: '/core',
-          element: <PageWithHeader showGrid><Suspense fallback={<ScreenLoader />}><CoreHomeState /></Suspense></PageWithHeader>,
+          element: <PageWithHeader showGrid><Suspense fallback={<RouteLoader />}><CoreHomeState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'core'
-            }
+            },
+            loader: CoreSkeleton
           }
         },
         {
