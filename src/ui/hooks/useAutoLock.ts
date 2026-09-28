@@ -41,7 +41,7 @@ export const useAutoLock = (): void => {
     const checkExpiry = async (): Promise<void> => {
       if (await isSessionUnlocked()) return
 
-      void navigate(buildLoginPath(pathname, search))
+      void navigate(buildLoginPath(pathname, search), { replace: true })
     }
 
     const interval = setInterval(() => {

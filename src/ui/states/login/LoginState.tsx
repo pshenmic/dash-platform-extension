@@ -52,11 +52,11 @@ function LoginState (): React.JSX.Element {
         const returnTo = searchParams.get('returnTo')
 
         if (!status.hasAnyWallet) {
-          void navigate('/welcome')
+          void navigate('/welcome', { replace: true })
         } else if (returnTo != null && returnTo !== '') {
-          void navigate(returnTo)
+          void navigate(returnTo, { replace: true })
         } else {
-          void navigate('/home')
+          void navigate('/home', { replace: true })
         }
       } else {
         setError('Invalid password')

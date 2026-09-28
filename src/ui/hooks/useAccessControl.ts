@@ -56,7 +56,7 @@ export function useAccessControl (config: Partial<AccessControlConfig> = {}): Ac
 
         // Check auto-lock
         if (finalConfig.allowLocked !== true && !await isSessionUnlocked()) {
-          void navigate(buildLoginPath(locationRef.current.pathname, locationRef.current.search))
+          void navigate(buildLoginPath(locationRef.current.pathname, locationRef.current.search), { replace: true })
           setState({ isLoading: false, isAuthenticated: false, error: null })
           return
         }
