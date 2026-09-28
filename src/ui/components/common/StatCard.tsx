@@ -1,5 +1,6 @@
 import React from 'react'
 import { Text } from 'dash-ui-kit/react'
+import { InlineSpinner } from './InlineSpinner'
 
 interface StatCardProps {
   icon: React.ReactNode
@@ -39,14 +40,25 @@ interface StatValueProps {
   value: React.ReactNode
   unit: string
   hide?: boolean
+  /** The value is being refreshed: it stays on screen with a spinner next to it. */
+  loading?: boolean
 }
 
 /** Big brand-coloured number with a muted unit, shared by every StatCard. */
-export function StatValue ({ value, unit, hide = false }: StatValueProps): React.JSX.Element {
-  return (
+export function StatValue ({ value, unit, hide = false, loading = false }: StatValueProps): React.JSX.Element {
+  const text = (
     <Text className='!text-dash-brand !text-2xl !font-extrabold !leading-[1.2]'>
       {hide ? '••••••' : value}{' '}
       <Text as='span' size='sm' weight='medium' className='!text-dash-primary-dark-blue'>{unit}</Text>
     </Text>
+  )
+
+  if (!loading) return text
+
+  return (
+    <span className='inline-flex items-center gap-2'>
+      {text}
+      <InlineSpinner className='w-4 h-4 text-dash-brand' />
+    </span>
   )
 }

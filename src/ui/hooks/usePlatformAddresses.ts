@@ -66,7 +66,16 @@ export function usePlatformAddresses (
       loading: true
     }))
 
-    setAddresses(initial)
+    // A reload keeps the balances already known until the new ones arrive, so the
+    // totals built on them do not blink; rows still show their loading state.
+    setAddresses(previous => {
+      const known = new Map(previous.map(item => [item.address, item]))
+      return initial.map(item => ({
+        ...item,
+        balance: known.get(item.address)?.balance ?? null,
+        totalTxs: known.get(item.address)?.totalTxs ?? null
+      }))
+    })
 
     if (initial.length === 0) {
       listCache.set(key, [])

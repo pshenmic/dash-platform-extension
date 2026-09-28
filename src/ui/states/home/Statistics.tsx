@@ -33,15 +33,12 @@ export function Statistics ({
 
   const txValue = loadedTxCount == null && loading
     ? <InlineSpinner className='w-6 h-6 text-dash-brand' />
-    : (
-      <span className='inline-flex items-center gap-2'>
-        <StatValue value={loadedTxCount ?? '-'} unit='TXs' />
-        {loading && <InlineSpinner className='w-4 h-4 text-dash-brand' />}
-      </span>
-      )
+    : <StatValue value={loadedTxCount ?? '-'} unit='TXs' loading={loading} />
 
-  const platformHint = `${platformLoading ? '...' : String(platformTxCount ?? '-')} Platform`
-  const coreHint = `${coreLoading ? '...' : String(coreTxCount ?? '-')} Core`
+  const hintCount = (count: number | null, countLoading: boolean): string =>
+    count != null ? String(count) : (countLoading ? '...' : '-')
+  const platformHint = `${hintCount(platformTxCount, platformLoading)} Platform`
+  const coreHint = `${hintCount(coreTxCount, coreLoading)} Core`
 
   const hint = (
     <Text size='xs' weight='medium' className='!text-[0.75rem] !text-dash-primary-dark-blue/50 !leading-[1.1]'>

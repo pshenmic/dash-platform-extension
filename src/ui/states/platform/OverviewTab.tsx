@@ -21,10 +21,14 @@ interface OverviewTabProps {
 }
 
 export function OverviewTab ({ hide, identities, network, platformData, overview, rate }: OverviewTabProps): React.JSX.Element {
-  const { operations, tokenCount } = overview
+  const { operations, tokenCount, tokenCountLoading } = overview
+
+  // A reload keeps the previous figures; only the first load has none to show.
+  const platformKnown = !platformData.loading || platformData.identities.length > 0
+  const platformRefreshing = platformData.loading && platformKnown
 
   const statValue = (value: number | null): React.ReactNode => {
-    if (platformData.loading || value == null) return PLACEHOLDER
+    if (!platformKnown || value == null) return PLACEHOLDER
     return value
   }
 
@@ -61,7 +65,7 @@ export function OverviewTab ({ hide, identities, network, platformData, overview
         <StatCard
           icon={<CreditsIcon size={12} className='!text-dash-brand' />}
           label='Tokens'
-          value={<StatValue value={tokenCount ?? PLACEHOLDER} unit='Tokens' />}
+          value={<StatValue value={tokenCount ?? PLACEHOLDER} unit='Tokens' loading={tokenCountLoading && tokenCount != null} />}
         />
       </div>
       <div className='flex gap-3 w-full'>
@@ -73,7 +77,7 @@ export function OverviewTab ({ hide, identities, network, platformData, overview
               {statValue(platformData.totalTransferCount)} transfers
             </Text>
           )}
-          value={<StatValue value={statValue(platformData.totalTxCount)} unit='TXs' />}
+          value={<StatValue value={statValue(platformData.totalTxCount)} unit='TXs' loading={platformRefreshing} />}
         />
         <StatCard
           icon={<FingerprintIcon size={12} className='!text-dash-brand' />}
@@ -90,7 +94,7 @@ export function OverviewTab ({ hide, identities, network, platformData, overview
               </div>
               )
             : undefined}
-          value={<StatValue value={statValue(platformData.nameCount)} unit='Names' />}
+          value={<StatValue value={statValue(platformData.nameCount)} unit='Names' loading={platformRefreshing} />}
         />
       </div>
       <LastTransaction

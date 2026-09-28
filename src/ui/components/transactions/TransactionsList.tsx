@@ -1,7 +1,10 @@
 import React from 'react'
 import { Button, Text } from 'dash-ui-kit/react'
 import EntityList from '../common/EntityList'
-import { TransactionRow, type TransactionRowItem } from './TransactionRow'
+import { TransactionRow, TransactionRowSkeleton, type TransactionRowItem } from './TransactionRow'
+
+// Rows the skeleton shows when the list has no limit of its own.
+const SKELETON_ROWS = 3
 
 interface TransactionsListProps {
   items: TransactionRowItem[]
@@ -69,10 +72,21 @@ function TransactionsList ({
   const groups = groupByDate ? groupItemsByDate(visible) : [{ date: '', items: visible }]
   const isEmpty = visible.length === 0
 
+  // First load and reload look the same: the skeleton stands in for the rows.
+  if (loading) {
+    return (
+      <div className='flex flex-col gap-2.5' aria-busy='true' aria-label='Loading transactions'>
+        {Array.from({ length: limit ?? SKELETON_ROWS }, (_, index) => (
+          <TransactionRowSkeleton key={index} />
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className='flex flex-col gap-2.5'>
       <EntityList
-        loading={loading}
+        loading={false}
         error={error}
         isEmpty={isEmpty}
         variant='spaced'
@@ -98,8 +112,8 @@ function TransactionsList ({
           </div>
         ))}
       </EntityList>
-      {!loading && error === null && !isEmpty && footer}
-      {!loading && error !== null && onRetry != null && (
+      {error === null && !isEmpty && footer}
+      {error !== null && onRetry != null && (
         <div className='flex justify-center'>
           <Button
             type='button'

@@ -45,7 +45,7 @@ function HomeState (): React.JSX.Element {
   const { hideBalance, toggleHide } = useHideBalance()
   const { hasCoreLayer, hasAddressLayer } = useWalletCapabilities()
   const { balance: coreBalance, loading: coreLoading, reload: reloadCore } = useCoreBalance(currentWallet, hasCoreLayer)
-  const { totalCredits, totalTxCount, loading: platformLoading, reload: reloadPlatform } =
+  const { identities: platformIdentities, totalCredits, totalTxCount, loading: platformLoading, reload: reloadPlatform } =
     useWalletPlatformData(availableIdentities, currentNetwork)
   const { transaction: lastPlatformTransaction, loading: lastPlatformLoading, reload: reloadLastPlatform } =
     useLastPlatformTransaction(availableIdentities, currentNetwork)
@@ -54,7 +54,9 @@ function HomeState (): React.JSX.Element {
   const { rate, reload: reloadRate } = useDashRate(currentNetwork)
 
   const coreDuffs = hasCoreLayer && coreBalance != null ? BigInt(coreBalance.balance) : null
-  const platformDuffs = platformLoading ? null : creditsToDuffs(totalCredits)
+  // A reload keeps the previous sum on screen (the card adds a spinner), so it is
+  // only unknown while the first load has nothing yet.
+  const platformDuffs = platformLoading && platformIdentities.length === 0 ? null : creditsToDuffs(totalCredits)
   const balancesLoading = coreLoading || platformLoading
   // The total stays a spinner until both layers are done, then sums whatever answered.
   const totalDuffs = balancesLoading || (coreDuffs == null && platformDuffs == null)
@@ -111,8 +113,8 @@ function HomeState (): React.JSX.Element {
       <ActionRow />
       <Statistics
         identityCount={availableIdentities.length}
-        coreTxCount={coreLoading ? null : (coreBalance?.txCount ?? null)}
-        platformTxCount={platformLoading ? null : totalTxCount}
+        coreTxCount={coreBalance?.txCount ?? null}
+        platformTxCount={platformDuffs != null ? totalTxCount : null}
         coreLoading={coreLoading}
         platformLoading={platformLoading}
         showCore={hasCoreLayer}

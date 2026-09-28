@@ -158,3 +158,25 @@ export function TransactionRow ({ item, hide, onClick, rate }: TransactionRowPro
     </div>
   )
 }
+
+/** Shimmering stand-in with the size of a TransactionRow, shown while the list loads. */
+export function TransactionRowSkeleton (): React.JSX.Element {
+  return (
+    <div
+      aria-hidden='true'
+      className='flex items-center justify-between gap-3 rounded-[14px] bg-[rgba(12,28,51,0.04)] py-2 pl-2 pr-[15px] w-full animate-pulse'
+    >
+      <div className='flex items-center gap-3 min-w-0'>
+        <div className='w-10 h-10 rounded-2xl bg-dash-primary-dark-blue/10 shrink-0' />
+        <div className='flex flex-col gap-1.5'>
+          <div className='h-3.5 w-24 rounded bg-dash-primary-dark-blue/10' />
+          <div className='h-3 w-32 rounded bg-dash-primary-dark-blue/10' />
+        </div>
+      </div>
+      <div className='flex flex-col items-end gap-1.5 shrink-0'>
+        <div className='h-3.5 w-20 rounded bg-dash-primary-dark-blue/10' />
+        <div className='h-3 w-12 rounded bg-dash-primary-dark-blue/10' />
+      </div>
+    </div>
+  )
+}

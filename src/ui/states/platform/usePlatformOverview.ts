@@ -12,6 +12,7 @@ export const OVERVIEW_PREVIEW_LIMIT = 3
 export interface UsePlatformOverviewResult {
   operations: InfiniteTransactionsState
   tokenCount: number | null
+  tokenCountLoading: boolean
   reload: () => void
 }
 
@@ -73,5 +74,5 @@ export function usePlatformOverview (identities: Identity[], network: NetworkTyp
     loadTokenCount(true)
   }, [loadTokenCount])
 
-  return { operations, tokenCount: tokenCountState.data, reload }
+  return { operations, tokenCount: tokenCountState.data, tokenCountLoading: tokenCountState.loading, reload }
 }

@@ -57,7 +57,7 @@ function CoreHomeState (): React.JSX.Element {
             <SeeAllTransactionsButton scope='core' />
           )}
         />
-        <CoreStatistics balance={balance} hide={hideBalance} />
+        <CoreStatistics balance={balance} hide={hideBalance} loading={loading} />
         <LastTransaction
           loading={transactionsLoading}
           transaction={lastTransaction}

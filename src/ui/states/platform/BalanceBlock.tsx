@@ -29,12 +29,14 @@ interface SliceProps {
   hide: boolean
   className: string
   action?: React.ReactNode
+  /** Refreshing: the previous amount stays with a spinner next to it. */
+  loading?: boolean
   // Set when the slice is not merely unknown but absent for this wallet, which
   // reads better as a reason than as a dash.
   unavailableLabel?: string
 }
 
-function AllocationSlice ({ label, credits, rate, hide, className, action, unavailableLabel }: SliceProps): React.JSX.Element {
+function AllocationSlice ({ label, credits, rate, hide, className, action, loading = false, unavailableLabel }: SliceProps): React.JSX.Element {
   const parts = credits != null ? dashParts(credits) : null
   const fiat = fiatLabel(credits, rate)
 
@@ -50,7 +52,9 @@ function AllocationSlice ({ label, credits, rate, hide, className, action, unava
               whole={parts.whole}
               fraction={parts.fraction}
               hide={hide}
+              loading={loading}
               className='!text-sm !leading-none !tracking-[-0.03em] !text-dash-brand'
+              spinnerClassName='w-3 h-3 text-dash-brand'
             />
             )
           : (
@@ -82,11 +86,13 @@ interface BalanceBlockProps {
   onRefresh: () => void
   /** Sum of the credits held by the wallet identities. Null while loading. */
   identityCredits: bigint | null
+  identitiesLoading: boolean
   /** Platform addresses shared with the rest of the dashboard. */
   platform: UsePlatformAddressesResult
   /** Shielded credits, null until the wallet's shielded notes are synced. */
   shieldedCredits: bigint | null
   shieldedSyncing: boolean
+  shieldedLoading: boolean
   /** Sends the user to the Shield addresses sub-tab, where the password is entered. */
   onUnlockShielded: () => void
   rate: number | null
@@ -102,9 +108,11 @@ export function BalanceBlock ({
   onToggleHide,
   onRefresh,
   identityCredits,
+  identitiesLoading,
   platform,
   shieldedCredits,
   shieldedSyncing,
+  shieldedLoading,
   onUnlockShielded,
   rate,
   loading,
@@ -112,7 +120,8 @@ export function BalanceBlock ({
 }: BalanceBlockProps): React.JSX.Element {
   const bagel = useStaticAsset('coin_bagel.png')
 
-  const addressesCredits = hasAddressLayer && platform.hasLoaded && !platform.isLoading
+  // A reload carries the previous balances over, so the sum stays until new ones land.
+  const addressesCredits = hasAddressLayer && platform.hasLoaded
     ? platform.addresses.reduce((sum, item) => sum + (toCreditsBigInt(item.balance) ?? 0n), 0n)
     : null
 
@@ -207,6 +216,7 @@ export function BalanceBlock ({
           className='rounded-bl-[14px]'
           unavailableLabel={hasAddressLayer ? undefined : SEED_ONLY_LABEL}
           action={shieldedAction}
+          loading={shieldedLoading}
         />
         <AllocationSlice
           label='Addresses:'
@@ -214,6 +224,7 @@ export function BalanceBlock ({
           rate={rate}
           hide={hide}
           className=''
+          loading={platform.isLoading}
           unavailableLabel={hasAddressLayer ? undefined : SEED_ONLY_LABEL}
         />
         <AllocationSlice
@@ -222,6 +233,7 @@ export function BalanceBlock ({
           rate={rate}
           hide={hide}
           className='rounded-br-[14px]'
+          loading={identitiesLoading}
         />
       </div>
     </div>

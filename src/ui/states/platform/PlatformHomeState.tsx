@@ -48,6 +48,11 @@ function PlatformHomeState (): React.JSX.Element {
     setAddressType('shield')
   }
 
+  // A reload keeps the previous sum; only the first load has nothing to show.
+  const identityCredits = platformData.loading && platformData.identities.length === 0
+    ? null
+    : platformData.totalCredits
+
   const handleRefresh = (): void => {
     reloadIdentities().catch(e => console.log('reloadIdentities error', e))
     platformData.reload()
@@ -63,13 +68,15 @@ function PlatformHomeState (): React.JSX.Element {
         hide={hideBalance}
         onToggleHide={toggleHide}
         onRefresh={handleRefresh}
-        identityCredits={platformData.loading ? null : platformData.totalCredits}
+        identityCredits={identityCredits}
+        identitiesLoading={platformData.loading}
         platform={platform}
         shieldedCredits={shieldedCredits}
         shieldedSyncing={shielded.isSyncing}
+        shieldedLoading={shielded.isRefreshing}
         onUnlockShielded={handleUnlockShielded}
         rate={rate}
-        loading={platformData.loading || shielded.isRefreshing}
+        loading={platformData.loading || platform.isLoading || shielded.isRefreshing}
         hasAddressLayer={hasAddressLayer}
       />
       <ActionRow scope='platform' />

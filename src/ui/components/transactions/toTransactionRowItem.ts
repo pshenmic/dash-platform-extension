@@ -11,7 +11,7 @@ const OUTGOING_TYPES = new Set([
 
 function directionFromTransaction (transaction: TransactionData): TransactionDirection {
   if (transaction.type != null && OUTGOING_TYPES.has(transaction.type)) return 'out'
-  if (transaction.type === 'IDENTITY_TOP_UP') return 'in'
+  if (transaction.type === 'IDENTITY_TOP_UP' || transaction.type === 'IDENTITY_TOP_UP_FROM_ADDRESSES') return 'in'
   return 'neutral'
 }
 
