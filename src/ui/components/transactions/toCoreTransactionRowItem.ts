@@ -12,7 +12,7 @@ const DIRECTIONS: Record<CoreTransaction['direction'], TransactionDirection> = {
 const TITLES: Record<CoreTransaction['direction'], string> = {
   received: 'Receive',
   sent: 'Send',
-  self: 'Own Transfer'
+  self: 'Internal Transfer'
 }
 
 const DETAIL_LABELS: Record<CoreTransaction['direction'], string> = {

@@ -59,7 +59,7 @@ export const TransactionTypesInfo = {
     colorScheme: 'orange'
   },
   IDENTITY_CREDIT_TRANSFER_TO_ADDRESS: {
-    title: 'Identity Credit Transfer To Address',
+    title: 'Credit Transfer to Address',
     description: 'Transfers credits from an identity to a Dash address, converting them into Dash.',
     colorScheme: 'orange'
   }
