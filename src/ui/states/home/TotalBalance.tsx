@@ -31,7 +31,7 @@ export function TotalBalance ({
         <Text size='lg' weight='medium' className='!tracking-[-0.03em] !leading-none'>
           Total Balance:
         </Text>
-        <BalanceActions variant='subtle' hide={hideBalance} onToggleHide={onToggleHide} onRefresh={onRefresh} />
+        <BalanceActions variant='subtle' hide={hideBalance} loading={loading} onToggleHide={onToggleHide} onRefresh={onRefresh} />
       </div>
       <div className='flex items-center gap-3'>
         <DashAmount

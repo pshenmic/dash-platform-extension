@@ -39,18 +39,19 @@ function HomeState (): React.JSX.Element {
     currentWallet,
     hasAnyWallet,
     identitiesLoaded,
+    reloadIdentities,
     walletsLoaded
   } = useOutletContext<OutletContext>()
-  const { hideBalance, toggleHide, refresh } = useHideBalance()
+  const { hideBalance, toggleHide } = useHideBalance()
   const { hasCoreLayer, hasAddressLayer } = useWalletCapabilities()
   const { balance: coreBalance, loading: coreLoading, reload: reloadCore } = useCoreBalance(currentWallet, hasCoreLayer)
   const { totalCredits, totalTxCount, loading: platformLoading, reload: reloadPlatform } =
     useWalletPlatformData(availableIdentities, currentNetwork)
-  const { transaction: lastPlatformTransaction, loading: lastPlatformLoading } =
+  const { transaction: lastPlatformTransaction, loading: lastPlatformLoading, reload: reloadLastPlatform } =
     useLastPlatformTransaction(availableIdentities, currentNetwork)
-  const { transactions: lastCoreTransactions, loading: lastCoreLoading } =
+  const { transactions: lastCoreTransactions, loading: lastCoreLoading, reload: reloadLastCore } =
     useCoreTransactions(1, currentNetwork, currentWallet, hasCoreLayer)
-  const rate = useDashRate(currentNetwork)
+  const { rate, reload: reloadRate } = useDashRate(currentNetwork)
 
   const coreDuffs = hasCoreLayer && coreBalance != null ? BigInt(coreBalance.balance) : null
   const platformDuffs = platformLoading ? null : creditsToDuffs(totalCredits)
@@ -64,9 +65,12 @@ function HomeState (): React.JSX.Element {
   const lastTransactionLoading = lastPlatformLoading || lastCoreLoading
 
   const onRefresh = (): void => {
-    refresh()
+    reloadIdentities().catch(e => console.log('reloadIdentities error', e))
     reloadCore()
     reloadPlatform()
+    reloadRate()
+    reloadLastCore()
+    reloadLastPlatform()
   }
 
   // A fresh install has nowhere to go but onboarding.

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useExtensionAPI } from './useExtensionAPI'
+import { useAsyncState } from './useAsyncState'
 import type { GetCoreBalanceResponse } from '../../types/messages/response/GetCoreBalanceResponse'
 
 export interface UseCoreBalanceResult {
@@ -15,46 +16,21 @@ export interface UseCoreBalanceResult {
  */
 export function useCoreBalance (walletId?: string | null, enabled: boolean = true): UseCoreBalanceResult {
   const extensionAPI = useExtensionAPI()
-  const [balance, setBalance] = useState<GetCoreBalanceResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [epoch, setEpoch] = useState(0)
+  const [state, execute, , reset] = useAsyncState<GetCoreBalanceResponse>(null, { initialLoading: true })
 
-  useEffect(() => {
-    let cancelled = false
-
+  // The wallet comes from the content-script; it stays in the deps so switching refetches.
+  const load = useCallback((keepData: boolean = false): void => {
     if (!enabled) {
-      setBalance(null)
-      setError(null)
-      setLoading(false)
+      reset()
       return
     }
 
-    setLoading(true)
-    setError(null)
+    void execute(async () => await extensionAPI.getCoreBalance(), { keepData })
+  }, [extensionAPI, walletId, enabled, execute, reset])
 
-    extensionAPI.getCoreBalance()
-      .then(response => {
-        if (cancelled) return
-        setBalance(response)
-        setLoading(false)
-      })
-      .catch((e: unknown) => {
-        console.log('getCoreBalance error', e)
-        if (cancelled) return
-        setBalance(null)
-        setError(e instanceof Error ? e.message : 'Failed to load Core balance')
-        setLoading(false)
-      })
+  useEffect(() => { load() }, [load])
 
-    return () => {
-      cancelled = true
-    }
-  }, [extensionAPI, walletId, epoch, enabled])
+  const reload = useCallback((): void => { load(true) }, [load])
 
-  const reload = useCallback((): void => {
-    setEpoch(previous => previous + 1)
-  }, [])
-
-  return { balance, loading, error, reload }
+  return { balance: state.data, loading: state.loading, error: state.error, reload }
 }

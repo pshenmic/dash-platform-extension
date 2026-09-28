@@ -24,6 +24,8 @@ export interface OutletContext {
   /** False until the current wallet's identities arrive. */
   identitiesLoaded: boolean
   availableIdentities: Identity[]
+  /** Refetches the current wallet's identities. */
+  reloadIdentities: () => Promise<void>
   createWallet: (walletType: WalletType, mnemonic?: string) => Promise<{ walletId: string }>
   headerComponent: React.ReactNode
   setHeaderComponent: (component: React.ReactNode) => void

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { usePlatformExplorerClient } from './usePlatformExplorerClient'
+import { useAsyncState } from './useAsyncState'
 import { promisePool } from '../../utils/promisePool'
 import type { Identity, NetworkType } from '../../types'
 
@@ -39,31 +40,21 @@ export function useWalletPlatformData (
   network?: NetworkType | null
 ): UseWalletPlatformDataResult {
   const platformExplorerClient = usePlatformExplorerClient()
-  const [data, setData] = useState<WalletIdentityData[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [epoch, setEpoch] = useState(0)
+  const [state, execute, , reset] = useAsyncState<WalletIdentityData[]>(null)
 
-  // The identity array is a new object every render, so the effect keys off the
+  // The identity array is a new object every render, so the load keys off the
   // joined identifiers and reads the current list through a ref.
   const identifiers = identities.map(identity => identity.identifier).join(',')
   const identitiesRef = useRef(identities)
   identitiesRef.current = identities
 
-  useEffect(() => {
-    let cancelled = false
-
+  const load = useCallback((keepData: boolean = false): void => {
     const currentIdentities = identitiesRef.current
 
     if (currentIdentities.length === 0) {
-      setData([])
-      setLoading(false)
-      setError(null)
+      reset()
       return
     }
-
-    setLoading(true)
-    setError(null)
 
     const tasks = currentIdentities.map(identity => async (): Promise<WalletIdentityData> => {
       const empty: WalletIdentityData = {
@@ -94,26 +85,14 @@ export function useWalletPlatformData (
       }
     })
 
-    promisePool(tasks, IDENTITY_FETCH_CONCURRENCY)
-      .then(results => {
-        if (cancelled) return
-        setData(results)
-        setLoading(false)
-      })
-      .catch((e: unknown) => {
-        if (cancelled) return
-        setError(e instanceof Error ? e.message : 'Failed to load identities data')
-        setLoading(false)
-      })
+    void execute(async () => await promisePool(tasks, IDENTITY_FETCH_CONCURRENCY), { keepData })
+  }, [platformExplorerClient, network, identifiers, execute, reset])
 
-    return () => {
-      cancelled = true
-    }
-  }, [platformExplorerClient, network, identifiers, epoch])
+  useEffect(() => { load() }, [load])
 
-  const reload = useCallback((): void => {
-    setEpoch(previous => previous + 1)
-  }, [])
+  const reload = useCallback((): void => { load(true) }, [load])
+
+  const data = state.data ?? []
 
   const totalCredits = data.reduce((sum, item) => sum + BigInt(item.credits ?? '0'), 0n)
   const totalTxCount = data.reduce((sum, item) => sum + (item.txCount ?? 0), 0)
@@ -127,8 +106,8 @@ export function useWalletPlatformData (
     totalTransferCount,
     nameCount: names.length,
     lastName: names[names.length - 1] ?? null,
-    loading,
-    error,
+    loading: state.loading,
+    error: state.error,
     reload
   }
 }

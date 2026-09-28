@@ -1,4 +1,3 @@
-import { ShieldToPoolHandler } from '../../../../src/content-script/api/private/wallet/shieldToPool'
 import { ShieldFromPlatformAddressHandler } from '../../../../src/content-script/api/private/wallet/shieldFromPlatformAddress'
 import { ShieldedService } from '../../../../src/content-script/services/ShieldedService'
 import { buildPlatformSourceCandidates, decryptMnemonic, selectPlatformSource } from '../../../../src/utils'

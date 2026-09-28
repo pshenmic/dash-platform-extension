@@ -1,13 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useExtensionAPI } from './useExtensionAPI'
+import { useAsyncState } from './useAsyncState'
 import { toCoreTransactionRowItem } from '../components/transactions'
 import type { TransactionRowItem } from '../components/transactions'
 import type { NetworkType } from '../../types'
+
+const NO_TRANSACTIONS: TransactionRowItem[] = []
 
 export interface UseCoreTransactionsResult {
   transactions: TransactionRowItem[]
   loading: boolean
   error: string | null
+  reload: () => void
 }
 
 /**
@@ -22,43 +26,26 @@ export function useCoreTransactions (
   enabled: boolean = true
 ): UseCoreTransactionsResult {
   const extensionAPI = useExtensionAPI()
-  const [transactions, setTransactions] = useState<TransactionRowItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [state, execute, , reset] = useAsyncState<TransactionRowItem[]>(null, { initialLoading: true })
 
-  useEffect(() => {
-    let cancelled = false
-
+  // The network and the wallet come from the current wallet in the content-script;
+  // they stay in the deps so switching either refetches.
+  const load = useCallback((keepData: boolean = false): void => {
     if (!enabled) {
-      setTransactions([])
-      setLoading(false)
-      setError(null)
+      reset()
       return
     }
 
-    setLoading(true)
-    setError(null)
+    void execute(async () => await extensionAPI.getCoreTransactions(limit)
+      .then(response => response.transactions.map(toCoreTransactionRowItem)), { keepData })
+  }, [extensionAPI, network, walletId, limit, enabled, execute, reset])
 
-    extensionAPI.getCoreTransactions(limit)
-      .then(response => {
-        if (cancelled) return
-        setTransactions(response.transactions.map(toCoreTransactionRowItem))
-        setLoading(false)
-      })
-      .catch((e: unknown) => {
-        if (cancelled) return
-        console.log('core transactions error', e)
-        setTransactions([])
-        setError(e instanceof Error ? e.message : 'Failed to load Core transactions')
-        setLoading(false)
-      })
+  useEffect(() => { load() }, [load])
 
-    return () => {
-      cancelled = true
-    }
-    // The network and the wallet come from the current wallet in the content-script;
-    // they stay in the key so switching either refetches.
-  }, [extensionAPI, network, walletId, limit, enabled])
+  const reload = useCallback((): void => { load(true) }, [load])
 
-  return useMemo(() => ({ transactions, loading, error }), [transactions, loading, error])
+  const transactions = state.data ?? NO_TRANSACTIONS
+  const { loading, error } = state
+
+  return useMemo(() => ({ transactions, loading, error, reload }), [transactions, loading, error, reload])
 }

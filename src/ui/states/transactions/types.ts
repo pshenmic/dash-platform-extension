@@ -43,6 +43,8 @@ interface SourceKeyParts {
   network: string
   walletId: string | null
   identifiers: string[]
+  /** Bumped by a reload, since a source keeps its page cursor. */
+  reloadCount?: number
 }
 
 /**
@@ -55,7 +57,8 @@ export function transactionsSourceKey ({
   identityId,
   network,
   walletId,
-  identifiers
+  identifiers,
+  reloadCount = 0
 }: SourceKeyParts): string {
-  return [network, walletId ?? '', scope, identityId ?? '', identifiers.join(',')].join('|')
+  return [network, walletId ?? '', scope, identityId ?? '', identifiers.join(','), reloadCount].join('|')
 }

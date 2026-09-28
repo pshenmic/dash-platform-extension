@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { usePlatformExplorerClient } from '../../hooks'
+import { useCallback, useEffect, useRef } from 'react'
+import { useAsyncState, usePlatformExplorerClient } from '../../hooks'
 import { toTransactionRowItem } from '../../components/transactions'
 import type { TransactionRowItem } from '../../components/transactions'
 import { promisePool } from '../../../utils/promisePool'
@@ -10,6 +10,7 @@ const IDENTITY_FETCH_CONCURRENCY = 4
 export interface UseLastPlatformTransactionResult {
   transaction: TransactionRowItem | null
   loading: boolean
+  reload: () => void
 }
 
 const timestampValue = (transaction: TransactionData): number => {
@@ -23,27 +24,21 @@ export function useLastPlatformTransaction (
   network?: NetworkType | null
 ): UseLastPlatformTransactionResult {
   const platformExplorerClient = usePlatformExplorerClient()
-  const [transaction, setTransaction] = useState<TransactionRowItem | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [state, execute, , reset] = useAsyncState<TransactionRowItem | null>(null)
 
-  // The identity array is a new object every render, so the effect keys off the
+  // The identity array is a new object every render, so the load keys off the
   // joined identifiers and reads the current list through a ref.
   const identifiers = identities.map(identity => identity.identifier).join(',')
   const identitiesRef = useRef(identities)
   identitiesRef.current = identities
 
-  useEffect(() => {
-    let cancelled = false
-
+  const load = useCallback((keepData: boolean = false): void => {
     const currentIdentities = identitiesRef.current
 
     if (currentIdentities.length === 0) {
-      setTransaction(null)
-      setLoading(false)
+      reset()
       return
     }
-
-    setLoading(true)
 
     const tasks = currentIdentities.map(identity => async (): Promise<TransactionData | null> => {
       const response = await platformExplorerClient
@@ -53,27 +48,20 @@ export function useLastPlatformTransaction (
       return response?.resultSet?.[0] ?? null
     })
 
-    promisePool(tasks, IDENTITY_FETCH_CONCURRENCY)
-      .then(results => {
-        if (cancelled) return
+    void execute(async () => {
+      const results = await promisePool(tasks, IDENTITY_FETCH_CONCURRENCY)
 
-        const newest = results
-          .filter((item): item is TransactionData => item != null)
-          .sort((a, b) => timestampValue(b) - timestampValue(a))[0] ?? null
+      const newest = results
+        .filter((item): item is TransactionData => item != null)
+        .sort((a, b) => timestampValue(b) - timestampValue(a))[0] ?? null
 
-        setTransaction(newest != null ? toTransactionRowItem(newest) : null)
-        setLoading(false)
-      })
-      .catch(() => {
-        if (cancelled) return
-        setTransaction(null)
-        setLoading(false)
-      })
+      return newest != null ? toTransactionRowItem(newest) : null
+    }, { keepData })
+  }, [platformExplorerClient, network, identifiers, execute, reset])
 
-    return () => {
-      cancelled = true
-    }
-  }, [platformExplorerClient, network, identifiers])
+  useEffect(() => { load() }, [load])
 
-  return { transaction, loading }
+  const reload = useCallback((): void => { load(true) }, [load])
+
+  return { transaction: state.data, loading: state.loading, reload }
 }

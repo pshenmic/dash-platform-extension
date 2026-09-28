@@ -5,8 +5,6 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ShieldedService } from '../../../services/ShieldedService'
 import { UnshieldToPlatformAddressPayload } from '../../../../types/messages/payloads/UnshieldToPlatformAddressPayload'
 import { UnshieldToPlatformAddressResponse } from '../../../../types/messages/response/UnshieldToPlatformAddressResponse'
-import { UnshieldToAddressPayload } from '../../../../types/messages/payloads/UnshieldToAddressPayload'
-import { UnshieldToAddressResponse } from '../../../../types/messages/response/UnshieldToAddressResponse'
 
 // Unshields credits from the Orchard pool to a Platform address via an
 // unshield state transition. Syncs and witnesses the wallet's notes, builds the

@@ -4,7 +4,6 @@ import { useExtensionAPI } from './useExtensionAPI'
 export interface UseHideBalanceResult {
   hideBalance: boolean
   toggleHide: () => void
-  refresh: () => void
 }
 
 /** Shared "hide balance" setting, used by every screen with a balance block. */
@@ -34,9 +33,5 @@ export function useHideBalance (): UseHideBalanceResult {
     })
   }, [extensionAPI])
 
-  const refresh = useCallback((): void => {
-    extensionAPI.getIdentities().catch(e => console.log('refresh identities error', e))
-  }, [extensionAPI])
-
-  return { hideBalance, toggleHide, refresh }
+  return { hideBalance, toggleHide }
 }

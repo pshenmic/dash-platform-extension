@@ -6,15 +6,27 @@ export interface AsyncState<T> {
   error: string | null
 }
 
-export function useAsyncState<T> (initialData: T | null = null): [
+export interface AsyncStateOptions {
+  /** Report loading before the first run starts. */
+  initialLoading?: boolean
+}
+
+export interface ExecuteOptions {
+  /** Keep the previous data while loading and on error. */
+  keepData?: boolean
+}
+
+export type ExecuteAsync<T> = (asyncFn: () => Promise<T>, options?: ExecuteOptions) => Promise<void>
+
+export function useAsyncState<T> (initialData: T | null = null, options: AsyncStateOptions = {}): [
   AsyncState<T>,
-  (asyncFn: () => Promise<T>) => Promise<void>,
+  ExecuteAsync<T>,
   (data: T) => void,
   () => void
 ] {
   const [state, setState] = useState<AsyncState<T>>({
     data: initialData,
-    loading: false,
+    loading: options.initialLoading === true,
     error: null
   })
 
@@ -32,24 +44,26 @@ export function useAsyncState<T> (initialData: T | null = null): [
     }
   }, [])
 
-  const execute = useCallback(async (asyncFn: () => Promise<T>) => {
+  /**
+   * Runs asyncFn and stores its result. Pass keepData only when refreshing the same subject; a new subject must clear.
+   */
+  const execute = useCallback<ExecuteAsync<T>>(async (asyncFn, executeOptions = {}) => {
     runIdRef.current += 1
     const runId = runIdRef.current
     const isStale = (): boolean => runId !== runIdRef.current || !mountedRef.current
+    const keepData = executeOptions.keepData === true
 
-    setState({ data: null, loading: true, error: null })
+    setState(previous => ({ data: keepData ? previous.data : null, loading: true, error: null }))
 
     try {
       const result = await asyncFn()
       if (isStale()) return
       setState({ data: result, loading: false, error: null })
     } catch (error) {
+      console.log('useAsyncState error', error)
       if (isStale()) return
-      setState({
-        data: null,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      })
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setState(previous => ({ data: keepData ? previous.data : null, loading: false, error: message }))
     }
   }, [])
 

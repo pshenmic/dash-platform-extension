@@ -32,7 +32,7 @@ export function useInfiniteTransactions (source: TransactionsSource | null): Inf
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
 
-  const epochRef = useRef(0)
+  const runIdRef = useRef(0)
   const inFlightRef = useRef(false)
   const abortRef = useRef<AbortController | null>(null)
   const sourceRef = useRef<TransactionsSource | null>(source)
@@ -43,7 +43,7 @@ export function useInfiniteTransactions (source: TransactionsSource | null): Inf
     const active = sourceRef.current
     if (active == null || inFlightRef.current) return
 
-    const epoch = epochRef.current
+    const runId = runIdRef.current
     const controller = new AbortController()
     abortRef.current = controller
     inFlightRef.current = true
@@ -55,7 +55,7 @@ export function useInfiniteTransactions (source: TransactionsSource | null): Inf
 
     active.loadMore(controller.signal)
       .then(page => {
-        if (epoch !== epochRef.current) return
+        if (runId !== runIdRef.current) return
 
         setItems(previous => [...previous, ...page.items])
         setTotal(page.total)
@@ -63,13 +63,13 @@ export function useInfiniteTransactions (source: TransactionsSource | null): Inf
         setError(null)
       })
       .catch((loadError: unknown) => {
-        if (epoch !== epochRef.current || controller.signal.aborted) return
+        if (runId !== runIdRef.current || controller.signal.aborted) return
 
         if (initial) setError(errorMessage(loadError))
         else setLoadMoreError(errorMessage(loadError))
       })
       .finally(() => {
-        if (epoch !== epochRef.current) return
+        if (runId !== runIdRef.current) return
 
         inFlightRef.current = false
         setLoading(false)
@@ -80,7 +80,7 @@ export function useInfiniteTransactions (source: TransactionsSource | null): Inf
   const sourceKey = source?.key ?? null
 
   useEffect(() => {
-    epochRef.current += 1
+    runIdRef.current += 1
     abortRef.current?.abort()
     inFlightRef.current = false
 
@@ -95,7 +95,7 @@ export function useInfiniteTransactions (source: TransactionsSource | null): Inf
     if (sourceKey != null) runLoad(true)
 
     return () => {
-      epochRef.current += 1
+      runIdRef.current += 1
       abortRef.current?.abort()
       inFlightRef.current = false
     }

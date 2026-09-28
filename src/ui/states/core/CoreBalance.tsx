@@ -59,7 +59,7 @@ export function CoreBalance ({ balance, loading, rate, hide, onToggleHide, onRef
                   className='!text-[2.25rem] !leading-none !tracking-[-0.03em] !text-dash-brand'
                 />
                 )}
-            <BalanceActions hide={hide} onToggleHide={onToggleHide} onRefresh={onRefresh} />
+            <BalanceActions hide={hide} loading={loading} onToggleHide={onToggleHide} onRefresh={onRefresh} />
           </div>
         </div>
         {fiat != null && (

@@ -15,16 +15,17 @@ const PREVIEW_LIMIT = 3
 /** Core layer home (Figma 10698:112). */
 function CoreHomeState (): React.JSX.Element {
   const { currentNetwork, currentWallet } = useOutletContext<OutletContext>()
-  const { hideBalance, toggleHide, refresh } = useHideBalance()
+  const { hideBalance, toggleHide } = useHideBalance()
   const { balance, loading, reload } = useCoreBalance(currentWallet)
-  const { transactions, loading: transactionsLoading, error: transactionsError } =
+  const { transactions, loading: transactionsLoading, error: transactionsError, reload: reloadTransactions } =
     useCoreTransactions(PREVIEW_LIMIT, currentNetwork, currentWallet)
-  const rate = useDashRate(currentNetwork)
+  const { rate, reload: reloadRate } = useDashRate(currentNetwork)
 
   const handleRefresh = useCallback((): void => {
-    refresh()
     reload()
-  }, [refresh, reload])
+    reloadTransactions()
+    reloadRate()
+  }, [reload, reloadTransactions, reloadRate])
 
   const lastTransaction = transactions[0] ?? null
 

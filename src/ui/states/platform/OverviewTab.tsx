@@ -1,17 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React from 'react'
 import { CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
 import { LastTransaction } from '../home/LastTransaction'
 import { SeeAllTransactionsButton, TransactionsList } from '../../components/transactions'
 import { StatCard, StatValue } from '../../components/common'
-import { useInfiniteTransactions, usePlatformExplorerClient } from '../../hooks'
 import type { UseWalletPlatformDataResult } from '../../hooks'
-import { createIdentitySource } from '../transactions/sources/identitySource'
-import { mergeSources } from '../transactions/sources/mergeSources'
-import type { TransactionsSource } from '../transactions/types'
-import type { Identity, NetworkType, TokenData } from '../../../types'
-import { countHeldTokens, getTransactionExplorerUrl } from '../../../utils'
+import type { Identity, NetworkType } from '../../../types'
+import { getTransactionExplorerUrl } from '../../../utils'
+import { OVERVIEW_PREVIEW_LIMIT, type UsePlatformOverviewResult } from './usePlatformOverview'
 
-const PREVIEW_LIMIT = 3
 // Shown instead of a number whenever the value is unknown, never a made-up one.
 const PLACEHOLDER = '-'
 
@@ -20,59 +16,12 @@ interface OverviewTabProps {
   identities: Identity[]
   network: NetworkType
   platformData: UseWalletPlatformDataResult
+  overview: UsePlatformOverviewResult
   rate: number | null
 }
 
-export function OverviewTab ({ hide, identities, network, platformData, rate }: OverviewTabProps): React.JSX.Element {
-  const platformExplorerClient = usePlatformExplorerClient()
-  const [tokenCount, setTokenCount] = useState<number | null>(null)
-
-  const identifiers = identities.map(identity => identity.identifier).join(',')
-
-  // Same explorer source as #/transactions, only the first page and 3 rows deep.
-  const source = useMemo((): TransactionsSource | null => {
-    if (identifiers === '') return null
-
-    const key = `platform-overview|${network}|${identifiers}`
-    const sources = identifiers.split(',').map(identifier => createIdentitySource({
-      client: platformExplorerClient,
-      identifier,
-      network,
-      pageSize: PREVIEW_LIMIT
-    }))
-
-    return { ...mergeSources(key, sources, PREVIEW_LIMIT), key }
-  }, [platformExplorerClient, identifiers, network])
-
-  const operations = useInfiniteTransactions(source)
-
-  // Distinct tokens with a positive balance across all identities.
-  useEffect(() => {
-    let cancelled = false
-
-    if (identifiers === '') {
-      setTokenCount(null)
-      return
-    }
-
-    const load = async (): Promise<void> => {
-      const lists = await Promise.all(identifiers.split(',').map(async identifier => await platformExplorerClient
-        .fetchAllTokens(identifier, network)
-        .catch(() => null)
-      ))
-
-      if (cancelled) return
-
-      const known = lists.filter((list): list is TokenData[] => list != null)
-      setTokenCount(known.length > 0 ? countHeldTokens(known) : null)
-    }
-
-    void load().catch(e => console.log('load tokens count error', e))
-
-    return () => {
-      cancelled = true
-    }
-  }, [platformExplorerClient, identifiers, network])
+export function OverviewTab ({ hide, identities, network, platformData, overview, rate }: OverviewTabProps): React.JSX.Element {
+  const { operations, tokenCount } = overview
 
   const statValue = (value: number | null): React.ReactNode => {
     if (platformData.loading || value == null) return PLACEHOLDER
@@ -94,7 +43,7 @@ export function OverviewTab ({ hide, identities, network, platformData, rate }: 
         rate={rate}
         hideAmounts={hide}
         groupByDate={false}
-        limit={PREVIEW_LIMIT}
+        limit={OVERVIEW_PREVIEW_LIMIT}
         onRetry={handleRetry}
         footer={(
           <SeeAllTransactionsButton scope='platform' />

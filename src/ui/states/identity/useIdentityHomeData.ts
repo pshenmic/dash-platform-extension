@@ -31,11 +31,16 @@ export function useIdentityHomeData (identifier: string): {
   )
 
   const refreshData = useCallback(async (): Promise<void> => {
-    if (identifier === '' || currentNetwork == null) return
-    if (sdk.getNetwork() !== currentNetwork) return
-    if (walletNetwork != null && walletNetwork !== currentNetwork) return
+    if (currentNetwork == null) return
 
     const network = currentNetwork
+
+    loadRate(async () => await platformExplorerClient.fetchRate(network))
+      .catch(e => console.log('loadRate error', e))
+
+    if (identifier === '') return
+    if (sdk.getNetwork() !== currentNetwork) return
+    if (walletNetwork != null && walletNetwork !== currentNetwork) return
 
     loadBalance(async () => await sdk.identities.getIdentityBalance(identifier))
       .catch(e => console.log('loadBalance error', e))
@@ -54,18 +59,13 @@ export function useIdentityHomeData (identifier: string): {
     loadBalance,
     loadTransactions,
     loadTokens,
-    loadNames
+    loadNames,
+    loadRate
   ])
 
   useEffect(() => {
     refreshData().catch(e => console.log('load identity home error', e))
   }, [refreshData])
-
-  useEffect(() => {
-    if (currentNetwork == null) return
-    loadRate(async () => await platformExplorerClient.fetchRate(currentNetwork))
-      .catch(e => console.log('loadRate error', e))
-  }, [currentNetwork, platformExplorerClient, loadRate])
 
   return { balanceState, transactionsState, tokensState, namesState, rateState, refreshData }
 }

@@ -47,15 +47,15 @@ export function usePlatformAddresses (
   // Addresses belong to one wallet on one network. A response for the previous
   // pair must never repaint the list - on Receive that would be a QR code for
   // the wallet the user just left.
-  const epochRef = useRef(0)
+  const runIdRef = useRef(0)
 
   // Fetch the created addresses and enrich with balances and transaction counts.
   const refreshList = useCallback(async (): Promise<void> => {
-    const epoch = epochRef.current
+    const runId = runIdRef.current
     const network = currentNetwork ?? 'testnet'
     const key = cacheKey(network, walletId)
     const created = await extensionAPI.listPlatformAddresses()
-    if (epoch !== epochRef.current) return
+    if (runId !== runIdRef.current) return
 
     const initial: AddressData[] = created.map((entry) => ({
       index: entry.index,
@@ -76,7 +76,7 @@ export function usePlatformAddresses (
     const infos = await extensionAPI.getPlatformAddressesInfos(initial.map((item) => item.address))
       .catch((): PlatformAddressBalance[] => [])
 
-    if (epoch !== epochRef.current) return
+    if (runId !== runIdRef.current) return
 
     const infoByAddress = new Map(infos.map((info) => [info.address, info]))
 
@@ -95,7 +95,7 @@ export function usePlatformAddresses (
       }
     }))
 
-    if (epoch !== epochRef.current) return
+    if (runId !== runIdRef.current) return
 
     const loaded = initial.map((item, i) => ({
       ...item,
@@ -109,26 +109,26 @@ export function usePlatformAddresses (
   }, [extensionAPI, platformExplorerClient, currentNetwork, walletId])
 
   const loadList = useCallback(async (): Promise<void> => {
-    const epoch = epochRef.current
+    const runId = runIdRef.current
     loadingRef.current = true
     setIsLoading(true)
     setError(null)
 
     try {
       await refreshList()
-      if (epoch === epochRef.current) setHasLoaded(true)
+      if (runId === runIdRef.current) setHasLoaded(true)
     } catch (err) {
-      if (epoch === epochRef.current) setError(err instanceof Error ? err.message : 'Failed to load addresses')
+      if (runId === runIdRef.current) setError(err instanceof Error ? err.message : 'Failed to load addresses')
     } finally {
       loadingRef.current = false
-      if (epoch === epochRef.current) setIsLoading(false)
+      if (runId === runIdRef.current) setIsLoading(false)
     }
   }, [refreshList])
 
   // Reload whenever the wallet or the network changes, not just on mount. A
   // list already loaded for this pair is served from the cache instead.
   useEffect(() => {
-    epochRef.current += 1
+    runIdRef.current += 1
 
     setNeedsPassword(false)
     setError(null)

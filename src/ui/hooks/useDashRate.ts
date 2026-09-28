@@ -1,25 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { usePlatformExplorerClient } from './usePlatformExplorerClient'
+import { useAsyncState } from './useAsyncState'
 import type { NetworkType } from '../../types'
 
+export interface UseDashRateResult {
+  rate: number | null
+  reload: () => void
+}
+
 /** Current DASH/USD rate. Shared so every screen does not fetch it on its own. */
-export function useDashRate (network?: NetworkType | null): number | null {
+export function useDashRate (network?: NetworkType | null): UseDashRateResult {
   const platformExplorerClient = usePlatformExplorerClient()
-  const [rate, setRate] = useState<number | null>(null)
+  const [state, execute] = useAsyncState<number>(null)
 
-  useEffect(() => {
-    let cancelled = false
+  const load = useCallback((keepData: boolean = false): void => {
+    void execute(async () => await platformExplorerClient.fetchRate(network ?? 'testnet'), { keepData })
+  }, [platformExplorerClient, network, execute])
 
-    platformExplorerClient.fetchRate(network ?? 'testnet')
-      .then(value => {
-        if (!cancelled) setRate(value)
-      })
-      .catch(e => console.log('fetchRate error', e))
+  useEffect(() => { load() }, [load])
 
-    return () => {
-      cancelled = true
-    }
-  }, [platformExplorerClient, network])
+  const reload = useCallback((): void => { load(true) }, [load])
 
-  return rate
+  return { rate: state.data, reload }
 }

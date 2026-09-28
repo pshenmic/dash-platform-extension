@@ -25,6 +25,7 @@ export interface LayoutContext {
   // Same for identities, and only for the wallet they were loaded from.
   identitiesLoaded: boolean
   reloadWallets: () => Promise<void>
+  reloadIdentities: () => Promise<void>
   availableIdentities: Identity[]
   createWallet: (walletType: any, mnemonic?: string) => Promise<any>
   headerComponent: React.ReactNode
@@ -225,6 +226,7 @@ const Layout: FC = () => {
             walletsLoaded,
             identitiesLoaded: identitiesLoadedFor !== null && identitiesLoadedFor === currentWallet,
             reloadWallets,
+            reloadIdentities: loadIdentities,
             availableIdentities,
             createWallet,
             headerComponent,

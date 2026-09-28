@@ -68,7 +68,7 @@ export function useReceiveTargets ({ scope, type, value }: UseReceiveTargetsPara
   const { hasAddressLayer } = useWalletCapabilities()
   const platform = usePlatformAddresses(network, currentWallet)
   const shielded = useShieldedAddresses(network, currentWallet)
-  const rate = useDashRate(network)
+  const { rate } = useDashRate(network)
   const core = useCoreBalance(currentWallet)
   const [coreAddressState, loadCoreAddress] = useAsyncState<string>()
   const [identityBalanceState, loadIdentityBalance] = useAsyncState<bigint>()

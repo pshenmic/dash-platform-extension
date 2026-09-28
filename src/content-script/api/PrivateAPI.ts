@@ -204,10 +204,6 @@ export class PrivateAPI {
       [MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS]: new ShieldFromPlatformAddressHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.SEND_SHIELDED_TRANSFER]: new SendShieldedTransferHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.UNSHIELD_TO_PLATFORM_ADDRESS]: new UnshieldToPlatformAddressHandler(walletRepository, this.sdk, shielded),
-      [MessagingMethods.WITHDRAW_SHIELDED_TO_CORE]: new WithdrawShieldedToCoreHandler(walletRepository, this.sdk, shielded),
-      [MessagingMethods.SHIELD_TO_POOL]: new ShieldToPoolHandler(walletRepository, this.sdk, shielded),
-      [MessagingMethods.SEND_SHIELDED_TRANSFER]: new SendShieldedTransferHandler(walletRepository, this.sdk, shielded),
-      [MessagingMethods.UNSHIELD_TO_ADDRESS]: new UnshieldToAddressHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.WITHDRAW_SHIELDED_TO_CORE]: new WithdrawShieldedToCoreHandler(walletRepository, this.sdk, shielded)
     }
   }

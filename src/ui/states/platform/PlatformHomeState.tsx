@@ -18,20 +18,22 @@ import { AddressesTab, type AddressType } from './AddressesTab'
 import { BalanceBlock } from './BalanceBlock'
 import { IdentitiesTab } from './IdentitiesTab'
 import { OverviewTab } from './OverviewTab'
+import { usePlatformOverview } from './usePlatformOverview'
 
 /**
  * Platform layer home (Figma 10681:876). Balances, statistics and operations
  * come from the explorer.
  */
 function PlatformHomeState (): React.JSX.Element {
-  const { availableIdentities, currentNetwork, currentWallet } = useOutletContext<OutletContext>()
-  const { hideBalance, toggleHide, refresh } = useHideBalance()
+  const { availableIdentities, currentNetwork, currentWallet, reloadIdentities } = useOutletContext<OutletContext>()
+  const { hideBalance, toggleHide } = useHideBalance()
   const { hasAddressLayer } = useWalletCapabilities()
   const [activeTab, setActiveTab] = useState('overview')
   const [addressType, setAddressType] = useState<AddressType>('platform')
   const network: NetworkType = currentNetwork ?? 'testnet'
   const platformData = useWalletPlatformData(availableIdentities, network)
-  const rate = useDashRate(network)
+  const overview = usePlatformOverview(availableIdentities, network)
+  const { rate, reload: reloadRate } = useDashRate(network)
   // Lives here, not in the tab: the balance block shares it and tab switches keep the data.
   const platform = usePlatformAddresses(network, currentWallet)
   // Shared by the balance slice and the Shield sub-tab.
@@ -47,10 +49,12 @@ function PlatformHomeState (): React.JSX.Element {
   }
 
   const handleRefresh = (): void => {
-    refresh()
+    reloadIdentities().catch(e => console.log('reloadIdentities error', e))
     platformData.reload()
     void platform.reload()
     void shielded.refresh()
+    reloadRate()
+    overview.reload()
   }
 
   return (
@@ -82,6 +86,7 @@ function PlatformHomeState (): React.JSX.Element {
                 identities={availableIdentities}
                 network={network}
                 platformData={platformData}
+                overview={overview}
                 rate={rate}
               />
             )
