@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { ThemeProvider } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { useAutoLock } from '../../hooks/useAutoLock'
-import { getSdkPromise } from '../../../utils/sdkLoader'
+import { setSdkNetwork } from '../../../utils/sdkLoader'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { GetStatusResponse } from '../../../types/messages/response/GetStatusResponse'
 import { NetworkType, Identity } from '../../../types'
@@ -91,8 +91,7 @@ const Layout: FC = () => {
     if (!isApiReady) return
 
     try {
-      const sdk = await getSdkPromise()
-      sdk.setNetwork(network)
+      setSdkNetwork(network)
       await extensionAPI.switchNetwork(network)
 
       const status: GetStatusResponse = await extensionAPI.getStatus()
@@ -175,8 +174,7 @@ const Layout: FC = () => {
           setCurrentNetwork(status.network as NetworkType)
           setCurrentWallet(status.currentWalletId)
           setHasAnyWallet(status.hasAnyWallet)
-          const sdk = await getSdkPromise()
-          sdk.setNetwork(status.network as NetworkType)
+          setSdkNetwork(status.network as NetworkType)
         }
       } catch (error) {
         console.log('Failed to initialize app:', error)

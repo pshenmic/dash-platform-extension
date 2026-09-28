@@ -3,6 +3,8 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ShieldedService } from '../../../services/ShieldedService'
+import { UnshieldToPlatformAddressPayload } from '../../../../types/messages/payloads/UnshieldToPlatformAddressPayload'
+import { UnshieldToPlatformAddressResponse } from '../../../../types/messages/response/UnshieldToPlatformAddressResponse'
 import { UnshieldToAddressPayload } from '../../../../types/messages/payloads/UnshieldToAddressPayload'
 import { UnshieldToAddressResponse } from '../../../../types/messages/response/UnshieldToAddressResponse'
 
@@ -10,7 +12,7 @@ import { UnshieldToAddressResponse } from '../../../../types/messages/response/U
 // unshield state transition. Syncs and witnesses the wallet's notes, builds the
 // Orchard (Halo2) proof — slow, runs in the popup for now — and broadcasts. Needs
 // the password to recover and spend the notes.
-export class UnshieldToAddressHandler implements APIHandler {
+export class UnshieldToPlatformAddressHandler implements APIHandler {
   walletRepository: WalletRepository
   sdk: DashPlatformSDK
   shielded: ShieldedService
@@ -21,8 +23,8 @@ export class UnshieldToAddressHandler implements APIHandler {
     this.shielded = shielded
   }
 
-  async handle (event: EventData): Promise<UnshieldToAddressResponse> {
-    const payload: UnshieldToAddressPayload = event.payload
+  async handle (event: EventData): Promise<UnshieldToPlatformAddressResponse> {
+    const payload: UnshieldToPlatformAddressPayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
@@ -63,7 +65,7 @@ export class UnshieldToAddressHandler implements APIHandler {
     }
   }
 
-  validatePayload (payload: UnshieldToAddressPayload): string | null {
+  validatePayload (payload: UnshieldToPlatformAddressPayload): string | null {
     if (typeof payload.toPlatformAddress !== 'string' || payload.toPlatformAddress.length === 0) {
       return 'Recipient platform address must be provided'
     }

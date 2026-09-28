@@ -71,9 +71,9 @@ import { RefreshShieldedNotesHandler } from './private/wallet/refreshShieldedNot
 import { ShieldedService } from '../services/ShieldedService'
 import { EstimateShieldedFeeHandler } from './private/wallet/estimateShieldedFee'
 import { InitShieldHandler } from './private/wallet/initShield'
-import { ShieldToPoolHandler } from './private/wallet/shieldToPool'
+import { ShieldFromPlatformAddressHandler } from './private/wallet/shieldFromPlatformAddress'
 import { SendShieldedTransferHandler } from './private/wallet/sendShieldedTransfer'
-import { UnshieldToAddressHandler } from './private/wallet/unshieldToAddress'
+import { UnshieldToPlatformAddressHandler } from './private/wallet/unshieldToPlatformAddress'
 import { WithdrawShieldedToCoreHandler } from './private/wallet/withdrawShieldedToCore'
 
 /**
@@ -201,6 +201,10 @@ export class PrivateAPI {
       [MessagingMethods.REFRESH_SHIELDED_NOTES]: new RefreshShieldedNotesHandler(walletRepository, shielded),
       [MessagingMethods.ESTIMATE_SHIELDED_FEE]: new EstimateShieldedFeeHandler(walletRepository, shielded),
       [MessagingMethods.INIT_SHIELD]: new InitShieldHandler(this.sdk),
+      [MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS]: new ShieldFromPlatformAddressHandler(walletRepository, this.sdk, shielded),
+      [MessagingMethods.SEND_SHIELDED_TRANSFER]: new SendShieldedTransferHandler(walletRepository, this.sdk, shielded),
+      [MessagingMethods.UNSHIELD_TO_PLATFORM_ADDRESS]: new UnshieldToPlatformAddressHandler(walletRepository, this.sdk, shielded),
+      [MessagingMethods.WITHDRAW_SHIELDED_TO_CORE]: new WithdrawShieldedToCoreHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.SHIELD_TO_POOL]: new ShieldToPoolHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.SEND_SHIELDED_TRANSFER]: new SendShieldedTransferHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.UNSHIELD_TO_ADDRESS]: new UnshieldToAddressHandler(walletRepository, this.sdk, shielded),

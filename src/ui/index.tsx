@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider, RouteObject } from 'react-router-dom'
 import './styles/app.pcss'
 import ScreenLoader from './components/layout/screens/ScreenLoader'
-import { loadSdk } from '../utils/sdkLoader'
 import Layout from './components/layout/Layout'
 import PageWithHeader from './components/layout/PageWithHeader'
 
@@ -282,12 +281,3 @@ const rootDiv = ReactDOM.createRoot(root)
 rootDiv.render(
   <App />
 )
-
-// Load SDK in background - non-blocking
-loadSdk()
-  .then(() => {
-    console.log('✅ Dash Platform SDK loaded successfully')
-  })
-  .catch(error => {
-    console.error('❌ Failed to load SDK:', error)
-  })

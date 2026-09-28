@@ -1,4 +1,5 @@
 import { ShieldToPoolHandler } from '../../../../src/content-script/api/private/wallet/shieldToPool'
+import { ShieldFromPlatformAddressHandler } from '../../../../src/content-script/api/private/wallet/shieldFromPlatformAddress'
 import { ShieldedService } from '../../../../src/content-script/services/ShieldedService'
 import { buildPlatformSourceCandidates, decryptMnemonic, selectPlatformSource } from '../../../../src/utils'
 
@@ -31,7 +32,7 @@ const buildPlatformSourceCandidatesMock = buildPlatformSourceCandidates as jest.
 const selectPlatformSourceMock = selectPlatformSource as jest.MockedFunction<typeof selectPlatformSource>
 const decryptMnemonicMock = decryptMnemonic as jest.MockedFunction<typeof decryptMnemonic>
 
-describe('ShieldToPoolHandler', () => {
+describe('ShieldFromPlatformAddressHandler', () => {
   const password = 'test'
   const candidates = [{ index: 0, platformAddress: 'yShieldSource', nonce: 3, balanceCredits: 100_000_000n }]
   const source = candidates[0]
@@ -39,7 +40,7 @@ describe('ShieldToPoolHandler', () => {
   let order: string[]
   let walletRepository: any
   let sdk: any
-  let handler: ShieldToPoolHandler
+  let handler: ShieldFromPlatformAddressHandler
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -87,14 +88,14 @@ describe('ShieldToPoolHandler', () => {
     selectPlatformSourceMock.mockReturnValue(source as any)
     decryptMnemonicMock.mockReturnValue('mnemonic words')
 
-    handler = new ShieldToPoolHandler(walletRepository, sdk, new ShieldedService({} as any, sdk))
+    handler = new ShieldFromPlatformAddressHandler(walletRepository, sdk, new ShieldedService({} as any, sdk))
   })
 
   const handle = async (payload: any = {}): Promise<any> => {
     return await handler.handle({
       context: 'dash-platform-extension',
       id: 'id',
-      method: 'SHIELD_TO_POOL',
+      method: 'SHIELD_FROM_PLATFORM_ADDRESS',
       type: 'request',
       payload: { amountCredits: '1000', password, ...payload }
     })

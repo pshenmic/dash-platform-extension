@@ -119,7 +119,7 @@ export const SHIELDED_UNSHIELD_ADDRESS_STORAGE_BYTES = 222n
 export const SHIELDED_WITHDRAWAL_DOCUMENT_STORAGE_BYTES = 4100n
 // Orchard pads every bundle to at least this many actions.
 export const SHIELDED_MIN_ACTIONS = 2
-// Sentinel recipient for `shieldToPool` (which derives the destination from the
+// Sentinel recipient for `shieldFromPlatformAddress` (which derives the destination from the
 // seed and takes no recipient) — carries "own pool" from send form to confirm.
 export const SHIELDED_POOL_RECIPIENT = 'shielded-pool'
 
