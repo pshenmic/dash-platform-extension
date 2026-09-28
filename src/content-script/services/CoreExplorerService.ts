@@ -1,5 +1,5 @@
 import { NetworkType } from '../../types/PlatformExplorer'
-import { CORE_EXPLORER_URLS } from '../../constants'
+import { CORE_EXPLORER_MAX_PAGE_LIMIT, CORE_EXPLORER_URLS } from '../../constants'
 
 export interface CoreAddressInfo {
   txCount: number
@@ -26,6 +26,39 @@ export interface CoreAddressUtxo {
   amount: bigint
 }
 
+export interface CoreExplorerTransactionInput {
+  // null for a coinbase input, which spends no address
+  address: string | null
+  // null when the explorer does not report the value of the spent output
+  amount: bigint | null
+}
+
+export interface CoreExplorerTransactionOutput {
+  // null for an output with no standard address (e.g. OP_RETURN)
+  address: string | null
+  amount: bigint
+}
+
+// A transaction as the explorer reports it, trimmed to what describes a payment.
+export interface CoreExplorerTransaction {
+  hash: string
+  type: string
+  // null while the transaction is still in the mempool
+  blockHeight: number | null
+  timestamp: string | null
+  confirmations: number
+  instantLocked: boolean
+  chainLocked: boolean
+  inputs: CoreExplorerTransactionInput[]
+  outputs: CoreExplorerTransactionOutput[]
+}
+
+export interface CoreExplorerTransactionsPage {
+  transactions: CoreExplorerTransaction[]
+  // Pass back to get the next page; null on the last one.
+  nextCursor: string | null
+}
+
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
   return CORE_EXPLORER_URLS[network].api
 }
@@ -48,6 +81,38 @@ const toCount = (value: unknown): number => {
   const count = Number(value ?? 0)
 
   return Number.isFinite(count) ? count : 0
+}
+
+const toAddress = (value: unknown): string | null => {
+  return typeof value === 'string' && value !== '' ? value : null
+}
+
+// Input amounts arrive as strings, output values as numbers.
+const toTransaction = (row: any): CoreExplorerTransaction => ({
+  hash: String(row.hash),
+  type: String(row.type),
+  blockHeight: row.blockHeight == null ? null : toCount(row.blockHeight),
+  timestamp: typeof row.timestamp === 'string' ? row.timestamp : null,
+  // The explorer reports no confirmations for a transaction still in the mempool.
+  confirmations: toCount(row.confirmations),
+  instantLocked: typeof row.instantLock === 'string' && row.instantLock !== '',
+  chainLocked: row.chainLocked === true,
+  inputs: (Array.isArray(row.vIn) ? row.vIn : []).map((input: any) => ({
+    address: toAddress(input.address),
+    amount: input.amount == null ? null : toBigInt(input.amount)
+  })),
+  outputs: (Array.isArray(row.vOut) ? row.vOut : []).map((output: any) => ({
+    address: toAddress(output.address),
+    amount: toBigInt(output.value)
+  }))
+})
+
+const postJson = async (url: string, body: object): Promise<Response> => {
+  return await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
 }
 
 /**
@@ -112,6 +177,59 @@ export class CoreExplorerService {
         receiving: toCount(data.nextUnused?.receive),
         change: toCount(data.nextUnused?.change)
       }
+    }
+  }
+
+  // Every address the explorer derives for the xpub, on both chains up to its gap
+  // limit: the same set it matches transactions against. Walks all the pages.
+  async getXpubAddresses (xpub: string, network: NetworkType = 'testnet'): Promise<string[]> {
+    const baseUrl = getBaseUrl(network)
+    const addresses: string[] = []
+
+    let fetched = 0
+    for (let page = 1; ; page++) {
+      const response = await postJson(`${baseUrl}/xpub/addresses`, { xpub, page, limit: CORE_EXPLORER_MAX_PAGE_LIMIT })
+
+      if (!response.ok) {
+        throw new Error(`Core explorer error for xpub addresses: HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      const rows: any[] = Array.isArray(data?.resultSet) ? data.resultSet : []
+
+      fetched += rows.length
+      for (const row of rows) {
+        const address = toAddress(row.address)
+
+        if (address != null) {
+          addresses.push(address)
+        }
+      }
+
+      if (rows.length === 0 || fetched >= toCount(data?.pagination?.total)) {
+        return addresses
+      }
+    }
+  }
+
+  // One page of the transactions touching the xpub's addresses, newest first.
+  // The first page also carries every mempool transaction, ahead of the
+  // confirmed ones. `cursor` is the previous page's `nextCursor`.
+  async getXpubTransactions (xpub: string, network: NetworkType = 'testnet', limit: number, cursor?: string): Promise<CoreExplorerTransactionsPage> {
+    const baseUrl = getBaseUrl(network)
+    const response = await postJson(`${baseUrl}/xpub/transactions`, cursor == null ? { xpub, limit } : { xpub, limit, cursor })
+
+    if (!response.ok) {
+      throw new Error(`Core explorer error for xpub transactions: HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+    const rows: any[] = Array.isArray(data?.resultSet) ? data.resultSet : []
+    const nextCursor = data?.pagination?.nextCursor
+
+    return {
+      transactions: rows.map(toTransaction),
+      nextCursor: typeof nextCursor === 'string' && nextCursor !== '' ? nextCursor : null
     }
   }
 
