@@ -62,6 +62,11 @@ export const TransactionTypesInfo = {
     title: 'Credit Transfer to Address',
     description: 'Transfers credits from an identity to a Dash address, converting them into Dash.',
     colorScheme: 'orange'
+  },
+  IDENTITY_TOP_UP_FROM_ADDRESSES: {
+    title: 'Identity Top Up from Addresses',
+    description: 'Adds credits to an existing decentralized identity (DID) balance from Platform addresses.',
+    colorScheme: 'emerald'
   }
 }
 
