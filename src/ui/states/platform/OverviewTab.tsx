@@ -3,6 +3,7 @@ import { CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/re
 import { LastTransaction } from '../home/LastTransaction'
 import { SeeAllTransactionsButton, TransactionsList } from '../../components/transactions'
 import { StatCard, StatValue } from '../../components/common'
+import { BigNumberDisplay } from '../../components/data'
 import type { UseWalletPlatformDataResult } from '../../hooks'
 import type { Identity, NetworkType } from '../../../types'
 import { getTransactionExplorerUrl } from '../../../utils'
@@ -27,7 +28,7 @@ export function OverviewTab ({ hide, identities, network, platformData, overview
   const platformKnown = !platformData.loading || platformData.identities.length > 0
   const platformRefreshing = platformData.loading && platformKnown
 
-  const statValue = (value: number | null): React.ReactNode => {
+  const statValue = (value: number | null): string | number => {
     if (!platformKnown || value == null) return PLACEHOLDER
     return value
   }
@@ -74,7 +75,7 @@ export function OverviewTab ({ hide, identities, network, platformData, overview
           label='Transactions'
           hint={(
             <Text size='xs' weight='medium' className='!text-[0.75rem] !text-dash-primary-dark-blue/50 !leading-[1.1]'>
-              {statValue(platformData.totalTransferCount)} transfers
+              <BigNumberDisplay unit='transfers'>{statValue(platformData.totalTransferCount)}</BigNumberDisplay> transfers
             </Text>
           )}
           value={<StatValue value={statValue(platformData.totalTxCount)} unit='TXs' loading={platformRefreshing} />}

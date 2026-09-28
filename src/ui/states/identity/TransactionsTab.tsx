@@ -7,6 +7,7 @@ import { getTransactionExplorerUrl } from '../../../utils'
 import type { NetworkType } from '../../../types'
 import type { TransactionData } from '../../hooks/usePlatformExplorerApi'
 import { StatCard, StatValue, Username } from '../../components/common'
+import { BigNumberDisplay } from '../../components/data'
 
 interface TransactionsTabProps {
   hide: boolean
@@ -65,7 +66,7 @@ export function TransactionsTab ({
           label='Transactions'
           hint={(
             <Text size='xs' weight='medium' className='!text-[0.75rem] !text-dash-primary-dark-blue/50 !leading-[1.1]'>
-              {received} received - {sent} sent
+              <BigNumberDisplay unit='TXs'>{received}</BigNumberDisplay> received - <BigNumberDisplay unit='TXs'>{sent}</BigNumberDisplay> sent
             </Text>
           )}
           value={<StatValue value={items.length} unit='TXs' />}

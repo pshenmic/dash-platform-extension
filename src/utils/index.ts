@@ -18,6 +18,7 @@ export { fetchNames, normalizeName, splitDpns } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
 export { amountFractionScale } from './amountFontScale'
+export { formatStatNumber } from './formatStatNumber'
 export { generateRandomHex } from './random'
 export { getTransactionExplorerUrl, getPlatformAddressExplorerUrl, getIdentityExplorerUrl, buildIdentityTransactionsUrl } from './explorerUrls'
 export { getCoreTransactionExplorerUrl } from './explorerUrls'
@@ -555,7 +556,5 @@ export const processPrivateKey = async (
     balance: balance.toString()
   }
 }
-
-export const isTooBigNumber = (number: number | string | bigint): boolean => Number(number) > 999999999
 
 export * from './recipientSearch'

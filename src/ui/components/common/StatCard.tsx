@@ -1,6 +1,7 @@
 import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { InlineSpinner } from './InlineSpinner'
+import { BigNumberDisplay } from '../data'
 
 interface StatCardProps {
   icon: React.ReactNode
@@ -37,18 +38,18 @@ export function StatCard ({ icon, label, value, hint }: StatCardProps): React.JS
 }
 
 interface StatValueProps {
-  value: React.ReactNode
+  value: string | number
   unit: string
   hide?: boolean
   /** The value is being refreshed: it stays on screen with a spinner next to it. */
   loading?: boolean
 }
 
-/** Big brand-coloured number with a muted unit, shared by every StatCard. */
+/** Big brand-coloured number with a muted unit, shortened when long with the full value in a tooltip. */
 export function StatValue ({ value, unit, hide = false, loading = false }: StatValueProps): React.JSX.Element {
   const text = (
-    <Text className='!text-dash-brand !text-2xl !font-extrabold !leading-[1.2]'>
-      {hide ? '••••••' : value}{' '}
+    <Text className='!text-dash-brand !text-2xl !font-extrabold !leading-[1.2] [overflow-wrap:anywhere]'>
+      {hide ? '••••••' : <BigNumberDisplay unit={unit}>{value}</BigNumberDisplay>}{' '}
       <Text as='span' size='sm' weight='medium' className='!text-dash-primary-dark-blue'>{unit}</Text>
     </Text>
   )
@@ -56,7 +57,7 @@ export function StatValue ({ value, unit, hide = false, loading = false }: StatV
   if (!loading) return text
 
   return (
-    <span className='inline-flex items-center gap-2'>
+    <span className='inline-flex items-center gap-2 min-w-0'>
       {text}
       <InlineSpinner className='w-4 h-4 text-dash-brand' />
     </span>

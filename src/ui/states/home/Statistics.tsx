@@ -1,6 +1,7 @@
 import React from 'react'
 import { DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
 import { InlineSpinner, StatCard, StatValue } from '../../components/common'
+import { BigNumberDisplay } from '../../components/data'
 
 interface StatisticsProps {
   identityCount: number
@@ -35,14 +36,14 @@ export function Statistics ({
     ? <InlineSpinner className='w-6 h-6 text-dash-brand' />
     : <StatValue value={loadedTxCount ?? '-'} unit='TXs' loading={loading} />
 
-  const hintCount = (count: number | null, countLoading: boolean): string =>
-    count != null ? String(count) : (countLoading ? '...' : '-')
-  const platformHint = `${hintCount(platformTxCount, platformLoading)} Platform`
-  const coreHint = `${hintCount(coreTxCount, coreLoading)} Core`
+  const hintCount = (count: number | null, countLoading: boolean): React.ReactNode =>
+    count != null ? <BigNumberDisplay unit='TXs'>{count}</BigNumberDisplay> : (countLoading ? '...' : '-')
+  const platformHint = <>{hintCount(platformTxCount, platformLoading)} Platform</>
+  const coreHint = <>{hintCount(coreTxCount, coreLoading)} Core</>
 
   const hint = (
     <Text size='xs' weight='medium' className='!text-[0.75rem] !text-dash-primary-dark-blue/50 !leading-[1.1]'>
-      {showCore ? `${coreHint} - ${platformHint}` : platformHint}
+      {showCore ? <>{coreHint} - {platformHint}</> : platformHint}
     </Text>
   )
 

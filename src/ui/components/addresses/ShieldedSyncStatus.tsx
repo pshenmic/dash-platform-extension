@@ -55,7 +55,7 @@ export function ShieldedSyncStatus ({ hasLoaded, updatedAt, isSyncing, onSync }:
 
   return (
     <div className='flex items-center justify-between gap-2'>
-      <Text size='xs' dim>
+      <Text size='sm' dim>
         Incoming checked {updatedAt != null ? formatCheckedAt(updatedAt) : '-'}
       </Text>
       <button
@@ -63,7 +63,7 @@ export function ShieldedSyncStatus ({ hasLoaded, updatedAt, isSyncing, onSync }:
         className='border-0 bg-transparent p-0 cursor-pointer'
         onClick={() => { setIsOpen(true) }}
       >
-        <Text size='xs' weight='medium' className='!text-dash-brand'>Check now</Text>
+        <Text size='sm' weight='medium' className='!text-dash-brand'>Check now</Text>
       </button>
     </div>
   )
