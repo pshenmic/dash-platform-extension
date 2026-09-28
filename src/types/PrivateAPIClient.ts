@@ -25,12 +25,12 @@ import { GetShieldedBalanceResponse } from './messages/response/GetShieldedBalan
 import { EstimateShieldedFeePayload } from './messages/payloads/EstimateShieldedFeePayload'
 import { EstimateShieldedFeeResponse } from './messages/response/EstimateShieldedFeeResponse'
 import { ShieldedSpendKind } from './ShieldedSpendKind'
-import { ShieldToPoolPayload } from './messages/payloads/ShieldToPoolPayload'
-import { ShieldToPoolResponse } from './messages/response/ShieldToPoolResponse'
+import { ShieldFromPlatformAddressPayload } from './messages/payloads/ShieldFromPlatformAddressPayload'
+import { ShieldFromPlatformAddressResponse } from './messages/response/ShieldFromPlatformAddressResponse'
 import { SendShieldedTransferPayload } from './messages/payloads/SendShieldedTransferPayload'
 import { SendShieldedTransferResponse } from './messages/response/SendShieldedTransferResponse'
-import { UnshieldToAddressPayload } from './messages/payloads/UnshieldToAddressPayload'
-import { UnshieldToAddressResponse } from './messages/response/UnshieldToAddressResponse'
+import { UnshieldToPlatformAddressPayload } from './messages/payloads/UnshieldToPlatformAddressPayload'
+import { UnshieldToPlatformAddressResponse } from './messages/response/UnshieldToPlatformAddressResponse'
 import { WithdrawShieldedToCorePayload } from './messages/payloads/WithdrawShieldedToCorePayload'
 import { WithdrawShieldedToCoreResponse } from './messages/response/WithdrawShieldedToCoreResponse'
 import { GetPlatformAddressesResponse } from './messages/response/GetPlatformAddressesResponse'
@@ -570,10 +570,18 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.INIT_SHIELD, {}, SHIELDED_PROVE_TIMEOUT)
   }
 
-  async shieldToPool (amountCredits: string, password: string, fromAddress?: string, memo?: string): Promise<ShieldToPoolResponse> {
-    const payload: ShieldToPoolPayload = { amountCredits, password, fromAddress, memo }
+  // Moves credits from one of the wallet's Platform addresses into its own
+  // shielded pool. The destination is always this wallet's pool, derived from the
+  // seed, so only the source is a choice.
+  async shieldFromPlatformAddress (amountCredits: string, password: string, fromAddress?: string, memo?: string): Promise<ShieldFromPlatformAddressResponse> {
+    const payload: ShieldFromPlatformAddressPayload = { amountCredits, password, fromAddress, memo }
 
-    return await this._rpcCall(MessagingMethods.SHIELD_TO_POOL, payload, SHIELDED_PROVE_TIMEOUT)
+    return await this._rpcCall(MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  /** @deprecated Renamed to shieldFromPlatformAddress; kept so existing callers keep working. */
+  async shieldToPool (amountCredits: string, password: string, fromAddress?: string, memo?: string): Promise<ShieldFromPlatformAddressResponse> {
+    return await this.shieldFromPlatformAddress(amountCredits, password, fromAddress, memo)
   }
 
   async sendShieldedTransfer (toShieldedAddress: string, amountCredits: string, password: string, account?: number, memo?: string, fromAddresses?: string[]): Promise<SendShieldedTransferResponse> {
@@ -582,10 +590,17 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SEND_SHIELDED_TRANSFER, payload, SHIELDED_PROVE_TIMEOUT)
   }
 
-  async unshieldToAddress (toPlatformAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<UnshieldToAddressResponse> {
-    const payload: UnshieldToAddressPayload = { toPlatformAddress, amountCredits, password, account, memo }
+  // Leaves the pool onto a Platform address. Withdrawing to a Core (L1) address is
+  // a different operation, withdrawShieldedToCore.
+  async unshieldToPlatformAddress (toPlatformAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<UnshieldToPlatformAddressResponse> {
+    const payload: UnshieldToPlatformAddressPayload = { toPlatformAddress, amountCredits, password, account, memo }
 
-    return await this._rpcCall(MessagingMethods.UNSHIELD_TO_ADDRESS, payload, SHIELDED_PROVE_TIMEOUT)
+    return await this._rpcCall(MessagingMethods.UNSHIELD_TO_PLATFORM_ADDRESS, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  /** @deprecated Renamed to unshieldToPlatformAddress; kept so existing callers keep working. */
+  async unshieldToAddress (toPlatformAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<UnshieldToPlatformAddressResponse> {
+    return await this.unshieldToPlatformAddress(toPlatformAddress, amountCredits, password, account, memo)
   }
 
   async withdrawShieldedToCore (toCoreAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<WithdrawShieldedToCoreResponse> {
