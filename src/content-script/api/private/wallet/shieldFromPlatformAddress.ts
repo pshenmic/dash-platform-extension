@@ -2,27 +2,30 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { ShieldedService } from '../../../services/ShieldedService'
 import { InputAddressWASM, AddressFundsFeeStrategyStepWASM } from 'pshenmic-dpp'
 import { buildPlatformSourceCandidates, decryptMnemonic, selectPlatformSource } from '../../../../utils'
-import { ShieldToPoolPayload } from '../../../../types/messages/payloads/ShieldToPoolPayload'
-import { ShieldToPoolResponse } from '../../../../types/messages/response/ShieldToPoolResponse'
+import { ShieldFromPlatformAddressPayload } from '../../../../types/messages/payloads/ShieldFromPlatformAddressPayload'
+import { ShieldFromPlatformAddressResponse } from '../../../../types/messages/response/ShieldFromPlatformAddressResponse'
 
 // Shields credits from a Platform address into the wallet's own
 // Orchard pool via a shield state transition. Picks a source (explicit, or the
 // largest covering amount + fee), signs the input with its key, and builds the
 // Orchard (Halo2) proof — slow, runs in the popup for now — targeting the wallet's
 // own shielded address. Needs the password.
-export class ShieldToPoolHandler implements APIHandler {
+export class ShieldFromPlatformAddressHandler implements APIHandler {
   walletRepository: WalletRepository
   sdk: DashPlatformSDK
+  shielded: ShieldedService
 
-  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK, shielded: ShieldedService) {
     this.walletRepository = walletRepository
     this.sdk = sdk
+    this.shielded = shielded
   }
 
-  async handle (event: EventData): Promise<ShieldToPoolResponse> {
-    const payload: ShieldToPoolPayload = event.payload
+  async handle (event: EventData): Promise<ShieldFromPlatformAddressResponse> {
+    const payload: ShieldFromPlatformAddressPayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
@@ -81,7 +84,7 @@ export class ShieldToPoolHandler implements APIHandler {
     }
   }
 
-  validatePayload (payload: ShieldToPoolPayload): string | null {
+  validatePayload (payload: ShieldFromPlatformAddressPayload): string | null {
     if (typeof payload.amountCredits !== 'string' || !/^\d+$/.test(payload.amountCredits) || BigInt(payload.amountCredits) <= 0n) {
       return 'Amount must be a positive integer string of credits'
     }
@@ -91,8 +94,10 @@ export class ShieldToPoolHandler implements APIHandler {
     if (payload.fromAddress != null && typeof payload.fromAddress !== 'string') {
       return 'fromAddress must be a string'
     }
-    if (payload.memo != null && typeof payload.memo !== 'string') {
-      return 'memo must be a string'
+    const memoError = this.shielded.validateMemo(payload.memo)
+
+    if (memoError != null) {
+      return memoError
     }
 
     return null

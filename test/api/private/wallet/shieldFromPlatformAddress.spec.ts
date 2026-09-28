@@ -1,4 +1,5 @@
-import { ShieldToPoolHandler } from '../../../../src/content-script/api/private/wallet/shieldToPool'
+import { ShieldFromPlatformAddressHandler } from '../../../../src/content-script/api/private/wallet/shieldFromPlatformAddress'
+import { ShieldedService } from '../../../../src/content-script/services/ShieldedService'
 import { buildPlatformSourceCandidates, decryptMnemonic, selectPlatformSource } from '../../../../src/utils'
 
 jest.mock('../../../../src/utils', () => {
@@ -30,7 +31,7 @@ const buildPlatformSourceCandidatesMock = buildPlatformSourceCandidates as jest.
 const selectPlatformSourceMock = selectPlatformSource as jest.MockedFunction<typeof selectPlatformSource>
 const decryptMnemonicMock = decryptMnemonic as jest.MockedFunction<typeof decryptMnemonic>
 
-describe('ShieldToPoolHandler', () => {
+describe('ShieldFromPlatformAddressHandler', () => {
   const password = 'test'
   const candidates = [{ index: 0, platformAddress: 'yShieldSource', nonce: 3, balanceCredits: 100_000_000n }]
   const source = candidates[0]
@@ -38,7 +39,7 @@ describe('ShieldToPoolHandler', () => {
   let order: string[]
   let walletRepository: any
   let sdk: any
-  let handler: ShieldToPoolHandler
+  let handler: ShieldFromPlatformAddressHandler
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -86,14 +87,14 @@ describe('ShieldToPoolHandler', () => {
     selectPlatformSourceMock.mockReturnValue(source as any)
     decryptMnemonicMock.mockReturnValue('mnemonic words')
 
-    handler = new ShieldToPoolHandler(walletRepository, sdk)
+    handler = new ShieldFromPlatformAddressHandler(walletRepository, sdk, new ShieldedService({} as any, sdk))
   })
 
   const handle = async (payload: any = {}): Promise<any> => {
     return await handler.handle({
       context: 'dash-platform-extension',
       id: 'id',
-      method: 'SHIELD_TO_POOL',
+      method: 'SHIELD_FROM_PLATFORM_ADDRESS',
       type: 'request',
       payload: { amountCredits: '1000', password, ...payload }
     })
@@ -179,6 +180,9 @@ describe('ShieldToPoolHandler', () => {
     test('rejects non-string fromAddress and memo', () => {
       expect(handler.validatePayload({ amountCredits: '1000', password, fromAddress: 1 } as any)).toBe('fromAddress must be a string')
       expect(handler.validatePayload({ amountCredits: '1000', password, memo: 1 } as any)).toBe('memo must be a string')
+      expect(handler.validatePayload({ amountCredits: '1000', password, memo: 'x'.repeat(33) } as any)).toBe('memo must be at most 32 bytes (got 33)')
+      // Counted in bytes: 32 Cyrillic characters are 64 bytes.
+      expect(handler.validatePayload({ amountCredits: '1000', password, memo: 'я'.repeat(32) } as any)).toBe('memo must be at most 32 bytes (got 64)')
     })
   })
 })

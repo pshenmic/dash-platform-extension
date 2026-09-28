@@ -1,4 +1,4 @@
-export interface ShieldToPoolPayload {
+export interface ShieldFromPlatformAddressPayload {
   // amount in credits to move into the shielded pool, as a string (bigint does
   // not serialize across messaging)
   amountCredits: string

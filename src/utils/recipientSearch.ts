@@ -3,7 +3,7 @@ import type { NameStatus } from '../types'
 import { validateIdentifier } from './index'
 
 // Recipient types the transfer screen can address. 'shieldedPool' is the wallet's
-// own pool — not typed, but the destination `shieldToPool` implies.
+// own pool — not typed, but the destination `shieldFromPlatformAddress` implies.
 export type RecipientTargetType = 'identity' | 'platformAddress' | 'coreAddress' | 'shieldAddress' | 'shieldedPool'
 
 export interface RecipientSearchResult {

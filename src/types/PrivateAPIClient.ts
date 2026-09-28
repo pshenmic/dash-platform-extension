@@ -22,15 +22,19 @@ import { GetShieldedAddressesPayload } from './messages/payloads/GetShieldedAddr
 import { GetShieldedAddressesResponse } from './messages/response/GetShieldedAddressesResponse'
 import { GetShieldedBalancePayload } from './messages/payloads/GetShieldedBalancePayload'
 import { GetShieldedBalanceResponse } from './messages/response/GetShieldedBalanceResponse'
+import { SyncShieldedNotesPayload } from './messages/payloads/SyncShieldedNotesPayload'
+import { GetShieldedSyncStatePayload } from './messages/payloads/GetShieldedSyncStatePayload'
+import { RefreshShieldedNotesPayload } from './messages/payloads/RefreshShieldedNotesPayload'
+import { GetShieldedSyncStateResponse, SyncShieldedNotesResponse } from './messages/response/GetShieldedSyncStateResponse'
 import { EstimateShieldedFeePayload } from './messages/payloads/EstimateShieldedFeePayload'
 import { EstimateShieldedFeeResponse } from './messages/response/EstimateShieldedFeeResponse'
 import { ShieldedSpendKind } from './ShieldedSpendKind'
-import { ShieldToPoolPayload } from './messages/payloads/ShieldToPoolPayload'
-import { ShieldToPoolResponse } from './messages/response/ShieldToPoolResponse'
+import { ShieldFromPlatformAddressPayload } from './messages/payloads/ShieldFromPlatformAddressPayload'
+import { ShieldFromPlatformAddressResponse } from './messages/response/ShieldFromPlatformAddressResponse'
 import { SendShieldedTransferPayload } from './messages/payloads/SendShieldedTransferPayload'
 import { SendShieldedTransferResponse } from './messages/response/SendShieldedTransferResponse'
-import { UnshieldToAddressPayload } from './messages/payloads/UnshieldToAddressPayload'
-import { UnshieldToAddressResponse } from './messages/response/UnshieldToAddressResponse'
+import { UnshieldToPlatformAddressPayload } from './messages/payloads/UnshieldToPlatformAddressPayload'
+import { UnshieldToPlatformAddressResponse } from './messages/response/UnshieldToPlatformAddressResponse'
 import { WithdrawShieldedToCorePayload } from './messages/payloads/WithdrawShieldedToCorePayload'
 import { WithdrawShieldedToCoreResponse } from './messages/response/WithdrawShieldedToCoreResponse'
 import { GetPlatformAddressesResponse } from './messages/response/GetPlatformAddressesResponse'
@@ -555,6 +559,34 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.GET_SHIELDED_BALANCE, payload)
   }
 
+  // Rescans the shielded pool for what this wallet owns and stores it, so the
+  // balance, addresses and notes can be read afterwards without the password.
+  // Covers every seedphrase wallet unless one is named. Long: the first sync
+  // trial-decrypts the whole pool.
+  async syncShieldedNotes (password: string, account?: number, walletId?: string, network?: NetworkType): Promise<SyncShieldedNotesResponse> {
+    const payload: SyncShieldedNotesPayload = { password, account, walletId, network }
+
+    return await this._rpcCall(MessagingMethods.SYNC_SHIELDED_NOTES, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  // A refresh for a dashboard button: re-checks the stored notes against the
+  // nullifier index (a spend made elsewhere lowers the balance) and re-reads the
+  // pool size. No password, so notes added since the last sync are counted in
+  // `total` but not recovered — compare it with `fetched` to offer a full sync.
+  async refreshShieldedNotes (account?: number, walletId?: string, network?: NetworkType): Promise<SyncShieldedNotesResponse> {
+    const payload: RefreshShieldedNotesPayload = { account, walletId, network }
+
+    return await this._rpcCall(MessagingMethods.REFRESH_SHIELDED_NOTES, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
+  // The shielded state left by the last syncShieldedNotes. No password, no
+  // network call — an account never synced comes back empty with updatedAt null.
+  async getShieldedSyncState (account?: number, walletId?: string, network?: NetworkType): Promise<GetShieldedSyncStateResponse> {
+    const payload: GetShieldedSyncStatePayload = { account, walletId, network }
+
+    return await this._rpcCall(MessagingMethods.GET_SHIELDED_SYNC_STATE, payload)
+  }
+
   // Estimates a shielded spend's fee before sending it, and the largest amount one
   // spend can send. Without an amount the fee and note count describe that
   // largest spend.
@@ -570,10 +602,18 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.INIT_SHIELD, {}, SHIELDED_PROVE_TIMEOUT)
   }
 
-  async shieldToPool (amountCredits: string, password: string, fromAddress?: string, memo?: string): Promise<ShieldToPoolResponse> {
-    const payload: ShieldToPoolPayload = { amountCredits, password, fromAddress, memo }
+  // Moves credits from one of the wallet's Platform addresses into its own
+  // shielded pool. The destination is always this wallet's pool, derived from the
+  // seed, so only the source is a choice.
+  async shieldFromPlatformAddress (amountCredits: string, password: string, fromAddress?: string, memo?: string): Promise<ShieldFromPlatformAddressResponse> {
+    const payload: ShieldFromPlatformAddressPayload = { amountCredits, password, fromAddress, memo }
 
-    return await this._rpcCall(MessagingMethods.SHIELD_TO_POOL, payload, SHIELDED_PROVE_TIMEOUT)
+    return await this._rpcCall(MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  /** @deprecated Renamed to shieldFromPlatformAddress; kept so existing callers keep working. */
+  async shieldToPool (amountCredits: string, password: string, fromAddress?: string, memo?: string): Promise<ShieldFromPlatformAddressResponse> {
+    return await this.shieldFromPlatformAddress(amountCredits, password, fromAddress, memo)
   }
 
   async sendShieldedTransfer (toShieldedAddress: string, amountCredits: string, password: string, account?: number, memo?: string, fromAddresses?: string[]): Promise<SendShieldedTransferResponse> {
@@ -582,10 +622,17 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SEND_SHIELDED_TRANSFER, payload, SHIELDED_PROVE_TIMEOUT)
   }
 
-  async unshieldToAddress (toPlatformAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<UnshieldToAddressResponse> {
-    const payload: UnshieldToAddressPayload = { toPlatformAddress, amountCredits, password, account, memo }
+  // Leaves the pool onto a Platform address. Withdrawing to a Core (L1) address is
+  // a different operation, withdrawShieldedToCore.
+  async unshieldToPlatformAddress (toPlatformAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<UnshieldToPlatformAddressResponse> {
+    const payload: UnshieldToPlatformAddressPayload = { toPlatformAddress, amountCredits, password, account, memo }
 
-    return await this._rpcCall(MessagingMethods.UNSHIELD_TO_ADDRESS, payload, SHIELDED_PROVE_TIMEOUT)
+    return await this._rpcCall(MessagingMethods.UNSHIELD_TO_PLATFORM_ADDRESS, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  /** @deprecated Renamed to unshieldToPlatformAddress; kept so existing callers keep working. */
+  async unshieldToAddress (toPlatformAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<UnshieldToPlatformAddressResponse> {
+    return await this.unshieldToPlatformAddress(toPlatformAddress, amountCredits, password, account, memo)
   }
 
   async withdrawShieldedToCore (toCoreAddress: string, amountCredits: string, password: string, account?: number, memo?: string): Promise<WithdrawShieldedToCoreResponse> {

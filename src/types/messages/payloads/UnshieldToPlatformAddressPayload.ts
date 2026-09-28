@@ -1,4 +1,4 @@
-export interface UnshieldToAddressPayload {
+export interface UnshieldToPlatformAddressPayload {
   // recipient Platform address (pool funds become public)
   toPlatformAddress: string
   // amount in credits as a string (bigint does not serialize across messaging)

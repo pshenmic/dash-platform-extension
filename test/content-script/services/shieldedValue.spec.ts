@@ -1,4 +1,6 @@
-import { sumUnspentShieldedValue, recoveredNoteNullifier } from '../../src/utils'
+import { ShieldedService } from '../../../src/content-script/services/ShieldedService'
+
+const service = new ShieldedService({} as any, {} as any)
 
 const ADDR_1 = 'orchardAddress1'
 const ADDR_2 = 'orchardAddress2'
@@ -19,23 +21,23 @@ const status = (nullifier: number[], isSpent: boolean): any => ({
   isSpent
 })
 
-describe('recoveredNoteNullifier', () => {
+describe('ShieldedService.noteNullifier', () => {
   test('reads the note\'s own nullifier from the raw NAPI, not the leaf field', () => {
     const note = recoveredNote(5n, [1, 2, 3], ADDR_1, [9, 9, 9])
 
-    expect([...recoveredNoteNullifier(note)]).toEqual([1, 2, 3])
+    expect([...service.noteNullifier(note)]).toEqual([1, 2, 3])
   })
 })
 
-describe('sumUnspentShieldedValue', () => {
+describe('ShieldedService.sumUnspentValue', () => {
   test('returns a zero balance and empty breakdown for no notes', () => {
-    const result = sumUnspentShieldedValue([], [], 'testnet')
+    const result = service.sumUnspentValue([], [], 'testnet')
 
     expect(result).toEqual({ balance: 0n, spendableNotes: 0, byAddress: [] })
   })
 
   test('counts every note as spendable when none of their own nullifiers are spent', () => {
-    const result = sumUnspentShieldedValue(
+    const result = service.sumUnspentValue(
       [recoveredNote(10n, [1, 1, 1]), recoveredNote(7n, [2, 2, 2])],
       [status([1, 1, 1], false), status([2, 2, 2], false)],
       'testnet'
@@ -52,7 +54,7 @@ describe('sumUnspentShieldedValue', () => {
       recoveredNote(30n, [3], ADDR_2)
     ]
 
-    const { balance, spendableNotes, byAddress } = sumUnspentShieldedValue(recovered, [], 'testnet')
+    const { balance, spendableNotes, byAddress } = service.sumUnspentValue(recovered, [], 'testnet')
 
     expect(balance).toBe(180n)
     expect(spendableNotes).toBe(3)
@@ -69,7 +71,7 @@ describe('sumUnspentShieldedValue', () => {
       recoveredNote(50n, [2], ADDR_1)
     ]
 
-    const { balance, spendableNotes, byAddress } = sumUnspentShieldedValue(recovered, [status([2], true)], 'testnet')
+    const { balance, spendableNotes, byAddress } = service.sumUnspentValue(recovered, [status([2], true)], 'testnet')
 
     expect(balance).toBe(100n)
     expect(spendableNotes).toBe(1)
@@ -81,7 +83,7 @@ describe('sumUnspentShieldedValue', () => {
     // action spent — our own note ([3,3,3]) is unspent and must still count.
     const note = recoveredNote(4n, [3, 3, 3], ADDR_1, [9, 9, 9])
 
-    const result = sumUnspentShieldedValue([note], [status([9, 9, 9], true)], 'testnet')
+    const result = service.sumUnspentValue([note], [status([9, 9, 9], true)], 'testnet')
 
     expect(result.balance).toBe(4n)
     expect(result.spendableNotes).toBe(1)
@@ -97,7 +99,7 @@ describe('sumUnspentShieldedValue', () => {
       status([0xaa, 0xbb], false)
     ]
 
-    const result = sumUnspentShieldedValue([first, second], statuses, 'testnet')
+    const result = service.sumUnspentValue([first, second], statuses, 'testnet')
 
     expect(result.balance).toBe(10n)
     expect(result.spendableNotes).toBe(1)
@@ -110,7 +112,7 @@ describe('sumUnspentShieldedValue', () => {
     ]
     const diversifierIndexByAddress = new Map([[ADDR_1, 3]])
 
-    const { byAddress } = sumUnspentShieldedValue(recovered, [], 'testnet', diversifierIndexByAddress)
+    const { byAddress } = service.sumUnspentValue(recovered, [], 'testnet', diversifierIndexByAddress)
 
     const byAddr = Object.fromEntries(byAddress.map((entry) => [entry.address, entry.diversifierIndex]))
     expect(byAddr[ADDR_1]).toBe(3)
