@@ -77,10 +77,20 @@ export interface AppConnectsStorageSchema {
 export type AssetLockFundingPurpose = 'registration' | 'topUp'
 
 export interface AssetLockFundingAddressSchema {
+  // The address this entry is keyed by: the one-off deposit address for a funded
+  // asset lock, or the credit output address when the wallet pays with its own
+  // coins (nothing is deposited, so there is no deposit address to name).
   address: string
-  encryptedPrivateKey: string
+  // Null when the wallet pays with its own coins: the inputs are signed by BIP44
+  // keys derived from the seed, so there is no one-off key to keep.
+  encryptedPrivateKey: string | null
   used: boolean
   assetLockTxid?: string | null
+  // The signed asset lock, hex, stored before it is broadcast when the wallet pays
+  // with its own coins. A deposit has a single input and rebuilds byte for byte, but
+  // a selection over the wallet's own UTXOs would change as soon as one of them is
+  // spent elsewhere, and a retry must send the same transaction, not a second one.
+  assetLockTx?: string
   // DIP-13 derivation index for top-up funding keys (m/9'/coin'/5'/2'/index).
   // Absent for registration entries, which use a one-time random funding key.
   index?: number

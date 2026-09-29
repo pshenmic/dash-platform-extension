@@ -26,6 +26,11 @@ export interface CoreAddressUtxo {
   amount: bigint
 }
 
+// An account output, with the address that received it.
+export interface CoreXpubUtxo extends CoreAddressUtxo {
+  address: string
+}
+
 export interface CoreExplorerTransactionInput {
   // null for a coinbase input, which spends no address
   address: string | null
@@ -58,6 +63,9 @@ export interface CoreExplorerTransactionsPage {
   // Pass back to get the next page; null on the last one.
   nextCursor: string | null
 }
+
+// Largest page the explorer serves for its /xpub list endpoints.
+const XPUB_PAGE_LIMIT = 100
 
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
   return CORE_EXPLORER_URLS[network].api
@@ -239,6 +247,42 @@ export class CoreExplorerService {
     const info = await this.getAddressInfo(address, network)
 
     return info != null && info.txCount > 0
+  }
+
+  // Every confirmed output the account can spend, across both of the xpub's
+  // chains, so an asset lock can be funded without deriving addresses locally and
+  // asking about each one. Paged: the explorer caps a page at XPUB_PAGE_LIMIT and
+  // reports the total, which is how the walk knows it is done.
+  async getXpubUtxos (xpub: string, network: NetworkType = 'testnet'): Promise<CoreXpubUtxo[]> {
+    const baseUrl = getBaseUrl(network)
+    const utxos: CoreXpubUtxo[] = []
+
+    let fetched = 0
+    for (let page = 1; ; page++) {
+      const response = await fetch(`${baseUrl}/xpub/utxo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ xpub, page, limit: XPUB_PAGE_LIMIT })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Core explorer error for xpub utxo: HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      const rows: any[] = Array.isArray(data?.resultSet) ? data.resultSet : []
+
+      fetched += rows.length
+      for (const row of rows) {
+        if (typeof row.address === 'string' && typeof row.prevTxHash === 'string') {
+          utxos.push({ address: row.address, txid: row.prevTxHash, vout: toCount(row.vOutIndex), amount: toBigInt(row.amount) })
+        }
+      }
+
+      if (rows.length === 0 || fetched >= toCount(data?.pagination?.total)) {
+        return utxos
+      }
+    }
   }
 
   // Confirmed UTXOs for an address. Empty when the address is unseen or has no

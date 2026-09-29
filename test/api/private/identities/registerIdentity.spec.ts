@@ -56,6 +56,7 @@ describe('RegisterIdentityHandler', () => {
   let identitiesRepository: any
   let assetLockFundingAddressesRepository: any
   let coreSDK: any
+  let coreAssetLock: any
   let sdk: any
   let handler: RegisterIdentityHandler
   let encryptedPrivateKey: string
@@ -121,6 +122,7 @@ describe('RegisterIdentityHandler', () => {
       })
     }
 
+    coreAssetLock = {} as any
     coreSDK = {
       subscribeToTransactions: jest.fn(() => {
         order.push('subscribe')
@@ -175,7 +177,8 @@ describe('RegisterIdentityHandler', () => {
       assetLockFundingAddressesRepository,
       {} as any,
       sdk,
-      coreSDK
+      coreSDK,
+      coreAssetLock
     )
   })
 

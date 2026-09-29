@@ -61,6 +61,8 @@ describe('TopUpIdentityHandler', () => {
   let identitiesRepository: any
   let assetLockFundingAddressesRepository: any
   let coreSDK: any
+  let coreExplorer: any
+  let coreAssetLock: any
   let sdk: any
   let handler: TopUpIdentityHandler
   let encryptedPrivateKey: string
@@ -128,6 +130,8 @@ describe('TopUpIdentityHandler', () => {
     identitiesRepository.forScope = jest.fn(() => identitiesRepository)
     assetLockFundingAddressesRepository.forScope = jest.fn(() => assetLockFundingAddressesRepository)
 
+    coreAssetLock = {} as any
+    coreExplorer = { isAddressUsed: jest.fn(async () => false) } as any
     coreSDK = {
       // Both SDKs are fixed to a network for the lifetime of their document, and
       // the handler refuses to run against a scope they cannot serve.
@@ -171,7 +175,9 @@ describe('TopUpIdentityHandler', () => {
       identitiesRepository,
       assetLockFundingAddressesRepository,
       sdk,
-      coreSDK
+      coreSDK,
+      coreExplorer,
+      coreAssetLock
     )
   })
 
