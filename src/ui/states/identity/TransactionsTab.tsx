@@ -1,7 +1,6 @@
 import React from 'react'
 import { useParams } from 'react-router-dom'
 import { CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
-import { LastTransaction } from '../home/LastTransaction'
 import { SeeAllTransactionsButton, TransactionsList, toTransactionRowItem, type TransactionRowItem } from '../../components/transactions'
 import { getTransactionExplorerUrl } from '../../../utils'
 import type { NetworkType } from '../../../types'
@@ -38,7 +37,6 @@ export function TransactionsTab ({
   const items: TransactionRowItem[] = transactions.map(tx => toTransactionRowItem(tx))
   const received = items.filter(item => item.direction === 'in').length
   const sent = items.filter(item => item.direction === 'out').length
-  const firstItem = items[0]
 
   return (
     <div className='flex flex-col gap-4'>
@@ -95,14 +93,6 @@ export function TransactionsTab ({
             : undefined}
           value={nameCount == null ? <StatValueSkeleton /> : <StatValue value={nameCount} unit='Names' />}
         />
-        {firstItem?.hash != null && (
-          <LastTransaction
-            compact
-            transaction={firstItem}
-            hash={firstItem.hash}
-            transactionType={firstItem.title}
-          />
-        )}
       </div>
     </div>
   )

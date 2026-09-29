@@ -3,7 +3,6 @@ import { Skeleton } from '../common'
 import {
   ActionRowSkeleton,
   BalancePlateSkeleton,
-  LastTransactionSkeleton,
   SectionTitleSkeleton,
   StatRowSkeleton,
   TabsSkeleton,
@@ -38,7 +37,6 @@ export function PlatformSkeleton (): React.JSX.Element {
         <SectionTitleSkeleton />
         <StatRowSkeleton />
         <StatRowSkeleton withHint />
-        <LastTransactionSkeleton />
       </div>
     </div>
   )

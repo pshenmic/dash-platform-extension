@@ -1,12 +1,10 @@
 import React from 'react'
 import { CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
-import { LastTransaction } from '../home/LastTransaction'
 import { SeeAllTransactionsButton, TransactionsList } from '../../components/transactions'
 import { StatCard, StatValue, StatValueSkeleton, TextSkeleton } from '../../components/common'
 import { BigNumberDisplay } from '../../components/data'
 import type { UseWalletPlatformDataResult } from '../../hooks'
-import type { Identity, NetworkType } from '../../../types'
-import { getTransactionExplorerUrl } from '../../../utils'
+import type { Identity } from '../../../types'
 import { OVERVIEW_PREVIEW_LIMIT, type UsePlatformOverviewResult } from './usePlatformOverview'
 
 // Shown instead of a number whenever the value is unknown, never a made-up one.
@@ -15,13 +13,12 @@ const PLACEHOLDER = '-'
 interface OverviewTabProps {
   hide: boolean
   identities: Identity[]
-  network: NetworkType
   platformData: UseWalletPlatformDataResult
   overview: UsePlatformOverviewResult
   rate: number | null
 }
 
-export function OverviewTab ({ hide, identities, network, platformData, overview, rate }: OverviewTabProps): React.JSX.Element {
+export function OverviewTab ({ hide, identities, platformData, overview, rate }: OverviewTabProps): React.JSX.Element {
   const { operations, tokenCount, tokenCountLoading } = overview
 
   // A reload keeps the previous figures; only the first load has none to show.
@@ -32,8 +29,6 @@ export function OverviewTab ({ hide, identities, network, platformData, overview
     if (!platformKnown || value == null) return PLACEHOLDER
     return value
   }
-
-  const lastOperation = operations.items[0] ?? null
 
   const handleRetry = (): void => {
     operations.retry()
@@ -106,14 +101,6 @@ export function OverviewTab ({ hide, identities, network, platformData, overview
             : <StatValueSkeleton />}
         />
       </div>
-      <LastTransaction
-        loading={operations.loading}
-        hash={lastOperation?.hash ?? undefined}
-        explorerUrl={lastOperation?.hash != null ? getTransactionExplorerUrl(lastOperation.hash, network) : undefined}
-        layer='Platform'
-        transactionType={lastOperation?.title}
-        emptyHint='No Platform transactions yet'
-      />
     </div>
   )
 }

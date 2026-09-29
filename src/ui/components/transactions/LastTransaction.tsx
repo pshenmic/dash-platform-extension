@@ -1,7 +1,7 @@
 import React from 'react'
 import { ExternalLinkIcon, Text, TopRightArrowIcon, Identifier } from 'dash-ui-kit/react'
-import type { TransactionRowItem } from '../../components/transactions'
-import { Skeleton, StatCard, StatValueSkeleton } from '../../components/common'
+import type { TransactionRowItem } from './TransactionRow'
+import { Skeleton, StatValueSkeleton } from '../common'
 
 interface LastTransactionProps {
   /** Shown while the transaction is still being fetched. */
@@ -15,13 +15,6 @@ interface LastTransactionProps {
   emptyHint?: string
   /** Explorer row to render; the explicit fields below override whatever it carries. */
   transaction?: TransactionRowItem | null
-  /** Half-width tile matching the surrounding StatCard grid. */
-  compact?: boolean
-}
-
-const DIRECTION_LABELS: Record<string, string> = {
-  in: 'Receive',
-  out: 'Send'
 }
 
 function Header (): React.JSX.Element {
@@ -44,43 +37,10 @@ export function LastTransaction ({
   transactionType,
   explorerUrl,
   emptyHint,
-  transaction,
-  compact = false
+  transaction
 }: LastTransactionProps): React.JSX.Element {
   const resolvedHash = hash ?? transaction?.hash ?? undefined
   const resolvedType = transactionType ?? transaction?.title
-
-  if (compact) {
-    const directionLabel = transaction?.direction != null ? DIRECTION_LABELS[transaction.direction] : undefined
-
-    return (
-      <StatCard
-        icon={<TopRightArrowIcon size={10} className='!text-[#CD2E00]' />}
-        label='Last Transaction'
-        value={loading && resolvedType == null
-          ? <Skeleton className='h-[1.2rem] w-24' />
-          : (
-            <Text className='!text-dash-brand !text-base !font-extrabold !leading-[1.2] break-words'>
-              {resolvedType ?? '-'}
-            </Text>
-            )}
-        hint={resolvedHash != null
-          ? (
-            <div className='flex items-center gap-1 min-w-0'>
-              {directionLabel != null && (
-                <div className='flex px-2 py-1 rounded-lg bg-[rgba(12,28,51,0.04)] shrink-0'>
-                  <Text size='xs' weight='medium' className='!text-dash-primary-dark-blue/64'>{directionLabel}</Text>
-                </div>
-              )}
-              <Identifier highlight='both' ellipsis className='!text-[9px] font-bold min-w-0'>
-                {resolvedHash}
-              </Identifier>
-            </div>
-            )
-          : (loading ? <Skeleton className='h-3 w-28' /> : (emptyHint ?? 'No transactions yet'))}
-      />
-    )
-  }
 
   if (resolvedHash == null || resolvedType == null) {
     return (

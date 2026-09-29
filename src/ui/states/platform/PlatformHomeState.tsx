@@ -91,7 +91,6 @@ function PlatformHomeState (): React.JSX.Element {
               <OverviewTab
                 hide={hideBalance}
                 identities={availableIdentities}
-                network={network}
                 platformData={platformData}
                 overview={overview}
                 rate={rate}

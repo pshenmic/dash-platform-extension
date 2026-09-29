@@ -1,12 +1,11 @@
 import React, { useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import { SeeAllTransactionsButton, TransactionsList } from '../../components/transactions'
+import { LastTransaction, SeeAllTransactionsButton, TransactionsList } from '../../components/transactions'
 import { useCoreBalance, useCoreTransactions, useDashRate, useHideBalance } from '../../hooks'
 import type { OutletContext } from '../../types'
 import { getCoreTransactionExplorerUrl } from '../../../utils'
 import { ActionRow } from '../home/ActionRow'
-import { LastTransaction } from '../home/LastTransaction'
 import { CoreBalance } from './CoreBalance'
 import { CoreStatistics } from './CoreStatistics'
 
