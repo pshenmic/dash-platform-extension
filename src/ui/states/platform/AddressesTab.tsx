@@ -102,14 +102,14 @@ function AddressRow ({
         </Identifier>
         <AddressActions address={address} explorerUrl={explorerUrl} />
       </div>
-      <div className='flex items-end justify-between gap-2'>
+      <div className='flex items-baseline justify-between gap-2'>
         <Text size='xs' weight='medium' className='!text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/32'>
           {metaLabel}:{' '}
           <Text as='span' size='xs' weight='bold' className='!font-extrabold !text-[0.75rem] !leading-[1.2] !text-dash-primary-dark-blue/32'>
             {metaLoading ? '…' : metaValue}
           </Text>
         </Text>
-        <div className='flex flex-col items-end gap-[5px] shrink-0'>
+        <div className='flex items-baseline gap-2 shrink-0 whitespace-nowrap'>
           {loading
             ? <Text size='sm' dim>…</Text>
             : (
