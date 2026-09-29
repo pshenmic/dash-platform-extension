@@ -13,6 +13,11 @@ export function setSdkNetwork (network: 'mainnet' | 'testnet'): void {
   sdkInstance?.setNetwork(network)
 }
 
+/** Network the popup SDK uses or will be built with, known without loading it. */
+export function getSdkNetwork (): 'mainnet' | 'testnet' {
+  return desiredNetwork
+}
+
 /**
  * Returns the memoized promise that resolves once the SDK chunk has been
  * downloaded and instantiated.

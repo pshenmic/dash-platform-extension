@@ -1,0 +1,99 @@
+import React from 'react'
+import { useParams } from 'react-router-dom'
+import { CreditsIcon, DocumentIcon, FingerprintIcon, Text } from 'dash-ui-kit/react'
+import { SeeAllTransactionsButton, TransactionsList, toTransactionRowItem, type TransactionRowItem } from '../../components/transactions'
+import { getTransactionExplorerUrl } from '../../../utils'
+import type { NetworkType } from '../../../types'
+import type { TransactionData } from '../../hooks/usePlatformExplorerApi'
+import { StatCard, StatValue, StatValueSkeleton, TextSkeleton, Username } from '../../components/common'
+import { BigNumberDisplay } from '../../components/data'
+
+interface TransactionsTabProps {
+  hide: boolean
+  loading: boolean
+  error: string | null
+  transactions: TransactionData[]
+  rate: number | null
+  network: NetworkType
+  /** Null while the tokens are loading. */
+  tokenCount: number | null
+  /** Null while the names are loading. */
+  nameCount: number | null
+  lastName: string | null
+}
+
+export function TransactionsTab ({
+  hide,
+  loading,
+  error,
+  transactions,
+  rate,
+  network,
+  tokenCount,
+  nameCount,
+  lastName
+}: TransactionsTabProps): React.JSX.Element {
+  const { identifier } = useParams<{ identifier: string }>()
+  const items: TransactionRowItem[] = transactions.map(tx => toTransactionRowItem(tx))
+  const received = items.filter(item => item.direction === 'in').length
+  const sent = items.filter(item => item.direction === 'out').length
+
+  return (
+    <div className='flex flex-col gap-4'>
+      <TransactionsList
+        items={items}
+        rate={rate}
+        loading={loading}
+        error={error}
+        hideAmounts={hide}
+        groupByDate
+        limit={3}
+        onItemClick={(item) => {
+          if (item.hash != null && item.hash !== '') {
+            window.open(getTransactionExplorerUrl(item.hash, network), '_blank')
+          }
+        }}
+        footer={(
+          <SeeAllTransactionsButton scope='identity' identityId={identifier} />
+        )}
+      />
+      <Text size='lg' weight='medium' className='!text-dash-primary-dark-blue/48 !tracking-[-0.03em]'>
+        Identity Statistics
+      </Text>
+      <div className='grid grid-cols-2 gap-3 w-full'>
+        <StatCard
+          icon={<DocumentIcon size={12} className='!text-dash-brand' />}
+          label='Transactions'
+          hint={(
+            <Text size='xs' weight='medium' className='!text-[0.75rem] !text-dash-primary-dark-blue/50 !leading-[1.1]'>
+              {loading
+                ? <><TextSkeleton className='w-4' /> received - <TextSkeleton className='w-4' /> sent</>
+                : <><BigNumberDisplay unit='TXs'>{received}</BigNumberDisplay> received - <BigNumberDisplay unit='TXs'>{sent}</BigNumberDisplay> sent</>}
+            </Text>
+          )}
+          value={loading ? <StatValueSkeleton /> : <StatValue value={items.length} unit='TXs' />}
+        />
+        <StatCard
+          icon={<CreditsIcon size={12} className='!text-dash-brand' />}
+          label='Tokens'
+          value={tokenCount == null ? <StatValueSkeleton /> : <StatValue value={tokenCount} unit='Tokens' />}
+        />
+        <StatCard
+          icon={<FingerprintIcon size={12} className='!text-dash-brand' />}
+          label='Usernames'
+          hint={lastName != null && lastName !== ''
+            ? (
+              <div className='flex items-center gap-1 min-w-0'>
+                <div className='flex px-2 py-1 rounded-lg bg-[rgba(12,28,51,0.04)] shrink-0'>
+                  <Text size='xs' weight='medium' className='!text-dash-primary-dark-blue/64'>Last</Text>
+                </div>
+                <Username name={lastName} />
+              </div>
+              )
+            : undefined}
+          value={nameCount == null ? <StatValueSkeleton /> : <StatValue value={nameCount} unit='Names' />}
+        />
+      </div>
+    </div>
+  )
+}

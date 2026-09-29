@@ -6,6 +6,16 @@ import type { NetworkType } from '../../types'
 import type { PlatformAddressBalance } from '../../types/messages/response/GetPlatformAddressesInfosResponse'
 import { PLATFORM_ADDRESS_GENERATE_BATCH } from '../../constants'
 
+// Loaded lists live here for as long as the popup is open, keyed by network and
+// wallet. Every consumer of the hook shares them, so opening Receive or coming
+// back to a dashboard tab does not refetch. Balances go stale on purpose: the
+// cache is dropped only by an explicit reload, a generation, or a key change.
+const listCache = new Map<string, AddressData[]>()
+
+function cacheKey (network: NetworkType, walletId?: string | null): string {
+  return `${network}:${walletId ?? ''}`
+}
+
 export interface UsePlatformAddressesResult {
   addresses: AddressData[]
   isLoading: boolean
@@ -16,10 +26,15 @@ export interface UsePlatformAddressesResult {
   generate: () => Promise<void>
   generateWithPassword: (password: string) => Promise<string | null>
   cancelPassword: () => void
+  /** Drops the cached list and fetches it again. */
+  reload: () => Promise<void>
 }
 
 // Owns the platform addresses list and the generation flow.
-export function usePlatformAddresses (currentNetwork?: NetworkType | null): UsePlatformAddressesResult {
+export function usePlatformAddresses (
+  currentNetwork?: NetworkType | null,
+  walletId?: string | null
+): UsePlatformAddressesResult {
   const extensionAPI = useExtensionAPI()
   const platformExplorerClient = usePlatformExplorerClient()
   const [addresses, setAddresses] = useState<AddressData[]>([])
@@ -29,10 +44,51 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
   const [needsPassword, setNeedsPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const loadingRef = useRef(false)
+  // Addresses belong to one wallet on one network. A response for the previous
+  // pair must never repaint the list - on Receive that would be a QR code for
+  // the wallet the user just left.
+  const runIdRef = useRef(0)
+  // Bumped per transaction-count load so only the latest one lands.
+  const txVersionRef = useRef(0)
 
-  // Fetch the created addresses and enrich with balances and transaction counts.
+  // Fills in transaction counts from the explorer once balances are on screen.
+  const loadTxCounts = useCallback(async (
+    runId: number,
+    key: string,
+    network: NetworkType,
+    list: AddressData[],
+    infoByAddress: Map<string, PlatformAddressBalance>
+  ): Promise<void> => {
+    const version = ++txVersionRef.current
+
+    // Only addresses with history are queried; the explorer 404s on unused ones.
+    const txCounts = await Promise.all(list.map(async (item) => {
+      const info = infoByAddress.get(item.address)
+
+      if (info == null) return null
+      if (info.balance === '0' && info.nonce === 0) return 0
+
+      return await platformExplorerClient.fetchAddress(item.address, network)
+        .then(data => data.totalTxs ?? null)
+        .catch(() => null)
+    }))
+
+    // A newer list or another wallet/network has taken over meanwhile.
+    if (runId !== runIdRef.current || version !== txVersionRef.current) return
+
+    const loaded = list.map((item, i) => ({ ...item, totalTxs: txCounts[i], txsLoading: false }))
+
+    listCache.set(key, loaded)
+    setAddresses(loaded)
+  }, [platformExplorerClient])
+
+  // Fetch the created addresses and their balances; transaction counts follow.
   const refreshList = useCallback(async (): Promise<void> => {
+    const runId = runIdRef.current
+    const network = currentNetwork ?? 'testnet'
+    const key = cacheKey(network, walletId)
     const created = await extensionAPI.listPlatformAddresses()
+    if (runId !== runIdRef.current) return
 
     const initial: AddressData[] = created.map((entry) => ({
       index: entry.index,
@@ -40,59 +96,84 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
       address: entry.address,
       balance: null,
       totalTxs: null,
-      loading: true
+      loading: true,
+      txsLoading: true
     }))
 
-    setAddresses(initial)
-
-    if (initial.length === 0) return
-
-    const network = currentNetwork ?? 'testnet'
-
-    const [infos, txCounts] = await Promise.all([
-      extensionAPI.getPlatformAddressesInfos(initial.map((item) => item.address))
-        .catch((): PlatformAddressBalance[] => []),
-      Promise.all(initial.map(async (item) => {
-        try {
-          const data = await platformExplorerClient.fetchAddress(item.address, network)
-          return data.totalTxs ?? null
-        } catch {
-          return null
-        }
+    // A reload keeps the balances already known until the new ones arrive, so the
+    // totals built on them do not blink; rows still show their loading state.
+    setAddresses(previous => {
+      const known = new Map(previous.map(item => [item.address, item]))
+      return initial.map(item => ({
+        ...item,
+        balance: known.get(item.address)?.balance ?? null,
+        totalTxs: known.get(item.address)?.totalTxs ?? null
       }))
-    ])
+    })
 
-    const balanceByAddress = new Map(infos.map((info) => [info.address, info.balance]))
-
-    setAddresses(initial.map((item, i) => ({
-      ...item,
-      balance: balanceByAddress.get(item.address) ?? null,
-      totalTxs: txCounts[i],
-      loading: false
-    })))
-  }, [extensionAPI, platformExplorerClient, currentNetwork])
-
-  // Load the existing list on mount.
-  useEffect(() => {
-    const loadList = async (): Promise<void> => {
-      if (loadingRef.current) return
-      loadingRef.current = true
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        await refreshList()
-        setHasLoaded(true)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load addresses')
-      } finally {
-        setIsLoading(false)
-        loadingRef.current = false
-      }
+    if (initial.length === 0) {
+      listCache.set(key, [])
+      return
     }
 
+    const infos = await extensionAPI.getPlatformAddressesInfos(initial.map((item) => item.address))
+      .catch((): PlatformAddressBalance[] => [])
+
+    if (runId !== runIdRef.current) return
+
+    const infoByAddress = new Map(infos.map((info) => [info.address, info]))
+
+    // Balances come from Platform itself, so they are shown without waiting for the explorer.
+    const withBalances = initial.map((item) => ({
+      ...item,
+      balance: infoByAddress.get(item.address)?.balance ?? null,
+      loading: false
+    }))
+
+    setAddresses(withBalances)
+
+    void loadTxCounts(runId, key, network, withBalances, infoByAddress)
+  }, [extensionAPI, loadTxCounts, currentNetwork, walletId])
+
+  const loadList = useCallback(async (): Promise<void> => {
+    const runId = runIdRef.current
+    loadingRef.current = true
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      await refreshList()
+      if (runId === runIdRef.current) setHasLoaded(true)
+    } catch (err) {
+      if (runId === runIdRef.current) setError(err instanceof Error ? err.message : 'Failed to load addresses')
+    } finally {
+      loadingRef.current = false
+      if (runId === runIdRef.current) setIsLoading(false)
+    }
+  }, [refreshList])
+
+  // Reload whenever the wallet or the network changes, not just on mount. A
+  // list already loaded for this pair is served from the cache instead.
+  useEffect(() => {
+    runIdRef.current += 1
+
+    setNeedsPassword(false)
+    setError(null)
+
+    const cached = listCache.get(cacheKey(currentNetwork ?? 'testnet', walletId))
+
+    if (cached != null) {
+      setAddresses(cached)
+      setHasLoaded(true)
+      setIsLoading(false)
+      return
+    }
+
+    setAddresses([])
+    setHasLoaded(false)
+
     void loadList()
-  }, [])
+  }, [currentNetwork, walletId, loadList])
 
   // Generate the next batch of addresses
   const generate = useCallback(async (): Promise<void> => {
@@ -149,6 +230,12 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
     setNeedsPassword(false)
   }, [])
 
+  // Explicit refresh - the only thing that invalidates an already loaded list.
+  const reload = useCallback(async (): Promise<void> => {
+    listCache.delete(cacheKey(currentNetwork ?? 'testnet', walletId))
+    await loadList()
+  }, [currentNetwork, walletId, loadList])
+
   return {
     addresses,
     isLoading,
@@ -158,6 +245,7 @@ export function usePlatformAddresses (currentNetwork?: NetworkType | null): UseP
     needsPassword,
     generate,
     generateWithPassword,
-    cancelPassword
+    cancelPassword,
+    reload
   }
 }

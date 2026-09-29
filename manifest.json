@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Dash Platform Extension",
+  "name": "Dash Extension",
   "version": "1.4.1",
   "author": "pshenmic",
   "homepage_url": "https://github.com/pshenmic/dash-platform-extension",
   "minimum_chrome_version": "119",
-  "description": "A browser extension wallet for interacting with Dash Platform blockchain",
+  "description": "A browser extension wallet for the Dash blockchain: Core and Platform",
   "permissions": [
     "storage",
     "offscreen"
@@ -24,7 +24,7 @@
   },
   "action": {
     "default_popup": "index.html",
-    "default_title": "Dash Platform Extension"
+    "default_title": "Dash Extension"
   },
   "content_scripts": [
     {

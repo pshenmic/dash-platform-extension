@@ -25,7 +25,7 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
         </Text>
       )}
 
-      <div className='rounded-[1rem] overflow-hidden'>
+      <div className='[&>*:first-child]:rounded-t-[1rem] [&>*:last-child]:rounded-b-[1rem]'>
         {section.items.map((item) => (
           <MenuItem
             key={item.id}
@@ -33,6 +33,8 @@ export const MenuSection: React.FC<MenuSectionProps> = ({
             icon={item.icon}
             hasSubMenu={item.hasSubMenu}
             disabled={item.disabled}
+            control={item.control}
+            external={item.external}
             onClick={() => {
               if (item.disabled === true) return
 

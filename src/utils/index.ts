@@ -14,11 +14,19 @@ import { generateRandomHex } from './random'
 
 export { formatBigNumber }
 export { loadSigningKeys, isKeyCompatible } from './signingKeys'
-export { fetchNames, normalizeName } from './names'
+export { fetchNames, normalizeName, splitDpns } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
+export { amountFractionScale } from './amountFontScale'
+export { formatStatNumber } from './formatStatNumber'
 export { generateRandomHex } from './random'
-export { getTransactionExplorerUrl, getPlatformAddressExplorerUrl } from './explorerUrls'
+export { getTransactionExplorerUrl, getPlatformAddressExplorerUrl, getIdentityExplorerUrl, buildIdentityTransactionsUrl } from './explorerUrls'
+export { getCoreTransactionExplorerUrl } from './explorerUrls'
+export { countHeldTokens } from './tokens'
+export { summarizeCoreTransaction } from './coreTransactions'
+export { creditsToDuffs, duffsToDashParts, duffsToFiatLabel } from './dashAmount'
+export type { DashParts } from './dashAmount'
+export type { CoreTransactionDirection, CoreTransactionEffect } from './coreTransactions'
 export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
 export type { PlatformSourceCandidate } from './platformTransfer'
 export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, maxShieldedSpend } from './shieldedFee'
@@ -548,7 +556,5 @@ export const processPrivateKey = async (
     balance: balance.toString()
   }
 }
-
-export const isTooBigNumber = (number: number | string | bigint): boolean => Number(number) > 999999999
 
 export * from './recipientSearch'

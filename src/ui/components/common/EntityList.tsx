@@ -1,5 +1,6 @@
 import React from 'react'
 import { Text } from 'dash-ui-kit/react'
+import ScreenLoader from '../layout/screens/ScreenLoader'
 
 interface EntityListProps {
   children: React.ReactNode
@@ -7,7 +8,6 @@ interface EntityListProps {
   error: string | null
   isEmpty: boolean
   variant?: 'tight' | 'spaced'
-  loadingText?: string
   errorText?: string
   emptyText?: string
 }
@@ -18,7 +18,6 @@ function EntityList ({
   error,
   isEmpty,
   variant = 'tight',
-  loadingText = 'Loading...',
   errorText,
   emptyText = 'No items found'
 }: EntityListProps): React.JSX.Element {
@@ -28,11 +27,7 @@ function EntityList ({
 
   return (
     <div className={containerClass}>
-      {loading && (
-        <div className='entities-list-state-message'>
-          <Text className='entities-list-loading'>{loadingText}</Text>
-        </div>
-      )}
+      {loading && <ScreenLoader className='min-h-[120px]' />}
 
       {error !== null && (
         <div className='entities-list-state-message'>

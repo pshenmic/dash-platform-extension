@@ -5,8 +5,6 @@ export { MenuSection } from './MenuSection'
 // Screens
 export { MainSettingsScreen } from './screens/MainSettingsScreen'
 export { WalletSettingsScreen } from './screens/WalletSettingsScreen'
-export { SecuritySettingsScreen } from './screens/SecuritySettingsScreen'
-export { PreferencesScreen } from './screens/PreferencesScreen'
 export { ConnectedWebsitesScreen } from './screens/ConnectedWebsitesScreen'
 export { PrivateKeysScreen } from './screens/PrivateKeysScreen'
 export { ImportPrivateKeysScreen } from './screens/ImportPrivateKeysScreen'
