@@ -415,6 +415,7 @@ function SendTransactionState (): React.JSX.Element {
                 selectedAsset={formState.formData.selectedAsset}
                 token={token}
                 onClick={() => setShowAssetSelection(true)}
+                disabled
               />
             )}
           </div>
