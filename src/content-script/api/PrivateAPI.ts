@@ -165,7 +165,8 @@ export class PrivateAPI {
         assetLockFundingAddressesRepository,
         this.storageAdapter,
         this.sdk,
-        this.coreSDK
+        this.coreSDK,
+        coreExplorer
       ),
       [MessagingMethods.TOP_UP_IDENTITY]: new TopUpIdentityHandler(
         walletRepository,

@@ -4,7 +4,7 @@ import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { Wallet } from '../types/Wallet'
 import { NetworkType } from '../types/NetworkType'
 import { CoreAddressChain } from '../types/enums/CoreAddressChain'
-import { CORE_ADDRESS_WINDOW, CORE_BIP32_VERSIONS } from '../constants'
+import { CORE_BIP32_VERSIONS } from '../constants'
 import { decryptMnemonic, deriveWalletHdKey } from './index'
 
 // BIP44 derivation for Core (L1) addresses: m/44'/coin'/account'/chain/index.
@@ -81,34 +81,36 @@ export const deriveCoreAddressesFromXpub = (
   return entries
 }
 
-// The private key of one of the wallet's own Core addresses, found by walking both
-// chains of the account. Funding an asset lock with the wallet's own coins needs
-// it: the inputs are ordinary BIP44 outputs, not a one-off deposit, so the key
-// comes from the seed rather than from storage. An address outside the window is
-// not one this wallet hands out, and is refused rather than signed for.
-export const deriveCoreAddressKey = async (
+// Private key of one of the wallet's own Core addresses, for signing an input
+// that spends its coins. Refuses an address the account does not derive, so a
+// caller cannot make the wallet sign for coins that are not its own.
+// `nextUnused` is the explorer's gap scan; an address that received coins always
+// sits below it.
+export const deriveCoreAddressPrivateKey = async (
   wallet: Wallet,
   password: string,
   xpub: string,
   address: string,
+  nextUnused: Record<CoreAddressChain, number>,
   sdk: DashPlatformSDK,
   account: number = 0
 ): Promise<PrivateKeyWASM> => {
-  const chains = [CoreAddressChain.receiving, CoreAddressChain.change]
-  const entry = chains
-    .flatMap(chain => deriveCoreAddressesFromXpub(sdk, xpub, wallet.network, account, chain, CORE_ADDRESS_WINDOW))
-    .find(candidate => candidate.address === address)
+  for (const chain of [CoreAddressChain.receiving, CoreAddressChain.change]) {
+    const entry = deriveCoreAddressesFromXpub(sdk, xpub, wallet.network, account, chain, nextUnused[chain] + 1)
+      .find(candidate => candidate.address === address)
 
-  if (entry == null) {
-    throw new Error(`Core address ${address} is not one of this wallet's own addresses`)
+    if (entry == null) {
+      continue
+    }
+
+    const { privateKey } = await sdk.keyPair.derivePath(deriveWalletHdKey(wallet, password, sdk), entry.derivationPath)
+
+    if (privateKey == null) {
+      throw new Error(`Could not derive the private key of Core address ${address}`)
+    }
+
+    return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
   }
 
-  const root = deriveWalletHdKey(wallet, password, sdk)
-  const derived = await sdk.keyPair.derivePath(root, entry.derivationPath)
-
-  if (derived.privateKey == null) {
-    throw new Error(`Could not derive the key for Core address ${address}`)
-  }
-
-  return PrivateKeyWASM.fromBytes(derived.privateKey, wallet.network)
+  throw new Error(`Core address ${address} is not one of this wallet's own addresses`)
 }

@@ -209,6 +209,74 @@ describe('CoreExplorerService', () => {
     })
   })
 
+  describe('getXpubUtxos', () => {
+    const page = (rows: Array<[string, string]>, total: number): unknown => ({
+      resultSet: rows.map(([address, amount], index) => ({ address, prevTxHash: 'f'.repeat(64), vOutIndex: index, amount })),
+      pagination: { page: 1, limit: 100, total }
+    })
+
+    it('maps the account outputs and keeps the address that received each one', async () => {
+      mockResponse({ json: page([['yOwnA', '100000000'], ['yOwnB', '250']], 2) })
+
+      const utxos = await service.getXpubUtxos('tpubXpub', 'testnet')
+
+      expect(fetchMock.mock.calls[0][0]).toBe(`${testnetBase}/xpub/utxo`)
+      expect(utxos).toEqual([
+        { address: 'yOwnA', txid: 'f'.repeat(64), vout: 0, amount: 100000000n },
+        { address: 'yOwnB', txid: 'f'.repeat(64), vout: 1, amount: 250n }
+      ])
+    })
+
+    it('walks every page the explorer reports', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ status: 200, ok: true, json: async () => page(Array.from({ length: 100 }, () => ['yOwn', '1'] as [string, string]), 101) })
+        .mockResolvedValueOnce({ status: 200, ok: true, json: async () => page([['yOwn', '1']], 101) })
+
+      expect(await service.getXpubUtxos('tpubXpub', 'testnet')).toHaveLength(101)
+      expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ xpub: 'tpubXpub', page: 2, limit: 100 })
+    })
+
+    it('throws on a non-OK response', async () => {
+      mockResponse({ status: 500, json: {} })
+
+      await expect(service.getXpubUtxos('tpubXpub', 'testnet')).rejects.toThrow('HTTP 500')
+    })
+  })
+
+  describe('getOutputSpender', () => {
+    const transaction = (outputs: unknown[]): unknown => ({ hash: 'a'.repeat(64), vOut: outputs })
+
+    it('names the transaction that spent the output paying the address', async () => {
+      mockResponse({
+        json: transaction([
+          { number: 0, address: 'yOther', spentTxId: 'c'.repeat(64) },
+          { number: 1, address: 'yOwn', spentTxId: 'd'.repeat(64) }
+        ])
+      })
+
+      expect(await service.getOutputSpender('a'.repeat(64), 'yOwn', 'testnet')).toBe('d'.repeat(64))
+      expect(fetchMock).toHaveBeenCalledWith(`${testnetBase}/transaction/${'a'.repeat(64)}`)
+    })
+
+    it('is null while the output is unspent', async () => {
+      mockResponse({ json: transaction([{ number: 0, address: 'yOwn', spentTxId: null }]) })
+
+      expect(await service.getOutputSpender('a'.repeat(64), 'yOwn', 'testnet')).toBeNull()
+    })
+
+    it('is null for a transaction the explorer does not know (404)', async () => {
+      mockResponse({ status: 404, json: { error: 'Transaction not found' } })
+
+      expect(await service.getOutputSpender('a'.repeat(64), 'yOwn', 'testnet')).toBeNull()
+    })
+
+    it('throws on other non-OK responses', async () => {
+      mockResponse({ status: 500, json: {} })
+
+      await expect(service.getOutputSpender('a'.repeat(64), 'yOwn', 'testnet')).rejects.toThrow('HTTP 500')
+    })
+  })
+
   describe('getXpubTransactions', () => {
     // Trimmed from the explorer's real reply for testnet transaction 96a08147…
     const confirmed = {

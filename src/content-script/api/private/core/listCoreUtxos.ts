@@ -1,14 +1,12 @@
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { CoreExplorerService } from '../../../services/CoreExplorerService'
+import { NetworkType } from '../../../../types/PlatformExplorer'
 import { EmptyPayload } from '../../../../types/messages/payloads/EmptyPayload'
 import { ListCoreUtxosResponse } from '../../../../types/messages/response/ListCoreUtxosResponse'
 
-// The account's spendable Core (L1) outputs, read by xpub so the list covers
-// every address the account derives. It is what a caller picks from when funding
-// an asset lock with the wallet's own coins: an output named here can be passed
-// to REGISTER_IDENTITY or TOP_UP_IDENTITY as its address and txid. Needs no
-// password - the xpub is cached.
+// The account's spendable Core outputs, read by xpub. An output listed here is
+// what the caller names when funding an asset lock from the wallet's own coins.
 export class ListCoreUtxosHandler implements APIHandler {
   walletRepository: WalletRepository
   coreExplorer: CoreExplorerService
@@ -28,12 +26,11 @@ export class ListCoreUtxosHandler implements APIHandler {
     const xpub = await this.walletRepository.getCoreAccountXpub(0)
 
     if (xpub == null) {
-      throw new Error('Core xpub is not initialized. Call INIT_ACCOUNT_XPUBS with the wallet password after unlocking')
+      return { utxos: [] }
     }
 
-    const utxos = await this.coreExplorer.getXpubUtxos(xpub, wallet.network)
+    const utxos = await this.coreExplorer.getXpubUtxos(xpub, wallet.network as NetworkType)
 
-    // Amounts cross the messaging boundary as strings; bigint does not serialize.
     return {
       utxos: utxos.map(utxo => ({
         address: utxo.address,

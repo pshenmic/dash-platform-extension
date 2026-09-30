@@ -7,6 +7,7 @@ import { StorageAdapter } from '../../../../src/content-script/storage/storageAd
 import { bytesToHex, hexToBytes } from '../../../../src/utils'
 import { buildAssetLockFromFundingTx } from '../../../../src/utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../src/utils/waitForAssetLockProof'
+import { deriveCoreAddressPrivateKey } from '../../../../src/utils/coreAddresses'
 import { WalletType } from '../../../../src/types'
 import { IdentityType } from '../../../../src/types/enums/IdentityType'
 
@@ -18,8 +19,14 @@ jest.mock('../../../../src/utils/waitForAssetLockProof', () => ({
   waitForAssetLockProof: jest.fn()
 }))
 
+jest.mock('../../../../src/utils/coreAddresses', () => ({
+  ...jest.requireActual('../../../../src/utils/coreAddresses'),
+  deriveCoreAddressPrivateKey: jest.fn()
+}))
+
 const buildAssetLockFromFundingTxMock = buildAssetLockFromFundingTx as jest.MockedFunction<typeof buildAssetLockFromFundingTx>
 const waitForAssetLockProofMock = waitForAssetLockProof as jest.MockedFunction<typeof waitForAssetLockProof>
+const deriveCoreAddressPrivateKeyMock = deriveCoreAddressPrivateKey as jest.MockedFunction<typeof deriveCoreAddressPrivateKey>
 
 class TestStorageAdapter implements StorageAdapter {
   cache: Record<string, object | number | string | null> = {}
@@ -87,8 +94,6 @@ describe('TopUpIdentityHandler', () => {
     }
 
     walletRepository = {
-      // A real testnet account xpub: the own-address check expands it for real.
-      getCoreAccountXpub: jest.fn(async () => 'tpubDDfiaQD79RwqzH87Zb9rCKY3ETVrasx1aWXs8KrCTEpcgScuFig9UYFYCkH4D94xvG5BenQrFAz7PrqNEjHeDx3tiJC6dDk1JtvPBev3NjS'),
       getCurrent: jest.fn(async () => ({
         walletId: 'wallet1',
         type: WalletType.keystore,
@@ -97,7 +102,8 @@ describe('TopUpIdentityHandler', () => {
         encryptedMnemonic: null,
         seedHash: null,
         currentIdentity: identityId
-      }))
+      })),
+      getCoreAccountXpub: jest.fn(async () => 'tpub')
     }
 
     identitiesRepository = {
@@ -111,7 +117,6 @@ describe('TopUpIdentityHandler', () => {
     }
 
     assetLockFundingAddressesRepository = {
-      findAllUnused: jest.fn(async () => []),
       getByAddress: jest.fn(async () => ({
         address: assetLockFundingAddress,
         encryptedPrivateKey,
@@ -132,7 +137,12 @@ describe('TopUpIdentityHandler', () => {
     identitiesRepository.forScope = jest.fn(() => identitiesRepository)
     assetLockFundingAddressesRepository.forScope = jest.fn(() => assetLockFundingAddressesRepository)
 
-    coreExplorer = { isAddressUsed: jest.fn(async () => false) }
+    coreExplorer = {
+      getOutputSpender: jest.fn(async () => null),
+      getXpubSummary: jest.fn(async () => ({ nextUnused: { receiving: 0, change: 0 } })),
+      isAddressUsed: jest.fn(async () => false)
+    }
+
     coreSDK = {
       // Both SDKs are fixed to a network for the lifetime of their document, and
       // the handler refuses to run against a scope they cannot serve.
@@ -148,9 +158,6 @@ describe('TopUpIdentityHandler', () => {
 
     sdk = {
       getNetwork: jest.fn(() => 'testnet'),
-      // Every derived address differs from the funding one, so an address with no
-      // record reads as "not the wallet's own".
-      keyPair: { p2pkhAddress: jest.fn(() => 'yOtherAddressOfThisWallet') },
       identities: {
         createStateTransition: jest.fn(() => stateTransition)
       },
@@ -255,10 +262,15 @@ describe('TopUpIdentityHandler', () => {
     expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
   })
 
-  test('rejects an address that is neither a deposit nor one of the wallet own', async () => {
+  // No record means the caller is paying with the wallet's own coins, which the
+  // own-coins suite covers. Here: an address that is neither is refused.
+  test('rejects a funding address the wallet does not own', async () => {
     assetLockFundingAddressesRepository.getByAddress.mockResolvedValue(null)
+    deriveCoreAddressPrivateKeyMock.mockRejectedValueOnce(
+      new Error(`Core address ${assetLockFundingAddress} is not one of this wallet's own addresses`)
+    )
 
-    await expect(handle()).rejects.toThrow(/is not one of this wallet's own addresses/)
+    await expect(handle()).rejects.toThrow('is not one of this wallet')
 
     expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()

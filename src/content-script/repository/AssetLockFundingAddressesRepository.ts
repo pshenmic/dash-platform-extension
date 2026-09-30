@@ -114,12 +114,6 @@ export class AssetLockFundingAddressesRepository {
   // Entries with no owner still match: they predate per-identity reservation, and
   // may already hold a deposit, so the caller reuses and claims them rather than
   // stranding the money.
-  async getAll (): Promise<AssetLockFundingAddressSchema[]> {
-    const storageKey = await this.getStorageKey()
-
-    return Object.values((await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema)
-  }
-
   async findAllUnused (purpose: AssetLockFundingPurpose = 'registration', identityId?: string): Promise<AssetLockFundingAddressSchema[]> {
     const storageKey = await this.getStorageKey()
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema

@@ -2,9 +2,9 @@ import { ext } from '../platform'
 import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT, BLOCKCHAIN_MESSAGING_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
+import { ListCoreUtxosResponse } from './messages/response/ListCoreUtxosResponse'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
 import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
-import { ListCoreUtxosResponse } from './messages/response/ListCoreUtxosResponse'
 import { GetCoreTransactionsPayload } from './messages/payloads/GetCoreTransactionsPayload'
 import { GetCoreTransactionsResponse } from './messages/response/GetCoreTransactionsResponse'
 import { InitAccountXpubsPayload } from './messages/payloads/InitAccountXpubsPayload'
@@ -455,10 +455,12 @@ export class PrivateAPIClient {
     return response.addresses
   }
 
-  // The account's spendable Core outputs, for picking which coins fund an asset
-  // lock. No password: the xpub is cached.
-  async listCoreUtxos (): Promise<ListCoreUtxosResponse> {
-    return await this._rpcCall(MessagingMethods.LIST_CORE_UTXOS, {})
+  async listCoreUtxos (): Promise<ListCoreUtxosResponse['utxos']> {
+    const payload: EmptyPayload = {}
+
+    const response: ListCoreUtxosResponse = await this._rpcCall(MessagingMethods.LIST_CORE_UTXOS, payload)
+
+    return response.utxos
   }
 
   async getCoreBalance (): Promise<GetCoreBalanceResponse> {

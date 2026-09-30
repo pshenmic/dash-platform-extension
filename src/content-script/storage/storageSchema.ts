@@ -78,10 +78,7 @@ export type AssetLockFundingPurpose = 'registration' | 'topUp'
 
 export interface AssetLockFundingAddressSchema {
   address: string
-  // Null when the asset lock is funded from the wallet's own coins: the inputs
-  // are ordinary BIP44 outputs, signed with a key derived from the seed, so there
-  // is no one-off key to keep.
-  encryptedPrivateKey: string | null
+  encryptedPrivateKey: string
   used: boolean
   assetLockTxid?: string | null
   // DIP-13 derivation index for top-up funding keys (m/9'/coin'/5'/2'/index).

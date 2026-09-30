@@ -26,7 +26,6 @@ export interface CoreAddressUtxo {
   amount: bigint
 }
 
-// An account output, with the address that received it.
 export interface CoreXpubUtxo extends CoreAddressUtxo {
   address: string
 }
@@ -63,9 +62,6 @@ export interface CoreExplorerTransactionsPage {
   // Pass back to get the next page; null on the last one.
   nextCursor: string | null
 }
-
-// Largest page the explorer serves for its /xpub list endpoints.
-const XPUB_PAGE_LIMIT = 100
 
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
   return CORE_EXPLORER_URLS[network].api
@@ -220,6 +216,39 @@ export class CoreExplorerService {
     }
   }
 
+  // Every spendable output of the xpub's addresses, so an asset lock can be
+  // funded from the wallet's own coins without deriving and asking address by
+  // address.
+  async getXpubUtxos (xpub: string, network: NetworkType = 'testnet'): Promise<CoreXpubUtxo[]> {
+    const baseUrl = getBaseUrl(network)
+    const utxos: CoreXpubUtxo[] = []
+
+    let fetched = 0
+    for (let page = 1; ; page++) {
+      const response = await postJson(`${baseUrl}/xpub/utxo`, { xpub, page, limit: CORE_EXPLORER_MAX_PAGE_LIMIT })
+
+      if (!response.ok) {
+        throw new Error(`Core explorer error for xpub utxo: HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      const rows: any[] = Array.isArray(data?.resultSet) ? data.resultSet : []
+
+      fetched += rows.length
+      for (const row of rows) {
+        const address = toAddress(row.address)
+
+        if (address != null) {
+          utxos.push({ address, txid: String(row.prevTxHash), vout: toCount(row.vOutIndex), amount: toBigInt(row.amount) })
+        }
+      }
+
+      if (rows.length === 0 || fetched >= toCount(data?.pagination?.total)) {
+        return utxos
+      }
+    }
+  }
+
   // One page of the transactions touching the xpub's addresses, newest first.
   // The first page also carries every mempool transaction, ahead of the
   // confirmed ones. `cursor` is the previous page's `nextCursor`.
@@ -249,40 +278,33 @@ export class CoreExplorerService {
     return info != null && info.txCount > 0
   }
 
-  // Every confirmed output the account can spend, across both of the xpub's
-  // chains, so an asset lock can be funded without deriving addresses locally and
-  // asking about each one. Paged: the explorer caps a page at XPUB_PAGE_LIMIT and
-  // reports the total, which is how the walk knows it is done.
-  async getXpubUtxos (xpub: string, network: NetworkType = 'testnet'): Promise<CoreXpubUtxo[]> {
+  // Transaction that spent this transaction's output to `address`, or null while
+  // it is unspent. Recovers the asset lock committed by an earlier attempt: the
+  // funding transaction is known, the asset lock built from it is not.
+  async getOutputSpender (txid: string, address: string, network: NetworkType = 'testnet'): Promise<string | null> {
     const baseUrl = getBaseUrl(network)
-    const utxos: CoreXpubUtxo[] = []
+    const response = await fetch(`${baseUrl}/transaction/${txid}`)
 
-    let fetched = 0
-    for (let page = 1; ; page++) {
-      const response = await fetch(`${baseUrl}/xpub/utxo`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ xpub, page, limit: XPUB_PAGE_LIMIT })
-      })
+    if (response.status === 404) {
+      return null
+    }
 
-      if (!response.ok) {
-        throw new Error(`Core explorer error for xpub utxo: HTTP ${response.status}`)
-      }
+    if (!response.ok) {
+      throw new Error(`Core explorer error for transaction ${txid}: HTTP ${response.status}`)
+    }
 
-      const data = await response.json()
-      const rows: any[] = Array.isArray(data?.resultSet) ? data.resultSet : []
+    const data = await response.json()
+    const outputs: any[] = Array.isArray(data?.vOut) ? data.vOut : []
 
-      fetched += rows.length
-      for (const row of rows) {
-        if (typeof row.address === 'string' && typeof row.prevTxHash === 'string') {
-          utxos.push({ address: row.address, txid: row.prevTxHash, vout: toCount(row.vOutIndex), amount: toBigInt(row.amount) })
-        }
-      }
-
-      if (rows.length === 0 || fetched >= toCount(data?.pagination?.total)) {
-        return utxos
+    for (const output of outputs) {
+      // Every output paying the address funds the same asset lock, so the first
+      // spent one names it.
+      if (toAddress(output.address) === address && typeof output.spentTxId === 'string' && output.spentTxId !== '') {
+        return output.spentTxId
       }
     }
+
+    return null
   }
 
   // Confirmed UTXOs for an address. Empty when the address is unseen or has no

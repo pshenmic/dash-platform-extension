@@ -1,6 +1,4 @@
 export interface ListCoreUtxosResponse {
-  // One entry per spendable output of the account. `address` and `txid` are what
-  // an asset lock is funded with; every output of that transaction paying to that
-  // address is spent together, which is why the amount is shown per output.
+  // Amounts are strings: bigint does not cross the messaging boundary.
   utxos: Array<{ address: string, txid: string, vout: number, amountDuffs: string }>
 }

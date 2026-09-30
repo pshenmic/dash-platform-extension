@@ -2,9 +2,6 @@ import { NetworkType } from '../../NetworkType'
 
 export interface TopUpIdentityPayload {
   identityId: string
-  // Either a one-off deposit address this extension handed out, or one of the
-  // wallet's own Core addresses - then its key comes from the seed and the caller
-  // picks which coins to spend (LIST_CORE_UTXOS shows them).
   assetLockFundingAddress: string
   assetLockFundingTxid: string
   password: string

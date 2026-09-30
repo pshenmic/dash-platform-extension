@@ -66,10 +66,6 @@ export class FundPlatformAddressFromCoreHandler implements APIHandler {
     const passwordHash = hash.sha256().update(payload.password).digest('hex')
     const secretKey = PrivateKey.fromHex(passwordHash)
 
-    if (assetLockFundingAddressEntry.encryptedPrivateKey == null) {
-      throw new Error(`Asset lock funding address ${assetLockFundingAddressEntry.address} is funded from the wallet's own coins and has no one-off key`)
-    }
-
     let assetLockFundingKeyBytes: Uint8Array
     try {
       assetLockFundingKeyBytes = decrypt(secretKey.toHex(), hexToBytes(assetLockFundingAddressEntry.encryptedPrivateKey))

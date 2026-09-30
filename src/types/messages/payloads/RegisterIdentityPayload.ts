@@ -1,13 +1,8 @@
 export interface RegisterIdentityPayload {
-  /**
-   * The P2PKH address whose outputs fund the asset lock: either a one-off
-   * deposit address this extension handed out, or one of the wallet's own Core
-   * addresses, in which case its key comes from the seed and the caller picks
-   * which coins to spend (LIST_CORE_UTXOS shows them).
-   */
+  /** The asset lock funding P2PKH address that received the payment */
   assetLockFundingAddress: string
-  /** Txid of the transaction that paid to that address */
+  /** Txid of the asset lock funding transaction that paid to the address */
   assetLockFundingTxid: string
-  /** Extension password: decrypts the one-off key, or the seed */
+  /** Extension password used to decrypt the asset lock funding private key */
   password: string
 }
