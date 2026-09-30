@@ -4,6 +4,7 @@ import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
 import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
+import { ListCoreUtxosResponse } from './messages/response/ListCoreUtxosResponse'
 import { GetCoreTransactionsPayload } from './messages/payloads/GetCoreTransactionsPayload'
 import { GetCoreTransactionsResponse } from './messages/response/GetCoreTransactionsResponse'
 import { InitAccountXpubsPayload } from './messages/payloads/InitAccountXpubsPayload'
@@ -452,6 +453,12 @@ export class PrivateAPIClient {
     const response: GetCoreAddressesResponse = await this._rpcCall(MessagingMethods.LIST_CORE_ADDRESSES, payload)
 
     return response.addresses
+  }
+
+  // The account's spendable Core outputs, for picking which coins fund an asset
+  // lock. No password: the xpub is cached.
+  async listCoreUtxos (): Promise<ListCoreUtxosResponse> {
+    return await this._rpcCall(MessagingMethods.LIST_CORE_UTXOS, {})
   }
 
   async getCoreBalance (): Promise<GetCoreBalanceResponse> {

@@ -1,12 +1,25 @@
 import { PrivateKeyWASM } from 'dash-platform-sdk/types'
-import { Transaction } from 'dash-core-sdk'
 import { RegisterIdentityHandler } from '../../../../src/content-script/api/private/identities/registerIdentity'
+import { buildAssetLockFromFundingTx } from '../../../../src/utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../src/utils/waitForAssetLockProof'
+import { deriveCoreAddressKey } from '../../../../src/utils/coreAddresses'
 import { WalletType } from '../../../../src/types'
+
+jest.mock('../../../../src/utils/buildAssetLockFromFundingTx', () => ({
+  buildAssetLockFromFundingTx: jest.fn()
+}))
 
 jest.mock('../../../../src/utils/waitForAssetLockProof', () => ({
   waitForAssetLockProof: jest.fn()
 }))
+
+jest.mock('../../../../src/utils/coreAddresses', () => {
+  const actual = jest.requireActual('../../../../src/utils/coreAddresses')
+  return {
+    ...actual,
+    deriveCoreAddressKey: jest.fn()
+  }
+})
 
 jest.mock('../../../../src/utils/identityRegistration', () => ({
   IDENTITY_KEY_DEFINITIONS: [{ id: 0 }],
@@ -22,43 +35,36 @@ jest.mock('../../../../src/utils', () => {
   }
 })
 
+const buildAssetLockFromFundingTxMock = buildAssetLockFromFundingTx as jest.MockedFunction<typeof buildAssetLockFromFundingTx>
 const waitForAssetLockProofMock = waitForAssetLockProof as jest.MockedFunction<typeof waitForAssetLockProof>
+const deriveCoreAddressKeyMock = deriveCoreAddressKey as jest.MockedFunction<typeof deriveCoreAddressKey>
 const { buildIdentityCreateTransition } = jest.requireMock('../../../../src/utils/identityRegistration')
 const { deriveIdentityRegistrationKey, deriveIdentityPrivateKey } = jest.requireMock('../../../../src/utils')
 
-// An asset lock funded from the wallet's own Core coins: no deposit, no one-off
-// key. The pipeline is the one the deposit flow uses; only the transaction's
-// inputs and the bookkeeping around them differ, so that is what this covers.
-describe('RegisterIdentityHandler funded from the wallet own coins', () => {
+// Funding an asset lock with one of the wallet's own Core outputs: the caller
+// names the address and the transaction that paid it, exactly as it does for a
+// deposit, and the key comes from the seed instead of a stored one-off entry.
+// Everything after the key is develop's pipeline, so what is covered here is the
+// key, the record, and that nothing else changed shape.
+describe('RegisterIdentityHandler funded from an own Core output', () => {
   const identifier = 'HT3pUBM1Uv2mKgdPEN1gxa7A4PdsvNY89aJbdSKQb5wR'
-  // Real testnet addresses: the fee estimate builds an actual transaction.
-  const creditOutputAddress = 'yjLG5HeifV72L78cr6EW4sEC9AATZnmLXA'
-  const password = 'test'
+  const ownAddress = 'yTtgx2GriUKCECox9NWe9eutk7hFU5Hb8j'
+  const creditAddress = 'yjLG5HeifV72L78cr6EW4sEC9AATZnmLXA'
+  const fundingTxid = 'a'.repeat(64)
   const assetLockTxid = 'b'.repeat(64)
+  const password = 'test'
 
   let stored: any[]
   let walletRepository: any
   let identitiesRepository: any
   let assetLockFundingAddressesRepository: any
   let coreSDK: any
-  let coreAssetLock: any
   let sdk: any
-  let signedTx: any
   let handler: RegisterIdentityHandler
 
   beforeEach(() => {
     jest.clearAllMocks()
     stored = []
-
-    signedTx = {
-      hash: () => assetLockTxid,
-      hex: () => 'signedassetlockhex',
-      bytes: () => Uint8Array.from([1, 2, 3])
-    }
-
-    // The stored bytes are this stub, so parsing them back is stubbed as well;
-    // what matters here is that the stored transaction is the one that gets sent.
-    jest.spyOn(Transaction, 'fromHex').mockReturnValue(signedTx)
 
     walletRepository = {
       getCurrent: jest.fn(async () => ({
@@ -71,8 +77,7 @@ describe('RegisterIdentityHandler funded from the wallet own coins', () => {
         currentIdentity: null
       })),
       switchIdentity: jest.fn(async () => {}),
-      getCoreAccountXpub: jest.fn(async () => 'xpub'),
-      setCoreAccountXpub: jest.fn(async () => {})
+      getCoreAccountXpub: jest.fn(async () => 'xpub')
     }
 
     identitiesRepository = {
@@ -85,7 +90,6 @@ describe('RegisterIdentityHandler funded from the wallet own coins', () => {
     assetLockFundingAddressesRepository = {
       findAllUnused: jest.fn(async () => stored.filter(entry => entry.used !== true)),
       getByAddress: jest.fn(async (address: string) => stored.find(entry => entry.address === address) ?? null),
-      getAll: jest.fn(async () => stored),
       create: jest.fn(async (entry: any) => {
         stored.push(entry)
         return entry
@@ -105,20 +109,8 @@ describe('RegisterIdentityHandler funded from the wallet own coins', () => {
       subscribeToTransactions: jest.fn(() => ({ async * [Symbol.asyncIterator] () {} }))
     }
 
-    coreAssetLock = {
-      accountXpub: jest.fn(async () => 'xpub'),
-      spendableUtxos: jest.fn(async () => [
-        { address: 'yTtgx2GriUKCECox9NWe9eutk7hFU5Hb8j', derivationPath: "m/44'/1'/0'/0/0", index: 0, chain: 0, txid: 'a'.repeat(64), vout: 0, amount: '200000000' }
-      ]),
-      changeAddress: jest.fn(async () => 'yRmRnGBF5mjjNPqijsFXqrdV9XpkbdnwcQ'),
-      reservedOutpoints: jest.fn(() => new Set<string>()),
-      signPlan: jest.fn(async () => signedTx)
-    }
-
     sdk = {
-      keyPair: {
-        p2pkhAddress: jest.fn(() => creditOutputAddress)
-      },
+      keyPair: { p2pkhAddress: jest.fn(() => creditAddress) },
       identities: {
         getIdentityByPublicKeyHash: jest.fn(async () => null),
         getIdentityByNonUniquePublicKeyHash: jest.fn(async () => null)
@@ -129,8 +121,15 @@ describe('RegisterIdentityHandler funded from the wallet own coins', () => {
       }
     }
 
-    deriveIdentityRegistrationKey.mockResolvedValue(PrivateKeyWASM.fromHex('3ca33236ab14f6df6cf87fcbb0551544fee7dcf4f251557af02c175725764a5a', 'testnet'))
-    deriveIdentityPrivateKey.mockResolvedValue(PrivateKeyWASM.fromHex('3ca33236ab14f6df6cf87fcbb0551544fee7dcf4f251557af02c175725764a5a', 'testnet'))
+    const key = PrivateKeyWASM.fromHex('3ca33236ab14f6df6cf87fcbb0551544fee7dcf4f251557af02c175725764a5a', 'testnet')
+
+    deriveCoreAddressKeyMock.mockResolvedValue(key)
+    deriveIdentityRegistrationKey.mockResolvedValue(key)
+    deriveIdentityPrivateKey.mockResolvedValue(key)
+    buildAssetLockFromFundingTxMock.mockResolvedValue({
+      assetLockTx: { hash: () => assetLockTxid, bytes: () => Uint8Array.from([1]) },
+      lockedAmount: 100000000n
+    } as any)
     buildIdentityCreateTransition.mockReturnValue({
       getOwnerId: () => ({ base58: () => identifier }),
       hash: () => 'stateTransitionHash',
@@ -144,8 +143,7 @@ describe('RegisterIdentityHandler funded from the wallet own coins', () => {
       assetLockFundingAddressesRepository,
       {} as any,
       sdk,
-      coreSDK,
-      coreAssetLock
+      coreSDK
     )
   })
 
@@ -154,70 +152,58 @@ describe('RegisterIdentityHandler funded from the wallet own coins', () => {
     id: 'id',
     method: 'REGISTER_IDENTITY',
     type: 'request',
-    payload: { password, amountCredits: '100000000000', ...payload }
+    payload: { password, assetLockFundingAddress: ownAddress, assetLockFundingTxid: fundingTxid, ...payload }
   } as any)
 
-  it('spends the wallet own coins and stores the signed asset lock before broadcasting', async () => {
+  it('signs the asset lock with the key of the wallet own address', async () => {
     const result = await handle()
 
     expect(result.identifier).toBe(identifier)
-    expect(coreAssetLock.signPlan).toHaveBeenCalledTimes(1)
-    // The record is opened against the credit output address, with no one-off key.
+    expect(deriveCoreAddressKeyMock).toHaveBeenCalledWith(expect.anything(), password, 'xpub', ownAddress, sdk)
+    // The transaction is built exactly as for a deposit: same builder, same
+    // arguments, only the key is derived rather than decrypted.
+    expect(buildAssetLockFromFundingTxMock).toHaveBeenCalledWith(
+      coreSDK, fundingTxid, ownAddress, expect.any(String), creditAddress
+    )
+  })
+
+  it('opens the record and pins the identity index before broadcasting', async () => {
+    await handle()
+
+    // Keyed by the credit output address, so the paying address stays reusable.
     expect(assetLockFundingAddressesRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      address: creditOutputAddress,
+      address: creditAddress,
       encryptedPrivateKey: null,
-      assetLockTx: 'signedassetlockhex',
       registrationIdentityIndex: 0,
       purpose: 'registration'
     }))
-    // Stored first, broadcast second: a crash in between must leave the exact
-    // transaction to send, not a selection to redo.
     expect(assetLockFundingAddressesRepository.create.mock.invocationCallOrder[0])
       .toBeLessThan(coreSDK.broadcastTransaction.mock.invocationCallOrder[0])
-    expect(coreSDK.broadcastTransaction).toHaveBeenCalledTimes(1)
+    expect(assetLockFundingAddressesRepository.markAsBroadcasted)
+      .toHaveBeenCalledWith(creditAddress, assetLockTxid, 0)
   })
 
-  it('resends the stored transaction on a retry instead of selecting coins again', async () => {
+  it('rebuilds the same asset lock on a retry and does not send it twice', async () => {
     await handle()
-    coreAssetLock.signPlan.mockClear()
-    coreAssetLock.spendableUtxos.mockClear()
-    coreSDK.broadcastTransaction.mockClear()
     stored[0].used = false
+    coreSDK.broadcastTransaction.mockClear()
+    deriveIdentityRegistrationKey.mockClear()
 
     const result = await handle()
 
     expect(result.identifier).toBe(identifier)
-    // Nothing is selected or signed again, and the asset lock is not sent twice.
-    expect(coreAssetLock.spendableUtxos).not.toHaveBeenCalled()
-    expect(coreAssetLock.signPlan).not.toHaveBeenCalled()
-    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
-  })
-
-  it('keeps the identity index pinned to the asset lock across a retry', async () => {
-    await handle()
-    stored[0].used = false
-    deriveIdentityRegistrationKey.mockClear()
-
-    await handle()
-
-    // Every derivation is at the pinned index, so the credit output address - and
-    // with it the txid - cannot drift.
+    // The pinned index is reused, so the rebuilt transaction is the same one, and
+    // the asset lock already on L1 is not broadcast again.
     for (const call of deriveIdentityRegistrationKey.mock.calls) {
       expect(call[2]).toBe(0)
     }
+    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
-  it('asks for an amount, and for one that is a whole number of duffs', async () => {
-    await expect(handle({ amountCredits: undefined })).rejects.toThrow(/amount in credits/)
-    await expect(handle({ amountCredits: '1500' })).rejects.toThrow(/whole number of duffs/)
-    expect(coreAssetLock.signPlan).not.toHaveBeenCalled()
-  })
+  it('refuses an address the wallet does not own', async () => {
+    deriveCoreAddressKeyMock.mockRejectedValue(new Error("Core address yfoo is not one of this wallet's own addresses"))
 
-  it('leaves the deposit path alone when an address is given', async () => {
-    stored.push({ address: 'yZPSYxHnNEc6TyZJx6AUrHkAZJcFgp5H9j', encryptedPrivateKey: 'deadbeef', used: false, assetLockTxid: null })
-
-    await expect(handle({ assetLockFundingAddress: 'yZPSYxHnNEc6TyZJx6AUrHkAZJcFgp5H9j', assetLockFundingTxid: 'a'.repeat(64) }))
-      .rejects.toThrow(/Failed to decrypt asset lock funding key/)
-    expect(coreAssetLock.signPlan).not.toHaveBeenCalled()
+    await expect(handle({ assetLockFundingAddress: 'yfoo' })).rejects.toThrow(/not one of this wallet/)
+    expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 })

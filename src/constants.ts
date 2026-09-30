@@ -29,6 +29,10 @@ export const MIN_TOPUP_FUNDING_DASH = Number(MIN_TOPUP_FUNDING_DUFFS) / 1e8
 // Gap limit for scanning DIP-13 top-up funding indexes (m/9'/coin'/5'/2'/N).
 export const TOPUP_FUNDING_GAP_LIMIT = 20
 
+// How far along each Core chain an address still counts as the wallet's own,
+// when checking that a caller is funding an asset lock from its own coins.
+export const CORE_ADDRESS_WINDOW = 100
+
 // Upper bound for scanning identity indexes when picking the next free one.
 export const IDENTITY_INDEX_SCAN_LIMIT = 20
 

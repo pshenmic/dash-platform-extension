@@ -62,7 +62,6 @@ describe('TopUpIdentityHandler', () => {
   let assetLockFundingAddressesRepository: any
   let coreSDK: any
   let coreExplorer: any
-  let coreAssetLock: any
   let sdk: any
   let handler: TopUpIdentityHandler
   let encryptedPrivateKey: string
@@ -88,6 +87,8 @@ describe('TopUpIdentityHandler', () => {
     }
 
     walletRepository = {
+      // A real testnet account xpub: the own-address check expands it for real.
+      getCoreAccountXpub: jest.fn(async () => 'tpubDDfiaQD79RwqzH87Zb9rCKY3ETVrasx1aWXs8KrCTEpcgScuFig9UYFYCkH4D94xvG5BenQrFAz7PrqNEjHeDx3tiJC6dDk1JtvPBev3NjS'),
       getCurrent: jest.fn(async () => ({
         walletId: 'wallet1',
         type: WalletType.keystore,
@@ -110,6 +111,7 @@ describe('TopUpIdentityHandler', () => {
     }
 
     assetLockFundingAddressesRepository = {
+      findAllUnused: jest.fn(async () => []),
       getByAddress: jest.fn(async () => ({
         address: assetLockFundingAddress,
         encryptedPrivateKey,
@@ -130,8 +132,7 @@ describe('TopUpIdentityHandler', () => {
     identitiesRepository.forScope = jest.fn(() => identitiesRepository)
     assetLockFundingAddressesRepository.forScope = jest.fn(() => assetLockFundingAddressesRepository)
 
-    coreAssetLock = {} as any
-    coreExplorer = { isAddressUsed: jest.fn(async () => false) } as any
+    coreExplorer = { isAddressUsed: jest.fn(async () => false) }
     coreSDK = {
       // Both SDKs are fixed to a network for the lifetime of their document, and
       // the handler refuses to run against a scope they cannot serve.
@@ -147,6 +148,9 @@ describe('TopUpIdentityHandler', () => {
 
     sdk = {
       getNetwork: jest.fn(() => 'testnet'),
+      // Every derived address differs from the funding one, so an address with no
+      // record reads as "not the wallet's own".
+      keyPair: { p2pkhAddress: jest.fn(() => 'yOtherAddressOfThisWallet') },
       identities: {
         createStateTransition: jest.fn(() => stateTransition)
       },
@@ -176,8 +180,7 @@ describe('TopUpIdentityHandler', () => {
       assetLockFundingAddressesRepository,
       sdk,
       coreSDK,
-      coreExplorer,
-      coreAssetLock
+      coreExplorer
     )
   })
 
@@ -252,10 +255,10 @@ describe('TopUpIdentityHandler', () => {
     expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
   })
 
-  test('rejects missing funding address', async () => {
-    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce(null)
+  test('rejects an address that is neither a deposit nor one of the wallet own', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue(null)
 
-    await expect(handle()).rejects.toThrow(`Asset lock funding address ${assetLockFundingAddress} not found`)
+    await expect(handle()).rejects.toThrow(/is not one of this wallet's own addresses/)
 
     expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()

@@ -1,11 +1,11 @@
 import { HDKey } from '@scure/bip32'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { Network } from 'dash-platform-sdk/types'
+import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { Wallet } from '../types/Wallet'
 import { NetworkType } from '../types/NetworkType'
 import { CoreAddressChain } from '../types/enums/CoreAddressChain'
-import { CORE_BIP32_VERSIONS } from '../constants'
-import { decryptMnemonic } from './index'
+import { CORE_ADDRESS_WINDOW, CORE_BIP32_VERSIONS } from '../constants'
+import { decryptMnemonic, deriveWalletHdKey } from './index'
 
 // BIP44 derivation for Core (L1) addresses: m/44'/coin'/account'/chain/index.
 //
@@ -79,4 +79,36 @@ export const deriveCoreAddressesFromXpub = (
   }
 
   return entries
+}
+
+// The private key of one of the wallet's own Core addresses, found by walking both
+// chains of the account. Funding an asset lock with the wallet's own coins needs
+// it: the inputs are ordinary BIP44 outputs, not a one-off deposit, so the key
+// comes from the seed rather than from storage. An address outside the window is
+// not one this wallet hands out, and is refused rather than signed for.
+export const deriveCoreAddressKey = async (
+  wallet: Wallet,
+  password: string,
+  xpub: string,
+  address: string,
+  sdk: DashPlatformSDK,
+  account: number = 0
+): Promise<PrivateKeyWASM> => {
+  const chains = [CoreAddressChain.receiving, CoreAddressChain.change]
+  const entry = chains
+    .flatMap(chain => deriveCoreAddressesFromXpub(sdk, xpub, wallet.network, account, chain, CORE_ADDRESS_WINDOW))
+    .find(candidate => candidate.address === address)
+
+  if (entry == null) {
+    throw new Error(`Core address ${address} is not one of this wallet's own addresses`)
+  }
+
+  const root = deriveWalletHdKey(wallet, password, sdk)
+  const derived = await sdk.keyPair.derivePath(root, entry.derivationPath)
+
+  if (derived.privateKey == null) {
+    throw new Error(`Could not derive the key for Core address ${address}`)
+  }
+
+  return PrivateKeyWASM.fromBytes(derived.privateKey, wallet.network)
 }
