@@ -19,16 +19,27 @@ describe('PageStateService', () => {
 
   beforeEach(() => {
     appConnectRepository = { getByURL: jest.fn(async () => connection(AppConnectStatus.approved, [identityA])) }
+    appConnectRepository.forScope = jest.fn(() => appConnectRepository)
+
     identitiesRepository = {
+      forScope: jest.fn(() => identitiesRepository),
       getAll: jest.fn(async () => [
         { identifier: identityA, index: 0, label: null, proTxHash: null, type: IdentityType.regular },
         { identifier: identityB, index: 1, label: null, proTxHash: null, type: IdentityType.regular }
       ])
     }
     walletRepository = { getCurrent: jest.fn(async () => ({ walletId: 'wallet1', currentIdentity: identityA })) }
+    walletRepository.forScope = jest.fn(() => walletRepository)
     storage = { get: jest.fn(async (key: string) => key === 'network' ? 'testnet' : 'wallet1') }
 
     service = new PageStateService(appConnectRepository, identitiesRepository, walletRepository, storage)
+  })
+
+  it('pins the wallet and network it was taken against', async () => {
+    await service.snapshot(origin)
+
+    expect(appConnectRepository.forScope).toHaveBeenCalledWith({ network: 'testnet', walletId: 'wallet1' })
+    expect(identitiesRepository.forScope).toHaveBeenCalledWith({ network: 'testnet', walletId: 'wallet1' })
   })
 
   it('shows only the granted identities', async () => {
