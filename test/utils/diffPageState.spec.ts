@@ -7,7 +7,7 @@ const identity = (identifier: string): any => ({ identifier, type: IdentityType.
 const state = (overrides: Partial<PageState> = {}): PageState => ({
   network: 'testnet',
   walletId: 'wallet1',
-  approved: true,
+  connected: true,
   identities: [identity('idA')],
   currentIdentity: 'idA',
   ...overrides
@@ -20,28 +20,28 @@ describe('diffPageState', () => {
   })
 
   it('says nothing at all to a website that is not connected', () => {
-    const before = state({ approved: false, identities: [], currentIdentity: null })
-    const after = state({ approved: false, identities: [], currentIdentity: null, network: 'mainnet', walletId: 'wallet2' })
+    const before = state({ connected: false, identities: [], currentIdentity: null })
+    const after = state({ connected: false, identities: [], currentIdentity: null, network: 'mainnet', walletId: 'wallet2' })
 
     expect(diffPageState(before, after)).toEqual([])
   })
 
   it('reports a network switch', () => {
-    const events = diffPageState(state(), state({ network: 'mainnet', identities: [], currentIdentity: null, approved: false, walletId: 'wallet2' }))
+    const events = diffPageState(state(), state({ network: 'mainnet', identities: [], currentIdentity: null, connected: false, walletId: 'wallet2' }))
 
     expect(events.map(event => event.event)).toEqual([PageEventName.networkChanged, PageEventName.identitiesChanged])
     expect(events[0].payload).toEqual({ network: 'mainnet' })
   })
 
   it('reports a wallet switch as an empty identity list, not as a disconnect', () => {
-    const events = diffPageState(state(), state({ walletId: 'wallet2', approved: false, identities: [], currentIdentity: null }))
+    const events = diffPageState(state(), state({ walletId: 'wallet2', connected: false, identities: [], currentIdentity: null }))
 
     expect(events.map(event => event.event)).toEqual([PageEventName.identitiesChanged])
     expect(events[0].payload).toEqual({ identities: [], currentIdentity: null })
   })
 
   it('reports a revoked connection as a disconnect', () => {
-    const events = diffPageState(state(), state({ approved: false, identities: [], currentIdentity: null }))
+    const events = diffPageState(state(), state({ connected: false, identities: [], currentIdentity: null }))
 
     expect(events.map(event => event.event)).toEqual([PageEventName.identitiesChanged, PageEventName.disconnect])
   })
@@ -64,7 +64,7 @@ describe('diffPageState', () => {
   })
 
   it('tells a website that has just been approved what it may see', () => {
-    const before = state({ approved: false, identities: [], currentIdentity: null })
+    const before = state({ connected: false, identities: [], currentIdentity: null })
 
     expect(diffPageState(before, state()).map(event => event.event)).toEqual([PageEventName.identitiesChanged])
   })

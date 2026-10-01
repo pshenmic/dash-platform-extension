@@ -6,7 +6,10 @@ import { IdentityInfo } from './IdentityInfo'
 export interface PageState {
   network: string | null
   walletId: string | null
-  approved: boolean
+  // The connection is approved and leaves the website at least one identity to
+  // act as. An approved connection with nothing granted can do nothing, so it
+  // does not count as connected.
+  connected: boolean
   identities: IdentityInfo[]
   currentIdentity: string | null
 }
@@ -16,7 +19,8 @@ export enum PageEventName {
   identitiesChanged = 'identitiesChanged',
   // The extension switched to another network.
   networkChanged = 'networkChanged',
-  // The connection itself is gone: revoked, rejected or removed.
+  // The website lost its access: the grant was taken away, or the connection
+  // was rejected or removed.
   disconnect = 'disconnect'
 }
 

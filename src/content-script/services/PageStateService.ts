@@ -62,7 +62,7 @@ export class PageStateService {
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
 
     if (walletId == null) {
-      return { network, walletId: null, approved: false, identities: [], currentIdentity: null }
+      return { network, walletId: null, connected: false, identities: [], currentIdentity: null }
     }
 
     const scope: RepositoryScope = { network: network as NetworkType, walletId }
@@ -74,7 +74,7 @@ export class PageStateService {
     const wallet = await this.walletRepository.forScope(scope).getById(walletId)
 
     if (wallet == null) {
-      return { network, walletId, approved: false, identities: [], currentIdentity: null }
+      return { network, walletId, connected: false, identities: [], currentIdentity: null }
     }
 
     const appConnect = await this.appConnectRepository.forScope(scope).getByURL(origin)
@@ -83,7 +83,7 @@ export class PageStateService {
     return {
       network,
       walletId,
-      approved: appConnect?.status === AppConnectStatus.approved,
+      connected: appConnect?.status === AppConnectStatus.approved && identities.length > 0,
       identities,
       currentIdentity
     }
