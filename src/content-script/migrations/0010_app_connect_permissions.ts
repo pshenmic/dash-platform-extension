@@ -9,7 +9,7 @@ export default async function dropAppConnectsWithoutPermissions (storageAdapter:
   const schemaVersion = await storageAdapter.get('schema_version') as number
 
   if (schemaVersion === 9) {
-    const walletIds = await storageAdapter.get('wallets') as string[]
+    const walletIds = await storageAdapter.get('wallets') as string[] ?? []
 
     const wallets = (await Promise.all(walletIds.map(async (walletId) => {
       const mainnetWallet = await storageAdapter.get(`wallet_mainnet_${walletId}`) as WalletStoreSchema
