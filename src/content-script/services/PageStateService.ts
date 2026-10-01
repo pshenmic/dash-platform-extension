@@ -1,4 +1,4 @@
-import { AppConnect } from '../../types'
+import { AppConnect, Wallet } from '../../types'
 import { IdentityInfo } from '../../types/IdentityInfo'
 import { PageState } from '../../types/PageState'
 import { AppConnectStatus } from '../../types/enums/AppConnectStatus'
@@ -34,23 +34,20 @@ export class PageStateService {
 
   // Identities of the wallet this connection was granted, and which of them the
   // website should act as. Nothing is visible until the user approves.
-  async visible (appConnect: AppConnect | null, scope?: RepositoryScope): Promise<{ identities: IdentityInfo[], currentIdentity: string | null }> {
+  async visible (appConnect: AppConnect | null, wallet: Wallet, scope?: RepositoryScope): Promise<{ identities: IdentityInfo[], currentIdentity: string | null }> {
     const granted = appConnect?.status === AppConnectStatus.approved ? appConnect.identities : []
 
     // A snapshot pins the pair it was taken against, so a switch midway cannot
     // mix one wallet's identities with another's connection.
     const identitiesRepository = scope == null ? this.identitiesRepository : this.identitiesRepository.forScope(scope)
-    const walletRepository = scope == null ? this.walletRepository : this.walletRepository.forScope(scope)
 
     const identities = (await identitiesRepository.getAll())
       .filter(identity => granted.includes(identity.identifier))
       .map(identity => ({ identifier: identity.identifier, type: identity.type, proTxHash: identity.proTxHash }))
 
-    const wallet = await walletRepository.getCurrent()
-
     // The wallet's own current identity when the website may see it, otherwise
     // the first one it may, so a connected site always has something to act as.
-    const currentIdentity = wallet?.currentIdentity != null && granted.includes(wallet.currentIdentity)
+    const currentIdentity = wallet.currentIdentity != null && granted.includes(wallet.currentIdentity)
       ? wallet.currentIdentity
       : identities[0]?.identifier ?? null
 
@@ -70,8 +67,18 @@ export class PageStateService {
 
     const scope: RepositoryScope = { network: network as NetworkType, walletId }
 
+    // Switching the network writes the network and the wallet one after the
+    // other, so a snapshot taken in between names a wallet that does not exist
+    // on that network. There is nothing to show for such a pair, and the write
+    // that follows triggers a snapshot of the settled one.
+    const wallet = await this.walletRepository.forScope(scope).getById(walletId)
+
+    if (wallet == null) {
+      return { network, walletId, approved: false, identities: [], currentIdentity: null }
+    }
+
     const appConnect = await this.appConnectRepository.forScope(scope).getByURL(origin)
-    const { identities, currentIdentity } = await this.visible(appConnect, scope)
+    const { identities, currentIdentity } = await this.visible(appConnect, wallet, scope)
 
     return {
       network,

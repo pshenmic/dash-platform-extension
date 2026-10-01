@@ -60,6 +60,35 @@ describe('the page state watcher', () => {
     ])
   })
 
+  // Leaving a network and coming back passes through states the website may not
+  // see; it still has to learn that the network is different when it may look
+  // again, or it would act on the one it was last told about.
+  it('reports a network change that happened while the website had no access', async () => {
+    const events: PageEvent[] = []
+    const service: any = { snapshot: jest.fn() }
+
+    service.snapshot
+      .mockResolvedValueOnce(state({ identities: [{ identifier: 'idA' } as any], currentIdentity: 'idA' }))
+      .mockResolvedValueOnce(state({ network: 'mainnet', walletId: null, approved: false }))
+      .mockResolvedValueOnce(state({ network: 'testnet', walletId: null, approved: false }))
+      .mockResolvedValueOnce(state({ identities: [{ identifier: 'idA' } as any], currentIdentity: 'idA' }))
+
+    const watcher = createPageStateWatcher(service, origin, event => events.push(event))
+
+    await watcher.refresh()
+    await watcher.refresh()
+    await watcher.refresh()
+    await watcher.refresh()
+
+    expect(events.map(event => event.event)).toEqual([
+      PageEventName.networkChanged,
+      PageEventName.identitiesChanged,
+      PageEventName.networkChanged,
+      PageEventName.identitiesChanged
+    ])
+    expect(events[2].payload).toEqual({ network: 'testnet' })
+  })
+
   it('keeps working after a failed look', async () => {
     const events: PageEvent[] = []
     const service: any = { snapshot: jest.fn() }

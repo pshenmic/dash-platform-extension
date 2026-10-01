@@ -55,7 +55,7 @@ export class ConnectAppHandler implements PublicAPIHandler {
     // connection, and then only the identities they granted - the same filter
     // the events pushed to the page go through.
     const approved = appConnect.status === AppConnectStatus.approved
-    const { identities, currentIdentity } = await this.pageStateService.visible(appConnect)
+    const { identities, currentIdentity } = await this.pageStateService.visible(appConnect, wallet)
 
     return {
       redirectUrl: chrome.runtime.getURL(`index.html#/connect/${appConnect.id}`),
