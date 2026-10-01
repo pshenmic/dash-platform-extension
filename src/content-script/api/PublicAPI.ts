@@ -10,6 +10,7 @@ import { ConnectAppHandler } from './public/connectApp'
 import { RequestStateTransitionApprovalHandler } from './public/requestStateTransitionApproval'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { WalletRepository } from '../repository/WalletRepository'
+import { PageStateService } from '../services/PageStateService'
 
 /**
  * Handlers for a messages from a webpage to extension (potentially insecure)
@@ -21,6 +22,7 @@ export class PublicAPI {
   stateTransitionsRepository: StateTransitionsRepository
   identitiesRepository: IdentitiesRepository
   walletRepository: WalletRepository
+  pageStateService: PageStateService
 
   constructor (sdk: DashPlatformSDK, storageAdapter: StorageAdapter) {
     this.sdk = sdk
@@ -77,8 +79,11 @@ export class PublicAPI {
     const walletRepository = new WalletRepository(this.storageAdapter, this.identitiesRepository)
     this.walletRepository = walletRepository
 
+    const pageStateService = new PageStateService(appConnectRepository, identitiesRepository, walletRepository, this.storageAdapter)
+    this.pageStateService = pageStateService
+
     this.handlers = {
-      [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository, identitiesRepository, walletRepository, this.storageAdapter),
+      [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository, pageStateService, walletRepository, this.storageAdapter),
       [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(stateTransitionsRepository)
     }
   }

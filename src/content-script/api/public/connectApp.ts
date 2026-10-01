@@ -2,7 +2,7 @@ import { AppConnectRepository } from '../../repository/AppConnectRepository'
 import { ConnectAppResponse } from '../../../types/messages/response/ConnectAppResponse'
 import { EventData } from '../../../types'
 import { PublicAPIContext, PublicAPIHandler } from '../PublicAPIHandler'
-import { IdentitiesRepository } from '../../repository/IdentitiesRepository'
+import { PageStateService } from '../../services/PageStateService'
 import { WalletRepository } from '../../repository/WalletRepository'
 import { StorageAdapter } from '../../storage/storageAdapter'
 import { AppConnectStatus } from '../../../types/enums/AppConnectStatus'
@@ -13,13 +13,13 @@ interface AppConnectRequestPayload {
 
 export class ConnectAppHandler implements PublicAPIHandler {
   appConnectRepository: AppConnectRepository
-  identitiesRepository: IdentitiesRepository
+  pageStateService: PageStateService
   walletRepository: WalletRepository
   storageAdapter: StorageAdapter
 
-  constructor (appConnectRepository: AppConnectRepository, identitiesRepository: IdentitiesRepository, walletRepository: WalletRepository, storageAdapter: StorageAdapter) {
+  constructor (appConnectRepository: AppConnectRepository, pageStateService: PageStateService, walletRepository: WalletRepository, storageAdapter: StorageAdapter) {
     this.appConnectRepository = appConnectRepository
-    this.identitiesRepository = identitiesRepository
+    this.pageStateService = pageStateService
     this.walletRepository = walletRepository
     this.storageAdapter = storageAdapter
   }
@@ -52,23 +52,15 @@ export class ConnectAppHandler implements PublicAPIHandler {
     }
 
     // Nothing about the wallet leaves the extension until the user approves the
-    // connection, and then only the identities they granted.
+    // connection, and then only the identities they granted - the same filter
+    // the events pushed to the page go through.
     const approved = appConnect.status === AppConnectStatus.approved
-    const granted = approved ? appConnect.identities : []
-
-    const identities = (await this.identitiesRepository.getAll())
-      .filter(identity => granted.includes(identity.identifier))
-
-    // The wallet's own current identity when the website may see it, otherwise
-    // the first one it may, so a connected site always has something to act as.
-    const currentIdentity = wallet.currentIdentity != null && granted.includes(wallet.currentIdentity)
-      ? wallet.currentIdentity
-      : identities[0]?.identifier ?? null
+    const { identities, currentIdentity } = await this.pageStateService.visible(appConnect)
 
     return {
       redirectUrl: chrome.runtime.getURL(`index.html#/connect/${appConnect.id}`),
       status: appConnect.status,
-      identities: identities.map(identity => ({ identifier: identity.identifier, type: identity.type, proTxHash: identity.proTxHash })),
+      identities,
       currentIdentity,
       network: approved ? await this.storageAdapter.get('network') as string : null
     }
