@@ -7,13 +7,13 @@ const sameIdentities = (previous: PageState, next: PageState): boolean =>
 /**
  * What to tell a website after something in the extension changed.
  *
- * A website that was never connected is told nothing at all - storage changes
- * are none of its business. A connection that stops being approved under the
- * same wallet was revoked, which is a disconnect; losing access because the
- * user switched wallet is not, so that only empties the identity list.
+ * A website that is not connected is told nothing at all - storage changes are
+ * none of its business. Losing access under the same wallet and network means
+ * the user took the grant away, which is a disconnect; losing it because they
+ * switched wallet or network is not, so that only empties the identity list.
  */
 export const diffPageState = (previous: PageState, next: PageState): PageEvent[] => {
-  if (!previous.approved && !next.approved) {
+  if (!previous.connected && !next.connected) {
     return []
   }
 
@@ -30,7 +30,7 @@ export const diffPageState = (previous: PageState, next: PageState): PageEvent[]
     })
   }
 
-  if (previous.approved && !next.approved && previous.network === next.network && previous.walletId === next.walletId) {
+  if (previous.connected && !next.connected && previous.network === next.network && previous.walletId === next.walletId) {
     events.push({ event: PageEventName.disconnect, payload: {} })
   }
 

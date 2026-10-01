@@ -4,7 +4,7 @@ import { PageEvent, PageEventName, PageState } from '../../src/types/PageState'
 const state = (overrides: Partial<PageState> = {}): PageState => ({
   network: 'testnet',
   walletId: 'wallet1',
-  approved: true,
+  connected: true,
   identities: [],
   currentIdentity: null,
   ...overrides
@@ -34,7 +34,7 @@ describe('the page state watcher', () => {
 
     service.snapshot
       .mockResolvedValueOnce(state())
-      .mockResolvedValueOnce(state({ network: 'mainnet', approved: false, walletId: 'wallet2' }))
+      .mockResolvedValueOnce(state({ network: 'mainnet', connected: false, walletId: 'wallet2' }))
 
     const watcher = createPageStateWatcher(service, origin, event => events.push(event))
 
@@ -46,8 +46,8 @@ describe('the page state watcher', () => {
 
   it('serializes overlapping refreshes so a burst of writes is diffed in order', async () => {
     const events: PageEvent[] = []
-    const snapshots = [state(), state({ currentIdentity: 'idA', identities: [{ identifier: 'idA' } as any] }), state({ approved: false })]
-    const service: any = { snapshot: jest.fn(async () => snapshots.shift() ?? state({ approved: false })) }
+    const snapshots = [state(), state({ currentIdentity: 'idA', identities: [{ identifier: 'idA' } as any] }), state({ connected: false })]
+    const service: any = { snapshot: jest.fn(async () => snapshots.shift() ?? state({ connected: false })) }
 
     const watcher = createPageStateWatcher(service, origin, event => events.push(event))
 
@@ -69,8 +69,8 @@ describe('the page state watcher', () => {
 
     service.snapshot
       .mockResolvedValueOnce(state({ identities: [{ identifier: 'idA' } as any], currentIdentity: 'idA' }))
-      .mockResolvedValueOnce(state({ network: 'mainnet', walletId: null, approved: false }))
-      .mockResolvedValueOnce(state({ network: 'testnet', walletId: null, approved: false }))
+      .mockResolvedValueOnce(state({ network: 'mainnet', walletId: null, connected: false }))
+      .mockResolvedValueOnce(state({ network: 'testnet', walletId: null, connected: false }))
       .mockResolvedValueOnce(state({ identities: [{ identifier: 'idA' } as any], currentIdentity: 'idA' }))
 
     const watcher = createPageStateWatcher(service, origin, event => events.push(event))
@@ -96,7 +96,7 @@ describe('the page state watcher', () => {
     service.snapshot
       .mockResolvedValueOnce(state())
       .mockRejectedValueOnce(new Error('storage is gone'))
-      .mockResolvedValueOnce(state({ approved: false }))
+      .mockResolvedValueOnce(state({ connected: false }))
 
     const watcher = createPageStateWatcher(service, origin, event => events.push(event))
 

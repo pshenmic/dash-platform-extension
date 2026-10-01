@@ -49,19 +49,28 @@ describe('PageStateService', () => {
     const snapshot = await service.snapshot(origin)
 
     expect(snapshot.identities.map(identity => identity.identifier)).toEqual([identityA])
-    expect(snapshot).toMatchObject({ network: 'testnet', walletId: 'wallet1', approved: true, currentIdentity: identityA })
+    expect(snapshot).toMatchObject({ network: 'testnet', walletId: 'wallet1', connected: true, currentIdentity: identityA })
+  })
+
+  // Approved with nothing granted is the state the user leaves behind when they
+  // take every identity away: the website can do nothing, so it is not
+  // connected, and the page is told so.
+  it('does not count an approved connection with nothing granted as connected', async () => {
+    appConnectRepository.getByURL.mockResolvedValue(connection(AppConnectStatus.approved, []))
+
+    expect(await service.snapshot(origin)).toMatchObject({ connected: false, identities: [], currentIdentity: null })
   })
 
   it('shows nothing while the connection is not approved', async () => {
     appConnectRepository.getByURL.mockResolvedValue(connection(AppConnectStatus.pending, [identityA]))
 
-    expect(await service.snapshot(origin)).toMatchObject({ approved: false, identities: [], currentIdentity: null })
+    expect(await service.snapshot(origin)).toMatchObject({ connected: false, identities: [], currentIdentity: null })
   })
 
   it('shows nothing to a website that never connected', async () => {
     appConnectRepository.getByURL.mockResolvedValue(null)
 
-    expect(await service.snapshot(origin)).toMatchObject({ approved: false, identities: [], currentIdentity: null })
+    expect(await service.snapshot(origin)).toMatchObject({ connected: false, identities: [], currentIdentity: null })
   })
 
   it('does not name an identity the website may not see as its current one', async () => {
@@ -84,14 +93,14 @@ describe('PageStateService', () => {
   it('shows nothing for a wallet that does not exist on the network', async () => {
     walletRepository.getById.mockResolvedValue(null)
 
-    expect(await service.snapshot(origin)).toMatchObject({ approved: false, identities: [], currentIdentity: null })
+    expect(await service.snapshot(origin)).toMatchObject({ connected: false, identities: [], currentIdentity: null })
     expect(appConnectRepository.getByURL).not.toHaveBeenCalled()
   })
 
   it('is empty when no wallet is chosen, without asking about connections', async () => {
     storage.get.mockImplementation(async (key: string) => key === 'network' ? 'testnet' : null)
 
-    expect(await service.snapshot(origin)).toEqual({ network: 'testnet', walletId: null, approved: false, identities: [], currentIdentity: null })
+    expect(await service.snapshot(origin)).toEqual({ network: 'testnet', walletId: null, connected: false, identities: [], currentIdentity: null })
     expect(appConnectRepository.getByURL).not.toHaveBeenCalled()
   })
 })
