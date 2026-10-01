@@ -14,29 +14,44 @@ export const isPageStateKey = (key: string): boolean =>
 /**
  * Tells one website when what it may see has changed.
  *
- * `refresh` takes a new snapshot and emits the difference from the previous
- * one; the first call only records the baseline, so a page that just loaded is
- * not told that everything changed. Calls are serialized, because two storage
- * writes in a row would otherwise race and emit the difference twice.
+ * `refresh` takes a new snapshot and emits the difference from what the page
+ * was last told; the first call only records the baseline, so a page that just
+ * loaded is not told that everything changed. Calls are serialized, because two
+ * storage writes in a row would otherwise race and emit the difference twice.
+ *
+ * What the page was told is not the same as the last snapshot: while a website
+ * has no access, changes are none of its business and nothing is sent, so the
+ * network may change twice before it may look again. Comparing against the
+ * delivered state is what makes it hear about that on the way back in.
  */
 export const createPageStateWatcher = (
   pageStateService: PageStateService,
   origin: string,
   emit: (event: PageEvent) => void
 ): { refresh: () => Promise<void> } => {
-  let previous: PageState | null = null
+  let delivered: PageState | null = null
   let pending: Promise<void> = Promise.resolve()
 
   const update = async (): Promise<void> => {
     const next = await pageStateService.snapshot(origin)
 
-    if (previous != null) {
-      for (const event of diffPageState(previous, next)) {
-        emit(event)
-      }
+    if (delivered == null) {
+      delivered = next
+
+      return
     }
 
-    previous = next
+    const events = diffPageState(delivered, next)
+
+    if (events.length === 0) {
+      return
+    }
+
+    for (const event of events) {
+      emit(event)
+    }
+
+    delivered = next
   }
 
   return {
