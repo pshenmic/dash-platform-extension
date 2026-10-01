@@ -29,11 +29,15 @@ describe('what a connected website may see', () => {
   let walletId: string
   let connectId: string
 
-  const call = async (method: MessagingMethods, payload: object, from: string = origin): Promise<any> =>
-    await publicAPI.handleMessage({
+  const call = async (method: MessagingMethods, payload: object, from: string = origin): Promise<any> => {
+    // Shaped like the message a page posts, which is all handleMessage reads.
+    const event: any = {
       origin: from,
       data: { context: 'dash-platform-extension', id: 'id', type: 'request', method, payload }
-    } as MessageEvent)
+    }
+
+    return await publicAPI.handleMessage(event)
+  }
 
   const connect = async (from: string = origin): Promise<any> =>
     await call(MessagingMethods.CONNECT_APP, { url: from }, from)
