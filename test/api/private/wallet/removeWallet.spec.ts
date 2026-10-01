@@ -79,7 +79,7 @@ describe('remove wallet', () => {
     }
 
     const mockAppConnects: AppConnectsStorageSchema = {
-      mockId1: { id: 'mockId1', url: 'http://localhost:8080', status: AppConnectStatus.approved }
+      mockId1: { id: 'mockId1', url: 'http://localhost:8080', status: AppConnectStatus.approved, identities: [] }
     }
 
     await storage.set(`identities_testnet_${walletId}`, mockIdentities)
