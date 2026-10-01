@@ -28,7 +28,10 @@ describe('PageStateService', () => {
         { identifier: identityB, index: 1, label: null, proTxHash: null, type: IdentityType.regular }
       ])
     }
-    walletRepository = { getCurrent: jest.fn(async () => ({ walletId: 'wallet1', currentIdentity: identityA })) }
+    walletRepository = {
+      getCurrent: jest.fn(async () => ({ walletId: 'wallet1', currentIdentity: identityA })),
+      getById: jest.fn(async () => ({ walletId: 'wallet1', currentIdentity: identityA }))
+    }
     walletRepository.forScope = jest.fn(() => walletRepository)
     storage = { get: jest.fn(async (key: string) => key === 'network' ? 'testnet' : 'wallet1') }
 
@@ -73,6 +76,16 @@ describe('PageStateService', () => {
     const snapshot = await service.snapshot(origin)
 
     expect(snapshot.identities.map(identity => identity.identifier)).toEqual([identityA])
+  })
+
+  // Switching the network writes the network and the wallet one after the
+  // other; a snapshot taken in between names a wallet that is not on that
+  // network.
+  it('shows nothing for a wallet that does not exist on the network', async () => {
+    walletRepository.getById.mockResolvedValue(null)
+
+    expect(await service.snapshot(origin)).toMatchObject({ approved: false, identities: [], currentIdentity: null })
+    expect(appConnectRepository.getByURL).not.toHaveBeenCalled()
   })
 
   it('is empty when no wallet is chosen, without asking about connections', async () => {
