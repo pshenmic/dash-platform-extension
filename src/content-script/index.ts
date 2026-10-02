@@ -1,10 +1,20 @@
 // This file only runs in the extension context (content-script)
 import { ExtensionStorageAdapter } from './storage/extensionStorageAdapter'
-import runMigrations from './storage/runMigrations'
 import { EventData } from '../types'
+import { MessagingMethods } from '../types/enums/MessagingMethods'
 import { generateRandomHex } from '../utils'
+import { SCHEMA_VERSION } from '../constants'
+import { ext } from '../platform'
 
 const extensionStorageAdapter = new ExtensionStorageAdapter()
+
+// The backend is asked again on this interval, in case the first request was
+// lost while the service worker was starting. Storage is read again with it, so
+// a missed change event cannot leave the page waiting forever either.
+const BACKEND_WAKE_INTERVAL = 2 * 1000
+
+// A migration this long is not normal, so it is said out loud. Waiting goes on.
+const SCHEMA_SLOW_WARNING = 30 * 1000
 
 const start = async (): Promise<void> => {
   const wasmSupport = checkWebAssembly()
@@ -13,10 +23,16 @@ const start = async (): Promise<void> => {
     throw new Error('WebAssembly not supported')
   }
 
-  // Dynamic import to bypass automatic WebAssembly modules initialization
+  // Dynamic import to bypass automatic WebAssembly modules initialization.
+  //
+  // It must stay "eager": a lazy import() becomes a separate chunk that webpack
+  // loads with a <script> tag, and a content script's <script> tags resolve
+  // against the web page's origin (https://example.com/666.js), not the
+  // extension's. Eager keeps the module inside content-script.js and still only
+  // evaluates it here, after the WebAssembly check.
   // eslint-disable-next-line
   // @ts-ignore
-  const { initApp } = await import('./initApp')
+  const { initApp } = await import(/* webpackMode: "eager" */ './initApp')
 
   await initApp()
 
@@ -42,8 +58,93 @@ const checkWebAssembly = (): boolean => {
   }
 }
 
-// do migrations
-runMigrations(extensionStorageAdapter)
+// Any request makes the service worker create the offscreen document, which
+// boots the backend and runs the migrations. The reply is not needed (it goes
+// to extension pages, not to content scripts).
+const wakeBackend = (): void => {
+  const message: EventData = {
+    id: generateRandomHex(8),
+    context: 'dash-platform-extension',
+    type: 'request',
+    method: MessagingMethods.GET_STATUS,
+    payload: {}
+  }
+
+  ext.runtime.sendMessage(message).catch(() => {
+    // No receiver yet (worker still waking); the send starts it regardless
+  })
+}
+
+// Storage migrations belong to the backend alone (see backend/bootstrap.ts).
+// They used to run here as well, in every tab, at the same time as the
+// backend's own run: the two interleaved, one of them saw a half-migrated
+// schema_version, threw, and restored its storage backup over the other's
+// work. So the content script only waits for the schema to be ready.
+//
+// There is no deadline on purpose. A migration can take as long as it takes,
+// and giving up would leave this page without the extension until it is
+// reloaded, while every other page kept working. Instead the page waits for
+// the backend to write the version, keeps nudging it awake in case the first
+// request was lost, and says in the console when the wait gets long.
+const waitForSchema = async (): Promise<void> => {
+  const isReady = async (): Promise<boolean> => {
+    const schemaVersion = await extensionStorageAdapter.get('schema_version')
+
+    // Storage left behind by a newer build of the extension. No migration will
+    // bring it back down, so waiting for one is pointless.
+    if (typeof schemaVersion === 'number' && schemaVersion > SCHEMA_VERSION) {
+      throw new Error(`Extension storage was migrated by a newer version: schema version is ${schemaVersion}, this build expects ${SCHEMA_VERSION}`)
+    }
+
+    return schemaVersion === SCHEMA_VERSION
+  }
+
+  if (await isReady()) {
+    return
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    // Listening before the first nudge, so a version written while the request
+    // is in flight is not missed.
+    const onChanged = (changes: Record<string, chrome.storage.StorageChange>, areaName: string): void => {
+      if (areaName === 'local' && changes.schema_version?.newValue === SCHEMA_VERSION) {
+        done()
+      }
+    }
+
+    const slowWarning = setTimeout(() => {
+      extensionStorageAdapter.get('schema_version').then(schemaVersion => {
+        console.warn(`Dash Platform Extension: still waiting for the backend to migrate storage, schema version is ${String(schemaVersion)} and ${SCHEMA_VERSION} is expected`)
+      }, () => {})
+    }, SCHEMA_SLOW_WARNING)
+
+    const nudge = setInterval(() => {
+      wakeBackend()
+
+      isReady().then(ready => {
+        if (ready) {
+          done()
+        }
+      }, (e) => {
+        done()
+        reject(e)
+      })
+    }, BACKEND_WAKE_INTERVAL)
+
+    const done = (): void => {
+      clearInterval(nudge)
+      clearTimeout(slowWarning)
+      chrome.storage.onChanged.removeListener(onChanged)
+      resolve()
+    }
+
+    chrome.storage.onChanged.addListener(onChanged)
+
+    wakeBackend()
+  })
+}
+
+waitForSchema()
   .then(start)
   .then(() => console.log('Dash Platform Extension API loaded (content-script)'))
   .catch((e) => {

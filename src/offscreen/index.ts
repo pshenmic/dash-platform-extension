@@ -1,4 +1,3 @@
-import { startBackend } from '../backend/bootstrap'
 import { attachMessaging } from '../backend/attachMessaging'
 
 /**
@@ -11,9 +10,14 @@ import { attachMessaging } from '../backend/attachMessaging'
  * which is what keeps the compiled WASM warm between opens.
  */
 
-// Start booting immediately; attachMessaging registers its listener
-// synchronously so requests arriving mid-boot queue on this promise.
-const backend = startBackend()
+// The backend (and with it the SDK) is imported dynamically on purpose.
+// Importing it statically would compile the WASM while this module's imports
+// are evaluated, before the listener below exists; a request arriving in that
+// window (about a second on a cold browser start) would be dropped, leaving the
+// popup on its spinner until MESSAGING_TIMEOUT. This way the listener is live
+// as soon as the document runs, and early requests queue on `backend`.
+const backend = import('../backend/bootstrap')
+  .then(async ({ startBackend }) => await startBackend())
 
 attachMessaging(backend)
 
