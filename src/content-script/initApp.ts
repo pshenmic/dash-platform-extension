@@ -1,7 +1,5 @@
 import { ExtensionStorageAdapter } from './storage/extensionStorageAdapter'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { DashCoreSDK } from 'dash-core-sdk'
-import { PrivateAPI } from './api/PrivateAPI'
 import { PublicAPI } from './api/PublicAPI'
 import hash from 'hash.js'
 import { AppConnectStorageSchema } from './storage/storageSchema'
@@ -15,16 +13,13 @@ export async function initApp (): Promise<void> {
   const extensionStorageAdapter = new ExtensionStorageAdapter()
   const network = await extensionStorageAdapter.get('network') as string
 
+  // Only the public API lives here. The private one is the backend's, and the
+  // popup reaches it over runtime messaging; building it here as well brought
+  // in dash-core-sdk, whose connection pool starts looking for evonodes as
+  // soon as it is constructed - from every page the browser opens.
   const sdk = new DashPlatformSDK({ network: Network[network] })
-
-  const coreSDK = new DashCoreSDK({ network: Network[network] })
-
-  const privateAPI = new PrivateAPI(sdk, coreSDK, extensionStorageAdapter)
   const publicAPI = new PublicAPI(sdk, extensionStorageAdapter)
 
-  // Handler table only — the popup now talks to the offscreen backend over
-  // real runtime messaging, which does not reach content scripts.
-  privateAPI.buildHandlers()
   publicAPI.init()
 
   // get current wallet

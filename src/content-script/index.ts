@@ -2,15 +2,16 @@
 import { ExtensionStorageAdapter } from './storage/extensionStorageAdapter'
 import { EventData } from '../types'
 import { MessagingMethods } from '../types/enums/MessagingMethods'
-import { generateRandomHex, wait } from '../utils'
+import { generateRandomHex } from '../utils'
 import { SCHEMA_VERSION } from '../constants'
 import { ext } from '../platform'
 
 const extensionStorageAdapter = new ExtensionStorageAdapter()
 
-// How long to wait for the backend to finish migrating storage
-const SCHEMA_READY_TIMEOUT = 30 * 1000
-const SCHEMA_POLL_INTERVAL = 200
+// The backend is asked again on this interval, in case the first request was
+// lost while the service worker was starting. Storage is read again with it, so
+// a missed change event cannot leave the page waiting forever either.
+const BACKEND_WAKE_INTERVAL = 2 * 1000
 
 const start = async (): Promise<void> => {
   const wasmSupport = checkWebAssembly()
@@ -76,28 +77,49 @@ const wakeBackend = (): void => {
 // backend's own run: the two interleaved, one of them saw a half-migrated
 // schema_version, threw, and restored its storage backup over the other's
 // work. So the content script only waits for the schema to be ready.
+//
+// There is no deadline on purpose. A migration can take as long as it takes,
+// and giving up would leave this page without the extension until it is
+// reloaded, while every other page kept working. Instead the page waits for
+// the backend to write the version, and keeps nudging it awake in case the
+// first request was lost.
 const waitForSchema = async (): Promise<void> => {
-  const startedAt = Date.now()
-  let woken = false
+  const isReady = async (): Promise<boolean> =>
+    await extensionStorageAdapter.get('schema_version') === SCHEMA_VERSION
 
-  for (;;) {
-    const schemaVersion = await extensionStorageAdapter.get('schema_version')
-
-    if (schemaVersion === SCHEMA_VERSION) {
-      return
-    }
-
-    if (!woken) {
-      wakeBackend()
-      woken = true
-    }
-
-    if (Date.now() - startedAt > SCHEMA_READY_TIMEOUT) {
-      throw new Error(`Extension storage is not ready: schema version is ${String(schemaVersion)}, expected ${SCHEMA_VERSION}`)
-    }
-
-    await wait(SCHEMA_POLL_INTERVAL)
+  if (await isReady()) {
+    return
   }
+
+  await new Promise<void>((resolve) => {
+    // Listening before the first nudge, so a version written while the request
+    // is in flight is not missed.
+    const onChanged = (changes: Record<string, chrome.storage.StorageChange>, areaName: string): void => {
+      if (areaName === 'local' && changes.schema_version?.newValue === SCHEMA_VERSION) {
+        done()
+      }
+    }
+
+    const nudge = setInterval(() => {
+      wakeBackend()
+
+      isReady().then(ready => {
+        if (ready) {
+          done()
+        }
+      }, () => {})
+    }, BACKEND_WAKE_INTERVAL)
+
+    const done = (): void => {
+      clearInterval(nudge)
+      chrome.storage.onChanged.removeListener(onChanged)
+      resolve()
+    }
+
+    chrome.storage.onChanged.addListener(onChanged)
+
+    wakeBackend()
+  })
 }
 
 waitForSchema()
