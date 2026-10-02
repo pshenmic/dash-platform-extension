@@ -13,6 +13,9 @@ import { RegisterIdentityPayload } from '../../../../types/messages/payloads/Reg
 import { RegisterIdentityResponse } from '../../../../types/messages/response/RegisterIdentityResponse'
 import { IdentityType } from '../../../../types/enums/IdentityType'
 import { buildAssetLockFromFundingTx } from '../../../../utils/buildAssetLockFromFundingTx'
+import { deriveCoreAccountXpub, deriveCoreAddressPrivateKey } from '../../../../utils/coreAddresses'
+import { CoreExplorerService } from '../../../services/CoreExplorerService'
+import { NetworkType } from '../../../../types/PlatformExplorer'
 import { waitForAssetLockProof } from '../../../../utils/waitForAssetLockProof'
 import { IDENTITY_KEY_DEFINITIONS, buildIdentityCreateTransition } from '../../../../utils/identityRegistration'
 import {
@@ -35,6 +38,7 @@ export class RegisterIdentityHandler implements APIHandler {
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
+  coreExplorer: CoreExplorerService
 
   constructor (
     walletRepository: WalletRepository,
@@ -42,7 +46,8 @@ export class RegisterIdentityHandler implements APIHandler {
     assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository,
     storageAdapter: StorageAdapter,
     sdk: DashPlatformSDK,
-    coreSDK: DashCoreSDK
+    coreSDK: DashCoreSDK,
+    coreExplorer: CoreExplorerService
   ) {
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
@@ -50,6 +55,7 @@ export class RegisterIdentityHandler implements APIHandler {
     this.storageAdapter = storageAdapter
     this.sdk = sdk
     this.coreSDK = coreSDK
+    this.coreExplorer = coreExplorer
   }
 
   async handle (event: EventData): Promise<RegisterIdentityResponse> {
@@ -67,16 +73,12 @@ export class RegisterIdentityHandler implements APIHandler {
     }
 
     // ── 2. Load the asset lock funding address entry ────────────────────────
+    // No record means the address is not a deposit this extension handed out,
+    // but one of the wallet's own: it is funded from its own coins, and L1 keeps
+    // the only record of what an earlier attempt committed.
     const assetLockFundingAddressEntry = await this.assetLockFundingAddressesRepository.getByAddress(payload.assetLockFundingAddress)
 
-    if (assetLockFundingAddressEntry == null) {
-      throw new Error(
-        `Asset lock funding address ${payload.assetLockFundingAddress} not found. ` +
-        'It may belong to a different wallet or network.'
-      )
-    }
-
-    if (assetLockFundingAddressEntry.used) {
+    if (assetLockFundingAddressEntry?.used === true) {
       throw new Error(`Asset lock funding address ${payload.assetLockFundingAddress} has already been used for registration`)
     }
 
@@ -84,17 +86,29 @@ export class RegisterIdentityHandler implements APIHandler {
     // The funding key signs the asset lock tx inputs only. Credit output
     // ownership and Platform ST signing are handled by identityRegistrationKey
     // derived in step 5 (DIP-0013).
-    const passwordHash = hash.sha256().update(payload.password).digest('hex')
-    const secretKey = PrivateKey.fromHex(passwordHash)
+    let assetLockFundingPrivateKey: PrivateKeyWASM
 
-    let assetLockFundingKeyBytes: Uint8Array
-    try {
-      assetLockFundingKeyBytes = decrypt(secretKey.toHex(), hexToBytes(assetLockFundingAddressEntry.encryptedPrivateKey))
-    } catch {
-      throw new Error('Failed to decrypt asset lock funding key — wrong password or corrupted entry')
+    if (assetLockFundingAddressEntry == null) {
+      const xpub = await this.walletRepository.getCoreAccountXpub(0) ??
+        await deriveCoreAccountXpub(wallet, payload.password, 0, this.sdk)
+      const { nextUnused } = await this.coreExplorer.getXpubSummary(xpub, wallet.network as NetworkType)
+
+      assetLockFundingPrivateKey = await deriveCoreAddressPrivateKey(
+        wallet, payload.password, xpub, payload.assetLockFundingAddress, nextUnused, this.sdk
+      )
+    } else {
+      const passwordHash = hash.sha256().update(payload.password).digest('hex')
+      const secretKey = PrivateKey.fromHex(passwordHash)
+
+      let assetLockFundingKeyBytes: Uint8Array
+      try {
+        assetLockFundingKeyBytes = decrypt(secretKey.toHex(), hexToBytes(assetLockFundingAddressEntry.encryptedPrivateKey))
+      } catch {
+        throw new Error('Failed to decrypt asset lock funding key — wrong password or corrupted entry')
+      }
+
+      assetLockFundingPrivateKey = PrivateKeyWASM.fromBytes(assetLockFundingKeyBytes, wallet.network)
     }
-
-    const assetLockFundingPrivateKey = PrivateKeyWASM.fromBytes(assetLockFundingKeyBytes, wallet.network)
 
     // ── 4. Determine the identity index ─────────────────────────────────────
     // The credit output address — and therefore the asset lock txid — is derived
@@ -105,10 +119,16 @@ export class RegisterIdentityHandler implements APIHandler {
     // rebuild a different tx than the one already committed on L1.
     let identityIndex: number
 
-    if (assetLockFundingAddressEntry.assetLockTxid == null) {
+    // Without a record, the funding output itself says whether an earlier
+    // attempt already committed an asset lock, and which one.
+    const committedAssetLockTxid = assetLockFundingAddressEntry == null
+      ? await this.coreExplorer.getOutputSpender(payload.assetLockFundingTxid, payload.assetLockFundingAddress, wallet.network as NetworkType)
+      : assetLockFundingAddressEntry.assetLockTxid ?? null
+
+    if (committedAssetLockTxid == null) {
       // Fresh registration: scan for the next free index on-chain.
       identityIndex = await this.scanFreeIdentityIndex(wallet, payload.password)
-    } else if (assetLockFundingAddressEntry.registrationIdentityIndex != null) {
+    } else if (assetLockFundingAddressEntry?.registrationIdentityIndex != null) {
       // Recovery: reuse the index pinned when the asset lock was broadcast.
       identityIndex = assetLockFundingAddressEntry.registrationIdentityIndex
     } else {
@@ -119,7 +139,7 @@ export class RegisterIdentityHandler implements APIHandler {
         wallet,
         payload,
         assetLockFundingPrivateKey,
-        assetLockFundingAddressEntry.assetLockTxid
+        committedAssetLockTxid
       )
     }
 
@@ -142,13 +162,10 @@ export class RegisterIdentityHandler implements APIHandler {
 
     const assetLockTxid = assetLockTx.hash()
 
-    if (
-      assetLockFundingAddressEntry.assetLockTxid != null &&
-      assetLockFundingAddressEntry.assetLockTxid !== assetLockTxid
-    ) {
+    if (committedAssetLockTxid != null && committedAssetLockTxid !== assetLockTxid) {
       throw new Error(
         `Asset lock funding address ${payload.assetLockFundingAddress} is already broadcasted ` +
-        `with a different asset lock txid (${assetLockFundingAddressEntry.assetLockTxid})`
+        `with a different asset lock txid (${committedAssetLockTxid})`
       )
     }
 
@@ -161,12 +178,24 @@ export class RegisterIdentityHandler implements APIHandler {
       [txidToFilterBytes(assetLockTxid)]
     )
 
-    if (assetLockFundingAddressEntry.assetLockTxid == null) {
-      await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
-      // Persist the broadcasted txid AND the identity index before any further
-      // work, so a retry after a crash rebuilds the exact same asset lock instead
-      // of re-scanning to a different index.
-      await this.assetLockFundingAddressesRepository.markAsBroadcasted(payload.assetLockFundingAddress, assetLockTxid, identityIndex)
+    if (committedAssetLockTxid == null) {
+      try {
+        await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
+      } catch (e) {
+        // The explorer lags the mempool, so an asset lock broadcast moments ago
+        // still reads as unspent. Rebuilt byte for byte, it is the same
+        // transaction, and the network rejecting it as known is not a failure.
+        if (await this.coreSDK.getTransaction(assetLockTxid).catch(() => null) == null) {
+          throw e
+        }
+      }
+
+      if (assetLockFundingAddressEntry != null) {
+        // Persist the broadcasted txid AND the identity index before any further
+        // work, so a retry after a crash rebuilds the exact same asset lock instead
+        // of re-scanning to a different index.
+        await this.assetLockFundingAddressesRepository.markAsBroadcasted(payload.assetLockFundingAddress, assetLockTxid, identityIndex)
+      }
     }
 
     // ── 8. Wait for instant lock or chain lock (whichever comes first) ──────
@@ -259,7 +288,10 @@ export class RegisterIdentityHandler implements APIHandler {
     }
 
     // ── 15. Mark funding address as used and switch identity ────────────────
-    await this.assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
+    if (assetLockFundingAddressEntry != null) {
+      await this.assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
+    }
+
     await this.walletRepository.switchIdentity(identifier)
 
     return {

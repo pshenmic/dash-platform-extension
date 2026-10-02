@@ -2,6 +2,7 @@ import { ext } from '../platform'
 import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT, BLOCKCHAIN_MESSAGING_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
+import { ListCoreUtxosResponse } from './messages/response/ListCoreUtxosResponse'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
 import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
 import { GetCoreTransactionsPayload } from './messages/payloads/GetCoreTransactionsPayload'
@@ -456,6 +457,14 @@ export class PrivateAPIClient {
     const response: GetCoreAddressesResponse = await this._rpcCall(MessagingMethods.LIST_CORE_ADDRESSES, payload)
 
     return response.addresses
+  }
+
+  async listCoreUtxos (): Promise<ListCoreUtxosResponse['utxos']> {
+    const payload: EmptyPayload = {}
+
+    const response: ListCoreUtxosResponse = await this._rpcCall(MessagingMethods.LIST_CORE_UTXOS, payload)
+
+    return response.utxos
   }
 
   async getCoreBalance (): Promise<GetCoreBalanceResponse> {
