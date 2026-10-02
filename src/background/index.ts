@@ -23,18 +23,23 @@ const storage = new ExtensionStorageAdapter()
 let creating: Promise<void> | null = null
 
 async function ensureOffscreen (): Promise<void> {
-  if (await chrome.offscreen.hasDocument()) {
-    return
-  }
-
-  // createDocument throws if called twice concurrently, so in-flight creations
-  // share one promise.
+  // Every caller shares one in-flight check-and-create. hasDocument() turns
+  // true as soon as the document exists, before its script has run, so a
+  // caller that consulted it while the startup pre-warm was still creating the
+  // document would forward a request that nothing is listening for yet.
+  // (createDocument also throws if called twice concurrently.)
   if (creating == null) {
-    creating = chrome.offscreen.createDocument({
-      url: OFFSCREEN_PATH,
-      reasons: [chrome.offscreen.Reason.WORKERS],
-      justification: 'Dash Platform SDK runs WebAssembly that requires a DOM and worker threads'
-    }).finally(() => { creating = null })
+    creating = (async () => {
+      if (await chrome.offscreen.hasDocument()) {
+        return
+      }
+
+      await chrome.offscreen.createDocument({
+        url: OFFSCREEN_PATH,
+        reasons: [chrome.offscreen.Reason.WORKERS],
+        justification: 'Dash Platform SDK runs WebAssembly that requires a DOM and worker threads'
+      })
+    })().finally(() => { creating = null })
   }
 
   await creating
