@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Dash Extension",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "author": "pshenmic",
   "homepage_url": "https://github.com/pshenmic/dash-platform-extension",
   "minimum_chrome_version": "119",
