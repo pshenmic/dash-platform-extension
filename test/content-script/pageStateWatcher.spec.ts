@@ -1,9 +1,11 @@
 import { createPageStateWatcher, isPageStateKey } from '../../src/content-script/watchPageState'
+import { AppConnectStatus } from '../../src/types/enums/AppConnectStatus'
 import { PageEvent, PageEventName, PageState } from '../../src/types/PageState'
 
 const state = (overrides: Partial<PageState> = {}): PageState => ({
   network: 'testnet',
   walletId: 'wallet1',
+  status: AppConnectStatus.approved,
   connected: true,
   identities: [],
   currentIdentity: null,
