@@ -98,6 +98,12 @@ export class ExtensionSigner {
   async signAndBroadcast (stateTransition: StateTransitionWASM | string | Uint8Array): Promise<StateTransitionWASM> {
     let stateTransitionWASM: StateTransitionWASM
 
+    // The extension injects its API and the SDK as two separate bundles, each
+    // with its own WASM instance, so a transition the page built with
+    // window.dashPlatformSDK is not an instance of the class held here. It
+    // still carries its own bytes, which is all that is needed.
+    const foreign = stateTransition as unknown as { bytes?: () => Uint8Array }
+
     // hex or base64
     if (typeof stateTransition === 'string') {
       if (validateHex((stateTransition).substring(0, 32))) {
@@ -110,6 +116,8 @@ export class ExtensionSigner {
       stateTransitionWASM = StateTransitionWASM.fromBytes(stateTransition as Uint8Array)
     } else if (stateTransition instanceof StateTransitionWASM) {
       stateTransitionWASM = stateTransition
+    } else if (typeof foreign?.bytes === 'function') {
+      stateTransitionWASM = StateTransitionWASM.fromBytes(foreign.bytes())
     } else {
       throw new Error('Unrecognized state transition type, must be StateTransitionWASM or string hex or string base64 or Uint8Array')
     }
