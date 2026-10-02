@@ -13,6 +13,9 @@ const extensionStorageAdapter = new ExtensionStorageAdapter()
 // a missed change event cannot leave the page waiting forever either.
 const BACKEND_WAKE_INTERVAL = 2 * 1000
 
+// A migration this long is not normal, so it is said out loud. Waiting goes on.
+const SCHEMA_SLOW_WARNING = 30 * 1000
+
 const start = async (): Promise<void> => {
   const wasmSupport = checkWebAssembly()
 
@@ -81,8 +84,8 @@ const wakeBackend = (): void => {
 // There is no deadline on purpose. A migration can take as long as it takes,
 // and giving up would leave this page without the extension until it is
 // reloaded, while every other page kept working. Instead the page waits for
-// the backend to write the version, and keeps nudging it awake in case the
-// first request was lost.
+// the backend to write the version, keeps nudging it awake in case the first
+// request was lost, and says in the console when the wait gets long.
 const waitForSchema = async (): Promise<void> => {
   const isReady = async (): Promise<boolean> =>
     await extensionStorageAdapter.get('schema_version') === SCHEMA_VERSION
@@ -100,6 +103,12 @@ const waitForSchema = async (): Promise<void> => {
       }
     }
 
+    const slowWarning = setTimeout(() => {
+      extensionStorageAdapter.get('schema_version').then(schemaVersion => {
+        console.warn(`Dash Platform Extension: still waiting for the backend to migrate storage, schema version is ${String(schemaVersion)} and ${SCHEMA_VERSION} is expected`)
+      }, () => {})
+    }, SCHEMA_SLOW_WARNING)
+
     const nudge = setInterval(() => {
       wakeBackend()
 
@@ -112,6 +121,7 @@ const waitForSchema = async (): Promise<void> => {
 
     const done = (): void => {
       clearInterval(nudge)
+      clearTimeout(slowWarning)
       chrome.storage.onChanged.removeListener(onChanged)
       resolve()
     }
