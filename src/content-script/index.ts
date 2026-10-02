@@ -87,14 +87,23 @@ const wakeBackend = (): void => {
 // the backend to write the version, keeps nudging it awake in case the first
 // request was lost, and says in the console when the wait gets long.
 const waitForSchema = async (): Promise<void> => {
-  const isReady = async (): Promise<boolean> =>
-    await extensionStorageAdapter.get('schema_version') === SCHEMA_VERSION
+  const isReady = async (): Promise<boolean> => {
+    const schemaVersion = await extensionStorageAdapter.get('schema_version')
+
+    // Storage left behind by a newer build of the extension. No migration will
+    // bring it back down, so waiting for one is pointless.
+    if (typeof schemaVersion === 'number' && schemaVersion > SCHEMA_VERSION) {
+      throw new Error(`Extension storage was migrated by a newer version: schema version is ${schemaVersion}, this build expects ${SCHEMA_VERSION}`)
+    }
+
+    return schemaVersion === SCHEMA_VERSION
+  }
 
   if (await isReady()) {
     return
   }
 
-  await new Promise<void>((resolve) => {
+  await new Promise<void>((resolve, reject) => {
     // Listening before the first nudge, so a version written while the request
     // is in flight is not missed.
     const onChanged = (changes: Record<string, chrome.storage.StorageChange>, areaName: string): void => {
@@ -116,7 +125,10 @@ const waitForSchema = async (): Promise<void> => {
         if (ready) {
           done()
         }
-      }, () => {})
+      }, (e) => {
+        done()
+        reject(e)
+      })
     }, BACKEND_WAKE_INTERVAL)
 
     const done = (): void => {
