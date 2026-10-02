@@ -12,11 +12,11 @@ declare global {
 // initialize messaging layer
 const publicAPIClient = new PublicAPIClient()
 
-// create custom signer function for DashPlatformSDK
-const extensionSigner = new ExtensionSigner(publicAPIClient)
-
 // a page follows the wallet through these instead of asking again
 const pageEvents = new PageEvents()
+
+// create custom signer function for DashPlatformSDK
+const extensionSigner = new ExtensionSigner(publicAPIClient, pageEvents)
 
 window.dashPlatformExtension = {
   signer: extensionSigner,

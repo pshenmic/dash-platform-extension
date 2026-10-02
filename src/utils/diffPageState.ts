@@ -13,11 +13,17 @@ const sameIdentities = (previous: PageState, next: PageState): boolean =>
  * switched wallet or network is not, so that only empties the identity list.
  */
 export const diffPageState = (previous: PageState, next: PageState): PageEvent[] => {
-  if (!previous.connected && !next.connected) {
-    return []
+  const events: PageEvent[] = []
+
+  // The answer to the website's own connection request, which it hears even
+  // before it has access - it is the one waiting for it.
+  if (previous.status !== next.status) {
+    events.push({ event: PageEventName.connectionStatusChanged, payload: { status: next.status } })
   }
 
-  const events: PageEvent[] = []
+  if (!previous.connected && !next.connected) {
+    return events
+  }
 
   if (previous.network !== next.network) {
     events.push({ event: PageEventName.networkChanged, payload: { network: next.network } })

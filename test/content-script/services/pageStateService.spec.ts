@@ -100,7 +100,7 @@ describe('PageStateService', () => {
   it('is empty when no wallet is chosen, without asking about connections', async () => {
     storage.get.mockImplementation(async (key: string) => key === 'network' ? 'testnet' : null)
 
-    expect(await service.snapshot(origin)).toEqual({ network: 'testnet', walletId: null, connected: false, identities: [], currentIdentity: null })
+    expect(await service.snapshot(origin)).toEqual({ network: 'testnet', walletId: null, status: null, connected: false, identities: [], currentIdentity: null })
     expect(appConnectRepository.getByURL).not.toHaveBeenCalled()
   })
 })

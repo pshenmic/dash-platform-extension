@@ -7,9 +7,11 @@ import hash from 'hash.js'
 import { AppConnectStorageSchema } from './storage/storageSchema'
 import { AppConnectStatus } from '../types/enums/AppConnectStatus'
 import { EventData } from '../types'
+import { PageEvent } from '../types/PageState'
 import { MessagingMethods } from '../types/enums/MessagingMethods'
 import { generateRandomHex, injectScript } from '../utils'
 import { createPageStateWatcher, isPageStateKey } from './watchPageState'
+import { createStateTransitionWatcher, isStateTransitionKey } from './watchStateTransitions'
 import { Network } from '../types/enums/Network'
 
 export async function initApp (): Promise<void> {
@@ -28,9 +30,7 @@ export async function initApp (): Promise<void> {
   privateAPI.buildHandlers()
   publicAPI.init()
 
-  // Tell this page when what it may see changes, so it does not have to ask
-  // again. Only a website with an approved connection ever hears anything.
-  const watcher = createPageStateWatcher(publicAPI.pageStateService, window.location.origin, (pageEvent) => {
+  const emit = (pageEvent: PageEvent): void => {
     const message: EventData = {
       id: generateRandomHex(8),
       context: 'dash-platform-extension',
@@ -40,17 +40,31 @@ export async function initApp (): Promise<void> {
     }
 
     window.postMessage(message)
-  })
+  }
+
+  // Tell this page when what it may see changes, and when the user answers a
+  // request it sent, so it does not have to ask again. Only a website with an
+  // approved connection, or one waiting for an answer, ever hears anything.
+  const watcher = createPageStateWatcher(publicAPI.pageStateService, window.location.origin, emit)
+  const stateTransitionWatcher = createStateTransitionWatcher(publicAPI.stateTransitionsRepository, publicAPI.stateTransitionRequests, emit)
 
   // The first snapshot is the baseline a later one is compared with.
   watcher.refresh().catch(e => console.error('Failed to read what this page may see', e))
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== 'local' || !Object.keys(changes).some(isPageStateKey)) {
+    if (areaName !== 'local') {
       return
     }
 
-    watcher.refresh().catch(e => console.error('Failed to read what this page may see', e))
+    const keys = Object.keys(changes)
+
+    if (keys.some(isPageStateKey)) {
+      watcher.refresh().catch(e => console.error('Failed to read what this page may see', e))
+    }
+
+    if (keys.some(isStateTransitionKey)) {
+      stateTransitionWatcher.refresh().catch(e => console.error('Failed to read the answer to a signing request', e))
+    }
   })
 
   // get current wallet
