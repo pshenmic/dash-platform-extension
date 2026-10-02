@@ -89,6 +89,33 @@ describe('ExtensionSigner', () => {
   })
 
   describe('signAndBroadcast', () => {
+    // injectExtension.js and injectSdk.js are separate bundles with their own
+    // WASM instance, so a transition the page built is not an instance of the
+    // class the signer holds.
+    it('accepts a state transition built by the SDK injected next to it', async () => {
+      const sdk = new DashPlatformSDK({ network: 'testnet' })
+      const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
+        identityId,
+        recipientId: identityId,
+        amount: 1000n,
+        identityNonce: 1n
+      })
+
+      const fromAnotherBundle = { bytes: () => stateTransition.bytes(), base64: () => stateTransition.base64() }
+      const unsignedHash = stateTransition.hash(true)
+
+      client.requestTransactionApproval
+        .mockResolvedValueOnce({ stateTransition: { unsignedHash, status: 'pending' }, redirectUrl: 'chrome-extension://id/index.html#/approve/x' })
+        .mockResolvedValueOnce({ stateTransition: { unsignedHash, status: 'rejected' } })
+
+      const signing = signer.signAndBroadcast(fromAnotherBundle as any)
+
+      await settle()
+      announce(PageEventName.stateTransitionResolved, { unsignedHash, status: 'rejected' })
+
+      await expect(signing).rejects.toThrow('Transaction signing was rejected')
+    })
+
     it('waits for the answer to its own request and signs with it', async () => {
       const sdk = new DashPlatformSDK({ network: 'testnet' })
       const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
