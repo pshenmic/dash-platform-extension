@@ -1,4 +1,5 @@
 import { diffPageState } from '../../src/utils/diffPageState'
+import { AppConnectStatus } from '../../src/types/enums/AppConnectStatus'
 import { PageEventName, PageState } from '../../src/types/PageState'
 import { IdentityType } from '../../src/types/enums/IdentityType'
 
@@ -7,6 +8,7 @@ const identity = (identifier: string): any => ({ identifier, type: IdentityType.
 const state = (overrides: Partial<PageState> = {}): PageState => ({
   network: 'testnet',
   walletId: 'wallet1',
+  status: AppConnectStatus.approved,
   connected: true,
   identities: [identity('idA')],
   currentIdentity: 'idA',
@@ -24,6 +26,19 @@ describe('diffPageState', () => {
     const after = state({ connected: false, identities: [], currentIdentity: null, network: 'mainnet', walletId: 'wallet2' })
 
     expect(diffPageState(before, after)).toEqual([])
+  })
+
+  // The answer to its own connection request is the one thing a website hears
+  // before it has any access.
+  it('reports the answer to a connection request, approved or rejected', () => {
+    const waiting = state({ status: AppConnectStatus.pending, connected: false, identities: [], currentIdentity: null })
+
+    const rejected = diffPageState(waiting, state({ status: AppConnectStatus.rejected, connected: false, identities: [], currentIdentity: null }))
+    expect(rejected.map(event => event.event)).toEqual([PageEventName.connectionStatusChanged])
+    expect(rejected[0].payload).toEqual({ status: AppConnectStatus.rejected })
+
+    const approved = diffPageState(waiting, state())
+    expect(approved.map(event => event.event)).toEqual([PageEventName.connectionStatusChanged, PageEventName.identitiesChanged])
   })
 
   it('reports a network switch', () => {

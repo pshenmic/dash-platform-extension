@@ -1,5 +1,7 @@
 import { StateTransitionWASM } from 'dash-platform-sdk/types'
-import { hexToBytes, popupWindow, validateHex, wait } from '../utils'
+import { hexToBytes, popupWindow, validateHex } from '../utils'
+import { PageEvents } from './PageEvents'
+import { PageEventName } from '../types/PageState'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'
 import { PublicAPIClient } from '../types'
@@ -10,11 +12,54 @@ import {
 import { ConnectAppResponse } from '../types/messages/response/ConnectAppResponse'
 import { WalletInfo } from '../types/WalletInfo'
 
+// How often the closing of an approval window is noticed. It is a property of
+// the window object in this page, not a question asked of the extension.
+const POPUP_CLOSED_CHECK_MS = 500
+
 export class ExtensionSigner {
   publicAPIClient: PublicAPIClient
+  pageEvents: PageEvents
 
-  constructor (publicAPIClient: PublicAPIClient) {
+  constructor (publicAPIClient: PublicAPIClient, pageEvents: PageEvents) {
     this.publicAPIClient = publicAPIClient
+    this.pageEvents = pageEvents
+  }
+
+  /**
+   * Waits for the extension to say that the user answered, instead of asking it
+   * again twice a second. Also returns when the approval window is closed
+   * without an answer, which the caller tells apart by reading the request once
+   * more, and gives up after the same timeout as before.
+   */
+  private async waitForAnswer (event: PageEventName, matches: (payload: any) => boolean, popupRef: Window | null): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      const listener = (payload: any): void => {
+        if (matches(payload)) {
+          stop()
+          resolve()
+        }
+      }
+
+      const closedCheck = setInterval(() => {
+        if (popupRef?.closed === true) {
+          stop()
+          resolve()
+        }
+      }, POPUP_CLOSED_CHECK_MS)
+
+      const timeout = setTimeout(() => {
+        stop()
+        reject(new Error('Failed to receive state transition signing approval due timeout'))
+      }, MESSAGING_TIMEOUT)
+
+      const stop = (): void => {
+        clearInterval(closedCheck)
+        clearTimeout(timeout)
+        this.pageEvents.off(event, listener)
+      }
+
+      this.pageEvents.on(event, listener)
+    })
   }
 
   async connect (): Promise<WalletInfo> {
@@ -27,19 +72,13 @@ export class ExtensionSigner {
       popupRef = popupWindow(response.redirectUrl, 'connectApp', window, 430, 600)
     }
 
-    const startTimestamp = new Date()
-
     while (response.status === StateTransitionStatus.pending) {
-      await wait(500)
-
-      if (new Date().getTime() - startTimestamp.getTime() > MESSAGING_TIMEOUT) {
-        throw new Error('Failed to receive state transition signing approval due timeout')
-      }
+      await this.waitForAnswer(PageEventName.connectionStatusChanged, payload => payload?.status !== 'pending', popupRef)
 
       response = await this.publicAPIClient.connectApp(url)
 
-      // Checked after the handler poll so Approve/Reject status transitions
-      // resolve through the normal path first.
+      // Checked after reading the answer so Approve/Reject resolve through the
+      // normal path first.
       if (response.status === StateTransitionStatus.pending && popupRef?.closed === true) {
         throw new Error('App connection was rejected')
       }
@@ -77,18 +116,20 @@ export class ExtensionSigner {
 
     let response: RequestStateTransitionApprovalResponse = await this.publicAPIClient.requestTransactionApproval(base64.encode(stateTransitionWASM.bytes()))
 
-    popupWindow(response.redirectUrl, 'approval', window, 430, 600)
-
-    const startTimestamp = new Date()
+    const popupRef = popupWindow(response.redirectUrl, 'approval', window, 430, 600)
 
     while (response.stateTransition.status === StateTransitionStatus.pending) {
-      await wait(500)
+      const unsignedHash = response.stateTransition.unsignedHash
 
-      if (new Date().getTime() - startTimestamp.getTime() > MESSAGING_TIMEOUT) {
-        throw new Error('Failed to receive state transition signing approval due timeout')
-      }
+      await this.waitForAnswer(PageEventName.stateTransitionResolved, payload => payload?.unsignedHash === unsignedHash, popupRef)
 
       response = await this.publicAPIClient.requestTransactionApproval(stateTransitionWASM.base64())
+
+      // The window closed with the request still unanswered: nobody is going to
+      // answer it now.
+      if (response.stateTransition.status === StateTransitionStatus.pending && popupRef?.closed === true) {
+        throw new Error('Transaction signing was rejected')
+      }
     }
 
     if (response.stateTransition.status === StateTransitionStatus.rejected) {
