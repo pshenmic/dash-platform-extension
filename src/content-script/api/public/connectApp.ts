@@ -1,8 +1,7 @@
 import { AppConnectRepository } from '../../repository/AppConnectRepository'
 import { ConnectAppResponse } from '../../../types/messages/response/ConnectAppResponse'
 import { EventData } from '../../../types'
-import { APIHandler } from '../APIHandler'
-import hash from 'hash.js'
+import { PublicAPIContext, PublicAPIHandler } from '../PublicAPIHandler'
 import { IdentitiesRepository } from '../../repository/IdentitiesRepository'
 import { WalletRepository } from '../../repository/WalletRepository'
 import { StorageAdapter } from '../../storage/storageAdapter'
@@ -12,7 +11,7 @@ interface AppConnectRequestPayload {
   url: string
 }
 
-export class ConnectAppHandler implements APIHandler {
+export class ConnectAppHandler implements PublicAPIHandler {
   appConnectRepository: AppConnectRepository
   identitiesRepository: IdentitiesRepository
   walletRepository: WalletRepository
@@ -25,10 +24,14 @@ export class ConnectAppHandler implements APIHandler {
     this.storageAdapter = storageAdapter
   }
 
-  async handle (event: EventData): Promise<ConnectAppResponse> {
+  async handle (event: EventData, context: PublicAPIContext): Promise<ConnectAppResponse> {
     const payload: AppConnectRequestPayload = event.payload
 
-    const id = hash.sha256().update(payload.url).digest('hex').substring(0, 6)
+    // The connection belongs to the origin the browser reports, so a page
+    // cannot ask for one in the name of another website.
+    if (payload.url !== context.origin) {
+      throw new Error(`Connection must be requested for the calling origin ${context.origin}`)
+    }
 
     const wallet = await this.walletRepository.getCurrent()
 
@@ -36,27 +39,38 @@ export class ConnectAppHandler implements APIHandler {
       throw new Error('No wallet loaded in the extension')
     }
 
-    let appConnect = await this.appConnectRepository.getById(id)
+    let appConnect = context.appConnect
 
     // todo remove after events system
     if (appConnect?.status === AppConnectStatus.rejected) {
-      await this.appConnectRepository.removeById(id)
+      await this.appConnectRepository.removeById(appConnect.id)
       appConnect = null
     }
 
     if (appConnect == null) {
-      appConnect = await this.appConnectRepository.create(payload.url)
+      appConnect = await this.appConnectRepository.create(context.origin)
     }
 
-    const identities = await this.identitiesRepository.getAll()
-    const network = await this.storageAdapter.get('network') as string
+    // Nothing about the wallet leaves the extension until the user approves the
+    // connection, and then only the identities they granted.
+    const approved = appConnect.status === AppConnectStatus.approved
+    const granted = approved ? appConnect.identities : []
+
+    const identities = (await this.identitiesRepository.getAll())
+      .filter(identity => granted.includes(identity.identifier))
+
+    // The wallet's own current identity when the website may see it, otherwise
+    // the first one it may, so a connected site always has something to act as.
+    const currentIdentity = wallet.currentIdentity != null && granted.includes(wallet.currentIdentity)
+      ? wallet.currentIdentity
+      : identities[0]?.identifier ?? null
 
     return {
       redirectUrl: chrome.runtime.getURL(`index.html#/connect/${appConnect.id}`),
       status: appConnect.status,
       identities: identities.map(identity => ({ identifier: identity.identifier, type: identity.type, proTxHash: identity.proTxHash })),
-      currentIdentity: wallet.currentIdentity,
-      network
+      currentIdentity,
+      network: approved ? await this.storageAdapter.get('network') as string : null
     }
   }
 

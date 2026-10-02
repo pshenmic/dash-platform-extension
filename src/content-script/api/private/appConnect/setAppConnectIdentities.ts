@@ -1,12 +1,13 @@
 import { APIHandler } from '../../APIHandler'
 import { EventData } from '../../../../types/EventData'
-import { ApproveAppConnectPayload } from '../../../../types/messages/payloads/ApproveAppConnectPayload'
+import { SetAppConnectIdentitiesPayload } from '../../../../types/messages/payloads/SetAppConnectIdentitiesPayload'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
 import { AppConnectRepository } from '../../../repository/AppConnectRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
-import { AppConnectStatus } from '../../../../types/enums/AppConnectStatus'
 
-export class ApproveAppConnectHandler implements APIHandler {
+// Changes what an already connected website may see, from the connected sites
+// screen. An empty list leaves the connection in place with nothing to read.
+export class SetAppConnectIdentitiesHandler implements APIHandler {
   appConnectRepository: AppConnectRepository
   identitiesRepository: IdentitiesRepository
 
@@ -16,42 +17,35 @@ export class ApproveAppConnectHandler implements APIHandler {
   }
 
   async handle (event: EventData): Promise<VoidResponse> {
-    const payload: ApproveAppConnectPayload = event.payload
+    const payload: SetAppConnectIdentitiesPayload = event.payload
 
-    const appConnect = await this.appConnectRepository.getById(payload.id)
-
-    if (appConnect == null) {
+    if (await this.appConnectRepository.getById(payload.id) == null) {
       throw new Error('AppConnect not found')
     }
 
     const owned = (await this.identitiesRepository.getAll()).map(identity => identity.identifier)
 
-    // Approving without naming identities grants the wallet's current ones,
-    // which is what the approval screen means until it offers a choice.
-    const granted = payload.identities ?? owned
-
-    for (const identifier of granted) {
+    for (const identifier of payload.identities) {
       if (!owned.includes(identifier)) {
         throw new Error(`Identity ${identifier} does not belong to this wallet`)
       }
     }
 
-    await this.appConnectRepository.setIdentities(payload.id, granted)
-    await this.appConnectRepository.setStatus(payload.id, AppConnectStatus.approved)
+    await this.appConnectRepository.setIdentities(payload.id, payload.identities)
 
     return {}
   }
 
-  validatePayload (payload: ApproveAppConnectPayload): null | string {
+  validatePayload (payload: SetAppConnectIdentitiesPayload): null | string {
     if (typeof payload?.id !== 'string' || payload.id.length === 0) {
       return 'ID is required'
     }
 
-    if (payload.identities != null && !Array.isArray(payload.identities)) {
-      return 'identities must be an array of identifiers when provided'
+    if (!Array.isArray(payload.identities)) {
+      return 'identities must be an array of identifiers'
     }
 
-    if (payload.identities?.some(identifier => typeof identifier !== 'string' || identifier.length === 0) === true) {
+    if (payload.identities.some(identifier => typeof identifier !== 'string' || identifier.length === 0)) {
       return 'identities must be non-empty strings'
     }
 
