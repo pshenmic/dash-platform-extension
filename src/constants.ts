@@ -32,15 +32,22 @@ export const TOPUP_FUNDING_GAP_LIMIT = 20
 // Upper bound for scanning identity indexes when picking the next free one.
 export const IDENTITY_INDEX_SCAN_LIMIT = 20
 
-// dashscan (L1 / Dash Core) REST API — address usage + UTXOs for the top-up gap-scan.
+// dashscan (L1 / Dash Core): REST API for balances, addresses and transaction
+// history, plus the web explorer the UI links rows out to.
 export const CORE_EXPLORER_URLS = {
   testnet: {
-    api: 'https://testnet.dashscan.pshenmic.dev'
+    api: 'https://testnet.dashscan.pshenmic.dev',
+    explorer: 'https://testnet.dashscan.io'
   },
   mainnet: {
-    api: 'https://dashscan.pshenmic.dev'
+    api: 'https://dashscan.pshenmic.dev',
+    explorer: 'https://dashscan.io'
   }
 }
+// Largest page the explorer serves for its /xpub list endpoints.
+export const CORE_EXPLORER_MAX_PAGE_LIMIT = 100
+// Transactions per page when the caller does not ask for a size (the explorer's own default).
+export const CORE_TRANSACTIONS_DEFAULT_LIMIT = 25
 
 // ── Core (L1) spending ───────────────────────────────────────────────────────
 // Sizes of the pieces of a signed P2PKH transaction, in bytes, used to price the
@@ -117,13 +124,32 @@ export const SHIELDED_ADDRESS_DEFAULT_COUNT = 5
 export const SHIELDED_ADDRESS_GENERATE_BATCH = 10
 // Page size when paging the note set; mirrors the SDK's gRPC query limit.
 export const SHIELDED_NOTES_PAGE_SIZE = 8192
+// A shielded memo is a fixed-size field: the pool takes exactly this many bytes,
+// so a shorter one is padded and a longer one cannot be sent at all.
+export const SHIELDED_MEMO_BYTES = 32
+// Most nullifiers Platform checks in one getShieldedNullifiers query; it rejects
+// a larger batch with "trying to check N nullifiers, maximum is 100".
+export const SHIELDED_NULLIFIER_QUERY_LIMIT = 100
 // Max notes per spend: proof size grows per input note and the state transition
 // must stay under Platform's ~20KB limit (observed to fail around 9 actions).
 export const SHIELDED_MAX_SPEND_NOTES = 5
-// Fee headroom added when selecting notes, so they cover amount + fee (change
-// absorbs the rest). Estimate — Platform computes the real fee on-chain.
+// Flat fee shown by the send UI. Spends no longer use it: they reserve the exact
+// fee from computeShieldedSpendFee.
 export const SHIELDED_SPEND_FEE_CREDITS = 15_000_000n
-// Sentinel recipient for `shieldToPool` (which derives the destination from the
+// Platform's shielded fee constants (rs-platform-version event constants and
+// storage fee v1). A pool-paid spend is charged exactly
+// proof fee + actions × (processing fee + storage bytes × per-byte rate), plus a
+// flat storage component for the address an unshield credits and the document a
+// withdrawal inserts.
+export const SHIELDED_PROOF_VERIFICATION_FEE_CREDITS = 100_000_000n
+export const SHIELDED_PER_ACTION_PROCESSING_FEE_CREDITS = 22_000_000n
+export const SHIELDED_STORAGE_BYTES_PER_ACTION = 344n
+export const SHIELDED_STORAGE_CREDITS_PER_BYTE = 27_400n
+export const SHIELDED_UNSHIELD_ADDRESS_STORAGE_BYTES = 222n
+export const SHIELDED_WITHDRAWAL_DOCUMENT_STORAGE_BYTES = 4100n
+// Orchard pads every bundle to at least this many actions.
+export const SHIELDED_MIN_ACTIONS = 2
+// Sentinel recipient for `shieldFromPlatformAddress` (which derives the destination from the
 // seed and takes no recipient) — carries "own pool" from send form to confirm.
 export const SHIELDED_POOL_RECIPIENT = 'shielded-pool'
 
@@ -137,3 +163,11 @@ export const PLATFORM_EXPLORER_URLS = {
     explorer: 'https://platform-explorer.com'
   }
 }
+
+// ── Auto-lock ────────────────────────────────────────────────────────────────
+// Idle time after which the UI asks for the password again.
+export const AUTO_LOCK_TIMEOUT_MS = 15 * 60 * 1000
+// Minimum gap between activity writes to the session marker.
+export const AUTO_LOCK_TOUCH_THROTTLE_MS = 30 * 1000
+// How often an open UI re-checks whether the session went stale.
+export const AUTO_LOCK_CHECK_INTERVAL_MS = 30 * 1000

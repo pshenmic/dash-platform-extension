@@ -52,6 +52,7 @@ import { InitAccountXpubsHandler } from './private/wallet/initAccountXpubs'
 import { GetCoreReceiveAddressHandler } from './private/core/getCoreReceiveAddress'
 import { ListCoreAddressesHandler } from './private/core/listCoreAddresses'
 import { GetCoreBalanceHandler } from './private/core/getCoreBalance'
+import { GetCoreTransactionsHandler } from './private/core/getCoreTransactions'
 import { SendCoreTransferHandler } from './private/core/sendCoreTransfer'
 import { CorePendingSpendsRepository } from '../repository/CorePendingSpendsRepository'
 import { GeneratePlatformAddressesHandler } from './private/wallet/generatePlatformAddresses'
@@ -66,10 +67,15 @@ import { FundPlatformAddressFromCoreHandler } from './private/wallet/fundPlatfor
 import { GenerateShieldedAddressesHandler } from './private/wallet/generateShieldedAddresses'
 import { GetShieldedAddressesHandler } from './private/wallet/getShieldedAddresses'
 import { GetShieldedBalanceHandler } from './private/wallet/getShieldedBalance'
+import { SyncShieldedNotesHandler } from './private/wallet/syncShieldedNotes'
+import { GetShieldedSyncStateHandler } from './private/wallet/getShieldedSyncState'
+import { RefreshShieldedNotesHandler } from './private/wallet/refreshShieldedNotes'
+import { ShieldedService } from '../services/ShieldedService'
+import { EstimateShieldedFeeHandler } from './private/wallet/estimateShieldedFee'
 import { InitShieldHandler } from './private/wallet/initShield'
-import { ShieldToPoolHandler } from './private/wallet/shieldToPool'
+import { ShieldFromPlatformAddressHandler } from './private/wallet/shieldFromPlatformAddress'
 import { SendShieldedTransferHandler } from './private/wallet/sendShieldedTransfer'
-import { UnshieldToAddressHandler } from './private/wallet/unshieldToAddress'
+import { UnshieldToPlatformAddressHandler } from './private/wallet/unshieldToPlatformAddress'
 import { WithdrawShieldedToCoreHandler } from './private/wallet/withdrawShieldedToCore'
 
 /**
@@ -124,6 +130,7 @@ export class PrivateAPI {
     const walletSettingsRepository = new WalletSettingsRepository(this.storageAdapter)
     const corePendingSpendsRepository = new CorePendingSpendsRepository(this.storageAdapter)
     const coreExplorer = new CoreExplorerService()
+    const shielded = new ShieldedService(this.storageAdapter, this.sdk)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter, walletRepository),
@@ -179,6 +186,7 @@ export class PrivateAPI {
       [MessagingMethods.GET_CORE_RECEIVE_ADDRESS]: new GetCoreReceiveAddressHandler(walletRepository, coreExplorer, this.sdk),
       [MessagingMethods.LIST_CORE_ADDRESSES]: new ListCoreAddressesHandler(walletRepository, coreExplorer, this.sdk),
       [MessagingMethods.GET_CORE_BALANCE]: new GetCoreBalanceHandler(walletRepository, coreExplorer),
+      [MessagingMethods.GET_CORE_TRANSACTIONS]: new GetCoreTransactionsHandler(walletRepository, coreExplorer),
       [MessagingMethods.SEND_CORE_TRANSFER]: new SendCoreTransferHandler(walletRepository, corePendingSpendsRepository, coreExplorer, this.sdk, this.coreSDK),
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository, this.sdk),
@@ -189,14 +197,18 @@ export class PrivateAPI {
       [MessagingMethods.WITHDRAW_PLATFORM_ADDRESS_TO_CORE]: new WithdrawPlatformAddressToCoreHandler(walletRepository, this.sdk),
       [MessagingMethods.REGISTER_IDENTITY_FROM_ADDRESS]: new RegisterIdentityFromAddressHandler(walletRepository, identitiesRepository, this.sdk),
       [MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE]: new FundPlatformAddressFromCoreHandler(walletRepository, assetLockFundingAddressesRepository, this.sdk, this.coreSDK),
-      [MessagingMethods.GENERATE_SHIELDED_ADDRESSES]: new GenerateShieldedAddressesHandler(walletRepository, this.sdk),
-      [MessagingMethods.GET_SHIELDED_ADDRESSES]: new GetShieldedAddressesHandler(walletRepository, this.sdk),
-      [MessagingMethods.GET_SHIELDED_BALANCE]: new GetShieldedBalanceHandler(walletRepository, this.sdk),
+      [MessagingMethods.GENERATE_SHIELDED_ADDRESSES]: new GenerateShieldedAddressesHandler(walletRepository, shielded),
+      [MessagingMethods.GET_SHIELDED_ADDRESSES]: new GetShieldedAddressesHandler(walletRepository, shielded),
+      [MessagingMethods.GET_SHIELDED_BALANCE]: new GetShieldedBalanceHandler(walletRepository, shielded),
+      [MessagingMethods.SYNC_SHIELDED_NOTES]: new SyncShieldedNotesHandler(walletRepository, shielded),
+      [MessagingMethods.GET_SHIELDED_SYNC_STATE]: new GetShieldedSyncStateHandler(walletRepository, shielded),
+      [MessagingMethods.REFRESH_SHIELDED_NOTES]: new RefreshShieldedNotesHandler(walletRepository, shielded),
+      [MessagingMethods.ESTIMATE_SHIELDED_FEE]: new EstimateShieldedFeeHandler(walletRepository, shielded),
       [MessagingMethods.INIT_SHIELD]: new InitShieldHandler(this.sdk),
-      [MessagingMethods.SHIELD_TO_POOL]: new ShieldToPoolHandler(walletRepository, this.sdk),
-      [MessagingMethods.SEND_SHIELDED_TRANSFER]: new SendShieldedTransferHandler(walletRepository, this.sdk),
-      [MessagingMethods.UNSHIELD_TO_ADDRESS]: new UnshieldToAddressHandler(walletRepository, this.sdk),
-      [MessagingMethods.WITHDRAW_SHIELDED_TO_CORE]: new WithdrawShieldedToCoreHandler(walletRepository, this.sdk)
+      [MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS]: new ShieldFromPlatformAddressHandler(walletRepository, this.sdk, shielded),
+      [MessagingMethods.SEND_SHIELDED_TRANSFER]: new SendShieldedTransferHandler(walletRepository, this.sdk, shielded),
+      [MessagingMethods.UNSHIELD_TO_PLATFORM_ADDRESS]: new UnshieldToPlatformAddressHandler(walletRepository, this.sdk, shielded),
+      [MessagingMethods.WITHDRAW_SHIELDED_TO_CORE]: new WithdrawShieldedToCoreHandler(walletRepository, this.sdk, shielded)
     }
   }
 }

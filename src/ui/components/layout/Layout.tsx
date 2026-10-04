@@ -2,12 +2,13 @@ import React, { FC, useState, useEffect, useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
 import { ThemeProvider } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { getSdkPromise } from '../../../utils/sdkLoader'
+import { useAutoLock } from '../../hooks/useAutoLock'
+import { setSdkNetwork } from '../../../utils/sdkLoader'
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { GetStatusResponse } from '../../../types/messages/response/GetStatusResponse'
 import { NetworkType, Identity } from '../../../types'
 import type { HeaderConfigOverride } from '../../types'
-import LoadingScreen from './screens/LoadingScreen'
+import ScreenLoader from './screens/ScreenLoader'
 import { isTabView } from '../../utils/extensionTab'
 
 export interface LayoutContext {
@@ -19,7 +20,12 @@ export interface LayoutContext {
   setCurrentIdentity: (identity: string) => Promise<void>
   allWallets: WalletAccountInfo[]
   hasAnyWallet: boolean
+  // False until the first wallet list arrives, so screens do not read an empty list as "no wallets".
+  walletsLoaded: boolean
+  // Same for identities, and only for the wallet they were loaded from.
+  identitiesLoaded: boolean
   reloadWallets: () => Promise<void>
+  reloadIdentities: () => Promise<void>
   availableIdentities: Identity[]
   createWallet: (walletType: any, mnemonic?: string) => Promise<any>
   headerComponent: React.ReactNode
@@ -31,13 +37,19 @@ export interface LayoutContext {
 const Layout: FC = () => {
   const extensionAPI = useExtensionAPI()
 
+  useAutoLock()
+
   const [isApiReady, setIsApiReady] = useState<boolean>(false)
   const [currentNetwork, setCurrentNetwork] = useState<NetworkType>('mainnet')
   const [currentWallet, setCurrentWallet] = useState<string | null>(null)
   const [currentIdentity, setCurrentIdentity] = useState<string | null>(null)
   const [allWallets, setAllWallets] = useState<WalletAccountInfo[]>([])
+  const [walletsLoaded, setWalletsLoaded] = useState<boolean>(false)
   const [hasAnyWallet, setHasAnyWallet] = useState<boolean>(false)
   const [availableIdentities, setAvailableIdentities] = useState<Identity[]>([])
+  // Which wallet the identities in state came from, so a wallet switch does not
+  // let the previous wallet's list count as loaded.
+  const [identitiesLoadedFor, setIdentitiesLoadedFor] = useState<string | null>(null)
   const [headerComponent, setHeaderComponent] = useState<React.ReactNode>(null)
   const [headerConfigOverride, setHeaderConfigOverride] = useState<HeaderConfigOverride | null>(null)
 
@@ -46,9 +58,11 @@ const Layout: FC = () => {
     try {
       const wallets = await extensionAPI.getAllWallets()
       setAllWallets(wallets)
+      setWalletsLoaded(true)
       return wallets
     } catch (error) {
       console.log('Failed to load wallets:', error)
+      setWalletsLoaded(true)
       return []
     }
   }, [isApiReady, extensionAPI])
@@ -58,6 +72,7 @@ const Layout: FC = () => {
     try {
       const identities = await extensionAPI.getIdentities()
       setAvailableIdentities(identities)
+      setIdentitiesLoadedFor(currentWallet)
     } catch (error) {
       console.log('Failed to load identities:', error)
     }
@@ -77,13 +92,16 @@ const Layout: FC = () => {
     if (!isApiReady) return
 
     try {
-      const sdk = await getSdkPromise()
-      sdk.setNetwork(network)
+      setSdkNetwork(network)
       await extensionAPI.switchNetwork(network)
 
       const status: GetStatusResponse = await extensionAPI.getStatus()
       setCurrentNetwork(status.network as NetworkType)
       setCurrentWallet(status.currentWalletId)
+      // Identities belong to the previous network - drop them until the new wallet reloads its own.
+      setCurrentIdentity(null)
+      setAvailableIdentities([])
+      setIdentitiesLoadedFor(null)
 
       await loadWallets()
     } catch (error) {
@@ -157,8 +175,7 @@ const Layout: FC = () => {
           setCurrentNetwork(status.network as NetworkType)
           setCurrentWallet(status.currentWalletId)
           setHasAnyWallet(status.hasAnyWallet)
-          const sdk = await getSdkPromise()
-          sdk.setNetwork(status.network as NetworkType)
+          setSdkNetwork(status.network as NetworkType)
         }
       } catch (error) {
         console.log('Failed to initialize app:', error)
@@ -206,7 +223,10 @@ const Layout: FC = () => {
             setCurrentIdentity: applyIdentityChange,
             allWallets,
             hasAnyWallet,
+            walletsLoaded,
+            identitiesLoaded: identitiesLoadedFor !== null && identitiesLoadedFor === currentWallet,
             reloadWallets,
+            reloadIdentities: loadIdentities,
             availableIdentities,
             createWallet,
             headerComponent,
@@ -215,7 +235,7 @@ const Layout: FC = () => {
             setHeaderConfigOverride
           }}
             />
-          : <LoadingScreen message='Initializing application...' />}
+          : <ScreenLoader />}
 
       </div>
     </ThemeProvider>

@@ -1,17 +1,10 @@
 import { base58 } from '@scure/base'
-import { RecoveredNoteWASM, CoreScriptWASM, OrchardAddressWASM, SpendableNoteWASM, PlatformAddressWASM } from 'pshenmic-dpp'
-import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM, ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
+import { CoreScriptWASM, PlatformAddressWASM } from 'pshenmic-dpp'
+import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'dash-platform-sdk/types'
 import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
-import {
-  CORE_ADDRESS_VERSIONS,
-  PLATFORM_ADDRESS_COIN_TYPE,
-  PLATFORM_ADDRESS_FEATURE,
-  PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS,
-  SHIELDED_MAX_SPEND_NOTES,
-  SHIELDED_NOTES_PAGE_SIZE
-} from '../constants'
+import { CORE_ADDRESS_VERSIONS, PLATFORM_ADDRESS_COIN_TYPE, PLATFORM_ADDRESS_FEATURE, PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS } from '../constants'
 import type { PlatformSourceCandidate } from './platformTransfer'
 import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
@@ -21,13 +14,23 @@ import { generateRandomHex } from './random'
 
 export { formatBigNumber }
 export { loadSigningKeys, isKeyCompatible } from './signingKeys'
-export { fetchNames, normalizeName } from './names'
+export { fetchNames, normalizeName, splitDpns } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
+export { amountFractionScale } from './amountFontScale'
+export { formatStatNumber } from './formatStatNumber'
 export { generateRandomHex } from './random'
-export { getTransactionExplorerUrl, getPlatformAddressExplorerUrl } from './explorerUrls'
+export { getTransactionExplorerUrl, getPlatformAddressExplorerUrl, getIdentityExplorerUrl, buildIdentityTransactionsUrl } from './explorerUrls'
+export { getCoreTransactionExplorerUrl } from './explorerUrls'
+export { countHeldTokens } from './tokens'
+export { summarizeCoreTransaction } from './coreTransactions'
+export { creditsToDuffs, duffsToDashParts, duffsToFiatLabel } from './dashAmount'
+export type { DashParts } from './dashAmount'
+export type { CoreTransactionDirection, CoreTransactionEffect } from './coreTransactions'
 export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
 export type { PlatformSourceCandidate } from './platformTransfer'
+export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, maxShieldedSpend } from './shieldedFee'
+export type { ShieldedNoteSelection, ShieldedSpendEstimate } from './shieldedFee'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
@@ -345,236 +348,6 @@ export const coreAddressToScript = (coreAddress: string, network: NetworkType): 
   throw new Error(`Core address ${coreAddress} is not a valid ${network} address`)
 }
 
-export interface ShieldedAddressEntry {
-  address: string
-  derivationPath: string
-  diversifierIndex: number
-}
-
-// Derive `count` diversified Orchard (shielded) addresses for an account,
-// starting at diversifier index `start`. ZIP-32 m/32'/coinType'/account'; each
-// diversifierIndex yields a distinct receiving address sharing the account's
-// viewing key. Needs the password (decrypts the seed).
-export const deriveShieldedAddresses = (wallet: Wallet, password: string, account: number, count: number, sdk: DashPlatformSDK, start: number = 0): ShieldedAddressEntry[] => {
-  if (wallet.type !== 'seedphrase') {
-    throw new Error('Shielded addresses can only be derived from a seedphrase wallet')
-  }
-
-  const networkType = wallet.network
-  const network = Network[networkType as keyof typeof Network]
-  const seed = sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
-  const coinType = PLATFORM_ADDRESS_COIN_TYPE[networkType]
-  const derivationPath = `m/32'/${coinType}'/${account}'`
-
-  const entries: ShieldedAddressEntry[] = []
-  for (let diversifierIndex = start; diversifierIndex < start + count; diversifierIndex++) {
-    const orchardAddress = sdk.keyPair.deriveShieldedAddress(seed, network, account, diversifierIndex)
-    entries.push({ address: orchardAddress.toBech32m(networkType), derivationPath, diversifierIndex })
-  }
-
-  return entries
-}
-
-// Pages the entire shielded note set (commitment-tree leaves) from the pool,
-// preserving global leaf order so a leaf position maps to its array index.
-// Read-only — no Halo2 builder is constructed.
-export const fetchAllShieldedNotes = async (sdk: DashPlatformSDK): Promise<ShieldedEncryptedNote[]> => {
-  const total = await sdk.shielded.getShieldedNotesCount()
-
-  if (total == null || total === 0n) {
-    return []
-  }
-
-  const notes: ShieldedEncryptedNote[] = []
-  for (let start = 0n; start < total; start += BigInt(SHIELDED_NOTES_PAGE_SIZE)) {
-    const page = await sdk.shielded.getShieldedEncryptedNotes(start, SHIELDED_NOTES_PAGE_SIZE)
-
-    if (page.length === 0) {
-      break
-    }
-
-    notes.push(...page)
-  }
-
-  return notes
-}
-
-// The nullifier of a recovered note as derived from the wallet's viewing key —
-// the value to check against getShieldedNullifiers to tell whether THIS note has
-// been spent.
-//
-// This is NOT the action leaf's nullifier (`ShieldedEncryptedNote.nullifier` /
-// `SerializedAction.nullifier`): a leaf's nullifier belongs to the note that
-// action spent (its input), which is unrelated to our received note. Checking
-// the leaf nullifier lets an already-spent note pass the spent filter, so it can
-// be reselected and the spend is rejected on-chain with "Nullifier has already
-// been spent".
-//
-// STOPGAP: the SDK's RecoveredNoteWASM wrapper does not expose this yet (only
-// `index` / `note`), so we reach into the raw NAPI. TODO: drop the cast once
-// dash-platform-sdk / pshenmic-dpp add a public RecoveredNoteWASM.nullifier
-// getter.
-interface RawRecoveredNoteWithNullifier {
-  _rawRecoveredNote: { nullifier: Uint8Array }
-}
-
-export const recoveredNoteNullifier = (recoveredNote: RecoveredNoteWASM): Uint8Array => {
-  return (recoveredNote as unknown as RawRecoveredNoteWithNullifier)._rawRecoveredNote.nullifier
-}
-
-export interface ShieldedAddressBalance {
-  // Diversified Orchard address (bech32m) that received the notes.
-  address: string
-  // Our derivation index for this address, or null when it falls outside the
-  // derived window (the balance is still counted, only the index is unknown).
-  diversifierIndex: number | null
-  balance: bigint
-  spendableNotes: number
-}
-
-// Sums the value of recovered notes that are not yet spent, both in aggregate
-// and grouped by the diversified Orchard address that received each note
-// (`note.address` from the trial-decrypted plaintext). Spent status is matched
-// by each note's own nullifier (see recoveredNoteNullifier), by nullifier hex —
-// not array order, since getShieldedNullifiers does not guarantee response order.
-// `diversifierIndexByAddress` attributes our known address indices; a note to an
-// address outside that map gets diversifierIndex null.
-export const sumUnspentShieldedValue = (
-  recovered: RecoveredNoteWASM[],
-  statuses: ShieldedNullifierStatus[],
-  network: NetworkType,
-  diversifierIndexByAddress: Map<string, number> = new Map()
-): { balance: bigint, spendableNotes: number, byAddress: ShieldedAddressBalance[] } => {
-  const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
-
-  let balance = 0n
-  let spendableNotes = 0
-  const buckets = new Map<string, { balance: bigint, spendableNotes: number }>()
-
-  for (const recoveredNote of recovered) {
-    if (spent.has(bytesToHex(recoveredNoteNullifier(recoveredNote)))) {
-      continue
-    }
-
-    const value = recoveredNote.note.value
-    balance += value
-    spendableNotes += 1
-
-    const address = recoveredNote.note.address.toBech32m(network)
-    const bucket = buckets.get(address) ?? { balance: 0n, spendableNotes: 0 }
-    bucket.balance += value
-    bucket.spendableNotes += 1
-    buckets.set(address, bucket)
-  }
-
-  const byAddress: ShieldedAddressBalance[] = Array.from(buckets.entries()).map(([address, bucket]) => ({
-    address,
-    diversifierIndex: diversifierIndexByAddress.get(address) ?? null,
-    balance: bucket.balance,
-    spendableNotes: bucket.spendableNotes
-  }))
-
-  return { balance, spendableNotes, byAddress }
-}
-
-export interface ShieldedSpendInputs {
-  spends: SpendableNoteWASM[]
-  anchor: Uint8Array
-  changeAddress: OrchardAddressWASM
-  coinType: number
-}
-
-// Narrows recovered notes to those received on one of `fromAddresses` (bech32m),
-// so a spend can draw only from specific source shielded addresses instead of the
-// whole account. Notes are keyed by their receiving address (`note.address`).
-export const filterRecoveredNotesByAddress = (notes: RecoveredNoteWASM[], fromAddresses: string[], network: NetworkType): RecoveredNoteWASM[] => {
-  const wanted = new Set(fromAddresses)
-
-  return notes.filter(recoveredNote => wanted.has(recoveredNote.note.address.toBech32m(network)))
-}
-
-// Selects the fewest notes (largest first) whose combined value covers
-// `requiredCredits`. Minimizing the note count keeps the Orchard bundle — one
-// action per note — under Platform's state-transition size limit. Throws if the
-// notes cannot cover the amount, or if even the minimal set exceeds the action cap.
-const selectShieldedNotes = (spendable: RecoveredNoteWASM[], requiredCredits: bigint): RecoveredNoteWASM[] => {
-  const byValueDesc = [...spendable].sort((a, b) => (a.note.value < b.note.value ? 1 : -1))
-
-  const selected: RecoveredNoteWASM[] = []
-  let total = 0n
-  for (const note of byValueDesc) {
-    if (total >= requiredCredits) {
-      break
-    }
-    selected.push(note)
-    total += note.note.value
-  }
-
-  if (total < requiredCredits) {
-    throw new Error('Insufficient shielded balance for this amount plus fee')
-  }
-  if (selected.length > SHIELDED_MAX_SPEND_NOTES) {
-    throw new Error(`This spend requires ${selected.length} notes, over the ${SHIELDED_MAX_SPEND_NOTES}-note limit per shielded transaction — consolidate notes first`)
-  }
-
-  return selected
-}
-
-// Prepares the shared inputs for any shielded spend (transfer / unshield /
-// withdrawal): syncs the full note set, recovers the wallet's own notes, keeps
-// only the unspent ones, selects the minimal set covering `requiredCredits`
-// (amount + fee), witnesses just those against the commitment tree, and derives
-// the change address. The Halo2 builder is not touched here — proving happens
-// inside the createStateTransition call the handler makes with these inputs.
-// `fromAddresses` (optional) restricts the spend to notes on those source
-// shielded addresses; when omitted, the whole account's notes are eligible.
-export const prepareShieldedSpend = async (sdk: DashPlatformSDK, seed: Uint8Array, network: NetworkType, account: number, requiredCredits: bigint, fromAddresses?: string[]): Promise<ShieldedSpendInputs> => {
-  console.time('[shielded] sync notes')
-  const allNotes = await fetchAllShieldedNotes(sdk)
-  console.timeEnd('[shielded] sync notes')
-  console.log(`[shielded] synced ${allNotes.length} notes; recovering own notes…`)
-
-  const recovered = sdk.shielded.recoverNotes(allNotes, seed, account)
-
-  if (recovered.length === 0) {
-    throw new Error('No shielded notes available to spend')
-  }
-
-  // Drop already-spent notes (their nullifiers are on-chain) so they never enter
-  // a spend — matching how the balance is computed. Uses each note's own
-  // nullifier (recoveredNoteNullifier), not the action leaf's, so a note we
-  // already spent is excluded instead of being reselected and rejected on-chain.
-  const nullifiers = recovered.map(recoveredNoteNullifier)
-  const statuses = nullifiers.length > 0 ? await sdk.shielded.getShieldedNullifiers(nullifiers) : []
-  const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
-
-  const unspent = recovered.filter(recoveredNote => !spent.has(bytesToHex(recoveredNoteNullifier(recoveredNote))))
-
-  if (unspent.length === 0) {
-    throw new Error('No unspent shielded notes available to spend')
-  }
-
-  // Optionally restrict the spend to notes on specific source addresses.
-  const scoped = fromAddresses != null && fromAddresses.length > 0
-    ? filterRecoveredNotesByAddress(unspent, fromAddresses, network)
-    : unspent
-
-  if (scoped.length === 0) {
-    throw new Error('No unspent shielded notes on the selected source address(es)')
-  }
-
-  const selected = selectShieldedNotes(scoped, requiredCredits)
-  console.log(`[shielded] selected ${selected.length}/${scoped.length} notes; witnessing against the tree…`)
-
-  console.time('[shielded] build spendable notes')
-  const { spends, anchor } = sdk.shielded.buildSpendableNotes(allNotes, selected)
-  console.timeEnd('[shielded] build spendable notes')
-
-  const changeAddress = sdk.keyPair.deriveShieldedAddress(seed, network, account)
-
-  return { spends, anchor, changeAddress, coinType: PLATFORM_ADDRESS_COIN_TYPE[network] }
-}
-
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {
   const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
 
@@ -783,7 +556,5 @@ export const processPrivateKey = async (
     balance: balance.toString()
   }
 }
-
-export const isTooBigNumber = (number: number | string | bigint): boolean => Number(number) > 999999999
 
 export * from './recipientSearch'

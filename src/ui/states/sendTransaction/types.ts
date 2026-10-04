@@ -23,6 +23,10 @@ export type TransferMode =
 // Modes carrying an Orchard (Halo2) proof — CPU-heavy, need the long-loading UX.
 export const SHIELDED_MODES: TransferMode[] = ['shield', 'unshield', 'shieldedTransfer', 'shieldedWithdraw']
 
+// Dashboard the send screen was opened from. Tokens belong to a single identity,
+// so only the identity scope offers them.
+export type SendScope = 'all' | 'core' | 'platform' | 'identity'
+
 // Where the credits/tokens are sent from.
 export type SenderType = 'identity' | 'platform' | 'shielded'
 

@@ -1,9 +1,10 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { EmptyState } from '../../components/layout/EmptyState'
 import { Text } from 'dash-ui-kit/react'
+import { EmptyState } from '../../components/layout/EmptyState'
 
-export default function NoWallets (): React.JSX.Element {
+/** Shown on the dashboard when the selected network holds no wallet. */
+export function NoWallets (): React.JSX.Element {
   const navigate = useNavigate()
 
   return (

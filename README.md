@@ -1,4 +1,4 @@
-# Dash Platform Extension
+# Dash Extension
 
 ###### A browser extension that let users easily interact with Dash Platform DApps.
 ![Dash](https://img.shields.io/badge/dash-008DE4?style=for-the-badge&logo=dash&logoColor=white)
@@ -24,12 +24,17 @@ interface for developers to integrate their application and create transactions.
 
 ## Versioning
 
-### 1.4.x (WIP)
+### 1.5.x (WIP)
+- Dash Core chain support
+- New Dashboards (per wallet, per core, per platform)
+- Major UX rehaul
+
+### 1.4.x (Current)
 - Platform Addresses support
 - Shielded Transfers support
 - Dash Core support
 
-### 1.3.x (Current)
+### 1.3.x
 - Identities Registration
 - Withdrawals to Dash Core
 
@@ -106,7 +111,7 @@ The integration of SDK is quite simple, first you need to call .connect() method
 you make a transaction with SDK and pass it to .signAndBroadcast() function:
 
 
-#### 1) Check for Dash Platform Extension installed
+#### 1) Check for Dash Extension installed
 
 When user installed the extension, it injects small messaging layer in the `window.dashPlatformExtension`. Check if it exists, 
 and if true that means you're safe to proceed to next steps
@@ -150,7 +155,7 @@ export const handleSendMessageButton = async () => {
   const {dashPlatformExtension} = window
   
   if (dashPlatformExtension == null) {
-    throw new Error('Dash Platform Extension is not installed')
+    throw new Error('Dash Extension is not installed')
   }
 
   const {currentIdentity: identity} = await dashPlatformExtension.connect()

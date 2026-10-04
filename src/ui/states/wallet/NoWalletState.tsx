@@ -38,7 +38,7 @@ function NoWalletState (): React.JSX.Element {
           <TitleBlock
             title={
               <>
-                <span className='!font-normal'>Welcome to</span> <span>Dash Platform Extension</span>
+                <span className='!font-normal'>Welcome to</span> <span>Dash Extension</span>
               </>
             }
             description='Enjoy all the benefits of Dash Platform in your browser'
