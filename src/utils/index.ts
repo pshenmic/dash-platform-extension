@@ -31,6 +31,8 @@ export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityT
 export type { PlatformSourceCandidate } from './platformTransfer'
 export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, maxShieldedSpend } from './shieldedFee'
 export type { ShieldedNoteSelection, ShieldedSpendEstimate } from './shieldedFee'
+export { ENDPOINT_TYPE_ORDER, toDirection, getSourceUnavailableReason, resolveTransferPair, fallbackTargetType } from './transferDirection'
+export type { TransferCapabilities, TransferUnavailableReason, TransferPairResolution } from './transferDirection'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
