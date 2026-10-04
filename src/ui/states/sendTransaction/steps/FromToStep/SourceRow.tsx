@@ -46,7 +46,7 @@ export function SourceRow ({ draft, identities, onIdentityChange, balance, rate,
   if (draft.from.type === 'identity') {
     return (
       <div className='flex flex-col gap-2'>
-        <IdentitySelect identities={identities} value={draft.from.identityId} onChange={onIdentityChange} size='lg' />
+        <IdentitySelect identities={identities} value={draft.from.identityId} onChange={onIdentityChange} />
         <BalanceLine balance={balance} rate={rate} />
       </div>
     )

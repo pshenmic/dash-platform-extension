@@ -228,7 +228,9 @@ function SendTransactionState (): React.JSX.Element {
   const platform = usePlatformAddresses(currentNetwork, currentWallet ?? undefined)
   const [entry, setEntry] = useState<EntryDefaults | null>(null)
 
-  const ready = walletsLoaded && (!walletCapabilities.hasAddressLayer || platform.hasLoaded || platform.error != null)
+  // Waits for the address list only; balances come from Platform and may take long.
+  const addressesKnown = platform.hasLoaded || platform.addresses.length > 0 || platform.error != null
+  const ready = walletsLoaded && (!walletCapabilities.hasAddressLayer || addressesKnown)
 
   const capabilities = useMemo((): TransferCapabilities => ({
     hasCoreLayer: walletCapabilities.hasCoreLayer && CORE_SENDER_ENABLED,
