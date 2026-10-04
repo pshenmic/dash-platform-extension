@@ -35,6 +35,8 @@ export { ENDPOINT_TYPE_ORDER, toDirection, getSourceUnavailableReason, resolveTr
 export type { TransferCapabilities, TransferUnavailableReason, TransferPairResolution } from './transferDirection'
 export { formatDateTime } from './datetime'
 export { summarizeCoinControl } from './coinControl'
+export { checkRecipients } from './transferRecipients'
+export type { RecipientsCheck } from './transferRecipients'
 export type { CoinControlSummary } from './coinControl'
 export { CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS, endpointDashDecimals, isDashInputAllowed, parseDashAmount, formatDashAmount, dashAmountToUsd, transferAmountLimits, validateTransferAmount, usdToDashAmount } from './transferAmount'
 export type { TransferAmountLimits } from './transferAmount'

@@ -21,9 +21,10 @@ export const resolveDirection = (from: EndpointType, to: EndpointType, asset: As
   return { supported: true, direction: pair.direction, config: { ...details, supported: true, mode: pair.mode } }
 }
 
-// Whether the transfer goes to a mocked backend method, by direction or by the Coin Control selection.
-export const runsOnMock = (config: DirectionConfig, selection: CoinControlSelection): boolean =>
+// Whether the transfer goes to a mocked backend method, by direction, Advanced mode or the Coin Control selection.
+export const runsOnMock = (config: DirectionConfig, selection: CoinControlSelection, isAdvanced: boolean): boolean =>
   config.usesMock ||
+  isAdvanced ||
   selection.type === 'utxo' ||
   selection.type === 'shieldedNotes' ||
   (selection.type === 'platformInputs' && selection.inputs.length > 1)

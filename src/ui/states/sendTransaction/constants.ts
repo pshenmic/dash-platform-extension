@@ -79,3 +79,6 @@ export const COIN_CONTROL_UNITS = {
   platformInputs: ['Input', 'Inputs'],
   shieldedNotes: ['Note', 'Notes']
 } as const
+
+// Most recipients one Advanced transfer can pay (06-backend-questions.md, question 6).
+export const MAX_RECIPIENTS = 1000

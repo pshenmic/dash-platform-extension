@@ -52,4 +52,19 @@ describe('transferDraftReducer', () => {
     const next = transferDraftReducer(DRAFT, { type: 'setCoinControl', selection: { type: 'platformInputs', inputs: [{ address: 'a', amount: '1' }] }, amount: '0.5' })
     expect(next.amount).toBe('0.5')
   })
+
+  it('seeds Advanced recipients from the Simple recipient and amount', () => {
+    const next = transferDraftReducer(DRAFT, { type: 'setAdvanced', value: true })
+
+    expect(next.isAdvanced).toBe(true)
+    expect(next.recipients).toEqual([{ id: '1', address: 'yAddress', amount: '1' }])
+  })
+
+  it('clears recipients and the change address when the To type changes', () => {
+    const advanced = { ...DRAFT, recipients: [{ id: '1', address: 'a', amount: '1' }], changeAddress: 'yChange' }
+    const next = transferDraftReducer(advanced, { type: 'setToType', endpointType: 'identity' })
+
+    expect(next.recipients).toEqual([])
+    expect(next.changeAddress).toBeNull()
+  })
 })

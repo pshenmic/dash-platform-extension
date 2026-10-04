@@ -36,6 +36,9 @@ interface FromToStepProps {
   recipientError: string | null
   onOpenAsset: () => void
   coinControlLabel: string
+  recipientsLabel: string
+  onOpenRecipients: () => void
+  advancedSummary: React.ReactNode
   onOpenCoinControl: (() => void) | null
   onNext: () => void
 }
@@ -65,6 +68,9 @@ export function FromToStep ({
   recipientError,
   onOpenAsset,
   coinControlLabel,
+  recipientsLabel,
+  onOpenRecipients,
+  advancedSummary,
   onOpenCoinControl,
   onNext
 }: FromToStepProps): React.JSX.Element {
@@ -118,17 +124,28 @@ export function FromToStep ({
           label='To'
           headerAction={isShieldToMyself(draft) && <Checkbox checked disabled onChange={() => {}} label='Shield to Myself' />}
         >
-          <EndpointTypeSelect value={draft.to.type} options={toOptions} onChange={(type) => actions.setToType(type)} />
-          <RecipientRow
-            key={`${draft.from.type}-${draft.to.type}`}
-            draft={draft}
-            excludeIdentifier={draft.from.type === 'identity' ? draft.from.identityId : null}
-            network={network}
-            onRecipientChange={(recipient) => actions.setRecipient(recipient)}
-          />
+          {draft.isAdvanced
+            ? (
+              <div className='flex gap-3'>
+                <EndpointTypeSelect value={draft.to.type} options={toOptions} onChange={(type) => actions.setToType(type)} className='flex-1 min-w-0' />
+                <SideActionButton icon={<FilterIcon size={16} />} title='Recipients' subtitle={recipientsLabel} onClick={onOpenRecipients} />
+              </div>
+              )
+            : <EndpointTypeSelect value={draft.to.type} options={toOptions} onChange={(type) => actions.setToType(type)} />}
+          {!draft.isAdvanced && (
+            <RecipientRow
+              key={`${draft.from.type}-${draft.to.type}`}
+              draft={draft}
+              excludeIdentifier={draft.from.type === 'identity' ? draft.from.identityId : null}
+              network={network}
+              onRecipientChange={(recipient) => actions.setRecipient(recipient)}
+            />
+          )}
           {recipientError != null && <Text size='xs' className='!text-red-500'>{recipientError}</Text>}
         </EndpointCard>
       </div>
+
+      {draft.isAdvanced && advancedSummary}
 
       {infoCard != null && (
         <InfoCard

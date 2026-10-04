@@ -146,15 +146,16 @@ describe('runsOnMock / maxPlatformInputs', () => {
   }
 
   it('uses the real API for automatic and single-address selections', () => {
-    expect(runsOnMock(config('core', 'core'), { type: 'automatic' })).toBe(false)
-    expect(runsOnMock(config('platformAddress', 'platformAddress'), { type: 'platformInputs', inputs: [{ address: 'a', amount: '1' }] })).toBe(false)
+    expect(runsOnMock(config('core', 'core'), { type: 'automatic' }, false)).toBe(false)
+    expect(runsOnMock(config('platformAddress', 'platformAddress'), { type: 'platformInputs', inputs: [{ address: 'a', amount: '1' }] }, false)).toBe(false)
   })
 
   it('switches to mocks for picked UTXOs, notes and several addresses', () => {
-    expect(runsOnMock(config('core', 'core'), { type: 'utxo', inputs: [{ txid: 't', vout: 0 }] })).toBe(true)
-    expect(runsOnMock(config('shielded', 'platformAddress'), { type: 'shieldedNotes', noteIds: ['n'] })).toBe(true)
-    expect(runsOnMock(config('platformAddress', 'core'), { type: 'platformInputs', inputs: [{ address: 'a', amount: '1' }, { address: 'b', amount: '1' }] })).toBe(true)
-    expect(runsOnMock(config('core', 'shielded'), { type: 'automatic' })).toBe(true)
+    expect(runsOnMock(config('core', 'core'), { type: 'utxo', inputs: [{ txid: 't', vout: 0 }] }, false)).toBe(true)
+    expect(runsOnMock(config('shielded', 'platformAddress'), { type: 'shieldedNotes', noteIds: ['n'] }, false)).toBe(true)
+    expect(runsOnMock(config('platformAddress', 'core'), { type: 'platformInputs', inputs: [{ address: 'a', amount: '1' }, { address: 'b', amount: '1' }] }, false)).toBe(true)
+    expect(runsOnMock(config('core', 'shielded'), { type: 'automatic' }, false)).toBe(true)
+    expect(runsOnMock(config('core', 'core'), { type: 'automatic' }, true)).toBe(true)
   })
 
   it('allows several platform addresses only where a multi-input method exists', () => {

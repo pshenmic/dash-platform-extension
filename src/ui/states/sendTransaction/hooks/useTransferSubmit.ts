@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { CORE_DASH_DECIMALS } from '../../../../utils'
+import { CORE_DASH_DECIMALS, parseDashAmount, PLATFORM_DASH_DECIMALS } from '../../../../utils'
 import { SHIELDED_MODES } from '../types'
 import type { NetworkType } from '../../../../types'
 import type { TransferApi } from '../transferApi'
@@ -62,6 +62,28 @@ const fundFromCore = async (
   return { type: 'done', hashes: { core: paid.txid, platform: txHash }, fee: fee != null ? { amount: fee, decimals: CORE_DASH_DECIMALS } : undefined }
 }
 
+// Sends one transfer to every Advanced recipient; both multi-output methods are mocks.
+const startAdvancedTransfer = async ({ api, mode, draft, amount, sourceAddress, password }: TransferContext): Promise<TransferStart> => {
+  const decimals = mode === 'coreSend' ? CORE_DASH_DECIMALS : PLATFORM_DASH_DECIMALS
+  const outputs = draft.recipients.map(recipient => ({ address: recipient.address, amount: (parseDashAmount(recipient.amount, decimals) ?? 0n).toString() }))
+
+  if (mode === 'coreSend') {
+    const inputs = draft.coinControl.type === 'utxo' ? draft.coinControl.inputs : undefined
+    const { txid, fee } = await api.sendCoreTransaction({ outputs, inputs, changeAddress: draft.changeAddress ?? undefined }, password)
+    return { type: 'done', hashes: { single: txid }, fee: { amount: BigInt(fee), decimals: CORE_DASH_DECIMALS } }
+  }
+
+  if (mode === 'send') {
+    if (draft.coinControl.type !== 'platformInputs' && sourceAddress == null) throw new Error('No platform address holds enough funds')
+    const inputs = draft.coinControl.type === 'platformInputs'
+      ? draft.coinControl.inputs
+      : [{ address: sourceAddress ?? '', amount: amount.toString() }]
+    return await done(api.sendPlatformTransferFromInputs({ inputs, outputs }, password).then(({ stHash }) => ({ txHash: stHash })))
+  }
+
+  throw new Error('Several recipients are not supported for this transfer')
+}
+
 // Starts a transfer that spends inputs picked in Coin Control, or returns null when nothing was picked.
 const startManualTransfer = async ({ api, mode, draft, amount, password }: TransferContext): Promise<TransferStart | null> => {
   const selection = draft.coinControl
@@ -106,6 +128,8 @@ const startTransfer = async (context: TransferContext, resume: TransferResume | 
   const funding = resume?.type === 'funding' ? resume : null
 
   if (resume?.type === 'operation') return await operation(api.retryTransferOperation(resume.operationId, password))
+
+  if (draft.isAdvanced) return await startAdvancedTransfer(context)
 
   const manual = await startManualTransfer(context)
   if (manual != null) return manual

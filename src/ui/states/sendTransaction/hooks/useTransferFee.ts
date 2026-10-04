@@ -50,6 +50,7 @@ export function useTransferFee ({ api, config, draft, network, shieldedSpendFees
   const isCore = config?.feeSource === 'coreEstimate'
   const isAssetLock = config?.mode === 'coreShield'
   const inputs = draft.coinControl.type === 'utxo' ? draft.coinControl.inputs : undefined
+  const outputCount = draft.isAdvanced ? Math.max(draft.recipients.length, 1) : 1
   const [coreFee, setCoreFee] = useState<bigint | null>(null)
 
   useEffect(() => {
@@ -57,12 +58,12 @@ export function useTransferFee ({ api, config, draft, network, shieldedSpendFees
 
     setCoreFee(null)
     let cancelled = false
-    api.estimateCoreFee({ outputs: [{ address: '', amount: '0' }], inputs, type: isAssetLock ? 'assetLock' : 'transfer' })
+    api.estimateCoreFee({ outputs: Array.from({ length: outputCount }, () => ({ address: '', amount: '0' })), inputs, type: isAssetLock ? 'assetLock' : 'transfer' })
       .then(({ fee }) => { if (!cancelled) setCoreFee(BigInt(fee)) })
       .catch(e => console.log('estimateCoreFee error', e))
 
     return () => { cancelled = true }
-  }, [api, isCore, isAssetLock, inputs])
+  }, [api, isCore, isAssetLock, inputs, outputCount])
 
   if (config == null) return null
   if (isCore) return coreFee != null ? { amount: coreFee, decimals: CORE_DASH_DECIMALS } : null

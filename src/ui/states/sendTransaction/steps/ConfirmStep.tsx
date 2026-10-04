@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { Button, Text } from 'dash-ui-kit/react'
+import { Accordion, Button, Identifier, Text } from 'dash-ui-kit/react'
 import { PasswordField } from '../../../components/forms'
 import { Banner } from '../../../components/cards'
 import { PROVING_WARNING } from '../../../constants/transferWarnings'
+import { formatDashAmount, parseDashAmount } from '../../../../utils'
 import { SHIELDED_MODES } from '../types'
 import { KEEP_OPEN_MESSAGE, MOCK_TRANSFER_WARNING, WITHDRAW_WARNINGS } from '../constants'
 import type { DirectionConfig } from '../directions/directionConfig'
@@ -35,6 +36,19 @@ export function ConfirmStep ({ draft, config, amount, balance, fee, received, is
   return (
     <div className='flex flex-col gap-6'>
       <TransferDetails draft={draft} amount={amount} balance={balance} fee={fee} received={received} rate={rate} showTotal />
+
+      {draft.isAdvanced && (
+        <Accordion title={`${draft.recipients.length} ${draft.recipients.length === 1 ? 'recipient' : 'recipients'}`}>
+          <div className='flex flex-col gap-2'>
+            {draft.recipients.map(recipient => (
+              <div key={recipient.id} className='flex items-center justify-between gap-3'>
+                <Identifier highlight='both' middleEllipsis edgeChars={6} className='!text-xs min-w-0'>{recipient.address}</Identifier>
+                <Text size='xs' className='shrink-0'><span className='font-bold'>{formatDashAmount(parseDashAmount(recipient.amount, balance.decimals) ?? 0n, balance.decimals)}</span> Dash</Text>
+              </div>
+            ))}
+          </div>
+        </Accordion>
+      )}
 
       <Banner variant='info' message={isMock ? MOCK_TRANSFER_WARNING : null} />
       <Banner variant='warning' message={WITHDRAW_WARNINGS[config.mode] ?? null} />

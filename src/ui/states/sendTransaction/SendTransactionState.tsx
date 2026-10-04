@@ -7,7 +7,7 @@ import { useCoreBalance, usePlatformAddresses, useWalletCapabilities } from '../
 import { locationReturnPath } from '../../types'
 import type { OutletContext } from '../../types'
 import { parseSendScope } from '../../utils/sendPath'
-import { formatDashAmount, parseDashAmount, summarizeCoinControl, transferAmountLimits, validateTransferAmount } from '../../../utils'
+import { checkRecipients, formatDashAmount, parseDashAmount, summarizeCoinControl, transferAmountLimits, validateTransferAmount } from '../../../utils'
 import type { TransferCapabilities } from '../../../utils'
 import type { AddressData } from '../../components/addresses/types'
 import { resolveEntryDefaults } from './entry/resolveEntryDefaults'
@@ -24,7 +24,7 @@ import { useTransferOperation } from './hooks/useTransferOperation'
 import { useIdentityHeader } from './hooks/useIdentityHeader'
 import { useTransferApi } from './transferApi'
 import { WizardHeader } from './components/WizardHeader'
-import { COIN_CONTROL_AMOUNT_HINT, CORE_MAX_FEE_RESERVE_DUFFS, CORE_TOP_UP_OWN_IDENTITY_MESSAGE, SAME_PARTY_MESSAGE } from './constants'
+import { MAX_RECIPIENTS, COIN_CONTROL_AMOUNT_HINT, CORE_MAX_FEE_RESERVE_DUFFS, CORE_TOP_UP_OWN_IDENTITY_MESSAGE, SAME_PARTY_MESSAGE } from './constants'
 import { MIN_FEE_RELAY, TRANSFER_FEE_CREDITS } from '../../../constants'
 import { FromToStep } from './steps/FromToStep/FromToStep'
 import { isShieldToMyself } from './steps/FromToStep/RecipientRow'
@@ -33,6 +33,8 @@ import { ConfirmStep } from './steps/ConfirmStep'
 import { ProgressStep } from './steps/ProgressStep'
 import { ResultStep } from './steps/ResultStep'
 import { CoinControlOverlay } from './overlays/CoinControl/CoinControlOverlay'
+import { RecipientsOverlay } from './overlays/RecipientsOverlay'
+import { AdvancedSummary } from './steps/FromToStep/AdvancedSummary'
 import type { TransferOutcome } from './steps/ResultStep'
 import type { CoinControlSelection, CoreUtxo, ShieldedNote, WizardStep } from './types'
 
@@ -63,6 +65,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [assetMenuOpen, setAssetMenuOpen] = useState(false)
   const [coinControlOpen, setCoinControlOpen] = useState(false)
+  const [recipientsOpen, setRecipientsOpen] = useState(false)
+  const [changeAddresses, setChangeAddresses] = useState<string[]>([])
   const [utxos, setUtxos] = useState<CoreUtxo[]>([])
   const [notes, setNotes] = useState<ShieldedNote[] | null>(null)
 
@@ -89,11 +93,14 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const balance = useSourceBalance({ draft, identityBalance, coreBalance, platformAddresses, shieldedBalance: shielded.balance, utxos, notes: notes ?? [], token })
   const fee = useTransferFee({ api, config, draft, network, shieldedSpendFees: shielded.spendFees })
 
-  const amount = parseDashAmount(draft.amount, balance.decimals)
+  const limits = config != null ? transferAmountLimits(config.mode) : null
+  const recipientsCheck = checkRecipients(draft.recipients, balance.decimals, limits?.min ?? 1n)
+  const advancedAvailable = config?.advanced === true && draft.asset.type === 'dash'
+  const amount = draft.isAdvanced ? recipientsCheck.total : parseDashAmount(draft.amount, balance.decimals)
   const isDash = draft.asset.type === 'dash'
   const feeReserve = draft.from.type === 'core' && draft.coinControl.type === 'automatic' ? CORE_MAX_FEE_RESERVE_DUFFS : 0n
   const maxAmount = balance.amount == null ? null : isDash && fee != null && fee.decimals === balance.decimals ? balance.amount - fee.amount - feeReserve : balance.amount
-  const amountError = config != null ? validateTransferAmount(amount, maxAmount, transferAmountLimits(config.mode), balance.decimals, balance.unit) : null
+  const amountError = limits != null ? validateTransferAmount(amount, maxAmount, draft.isAdvanced ? { min: 1n, max: null } : limits, balance.decimals, balance.unit) : null
 
   const stageCount = config?.stages.length ?? 0
   const operation = useTransferOperation(api, stageCount)
@@ -107,16 +114,26 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
 
   const senderIdentifier = draft.from.type === 'identity' ? draft.from.identityId : balance.sourceAddress
   const pickedAddresses = draft.coinControl.type === 'platformInputs' ? draft.coinControl.inputs.map(input => input.address) : []
-  const isSameParty = draft.to.recipient !== '' && (draft.to.recipient === senderIdentifier || pickedAddresses.includes(draft.to.recipient))
+  const isSender = (address: string): boolean => address !== '' && (address === senderIdentifier || pickedAddresses.includes(address))
+  const isSameParty = draft.isAdvanced ? draft.recipients.some(recipient => isSender(recipient.address)) : isSender(draft.to.recipient)
+  const inputsTotal = draft.coinControl.type === 'platformInputs' ? summarizeCoinControl(draft.coinControl, [], []).total : null
+  const inputsMismatch = draft.isAdvanced && inputsTotal != null && recipientsCheck.total !== inputsTotal
+  const advancedError = !draft.isAdvanced
+    ? null
+    : isSameParty
+      ? SAME_PARTY_MESSAGE
+      : inputsMismatch && inputsTotal != null
+        ? `Recipients must receive exactly the ${formatDashAmount(inputsTotal, balance.decimals)} Dash selected in Coin Control.`
+        : recipientsCheck.isValid ? amountError : null
   const isForeignTopUp = config?.mode === 'coreTopUp' && draft.to.recipient !== '' && !availableIdentities.some(identity => identity.identifier === draft.to.recipient)
-  const recipientError = isSameParty ? SAME_PARTY_MESSAGE : isForeignTopUp ? CORE_TOP_UP_OWN_IDENTITY_MESSAGE : null
+  const recipientError = draft.isAdvanced ? null : isSameParty ? SAME_PARTY_MESSAGE : isForeignTopUp ? CORE_TOP_UP_OWN_IDENTITY_MESSAGE : null
   const received = amount != null && (config?.mode === 'coreTopUp' || config?.mode === 'coreFund') ? amount - MIN_FEE_RELAY : null
   const shieldedReady = draft.from.type !== 'shielded' || (shielded.balance != null && !shielded.isWarmingProver)
   const fromToValid = config != null &&
     (draft.asset.type === 'dash' || token != null) &&
     (draft.from.type !== 'identity' || draft.from.identityId != null) &&
-    (isShieldToMyself(draft) || draft.to.recipient !== '') &&
-    recipientError == null &&
+    (draft.isAdvanced ? recipientsCheck.isValid && advancedError == null && draft.changeAddress !== '' : isShieldToMyself(draft) || draft.to.recipient !== '') &&
+    (draft.isAdvanced || recipientError == null) &&
     shieldedReady
   const amountValid = fromToValid && balance.amount != null && amount != null && amount > 0n && amountError == null
 
@@ -124,7 +141,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const step: WizardStep =
     ((requestedStep === 'result' || requestedStep === 'error') && outcome == null) || (requestedStep === 'progress' && operationState.status === 'idle')
       ? 'fromTo'
-      : (requestedStep === 'amount' && !fromToValid) || (requestedStep === 'confirm' && !amountValid)
+      : (requestedStep === 'amount' && (!fromToValid || draft.isAdvanced)) || (requestedStep === 'confirm' && !amountValid)
           ? 'fromTo'
           : requestedStep
 
@@ -139,6 +156,17 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
     if (draft.from.type !== 'core') return
     api.listCoreUtxos().then(setUtxos).catch(e => console.log('listCoreUtxos error', e))
   }, [api, draft.from.type, coinControlOpen])
+
+  // Falls back to Simple once the direction or asset has no multi-output transfer.
+  useEffect(() => {
+    if (draft.isAdvanced && !advancedAvailable) actions.setAdvanced(false)
+  }, [draft.isAdvanced, advancedAvailable, actions])
+
+  // Loads the wallet Core addresses offered as a custom change address.
+  useEffect(() => {
+    if (!draft.isAdvanced || draft.from.type !== 'core') return
+    api.listCoreAddresses().then(setChangeAddresses).catch(e => console.log('listCoreAddresses error', e))
+  }, [api, draft.isAdvanced, draft.from.type, currentWallet, network])
 
   // Drops a multi-address pick once the direction can spend from one address only.
   useEffect(() => {
@@ -209,7 +237,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
 
   return (
     <div className='screen-content'>
-      {!isFinal && <WizardHeader activeStep={STEP_INDEX[step]} advancedAvailable={false} />}
+      {!isFinal && <WizardHeader activeStep={STEP_INDEX[step]} isAdvanced={draft.isAdvanced} advancedAvailable={advancedAvailable && step === 'fromTo'} onAdvancedChange={(value) => actions.setAdvanced(value)} />}
 
       {step === 'fromTo' && (
         <FromToStep
@@ -230,7 +258,10 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           onOpenAsset={() => setAssetMenuOpen(true)}
           coinControlLabel={draft.coinControl.type === 'automatic' ? 'Automatic' : `${coinControlCount} selected`}
           onOpenCoinControl={coinControlReady ? () => setCoinControlOpen(true) : null}
-          onNext={() => goToStep('amount')}
+          recipientsLabel={`(${draft.recipients.length}/${MAX_RECIPIENTS})`}
+          onOpenRecipients={() => setRecipientsOpen(true)}
+          advancedSummary={<AdvancedSummary fromType={draft.from.type} balance={balance} recipientsTotal={recipientsCheck.total} fee={fee} rate={rate} error={advancedError} />}
+          onNext={() => goToStep(draft.isAdvanced ? 'confirm' : 'amount')}
         />
       )}
 
@@ -264,7 +295,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           balance={balance}
           fee={fee}
           received={received}
-          isMock={runsOnMock(config, draft.coinControl)}
+          isMock={runsOnMock(config, draft.coinControl, draft.isAdvanced)}
           rate={rate}
           isSubmitting={isChecking || operationState.status === 'running'}
           passwordError={passwordError}
@@ -286,6 +317,27 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           network={network}
           onDone={() => { void navigate(returnPath, { replace: true }) }}
           onRetry={handleRetry}
+        />
+      )}
+
+      {advancedAvailable && limits != null && recipientsOpen && (
+        <RecipientsOverlay
+          isOpen
+          isCore={draft.from.type === 'core'}
+          recipients={draft.recipients}
+          changeAddress={draft.changeAddress}
+          changeAddresses={changeAddresses}
+          decimals={balance.decimals}
+          available={maxAmount}
+          minAmount={limits.min}
+          excludeIdentifier={balance.sourceAddress}
+          network={network}
+          onClose={() => setRecipientsOpen(false)}
+          onApply={(recipients, changeAddress) => {
+            actions.setRecipients(recipients)
+            actions.setChangeAddress(changeAddress)
+            setRecipientsOpen(false)
+          }}
         />
       )}
 

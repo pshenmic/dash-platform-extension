@@ -8,7 +8,9 @@ type TransferView = 'simple' | 'advanced'
 
 interface WizardHeaderProps {
   activeStep: number
+  isAdvanced: boolean
   advancedAvailable: boolean
+  onAdvancedChange: (value: boolean) => void
 }
 
 const VIEW_OPTIONS = (advancedAvailable: boolean): Array<{ label: string, value: TransferView, disabled?: boolean }> => [
@@ -16,13 +18,16 @@ const VIEW_OPTIONS = (advancedAvailable: boolean): Array<{ label: string, value:
   { label: 'Advanced', value: 'advanced', disabled: !advancedAvailable }
 ]
 
-const stepStatus = (index: number, activeStep: number): StepperStatus => {
-  if (index < activeStep) return 'completed'
+// Amount step index, skipped in Advanced mode where recipients carry the amounts.
+const AMOUNT_STEP = 1
+
+const stepStatus = (index: number, activeStep: number, isAdvanced: boolean): StepperStatus => {
+  if (index < activeStep || (isAdvanced && index === AMOUNT_STEP && activeStep > 0)) return 'completed'
   return index === activeStep ? 'active' : 'upcoming'
 }
 
 // Title, Simple / Advanced switch, description and stepper of the send wizard.
-export function WizardHeader ({ activeStep, advancedAvailable }: WizardHeaderProps): React.JSX.Element {
+export function WizardHeader ({ activeStep, isAdvanced, advancedAvailable, onAdvancedChange }: WizardHeaderProps): React.JSX.Element {
   return (
     <div className='flex flex-col gap-4'>
       <div className='flex items-center justify-between gap-3'>
@@ -31,8 +36,8 @@ export function WizardHeader ({ activeStep, advancedAvailable }: WizardHeaderPro
         </Text>
         <Switch<TransferView>
           options={VIEW_OPTIONS(advancedAvailable)}
-          value='simple'
-          onChange={() => {}}
+          value={isAdvanced ? 'advanced' : 'simple'}
+          onChange={(view) => onAdvancedChange(view === 'advanced')}
           size='sm'
         />
       </div>
@@ -43,7 +48,7 @@ export function WizardHeader ({ activeStep, advancedAvailable }: WizardHeaderPro
         Pick where the funds come from and where they go.
       </Text>
 
-      <Stepper steps={WIZARD_STEP_LABELS.map((label, index) => ({ label, status: stepStatus(index, activeStep) }))} />
+      <Stepper steps={WIZARD_STEP_LABELS.map((label, index) => ({ label, status: stepStatus(index, activeStep, isAdvanced) }))} />
     </div>
   )
 }

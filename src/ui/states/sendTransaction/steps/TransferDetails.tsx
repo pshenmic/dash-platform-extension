@@ -65,6 +65,7 @@ const sourceValue = (draft: TransferDraft, sourceAddress: string | null): React.
 
 const targetValue = (draft: TransferDraft): React.ReactNode => {
   const { type, recipient } = draft.to
+  if (draft.isAdvanced) return <Text size='xs' weight='bold'>{draft.recipients.length} {draft.recipients.length === 1 ? 'recipient' : 'recipients'}</Text>
   if (isShieldToMyself(draft)) return <TypeValue type='shielded' label='Your Shielded Balance' />
   if (type === 'identity') return <IdentityValue identifier={recipient} />
   if (type === 'core' && draft.from.type !== 'core') return <TypeValue type='core' />

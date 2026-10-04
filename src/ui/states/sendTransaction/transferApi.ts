@@ -108,6 +108,10 @@ export class TransferApi {
     return { txHash: txid, feeDuffs: BigInt(feeDuffs) }
   }
 
+  async listCoreAddresses (): Promise<string[]> {
+    return (await this.extensionAPI.listCoreAddresses()).map(entry => entry.address)
+  }
+
   async requestTopUpFundingAddress (password: string, identityId: string, walletId?: string, network?: NetworkType): Promise<string> {
     return (await this.extensionAPI.requestTopUpFundingAddress(password, identityId, walletId, network)).address
   }
