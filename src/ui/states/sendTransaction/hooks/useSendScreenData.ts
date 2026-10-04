@@ -32,6 +32,8 @@ export function useSendScreenData ({
 
   // Load balance and exchange rate
   useEffect(() => {
+    setBalance(null)
+
     const loadBalance = async (): Promise<void> => {
       if (senderIdentity !== null && senderIdentity !== undefined) {
         try {

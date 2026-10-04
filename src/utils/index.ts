@@ -13,7 +13,7 @@ import { KeypairRepository } from '../content-script/repository/KeypairRepositor
 import { generateRandomHex } from './random'
 
 export { formatBigNumber }
-export { loadSigningKeys, isKeyCompatible } from './signingKeys'
+export { loadSigningKeys, isKeyCompatible, getStateTransitionKeyRequirements, pickSigningKey } from './signingKeys'
 export { fetchNames, normalizeName, splitDpns } from './names'
 export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
@@ -33,6 +33,8 @@ export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, max
 export type { ShieldedNoteSelection, ShieldedSpendEstimate } from './shieldedFee'
 export { ENDPOINT_TYPE_ORDER, toDirection, getSourceUnavailableReason, resolveTransferPair, fallbackTargetType } from './transferDirection'
 export type { TransferCapabilities, TransferUnavailableReason, TransferPairResolution } from './transferDirection'
+export { CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS, endpointDashDecimals, isDashInputAllowed, parseDashAmount, formatDashAmount, dashAmountToUsd, transferAmountLimits, validateTransferAmount, usdToDashAmount } from './transferAmount'
+export type { TransferAmountLimits } from './transferAmount'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))

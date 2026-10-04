@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react'
-import { CreditsIcon, Input, Avatar } from 'dash-ui-kit/react'
+import { DashLogo, Input, Avatar } from 'dash-ui-kit/react'
 import { OverlayMenu } from '../common'
 import { AssetOptionCard } from './AssetOptionCard'
 import type { TokenData } from '../../../types'
-import { fromBaseUnit } from '../../../utils'
+import { fromBaseUnit, formatDashAmount, PLATFORM_DASH_DECIMALS } from '../../../utils'
 
 export interface AssetOption {
   value: string
@@ -16,16 +16,16 @@ export interface AssetOption {
 
 const CREDITS_OPTION: AssetOption = {
   value: 'credits',
-  label: 'Credits',
-  symbol: 'CRDT',
+  label: 'Dash',
+  symbol: 'DASH',
   icon: (
     <div className='w-[2.438rem] h-[2.438rem] bg-[rgba(12,28,51,0.05)] rounded-full flex items-center justify-center'>
-      <CreditsIcon className='!text-dash-brand w-5 h-5' />
+      <DashLogo className='w-5 h-5' color='#4C7EFF' />
     </div>
   )
 }
 
-// Builds the selectable asset list (Credits + the identity's tokens). Shared by
+// Builds the selectable asset list (Dash + the identity's tokens). Shared by
 // the asset-selection menu and the transfer screen's asset step.
 export function buildAssetOptions (tokens: TokenData[] = []): AssetOption[] {
   const tokenOptions: AssetOption[] = tokens.map(token => {
@@ -53,10 +53,10 @@ export function buildAssetOptions (tokens: TokenData[] = []): AssetOption[] {
 const UNKNOWN_BALANCE = '—'
 
 // Formats an asset's balance for display. `creditsBalance` is the raw credits
-// amount (string) for the Credits option.
+// amount (string) for the Dash option.
 export function formatAssetBalance (option: AssetOption, creditsBalance?: string): string {
   if (option.value === 'credits') {
-    return creditsBalance != null ? `${creditsBalance} CRDT` : UNKNOWN_BALANCE
+    return creditsBalance != null ? `${formatDashAmount(BigInt(creditsBalance), PLATFORM_DASH_DECIMALS)} DASH` : UNKNOWN_BALANCE
   }
   if ((option.isToken ?? false) && option.tokenData != null) {
     return `${fromBaseUnit(option.tokenData.balance, option.tokenData.decimals)} ${option.symbol}`

@@ -32,3 +32,30 @@ export const MODE_WARNINGS: Partial<Record<TransferMode, string>> = {
   unshield: PROVING_NOTE,
   shieldedTransfer: PROVING_NOTE
 }
+
+// Labels of the wizard stepper.
+export const WIZARD_STEP_LABELS = ['From & To', 'Amount', 'Confirm']
+
+// Hint on the Core sender type until Core transfers are wired in.
+export const CORE_SENDER_PENDING_HINT = 'Sending from Dash Core is coming soon.'
+
+export const RECIPIENT_PLACEHOLDERS = {
+  core: 'Enter Address',
+  identity: 'Enter Identity',
+  platformAddress: 'Enter Address',
+  shielded: 'Shielded Address'
+}
+
+export const SHIELDED_UNLOCK_DESCRIPTION = 'Enter your password to unlock the shielded balance.'
+
+// Error screen message for the sent asset.
+export const transferErrorMessage = (asset: string): string => `An error occurred while sending ${asset}. Please try again.`
+
+export const SAME_PARTY_MESSAGE = 'Recipient must be different from the sender.'
+
+// Confirm screen caution for transfers leaving Platform for Core.
+export const WITHDRAW_WARNINGS: Partial<Record<TransferMode, string>> = {
+  identityWithdraw: WITHDRAW_TO_CORE_WARNING,
+  withdraw: WITHDRAW_TO_CORE_WARNING,
+  shieldedWithdraw: SHIELDED_WITHDRAW_WARNING
+}

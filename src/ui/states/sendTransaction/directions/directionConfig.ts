@@ -150,7 +150,7 @@ export const DIRECTION_DETAILS: Partial<Record<Direction, DirectionDetails>> = {
     confirmLabel: 'Send',
     successMessage: SENT_TO_PLATFORM_ADDRESS,
     coinControl: null,
-    feeSource: 'identityEstimate'
+    feeSource: 'platformTransfer'
   },
   'platformAddress->core': {
     ...WITHDRAWAL,

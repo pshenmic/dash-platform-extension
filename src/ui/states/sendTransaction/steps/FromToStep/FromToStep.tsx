@@ -1,0 +1,150 @@
+import React from 'react'
+import { Badge, Button, ChevronIcon, CreditsIcon, FilterIcon, PendingIcon, Text } from 'dash-ui-kit/react'
+import { Checkbox, SideActionButton } from '../../../../components/controls'
+import { EndpointTypeSelect } from '../../../../components/transfer'
+import type { EndpointTypeOption } from '../../../../components/transfer'
+import { InfoCard } from '../../../../components/common'
+import { formatDashAmount, getSourceUnavailableReason, PLATFORM_DASH_DECIMALS } from '../../../../../utils'
+import type { TransferCapabilities } from '../../../../../utils'
+import type { NetworkType, TokenData } from '../../../../../types'
+import { CORE_SENDER_PENDING_HINT, SAME_PARTY_MESSAGE, UNAVAILABLE_REASON_HINTS } from '../../constants'
+import { FEE_PLACEHOLDER } from '../../directions/directionConfig'
+import { resolveDirection } from '../../directions/resolveDirection'
+import type { DirectionResolution } from '../../directions/resolveDirection'
+import type { TransferDraftActions } from '../../hooks/useTransferDraft'
+import type { SourceBalance } from '../../hooks/useSourceBalance'
+import type { EndpointType, TransferDraft } from '../../types'
+import { EndpointCard } from './EndpointCard'
+import { SourceRow } from './SourceRow'
+import { RecipientRow, isShieldToMyself } from './RecipientRow'
+
+interface FromToStepProps {
+  draft: TransferDraft
+  actions: TransferDraftActions
+  resolution: DirectionResolution
+  typeOrder: EndpointType[]
+  capabilities: TransferCapabilities
+  coreSenderPending: boolean
+  identities: string[]
+  balance: SourceBalance
+  rate: number | null
+  shielded: React.ComponentProps<typeof SourceRow>['shielded']
+  tokens: TokenData[]
+  feeCredits: bigint | null
+  network: NetworkType
+  canContinue: boolean
+  isSameParty: boolean
+  onOpenAsset: () => void
+  onNext: () => void
+}
+
+const tokenSymbol = (draft: TransferDraft, tokens: TokenData[]): string => {
+  if (draft.asset.type !== 'token') return 'Dash'
+  const { tokenId } = draft.asset
+  const token = tokens.find(item => item.identifier === tokenId)
+  return token?.localizations?.en?.singularForm ?? 'Token'
+}
+
+// Step 1 of the send wizard: where the funds come from and where they go.
+export function FromToStep ({
+  draft,
+  actions,
+  resolution,
+  typeOrder,
+  capabilities,
+  coreSenderPending,
+  identities,
+  balance,
+  rate,
+  shielded,
+  tokens,
+  feeCredits,
+  network,
+  canContinue,
+  isSameParty,
+  onOpenAsset,
+  onNext
+}: FromToStepProps): React.JSX.Element {
+  const fromOptions = typeOrder.map((type): EndpointTypeOption => {
+    const reason = getSourceUnavailableReason(type, draft.asset, capabilities)
+    const hint = type === 'core' && coreSenderPending ? CORE_SENDER_PENDING_HINT : reason != null ? UNAVAILABLE_REASON_HINTS[reason] : undefined
+    return { type, disabled: reason != null, hint }
+  })
+
+  const toOptions = typeOrder.map((type): EndpointTypeOption => {
+    const result = resolveDirection(draft.from.type, type, draft.asset, capabilities)
+    return result.supported ? { type } : { type, disabled: true, hint: UNAVAILABLE_REASON_HINTS[result.reason] }
+  })
+
+  const infoCard = resolution.supported ? resolution.config.infoCard : undefined
+  const feeText = feeCredits != null ? `${formatDashAmount(feeCredits, PLATFORM_DASH_DECIMALS)} Dash` : 'small'
+
+  return (
+    <div className='flex flex-col gap-6'>
+      <div className='relative flex flex-col gap-1'>
+        <EndpointCard label='From'>
+          <div className='flex gap-3'>
+            <EndpointTypeSelect value={draft.from.type} options={fromOptions} onChange={(type) => actions.setFromType(type)} className='flex-1 min-w-0' />
+            {draft.from.type === 'identity'
+              ? (
+                <SideActionButton
+                  icon={<CreditsIcon className='w-4 h-4' />}
+                  title='Asset'
+                  subtitle={tokenSymbol(draft, tokens)}
+                  onClick={onOpenAsset}
+                  disabled={tokens.length === 0}
+                />
+                )
+              : <SideActionButton icon={<FilterIcon size={16} />} title='Coin Control' subtitle='Automatic' disabled />}
+          </div>
+          <SourceRow
+            draft={draft}
+            identities={identities}
+            onIdentityChange={(id) => actions.setFromIdentity(id)}
+            balance={balance}
+            rate={rate}
+            shielded={shielded}
+          />
+        </EndpointCard>
+
+        <div className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-white dash-shadow-xl'>
+          <ChevronIcon className='w-3 h-2 text-dash-primary-dark-blue/40' />
+        </div>
+
+        <EndpointCard
+          label='To'
+          headerAction={isShieldToMyself(draft) && <Checkbox checked disabled onChange={() => {}} label='Shield to Myself' />}
+        >
+          <EndpointTypeSelect value={draft.to.type} options={toOptions} onChange={(type) => actions.setToType(type)} />
+          <RecipientRow
+            key={`${draft.from.type}-${draft.to.type}`}
+            draft={draft}
+            excludeIdentifier={draft.from.type === 'identity' ? draft.from.identityId : null}
+            network={network}
+            onRecipientChange={(recipient) => actions.setRecipient(recipient)}
+          />
+          {isSameParty && <Text size='xs' className='!text-red-500'>{SAME_PARTY_MESSAGE}</Text>}
+        </EndpointCard>
+      </div>
+
+      {infoCard != null && (
+        <InfoCard
+          title={infoCard.title}
+          appearance='plain'
+          badge={infoCard.duration != null && (
+            <Badge color='blue' variant='flat' size='xs' className='flex items-center gap-1'>
+              <PendingIcon size={12} />
+              {infoCard.duration}
+            </Badge>
+          )}
+        >
+          {infoCard.text.replace(FEE_PLACEHOLDER, feeText)}
+        </InfoCard>
+      )}
+
+      <Button colorScheme='brand' size='xl' className='w-full' disabled={!canContinue} onClick={onNext}>
+        Next
+      </Button>
+    </div>
+  )
+}

@@ -3,6 +3,7 @@ import { useExtensionAPI } from '../../../hooks'
 import type { GetShieldedBalanceResponse } from '../../../../types/messages/response/GetShieldedBalanceResponse'
 import type { GetShieldedAddressesResponse } from '../../../../types/messages/response/GetShieldedAddressesResponse'
 import type { ShieldedAddressEntry } from '../types'
+import type { ShieldedSpendKind } from '../../../../types/ShieldedSpendKind'
 
 type DerivedShieldedAddresses = GetShieldedAddressesResponse['addresses']
 
@@ -13,9 +14,12 @@ interface UseShieldedBalanceResult {
   isUnlocking: boolean
   isWarmingProver: boolean
   error: string | null
-  unlock: (password: string) => Promise<void>
+  unlock: (password: string) => Promise<string | null>
   clearError: () => void
+  spendFees: Partial<Record<ShieldedSpendKind, bigint>>
 }
+
+const ESTIMATED_SPEND_TYPES: ShieldedSpendKind[] = ['transfer', 'unshield']
 
 /**
  * Unlocks the wallet's shielded balance for the transfer form.
@@ -28,13 +32,14 @@ export function useShieldedBalance (): UseShieldedBalanceResult {
   const [isWarmingProver, setIsWarmingProver] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [spendFees, setSpendFees] = useState<Partial<Record<ShieldedSpendKind, bigint>>>({})
   const mountedRef = useRef(true)
   useEffect(() => () => { mountedRef.current = false }, [])
 
-  const unlock = useCallback(async (password: string): Promise<void> => {
+  const unlock = useCallback(async (password: string): Promise<string | null> => {
     if (password === '') {
       setError('Password must be provided')
-      return
+      return 'Password must be provided'
     }
 
     setIsUnlocking(true)
@@ -43,21 +48,22 @@ export function useShieldedBalance (): UseShieldedBalanceResult {
     try {
       const passwordCheck = await extensionAPI.checkPassword(password)
 
-      if (!mountedRef.current) return
+      if (!mountedRef.current) return null
 
       if (!passwordCheck.success) {
         setError('Invalid password')
-        return
+        return 'Invalid password'
       }
 
       // The breakdown covers only funded addresses; the derived list adds
       // the empty ones, and losing it is not fatal.
-      const [addressesResult, balanceResult] = await Promise.allSettled([
+      const [addressesResult, balanceResult, ...feeResults] = await Promise.allSettled([
         extensionAPI.getShieldedAddresses(password),
-        extensionAPI.getShieldedBalance(password)
+        extensionAPI.getShieldedBalance(password),
+        ...ESTIMATED_SPEND_TYPES.map(async spendType => await extensionAPI.estimateShieldedFee(spendType, password))
       ])
 
-      if (!mountedRef.current) return
+      if (!mountedRef.current) return null
 
       if (balanceResult.status === 'rejected') {
         throw balanceResult.reason instanceof Error ? balanceResult.reason : new Error('Failed to load shielded balance')
@@ -67,14 +73,17 @@ export function useShieldedBalance (): UseShieldedBalanceResult {
         console.log('Failed to derive shielded addresses:', addressesResult.reason)
       }
 
+      setSpendFees(Object.fromEntries(ESTIMATED_SPEND_TYPES.flatMap((spendType, index) => {
+        const result = feeResults[index]
+        return result.status === 'fulfilled' ? [[spendType, BigInt(result.value.feeCredits)]] : []
+      })))
       setDerived(addressesResult.status === 'fulfilled' ? addressesResult.value : [])
       setInfo(balanceResult.value)
     } catch (err) {
       console.error('Failed to load shielded balance:', err)
-      if (mountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Failed to load shielded balance')
-      }
-      return
+      const message = err instanceof Error ? err.message : 'Failed to load shielded balance'
+      if (mountedRef.current) setError(message)
+      return message
     } finally {
       if (mountedRef.current) setIsUnlocking(false)
     }
@@ -88,6 +97,8 @@ export function useShieldedBalance (): UseShieldedBalanceResult {
     } finally {
       if (mountedRef.current) setIsWarmingProver(false)
     }
+
+    return null
   }, [extensionAPI])
 
   // Defensive: a malformed `info.balance` must not throw during render.
@@ -147,6 +158,7 @@ export function useShieldedBalance (): UseShieldedBalanceResult {
     isWarmingProver,
     error,
     unlock,
-    clearError: useCallback(() => setError(null), [])
+    clearError: useCallback(() => setError(null), []),
+    spendFees
   }
 }
