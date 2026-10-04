@@ -7,12 +7,12 @@ import { useCoreBalance, usePlatformAddresses, useWalletCapabilities } from '../
 import { locationReturnPath } from '../../types'
 import type { OutletContext } from '../../types'
 import { parseSendScope } from '../../utils/sendPath'
-import { parseDashAmount, transferAmountLimits, validateTransferAmount } from '../../../utils'
+import { formatDashAmount, parseDashAmount, summarizeCoinControl, transferAmountLimits, validateTransferAmount } from '../../../utils'
 import type { TransferCapabilities } from '../../../utils'
 import type { AddressData } from '../../components/addresses/types'
 import { resolveEntryDefaults } from './entry/resolveEntryDefaults'
 import type { EntryDefaults } from './entry/resolveEntryDefaults'
-import { resolveDirection } from './directions/resolveDirection'
+import { maxPlatformInputs, resolveDirection, runsOnMock } from './directions/resolveDirection'
 import { useTransferDraft } from './hooks/useTransferDraft'
 import { useSendScreenData } from './hooks/useSendScreenData'
 import { useShieldedBalance } from './hooks/useShieldedBalance'
@@ -24,16 +24,17 @@ import { useTransferOperation } from './hooks/useTransferOperation'
 import { useIdentityHeader } from './hooks/useIdentityHeader'
 import { useTransferApi } from './transferApi'
 import { WizardHeader } from './components/WizardHeader'
-import { CORE_MAX_FEE_RESERVE_DUFFS, CORE_TOP_UP_OWN_IDENTITY_MESSAGE, SAME_PARTY_MESSAGE } from './constants'
-import { MIN_FEE_RELAY } from '../../../constants'
+import { COIN_CONTROL_AMOUNT_HINT, CORE_MAX_FEE_RESERVE_DUFFS, CORE_TOP_UP_OWN_IDENTITY_MESSAGE, SAME_PARTY_MESSAGE } from './constants'
+import { MIN_FEE_RELAY, TRANSFER_FEE_CREDITS } from '../../../constants'
 import { FromToStep } from './steps/FromToStep/FromToStep'
 import { isShieldToMyself } from './steps/FromToStep/RecipientRow'
 import { AmountStep } from './steps/AmountStep'
 import { ConfirmStep } from './steps/ConfirmStep'
 import { ProgressStep } from './steps/ProgressStep'
 import { ResultStep } from './steps/ResultStep'
+import { CoinControlOverlay } from './overlays/CoinControl/CoinControlOverlay'
 import type { TransferOutcome } from './steps/ResultStep'
-import type { WizardStep } from './types'
+import type { CoinControlSelection, CoreUtxo, ShieldedNote, WizardStep } from './types'
 
 const STEP_INDEX: Record<WizardStep, number> = { fromTo: 0, amount: 1, confirm: 2, progress: 3, result: 3, error: 3 }
 
@@ -61,24 +62,36 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const [resumed, setResumed] = useState<ResumedTransfer | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [assetMenuOpen, setAssetMenuOpen] = useState(false)
+  const [coinControlOpen, setCoinControlOpen] = useState(false)
+  const [utxos, setUtxos] = useState<CoreUtxo[]>([])
+  const [notes, setNotes] = useState<ShieldedNote[] | null>(null)
 
   const identityId = draft.from.type === 'identity' ? draft.from.identityId : null
   const { balance: identityBalance, rate, tokensState } = useSendScreenData({ senderIdentity: identityId, tokensIdentity: identityId, currentNetwork })
   const tokens = useMemo(() => tokensState.data ?? [], [tokensState.data])
   const token = draft.asset.type === 'token' ? tokens.find(item => draft.asset.type === 'token' && item.identifier === draft.asset.tokenId) : undefined
-  const shielded = useShieldedBalance()
+  const shieldedBalance = useShieldedBalance()
+  const shielded = {
+    ...shieldedBalance,
+    // Unlocks the shielded balance and loads its notes for Coin Control.
+    unlock: async (password: string): Promise<string | null> => {
+      const error = await shieldedBalance.unlock(password)
+      if (error == null) api.listShieldedNotes(password).then(setNotes).catch(e => { console.log('listShieldedNotes error', e); setNotes([]) })
+      return error
+    }
+  }
   const core = useCoreBalance(currentWallet, capabilities.hasCoreLayer)
   const coreBalance = core.balance != null ? BigInt(core.balance.balance) : null
 
   const resolution = resolveDirection(draft.from.type, draft.to.type, draft.asset, capabilities)
   const config = resolution.supported ? resolution.config : null
 
-  const balance = useSourceBalance({ draft, identityBalance, coreBalance, platformAddresses, shieldedBalance: shielded.balance, token })
+  const balance = useSourceBalance({ draft, identityBalance, coreBalance, platformAddresses, shieldedBalance: shielded.balance, utxos, notes: notes ?? [], token })
   const fee = useTransferFee({ api, config, draft, network, shieldedSpendFees: shielded.spendFees })
 
   const amount = parseDashAmount(draft.amount, balance.decimals)
   const isDash = draft.asset.type === 'dash'
-  const feeReserve = draft.from.type === 'core' ? CORE_MAX_FEE_RESERVE_DUFFS : 0n
+  const feeReserve = draft.from.type === 'core' && draft.coinControl.type === 'automatic' ? CORE_MAX_FEE_RESERVE_DUFFS : 0n
   const maxAmount = balance.amount == null ? null : isDash && fee != null && fee.decimals === balance.decimals ? balance.amount - fee.amount - feeReserve : balance.amount
   const amountError = config != null ? validateTransferAmount(amount, maxAmount, transferAmountLimits(config.mode), balance.decimals, balance.unit) : null
 
@@ -93,7 +106,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   useIdentityHeader({ currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent })
 
   const senderIdentifier = draft.from.type === 'identity' ? draft.from.identityId : balance.sourceAddress
-  const isSameParty = draft.to.recipient !== '' && draft.to.recipient === senderIdentifier
+  const pickedAddresses = draft.coinControl.type === 'platformInputs' ? draft.coinControl.inputs.map(input => input.address) : []
+  const isSameParty = draft.to.recipient !== '' && (draft.to.recipient === senderIdentifier || pickedAddresses.includes(draft.to.recipient))
   const isForeignTopUp = config?.mode === 'coreTopUp' && draft.to.recipient !== '' && !availableIdentities.some(identity => identity.identifier === draft.to.recipient)
   const recipientError = isSameParty ? SAME_PARTY_MESSAGE : isForeignTopUp ? CORE_TOP_UP_OWN_IDENTITY_MESSAGE : null
   const received = amount != null && (config?.mode === 'coreTopUp' || config?.mode === 'coreFund') ? amount - MIN_FEE_RELAY : null
@@ -118,6 +132,29 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
     const params = new URLSearchParams(searchParams)
     params.set('step', next)
     setSearchParams(params, { replace, state: location.state })
+  }
+
+  // Reloads the wallet UTXOs for Coin Control whenever Core is picked or the screen opens.
+  useEffect(() => {
+    if (draft.from.type !== 'core') return
+    api.listCoreUtxos().then(setUtxos).catch(e => console.log('listCoreUtxos error', e))
+  }, [api, draft.from.type, coinControlOpen])
+
+  // Drops a multi-address pick once the direction can spend from one address only.
+  useEffect(() => {
+    if (config != null && draft.coinControl.type === 'platformInputs' && draft.coinControl.inputs.length > maxPlatformInputs(config)) {
+      actions.setCoinControl({ type: 'automatic' })
+    }
+  }, [config, draft.coinControl, actions])
+
+  const coinControlType = config?.coinControl ?? null
+  const coinControlCount = summarizeCoinControl(draft.coinControl, utxos, notes ?? []).count
+  const coinControlReady = coinControlType != null && (draft.from.type !== 'shielded' || notes != null)
+
+  const handleCoinControlApply = (selection: CoinControlSelection): void => {
+    const inputsTotal = selection.type === 'platformInputs' ? selection.inputs.reduce((sum, input) => sum + BigInt(input.amount), 0n) : null
+    actions.setCoinControl(selection, inputsTotal != null ? formatDashAmount(inputsTotal, balance.decimals) : undefined)
+    setCoinControlOpen(false)
   }
 
   // Rewrites a step the draft cannot reach yet back to the first step.
@@ -191,6 +228,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           canContinue={fromToValid}
           recipientError={recipientError}
           onOpenAsset={() => setAssetMenuOpen(true)}
+          coinControlLabel={draft.coinControl.type === 'automatic' ? 'Automatic' : `${coinControlCount} selected`}
+          onOpenCoinControl={coinControlReady ? () => setCoinControlOpen(true) : null}
           onNext={() => goToStep('amount')}
         />
       )}
@@ -212,6 +251,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           amountError={amountError}
           rate={rate}
           onAmountChange={(value) => actions.setAmount(value)}
+          lockedHint={draft.coinControl.type === 'platformInputs' ? COIN_CONTROL_AMOUNT_HINT : undefined}
           onNext={() => goToStep('confirm')}
         />
       )}
@@ -224,6 +264,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           balance={balance}
           fee={fee}
           received={received}
+          isMock={runsOnMock(config, draft.coinControl)}
           rate={rate}
           isSubmitting={isChecking || operationState.status === 'running'}
           passwordError={passwordError}
@@ -245,6 +286,23 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           network={network}
           onDone={() => { void navigate(returnPath, { replace: true }) }}
           onRetry={handleRetry}
+        />
+      )}
+
+      {coinControlType != null && config != null && (
+        <CoinControlOverlay
+          isOpen={coinControlOpen}
+          coinControlType={coinControlType}
+          selection={draft.coinControl}
+          decimals={balance.decimals}
+          utxos={utxos}
+          addresses={platformAddresses}
+          notes={notes ?? []}
+          maxInputs={maxPlatformInputs(config)}
+          platformFee={fee != null && fee.decimals === balance.decimals ? fee.amount : TRANSFER_FEE_CREDITS}
+          rate={rate}
+          onClose={() => setCoinControlOpen(false)}
+          onApply={handleCoinControlApply}
         />
       )}
 

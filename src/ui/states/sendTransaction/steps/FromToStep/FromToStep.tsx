@@ -35,6 +35,8 @@ interface FromToStepProps {
   canContinue: boolean
   recipientError: string | null
   onOpenAsset: () => void
+  coinControlLabel: string
+  onOpenCoinControl: (() => void) | null
   onNext: () => void
 }
 
@@ -62,6 +64,8 @@ export function FromToStep ({
   canContinue,
   recipientError,
   onOpenAsset,
+  coinControlLabel,
+  onOpenCoinControl,
   onNext
 }: FromToStepProps): React.JSX.Element {
   const fromOptions = typeOrder.map((type): EndpointTypeOption => {
@@ -94,7 +98,7 @@ export function FromToStep ({
                   disabled={tokens.length === 0}
                 />
                 )
-              : <SideActionButton icon={<FilterIcon size={16} />} title='Coin Control' subtitle='Automatic' disabled />}
+              : <SideActionButton icon={<FilterIcon size={16} />} title='Coin Control' subtitle={coinControlLabel} onClick={onOpenCoinControl ?? undefined} disabled={onOpenCoinControl == null} />}
           </div>
           <SourceRow
             draft={draft}

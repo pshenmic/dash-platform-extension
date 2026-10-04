@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useReducer } from 'react'
 import { fallbackTargetType } from '../../../../utils'
 import type { TransferCapabilities } from '../../../../utils'
-import type { AssetId, EndpointType, TransferDraft } from '../types'
+import type { AssetId, CoinControlSelection, EndpointType, TransferDraft } from '../types'
 
 export type TransferDraftAction =
   | { type: 'setFromType', endpointType: EndpointType, capabilities: TransferCapabilities }
@@ -11,6 +11,7 @@ export type TransferDraftAction =
   | { type: 'setShieldToMyself', value: boolean }
   | { type: 'setAsset', asset: AssetId, capabilities: TransferCapabilities }
   | { type: 'setAmount', amount: string }
+  | { type: 'setCoinControl', selection: CoinControlSelection, amount?: string }
   | { type: 'reset', draft: TransferDraft }
 
 // Moves the To side to a supported type, clearing the recipient when the type changes.
@@ -37,10 +38,13 @@ export const transferDraftReducer = (draft: TransferDraft, action: TransferDraft
       return { ...draft, to: { ...draft.to, shieldToMyself: action.value } }
     case 'setAsset': {
       const from = action.asset.type === 'token' ? { ...draft.from, type: 'identity' as const } : draft.from
-      return withTarget({ ...draft, from, asset: action.asset, amount: '' }, action.capabilities)
+      const coinControl = from.type === draft.from.type ? draft.coinControl : { type: 'automatic' as const }
+      return withTarget({ ...draft, from, coinControl, asset: action.asset, amount: '' }, action.capabilities)
     }
     case 'setAmount':
       return { ...draft, amount: action.amount }
+    case 'setCoinControl':
+      return { ...draft, coinControl: action.selection, amount: action.amount ?? draft.amount }
     case 'reset':
       return action.draft
   }
@@ -54,6 +58,7 @@ export interface TransferDraftActions {
   setShieldToMyself: (value: boolean) => void
   setAsset: (asset: AssetId) => void
   setAmount: (amount: string) => void
+  setCoinControl: (selection: CoinControlSelection, amount?: string) => void
   reset: (draft: TransferDraft) => void
 }
 
@@ -72,6 +77,7 @@ export function useTransferDraft (initial: TransferDraft, capabilities: Transfer
     setRecipient: (recipient) => dispatch({ type: 'setRecipient', recipient }),
     setShieldToMyself: (value) => dispatch({ type: 'setShieldToMyself', value }),
     setAmount: (amount) => dispatch({ type: 'setAmount', amount }),
+    setCoinControl: (selection, amount) => dispatch({ type: 'setCoinControl', selection, amount }),
     reset: (next) => dispatch({ type: 'reset', draft: next })
   }), [setFromType, setAsset])
 

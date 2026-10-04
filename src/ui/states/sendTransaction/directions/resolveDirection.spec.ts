@@ -1,4 +1,4 @@
-import { resolveDirection } from './resolveDirection'
+import { maxPlatformInputs, resolveDirection, runsOnMock } from './resolveDirection'
 import { DIRECTION_DETAILS, FEE_PLACEHOLDER } from './directionConfig'
 import { ENDPOINT_TYPE_ORDER, fallbackTargetType } from '../../../../utils'
 import type { TransferCapabilities } from '../../../../utils'
@@ -135,5 +135,31 @@ describe('DIRECTION_DETAILS', () => {
 
     expect(text).toContain(FEE_PLACEHOLDER)
     expect(text).not.toContain('400,000,000')
+  })
+})
+
+describe('runsOnMock / maxPlatformInputs', () => {
+  const config = (from: EndpointType, to: EndpointType): NonNullable<ReturnType<typeof resolveDirection> & { supported: true }>['config'] => {
+    const result = resolveDirection(from, to, DASH, SEED)
+    if (!result.supported) throw new Error('unsupported')
+    return result.config
+  }
+
+  it('uses the real API for automatic and single-address selections', () => {
+    expect(runsOnMock(config('core', 'core'), { type: 'automatic' })).toBe(false)
+    expect(runsOnMock(config('platformAddress', 'platformAddress'), { type: 'platformInputs', inputs: [{ address: 'a', amount: '1' }] })).toBe(false)
+  })
+
+  it('switches to mocks for picked UTXOs, notes and several addresses', () => {
+    expect(runsOnMock(config('core', 'core'), { type: 'utxo', inputs: [{ txid: 't', vout: 0 }] })).toBe(true)
+    expect(runsOnMock(config('shielded', 'platformAddress'), { type: 'shieldedNotes', noteIds: ['n'] })).toBe(true)
+    expect(runsOnMock(config('platformAddress', 'core'), { type: 'platformInputs', inputs: [{ address: 'a', amount: '1' }, { address: 'b', amount: '1' }] })).toBe(true)
+    expect(runsOnMock(config('core', 'shielded'), { type: 'automatic' })).toBe(true)
+  })
+
+  it('allows several platform addresses only where a multi-input method exists', () => {
+    expect(maxPlatformInputs(config('platformAddress', 'platformAddress'))).toBe(Number.POSITIVE_INFINITY)
+    expect(maxPlatformInputs(config('platformAddress', 'core'))).toBe(Number.POSITIVE_INFINITY)
+    expect(maxPlatformInputs(config('platformAddress', 'identity'))).toBe(1)
   })
 })

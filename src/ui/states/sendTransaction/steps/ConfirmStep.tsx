@@ -18,6 +18,7 @@ interface ConfirmStepProps {
   balance: SourceBalance
   fee: TransferFee | null
   received: bigint | null
+  isMock: boolean
   rate: number | null
   isSubmitting: boolean
   passwordError: string | null
@@ -26,7 +27,7 @@ interface ConfirmStepProps {
 }
 
 // Step 3 of the send wizard: transfer details, password and the action button.
-export function ConfirmStep ({ draft, config, amount, balance, fee, received, rate, isSubmitting, passwordError, onPasswordChange, onConfirm }: ConfirmStepProps): React.JSX.Element {
+export function ConfirmStep ({ draft, config, amount, balance, fee, received, isMock, rate, isSubmitting, passwordError, onPasswordChange, onConfirm }: ConfirmStepProps): React.JSX.Element {
   const [password, setPassword] = useState('')
   const isProving = SHIELDED_MODES.includes(config.mode) || config.mode === 'coreShield'
   const isCrossLayerFromCore = draft.from.type === 'core' && draft.to.type !== 'core'
@@ -35,7 +36,7 @@ export function ConfirmStep ({ draft, config, amount, balance, fee, received, ra
     <div className='flex flex-col gap-6'>
       <TransferDetails draft={draft} amount={amount} balance={balance} fee={fee} received={received} rate={rate} showTotal />
 
-      <Banner variant='info' message={config.usesMock ? MOCK_TRANSFER_WARNING : null} />
+      <Banner variant='info' message={isMock ? MOCK_TRANSFER_WARNING : null} />
       <Banner variant='warning' message={WITHDRAW_WARNINGS[config.mode] ?? null} />
       {isProving && <Banner variant='warning' message={PROVING_WARNING} />}
 

@@ -68,3 +68,14 @@ export const CORE_MAX_FEE_RESERVE_DUFFS = 10_000n
 
 // Top up from Core works only for identities of this wallet.
 export const CORE_TOP_UP_OWN_IDENTITY_MESSAGE = 'Top up from Dash Core works only for identities in this wallet.'
+
+export const COIN_CONTROL_AUTOMATIC_TITLE = 'Let The Wallet Choose'
+export const COIN_CONTROL_AUTOMATIC_TEXT = 'The wallet will select enough available inputs for the amount and fee.'
+export const COIN_CONTROL_AMOUNT_HINT = 'The amount is the sum taken from the addresses selected in Coin Control.'
+
+// Name of one selectable input per Coin Control list.
+export const COIN_CONTROL_UNITS = {
+  utxo: ['UTXO', 'UTXOs'],
+  platformInputs: ['Input', 'Inputs'],
+  shieldedNotes: ['Note', 'Notes']
+} as const

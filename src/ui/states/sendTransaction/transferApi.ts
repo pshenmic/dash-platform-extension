@@ -136,6 +136,8 @@ export class TransferApi {
   readonly estimateCoreFee = mock.estimateCoreFee
   readonly sendCoreTransaction = mock.sendCoreTransaction
   readonly shieldFromCore = mock.shieldFromCore
+  readonly topUpIdentityFromCoreInputs = mock.topUpIdentityFromCore
+  readonly fundPlatformAddressFromCoreInputs = mock.fundPlatformAddressFromWallet
   readonly getTransferOperation = mock.getTransferOperation
   readonly listPendingTransferOperations = mock.listPendingTransferOperations
   readonly retryTransferOperation = mock.retryTransferOperation

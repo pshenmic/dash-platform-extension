@@ -172,7 +172,7 @@ export const DIRECTION_DETAILS: Partial<Record<Direction, DirectionDetails>> = {
     coinControl: 'platformInputs',
     advanced: true,
     feeSource: 'platformTransfer',
-    usesMock: true
+    usesMock: false
   },
   'platformAddress->shielded': {
     ...SINGLE_HASH,

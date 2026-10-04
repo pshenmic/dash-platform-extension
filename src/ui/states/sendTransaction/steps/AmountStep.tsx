@@ -14,11 +14,12 @@ interface AmountStepProps {
   amountError: string | null
   rate: number | null
   onAmountChange: (amount: string) => void
+  lockedHint?: string
   onNext: () => void
 }
 
 // Step 2 of the send wizard: amount with slider, Max and the source balance.
-export function AmountStep ({ draft, balance, maxAmount, amountError, rate, onAmountChange, onNext }: AmountStepProps): React.JSX.Element {
+export function AmountStep ({ draft, balance, maxAmount, amountError, rate, onAmountChange, lockedHint, onNext }: AmountStepProps): React.JSX.Element {
   const { decimals } = balance
   const isDash = draft.asset.type === 'dash'
   const parsed = parseDashAmount(draft.amount, decimals)
@@ -41,20 +42,29 @@ export function AmountStep ({ draft, balance, maxAmount, amountError, rate, onAm
 
   return (
     <div className='flex flex-col gap-6'>
-      <AmountInputSection
-        amount={draft.amount}
-        equivalentAmount={usd}
-        onAmountChange={handleAmountChange}
-        onEquivalentChange={handleUsdChange}
-        onQuickAmount={(percentage) => {
-          if (maxAmount != null) handleAmountChange(formatDashAmount(multiplyBigIntByPercentage(maxAmount, percentage), decimals))
-        }}
-        selectedAsset={isDash ? 'credits' : 'token'}
-        equivalentCurrency='usd'
-        onEquivalentCurrencyChange={() => {}}
-        assetDecimals={decimals}
-        maxBalance={maxAmount != null && maxAmount > 0n ? formatDashAmount(maxAmount, decimals) : null}
-      />
+      {lockedHint != null && (
+        <div className='flex flex-col items-center gap-2 py-3 text-center'>
+          <Text className='!text-[2rem] !font-bold !leading-[1.2]'>{draft.amount} {balance.unit}</Text>
+          <Text size='xs' dim>{lockedHint}</Text>
+        </div>
+      )}
+
+      {lockedHint == null && (
+        <AmountInputSection
+          amount={draft.amount}
+          equivalentAmount={usd}
+          onAmountChange={handleAmountChange}
+          onEquivalentChange={handleUsdChange}
+          onQuickAmount={(percentage) => {
+            if (maxAmount != null) handleAmountChange(formatDashAmount(multiplyBigIntByPercentage(maxAmount, percentage), decimals))
+          }}
+          selectedAsset={isDash ? 'credits' : 'token'}
+          equivalentCurrency='usd'
+          onEquivalentCurrencyChange={() => {}}
+          assetDecimals={decimals}
+          maxBalance={maxAmount != null && maxAmount > 0n ? formatDashAmount(maxAmount, decimals) : null}
+        />
+      )}
 
       {amountError != null && (
         <Text size='sm' className='!text-red-500 -mt-4'>{amountError}</Text>

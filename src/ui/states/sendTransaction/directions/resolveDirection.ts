@@ -1,6 +1,6 @@
 import { resolveTransferPair } from '../../../../utils'
 import type { TransferCapabilities, TransferUnavailableReason } from '../../../../utils'
-import type { AssetId, Direction, EndpointType } from '../types'
+import type { AssetId, CoinControlSelection, Direction, EndpointType } from '../types'
 import { DIRECTION_DETAILS } from './directionConfig'
 import type { DirectionConfig } from './directionConfig'
 
@@ -20,3 +20,14 @@ export const resolveDirection = (from: EndpointType, to: EndpointType, asset: As
 
   return { supported: true, direction: pair.direction, config: { ...details, supported: true, mode: pair.mode } }
 }
+
+// Whether the transfer goes to a mocked backend method, by direction or by the Coin Control selection.
+export const runsOnMock = (config: DirectionConfig, selection: CoinControlSelection): boolean =>
+  config.usesMock ||
+  selection.type === 'utxo' ||
+  selection.type === 'shieldedNotes' ||
+  (selection.type === 'platformInputs' && selection.inputs.length > 1)
+
+// How many platform addresses Coin Control may pick: several only where a multi-input method exists.
+export const maxPlatformInputs = (config: DirectionConfig): number =>
+  config.mode === 'send' || config.mode === 'withdraw' ? Number.POSITIVE_INFINITY : 1

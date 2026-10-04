@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ESTIMATED_FEES } from '../../../constants'
 import { SHIELDED_SPEND_FEE_CREDITS, TRANSFER_FEE_CREDITS } from '../../../../constants'
-import { CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS } from '../../../../utils'
+import { computeShieldedSpendFee, CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS } from '../../../../utils'
 import type { NetworkType } from '../../../../types'
 import type { ShieldedSpendKind } from '../../../../types/ShieldedSpendKind'
 import type { DirectionConfig } from '../directions/directionConfig'
@@ -41,13 +41,15 @@ const staticFee = (config: DirectionConfig, draft: TransferDraft, network: Netwo
 
 const SHIELDED_SPEND_TYPES: Partial<Record<string, ShieldedSpendKind>> = {
   unshield: 'unshield',
-  shieldedTransfer: 'transfer'
+  shieldedTransfer: 'transfer',
+  shieldedWithdraw: 'withdrawal'
 }
 
 // Estimated network fee of the transfer; null while unknown.
 export function useTransferFee ({ api, config, draft, network, shieldedSpendFees }: TransferFeeParams): TransferFee | null {
   const isCore = config?.feeSource === 'coreEstimate'
   const isAssetLock = config?.mode === 'coreShield'
+  const inputs = draft.coinControl.type === 'utxo' ? draft.coinControl.inputs : undefined
   const [coreFee, setCoreFee] = useState<bigint | null>(null)
 
   useEffect(() => {
@@ -55,17 +57,20 @@ export function useTransferFee ({ api, config, draft, network, shieldedSpendFees
 
     setCoreFee(null)
     let cancelled = false
-    api.estimateCoreFee({ outputs: [{ address: '', amount: '0' }], type: isAssetLock ? 'assetLock' : 'transfer' })
+    api.estimateCoreFee({ outputs: [{ address: '', amount: '0' }], inputs, type: isAssetLock ? 'assetLock' : 'transfer' })
       .then(({ fee }) => { if (!cancelled) setCoreFee(BigInt(fee)) })
       .catch(e => console.log('estimateCoreFee error', e))
 
     return () => { cancelled = true }
-  }, [api, isCore, isAssetLock])
+  }, [api, isCore, isAssetLock, inputs])
 
   if (config == null) return null
   if (isCore) return coreFee != null ? { amount: coreFee, decimals: CORE_DASH_DECIMALS } : null
 
   const spendType = SHIELDED_SPEND_TYPES[config.mode]
-  const estimate = spendType != null ? shieldedSpendFees[spendType] : undefined
+  if (spendType != null && draft.coinControl.type === 'shieldedNotes') {
+    return { amount: computeShieldedSpendFee(spendType, draft.coinControl.noteIds.length), decimals: PLATFORM_DASH_DECIMALS }
+  }
+  const estimate = spendType != null && config.feeSource === 'shieldedEstimate' ? shieldedSpendFees[spendType] : undefined
   return { amount: estimate ?? staticFee(config, draft, network), decimals: PLATFORM_DASH_DECIMALS }
 }

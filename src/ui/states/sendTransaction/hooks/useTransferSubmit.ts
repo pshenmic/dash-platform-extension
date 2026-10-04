@@ -62,6 +62,41 @@ const fundFromCore = async (
   return { type: 'done', hashes: { core: paid.txid, platform: txHash }, fee: fee != null ? { amount: fee, decimals: CORE_DASH_DECIMALS } : undefined }
 }
 
+// Starts a transfer that spends inputs picked in Coin Control, or returns null when nothing was picked.
+const startManualTransfer = async ({ api, mode, draft, amount, password }: TransferContext): Promise<TransferStart | null> => {
+  const selection = draft.coinControl
+  const recipient = draft.to.recipient
+
+  if (selection.type === 'utxo') {
+    const inputs = selection.inputs
+    if (mode === 'coreSend') {
+      const { txid, fee } = await api.sendCoreTransaction({ outputs: [{ address: recipient, amount: amount.toString() }], inputs }, password)
+      return { type: 'done', hashes: { single: txid }, fee: { amount: BigInt(fee), decimals: CORE_DASH_DECIMALS } }
+    }
+    if (mode === 'coreTopUp') return await operation(api.topUpIdentityFromCoreInputs(recipient, amount.toString(), password, inputs))
+    if (mode === 'coreFund') return await operation(api.fundPlatformAddressFromCoreInputs(recipient, amount.toString(), password, inputs))
+    if (mode === 'coreShield') return await operation(api.shieldFromCore(amount.toString(), password, undefined, inputs))
+  }
+
+  if (selection.type === 'platformInputs' && selection.inputs.length > 1) {
+    if (mode === 'send') return await done(api.sendPlatformTransferFromInputs({ inputs: selection.inputs, outputs: [{ address: recipient, amount: amount.toString() }] }, password).then(({ stHash }) => ({ txHash: stHash })))
+    if (mode === 'withdraw') return await done(api.withdrawPlatformAddressToCoreFromInputs({ inputs: selection.inputs, toCoreAddress: recipient }, password).then(({ stHash }) => ({ txHash: stHash })))
+    throw new Error('This transfer can spend from one platform address only')
+  }
+
+  if (selection.type === 'shieldedNotes') {
+    const { noteIds } = selection
+    const spend = mode === 'shieldedTransfer'
+      ? api.sendShieldedTransferFromNotes(recipient, amount.toString(), password, undefined, undefined, noteIds)
+      : mode === 'unshield'
+        ? api.unshieldToAddressFromNotes(recipient, amount.toString(), password, undefined, undefined, noteIds)
+        : api.withdrawShieldedToCoreFromNotes(recipient, amount.toString(), password, undefined, undefined, noteIds)
+    return await done(spend.then(({ stHash }) => ({ txHash: stHash })))
+  }
+
+  return null
+}
+
 // Starts the API call of the resolved transfer mode, or continues it from `resume`.
 const startTransfer = async (context: TransferContext, resume: TransferResume | null): Promise<TransferStart> => {
   const { api, mode, draft, amount, sourceAddress, password, walletId, network } = context
@@ -71,6 +106,9 @@ const startTransfer = async (context: TransferContext, resume: TransferResume | 
   const funding = resume?.type === 'funding' ? resume : null
 
   if (resume?.type === 'operation') return await operation(api.retryTransferOperation(resume.operationId, password))
+
+  const manual = await startManualTransfer(context)
+  if (manual != null) return manual
 
   switch (mode) {
     case 'coreSend': {
