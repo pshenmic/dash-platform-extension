@@ -4,15 +4,16 @@ import { Checkbox, SideActionButton } from '../../../../components/controls'
 import { EndpointTypeSelect } from '../../../../components/transfer'
 import type { EndpointTypeOption } from '../../../../components/transfer'
 import { InfoCard } from '../../../../components/common'
-import { formatDashAmount, getSourceUnavailableReason, PLATFORM_DASH_DECIMALS } from '../../../../../utils'
+import { formatDashAmount, getSourceUnavailableReason } from '../../../../../utils'
 import type { TransferCapabilities } from '../../../../../utils'
 import type { NetworkType, TokenData } from '../../../../../types'
-import { CORE_SENDER_PENDING_HINT, SAME_PARTY_MESSAGE, UNAVAILABLE_REASON_HINTS } from '../../constants'
+import { UNAVAILABLE_REASON_HINTS } from '../../constants'
 import { FEE_PLACEHOLDER } from '../../directions/directionConfig'
 import { resolveDirection } from '../../directions/resolveDirection'
 import type { DirectionResolution } from '../../directions/resolveDirection'
 import type { TransferDraftActions } from '../../hooks/useTransferDraft'
 import type { SourceBalance } from '../../hooks/useSourceBalance'
+import type { TransferFee } from '../../hooks/useTransferFee'
 import type { EndpointType, TransferDraft } from '../../types'
 import { EndpointCard } from './EndpointCard'
 import { SourceRow } from './SourceRow'
@@ -24,16 +25,15 @@ interface FromToStepProps {
   resolution: DirectionResolution
   typeOrder: EndpointType[]
   capabilities: TransferCapabilities
-  coreSenderPending: boolean
   identities: string[]
   balance: SourceBalance
   rate: number | null
   shielded: React.ComponentProps<typeof SourceRow>['shielded']
   tokens: TokenData[]
-  feeCredits: bigint | null
+  fee: TransferFee | null
   network: NetworkType
   canContinue: boolean
-  isSameParty: boolean
+  recipientError: string | null
   onOpenAsset: () => void
   onNext: () => void
 }
@@ -52,22 +52,21 @@ export function FromToStep ({
   resolution,
   typeOrder,
   capabilities,
-  coreSenderPending,
   identities,
   balance,
   rate,
   shielded,
   tokens,
-  feeCredits,
+  fee,
   network,
   canContinue,
-  isSameParty,
+  recipientError,
   onOpenAsset,
   onNext
 }: FromToStepProps): React.JSX.Element {
   const fromOptions = typeOrder.map((type): EndpointTypeOption => {
     const reason = getSourceUnavailableReason(type, draft.asset, capabilities)
-    const hint = type === 'core' && coreSenderPending ? CORE_SENDER_PENDING_HINT : reason != null ? UNAVAILABLE_REASON_HINTS[reason] : undefined
+    const hint = reason != null ? UNAVAILABLE_REASON_HINTS[reason] : undefined
     return { type, disabled: reason != null, hint }
   })
 
@@ -77,7 +76,7 @@ export function FromToStep ({
   })
 
   const infoCard = resolution.supported ? resolution.config.infoCard : undefined
-  const feeText = feeCredits != null ? `${formatDashAmount(feeCredits, PLATFORM_DASH_DECIMALS)} Dash` : 'small'
+  const feeText = fee != null ? `${formatDashAmount(fee.amount, fee.decimals)} Dash` : 'small'
 
   return (
     <div className='flex flex-col gap-6'>
@@ -123,7 +122,7 @@ export function FromToStep ({
             network={network}
             onRecipientChange={(recipient) => actions.setRecipient(recipient)}
           />
-          {isSameParty && <Text size='xs' className='!text-red-500'>{SAME_PARTY_MESSAGE}</Text>}
+          {recipientError != null && <Text size='xs' className='!text-red-500'>{recipientError}</Text>}
         </EndpointCard>
       </div>
 

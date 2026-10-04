@@ -103,6 +103,27 @@ export class TransferApi {
     return { txHash: (await this.extensionAPI.withdrawShieldedToCore(toCoreAddress, amountCredits.toString(), password)).stHash }
   }
 
+  async sendCoreTransfer (toAddress: string, amountDuffs: bigint, password: string): Promise<TransferTxResult & { feeDuffs: bigint }> {
+    const { txid, feeDuffs } = await this.extensionAPI.sendCoreTransfer(toAddress, amountDuffs.toString(), password)
+    return { txHash: txid, feeDuffs: BigInt(feeDuffs) }
+  }
+
+  async requestTopUpFundingAddress (password: string, identityId: string, walletId?: string, network?: NetworkType): Promise<string> {
+    return (await this.extensionAPI.requestTopUpFundingAddress(password, identityId, walletId, network)).address
+  }
+
+  async requestAssetLockFundingAddress (): Promise<string> {
+    return (await this.extensionAPI.requestAssetLockFundingAddress()).address
+  }
+
+  async topUpIdentityFromFunding (identityId: string, fundingAddress: string, fundingTxid: string, password: string, walletId?: string, network?: NetworkType): Promise<TransferTxResult> {
+    return { txHash: (await this.extensionAPI.topUpIdentity(identityId, fundingAddress, fundingTxid, password, walletId, network)).stateTransitionHash }
+  }
+
+  async fundPlatformAddressFromFunding (platformAddress: string, fundingAddress: string, fundingTxid: string, password: string): Promise<TransferTxResult> {
+    return { txHash: (await this.extensionAPI.fundPlatformAddressFromCore(platformAddress, fundingAddress, fundingTxid, password)).stateTransitionHash }
+  }
+
   async estimateShieldedFee (spendType: ShieldedSpendKind, password: string, amountCredits?: bigint): Promise<bigint> {
     return BigInt((await this.extensionAPI.estimateShieldedFee(spendType, password, amountCredits?.toString())).feeCredits)
   }
@@ -114,8 +135,6 @@ export class TransferApi {
   readonly listCoreUtxos = mock.listCoreUtxos
   readonly estimateCoreFee = mock.estimateCoreFee
   readonly sendCoreTransaction = mock.sendCoreTransaction
-  readonly topUpIdentityFromCore = mock.topUpIdentityFromCore
-  readonly fundPlatformAddressFromWallet = mock.fundPlatformAddressFromWallet
   readonly shieldFromCore = mock.shieldFromCore
   readonly getTransferOperation = mock.getTransferOperation
   readonly listPendingTransferOperations = mock.listPendingTransferOperations

@@ -1,5 +1,5 @@
 import { fromBaseUnit, toBaseUnit } from './bigintUtils'
-import { MAX_WITHDRAWAL_CREDITS, MIN_OUTPUT_CREDITS, MIN_WITHDRAWAL_CREDITS } from '../constants'
+import { CORE_DUST_THRESHOLD, MAX_WITHDRAWAL_CREDITS, MIN_OUTPUT_CREDITS, MIN_TOPUP_FUNDING_DUFFS, MIN_WITHDRAWAL_CREDITS } from '../constants'
 import { MIN_CREDIT_TRANSFER } from '../ui/constants/transaction'
 import type { EndpointType, TransferMode } from '../ui/states/sendTransaction/types'
 
@@ -43,9 +43,12 @@ export interface TransferAmountLimits {
 }
 
 const WITHDRAWAL_MODES: TransferMode[] = ['identityWithdraw', 'withdraw', 'shieldedWithdraw']
+const ASSET_LOCK_MODES: TransferMode[] = ['coreTopUp', 'coreFund', 'coreShield']
 
-// Allowed amount range of a Platform transfer mode in credits; tokens only need a positive amount.
+// Allowed amount range of a transfer mode in source base units: duffs for Core, credits for Platform, token units for tokens.
 export const transferAmountLimits = (mode: TransferMode): TransferAmountLimits => {
+  if (ASSET_LOCK_MODES.includes(mode)) return { min: MIN_TOPUP_FUNDING_DUFFS, max: null }
+  if (mode === 'coreSend') return { min: CORE_DUST_THRESHOLD + 1n, max: null }
   if (WITHDRAWAL_MODES.includes(mode)) return { min: MIN_WITHDRAWAL_CREDITS, max: MAX_WITHDRAWAL_CREDITS }
   if (mode === 'creditTransfer') return { min: MIN_CREDIT_TRANSFER, max: null }
   if (mode === 'tokenTransfer') return { min: 1n, max: null }

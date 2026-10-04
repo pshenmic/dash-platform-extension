@@ -36,8 +36,8 @@ export const MODE_WARNINGS: Partial<Record<TransferMode, string>> = {
 // Labels of the wizard stepper.
 export const WIZARD_STEP_LABELS = ['From & To', 'Amount', 'Confirm']
 
-// Hint on the Core sender type until Core transfers are wired in.
-export const CORE_SENDER_PENDING_HINT = 'Sending from Dash Core is coming soon.'
+// Shown while a multi-stage transfer runs in this window.
+export const KEEP_OPEN_MESSAGE = 'Keep this window open until the transfer completes.'
 
 export const RECIPIENT_PLACEHOLDERS = {
   core: 'Enter Address',
@@ -59,3 +59,12 @@ export const WITHDRAW_WARNINGS: Partial<Record<TransferMode, string>> = {
   withdraw: WITHDRAW_TO_CORE_WARNING,
   shieldedWithdraw: SHIELDED_WITHDRAW_WARNING
 }
+
+// Warning on directions that still run on mocked backend methods.
+export const MOCK_TRANSFER_WARNING = 'Preview: this transfer runs on a test mock and does not move any funds yet.'
+
+// Extra duffs Max leaves on Core for inputs the one-input fee estimate does not cover (about 67 inputs).
+export const CORE_MAX_FEE_RESERVE_DUFFS = 10_000n
+
+// Top up from Core works only for identities of this wallet.
+export const CORE_TOP_UP_OWN_IDENTITY_MESSAGE = 'Top up from Dash Core works only for identities in this wallet.'

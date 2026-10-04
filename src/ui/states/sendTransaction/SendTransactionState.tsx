@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'rea
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 import { AssetSelectionMenu } from '../../components/controls'
-import { usePlatformAddresses, useWalletCapabilities } from '../../hooks'
+import { useCoreBalance, usePlatformAddresses, useWalletCapabilities } from '../../hooks'
 import { locationReturnPath } from '../../types'
 import type { OutletContext } from '../../types'
 import { parseSendScope } from '../../utils/sendPath'
@@ -19,23 +19,25 @@ import { useShieldedBalance } from './hooks/useShieldedBalance'
 import { useSourceBalance } from './hooks/useSourceBalance'
 import { useTransferFee } from './hooks/useTransferFee'
 import { useTransferSubmit } from './hooks/useTransferSubmit'
+import type { ResumedTransfer } from './hooks/useTransferOperation'
+import { useTransferOperation } from './hooks/useTransferOperation'
 import { useIdentityHeader } from './hooks/useIdentityHeader'
 import { useTransferApi } from './transferApi'
 import { WizardHeader } from './components/WizardHeader'
+import { CORE_MAX_FEE_RESERVE_DUFFS, CORE_TOP_UP_OWN_IDENTITY_MESSAGE, SAME_PARTY_MESSAGE } from './constants'
+import { MIN_FEE_RELAY } from '../../../constants'
 import { FromToStep } from './steps/FromToStep/FromToStep'
 import { isShieldToMyself } from './steps/FromToStep/RecipientRow'
 import { AmountStep } from './steps/AmountStep'
 import { ConfirmStep } from './steps/ConfirmStep'
+import { ProgressStep } from './steps/ProgressStep'
 import { ResultStep } from './steps/ResultStep'
 import type { TransferOutcome } from './steps/ResultStep'
 import type { WizardStep } from './types'
 
-// Core sender directions run on mocks and are enabled in a later stage.
-const CORE_SENDER_ENABLED = false
-
 const STEP_INDEX: Record<WizardStep, number> = { fromTo: 0, amount: 1, confirm: 2, progress: 3, result: 3, error: 3 }
 
-const ROUTED_STEPS: WizardStep[] = ['fromTo', 'amount', 'confirm', 'result', 'error']
+const ROUTED_STEPS: WizardStep[] = ['fromTo', 'amount', 'confirm', 'progress', 'result', 'error']
 
 const parseStep = (value: string | null): WizardStep =>
   ROUTED_STEPS.find(step => step === value) ?? 'fromTo'
@@ -56,7 +58,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const returnPath = useRef(locationReturnPath(location.state, '/')).current
 
   const { draft, actions } = useTransferDraft(entry.draft, capabilities)
-  const [outcome, setOutcome] = useState<TransferOutcome | null>(null)
+  const [resumed, setResumed] = useState<ResumedTransfer | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [assetMenuOpen, setAssetMenuOpen] = useState(false)
 
@@ -65,36 +67,48 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const tokens = useMemo(() => tokensState.data ?? [], [tokensState.data])
   const token = draft.asset.type === 'token' ? tokens.find(item => draft.asset.type === 'token' && item.identifier === draft.asset.tokenId) : undefined
   const shielded = useShieldedBalance()
+  const core = useCoreBalance(currentWallet, capabilities.hasCoreLayer)
+  const coreBalance = core.balance != null ? BigInt(core.balance.balance) : null
 
   const resolution = resolveDirection(draft.from.type, draft.to.type, draft.asset, capabilities)
   const config = resolution.supported ? resolution.config : null
 
-  const balance = useSourceBalance({ draft, identityBalance, platformAddresses, shieldedBalance: shielded.balance, token })
-  const feeCredits = useTransferFee({ config, draft, network, shieldedSpendFees: shielded.spendFees })
+  const balance = useSourceBalance({ draft, identityBalance, coreBalance, platformAddresses, shieldedBalance: shielded.balance, token })
+  const fee = useTransferFee({ api, config, draft, network, shieldedSpendFees: shielded.spendFees })
 
   const amount = parseDashAmount(draft.amount, balance.decimals)
   const isDash = draft.asset.type === 'dash'
-  const maxAmount = balance.amount == null ? null : isDash && feeCredits != null ? balance.amount - feeCredits : balance.amount
+  const feeReserve = draft.from.type === 'core' ? CORE_MAX_FEE_RESERVE_DUFFS : 0n
+  const maxAmount = balance.amount == null ? null : isDash && fee != null && fee.decimals === balance.decimals ? balance.amount - fee.amount - feeReserve : balance.amount
   const amountError = config != null ? validateTransferAmount(amount, maxAmount, transferAmountLimits(config.mode), balance.decimals, balance.unit) : null
 
-  const { isSubmitting, submit } = useTransferSubmit({ api, mode: config?.mode ?? null, draft, amount, sourceAddress: balance.sourceAddress, walletId: currentWallet, network })
+  const stageCount = config?.stages.length ?? 0
+  const operation = useTransferOperation(api, stageCount)
+  const { isChecking, submit } = useTransferSubmit({ api, mode: config?.mode ?? null, draft, amount, sourceAddress: balance.sourceAddress, walletId: currentWallet, network, track: operation.track })
+  const operationState = operation.state
+  const outcome: TransferOutcome | null = operationState.status === 'success'
+    ? { type: 'success', hashes: operationState.hashes, fee: operationState.fee }
+    : operationState.status === 'failed' ? { type: 'error', message: operationState.error } : null
 
   useIdentityHeader({ currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent })
 
   const senderIdentifier = draft.from.type === 'identity' ? draft.from.identityId : balance.sourceAddress
   const isSameParty = draft.to.recipient !== '' && draft.to.recipient === senderIdentifier
+  const isForeignTopUp = config?.mode === 'coreTopUp' && draft.to.recipient !== '' && !availableIdentities.some(identity => identity.identifier === draft.to.recipient)
+  const recipientError = isSameParty ? SAME_PARTY_MESSAGE : isForeignTopUp ? CORE_TOP_UP_OWN_IDENTITY_MESSAGE : null
+  const received = amount != null && (config?.mode === 'coreTopUp' || config?.mode === 'coreFund') ? amount - MIN_FEE_RELAY : null
   const shieldedReady = draft.from.type !== 'shielded' || (shielded.balance != null && !shielded.isWarmingProver)
   const fromToValid = config != null &&
     (draft.asset.type === 'dash' || token != null) &&
     (draft.from.type !== 'identity' || draft.from.identityId != null) &&
     (isShieldToMyself(draft) || draft.to.recipient !== '') &&
-    !isSameParty &&
+    recipientError == null &&
     shieldedReady
   const amountValid = fromToValid && balance.amount != null && amount != null && amount > 0n && amountError == null
 
   const requestedStep = parseStep(searchParams.get('step'))
   const step: WizardStep =
-    (requestedStep === 'result' || requestedStep === 'error') && outcome == null
+    ((requestedStep === 'result' || requestedStep === 'error') && outcome == null) || (requestedStep === 'progress' && operationState.status === 'idle')
       ? 'fromTo'
       : (requestedStep === 'amount' && !fromToValid) || (requestedStep === 'confirm' && !amountValid)
           ? 'fromTo'
@@ -117,25 +131,41 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
     if (draft.asset.type === 'token' && tokensKnown && token == null) actions.setAsset({ type: 'dash' })
   }, [draft.asset, tokensState.data, tokensState.error, token, actions])
 
-  // Hides the header back button on the final screens.
-  const isFinal = step === 'result' || step === 'error'
+  // Moves to the result once the tracked transfer settles.
+  const settledStatus = operationState.status === 'success' || operationState.status === 'failed' ? operationState.status : null
   useEffect(() => {
-    if (!isFinal) return
+    if (settledStatus != null && (step === 'confirm' || step === 'progress')) goToStep(settledStatus === 'success' ? 'result' : 'error', true)
+  }, [settledStatus, step])
+
+  // Forgets a pending Retry once the draft changes, so it never resumes a different transfer.
+  useEffect(() => { setResumed(null) }, [draft])
+
+  // Hides the header back button while the transfer runs and on the final screens.
+  const isFinal = step === 'result' || step === 'error'
+  const hideBack = isFinal || step === 'progress'
+  useEffect(() => {
+    if (!hideBack) return
     setHeaderConfigOverride({ hideLeftSection: true })
     return () => setHeaderConfigOverride(null)
-  }, [isFinal, setHeaderConfigOverride])
+  }, [hideBack, setHeaderConfigOverride])
 
   const handleConfirm = (password: string): void => {
-    submit(password)
+    submit(password, resumed)
       .then(result => {
-        if (result.type === 'invalidPassword') {
+        if (result === 'invalidPassword') {
           setPasswordError('Invalid password')
           return
         }
-        setOutcome(result)
-        goToStep(result.type === 'success' ? 'result' : 'error', true)
+        if (result === 'started' && stageCount > 1) goToStep('progress', true)
       })
       .catch(e => console.log('submit error', e))
+  }
+
+  const handleRetry = (): void => {
+    const failed = operationState.status === 'failed' ? operationState : null
+    setResumed(failed?.resume != null ? { resume: failed.resume, stages: failed.stages } : null)
+    operation.reset()
+    goToStep('confirm', true)
   }
 
   const identities = availableIdentities.map(identity => identity.identifier)
@@ -151,18 +181,26 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           resolution={resolution}
           typeOrder={entry.typeOrder}
           capabilities={capabilities}
-          coreSenderPending={!CORE_SENDER_ENABLED}
           identities={identities}
           balance={balance}
           rate={rate}
           shielded={shielded}
           tokens={tokens}
-          feeCredits={feeCredits}
+          fee={fee}
           network={network}
           canContinue={fromToValid}
-          isSameParty={isSameParty}
+          recipientError={recipientError}
           onOpenAsset={() => setAssetMenuOpen(true)}
           onNext={() => goToStep('amount')}
+        />
+      )}
+
+      {step === 'progress' && config != null && operationState.status !== 'idle' && (
+        <ProgressStep
+          labels={config.stages}
+          stages={operationState.stages}
+          isRunning={operationState.status === 'running'}
+          onClose={() => { void navigate(returnPath, { replace: true }) }}
         />
       )}
 
@@ -184,9 +222,10 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           config={config}
           amount={amount}
           balance={balance}
-          feeCredits={feeCredits}
+          fee={fee}
+          received={received}
           rate={rate}
-          isSubmitting={isSubmitting}
+          isSubmitting={isChecking || operationState.status === 'running'}
           passwordError={passwordError}
           onPasswordChange={() => setPasswordError(null)}
           onConfirm={handleConfirm}
@@ -200,11 +239,12 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           config={config}
           amount={amount}
           balance={balance}
-          feeCredits={feeCredits}
+          fee={fee}
+          received={received}
           rate={rate}
           network={network}
           onDone={() => { void navigate(returnPath, { replace: true }) }}
-          onRetry={() => goToStep('confirm', true)}
+          onRetry={handleRetry}
         />
       )}
 
@@ -233,7 +273,7 @@ function SendTransactionState (): React.JSX.Element {
   const ready = walletsLoaded && (!walletCapabilities.hasAddressLayer || addressesKnown)
 
   const capabilities = useMemo((): TransferCapabilities => ({
-    hasCoreLayer: walletCapabilities.hasCoreLayer && CORE_SENDER_ENABLED,
+    hasCoreLayer: walletCapabilities.hasCoreLayer,
     hasAddressLayer: walletCapabilities.hasAddressLayer,
     hasPlatformAddresses: platform.addresses.length > 0
   }), [walletCapabilities, platform.addresses.length])

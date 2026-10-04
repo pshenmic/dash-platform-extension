@@ -114,10 +114,11 @@ describe('DIRECTION_DETAILS', () => {
     expect(advanced.sort()).toEqual(['core->core', 'platformAddress->platformAddress'])
   })
 
-  it('marks all Core sender directions as mocked', () => {
-    for (const to of ENDPOINT_TYPE_ORDER) {
-      expect(DIRECTION_DETAILS[`core->${to}`]?.usesMock).toBe(true)
+  it('runs Core senders on the real API except Core -> Shielded', () => {
+    for (const to of ['core', 'identity', 'platformAddress'] as const) {
+      expect(DIRECTION_DETAILS[`core->${to}`]?.usesMock).toBe(false)
     }
+    expect(DIRECTION_DETAILS['core->shielded']?.usesMock).toBe(true)
   })
 
   it('shows Progress for asset lock and withdrawal directions', () => {

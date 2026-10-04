@@ -14,6 +14,7 @@ export interface SourceBalance {
 interface SourceBalanceParams {
   draft: TransferDraft
   identityBalance: bigint | null
+  coreBalance: bigint | null
   platformAddresses: AddressData[]
   shieldedBalance: bigint | null
   token: TokenData | undefined
@@ -28,7 +29,7 @@ const largestAddress = (addresses: AddressData[]): { address: string, balance: b
   }, null)
 
 // Spendable balance of the selected source in base units of the asset.
-export function useSourceBalance ({ draft, identityBalance, platformAddresses, shieldedBalance, token }: SourceBalanceParams): SourceBalance {
+export function useSourceBalance ({ draft, identityBalance, coreBalance, platformAddresses, shieldedBalance, token }: SourceBalanceParams): SourceBalance {
   return useMemo((): SourceBalance => {
     if (draft.asset.type === 'token') {
       return { amount: token != null ? BigInt(token.balance) : null, decimals: token?.decimals ?? 0, unit: token?.localizations?.en?.singularForm ?? 'Token', sourceAddress: null }
@@ -37,12 +38,12 @@ export function useSourceBalance ({ draft, identityBalance, platformAddresses, s
     const decimals = endpointDashDecimals(draft.from.type)
     const source = largestAddress(platformAddresses)
     const amounts: Record<TransferDraft['from']['type'], bigint | null> = {
-      core: null,
+      core: coreBalance,
       identity: identityBalance,
       platformAddress: source?.balance ?? null,
       shielded: shieldedBalance
     }
 
     return { amount: amounts[draft.from.type], decimals, unit: 'Dash', sourceAddress: draft.from.type === 'platformAddress' ? source?.address ?? null : null }
-  }, [draft.asset, draft.from.type, identityBalance, platformAddresses, shieldedBalance, token])
+  }, [draft.asset, draft.from.type, identityBalance, coreBalance, platformAddresses, shieldedBalance, token])
 }

@@ -3,16 +3,19 @@ import { Avatar, Identifier, ShieldSmallIcon, Text } from 'dash-ui-kit/react'
 import { SummaryRow } from '../../../components/cards'
 import { FiatChip } from '../../../components/common'
 import { ENDPOINT_TYPE_LABELS } from '../../../components/transfer'
-import { dashAmountToUsd, formatDashAmount, PLATFORM_DASH_DECIMALS } from '../../../../utils'
+import { dashAmountToUsd, formatDashAmount } from '../../../../utils'
 import { isShieldToMyself } from './FromToStep/RecipientRow'
 import type { SourceBalance } from '../hooks/useSourceBalance'
+import type { TransferFee } from '../hooks/useTransferFee'
 import type { EndpointType, TransferDraft } from '../types'
 
 interface TransferDetailsProps {
   draft: TransferDraft
   amount: bigint
   balance: SourceBalance
-  feeCredits: bigint | null
+  fee: TransferFee | null
+  feeExact?: boolean
+  received?: bigint | null
   rate: number | null
   showTotal?: boolean
 }
@@ -69,10 +72,10 @@ const targetValue = (draft: TransferDraft): React.ReactNode => {
 }
 
 // From / To / Network Fee rows (and Total on Confirm) of the transfer.
-export function TransferDetails ({ draft, amount, balance, feeCredits, rate, showTotal = false }: TransferDetailsProps): React.JSX.Element {
+export function TransferDetails ({ draft, amount, balance, fee, feeExact = false, received = null, rate, showTotal = false }: TransferDetailsProps): React.JSX.Element {
   const isDash = draft.asset.type === 'dash'
-  const feeLabel = feeCredits != null ? `~${formatDashAmount(feeCredits, PLATFORM_DASH_DECIMALS)} Dash` : 'Calculated when sending'
-  const total = isDash && feeCredits != null && balance.decimals === PLATFORM_DASH_DECIMALS ? amount + feeCredits : amount
+  const feeLabel = fee != null ? `${feeExact ? '' : '~'}${formatDashAmount(fee.amount, fee.decimals)} Dash` : 'Calculated when sending'
+  const total = isDash && fee != null && fee.decimals === balance.decimals ? amount + fee.amount : amount
 
   return (
     <div className='flex flex-col gap-2.5'>
@@ -81,7 +84,7 @@ export function TransferDetails ({ draft, amount, balance, feeCredits, rate, sho
       <div className='flex flex-col gap-1 rounded-[0.9375rem] bg-dash-primary-dark-blue/[0.03] dark:bg-white/5'>
         <SummaryRow
           label='Network Fee:'
-          value={<><Text size='xs' weight='medium'>{feeLabel}</Text><UsdChip label={dashAmountToUsd(feeCredits, PLATFORM_DASH_DECIMALS, rate)} accent={false} /></>}
+          value={<><Text size='xs' weight='medium'>{feeLabel}</Text><UsdChip label={dashAmountToUsd(fee?.amount ?? null, fee?.decimals ?? 0, rate)} accent={false} /></>}
           className='!bg-transparent'
         />
         {showTotal && (
@@ -93,6 +96,13 @@ export function TransferDetails ({ draft, amount, balance, feeCredits, rate, sho
                 {isDash && <UsdChip label={dashAmountToUsd(total, balance.decimals, rate)} accent />}
               </>
             }
+            className='!bg-transparent'
+          />
+        )}
+        {received != null && (
+          <SummaryRow
+            label='Received:'
+            value={<Text size='xs' weight='medium'>~{formatDashAmount(received, balance.decimals)} {balance.unit}</Text>}
             className='!bg-transparent'
           />
         )}

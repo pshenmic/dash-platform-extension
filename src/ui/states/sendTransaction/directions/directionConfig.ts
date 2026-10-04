@@ -89,7 +89,7 @@ const CORE_TO_PLATFORM = {
   coinControl: 'utxo' as const,
   advanced: false,
   feeSource: 'coreEstimate' as const,
-  usesMock: true
+  usesMock: false
 }
 
 const WITHDRAWAL = {
@@ -112,7 +112,7 @@ export const DIRECTION_DETAILS: Partial<Record<Direction, DirectionDetails>> = {
     coinControl: 'utxo',
     advanced: true,
     feeSource: 'coreEstimate',
-    usesMock: true
+    usesMock: false
   },
   'core->identity': {
     ...CORE_TO_PLATFORM,
@@ -131,7 +131,8 @@ export const DIRECTION_DETAILS: Partial<Record<Direction, DirectionDetails>> = {
     infoCard: TWO_STEP_SHIELDING_CARD,
     confirmLabel: 'Shield',
     stages: [STAGE_L1_BROADCAST, STAGE_L1_CONFIRMATION, 'Proving and Shielding credits'],
-    successMessage: SENT_TO_OWN_SHIELDED
+    successMessage: SENT_TO_OWN_SHIELDED,
+    usesMock: true
   },
   'identity->core': {
     ...WITHDRAWAL,

@@ -64,9 +64,6 @@ const MOCK_NOTES: ShieldedNote[] = ['300000000000', '75000000000', '12500000000'
   amount
 }))
 
-const sumAmounts = (items: Array<{ amount: string }>): bigint =>
-  items.reduce((sum, item) => sum + BigInt(item.amount), 0n)
-
 const txFee = (inputs: number, outputs: number, isAssetLock: boolean): bigint => {
   const bytes = TX_OVERHEAD_BYTES + BigInt(inputs) * INPUT_BYTES + BigInt(outputs) * OUTPUT_BYTES + (isAssetLock ? ASSET_LOCK_PAYLOAD_BYTES : 0n)
   return bytes * FEE_PER_BYTE_DUFFS
@@ -77,20 +74,6 @@ const findUtxos = (refs: UtxoRef[]): CoreUtxo[] => refs.map(ref => {
   if (utxo == null) throw new Error(`Unknown input ${ref.txid}:${ref.vout}`)
   return utxo
 })
-
-// Picks the largest UTXOs until they cover the amount plus fee, with a change output.
-const selectUtxos = (amountDuffs: bigint, outputs: number, isAssetLock: boolean): { utxos: CoreUtxo[], fee: bigint } => {
-  const sorted = [...MOCK_UTXOS].sort((a, b) => (BigInt(b.amount) > BigInt(a.amount) ? 1 : -1))
-  const utxos: CoreUtxo[] = []
-
-  for (const utxo of sorted) {
-    utxos.push(utxo)
-    const fee = txFee(utxos.length, outputs + 1, isAssetLock)
-    if (sumAmounts(utxos) >= amountDuffs + fee) return { utxos, fee }
-  }
-
-  throw new Error('Insufficient funds')
-}
 
 const toRefs = (utxos: CoreUtxo[]): UtxoRef[] => utxos.map(({ txid, vout }) => ({ txid, vout }))
 
@@ -106,11 +89,8 @@ interface MockOperation {
 
 const operations = new Map<string, MockOperation>()
 
-const startOperation = (type: TransferOperationType, amountDuffs: string, inputs?: UtxoRef[]): { operationId: string } => {
-  const amount = BigInt(amountDuffs)
-  const fee = inputs != null && inputs.length > 0
-    ? txFee(inputs.length, 2, true)
-    : selectUtxos(amount, 1, true).fee
+const startOperation = (type: TransferOperationType, inputs?: UtxoRef[]): { operationId: string } => {
+  const fee = txFee(inputs != null && inputs.length > 0 ? inputs.length : 1, 2, true)
 
   const operationId = randomHash()
 
@@ -197,8 +177,7 @@ export const estimateCoreFee = async (params: {
     return { fee: txFee(params.inputs.length, outputs + 1, isAssetLock).toString(), inputs: params.inputs }
   }
 
-  const { utxos, fee } = selectUtxos(sumAmounts(params.outputs), outputs, isAssetLock)
-  return { fee: fee.toString(), inputs: toRefs(utxos) }
+  return { fee: txFee(1, outputs + 1, isAssetLock).toString(), inputs: [] }
 }
 
 // MOCK: 04-backend-gaps.md #3
@@ -218,21 +197,21 @@ export const sendCoreTransaction = async (params: {
 export const topUpIdentityFromCore = async (identityId: string, amountDuffs: string, password: string, inputs?: UtxoRef[]): Promise<{ operationId: string }> => {
   await delay(500, 900)
   assertPassword(password)
-  return startOperation('topUpFromCore', amountDuffs, inputs)
+  return startOperation('topUpFromCore', inputs)
 }
 
 // MOCK: 04-backend-gaps.md #5
 export const fundPlatformAddressFromWallet = async (platformAddress: string, amountDuffs: string, password: string, inputs?: UtxoRef[]): Promise<{ operationId: string }> => {
   await delay(500, 900)
   assertPassword(password)
-  return startOperation('fundAddressFromCore', amountDuffs, inputs)
+  return startOperation('fundAddressFromCore', inputs)
 }
 
 // MOCK: 04-backend-gaps.md #6
 export const shieldFromCore = async (amountDuffs: string, password: string, toShieldedAddress?: string, inputs?: UtxoRef[]): Promise<{ operationId: string }> => {
   await delay(500, 900)
   assertPassword(password)
-  return startOperation('shieldFromCore', amountDuffs, inputs)
+  return startOperation('shieldFromCore', inputs)
 }
 
 // MOCK: 04-backend-gaps.md #7

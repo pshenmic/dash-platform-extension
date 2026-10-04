@@ -26,11 +26,10 @@ describe('transferApiMock', () => {
     jest.useRealTimers()
   })
 
-  it('selects inputs automatically and estimates the fee in duffs', async () => {
+  it('estimates the automatic fee in duffs for one input with change', async () => {
     const result = await settle(estimateCoreFee({ outputs: [{ address: 'y1', amount: '300000000' }] }))
 
-    expect(result.inputs.length).toBeGreaterThan(1)
-    expect(BigInt(result.fee)).toBeGreaterThan(0n)
+    expect(result.fee).toBe('226')
   })
 
   it('returns wallet UTXOs', async () => {
