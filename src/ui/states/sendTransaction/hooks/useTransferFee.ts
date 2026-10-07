@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ESTIMATED_FEES } from '../../../constants'
 import { SHIELDED_SPEND_FEE_CREDITS, TRANSFER_FEE_CREDITS } from '../../../../constants'
 import { computeShieldedSpendFee, CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS } from '../../../../utils'
+import type { ShieldedSpendEstimate } from '../../../../utils'
 import type { NetworkType } from '../../../../types'
 import type { ShieldedSpendKind } from '../../../../types/ShieldedSpendKind'
 import type { DirectionConfig } from '../directions/directionConfig'
@@ -19,7 +20,7 @@ interface TransferFeeParams {
   config: DirectionConfig | null
   draft: TransferDraft
   network: NetworkType
-  shieldedSpendFees: Partial<Record<ShieldedSpendKind, bigint>>
+  shieldedSpendEstimates: Partial<Record<ShieldedSpendKind, ShieldedSpendEstimate>>
 }
 
 // Fee of every Platform source type that has no estimate, in credits.
@@ -45,8 +46,15 @@ const SHIELDED_SPEND_TYPES: Partial<Record<string, ShieldedSpendKind>> = {
   shieldedWithdraw: 'withdrawal'
 }
 
+// Largest amount an automatic shielded spend can send after its fee; null when it does not apply or is unknown.
+export const shieldedMaxAmount = (config: DirectionConfig | null, draft: TransferDraft, estimates: Partial<Record<ShieldedSpendKind, ShieldedSpendEstimate>>): bigint | null => {
+  const spendType = config != null ? SHIELDED_SPEND_TYPES[config.mode] : undefined
+  if (spendType == null || draft.coinControl.type !== 'automatic') return null
+  return estimates[spendType]?.amountCredits ?? null
+}
+
 // Estimated network fee of the transfer; null while unknown.
-export function useTransferFee ({ api, config, draft, network, shieldedSpendFees }: TransferFeeParams): TransferFee | null {
+export function useTransferFee ({ api, config, draft, network, shieldedSpendEstimates }: TransferFeeParams): TransferFee | null {
   const isCore = config?.feeSource === 'coreEstimate'
   const isAssetLock = config?.mode === 'coreShield'
   const inputs = draft.coinControl.type === 'utxo' ? draft.coinControl.inputs : undefined
@@ -72,6 +80,6 @@ export function useTransferFee ({ api, config, draft, network, shieldedSpendFees
   if (spendType != null && draft.coinControl.type === 'shieldedNotes') {
     return { amount: computeShieldedSpendFee(spendType, draft.coinControl.noteIds.length), decimals: PLATFORM_DASH_DECIMALS }
   }
-  const estimate = spendType != null && config.feeSource === 'shieldedEstimate' ? shieldedSpendFees[spendType] : undefined
+  const estimate = spendType != null ? shieldedSpendEstimates[spendType]?.feeCredits : undefined
   return { amount: estimate ?? staticFee(config, draft, network), decimals: PLATFORM_DASH_DECIMALS }
 }

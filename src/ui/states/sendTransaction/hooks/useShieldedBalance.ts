@@ -4,6 +4,8 @@ import type { GetShieldedBalanceResponse } from '../../../../types/messages/resp
 import type { GetShieldedAddressesResponse } from '../../../../types/messages/response/GetShieldedAddressesResponse'
 import type { ShieldedAddressEntry } from '../types'
 import type { ShieldedSpendKind } from '../../../../types/ShieldedSpendKind'
+import { SHIELDED_SPEND_KINDS } from '../../../../utils'
+import type { ShieldedSpendEstimate } from '../../../../utils'
 
 type DerivedShieldedAddresses = GetShieldedAddressesResponse['addresses']
 
@@ -16,10 +18,8 @@ interface UseShieldedBalanceResult {
   error: string | null
   unlock: (password: string) => Promise<string | null>
   clearError: () => void
-  spendFees: Partial<Record<ShieldedSpendKind, bigint>>
+  spendEstimates: Partial<Record<ShieldedSpendKind, ShieldedSpendEstimate>>
 }
-
-const ESTIMATED_SPEND_TYPES: ShieldedSpendKind[] = ['transfer', 'unshield']
 
 /**
  * Unlocks the wallet's shielded balance for the transfer form.
@@ -32,7 +32,7 @@ export function useShieldedBalance (): UseShieldedBalanceResult {
   const [isWarmingProver, setIsWarmingProver] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [spendFees, setSpendFees] = useState<Partial<Record<ShieldedSpendKind, bigint>>>({})
+  const [spendEstimates, setSpendEstimates] = useState<Partial<Record<ShieldedSpendKind, ShieldedSpendEstimate>>>({})
   const mountedRef = useRef(true)
   useEffect(() => () => { mountedRef.current = false }, [])
 
@@ -60,7 +60,7 @@ export function useShieldedBalance (): UseShieldedBalanceResult {
       const [addressesResult, balanceResult, ...feeResults] = await Promise.allSettled([
         extensionAPI.getShieldedAddresses(password),
         extensionAPI.getShieldedBalance(password),
-        ...ESTIMATED_SPEND_TYPES.map(async spendType => await extensionAPI.estimateShieldedFee(spendType, password))
+        ...SHIELDED_SPEND_KINDS.map(async spendType => await extensionAPI.estimateShieldedFee(spendType, password))
       ])
 
       if (!mountedRef.current) return null
@@ -73,9 +73,12 @@ export function useShieldedBalance (): UseShieldedBalanceResult {
         console.log('Failed to derive shielded addresses:', addressesResult.reason)
       }
 
-      setSpendFees(Object.fromEntries(ESTIMATED_SPEND_TYPES.flatMap((spendType, index) => {
+      // Without an amount each estimate describes the largest spend: its amount, fee and notes.
+      setSpendEstimates(Object.fromEntries(SHIELDED_SPEND_KINDS.flatMap((spendType, index) => {
         const result = feeResults[index]
-        return result.status === 'fulfilled' ? [[spendType, BigInt(result.value.feeCredits)]] : []
+        if (result.status === 'rejected') return []
+        const { maxAmountCredits, feeCredits, notesCount } = result.value
+        return [[spendType, { amountCredits: BigInt(maxAmountCredits), feeCredits: BigInt(feeCredits), notesCount }]]
       })))
       setDerived(addressesResult.status === 'fulfilled' ? addressesResult.value : [])
       setInfo(balanceResult.value)
@@ -159,6 +162,6 @@ export function useShieldedBalance (): UseShieldedBalanceResult {
     error,
     unlock,
     clearError: useCallback(() => setError(null), []),
-    spendFees
+    spendEstimates
   }
 }

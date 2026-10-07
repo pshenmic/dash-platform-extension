@@ -17,7 +17,7 @@ import { useTransferDraft } from './hooks/useTransferDraft'
 import { useSendScreenData } from './hooks/useSendScreenData'
 import { useShieldedBalance } from './hooks/useShieldedBalance'
 import { useSourceBalance } from './hooks/useSourceBalance'
-import { useTransferFee } from './hooks/useTransferFee'
+import { shieldedMaxAmount, useTransferFee } from './hooks/useTransferFee'
 import { useTransferSubmit } from './hooks/useTransferSubmit'
 import type { ResumedTransfer } from './hooks/useTransferOperation'
 import { useTransferOperation } from './hooks/useTransferOperation'
@@ -91,7 +91,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const config = resolution.supported ? resolution.config : null
 
   const balance = useSourceBalance({ draft, identityBalance, coreBalance, platformAddresses, shieldedBalance: shielded.balance, utxos, notes: notes ?? [], token })
-  const fee = useTransferFee({ api, config, draft, network, shieldedSpendFees: shielded.spendFees })
+  const fee = useTransferFee({ api, config, draft, network, shieldedSpendEstimates: shielded.spendEstimates })
 
   const limits = config != null ? transferAmountLimits(config.mode) : null
   const recipientsCheck = checkRecipients(draft.recipients, balance.decimals, limits?.min ?? 1n)
@@ -99,7 +99,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const amount = draft.isAdvanced ? recipientsCheck.total : parseDashAmount(draft.amount, balance.decimals)
   const isDash = draft.asset.type === 'dash'
   const feeReserve = draft.from.type === 'core' && draft.coinControl.type === 'automatic' ? CORE_MAX_FEE_RESERVE_DUFFS : 0n
-  const maxAmount = balance.amount == null ? null : isDash && fee != null && fee.decimals === balance.decimals ? balance.amount - fee.amount - feeReserve : balance.amount
+  const shieldedMax = shieldedMaxAmount(config, draft, shielded.spendEstimates)
+  const maxAmount = shieldedMax ?? (balance.amount == null ? null : isDash && fee != null && fee.decimals === balance.decimals ? balance.amount - fee.amount - feeReserve : balance.amount)
   const amountError = limits != null ? validateTransferAmount(amount, maxAmount, draft.isAdvanced ? { min: 1n, max: null } : limits, balance.decimals, balance.unit) : null
 
   const stageCount = config?.stages.length ?? 0
