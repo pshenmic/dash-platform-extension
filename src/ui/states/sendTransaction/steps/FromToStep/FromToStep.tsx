@@ -1,5 +1,5 @@
 import React from 'react'
-import { Badge, Button, ChevronIcon, CreditsIcon, FilterIcon, PendingIcon, Text } from 'dash-ui-kit/react'
+import { Badge, Button, CreditsIcon, FilterIcon, PendingIcon, Text } from 'dash-ui-kit/react'
 import { Checkbox, SideActionButton } from '../../../../components/controls'
 import { EndpointTypeSelect } from '../../../../components/transfer'
 import type { EndpointTypeOption } from '../../../../components/transfer'
@@ -90,8 +90,8 @@ export function FromToStep ({
 
   return (
     <div className='flex flex-col gap-6'>
-      <div className='relative flex flex-col gap-1'>
-        <EndpointCard label='From'>
+      <div className='flex flex-col'>
+        <EndpointCard label='From' position='top'>
           <div className='flex gap-3'>
             <EndpointTypeSelect value={draft.from.type} options={fromOptions} onChange={(type) => actions.setFromType(type)} className='flex-1 min-w-0' />
             {draft.from.type === 'identity'
@@ -116,12 +116,9 @@ export function FromToStep ({
           />
         </EndpointCard>
 
-        <div className='absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-8 h-8 rounded-full bg-white dash-shadow-xl'>
-          <ChevronIcon className='w-3 h-2 text-dash-primary-dark-blue/40' />
-        </div>
-
         <EndpointCard
           label='To'
+          position='bottom'
           headerAction={isShieldToMyself(draft) && <Checkbox checked disabled onChange={() => {}} label='Shield to Myself' />}
         >
           {draft.isAdvanced

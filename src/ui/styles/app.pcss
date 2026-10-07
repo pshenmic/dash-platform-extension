@@ -47,6 +47,22 @@
     box-shadow: 0 0 75px 0 rgba(0, 0, 0, .1);
   }
 
+  /* 1px border fading to transparent in the middle; the element needs position relative. */
+  .dash-gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(to bottom, rgba(12, 28, 51, .08), rgba(12, 28, 51, 0) 50%, rgba(12, 28, 51, .04));
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    pointer-events: none;
+
+    @variant dark {
+      background: linear-gradient(to bottom, rgba(255, 255, 255, .08), rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, .04));
+    }
+  }
+
   .menu-sections-container {
     @apply flex flex-col gap-6;
   }
