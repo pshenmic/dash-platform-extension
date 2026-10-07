@@ -137,7 +137,6 @@ export class TransferApi {
   }
 
   readonly listCoreUtxos = mock.listCoreUtxos
-  readonly estimateCoreFee = mock.estimateCoreFee
   readonly sendCoreTransaction = mock.sendCoreTransaction
   readonly shieldFromCore = mock.shieldFromCore
   readonly topUpIdentityFromCoreInputs = mock.topUpIdentityFromCore
@@ -151,7 +150,6 @@ export class TransferApi {
   readonly sendShieldedTransferFromNotes = mock.sendShieldedTransfer
   readonly unshieldToAddressFromNotes = mock.unshieldToAddress
   readonly withdrawShieldedToCoreFromNotes = mock.withdrawShieldedToCore
-  readonly estimateWithdrawalFee = mock.estimateWithdrawalFee
 }
 
 // Transfer API bound to the current SDK and extension client.

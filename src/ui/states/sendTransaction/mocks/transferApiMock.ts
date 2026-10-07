@@ -1,5 +1,4 @@
-import { ESTIMATED_FEES } from '../../../constants'
-import { SHIELDED_SPEND_FEE_CREDITS, TRANSFER_FEE_CREDITS } from '../../../../constants'
+import { CORE_FEE_PER_BYTE, CORE_P2PKH_INPUT_BYTES, CORE_P2PKH_OUTPUT_BYTES, CORE_TX_OVERHEAD_BYTES, SHIELDED_SPEND_FEE_CREDITS, TRANSFER_FEE_CREDITS } from '../../../../constants'
 import type {
   CoreUtxo,
   ShieldedNote,
@@ -15,12 +14,6 @@ export const transferMockSettings: { failAtStage: number | null, rejectedPasswor
   failAtStage: null,
   rejectedPassword: 'wrong'
 }
-
-const FEE_PER_BYTE_DUFFS = 1n
-const INPUT_BYTES = 148n
-const OUTPUT_BYTES = 34n
-const TX_OVERHEAD_BYTES = 10n
-const ASSET_LOCK_PAYLOAD_BYTES = 60n
 
 const CORE_STAGE_DURATIONS_MS = [1500, 6000, 3000]
 
@@ -64,9 +57,9 @@ const MOCK_NOTES: ShieldedNote[] = ['300000000000', '75000000000', '12500000000'
   amount
 }))
 
-const txFee = (inputs: number, outputs: number, isAssetLock: boolean): bigint => {
-  const bytes = TX_OVERHEAD_BYTES + BigInt(inputs) * INPUT_BYTES + BigInt(outputs) * OUTPUT_BYTES + (isAssetLock ? ASSET_LOCK_PAYLOAD_BYTES : 0n)
-  return bytes * FEE_PER_BYTE_DUFFS
+const txFee = (inputs: number, outputs: number): bigint => {
+  const bytes = CORE_TX_OVERHEAD_BYTES + inputs * CORE_P2PKH_INPUT_BYTES + outputs * CORE_P2PKH_OUTPUT_BYTES
+  return BigInt(bytes) * CORE_FEE_PER_BYTE
 }
 
 const findUtxos = (refs: UtxoRef[]): CoreUtxo[] => refs.map(ref => {
@@ -90,7 +83,7 @@ interface MockOperation {
 const operations = new Map<string, MockOperation>()
 
 const startOperation = (type: TransferOperationType, inputs?: UtxoRef[]): { operationId: string } => {
-  const fee = txFee(inputs != null && inputs.length > 0 ? inputs.length : 1, 2, true)
+  const fee = txFee(inputs != null && inputs.length > 0 ? inputs.length : 1, 2)
 
   const operationId = randomHash()
 
@@ -165,19 +158,18 @@ export const estimateCoreFee = async (params: {
 }): Promise<{ fee: string, inputs: UtxoRef[] }> => {
   await delay(200, 500)
 
-  const isAssetLock = params.type === 'assetLock'
   const outputs = Math.max(params.outputs.length, 1)
 
   if (params.sendMax === true) {
     const utxos = params.inputs != null && params.inputs.length > 0 ? findUtxos(params.inputs) : MOCK_UTXOS
-    return { fee: txFee(utxos.length, outputs, isAssetLock).toString(), inputs: toRefs(utxos) }
+    return { fee: txFee(utxos.length, outputs).toString(), inputs: toRefs(utxos) }
   }
 
   if (params.inputs != null && params.inputs.length > 0) {
-    return { fee: txFee(params.inputs.length, outputs + 1, isAssetLock).toString(), inputs: params.inputs }
+    return { fee: txFee(params.inputs.length, outputs + 1).toString(), inputs: params.inputs }
   }
 
-  return { fee: txFee(1, outputs + 1, isAssetLock).toString(), inputs: [] }
+  return { fee: txFee(1, outputs + 1).toString(), inputs: [] }
 }
 
 // MOCK: 04-backend-gaps.md #3
@@ -289,20 +281,4 @@ export const withdrawShieldedToCore = async (toCoreAddress: string, amountCredit
   await delay(1500, 3000)
   assertPassword(password)
   return { stHash: randomHash(), feeCredits: SHIELDED_SPEND_FEE_CREDITS.toString() }
-}
-
-// MOCK: 04-backend-gaps.md #12
-export const estimateWithdrawalFee = async (params: {
-  from: 'identity' | 'platformAddress' | 'shielded'
-  amountCredits: string
-}): Promise<{ feeCredits: string }> => {
-  await delay(200, 400)
-
-  const feeCredits = {
-    identity: ESTIMATED_FEES.testnet.credits,
-    platformAddress: TRANSFER_FEE_CREDITS,
-    shielded: SHIELDED_SPEND_FEE_CREDITS
-  }[params.from]
-
-  return { feeCredits: feeCredits.toString() }
 }

@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react'
 import { ESTIMATED_FEES } from '../../../constants'
-import { SHIELDED_SPEND_FEE_CREDITS, TRANSFER_FEE_CREDITS } from '../../../../constants'
+import { CORE_FEE_PER_BYTE, CORE_P2PKH_INPUT_BYTES, CORE_P2PKH_OUTPUT_BYTES, CORE_TX_OVERHEAD_BYTES, SHIELDED_SPEND_FEE_CREDITS, TRANSFER_FEE_CREDITS } from '../../../../constants'
 import { computeShieldedSpendFee, CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS } from '../../../../utils'
 import type { ShieldedSpendEstimate } from '../../../../utils'
 import type { NetworkType } from '../../../../types'
 import type { ShieldedSpendKind } from '../../../../types/ShieldedSpendKind'
 import type { DirectionConfig } from '../directions/directionConfig'
-import type { TransferApi } from '../transferApi'
+import { CORE_TRANSFER_FEE_ESTIMATE_DUFFS } from '../constants'
 import type { TransferDraft } from '../types'
 
 // Network fee in base units of the layer that pays it: duffs on Core, credits on Platform.
@@ -16,7 +15,6 @@ export interface TransferFee {
 }
 
 interface TransferFeeParams {
-  api: TransferApi
   config: DirectionConfig | null
   draft: TransferDraft
   network: NetworkType
@@ -53,28 +51,21 @@ export const shieldedMaxAmount = (config: DirectionConfig | null, draft: Transfe
   return estimates[spendType]?.amountCredits ?? null
 }
 
+// Core fee in duffs: by transaction size when Coin Control picked the inputs, otherwise the estimate plus extra Advanced outputs.
+const coreFee = (draft: TransferDraft): bigint => {
+  const recipients = draft.isAdvanced ? Math.max(draft.recipients.length, 1) : 1
+
+  if (draft.coinControl.type === 'utxo') {
+    const bytes = CORE_TX_OVERHEAD_BYTES + draft.coinControl.inputs.length * CORE_P2PKH_INPUT_BYTES + (recipients + 1) * CORE_P2PKH_OUTPUT_BYTES
+    return BigInt(bytes) * CORE_FEE_PER_BYTE
+  }
+  return CORE_TRANSFER_FEE_ESTIMATE_DUFFS + BigInt((recipients - 1) * CORE_P2PKH_OUTPUT_BYTES) * CORE_FEE_PER_BYTE
+}
+
 // Estimated network fee of the transfer; null while unknown.
-export function useTransferFee ({ api, config, draft, network, shieldedSpendEstimates }: TransferFeeParams): TransferFee | null {
-  const isCore = config?.feeSource === 'coreEstimate'
-  const isAssetLock = config?.mode === 'coreShield'
-  const inputs = draft.coinControl.type === 'utxo' ? draft.coinControl.inputs : undefined
-  const outputCount = draft.isAdvanced ? Math.max(draft.recipients.length, 1) : 1
-  const [coreFee, setCoreFee] = useState<bigint | null>(null)
-
-  useEffect(() => {
-    if (!isCore) return
-
-    setCoreFee(null)
-    let cancelled = false
-    api.estimateCoreFee({ outputs: Array.from({ length: outputCount }, () => ({ address: '', amount: '0' })), inputs, type: isAssetLock ? 'assetLock' : 'transfer' })
-      .then(({ fee }) => { if (!cancelled) setCoreFee(BigInt(fee)) })
-      .catch(e => console.log('estimateCoreFee error', e))
-
-    return () => { cancelled = true }
-  }, [api, isCore, isAssetLock, inputs, outputCount])
-
+export function useTransferFee ({ config, draft, network, shieldedSpendEstimates }: TransferFeeParams): TransferFee | null {
   if (config == null) return null
-  if (isCore) return coreFee != null ? { amount: coreFee, decimals: CORE_DASH_DECIMALS } : null
+  if (config.feeSource === 'coreEstimate') return { amount: coreFee(draft), decimals: CORE_DASH_DECIMALS }
 
   const spendType = SHIELDED_SPEND_TYPES[config.mode]
   if (spendType != null && draft.coinControl.type === 'shieldedNotes') {

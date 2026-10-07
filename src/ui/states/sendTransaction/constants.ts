@@ -82,3 +82,6 @@ export const COIN_CONTROL_UNITS = {
 
 // Most recipients one Advanced transfer can pay (06-backend-questions.md, question 6).
 export const MAX_RECIPIENTS = 1000
+
+// Estimated fee of a Core send while coin selection is automatic: one input, recipient and change outputs.
+export const CORE_TRANSFER_FEE_ESTIMATE_DUFFS = 226n

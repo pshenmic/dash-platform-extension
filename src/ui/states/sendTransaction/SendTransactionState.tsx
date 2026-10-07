@@ -91,7 +91,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const config = resolution.supported ? resolution.config : null
 
   const balance = useSourceBalance({ draft, identityBalance, coreBalance, platformAddresses, shieldedBalance: shielded.balance, utxos, notes: notes ?? [], token })
-  const fee = useTransferFee({ api, config, draft, network, shieldedSpendEstimates: shielded.spendEstimates })
+  const fee = useTransferFee({ config, draft, network, shieldedSpendEstimates: shielded.spendEstimates })
 
   const limits = config != null ? transferAmountLimits(config.mode) : null
   const recipientsCheck = checkRecipients(draft.recipients, balance.decimals, limits?.min ?? 1n)
@@ -128,7 +128,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
         : recipientsCheck.isValid ? amountError : null
   const isForeignTopUp = config?.mode === 'coreTopUp' && draft.to.recipient !== '' && !availableIdentities.some(identity => identity.identifier === draft.to.recipient)
   const recipientError = draft.isAdvanced ? null : isSameParty ? SAME_PARTY_MESSAGE : isForeignTopUp ? CORE_TOP_UP_OWN_IDENTITY_MESSAGE : null
-  const received = amount != null && (config?.mode === 'coreTopUp' || config?.mode === 'coreFund') ? amount - MIN_FEE_RELAY : null
+  const received = amount != null && (config?.mode === 'coreTopUp' || config?.mode === 'coreFund' || config?.mode === 'coreShield') ? amount - MIN_FEE_RELAY : null
   const shieldedReady = draft.from.type !== 'shielded' || (shielded.balance != null && !shielded.isWarmingProver)
   const fromToValid = config != null &&
     (draft.asset.type === 'dash' || token != null) &&
