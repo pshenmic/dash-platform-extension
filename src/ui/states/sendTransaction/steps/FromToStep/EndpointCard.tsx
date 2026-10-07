@@ -1,5 +1,6 @@
 import React, { useId } from 'react'
 import { ChevronIcon, Text } from 'dash-ui-kit/react'
+import styles from './EndpointCard.module.pcss'
 
 // Bulge outline from its right edge to the left one, shared by the fill and the stroke.
 const BULGE_CURVE = 'C121.895 0.5 110.303 3.852 100.296 10.169C79.873 23.062 53.855 23.062 33.432 10.169C23.425 3.852 11.833 0.5 0 0.5'
@@ -18,7 +19,7 @@ export function EndpointCard ({ label, position, headerAction, children }: Endpo
 
   return (
     <div className={`relative drop-shadow-[0_0_16px_rgba(12,28,51,0.08)] ${isTop ? 'z-10' : ''}`}>
-      <div className={`relative flex flex-col gap-3 px-3 py-4 bg-white dark:bg-gray-900 ${isTop ? 'dash-gradient-border rounded-t-3xl rounded-b-xl' : 'rounded-t-xl rounded-b-3xl'}`}>
+      <div className={`relative flex flex-col gap-3 px-3 py-4 bg-white dark:bg-gray-900 ${isTop ? `${styles.gradientBorder} rounded-t-3xl rounded-b-xl` : 'rounded-t-xl rounded-b-3xl'}`}>
         <div className='flex items-center justify-between gap-2'>
           <Text size='sm' weight='medium' dim>{label}</Text>
           {headerAction}
