@@ -1,5 +1,5 @@
 import React from 'react'
-import { OverlayMenu, Text } from 'dash-ui-kit/react'
+import { ChevronIcon, OverlayMenu, Text } from 'dash-ui-kit/react'
 import { LayerBadge, endpointLayer } from '../controls'
 import type { EndpointType } from '../../states/sendTransaction/types'
 
@@ -24,17 +24,17 @@ interface EndpointTypeSelectProps {
   className?: string
 }
 
-/** Badge plus label, with the L1/L2 suffix dimmed as in the mockup. */
-function EndpointTypeRow ({ type, hint }: { type: EndpointType, hint?: string }): React.JSX.Element {
+/** Badge plus label; the dimmed L1/L2 suffix is shown only in the list, the badge already marks the layer. */
+function EndpointTypeRow ({ type, hint, showLayer = false }: { type: EndpointType, hint?: string, showLayer?: boolean }): React.JSX.Element {
   const layer = endpointLayer(type)
 
   return (
-    <div className='flex items-center gap-2.5 min-w-0'>
-      <LayerBadge layer={layer} />
+    <div className='flex items-center gap-2 min-w-0'>
+      <LayerBadge layer={layer} className='!rounded-full !text-xs !font-extrabold' />
       <div className='flex flex-col min-w-0'>
         <Text size='sm' weight='medium' className='truncate'>
           {ENDPOINT_TYPE_LABELS[type]}
-          {layer !== 'shielded' && <span className='text-dash-primary-dark-blue/35'> ({layer})</span>}
+          {showLayer && layer !== 'shielded' && <span className='text-dash-primary-dark-blue/48 dark:text-white/48'> ({layer})</span>}
         </Text>
         {hint != null && (
           <Text size='xs' dim className='truncate'>
@@ -56,19 +56,27 @@ export function EndpointTypeSelect ({
 }: EndpointTypeSelectProps): React.JSX.Element {
   return (
     <OverlayMenu
-      triggerContent={<EndpointTypeRow type={value} />}
+      triggerContent={(
+        <div className='flex items-center justify-between gap-3 min-w-0'>
+          <EndpointTypeRow type={value} />
+          <ChevronIcon size={14} color='currentColor' className='shrink-0 text-dash-primary-dark-blue/48 dark:text-white/48' />
+        </div>
+      )}
       items={options.map(option => ({
         id: option.type,
         disabled: option.disabled,
-        content: <EndpointTypeRow type={option.type} hint={option.disabled === true ? option.hint : undefined} />,
+        content: <EndpointTypeRow type={option.type} hint={option.disabled === true ? option.hint : undefined} showLayer />,
         onClick: () => { onChange(option.type) }
       }))}
       size='md'
       colorScheme='lightGray'
       filled
-      showArrow
+      border={false}
+      showArrow={false}
       disabled={disabled}
-      className={`!w-full ${className ?? ''}`}
+      wrapperClassName={className}
+      className='!w-full'
+      triggerClassName='!h-[3.25rem] !px-3 !py-1.5 !rounded-2xl [&>div]:min-w-0'
     />
   )
 }

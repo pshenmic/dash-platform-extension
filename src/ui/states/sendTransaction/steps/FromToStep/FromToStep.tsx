@@ -1,7 +1,7 @@
 import React from 'react'
 import { Badge, Button, CreditsIcon, FilterIcon, PendingIcon, Text } from 'dash-ui-kit/react'
 import { Checkbox, SideActionButton } from '../../../../components/controls'
-import { EndpointTypeSelect } from '../../../../components/transfer'
+import { CoinControlIcon, EndpointTypeSelect } from '../../../../components/transfer'
 import type { EndpointTypeOption } from '../../../../components/transfer'
 import { InfoCard } from '../../../../components/common'
 import { formatDashAmount, getSourceUnavailableReason } from '../../../../../utils'
@@ -102,9 +102,10 @@ export function FromToStep ({
                   subtitle={tokenSymbol(draft, tokens)}
                   onClick={onOpenAsset}
                   disabled={tokens.length === 0}
+                  className='shrink-0 max-w-[45%]'
                 />
                 )
-              : <SideActionButton icon={<FilterIcon size={16} />} title='Coin Control' subtitle={coinControlLabel} onClick={onOpenCoinControl ?? undefined} disabled={onOpenCoinControl == null} />}
+              : <SideActionButton icon={<CoinControlIcon />} title='Coin Control' subtitle={coinControlLabel} onClick={onOpenCoinControl ?? undefined} disabled={onOpenCoinControl == null} className='shrink-0 max-w-[45%]' />}
           </div>
           <SourceRow
             draft={draft}
@@ -125,7 +126,7 @@ export function FromToStep ({
             ? (
               <div className='flex gap-3'>
                 <EndpointTypeSelect value={draft.to.type} options={toOptions} onChange={(type) => actions.setToType(type)} className='flex-1 min-w-0' />
-                <SideActionButton icon={<FilterIcon size={16} />} title='Recipients' subtitle={recipientsLabel} onClick={onOpenRecipients} />
+                <SideActionButton icon={<FilterIcon size={16} />} title='Recipients' subtitle={recipientsLabel} onClick={onOpenRecipients} className='shrink-0 max-w-[45%]' />
               </div>
               )
             : <EndpointTypeSelect value={draft.to.type} options={toOptions} onChange={(type) => actions.setToType(type)} />}

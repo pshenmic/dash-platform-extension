@@ -24,20 +24,20 @@ export function SideActionButton ({
       type='button'
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center gap-3 min-w-0 px-3 py-2.5 rounded-[0.9375rem] text-left transition-colors bg-dash-primary-dark-blue/[0.03] dark:bg-white/5 ${
+      className={`flex items-center gap-3 min-w-0 h-[3.25rem] px-3 rounded-2xl text-left transition-colors bg-dash-primary-dark-blue/[0.03] dark:bg-white/5 ${
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-dash-primary-dark-blue/[0.05] dark:hover:bg-white/10'
       } ${className ?? ''}`}
     >
       {icon != null && (
-        <span className='flex items-center justify-center shrink-0 w-4 h-4 text-dash-primary-dark-blue'>
+        <span className='flex items-center justify-center shrink-0 w-4 h-4 text-dash-primary-dark-blue/48 dark:text-white/48'>
           {icon}
         </span>
       )}
       <span className='flex flex-col min-w-0'>
-        <Text size='sm' weight='medium' className='truncate !leading-[1.3]'>
+        <Text size='sm' className='truncate whitespace-nowrap !font-semibold !leading-[1.2]'>
           {title}
         </Text>
-        <Text size='xs' weight='medium' className='truncate !leading-[1.3] !text-dash-brand'>
+        <Text weight='medium' className='truncate whitespace-nowrap !text-xs !leading-[1.2] !text-dash-brand'>
           {subtitle}
         </Text>
       </span>

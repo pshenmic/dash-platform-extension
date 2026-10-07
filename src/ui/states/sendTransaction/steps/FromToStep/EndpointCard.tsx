@@ -48,9 +48,9 @@ export function EndpointCard ({ label, position, headerAction, children }: Endpo
               <path d={`M133.728 0.5${BULGE_CURVE}`} stroke={`url(#${strokeGradientId})`} />
             </g>
           </svg>
-          <div className='absolute left-1/2 top-full -translate-x-1/2 -mt-[5px] flex flex-col items-center gap-1 text-dash-primary-dark-blue/24 dark:text-white/24'>
-            <ChevronIcon className='w-[10.6px] h-1.5' />
-            <ChevronIcon className='w-[10.6px] h-1.5' />
+          <div className='absolute left-1/2 top-full -translate-x-1/2 -mt-2.5 flex flex-col items-center text-dash-primary-dark-blue/24 dark:text-white/24'>
+            <ChevronIcon size={14} color='currentColor' />
+            <ChevronIcon size={14} color='currentColor' className='-mt-1' />
           </div>
         </>
       )}
