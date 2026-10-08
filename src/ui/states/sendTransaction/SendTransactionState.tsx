@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'rea
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 import { AssetSelectionMenu } from '../../components/controls'
-import { useCoreBalance, usePlatformAddresses, useWalletCapabilities } from '../../hooks'
+import { useCoreBalance, usePlatformAddresses, useWalletCapabilities, useWalletPlatformData } from '../../hooks'
 import { locationReturnPath } from '../../types'
 import type { OutletContext } from '../../types'
 import { parseSendScope } from '../../utils/sendPath'
@@ -36,7 +36,7 @@ import { CoinControlOverlay } from './overlays/CoinControl/CoinControlOverlay'
 import { RecipientsOverlay } from './overlays/RecipientsOverlay'
 import { AdvancedSummary } from './steps/FromToStep/AdvancedSummary'
 import type { TransferOutcome } from './steps/ResultStep'
-import type { CoinControlSelection, CoreUtxo, ShieldedNote, WizardStep } from './types'
+import type { CoinControlSelection, CoreUtxo, ShieldedNote, SourceIdentity, WizardStep } from './types'
 
 const STEP_INDEX: Record<WizardStep, number> = { fromTo: 0, amount: 1, confirm: 2, progress: 3, result: 3, error: 3 }
 
@@ -74,6 +74,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const { balance: identityBalance, rate, tokensState } = useSendScreenData({ senderIdentity: identityId, tokensIdentity: identityId, currentNetwork })
   const tokens = useMemo(() => tokensState.data ?? [], [tokensState.data])
   const token = draft.asset.type === 'token' ? tokens.find(item => draft.asset.type === 'token' && item.identifier === draft.asset.tokenId) : undefined
+  // Platform Explorer answers faster than DAPI, so it supplies the balances of the identity list.
+  const platformData = useWalletPlatformData(availableIdentities, currentNetwork)
   const shieldedBalance = useShieldedBalance()
   const shielded = {
     ...shieldedBalance,
@@ -234,7 +236,10 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
     goToStep('confirm', true)
   }
 
-  const identities = availableIdentities.map(identity => identity.identifier)
+  const identities = availableIdentities.map((identity): SourceIdentity => {
+    const credits = platformData.identities.find(item => item.identifier === identity.identifier)?.credits
+    return { identifier: identity.identifier, balance: credits != null ? BigInt(credits) : null }
+  })
 
   return (
     <div className='screen-content'>

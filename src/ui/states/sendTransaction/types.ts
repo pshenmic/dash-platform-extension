@@ -32,9 +32,6 @@ export const SHIELDED_MODES: TransferMode[] = ['shield', 'unshield', 'shieldedTr
 // so only the identity scope offers them.
 export type SendScope = 'all' | 'core' | 'platform' | 'identity'
 
-// Where the credits/tokens are sent from.
-export type SenderType = 'identity' | 'platform' | 'shielded'
-
 export interface PlatformAddressEntry {
   address: string
   derivationPath: string
@@ -140,4 +137,10 @@ export interface TransferOperation {
   platformTxHash?: string
   fee?: string
   error?: string
+}
+
+// Wallet identity offered as a transfer source, with its credit balance once known.
+export interface SourceIdentity {
+  identifier: string
+  balance: bigint | null
 }

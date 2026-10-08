@@ -82,11 +82,11 @@ export function TransferDetails ({ draft, amount, balance, fee, feeExact = false
     <div className='flex flex-col gap-2.5'>
       <SummaryRow label='From:' value={sourceValue(draft, balance.sourceAddress)} />
       <SummaryRow label='To:' value={targetValue(draft)} />
-      <div className='flex flex-col gap-1 rounded-[0.9375rem] bg-dash-primary-dark-blue/[0.03] dark:bg-white/5'>
+      <div className='flex flex-col gap-2 py-3 rounded-[0.9375rem] bg-dash-primary-dark-blue/[0.03] dark:bg-white/5'>
         <SummaryRow
           label='Network Fee:'
           value={<><Text size='xs' weight='medium'>{feeLabel}</Text><UsdChip label={dashAmountToUsd(fee?.amount ?? null, fee?.decimals ?? 0, rate)} accent={false} /></>}
-          className='!bg-transparent'
+          className='!bg-transparent !py-0'
         />
         {showTotal && (
           <SummaryRow
@@ -97,14 +97,14 @@ export function TransferDetails ({ draft, amount, balance, fee, feeExact = false
                 {isDash && <UsdChip label={dashAmountToUsd(total, balance.decimals, rate)} accent />}
               </>
             }
-            className='!bg-transparent'
+            className='!bg-transparent !py-0'
           />
         )}
         {received != null && (
           <SummaryRow
             label='Received:'
             value={<Text size='xs' weight='medium'>~{formatDashAmount(received, balance.decimals)} {balance.unit}</Text>}
-            className='!bg-transparent'
+            className='!bg-transparent !py-0'
           />
         )}
       </div>

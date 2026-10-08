@@ -1,7 +1,7 @@
 import React from 'react'
 import { Badge, Button, CreditsIcon, FilterIcon, PendingIcon, Text } from 'dash-ui-kit/react'
 import { Checkbox, SideActionButton } from '../../../../components/controls'
-import { CoinControlIcon, EndpointTypeSelect } from '../../../../components/transfer'
+import { EndpointTypeSelect } from '../../../../components/transfer'
 import type { EndpointTypeOption } from '../../../../components/transfer'
 import { InfoCard } from '../../../../components/common'
 import { formatDashAmount, getSourceUnavailableReason } from '../../../../../utils'
@@ -14,7 +14,7 @@ import type { DirectionResolution } from '../../directions/resolveDirection'
 import type { TransferDraftActions } from '../../hooks/useTransferDraft'
 import type { SourceBalance } from '../../hooks/useSourceBalance'
 import type { TransferFee } from '../../hooks/useTransferFee'
-import type { EndpointType, TransferDraft } from '../../types'
+import type { EndpointType, SourceIdentity, TransferDraft } from '../../types'
 import { EndpointCard } from './EndpointCard'
 import { SourceRow } from './SourceRow'
 import { RecipientRow, isShieldToMyself } from './RecipientRow'
@@ -25,7 +25,7 @@ interface FromToStepProps {
   resolution: DirectionResolution
   typeOrder: EndpointType[]
   capabilities: TransferCapabilities
-  identities: string[]
+  identities: SourceIdentity[]
   balance: SourceBalance
   rate: number | null
   shielded: React.ComponentProps<typeof SourceRow>['shielded']
@@ -42,6 +42,9 @@ interface FromToStepProps {
   onOpenCoinControl: (() => void) | null
   onNext: () => void
 }
+
+// TODO: replace with a Coin Control icon once it is added to dash-ui-kit.
+const COIN_CONTROL_ICON = <span className='text-sm font-bold leading-none'>C</span>
 
 const tokenSymbol = (draft: TransferDraft, tokens: TokenData[]): string => {
   if (draft.asset.type !== 'token') return 'Dash'
@@ -105,7 +108,7 @@ export function FromToStep ({
                   className='shrink-0 max-w-[45%]'
                 />
                 )
-              : <SideActionButton icon={<CoinControlIcon />} title='Coin Control' subtitle={coinControlLabel} onClick={onOpenCoinControl ?? undefined} disabled={onOpenCoinControl == null} className='shrink-0 max-w-[45%]' />}
+              : <SideActionButton icon={COIN_CONTROL_ICON} title='Coin Control' subtitle={coinControlLabel} onClick={onOpenCoinControl ?? undefined} disabled={onOpenCoinControl == null} className='shrink-0 max-w-[45%]' />}
           </div>
           <SourceRow
             draft={draft}

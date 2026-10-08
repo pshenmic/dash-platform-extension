@@ -17,8 +17,9 @@ export function EndpointCard ({ label, position, headerAction, children }: Endpo
   const isTop = position === 'top'
   const strokeGradientId = useId()
 
+  // The drop-shadow filter traps a dropdown's z-index inside the card, so the card itself sits above what follows.
   return (
-    <div className={`relative drop-shadow-[0_0_16px_rgba(12,28,51,0.08)] ${isTop ? 'z-10' : ''}`}>
+    <div className={`relative drop-shadow-[0_0_16px_rgba(12,28,51,0.08)] ${isTop ? 'z-20' : 'z-10'}`}>
       <div className={`relative flex flex-col gap-3 px-3 py-4 bg-white dark:bg-gray-900 ${isTop ? `${styles.gradientBorder} rounded-t-3xl rounded-b-xl` : 'rounded-t-xl rounded-b-3xl'}`}>
         <div className='flex items-center justify-between gap-2'>
           <Text size='sm' weight='medium' dim>{label}</Text>
