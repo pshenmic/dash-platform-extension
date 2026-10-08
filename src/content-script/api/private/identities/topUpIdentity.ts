@@ -8,6 +8,7 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
+import { PendingAssetLocksRepository } from '../../../repository/PendingAssetLocksRepository'
 import { TopUpIdentityPayload } from '../../../../types/messages/payloads/TopUpIdentityPayload'
 import { TopUpIdentityResponse } from '../../../../types/messages/response/TopUpIdentityResponse'
 import { buildAssetLockFromFundingTx } from '../../../../utils/buildAssetLockFromFundingTx'
@@ -27,6 +28,7 @@ export class TopUpIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
+  pendingAssetLocksRepository: PendingAssetLocksRepository
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
   coreExplorer: CoreExplorerService
@@ -35,6 +37,7 @@ export class TopUpIdentityHandler implements APIHandler {
     walletRepository: WalletRepository,
     identitiesRepository: IdentitiesRepository,
     assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository,
+    pendingAssetLocksRepository: PendingAssetLocksRepository,
     sdk: DashPlatformSDK,
     coreSDK: DashCoreSDK,
     coreExplorer: CoreExplorerService
@@ -42,6 +45,7 @@ export class TopUpIdentityHandler implements APIHandler {
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
     this.assetLockFundingAddressesRepository = assetLockFundingAddressesRepository
+    this.pendingAssetLocksRepository = pendingAssetLocksRepository
     this.sdk = sdk
     this.coreSDK = coreSDK
     this.coreExplorer = coreExplorer
@@ -63,6 +67,7 @@ export class TopUpIdentityHandler implements APIHandler {
     const walletRepository = this.walletRepository.forScope(scope)
     const identitiesRepository = this.identitiesRepository.forScope(scope)
     const assetLockFundingAddressesRepository = this.assetLockFundingAddressesRepository.forScope(scope)
+    const pendingAssetLocksRepository = this.pendingAssetLocksRepository.forScope(scope)
 
     const wallet = await walletRepository.getCurrent()
 
@@ -167,6 +172,17 @@ export class TopUpIdentityHandler implements APIHandler {
     )
 
     if (committedAssetLockTxid == null) {
+      // Written before the transaction can reach the network: from here on the
+      // funds are committed on L1, and an interruption must leave a trace of
+      // what was started. Removed once the credits arrive.
+      await pendingAssetLocksRepository.create({
+        assetLockTxid,
+        purpose: 'topUp',
+        identityId: payload.identityId,
+        amountDuffs: lockedAmount.toString(),
+        createdAt: Date.now()
+      })
+
       try {
         await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
       } catch (e) {
@@ -214,6 +230,8 @@ export class TopUpIdentityHandler implements APIHandler {
     if (assetLockFundingAddressEntry != null) {
       await assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
     }
+
+    await pendingAssetLocksRepository.remove(assetLockTxid)
 
     return {
       identityId: payload.identityId,

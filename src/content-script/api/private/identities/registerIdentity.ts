@@ -8,6 +8,7 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
+import { PendingAssetLocksRepository } from '../../../repository/PendingAssetLocksRepository'
 import { StorageAdapter } from '../../../storage/storageAdapter'
 import { RegisterIdentityPayload } from '../../../../types/messages/payloads/RegisterIdentityPayload'
 import { RegisterIdentityResponse } from '../../../../types/messages/response/RegisterIdentityResponse'
@@ -35,6 +36,7 @@ export class RegisterIdentityHandler implements APIHandler {
   walletRepository: WalletRepository
   identitiesRepository: IdentitiesRepository
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
+  pendingAssetLocksRepository: PendingAssetLocksRepository
   storageAdapter: StorageAdapter
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
@@ -44,6 +46,7 @@ export class RegisterIdentityHandler implements APIHandler {
     walletRepository: WalletRepository,
     identitiesRepository: IdentitiesRepository,
     assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository,
+    pendingAssetLocksRepository: PendingAssetLocksRepository,
     storageAdapter: StorageAdapter,
     sdk: DashPlatformSDK,
     coreSDK: DashCoreSDK,
@@ -52,6 +55,7 @@ export class RegisterIdentityHandler implements APIHandler {
     this.walletRepository = walletRepository
     this.identitiesRepository = identitiesRepository
     this.assetLockFundingAddressesRepository = assetLockFundingAddressesRepository
+    this.pendingAssetLocksRepository = pendingAssetLocksRepository
     this.storageAdapter = storageAdapter
     this.sdk = sdk
     this.coreSDK = coreSDK
@@ -152,7 +156,7 @@ export class RegisterIdentityHandler implements APIHandler {
     // ── 6. Build asset lock transaction ─────────────────────────────────────
     // Inputs are signed by the one-time funding key. Credit output goes to
     // creditOutputAddress (registration key). Build is deterministic on retry.
-    const { assetLockTx } = await buildAssetLockFromFundingTx(
+    const { assetLockTx, lockedAmount } = await buildAssetLockFromFundingTx(
       this.coreSDK,
       payload.assetLockFundingTxid,
       payload.assetLockFundingAddress,
@@ -179,6 +183,17 @@ export class RegisterIdentityHandler implements APIHandler {
     )
 
     if (committedAssetLockTxid == null) {
+      // Written before the transaction can reach the network: from here on the
+      // funds are committed on L1, and an interruption must leave a trace of
+      // what was started. Removed once the identity exists.
+      await this.pendingAssetLocksRepository.create({
+        assetLockTxid,
+        purpose: 'registration',
+        identityId: null,
+        amountDuffs: lockedAmount.toString(),
+        createdAt: Date.now()
+      })
+
       try {
         await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
       } catch (e) {
@@ -292,6 +307,7 @@ export class RegisterIdentityHandler implements APIHandler {
       await this.assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
     }
 
+    await this.pendingAssetLocksRepository.remove(assetLockTxid)
     await this.walletRepository.switchIdentity(identifier)
 
     return {

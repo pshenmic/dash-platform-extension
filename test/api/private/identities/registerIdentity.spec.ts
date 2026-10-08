@@ -55,6 +55,7 @@ describe('RegisterIdentityHandler', () => {
   let walletRepository: any
   let identitiesRepository: any
   let assetLockFundingAddressesRepository: any
+  let pendingAssetLocksRepository: any
   let coreSDK: any
   let coreExplorer: any
   let sdk: any
@@ -122,6 +123,13 @@ describe('RegisterIdentityHandler', () => {
       })
     }
 
+    pendingAssetLocksRepository = {
+      create: jest.fn(async () => {}),
+      remove: jest.fn(async () => {}),
+      getAll: jest.fn(async () => []),
+      forScope: jest.fn(() => pendingAssetLocksRepository)
+    }
+
     coreExplorer = {
       getOutputSpender: jest.fn(async () => null),
       getXpubSummary: jest.fn(async () => ({ nextUnused: { receiving: 0, change: 0 } })),
@@ -158,7 +166,7 @@ describe('RegisterIdentityHandler', () => {
 
     buildAssetLockFromFundingTxMock.mockImplementation(async () => {
       order.push('build')
-      return { assetLockTx } as any
+      return { assetLockTx, lockedAmount: 100000000n } as any
     })
 
     waitForAssetLockProofMock.mockImplementation(async () => {
@@ -180,6 +188,7 @@ describe('RegisterIdentityHandler', () => {
       walletRepository,
       identitiesRepository,
       assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
       {} as any,
       sdk,
       coreSDK,

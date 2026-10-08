@@ -57,6 +57,7 @@ describe('an asset lock funded from the wallet own coins', () => {
   let walletRepository: any
   let identitiesRepository: any
   let assetLockFundingAddressesRepository: any
+  let pendingAssetLocksRepository: any
   let coreExplorer: any
   let coreSDK: any
   let sdk: any
@@ -84,6 +85,13 @@ describe('an asset lock funded from the wallet own coins', () => {
       create: jest.fn(async () => ({ identifier })),
       remove: jest.fn(async () => {}),
       getAll: jest.fn(async () => [])
+    }
+
+    pendingAssetLocksRepository = {
+      create: jest.fn(async () => {}),
+      remove: jest.fn(async () => {}),
+      getAll: jest.fn(async () => []),
+      forScope: jest.fn(() => pendingAssetLocksRepository)
     }
 
     assetLockFundingAddressesRepository = {
@@ -140,7 +148,7 @@ describe('an asset lock funded from the wallet own coins', () => {
   })
 
   const register = async (): Promise<any> => await new RegisterIdentityHandler(
-    walletRepository, identitiesRepository, assetLockFundingAddressesRepository, {} as any, sdk, coreSDK, coreExplorer
+    walletRepository, identitiesRepository, assetLockFundingAddressesRepository, pendingAssetLocksRepository, {} as any, sdk, coreSDK, coreExplorer
   ).handle({
     context: 'dash-platform-extension',
     id: 'id',
@@ -153,6 +161,7 @@ describe('an asset lock funded from the wallet own coins', () => {
     { ...walletRepository, forScope: () => walletRepository },
     { ...identitiesRepository, forScope: () => identitiesRepository },
     { ...assetLockFundingAddressesRepository, forScope: () => assetLockFundingAddressesRepository },
+    pendingAssetLocksRepository,
     sdk, coreSDK, coreExplorer
   ).handle({
     context: 'dash-platform-extension',
@@ -163,7 +172,7 @@ describe('an asset lock funded from the wallet own coins', () => {
   } as any)
 
   describe('registration', () => {
-    it('signs the asset lock with the key of the wallet own address and stores nothing', async () => {
+    it('signs the asset lock with the key of the wallet own address and claims no funding address', async () => {
       const result = await register()
 
       expect(result.identifier).toBe(identifier)
@@ -190,6 +199,17 @@ describe('an asset lock funded from the wallet own coins', () => {
       expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
     })
 
+    it('records the asset lock before broadcasting it and forgets it on success', async () => {
+      await register()
+
+      expect(pendingAssetLocksRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        assetLockTxid, purpose: 'registration', identityId: null, amountDuffs: '100000000'
+      }))
+      expect(pendingAssetLocksRepository.create.mock.invocationCallOrder[0])
+        .toBeLessThan(coreSDK.broadcastTransaction.mock.invocationCallOrder[0])
+      expect(pendingAssetLocksRepository.remove).toHaveBeenCalledWith(assetLockTxid)
+    })
+
     it('refuses an address the wallet does not own', async () => {
       deriveCoreAddressPrivateKeyMock.mockRejectedValue(new Error("Core address yfoo is not one of this wallet's own addresses"))
 
@@ -210,6 +230,15 @@ describe('an asset lock funded from the wallet own coins', () => {
       // The credit key, not the paying address key, signs the state transition.
       expect(stateTransition.signByPrivateKey).toHaveBeenCalledWith(key, undefined, expect.anything())
       expect(assetLockFundingAddressesRepository.markAsUsed).not.toHaveBeenCalled()
+    })
+
+    it('records the asset lock against the identity it tops up', async () => {
+      await topUp()
+
+      expect(pendingAssetLocksRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        assetLockTxid, purpose: 'topUp', identityId: identifier
+      }))
+      expect(pendingAssetLocksRepository.remove).toHaveBeenCalledWith(assetLockTxid)
     })
 
     it('takes the next top-up index that has never appeared on L1', async () => {
