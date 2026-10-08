@@ -56,6 +56,7 @@ describe('RegisterIdentityHandler', () => {
   let identitiesRepository: any
   let assetLockFundingAddressesRepository: any
   let coreSDK: any
+  let coreExplorer: any
   let sdk: any
   let handler: RegisterIdentityHandler
   let encryptedPrivateKey: string
@@ -121,6 +122,12 @@ describe('RegisterIdentityHandler', () => {
       })
     }
 
+    coreExplorer = {
+      getOutputSpender: jest.fn(async () => null),
+      getXpubSummary: jest.fn(async () => ({ nextUnused: { receiving: 0, change: 0 } })),
+      isAddressUsed: jest.fn(async () => false)
+    }
+
     coreSDK = {
       subscribeToTransactions: jest.fn(() => {
         order.push('subscribe')
@@ -175,7 +182,8 @@ describe('RegisterIdentityHandler', () => {
       assetLockFundingAddressesRepository,
       {} as any,
       sdk,
-      coreSDK
+      coreSDK,
+      coreExplorer
     )
   })
 
