@@ -74,6 +74,28 @@ export interface AppConnectsStorageSchema {
   [id: string]: AppConnectStorageSchema
 }
 
+// An asset lock this wallet broadcast and has not finished spending yet. Written
+// before the transaction can reach the network and removed once the Platform
+// side is done, so an operation interrupted in between leaves a trace - the
+// funds are on L1 by then, and without this nothing would say so.
+export interface PendingAssetLockSchema {
+  assetLockTxid: string
+  // What the operation was started with, so it can be repeated as it was: the
+  // address that paid and the transaction that paid it.
+  fundingAddress: string
+  fundingTxid: string
+  purpose: AssetLockFundingPurpose
+  // The identity a top-up was meant for; null for a registration.
+  identityId: string | null
+  // Locked amount in duffs, so a caller can tell what is at stake.
+  amountDuffs: string
+  createdAt: number
+}
+
+export interface PendingAssetLocksSchema {
+  [assetLockTxid: string]: PendingAssetLockSchema
+}
+
 export type AssetLockFundingPurpose = 'registration' | 'topUp'
 
 export interface AssetLockFundingAddressSchema {
