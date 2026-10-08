@@ -26,11 +26,12 @@ export class ListPendingAssetLocksHandler implements APIHandler {
 
     const assetLocks: PendingAssetLock[] = pending.map(entry => ({
       assetLockTxid: entry.assetLockTxid,
+      fundingAddress: entry.fundingAddress,
+      fundingTxid: entry.fundingTxid,
       purpose: entry.purpose,
       identityId: entry.identityId,
       amountDuffs: entry.amountDuffs,
-      createdAt: entry.createdAt,
-      fundingAddress: null
+      createdAt: entry.createdAt
     }))
 
     const known = new Set(assetLocks.map(entry => entry.assetLockTxid))
@@ -44,11 +45,13 @@ export class ListPendingAssetLocksHandler implements APIHandler {
 
       assetLocks.push({
         assetLockTxid,
+        fundingAddress: entry.address,
+        // A deposit entry never recorded the payment that funded it.
+        fundingTxid: null,
         purpose: entry.purpose ?? 'registration',
         identityId: entry.identityId ?? null,
         amountDuffs: null,
-        createdAt: null,
-        fundingAddress: entry.address
+        createdAt: null
       })
     }
 

@@ -177,6 +177,8 @@ export class TopUpIdentityHandler implements APIHandler {
       // what was started. Removed once the credits arrive.
       await pendingAssetLocksRepository.create({
         assetLockTxid,
+        fundingAddress: payload.assetLockFundingAddress,
+        fundingTxid: payload.assetLockFundingTxid,
         purpose: 'topUp',
         identityId: payload.identityId,
         amountDuffs: lockedAmount.toString(),

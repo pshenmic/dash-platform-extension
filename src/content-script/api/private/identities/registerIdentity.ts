@@ -188,6 +188,8 @@ export class RegisterIdentityHandler implements APIHandler {
       // what was started. Removed once the identity exists.
       await this.pendingAssetLocksRepository.create({
         assetLockTxid,
+        fundingAddress: payload.assetLockFundingAddress,
+        fundingTxid: payload.assetLockFundingTxid,
         purpose: 'registration',
         identityId: null,
         amountDuffs: lockedAmount.toString(),

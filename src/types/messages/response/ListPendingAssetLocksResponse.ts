@@ -4,12 +4,14 @@ import { AssetLockFundingPurpose } from '../../../content-script/storage/storage
 // time are absent for an operation started before they were recorded.
 export interface PendingAssetLock {
   assetLockTxid: string
+  // The address that paid and the transaction that paid it: repeating the
+  // operation with these finishes it, without paying again.
+  fundingAddress: string | null
+  fundingTxid: string | null
   purpose: AssetLockFundingPurpose
   identityId: string | null
   amountDuffs: string | null
   createdAt: number | null
-  // The deposit address that funded it, when the operation used one.
-  fundingAddress: string | null
 }
 
 export interface ListPendingAssetLocksResponse {

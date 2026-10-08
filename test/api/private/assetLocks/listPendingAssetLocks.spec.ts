@@ -9,6 +9,7 @@ import { StorageAdapter } from '../../../../src/content-script/storage/storageAd
 describe('pending asset locks', () => {
   const ownTxid = 'a'.repeat(64)
   const depositTxid = 'b'.repeat(64)
+  const fundingTxid = 'd'.repeat(64)
   const identityId = '2HPEBQW4JgatyogjFc5KdYzAXaPAyTEG4ShYYKS7w643'
 
   let storage: StorageAdapter
@@ -42,6 +43,8 @@ describe('pending asset locks', () => {
   it('reports an asset lock paid from the wallet own coins', async () => {
     await pendingAssetLocksRepository.create({
       assetLockTxid: ownTxid,
+      fundingAddress: 'yOwnAddress',
+      fundingTxid,
       purpose: 'topUp',
       identityId,
       amountDuffs: '100000000',
@@ -50,11 +53,12 @@ describe('pending asset locks', () => {
 
     expect((await list()).assetLocks).toEqual([{
       assetLockTxid: ownTxid,
+      fundingAddress: 'yOwnAddress',
+      fundingTxid,
       purpose: 'topUp',
       identityId,
       amountDuffs: '100000000',
-      createdAt: 1000,
-      fundingAddress: null
+      createdAt: 1000
     }])
   })
 
@@ -65,17 +69,18 @@ describe('pending asset locks', () => {
 
     expect((await list()).assetLocks).toEqual([{
       assetLockTxid: depositTxid,
+      fundingAddress: 'yDeposit',
+      fundingTxid: null,
       purpose: 'registration',
       identityId: null,
       amountDuffs: null,
-      createdAt: null,
-      fundingAddress: 'yDeposit'
+      createdAt: null
     }])
   })
 
   it('newest first, and the same asset lock is not reported twice', async () => {
-    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, purpose: 'registration', identityId: null, amountDuffs: '1', createdAt: 2000 })
-    await pendingAssetLocksRepository.create({ assetLockTxid: 'c'.repeat(64), purpose: 'registration', identityId: null, amountDuffs: '2', createdAt: 3000 })
+    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, amountDuffs: '1', createdAt: 2000 })
+    await pendingAssetLocksRepository.create({ assetLockTxid: 'c'.repeat(64), fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, amountDuffs: '2', createdAt: 3000 })
     assetLockFundingAddressesRepository.findAllBroadcasted.mockResolvedValue([
       { address: 'yDeposit', assetLockTxid: ownTxid, used: false, purpose: 'registration' }
     ])
@@ -87,14 +92,14 @@ describe('pending asset locks', () => {
   })
 
   it('forgets an operation once it is finished', async () => {
-    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, purpose: 'registration', identityId: null, amountDuffs: '1', createdAt: 1000 })
+    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, amountDuffs: '1', createdAt: 1000 })
     await pendingAssetLocksRepository.remove(ownTxid)
 
     expect(await list()).toEqual({ assetLocks: [] })
   })
 
   it('keeps entries of one wallet out of another', async () => {
-    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, purpose: 'registration', identityId: null, amountDuffs: '1', createdAt: 1000 })
+    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, amountDuffs: '1', createdAt: 1000 })
 
     const otherWallet = pendingAssetLocksRepository.forScope({ network: 'testnet', walletId: `${walletId}-other` })
 

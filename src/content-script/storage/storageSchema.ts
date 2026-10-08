@@ -80,6 +80,10 @@ export interface AppConnectsStorageSchema {
 // funds are on L1 by then, and without this nothing would say so.
 export interface PendingAssetLockSchema {
   assetLockTxid: string
+  // What the operation was started with, so it can be repeated as it was: the
+  // address that paid and the transaction that paid it.
+  fundingAddress: string
+  fundingTxid: string
   purpose: AssetLockFundingPurpose
   // The identity a top-up was meant for; null for a registration.
   identityId: string | null
