@@ -32,12 +32,15 @@ const infoCardVariants = cva(
 interface InfoCardProps extends VariantProps<typeof infoCardVariants> {
   children: React.ReactNode
   title?: string
+  /** Element shown at the right of the title row. */
+  badge?: React.ReactNode
   className?: string
 }
 
 function InfoCard ({
   children,
   title,
+  badge,
   appearance,
   borderColor,
   backgroundColor,
@@ -51,11 +54,22 @@ function InfoCard ({
     )
   }
 
+  const titleText = (
+    <Text size='md' weight='bold' className='!text-dash-primary-dark-blue !leading-[1.2]'>
+      {title}
+    </Text>
+  )
+
   return (
     <div className={`${infoCardVariants({ appearance, borderColor, backgroundColor })} flex flex-col gap-2 ${className}`}>
-      <Text size='md' weight='bold' className='!text-dash-primary-dark-blue !leading-[1.2]'>
-        {title}
-      </Text>
+      {badge == null
+        ? titleText
+        : (
+          <div className='flex items-center justify-between gap-2'>
+            {titleText}
+            {badge}
+          </div>
+          )}
       <Text size='sm' weight='medium' className='!text-dash-primary-dark-blue/50 !leading-[1.35]'>
         {children}
       </Text>

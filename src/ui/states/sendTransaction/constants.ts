@@ -1,10 +1,19 @@
-import type { RecipientSearchResult } from '../../../utils'
+import type { RecipientSearchResult, TransferUnavailableReason } from '../../../utils'
 import { SHIELDED_POOL_RECIPIENT } from '../../../constants'
 import { PROVING_NOTE, WITHDRAW_TO_CORE_WARNING, SHIELDED_WITHDRAW_WARNING } from '../../constants/transferWarnings'
 import type { TransferMode } from './types'
 
 // Shown when the sender can't pay the chosen recipient type (no API for it).
 export const UNSUPPORTED_TRANSFER_MESSAGE = 'This sender cannot pay this recipient. Change the sender or the recipient.'
+
+// Hint shown on a disabled endpoint type.
+export const UNAVAILABLE_REASON_HINTS: Record<TransferUnavailableReason, string> = {
+  noCoreLayer: 'This wallet has no Dash Core (L1) layer.',
+  noAddressLayer: 'This wallet has no platform addresses or shielded balance.',
+  noPlatformAddresses: 'No platform addresses yet. Create one in the Addresses tab.',
+  tokenRequiresIdentity: 'Tokens can only be sent from an identity to an identity.',
+  unsupportedPair: UNSUPPORTED_TRANSFER_MESSAGE
+}
 
 // `shieldToPool` can only reach the wallet's own pool — a fixed choice, not typed.
 export const SHIELDED_POOL_OPTIONS: RecipientSearchResult[] = [{
@@ -23,3 +32,56 @@ export const MODE_WARNINGS: Partial<Record<TransferMode, string>> = {
   unshield: PROVING_NOTE,
   shieldedTransfer: PROVING_NOTE
 }
+
+// Labels of the wizard stepper.
+export const WIZARD_STEP_LABELS = ['From & To', 'Amount', 'Confirm']
+
+// Shown while a multi-stage transfer runs in this window.
+export const KEEP_OPEN_MESSAGE = 'Keep this window open until the transfer completes.'
+
+export const RECIPIENT_PLACEHOLDERS = {
+  core: 'Enter Address',
+  identity: 'Enter Identity',
+  platformAddress: 'Enter Address',
+  shielded: 'Shielded Address'
+}
+
+export const SHIELDED_UNLOCK_DESCRIPTION = 'Enter your password to unlock the shielded balance.'
+
+// Error screen message for the sent asset.
+export const transferErrorMessage = (asset: string): string => `An error occurred while sending ${asset}. Please try again.`
+
+export const SAME_PARTY_MESSAGE = 'Recipient must be different from the sender.'
+
+// Confirm screen caution for transfers leaving Platform for Core.
+export const WITHDRAW_WARNINGS: Partial<Record<TransferMode, string>> = {
+  identityWithdraw: WITHDRAW_TO_CORE_WARNING,
+  withdraw: WITHDRAW_TO_CORE_WARNING,
+  shieldedWithdraw: SHIELDED_WITHDRAW_WARNING
+}
+
+// Warning on directions that still run on mocked backend methods.
+export const MOCK_TRANSFER_WARNING = 'Preview: this transfer runs on a test mock and does not move any funds yet.'
+
+// Extra duffs Max leaves on Core for inputs the one-input fee estimate does not cover (about 67 inputs).
+export const CORE_MAX_FEE_RESERVE_DUFFS = 10_000n
+
+// Top up from Core works only for identities of this wallet.
+export const CORE_TOP_UP_OWN_IDENTITY_MESSAGE = 'Top up from Dash Core works only for identities in this wallet.'
+
+export const COIN_CONTROL_AUTOMATIC_TITLE = 'Let The Wallet Choose'
+export const COIN_CONTROL_AUTOMATIC_TEXT = 'The wallet will select enough available inputs for the amount and fee.'
+export const COIN_CONTROL_AMOUNT_HINT = 'The amount is the sum taken from the addresses selected in Coin Control.'
+
+// Name of one selectable input per Coin Control list.
+export const COIN_CONTROL_UNITS = {
+  utxo: ['UTXO', 'UTXOs'],
+  platformInputs: ['Input', 'Inputs'],
+  shieldedNotes: ['Note', 'Notes']
+} as const
+
+// Most recipients one Advanced transfer can pay (06-backend-questions.md, question 6).
+export const MAX_RECIPIENTS = 1000
+
+// Estimated fee of a Core send while coin selection is automatic: one input, recipient and change outputs.
+export const CORE_TRANSFER_FEE_ESTIMATE_DUFFS = 226n

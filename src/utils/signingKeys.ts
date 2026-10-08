@@ -1,5 +1,8 @@
 import type { PublicKeyInfo, KeyRequirement } from '../ui/components/keys'
 import type { DashPlatformSDK } from 'dash-platform-sdk'
+import type { StateTransitionWASM } from 'dash-platform-sdk/types'
+import type { PurposeLike } from 'pshenmic-dpp'
+import { StateTransitionTypeEnum } from '../enums/TransactionTypes'
 import type { PrivateAPIClient } from '../types'
 
 /**
@@ -63,3 +66,23 @@ export const isKeyCompatible = (key: PublicKeyInfo, keyRequirements: KeyRequirem
     req.purpose === keyPurpose && req.securityLevel === keySecurityLevel
   )
 }
+
+// Key purpose and security level a state transition must be signed with.
+export const getStateTransitionKeyRequirements = (stateTransition: StateTransitionWASM, isTokenTransfer: boolean): KeyRequirement[] => {
+  if (stateTransition.getActionTypeNumber() === StateTransitionTypeEnum.IDENTITY_CREDIT_WITHDRAWAL) {
+    return [{ purpose: 'TRANSFER', securityLevel: 'CRITICAL' }]
+  }
+
+  const purposes = stateTransition.getPurposeRequirement()
+  if (!Array.isArray(purposes)) return []
+
+  return purposes.flatMap(purpose => {
+    const levels = stateTransition.getKeyLevelRequirement(purpose as PurposeLike)
+    if (!Array.isArray(levels)) return []
+    return levels.map(level => ({ purpose, securityLevel: isTokenTransfer ? 'CRITICAL' : level }))
+  })
+}
+
+// First enabled key matching the requirements, or null.
+export const pickSigningKey = (keys: PublicKeyInfo[], requirements: KeyRequirement[]): PublicKeyInfo | null =>
+  keys.find(key => key.disabledAt == null && isKeyCompatible(key, requirements)) ?? null

@@ -5,13 +5,13 @@ import type { Identity } from '../../../types'
 import { IdentityType } from '../../../types/enums/IdentityType'
 import { locationReturnPath, locationReturnState } from '../../types'
 
-interface IdentitySelectorProps {
+interface IdentitySwitcherProps {
   identifier: string
   identities: Identity[]
   onSelect: (identifier: string) => void
 }
 
-export function IdentitySelector ({ identifier, identities, onSelect }: IdentitySelectorProps): React.JSX.Element {
+export function IdentitySwitcher ({ identifier, identities, onSelect }: IdentitySwitcherProps): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const from = locationReturnPath(location.state, '/platform')

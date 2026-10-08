@@ -7,7 +7,7 @@ import { Button, BurgerMenuIcon, Text, WebIcon } from 'dash-ui-kit/react'
 import { BackButton } from '../../common'
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
-import { IdentitySelector } from '../../controls/IdentitySelector'
+import { IdentitySwitcher } from '../../controls/IdentitySwitcher'
 import type { LayoutContext } from '../Layout'
 import type { NetworkType } from '../../../../types'
 import { isTabView, closeCurrentExtensionTab } from '../../../utils/extensionTab'
@@ -57,7 +57,7 @@ interface HeaderVariantConfig {
   hideLeftSection?: boolean
   showNetworkSelector?: boolean
   showWalletSelector?: boolean
-  showIdentitySelector?: boolean
+  showIdentitySwitcher?: boolean
   showBurgerMenu?: boolean
   showNetworkRightReadOnly?: boolean
   showNetworkRightSelector?: boolean
@@ -156,7 +156,7 @@ const HEADER_VARIANTS: Record<string, HeaderVariantConfig> = {
 
   identity: {
     hideLeftSection: false,
-    showIdentitySelector: true,
+    showIdentitySwitcher: true,
     showBurgerMenu: true
   },
 
@@ -304,7 +304,7 @@ export default function Header (): React.JSX.Element {
       (headerConfigOverride?.showBackButton !== true && (variant.hideLeftSection ?? false)),
     showNetworkSelector: variant.showNetworkSelector ?? false,
     showWalletSelector: variant.showWalletSelector ?? false,
-    showIdentitySelector: variant.showIdentitySelector ?? false,
+    showIdentitySwitcher: variant.showIdentitySwitcher ?? false,
     showBurgerMenu: variant.showBurgerMenu ?? false,
     showNetworkRightReadOnly: headerConfigOverride?.showBackButton !== true && (variant.showNetworkRightReadOnly ?? false),
     showNetworkRightSelector: variant.showNetworkRightSelector ?? false,
@@ -366,8 +366,8 @@ export default function Header (): React.JSX.Element {
               )}
 
           {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} onRemoved={() => { void reloadWallets?.() }} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
-          {config.showIdentitySelector && headerIdentityId !== '' && (
-            <IdentitySelector
+          {config.showIdentitySwitcher && headerIdentityId !== '' && (
+            <IdentitySwitcher
               identifier={headerIdentityId}
               identities={availableIdentities ?? []}
               onSelect={(id) => { void setCurrentIdentity?.(id) }}
