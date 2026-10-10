@@ -192,6 +192,7 @@ export class RegisterIdentityHandler implements APIHandler {
         fundingTxid: payload.assetLockFundingTxid,
         purpose: 'registration',
         identityId: null,
+        platformAddress: null,
         amountDuffs: lockedAmount.toString(),
         createdAt: Date.now()
       })

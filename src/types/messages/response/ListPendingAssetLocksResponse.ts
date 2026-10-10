@@ -9,7 +9,10 @@ export interface PendingAssetLock {
   fundingAddress: string | null
   fundingTxid: string | null
   purpose: AssetLockFundingPurpose
+  // Who the money was for: an identity for a top-up, a platform address for a
+  // funding, neither for a registration.
   identityId: string | null
+  platformAddress: string | null
   amountDuffs: string | null
   createdAt: number | null
 }

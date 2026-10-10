@@ -14,6 +14,7 @@ import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
+import { PendingAssetLocksRepository } from '../../../repository/PendingAssetLocksRepository'
 import { buildAssetLockFromFundingTx } from '../../../../utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../utils/waitForAssetLockProof'
 import { hexToBytes } from '../../../../utils'
@@ -30,12 +31,14 @@ import { FundPlatformAddressFromCoreResponse } from '../../../../types/messages/
 export class FundPlatformAddressFromCoreHandler implements APIHandler {
   walletRepository: WalletRepository
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
+  pendingAssetLocksRepository: PendingAssetLocksRepository
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
 
-  constructor (walletRepository: WalletRepository, assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository, sdk: DashPlatformSDK, coreSDK: DashCoreSDK) {
+  constructor (walletRepository: WalletRepository, assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository, pendingAssetLocksRepository: PendingAssetLocksRepository, sdk: DashPlatformSDK, coreSDK: DashCoreSDK) {
     this.walletRepository = walletRepository
     this.assetLockFundingAddressesRepository = assetLockFundingAddressesRepository
+    this.pendingAssetLocksRepository = pendingAssetLocksRepository
     this.sdk = sdk
     this.coreSDK = coreSDK
   }
@@ -77,7 +80,7 @@ export class FundPlatformAddressFromCoreHandler implements APIHandler {
 
     // The funding key funds the asset lock and owns the credit output (it signs
     // the state transition), so the credit output goes back to the funding address.
-    const { assetLockTx } = await buildAssetLockFromFundingTx(
+    const { assetLockTx, lockedAmount } = await buildAssetLockFromFundingTx(
       this.coreSDK,
       payload.assetLockFundingTxid,
       payload.assetLockFundingAddress,
@@ -103,6 +106,19 @@ export class FundPlatformAddressFromCoreHandler implements APIHandler {
     )
 
     if (assetLockFundingAddressEntry.assetLockTxid == null) {
+      // Written before the transaction can reach the network, so an operation
+      // interrupted after this point says what it was and can be repeated.
+      await this.pendingAssetLocksRepository.create({
+        assetLockTxid,
+        fundingAddress: payload.assetLockFundingAddress,
+        fundingTxid: payload.assetLockFundingTxid,
+        purpose: 'fundAddress',
+        identityId: null,
+        platformAddress: payload.platformAddress,
+        amountDuffs: lockedAmount.toString(),
+        createdAt: Date.now()
+      })
+
       await this.coreSDK.broadcastTransaction(assetLockTx.bytes())
       await this.assetLockFundingAddressesRepository.markAsBroadcasted(payload.assetLockFundingAddress, assetLockTxid)
     }
@@ -142,6 +158,7 @@ export class FundPlatformAddressFromCoreHandler implements APIHandler {
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
     await this.assetLockFundingAddressesRepository.markAsUsed(payload.assetLockFundingAddress)
+    await this.pendingAssetLocksRepository.remove(assetLockTxid)
 
     return {
       platformAddress: payload.platformAddress,

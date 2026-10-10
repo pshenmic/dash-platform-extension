@@ -181,6 +181,7 @@ export class TopUpIdentityHandler implements APIHandler {
         fundingTxid: payload.assetLockFundingTxid,
         purpose: 'topUp',
         identityId: payload.identityId,
+        platformAddress: null,
         amountDuffs: lockedAmount.toString(),
         createdAt: Date.now()
       })

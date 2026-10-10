@@ -30,6 +30,7 @@ export class ListPendingAssetLocksHandler implements APIHandler {
       fundingTxid: entry.fundingTxid,
       purpose: entry.purpose,
       identityId: entry.identityId,
+      platformAddress: entry.platformAddress,
       amountDuffs: entry.amountDuffs,
       createdAt: entry.createdAt
     }))
@@ -50,6 +51,7 @@ export class ListPendingAssetLocksHandler implements APIHandler {
         fundingTxid: null,
         purpose: entry.purpose ?? 'registration',
         identityId: entry.identityId ?? null,
+        platformAddress: null,
         amountDuffs: null,
         createdAt: null
       })
