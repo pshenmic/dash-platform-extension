@@ -35,8 +35,10 @@ import { EstimateShieldedFeeResponse } from './messages/response/EstimateShielde
 import { ShieldedSpendKind } from './ShieldedSpendKind'
 import { ShieldFromPlatformAddressPayload } from './messages/payloads/ShieldFromPlatformAddressPayload'
 import { ShieldFromWalletPayload } from './messages/payloads/ShieldFromWalletPayload'
+import { ShieldFromCorePayload } from './messages/payloads/ShieldFromCorePayload'
 import { ShieldFromPlatformAddressResponse } from './messages/response/ShieldFromPlatformAddressResponse'
 import { ShieldFromWalletResponse } from './messages/response/ShieldFromWalletResponse'
+import { ShieldFromCoreResponse } from './messages/response/ShieldFromCoreResponse'
 import { SendShieldedTransferPayload } from './messages/payloads/SendShieldedTransferPayload'
 import { SendShieldedTransferResponse } from './messages/response/SendShieldedTransferResponse'
 import { UnshieldToPlatformAddressPayload } from './messages/payloads/UnshieldToPlatformAddressPayload'
@@ -690,6 +692,16 @@ export class PrivateAPIClient {
     const payload: ShieldFromWalletPayload = { amountDuffs, password, toShieldedAddress, memo, account }
 
     return await this._rpcCall(MessagingMethods.SHIELD_FROM_WALLET, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  // Turns a deposit already sitting on an asset lock funding address into a
+  // shielded note. This is how an interrupted shieldFromWallet is finished:
+  // listPendingAssetLocks reports the address and the transaction to pass, and
+  // calling shieldFromWallet again instead would start over and pay twice.
+  async shieldFromCore (assetLockFundingAddress: string, assetLockFundingTxid: string, password: string, toShieldedAddress?: string, memo?: string, account?: number): Promise<ShieldFromCoreResponse> {
+    const payload: ShieldFromCorePayload = { assetLockFundingAddress, assetLockFundingTxid, password, toShieldedAddress, memo, account }
+
+    return await this._rpcCall(MessagingMethods.SHIELD_FROM_CORE, payload, SHIELDED_PROVE_TIMEOUT)
   }
 
   /** @deprecated Renamed to shieldFromPlatformAddress; kept so existing callers keep working. */

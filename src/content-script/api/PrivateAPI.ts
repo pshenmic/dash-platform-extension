@@ -84,6 +84,7 @@ import { EstimateShieldedFeeHandler } from './private/wallet/estimateShieldedFee
 import { InitShieldHandler } from './private/wallet/initShield'
 import { ShieldFromPlatformAddressHandler } from './private/wallet/shieldFromPlatformAddress'
 import { ShieldFromWalletHandler } from './private/wallet/shieldFromWallet'
+import { ShieldFromCoreHandler } from './private/wallet/shieldFromCore'
 import { SendShieldedTransferHandler } from './private/wallet/sendShieldedTransfer'
 import { UnshieldToPlatformAddressHandler } from './private/wallet/unshieldToPlatformAddress'
 import { WithdrawShieldedToCoreHandler } from './private/wallet/withdrawShieldedToCore'
@@ -161,6 +162,14 @@ export class PrivateAPI {
       coreExplorer
     )
     const fundPlatformAddressFromCore = new FundPlatformAddressFromCoreHandler(walletRepository, assetLockFundingAddressesRepository, pendingAssetLocksRepository, this.sdk, this.coreSDK)
+    const shieldFromCore = new ShieldFromCoreHandler(
+      walletRepository,
+      assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
+      assetLock,
+      this.sdk,
+      shielded
+    )
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter, walletRepository),
@@ -251,13 +260,13 @@ export class PrivateAPI {
       [MessagingMethods.ESTIMATE_SHIELDED_FEE]: new EstimateShieldedFeeHandler(walletRepository, shielded),
       [MessagingMethods.INIT_SHIELD]: new InitShieldHandler(this.sdk),
       [MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS]: new ShieldFromPlatformAddressHandler(walletRepository, this.sdk, shielded),
+      [MessagingMethods.SHIELD_FROM_CORE]: shieldFromCore,
       [MessagingMethods.SHIELD_FROM_WALLET]: new ShieldFromWalletHandler(
         walletRepository,
         assetLockFundingAddressesRepository,
-        pendingAssetLocksRepository,
         assetLockFunding,
-        assetLock,
         requestAssetLockFundingAddress,
+        shieldFromCore,
         this.sdk,
         shielded
       ),

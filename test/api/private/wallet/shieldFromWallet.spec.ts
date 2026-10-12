@@ -1,41 +1,27 @@
 import { ShieldFromWalletHandler } from '../../../../src/content-script/api/private/wallet/shieldFromWallet'
 import { computeShieldedDepositFee } from '../../../../src/utils/shieldedFee'
-import { decryptAssetLockFundingKey } from '../../../../src/utils/assetLockFundingKey'
-
-jest.mock('../../../../src/utils/assetLockFundingKey', () => ({
-  decryptAssetLockFundingKey: jest.fn()
-}))
-
-// Keep the real pshenmic-dpp and only stub the shielded address parsing.
-jest.mock('pshenmic-dpp', () => {
-  const actual = jest.requireActual('pshenmic-dpp')
-  return {
-    ...actual,
-    OrchardAddressWASM: {
-      ...actual.OrchardAddressWASM,
-      fromBech32m: jest.fn((address) => ({ address, toBech32m: () => address }))
-    }
-  }
-})
-
-const decryptAssetLockFundingKeyMock = decryptAssetLockFundingKey as jest.MockedFunction<typeof decryptAssetLockFundingKey>
 
 const FUNDING_ADDRESS = 'yFundingAddress'
 const OWN_SHIELDED = 'tdashshielded1own'
-const OTHER_SHIELDED = 'tdashshielded1other'
 const XPUB = 'tpubAccountXpub'
 
 describe('ShieldFromWalletHandler', () => {
   let walletRepository: any
   let assetLockFundingAddressesRepository: any
-  let pendingAssetLocksRepository: any
   let assetLockFunding: any
-  let assetLock: any
   let requestAssetLockFundingAddress: any
+  let shieldFromCore: any
   let sdk: any
   let shielded: any
-  let stateTransition: any
   let handler: ShieldFromWalletHandler
+
+  const shieldedResult = {
+    stHash: 'a'.repeat(64),
+    shieldedAmountCredits: '99837148800',
+    shieldFeeCredits: computeShieldedDepositFee().toString(),
+    toShieldedAddress: OWN_SHIELDED,
+    assetLockTxid: 'c'.repeat(64)
+  }
 
   const event = (payload: any): any => ({ id: '1', context: 'dash-platform-extension', method: 'SHIELD_FROM_WALLET', type: 'request', payload })
 
@@ -49,149 +35,81 @@ describe('ShieldFromWalletHandler', () => {
       getCurrent: jest.fn(async () => ({ walletId: 'wallet1', type: 'seedphrase', network: 'testnet' })),
       getCoreAccountXpub: jest.fn(async () => XPUB)
     }
-    assetLockFundingAddressesRepository = {
-      getByAddress: jest.fn(async () => ({ address: FUNDING_ADDRESS, encryptedPrivateKey: 'k', used: false })),
-      markAsUsed: jest.fn(async () => {})
-    }
-    pendingAssetLocksRepository = { remove: jest.fn(async () => {}) }
+    assetLockFundingAddressesRepository = {}
 
     assetLockFunding = {
       fundFromWallet: jest.fn(async () => ({
         fundingTxid: 'b'.repeat(64), paid: true, feeDuffs: 226n, changeDuffs: 0n
       }))
     }
-    assetLock = {
-      commit: jest.fn(async () => ({
-        assetLockTxid: 'c'.repeat(64),
-        lockedAmount: 99_999_000n,
-        assetLockProof: { proof: true }
-      }))
-    }
     requestAssetLockFundingAddress = { handle: jest.fn(async () => ({ address: FUNDING_ADDRESS })) }
+    shieldFromCore = { handle: jest.fn(async () => shieldedResult) }
 
-    stateTransition = { hash: jest.fn(() => 'a'.repeat(64)) }
-
-    sdk = {
-      keyPair: {
-        deriveShieldedAddress: jest.fn(() => ({ toBech32m: () => OWN_SHIELDED })),
-        deriveShieldedOutgoingViewingKey: jest.fn(() => new Uint8Array(32).fill(3))
-      },
-      shielded: { createStateTransition: jest.fn(async () => stateTransition) },
-      stateTransitions: {
-        broadcast: jest.fn(async () => {}),
-        waitForStateTransitionResult: jest.fn(async () => {})
-      }
-    }
-
-    shielded = {
-      deriveSeed: jest.fn(() => new Uint8Array(64).fill(1)),
-      validateMemo: jest.fn(() => null),
-      validateAccount: jest.fn(() => null)
-    }
-
-    decryptAssetLockFundingKeyMock.mockReturnValue({ WIF: () => 'fundingWif' } as any)
+    sdk = {}
+    shielded = { validateMemo: jest.fn(() => null), validateAccount: jest.fn(() => null) }
 
     handler = new ShieldFromWalletHandler(
       walletRepository,
       assetLockFundingAddressesRepository,
-      pendingAssetLocksRepository,
       assetLockFunding,
-      assetLock,
       requestAssetLockFundingAddress,
+      shieldFromCore,
       sdk,
       shielded
     )
   })
 
-  it('pays the funding address, locks the deposit and deposits its credits into the pool', async () => {
+  it('reserves a funding address, pays it from the wallet and hands the deposit on', async () => {
     const order: string[] = []
 
+    requestAssetLockFundingAddress.handle.mockImplementation(async () => {
+      order.push('requestFundingAddress')
+      return { address: FUNDING_ADDRESS }
+    })
     assetLockFunding.fundFromWallet.mockImplementation(async () => {
       order.push('fund')
       return { fundingTxid: 'b'.repeat(64), paid: true, feeDuffs: 226n, changeDuffs: 0n }
     })
-    assetLock.commit.mockImplementation(async () => {
-      order.push('assetLock')
-      return { assetLockTxid: 'c'.repeat(64), lockedAmount: 99_999_000n, assetLockProof: { proof: true } }
-    })
-    sdk.shielded.createStateTransition.mockImplementation(async () => {
+    shieldFromCore.handle.mockImplementation(async () => {
       order.push('shield')
-      return stateTransition
+      return shieldedResult
     })
 
-    const feeCredits = computeShieldedDepositFee()
     const response = await handle()
 
-    expect(order).toEqual(['fund', 'assetLock', 'shield'])
-    expect(sdk.shielded.createStateTransition).toHaveBeenCalledWith('shieldFromAssetLock', expect.objectContaining({
-      shieldAmount: 99_999_000n * 1000n - feeCredits,
-      assetLockProof: { proof: true },
-      dummyOutputs: 0
-    }))
+    expect(order).toEqual(['requestFundingAddress', 'fund', 'shield'])
     expect(response).toEqual({
-      stHash: 'a'.repeat(64),
-      shieldedAmountCredits: (99_999_000n * 1000n - feeCredits).toString(),
-      shieldFeeCredits: feeCredits.toString(),
-      toShieldedAddress: OWN_SHIELDED,
-      assetLockTxid: 'c'.repeat(64),
+      ...shieldedResult,
       fundingAddress: FUNDING_ADDRESS,
       fundingTxid: 'b'.repeat(64),
       coreFeeDuffs: '226'
     })
   })
 
-  it('asks for a funding address of its own purpose and records the asset lock as a shield', async () => {
+  it('asks for a funding address of its own purpose', async () => {
     await handle()
 
     expect(requestAssetLockFundingAddress.handle).toHaveBeenCalledWith(expect.objectContaining({
       payload: { purpose: 'shield' }
     }))
-    expect(assetLock.commit).toHaveBeenCalledWith(expect.objectContaining({
-      purpose: 'shield',
-      identityId: null,
-      platformAddress: null,
-      creditOutputAddress: FUNDING_ADDRESS,
-      fundingTxid: 'b'.repeat(64)
+  })
+
+  it('passes the deposit and the shielded options to the Core to pool step', async () => {
+    await handle({ amountDuffs: '250000000', password: 'test', toShieldedAddress: 'tdashshielded1other', memo: 'hi', account: 0 })
+
+    expect(assetLockFunding.fundFromWallet).toHaveBeenCalledWith(expect.objectContaining({
+      xpub: XPUB, fundingAddress: FUNDING_ADDRESS, amountDuffs: 250_000_000n, password: 'test'
     }))
-  })
-
-  it('shields to the wallet own address when none is named', async () => {
-    const response = await handle()
-
-    expect(sdk.keyPair.deriveShieldedAddress).toHaveBeenCalled()
-    expect(response.toShieldedAddress).toBe(OWN_SHIELDED)
-  })
-
-  it('shields to another shielded address when one is named', async () => {
-    const response = await handle({ amountDuffs: '100000000', password: 'test', toShieldedAddress: OTHER_SHIELDED })
-
-    expect(response.toShieldedAddress).toBe(OTHER_SHIELDED)
-    expect(sdk.shielded.createStateTransition).toHaveBeenCalledWith('shieldFromAssetLock', expect.objectContaining({
-      recipient: expect.objectContaining({ address: OTHER_SHIELDED })
+    expect(shieldFromCore.handle).toHaveBeenCalledWith(expect.objectContaining({
+      payload: {
+        assetLockFundingAddress: FUNDING_ADDRESS,
+        assetLockFundingTxid: 'b'.repeat(64),
+        password: 'test',
+        toShieldedAddress: 'tdashshielded1other',
+        memo: 'hi',
+        account: 0
+      }
     }))
-  })
-
-  it('clears the pending records only after the credits are in the pool', async () => {
-    const order: string[] = []
-
-    sdk.stateTransitions.waitForStateTransitionResult.mockImplementation(async () => { order.push('platformWait') })
-    assetLockFundingAddressesRepository.markAsUsed.mockImplementation(async () => { order.push('markUsed') })
-    pendingAssetLocksRepository.remove.mockImplementation(async () => { order.push('removePending') })
-
-    await handle()
-
-    expect(order).toEqual(['platformWait', 'markUsed', 'removePending'])
-  })
-
-  it('refuses a deposit too small to carry the shield fee', async () => {
-    assetLock.commit.mockResolvedValue({
-      assetLockTxid: 'c'.repeat(64),
-      lockedAmount: 1_000n,
-      assetLockProof: { proof: true }
-    })
-
-    await expect(handle()).rejects.toThrow('leaves nothing to shield')
-    expect(sdk.shielded.createStateTransition).not.toHaveBeenCalled()
   })
 
   it('refuses a wallet with no seed phrase to pay from', async () => {
@@ -199,6 +117,12 @@ describe('ShieldFromWalletHandler', () => {
 
     await expect(handle()).rejects.toThrow('only supported for a seedphrase wallet')
     expect(requestAssetLockFundingAddress.handle).not.toHaveBeenCalled()
+  })
+
+  it('throws when no wallet is chosen', async () => {
+    walletRepository.getCurrent.mockResolvedValue(null)
+
+    await expect(handle()).rejects.toThrow('No wallet is chosen')
   })
 
   describe('validatePayload', () => {
