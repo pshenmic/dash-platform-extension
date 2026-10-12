@@ -91,7 +91,7 @@ describe('formatBigNumber', () => {
       expect(formatBigNumber('999999999999999999999999')).toBe('999.99Z')
 
       // Y (yottabytes): 1,000,000,000,000,000,000,000,000+
-      expect(formatBigNumber('1000000000000000000000000')).toBe('.1Y')
+      expect(formatBigNumber('1000000000000000000000000')).toBe('1Y')
     })
   })
 
@@ -121,26 +121,26 @@ describe('formatBigNumber', () => {
   describe('Numbers exceeding maximum suffix', () => {
     test('should handle numbers larger than 999Y', () => {
       // Numbers with more than 25 digits (beyond Y range)
-      const veryLargeNumber = '1000000000000000000000000000' // 28 digits
-      expect(formatBigNumber(veryLargeNumber)).toBe('100Y')
+      const veryLargeNumber = '1000000000000000000000000000' // 28 digits = 10^27 = 1000 Y
+      expect(formatBigNumber(veryLargeNumber)).toBe('1000Y')
 
       const evenLargerNumber = '123456789012345678901234567890' // 30 digits
-      expect(formatBigNumber(evenLargerNumber)).toBe('12345.67Y')
+      expect(formatBigNumber(evenLargerNumber)).toBe('123456.78Y')
 
       const extremeNumber = '999999999999999999999999999999999' // 33 digits
-      expect(formatBigNumber(extremeNumber)).toBe('99999999.99Y')
+      expect(formatBigNumber(extremeNumber)).toBe('999999999.99Y')
     })
 
     test('should handle BigInt numbers exceeding Y suffix', () => {
       const hugeBigInt = BigInt('123456789012345678901234567890123456')
-      expect(formatBigNumber(hugeBigInt)).toBe('12345678901.23Y')
+      expect(formatBigNumber(hugeBigInt)).toBe('123456789012.34Y')
     })
 
     test('should maintain precision for oversized numbers', () => {
       const largeNumber = '123456789012345678901234567890'
-      expect(formatBigNumber(largeNumber, 0)).toBe('12345Y')
-      expect(formatBigNumber(largeNumber, 1)).toBe('12345.6Y')
-      expect(formatBigNumber(largeNumber, 3)).toBe('12345.678Y')
+      expect(formatBigNumber(largeNumber, 0)).toBe('123456Y')
+      expect(formatBigNumber(largeNumber, 1)).toBe('123456.7Y')
+      expect(formatBigNumber(largeNumber, 3)).toBe('123456.789Y')
     })
   })
 

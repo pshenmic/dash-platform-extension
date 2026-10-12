@@ -5,7 +5,7 @@ import { Text, Button, Heading, ValueCard } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import ButtonRow from '../../components/layout/ButtonRow'
 import { TitleBlock } from '../../components/layout/TitleBlock'
-import LoadingScreen from '../../components/layout/screens/LoadingScreen'
+import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 import { AppConnect } from '../../../types/AppConnect'
 import { AppConnectStatus } from '../../../types/enums/AppConnectStatus'
 import { getFaviconUrl } from '../../../utils'
@@ -75,7 +75,7 @@ function AppConnectState (): React.JSX.Element {
   }
 
   if (isLoading) {
-    return <LoadingScreen message='Loading connection request...' />
+    return <ScreenLoader />
   }
 
   if (error != null || appConnect == null) {

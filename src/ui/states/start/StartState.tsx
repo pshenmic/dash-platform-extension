@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Text } from 'dash-ui-kit/react'
 
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { isSessionUnlocked } from '../../utils/lockSession'
+import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 
 export default function StartState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -17,17 +19,23 @@ export default function StartState (): React.JSX.Element {
 
         if (!status.passwordSet) {
           // Password not set - go to password setup
-          void navigate('/setup-password')
+          void navigate('/setup-password', { replace: true })
           return
         }
 
         if (status.currentWalletId == null) {
           // Password set but wallet not created - go to login
-          void navigate('/login')
+          void navigate('/login', { replace: true })
           return
         }
 
-        void navigate('/home')
+        if (!await isSessionUnlocked()) {
+          // Session expired or browser restarted - ask for the password again
+          void navigate('/login', { replace: true })
+          return
+        }
+
+        void navigate('/home', { replace: true })
       } catch (err) {
         setError('Failed to check status: ' + String(err))
         console.log(err)
@@ -44,14 +52,10 @@ export default function StartState (): React.JSX.Element {
     ? (
       <div className='flex flex-col gap-4 items-center justify-center min-h-[200px]'>
         <Text size='xl' weight='bold'>
-          Dash Platform Extension
+          Dash Extension
         </Text>
 
-        {isLoading && (
-          <Text color='blue'>
-            Loading...
-          </Text>
-        )}
+        {isLoading && <ScreenLoader className='min-h-0' />}
       </div>
       )
     : (

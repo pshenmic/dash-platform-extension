@@ -1,3 +1,2 @@
-export { default as NamesList } from './NamesList'
-export type { NameData } from './NamesList'
+export type { NameData } from './types'
 export { UsernameInput } from './UsernameInput'

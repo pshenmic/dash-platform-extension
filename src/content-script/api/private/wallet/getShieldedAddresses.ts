@@ -1,8 +1,7 @@
 import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
-import { DashPlatformSDK } from 'dash-platform-sdk'
-import { deriveShieldedAddresses } from '../../../../utils'
+import { ShieldedService } from '../../../services/ShieldedService'
 import { GetShieldedAddressesPayload } from '../../../../types/messages/payloads/GetShieldedAddressesPayload'
 import { GetShieldedAddressesResponse } from '../../../../types/messages/response/GetShieldedAddressesResponse'
 
@@ -14,11 +13,11 @@ import { GetShieldedAddressesResponse } from '../../../../types/messages/respons
 // GET_SHIELDED_BALANCE.
 export class GetShieldedAddressesHandler implements APIHandler {
   walletRepository: WalletRepository
-  sdk: DashPlatformSDK
+  shielded: ShieldedService
 
-  constructor (walletRepository: WalletRepository, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, shielded: ShieldedService) {
     this.walletRepository = walletRepository
-    this.sdk = sdk
+    this.shielded = shielded
   }
 
   async handle (event: EventData): Promise<GetShieldedAddressesResponse> {
@@ -36,7 +35,7 @@ export class GetShieldedAddressesHandler implements APIHandler {
       return { addresses: [] }
     }
 
-    const addresses = deriveShieldedAddresses(wallet, payload.password, account, count, this.sdk)
+    const addresses = this.shielded.deriveAddresses(wallet, payload.password, account, count)
 
     return { addresses }
   }

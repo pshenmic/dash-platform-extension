@@ -6,12 +6,14 @@ interface AssetSelectorBadgeProps {
   selectedAsset: string
   token?: TokenData
   onClick: () => void
+  disabled?: boolean
 }
 
 export function AssetSelectorBadge ({
   selectedAsset,
   token,
-  onClick
+  onClick,
+  disabled = false
 }: AssetSelectorBadgeProps): React.JSX.Element {
   const getAssetName = (): string => {
     if (selectedAsset === 'credits') return 'Credits'
@@ -20,8 +22,8 @@ export function AssetSelectorBadge ({
 
   return (
     <div
-      className='flex items-center gap-3 px-2 py-1 pl-1 rounded-xl bg-[rgba(76,126,255,0.15)] cursor-pointer'
-      onClick={onClick}
+      className={`flex items-center gap-3 px-2 py-1 pl-1 rounded-xl bg-[rgba(76,126,255,0.15)] ${disabled ? '' : 'cursor-pointer'}`}
+      onClick={disabled ? undefined : onClick}
     >
       {selectedAsset === 'credits'
         ? (
@@ -42,7 +44,7 @@ export function AssetSelectorBadge ({
         {getAssetName()}
       </Text>
 
-      <ChevronIcon className='text-dash-brand !w-3' />
+      {!disabled && <ChevronIcon className='text-dash-brand !w-3' />}
     </div>
   )
 }

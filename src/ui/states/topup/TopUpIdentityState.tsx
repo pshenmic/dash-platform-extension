@@ -11,6 +11,7 @@ import { Stage4Success } from './stages/Stage4Success'
 import { TopUpError } from './stages/TopUpError'
 import { isTabView, closeCurrentExtensionTab } from '../../utils/extensionTab'
 import { buildTopUpUrl } from '../../utils/topUpTabUrl'
+import { hasAppHistory } from '../../utils/appHistory'
 import IdentityHeaderBadge from '../../components/identity/IdentityHeaderBadge'
 import { MIN_TOPUP_FUNDING_DUFFS } from '../../../constants'
 import { NetworkType } from '../../../types'
@@ -123,7 +124,8 @@ function TopUpIdentityState (): React.JSX.Element {
   const runTopUp = useCallback(async (address: string, txid: string, pwd: string): Promise<void> => {
     if (identityId == null) return
 
-    void navigate(stageUrl(3))
+    // Payment is out - replace so that nothing behind leads back to waiting.
+    void navigate(stageUrl(3), { replace: true })
     setError(null)
 
     try {
@@ -136,7 +138,7 @@ function TopUpIdentityState (): React.JSX.Element {
         topUpAmount: BigInt(result.topUpAmount),
         date: new Date()
       })
-      void navigate(stageUrl(4))
+      void navigate(stageUrl(4), { replace: true })
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Top-up failed'
       setError(message)
@@ -232,7 +234,7 @@ function TopUpIdentityState (): React.JSX.Element {
       setShowManualEntry(false)
       setError(null)
       void navigate(stageUrl(1), { replace: true })
-    } else if (isTabView() && window.history.length <= 1) {
+    } else if (!hasAppHistory() && isTabView()) {
       void closeCurrentExtensionTab()
     } else {
       void navigate(-1)

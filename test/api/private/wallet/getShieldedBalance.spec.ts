@@ -1,21 +1,8 @@
 import { GetShieldedBalanceHandler } from '../../../../src/content-script/api/private/wallet/getShieldedBalance'
-import { decryptMnemonic, deriveShieldedAddresses, fetchAllShieldedNotes } from '../../../../src/utils'
+import { ShieldedService } from '../../../../src/content-script/services/ShieldedService'
 
-// Mock the network / derivation primitives but keep sumUnspentShieldedValue real,
-// so this exercises the handler wiring plus the actual per-address grouping.
-jest.mock('../../../../src/utils', () => {
-  const actual = jest.requireActual('../../../../src/utils')
-  return {
-    ...actual,
-    decryptMnemonic: jest.fn(),
-    fetchAllShieldedNotes: jest.fn(),
-    deriveShieldedAddresses: jest.fn()
-  }
-})
-
-const decryptMnemonicMock = decryptMnemonic as jest.MockedFunction<typeof decryptMnemonic>
-const fetchAllShieldedNotesMock = fetchAllShieldedNotes as jest.MockedFunction<typeof fetchAllShieldedNotes>
-const deriveShieldedAddressesMock = deriveShieldedAddresses as jest.MockedFunction<typeof deriveShieldedAddresses>
+// The pool read and the seed derivation are stubbed on a real service, so this
+// exercises the handler wiring plus the actual per-address grouping.
 
 const ADDR_0 = 'orchardAddress0'
 const ADDR_OUT = 'orchardAddressOutOfWindow'
@@ -30,6 +17,7 @@ const recoveredNote = (index: number, value: bigint, address: string): any => ({
 describe('GetShieldedBalanceHandler', () => {
   let walletRepository: any
   let sdk: any
+  let shielded: ShieldedService
   let handler: GetShieldedBalanceHandler
 
   beforeEach(() => {
@@ -61,17 +49,18 @@ describe('GetShieldedBalanceHandler', () => {
       }
     }
 
-    decryptMnemonicMock.mockReturnValue('mnemonic words')
-    fetchAllShieldedNotesMock.mockResolvedValue([
+    shielded = new ShieldedService({} as any, sdk)
+    jest.spyOn(shielded, 'deriveSeed').mockReturnValue(new Uint8Array([1, 2, 3]))
+    jest.spyOn(shielded, 'fetchAllNotes').mockResolvedValue([
       { nullifier: Uint8Array.from([1]) },
       { nullifier: Uint8Array.from([2]) },
       { nullifier: Uint8Array.from([3]) }
     ] as any)
-    deriveShieldedAddressesMock.mockReturnValue([
+    jest.spyOn(shielded, 'deriveAddresses').mockReturnValue([
       { address: ADDR_0, derivationPath: "m/32'/1'/0'", diversifierIndex: 0 }
     ])
 
-    handler = new GetShieldedBalanceHandler(walletRepository, sdk)
+    handler = new GetShieldedBalanceHandler(walletRepository, shielded)
   })
 
   const handle = async (): Promise<any> => {

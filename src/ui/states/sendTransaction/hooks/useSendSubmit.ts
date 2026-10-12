@@ -218,11 +218,11 @@ export function useSendSubmit ({
         }
 
         // Create token base transition first
-        const baseTransition = await sdk.tokens.createBaseTransition(token.identifier, currentIdentity)
+        const baseTransition = await sdk.tokens.createBaseTransition(token.identifier, sender)
 
         const stateTransition = sdk.tokens.createStateTransition(
           baseTransition,
-          currentIdentity,
+          sender,
           'transfer',
           {
             identityId: formState.selectedRecipient.identifier,

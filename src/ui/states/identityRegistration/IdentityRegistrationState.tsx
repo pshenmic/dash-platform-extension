@@ -39,7 +39,7 @@ function IdentityRegistrationState (): React.JSX.Element {
   const hasError = searchParams.get('error') === 'true'
 
   const runRegistration = useCallback(async (address: string, txid: string, pwd: string): Promise<void> => {
-    void navigate('/register-identity?stage=4')
+    void navigate('/register-identity?stage=4', { replace: true })
     setIsRegistering(true)
     setError(null)
 
@@ -60,7 +60,7 @@ function IdentityRegistrationState (): React.JSX.Element {
       }))
 
       setRegisteredIdentity({ id: identifier, balance: balance.toString(), publicKeys })
-      void navigate('/register-identity?stage=5')
+      void navigate('/register-identity?stage=5', { replace: true })
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Registration failed'
       setError(message)
@@ -104,6 +104,8 @@ function IdentityRegistrationState (): React.JSX.Element {
       })
     } else if (stage === 2 && hasUnfinishedRegistration) {
       setHeaderConfigOverride({ imageType: 'userChain' })
+    } else if (stage === 4 || stage === 5) {
+      setHeaderConfigOverride({ hideLeftSection: true })
     } else {
       setHeaderConfigOverride(null)
     }
