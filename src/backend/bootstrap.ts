@@ -4,6 +4,7 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPI } from '../content-script/api/PrivateAPI'
 import { Network } from '../types/enums/Network'
+import { PLATFORM_DAPI_URLS } from '../constants'
 
 /**
  * Boots the wallet backend: runs storage migrations, constructs the SDKs and
@@ -25,7 +26,11 @@ export async function startBackend (): Promise<PrivateAPI> {
   await runMigrations(storageAdapter)
 
   const network = await storageAdapter.get('network') as string
-  const sdk = new DashPlatformSDK({ network: Network[network] })
+  // Naming the nodes ourselves, so one of them being down is not the end of it.
+  const sdk = new DashPlatformSDK({
+    network: Network[network],
+    grpc: { poolLimit: 5, dapiUrl: PLATFORM_DAPI_URLS[Network[network]] }
+  })
   const coreSDK = new DashCoreSDK({ network: Network[network] })
 
   const privateAPI = new PrivateAPI(sdk, coreSDK, storageAdapter)

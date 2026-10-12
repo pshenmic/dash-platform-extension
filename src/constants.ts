@@ -32,6 +32,25 @@ export const TOPUP_FUNDING_GAP_LIMIT = 20
 // Upper bound for scanning identity indexes when picking the next free one.
 export const IDENTITY_INDEX_SCAN_LIMIT = 20
 
+// Platform nodes the SDK talks to, first one first. The SDK ships a single
+// hardcoded seed, and when that machine went down on 12 October 2026 it took
+// Platform with it for every wallet on both networks - so the extension names
+// its own list and the pool moves on to the next one by itself.
+//
+// Mainnet keeps the node it has had until its fallbacks are verified against the
+// live chain; testnet carries the official seeds, which were.
+export const PLATFORM_DAPI_URLS = {
+  testnet: [
+    'https://158.160.14.115:1443',
+    'https://seed-1.testnet.networks.dash.org:1443',
+    'https://seed-2.testnet.networks.dash.org:1443',
+    'https://seed-4.testnet.networks.dash.org:1443'
+  ],
+  mainnet: [
+    'https://158.160.14.115:1443'
+  ]
+}
+
 // dashscan (L1 / Dash Core): REST API for balances, addresses and transaction
 // history, plus the web explorer the UI links rows out to.
 export const CORE_EXPLORER_URLS = {
