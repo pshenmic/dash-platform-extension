@@ -10,6 +10,7 @@ import { WalletType } from '../../../../src/types/WalletType'
 import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
+import { MessagingMethods } from '../../../../src/types/enums/MessagingMethods'
 
 describe('create wallet', () => {
   let privateAPI: PrivateAPI
@@ -66,5 +67,33 @@ describe('create wallet', () => {
     expect(network).toBe('mainnet')
     // expect sdk changed network
     expect(sdk.network).toBe('mainnet')
+  })
+
+  test('should point the core SDK at the new network too', async () => {
+    const before = privateAPI.coreSDK
+
+    await privateAPIClient.switchNetwork('mainnet')
+
+    // DashCoreSDK cannot be re-pointed, so it has to be a new instance.
+    expect(privateAPI.coreSDK).not.toBe(before)
+    expect(privateAPI.coreSDK.network).toBe('mainnet')
+  })
+
+  test('should hand the handlers the new SDKs', async () => {
+    const before = privateAPI.handlers[MessagingMethods.GET_STATUS]
+
+    await privateAPIClient.switchNetwork('mainnet')
+
+    // The table captures both SDKs when it is built, so it has to be rebuilt.
+    expect(privateAPI.handlers[MessagingMethods.GET_STATUS]).not.toBe(before)
+  })
+
+  test('should leave everything alone when the network is already current', async () => {
+    const before = privateAPI.coreSDK
+
+    await privateAPIClient.switchNetwork('testnet')
+
+    expect(privateAPI.coreSDK).toBe(before)
+    expect(await storage.get('network')).toBe('testnet')
   })
 })
