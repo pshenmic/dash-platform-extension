@@ -86,7 +86,8 @@ export interface PendingAssetLockSchema {
   fundingTxid: string
   purpose: AssetLockFundingPurpose
   // The identity a top-up was meant for, or the platform address a funding was
-  // meant for; null for a registration.
+  // meant for; both null for a registration and for a shield, whose recipient is
+  // a shielded address and is deliberately not written down.
   identityId: string | null
   platformAddress: string | null
   // Locked amount in duffs, so a caller can tell what is at stake.
@@ -98,7 +99,7 @@ export interface PendingAssetLocksSchema {
   [assetLockTxid: string]: PendingAssetLockSchema
 }
 
-export type AssetLockFundingPurpose = 'registration' | 'topUp' | 'fundAddress'
+export type AssetLockFundingPurpose = 'registration' | 'topUp' | 'fundAddress' | 'shield'
 
 export interface AssetLockFundingAddressSchema {
   address: string
@@ -114,6 +115,13 @@ export interface AssetLockFundingAddressSchema {
   // different index (which would change the credit address and hence the txid).
   // Absent on legacy entries broadcast before this was persisted.
   registrationIdentityIndex?: number
+  // The wallet's own payment to this address, written before that transaction
+  // can reach the network. Only operations that pay the funding address
+  // themselves set it; a deposit the user sends from elsewhere has no txid to
+  // write here. It is what keeps a repeated operation from paying twice: the
+  // explorer cannot see a payment made moments ago, so without it the address
+  // reads as unfunded and would be paid again.
+  fundingTxid?: string
   // Defaults to 'registration' when absent (legacy entries predate top-up).
   purpose?: AssetLockFundingPurpose
   // The identity a 'topUp' address is reserved for. Without an owner every

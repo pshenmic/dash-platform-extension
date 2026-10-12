@@ -11,7 +11,11 @@ import { GetCoreTransactionsResponse } from './messages/response/GetCoreTransact
 import { InitAccountXpubsPayload } from './messages/payloads/InitAccountXpubsPayload'
 import { InitAccountXpubsResponse } from './messages/response/InitAccountXpubsResponse'
 import { SendCoreTransferPayload } from './messages/payloads/SendCoreTransferPayload'
+import { SendCoreTransactionPayload } from './messages/payloads/SendCoreTransactionPayload'
+import { EstimateCoreTransferPayload } from './messages/payloads/EstimateCoreTransferPayload'
 import { SendCoreTransferResponse } from './messages/response/SendCoreTransferResponse'
+import { SendCoreTransactionResponse } from './messages/response/SendCoreTransactionResponse'
+import { EstimateCoreTransferResponse } from './messages/response/EstimateCoreTransferResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -34,7 +38,9 @@ import { EstimateShieldedFeePayload } from './messages/payloads/EstimateShielded
 import { EstimateShieldedFeeResponse } from './messages/response/EstimateShieldedFeeResponse'
 import { ShieldedSpendKind } from './ShieldedSpendKind'
 import { ShieldFromPlatformAddressPayload } from './messages/payloads/ShieldFromPlatformAddressPayload'
+import { ShieldFromWalletPayload } from './messages/payloads/ShieldFromWalletPayload'
 import { ShieldFromPlatformAddressResponse } from './messages/response/ShieldFromPlatformAddressResponse'
+import { ShieldFromWalletResponse } from './messages/response/ShieldFromWalletResponse'
 import { SendShieldedTransferPayload } from './messages/payloads/SendShieldedTransferPayload'
 import { SendShieldedTransferResponse } from './messages/response/SendShieldedTransferResponse'
 import { UnshieldToPlatformAddressPayload } from './messages/payloads/UnshieldToPlatformAddressPayload'
@@ -55,7 +61,12 @@ import { WithdrawPlatformAddressToCoreResponse } from './messages/response/Withd
 import { RegisterIdentityFromAddressPayload } from './messages/payloads/RegisterIdentityFromAddressPayload'
 import { RegisterIdentityFromAddressResponse } from './messages/response/RegisterIdentityFromAddressResponse'
 import { FundPlatformAddressFromCorePayload } from './messages/payloads/FundPlatformAddressFromCorePayload'
+import { FundPlatformAddressFromWalletPayload } from './messages/payloads/FundPlatformAddressFromWalletPayload'
+import { RequestAssetLockFundingAddressPayload } from './messages/payloads/RequestAssetLockFundingAddressPayload'
+import { TopUpIdentityFromWalletPayload } from './messages/payloads/TopUpIdentityFromWalletPayload'
 import { FundPlatformAddressFromCoreResponse } from './messages/response/FundPlatformAddressFromCoreResponse'
+import { FundPlatformAddressFromWalletResponse } from './messages/response/FundPlatformAddressFromWalletResponse'
+import { TopUpIdentityFromWalletResponse } from './messages/response/TopUpIdentityFromWalletResponse'
 import { CheckPasswordResponse } from './messages/response/CheckPasswordResponse'
 import { CheckPasswordPayload } from './messages/payloads/CheckPasswordPayload'
 import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
@@ -382,10 +393,15 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY, payload)
   }
 
-  async requestAssetLockFundingAddress (): Promise<RequestAssetLockFundingAddressResponse> {
+  // `purpose` keeps the pools apart: 'fundAddress' never hands out the address
+  // an unfinished identity registration is waiting on. Defaults to
+  // 'registration'.
+  async requestAssetLockFundingAddress (purpose?: RequestAssetLockFundingAddressPayload['purpose']): Promise<RequestAssetLockFundingAddressResponse> {
+    const payload: RequestAssetLockFundingAddressPayload = { purpose }
+
     return await this._rpcCall(
       MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS,
-      {}
+      payload
     )
   }
 
@@ -430,6 +446,24 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
+  // Tops up an identity with the wallet's own Core coins: reserves a DIP-13
+  // top-up funding address, pays it from the wallet's unspent outputs and turns
+  // that deposit into credits. `identityId` may be any identity on the network,
+  // not only one of this wallet's; omitted, the current one is topped up. Safe
+  // to call again after an interruption - it continues from the deposit already
+  // on L1 instead of paying twice.
+  async topUpIdentityFromWallet (
+    amountDuffs: string,
+    password: string,
+    identityId?: string,
+    walletId?: string,
+    network?: NetworkType
+  ): Promise<TopUpIdentityFromWalletResponse> {
+    const payload: TopUpIdentityFromWalletPayload = { amountDuffs, password, identityId, walletId, network }
+
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_WALLET, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
   async getSettings (): Promise<GetSettingsResponse> {
@@ -502,6 +536,22 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SEND_CORE_TRANSFER, payload)
   }
 
+  // One Core transaction paying several recipients, optionally out of outputs
+  // the caller picked (from listCoreUtxos) and with change to an address of this
+  // wallet. The general form of sendCoreTransfer.
+  async sendCoreTransaction (params: Omit<SendCoreTransactionPayload, 'password'>, password: string): Promise<SendCoreTransactionResponse> {
+    const payload: SendCoreTransactionPayload = { ...params, password }
+
+    return await this._rpcCall(MessagingMethods.SEND_CORE_TRANSACTION, payload)
+  }
+
+  // What a Core payment would cost before it is signed: its inputs, its fee, its
+  // change and the most those inputs can pay out. Runs the same coin selection
+  // the send runs, and needs no password.
+  async estimateCoreTransfer (params: EstimateCoreTransferPayload): Promise<EstimateCoreTransferResponse> {
+    return await this._rpcCall(MessagingMethods.ESTIMATE_CORE_TRANSFER, params)
+  }
+
   async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
     const payload: GeneratePlatformAddressesPayload = { password, count }
 
@@ -560,6 +610,16 @@ export class PrivateAPIClient {
     const payload: FundPlatformAddressFromCorePayload = { platformAddress, assetLockFundingAddress, assetLockFundingTxid, password }
 
     return await this._rpcCall(MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE, payload)
+  }
+
+  // Credits a platform address with the wallet's own Core coins: reserves a
+  // funding address, pays it from the wallet's unspent outputs and turns that
+  // deposit into credits. Safe to call again after an interruption - it
+  // continues from the deposit already on L1 instead of paying twice.
+  async fundPlatformAddressFromWallet (platformAddress: string, amountDuffs: string, password: string): Promise<FundPlatformAddressFromWalletResponse> {
+    const payload: FundPlatformAddressFromWalletPayload = { platformAddress, amountDuffs, password }
+
+    return await this._rpcCall(MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_WALLET, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
   // Creates the next shielded addresses and returns them. The wallet keeps the
@@ -639,6 +699,17 @@ export class PrivateAPIClient {
     const payload: ShieldFromPlatformAddressPayload = { amountCredits, password, fromAddress, memo }
 
     return await this._rpcCall(MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  // Shields the wallet's own Core (L1) coins: pays an asset lock funding address
+  // out of the wallet, locks the deposit and deposits its credits into the pool
+  // in one transition. `toShieldedAddress` omitted shields to this wallet's own
+  // shielded address. Safe to call again after an interruption - it continues
+  // from the deposit already on L1 instead of paying twice.
+  async shieldFromWallet (amountDuffs: string, password: string, toShieldedAddress?: string, memo?: string, account?: number): Promise<ShieldFromWalletResponse> {
+    const payload: ShieldFromWalletPayload = { amountDuffs, password, toShieldedAddress, memo, account }
+
+    return await this._rpcCall(MessagingMethods.SHIELD_FROM_WALLET, payload, SHIELDED_PROVE_TIMEOUT)
   }
 
   /** @deprecated Renamed to shieldFromPlatformAddress; kept so existing callers keep working. */

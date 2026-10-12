@@ -75,6 +75,40 @@ export class AssetLockFundingAddressesRepository {
     await this.storageAdapter.set(storageKey, addresses)
   }
 
+  // Records the wallet's own payment to a funding address, before that
+  // transaction is broadcast. Idempotent for the same txid; a second, different
+  // payment is refused rather than overwriting the first, because the asset lock
+  // is built from one funding transaction and the earlier payment would be left
+  // at the address with nothing coming back for it.
+  async markAsFunded (address: string, fundingTxid: string): Promise<void> {
+    const storageKey = await this.getStorageKey()
+    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
+
+    const entry = addresses[address]
+
+    if (entry == null) {
+      throw new Error(`Asset lock funding address ${address} not found`)
+    }
+
+    if (entry.used) {
+      throw new Error(`Asset lock funding address ${address} has already been used`)
+    }
+
+    if (entry.fundingTxid === fundingTxid) {
+      return
+    }
+
+    if (entry.fundingTxid != null) {
+      throw new Error(
+        `Asset lock funding address ${address} is already funded by transaction ${entry.fundingTxid}`
+      )
+    }
+
+    addresses[address] = { ...entry, fundingTxid }
+
+    await this.storageAdapter.set(storageKey, addresses)
+  }
+
   // Reserves an address for an identity. Idempotent for the same identity; an
   // entry already reserved for another one is never silently re-pointed, since
   // that would hand two top-ups the same address again.

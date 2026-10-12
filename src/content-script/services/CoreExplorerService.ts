@@ -67,6 +67,11 @@ export interface CoreExplorerTransactionsPage {
 // it pays to — that is what tells the spender which key signs its input.
 export interface CoreWalletUtxo extends CoreAddressUtxo {
   address: string
+  // Absent for change of a transaction that is still waiting for its block: it
+  // has no height or time yet, and no confirmations by definition.
+  blockHeight?: number
+  confirmations?: number
+  timestamp?: number
 }
 
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
@@ -370,7 +375,10 @@ export class CoreExplorerService {
           txid: utxo.prevTxHash,
           vout: toCount(utxo.vOutIndex),
           amount: toBigInt(utxo.amount),
-          address: utxo.address
+          address: utxo.address,
+          blockHeight: utxo.blockHeight == null ? undefined : toCount(utxo.blockHeight),
+          confirmations: utxo.confirmations == null ? undefined : toCount(utxo.confirmations),
+          timestamp: typeof utxo.timestamp === 'string' ? Date.parse(utxo.timestamp) : undefined
         })
       }
     }

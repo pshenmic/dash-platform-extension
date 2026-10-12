@@ -115,3 +115,26 @@ export const deriveCoreAddressPrivateKey = async (
 
   throw new Error(`Core address ${address} is not one of this wallet's own addresses`)
 }
+
+// Derives the key for one of our Core addresses: m/44'/coin'/account'/chain/index,
+// the private counterpart of `deriveCoreAddressesFromXpub`. Takes an already built
+// wallet HD key so that spending several inputs decrypts the seed only once.
+//
+// Returns a dash-core-sdk key because its only use is signing an L1 transaction.
+export const deriveCoreAddressKeyAtIndex = async (
+  walletHdKey: HDKey,
+  network: NetworkType,
+  account: number,
+  chain: CoreAddressChain,
+  index: number,
+  sdk: DashPlatformSDK
+): Promise<PrivateKey> => {
+  const path = `m/44'/${coinType(network)}'/${account}'/${CHAIN_INDEX[chain]}/${index}`
+  const { privateKey } = await sdk.keyPair.derivePath(walletHdKey, path)
+
+  if (privateKey == null) {
+    throw new Error(`Could not derive Core address private key at ${path}`)
+  }
+
+  return PrivateKey.fromBytes(privateKey, network)
+}

@@ -92,3 +92,9 @@ export const maxShieldedSpend = (spendable: RecoveredNoteWASM[], kind: ShieldedS
 
   return best
 }
+
+// What a deposit into the pool costs. A shield spends no notes, so it is charged
+// Orchard's minimum action count - the same base fee a transfer of one note pays,
+// without any of the per-kind storage extras. Deducted from the credits of the
+// asset lock a Core deposit produced, since there is nothing else to take it from.
+export const computeShieldedDepositFee = (): bigint => computeShieldedSpendFee('transfer', 0)

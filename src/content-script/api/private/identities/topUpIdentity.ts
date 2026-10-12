@@ -75,10 +75,18 @@ export class TopUpIdentityHandler implements APIHandler {
       throw new Error(`Wallet ${scope.walletId} does not exist on ${scope.network}`)
     }
 
+    // Any identity can be topped up, not only one of this wallet's: the top-up
+    // is signed by the asset lock key, so nothing in it needs an identity key.
+    // An identifier that is not on Platform is still refused - the asset lock
+    // would be spent on a state transition that can never apply.
     const ownedIdentity = await identitiesRepository.getByIdentifier(payload.identityId)
 
     if (ownedIdentity == null) {
-      throw new Error(`Identity ${payload.identityId} does not belong to wallet ${scope.walletId} on ${scope.network}`)
+      const identity = await this.sdk.identities.getIdentityByIdentifier(payload.identityId).catch(() => null)
+
+      if (identity == null) {
+        throw new Error(`Identity ${payload.identityId} does not exist on ${scope.network}`)
+      }
     }
 
     // No record means the address is not a deposit this extension handed out,
@@ -239,7 +247,8 @@ export class TopUpIdentityHandler implements APIHandler {
     return {
       identityId: payload.identityId,
       stateTransitionHash,
-      topUpAmount: (lockedAmount * 1000n).toString()
+      topUpAmount: (lockedAmount * 1000n).toString(),
+      assetLockTxid
     }
   }
 
