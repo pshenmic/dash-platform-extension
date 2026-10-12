@@ -41,7 +41,11 @@ import { GetPlatformAddressesResponse } from './messages/response/GetPlatformAdd
 import { GetPlatformAddressesInfosPayload } from './messages/payloads/GetPlatformAddressesInfosPayload'
 import { GetPlatformAddressesInfosResponse, PlatformAddressBalance } from './messages/response/GetPlatformAddressesInfosResponse'
 import { SendPlatformTransferPayload } from './messages/payloads/SendPlatformTransferPayload'
+import { SendPlatformTransactionPayload } from './messages/payloads/SendPlatformTransactionPayload'
+import { EstimatePlatformTransferPayload } from './messages/payloads/EstimatePlatformTransferPayload'
 import { SendPlatformTransferResponse } from './messages/response/SendPlatformTransferResponse'
+import { SendPlatformTransactionResponse } from './messages/response/SendPlatformTransactionResponse'
+import { EstimatePlatformTransferResponse } from './messages/response/EstimatePlatformTransferResponse'
 import { IdentityCreditTransferToAddressesPayload } from './messages/payloads/IdentityCreditTransferToAddressesPayload'
 import { IdentityCreditTransferToAddressesResponse } from './messages/response/IdentityCreditTransferToAddressesResponse'
 import { TopUpIdentityFromAddressPayload } from './messages/payloads/TopUpIdentityFromAddressPayload'
@@ -502,6 +506,24 @@ export class PrivateAPIClient {
     const payload: SendPlatformTransferPayload = { toAddress, amountCredits, password, fromAddress }
 
     return await this._rpcCall(MessagingMethods.SEND_PLATFORM_TRANSFER, payload)
+  }
+
+  // Pays several Platform addresses from one of the wallet's own in a single
+  // transition. The general form of sendPlatformTransfer; the fee grows with
+  // every recipient, so the response says what it was.
+  async sendPlatformTransaction (params: Omit<SendPlatformTransactionPayload, 'password'>, password: string): Promise<SendPlatformTransactionResponse> {
+    const payload: SendPlatformTransactionPayload = { ...params, password }
+
+    return await this._rpcCall(MessagingMethods.SEND_PLATFORM_TRANSACTION, payload)
+  }
+
+  // What such a transfer costs and the most a source can send once it is paid.
+  // Needs no password. `outputCount` is how many recipients it would pay, since
+  // the fee grows with them.
+  async estimatePlatformTransfer (outputCount?: number, fromAddress?: string): Promise<EstimatePlatformTransferResponse> {
+    const payload: EstimatePlatformTransferPayload = { outputCount, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.ESTIMATE_PLATFORM_TRANSFER, payload)
   }
 
   async identityCreditTransferToAddresses (toAddress: string, amountCredits: string, password: string, fromIdentity?: string): Promise<IdentityCreditTransferToAddressesResponse> {
