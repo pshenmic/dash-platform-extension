@@ -49,7 +49,7 @@ describe('AssetLockFundingService', () => {
     const result = await fund()
 
     expect(coreSpend.prepare).toHaveBeenCalledWith({
-      wallet, xpub: XPUB, account: 0, toAddress: FUNDING_ADDRESS, amountDuffs: 100_000n, password: 'test'
+      wallet, xpub: XPUB, account: 0, outputs: [{ address: FUNDING_ADDRESS, amountDuffs: 100_000n }], password: 'test'
     })
     expect(coreSpend.broadcast).toHaveBeenCalledWith(prepared)
     expect(result).toEqual({ fundingTxid: prepared.txid, paid: true, feeDuffs: 226n, changeDuffs: 89_774n })

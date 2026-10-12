@@ -3,27 +3,66 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Wallet } from '../../types/Wallet'
 import { CoreAddressChain } from '../../types/enums/CoreAddressChain'
 import { CoreAddressEntry, deriveCoreAddressesFromXpub, deriveCoreAddressKeyAtIndex } from '../../utils/coreAddresses'
-import { buildCoreTransfer, selectCoreUtxos } from '../../utils/coreTransfer'
+import { buildCoreTransferMulti, CoreTransferOutput, maxCoreSpend, selectCoreUtxos } from '../../utils/coreTransfer'
 import { deriveWalletHdKey } from '../../utils'
 import { CoreWalletUtxo } from './CoreExplorerService'
 import { CoreUtxosService } from './CoreUtxosService'
 import { CorePendingSpendsRepository } from '../repository/CorePendingSpendsRepository'
 
-export interface PrepareCoreSpendParams {
+export interface CoreOutpoint {
+  txid: string
+  vout: number
+}
+
+export interface PlanCoreSpendParams {
   wallet: Wallet
   xpub: string
-  toAddress: string
-  amountDuffs: bigint
-  password: string
+  // One output per recipient, in this order; change, when there is any, comes
+  // after them.
+  outputs: CoreTransferOutput[]
   account?: number
   // Spend only this address of the wallet; without it the whole account pays.
   fromAddress?: string
+  // Spend exactly these outputs of the wallet, in this order - coin control.
+  // Anything not in the spendable set is refused.
+  inputs?: CoreOutpoint[]
+  // Where the change goes; must be an address of this wallet. Without it the
+  // next free address on the internal chain is used.
+  changeAddress?: string
+  // Pay out everything the inputs hold, less the fee, to the single output -
+  // what a Max button does. The output's own amount is then ignored.
+  sendMax?: boolean
+}
+
+export interface PrepareCoreSpendParams extends PlanCoreSpendParams {
+  password: string
+}
+
+// What a spend would cost, worked out without signing anything.
+export interface CoreSpendPlan {
+  // The outputs as they will be paid: the same ones asked for, except under
+  // `sendMax`, where the single amount is the most the inputs can pay.
+  outputs: CoreTransferOutput[]
+  inputs: CoreWalletUtxo[]
+  totalInDuffs: bigint
+  amountDuffs: bigint
+  feeDuffs: bigint
+  changeDuffs: bigint
+  changeAddress: string
+  // The largest total the inputs this spend could draw on can pay out, across
+  // the same number of outputs. What a Max button offers.
+  maxSendableDuffs: bigint
+  resolvedTxids: string[]
+  owned: Map<string, CoreAddressEntry>
 }
 
 // A signed transaction that nothing on the network knows about yet.
 export interface PreparedCoreSpend {
   transaction: Transaction
   txid: string
+  // What it pays, as it pays it: under `sendMax` the amount here is the one that
+  // was worked out, not the one asked for.
+  outputs: CoreTransferOutput[]
   inputs: CoreWalletUtxo[]
   amountDuffs: bigint
   feeDuffs: bigint
@@ -50,6 +89,23 @@ export interface PreparedCoreSpend {
  * payment and the next step would leave coins at an address nobody comes back
  * to.
  */
+// The wallet's own outputs the caller picked, in the order it picked them. An
+// outpoint that is not spendable is named rather than silently dropped: the
+// caller chose it from a list and has to learn that the list moved on.
+const pickOutpoints = (spendable: CoreWalletUtxo[], chosen: CoreOutpoint[]): CoreWalletUtxo[] => {
+  const byOutpoint = new Map(spendable.map(utxo => [`${utxo.txid}:${utxo.vout}`, utxo]))
+
+  return chosen.map(outpoint => {
+    const utxo = byOutpoint.get(`${outpoint.txid}:${outpoint.vout}`)
+
+    if (utxo == null) {
+      throw new Error(`Output ${outpoint.txid}:${outpoint.vout.toString()} is not among this wallet's spendable outputs`)
+    }
+
+    return utxo
+  })
+}
+
 export class CoreSpendService {
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
@@ -63,31 +119,69 @@ export class CoreSpendService {
     this.corePendingSpendsRepository = corePendingSpendsRepository
   }
 
-  async prepare (params: PrepareCoreSpendParams): Promise<PreparedCoreSpend> {
-    const { wallet, xpub, toAddress, amountDuffs, password, fromAddress } = params
+  // Coin selection and fee, with nothing signed and nothing sent. The same
+  // numbers `prepare` goes on to use, so an amount estimated here is the amount
+  // that gets paid.
+  async plan (params: PlanCoreSpendParams): Promise<CoreSpendPlan> {
+    const { wallet, xpub, outputs, fromAddress } = params
     const account = params.account ?? 0
 
-    const { utxos: spendable, owned, nextUnused, resolvedTxids } = await this.coreUtxos.spendable(
+    const { utxos, owned, nextUnused, resolvedTxids } = await this.coreUtxos.spendable(
       wallet, xpub, account, fromAddress != null ? [fromAddress] : undefined
     )
 
-    if (spendable.length === 0) {
+    if (utxos.length === 0) {
       throw new Error(fromAddress != null
         ? `Core address ${fromAddress} has no unspent outputs`
         : 'This wallet has no unspent Core outputs to spend')
     }
 
-    const selection = selectCoreUtxos(spendable, amountDuffs)
+    const spendable = params.inputs != null ? pickOutpoints(utxos, params.inputs) : utxos
 
-    // Change goes to the next free address on the internal chain. Two sends in a
-    // row can reuse it: the explorer only lists mined outputs, so the first
-    // change output is invisible until it is in a block.
-    const [changeEntry] = deriveCoreAddressesFromXpub(
+    // Under sendMax the amount is not the caller's to give: it is whatever the
+    // inputs hold once the fee of spending all of them is paid.
+    const effectiveOutputs = params.sendMax === true
+      ? [{ address: outputs[0].address, amountDuffs: maxCoreSpend(spendable, 1) }]
+      : outputs
+
+    const amountDuffs = effectiveOutputs.reduce((sum, output) => sum + output.amountDuffs, 0n)
+    const selection = selectCoreUtxos(spendable, amountDuffs, effectiveOutputs.length)
+
+    // Change goes to the next free address on the internal chain unless the
+    // caller names one of ours. Two sends in a row can reuse it: the explorer
+    // only lists mined outputs, so the first change output is invisible until it
+    // is in a block.
+    const changeAddress = params.changeAddress ?? deriveCoreAddressesFromXpub(
       this.sdk, xpub, wallet.network, account, CoreAddressChain.change, 1, nextUnused.change
-    )
+    )[0].address
 
-    const transaction = buildCoreTransfer(
-      selection.inputs, toAddress, amountDuffs, changeEntry.address, selection.change, wallet.network
+    if (!owned.has(changeAddress)) {
+      throw new Error(`Change address ${changeAddress} is not one of this wallet's own addresses`)
+    }
+
+    return {
+      outputs: effectiveOutputs,
+      inputs: selection.inputs,
+      totalInDuffs: selection.totalIn,
+      amountDuffs,
+      feeDuffs: selection.fee,
+      changeDuffs: selection.change,
+      changeAddress,
+      maxSendableDuffs: maxCoreSpend(spendable, effectiveOutputs.length),
+      resolvedTxids,
+      owned
+    }
+  }
+
+  async prepare (params: PrepareCoreSpendParams): Promise<PreparedCoreSpend> {
+    const { wallet, password } = params
+
+    const plan = await this.plan(params)
+    const { inputs, amountDuffs, feeDuffs, changeDuffs, changeAddress, owned, resolvedTxids } = plan
+    const account = params.account ?? 0
+
+    const transaction = buildCoreTransferMulti(
+      inputs, plan.outputs, changeAddress, changeDuffs, wallet.network
     )
 
     // One decryption of the seed for the whole transaction, then one key per
@@ -95,7 +189,7 @@ export class CoreSpendService {
     const walletHdKey = deriveWalletHdKey(wallet, password, this.sdk)
     const privateKeys: PrivateKey[] = []
 
-    for (const utxo of selection.inputs) {
+    for (const utxo of inputs) {
       const entry = owned.get(utxo.address) as CoreAddressEntry
       const privateKey = await deriveCoreAddressKeyAtIndex(
         walletHdKey, wallet.network, account, entry.chain, entry.index, this.sdk
@@ -116,15 +210,16 @@ export class CoreSpendService {
     return {
       transaction,
       txid: transaction.hash(),
-      inputs: selection.inputs,
+      outputs: plan.outputs,
+      inputs,
       amountDuffs,
-      feeDuffs: selection.fee,
-      changeDuffs: selection.change,
-      // buildCoreTransfer puts the change last, so it is the final output
-      // whenever there is one at all.
-      changeAddress: selection.change > 0n ? changeEntry.address : null,
-      changeVout: selection.change > 0n ? transaction.outputs.length - 1 : null,
-      fromAddresses: [...new Set(selection.inputs.map(utxo => utxo.address))],
+      feeDuffs,
+      changeDuffs,
+      // The change output is built last, so it is the final one whenever there
+      // is one at all.
+      changeAddress: changeDuffs > 0n ? changeAddress : null,
+      changeVout: changeDuffs > 0n ? transaction.outputs.length - 1 : null,
+      fromAddresses: [...new Set(inputs.map(utxo => utxo.address))],
       resolvedTxids
     }
   }

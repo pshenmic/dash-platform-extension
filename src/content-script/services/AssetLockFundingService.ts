@@ -87,7 +87,7 @@ export class AssetLockFundingService {
     }
 
     const prepared = await this.coreSpend.prepare({
-      wallet, xpub, account, toAddress: fundingAddress, amountDuffs, password
+      wallet, xpub, account, outputs: [{ address: fundingAddress, amountDuffs }], password
     })
 
     await this.corePendingSpendsRepository.remove(prepared.resolvedTxids)
