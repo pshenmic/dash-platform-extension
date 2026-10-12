@@ -74,7 +74,31 @@ export interface AppConnectsStorageSchema {
   [id: string]: AppConnectStorageSchema
 }
 
-export type AssetLockFundingPurpose = 'registration' | 'topUp'
+// An asset lock this wallet broadcast and has not finished spending yet. Written
+// before the transaction can reach the network and removed once the Platform
+// side is done, so an operation interrupted in between leaves a trace - the
+// funds are on L1 by then, and without this nothing would say so.
+export interface PendingAssetLockSchema {
+  assetLockTxid: string
+  // What the operation was started with, so it can be repeated as it was: the
+  // address that paid and the transaction that paid it.
+  fundingAddress: string
+  fundingTxid: string
+  purpose: AssetLockFundingPurpose
+  // The identity a top-up was meant for, or the platform address a funding was
+  // meant for; null for a registration.
+  identityId: string | null
+  platformAddress: string | null
+  // Locked amount in duffs, so a caller can tell what is at stake.
+  amountDuffs: string
+  createdAt: number
+}
+
+export interface PendingAssetLocksSchema {
+  [assetLockTxid: string]: PendingAssetLockSchema
+}
+
+export type AssetLockFundingPurpose = 'registration' | 'topUp' | 'fundAddress'
 
 export interface AssetLockFundingAddressSchema {
   address: string
@@ -90,6 +114,13 @@ export interface AssetLockFundingAddressSchema {
   // different index (which would change the credit address and hence the txid).
   // Absent on legacy entries broadcast before this was persisted.
   registrationIdentityIndex?: number
+  // The wallet's own payment to this address, written before that transaction
+  // can reach the network. Only operations that pay the funding address
+  // themselves set it; a deposit the user sends from elsewhere has no txid to
+  // write here. It is what keeps a repeated operation from paying twice: the
+  // explorer cannot see a payment made moments ago, so without it the address
+  // reads as unfunded and would be paid again.
+  fundingTxid?: string
   // Defaults to 'registration' when absent (legacy entries predate top-up).
   purpose?: AssetLockFundingPurpose
   // The identity a 'topUp' address is reserved for. Without an owner every
@@ -102,6 +133,30 @@ export interface AssetLockFundingAddressSchema {
 
 export interface AssetLockFundingAddressesSchema {
   [address: string]: AssetLockFundingAddressSchema
+}
+
+// A Core (L1) transaction this wallet broadcast that the explorer has not indexed
+// yet. dashscan reads blocks, so between broadcast and the next block its unspent
+// set is stale: the inputs we just spent still look spendable and the change we
+// just created is invisible. Holding the transaction locally bridges that gap.
+export interface CorePendingSpendSchema {
+  txid: string
+  // outpoints this transaction consumed, as `txid:vout`
+  spentOutpoints: string[]
+  // the change it paid back to us, spendable before it is mined. Absent when the
+  // leftover was dust and went to the fee instead.
+  change?: {
+    txid: string
+    vout: number
+    // duffs as a string: chrome storage is JSON, and bigint does not serialize
+    amount: string
+    address: string
+  }
+  broadcastedAt: number
+}
+
+export interface CorePendingSpendsSchema {
+  [txid: string]: CorePendingSpendSchema
 }
 
 export interface WalletSettingsStoreSchema {

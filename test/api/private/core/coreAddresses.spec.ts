@@ -198,6 +198,7 @@ describe('core address handlers', () => {
 
   describe('GetCoreBalanceHandler', () => {
     let coreExplorer: any
+    let coreUtxos: any
     let handler: GetCoreBalanceHandler
 
     const summary = {
@@ -212,7 +213,8 @@ describe('core address handlers', () => {
 
     beforeEach(() => {
       coreExplorer = { getXpubSummary: jest.fn(async () => summary) }
-      handler = new GetCoreBalanceHandler(walletRepository, coreExplorer)
+      coreUtxos = { availableDuffs: jest.fn(async () => 299337281n) }
+      handler = new GetCoreBalanceHandler(walletRepository, coreExplorer, coreUtxos)
     })
 
     test('asks the explorer by xpub and returns amounts as strings', async () => {
@@ -221,6 +223,7 @@ describe('core address handlers', () => {
       expect(coreExplorer.getXpubSummary).toHaveBeenCalledWith(XPUB, 'testnet')
       expect(result).toEqual({
         balance: '399337281',
+        available: '299337281',
         received: '4827233218',
         sent: '4427895937',
         txCount: 21,
@@ -245,6 +248,16 @@ describe('core address handlers', () => {
       walletRepository.getCurrent.mockResolvedValueOnce(null)
 
       await expect(handler.handle()).rejects.toThrow('No wallet is chosen')
+    })
+
+    test('reports what is spendable now, apart from the explorer balance', async () => {
+      const result = await handler.handle()
+
+      expect(coreUtxos.availableDuffs).toHaveBeenCalledWith(
+        expect.objectContaining({ walletId: 'wallet1' }), XPUB, 0
+      )
+      expect(result.available).toBe('299337281')
+      expect(result.available).not.toBe(result.balance)
     })
 
     test('throws when the xpub was never cached', async () => {
