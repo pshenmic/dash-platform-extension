@@ -2,12 +2,16 @@ import { ext } from '../platform'
 import { MESSAGING_TIMEOUT, SHIELDED_PROVE_TIMEOUT, BLOCKCHAIN_MESSAGING_TIMEOUT } from '../constants'
 import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
+import { ListCoreUtxosResponse } from './messages/response/ListCoreUtxosResponse'
+import { ListPendingAssetLocksResponse } from './messages/response/ListPendingAssetLocksResponse'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
 import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
 import { GetCoreTransactionsPayload } from './messages/payloads/GetCoreTransactionsPayload'
 import { GetCoreTransactionsResponse } from './messages/response/GetCoreTransactionsResponse'
 import { InitAccountXpubsPayload } from './messages/payloads/InitAccountXpubsPayload'
 import { InitAccountXpubsResponse } from './messages/response/InitAccountXpubsResponse'
+import { SendCoreTransferPayload } from './messages/payloads/SendCoreTransferPayload'
+import { SendCoreTransferResponse } from './messages/response/SendCoreTransferResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -458,6 +462,24 @@ export class PrivateAPIClient {
     return response.addresses
   }
 
+  // Asset locks on L1 whose Platform side never finished: money committed by an
+  // operation that was interrupted.
+  async listPendingAssetLocks (): Promise<ListPendingAssetLocksResponse['assetLocks']> {
+    const payload: EmptyPayload = {}
+
+    const response: ListPendingAssetLocksResponse = await this._rpcCall(MessagingMethods.LIST_PENDING_ASSET_LOCKS, payload)
+
+    return response.assetLocks
+  }
+
+  async listCoreUtxos (): Promise<ListCoreUtxosResponse['utxos']> {
+    const payload: EmptyPayload = {}
+
+    const response: ListCoreUtxosResponse = await this._rpcCall(MessagingMethods.LIST_CORE_UTXOS, payload)
+
+    return response.utxos
+  }
+
   async getCoreBalance (): Promise<GetCoreBalanceResponse> {
     const payload: EmptyPayload = {}
 
@@ -470,6 +492,14 @@ export class PrivateAPIClient {
     const payload: GetCoreTransactionsPayload = { limit, cursor }
 
     return await this._rpcCall(MessagingMethods.GET_CORE_TRANSACTIONS, payload)
+  }
+
+  // Sends Core (L1) funds from the wallet's own addresses. `fromAddress` limits
+  // the spend to one of them; omitted, the largest unspent outputs are picked.
+  async sendCoreTransfer (toAddress: string, amountDuffs: string, password: string, fromAddress?: string): Promise<SendCoreTransferResponse> {
+    const payload: SendCoreTransferPayload = { toAddress, amountDuffs, password, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.SEND_CORE_TRANSFER, payload)
   }
 
   async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {

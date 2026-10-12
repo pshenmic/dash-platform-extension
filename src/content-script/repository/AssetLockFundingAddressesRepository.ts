@@ -126,6 +126,15 @@ export class AssetLockFundingAddressesRepository {
     )
   }
 
+  // The mirror image of findAllUnused: deposit entries whose asset lock is on L1
+  // but was never consumed. Money committed with nothing to show for it yet.
+  async findAllBroadcasted (): Promise<AssetLockFundingAddressSchema[]> {
+    const storageKey = await this.getStorageKey()
+    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
+
+    return Object.values(addresses).filter(entry => !entry.used && entry.assetLockTxid != null)
+  }
+
   async findUnused (purpose: AssetLockFundingPurpose = 'registration'): Promise<AssetLockFundingAddressSchema | null> {
     return (await this.findAllUnused(purpose))[0] ?? null
   }
