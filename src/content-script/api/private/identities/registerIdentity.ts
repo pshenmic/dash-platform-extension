@@ -315,7 +315,8 @@ export class RegisterIdentityHandler implements APIHandler {
 
     return {
       identifier,
-      stateTransitionHash
+      stateTransitionHash,
+      assetLockTxid
     }
   }
 

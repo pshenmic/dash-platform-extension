@@ -49,6 +49,7 @@ import { AssetLockService } from '../services/AssetLockService'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
+import { RegisterIdentityFromWalletHandler } from './private/identities/registerIdentityFromWallet'
 import { RemoveWalletHandler } from './private/wallet/removeWallet'
 import { TopUpIdentityHandler } from './private/identities/topUpIdentity'
 import { TopUpIdentityFromWalletHandler } from './private/identities/topUpIdentityFromWallet'
@@ -173,6 +174,16 @@ export class PrivateAPI {
       this.sdk,
       shielded
     )
+    const registerIdentity = new RegisterIdentityHandler(
+      walletRepository,
+      identitiesRepository,
+      assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
+      this.storageAdapter,
+      this.sdk,
+      this.coreSDK,
+      coreExplorer
+    )
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter, walletRepository),
@@ -209,15 +220,14 @@ export class PrivateAPI {
       [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: requestAssetLockFundingAddress,
       [MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS]: requestTopUpFundingAddress,
       [MessagingMethods.LIST_PENDING_ASSET_LOCKS]: new ListPendingAssetLocksHandler(pendingAssetLocksRepository, assetLockFundingAddressesRepository),
-      [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
+      [MessagingMethods.REGISTER_IDENTITY]: registerIdentity,
+      [MessagingMethods.REGISTER_IDENTITY_FROM_WALLET]: new RegisterIdentityFromWalletHandler(
         walletRepository,
-        identitiesRepository,
         assetLockFundingAddressesRepository,
-        pendingAssetLocksRepository,
-        this.storageAdapter,
-        this.sdk,
-        this.coreSDK,
-        coreExplorer
+        assetLockFunding,
+        requestAssetLockFundingAddress,
+        registerIdentity,
+        this.sdk
       ),
       [MessagingMethods.TOP_UP_IDENTITY]: topUpIdentity,
       [MessagingMethods.TOP_UP_IDENTITY_FROM_WALLET]: new TopUpIdentityFromWalletHandler(

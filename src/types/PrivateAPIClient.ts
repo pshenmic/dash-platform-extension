@@ -68,9 +68,11 @@ import { FundPlatformAddressFromCorePayload } from './messages/payloads/FundPlat
 import { FundPlatformAddressFromWalletPayload } from './messages/payloads/FundPlatformAddressFromWalletPayload'
 import { RequestAssetLockFundingAddressPayload } from './messages/payloads/RequestAssetLockFundingAddressPayload'
 import { TopUpIdentityFromWalletPayload } from './messages/payloads/TopUpIdentityFromWalletPayload'
+import { RegisterIdentityFromWalletPayload } from './messages/payloads/RegisterIdentityFromWalletPayload'
 import { FundPlatformAddressFromCoreResponse } from './messages/response/FundPlatformAddressFromCoreResponse'
 import { FundPlatformAddressFromWalletResponse } from './messages/response/FundPlatformAddressFromWalletResponse'
 import { TopUpIdentityFromWalletResponse } from './messages/response/TopUpIdentityFromWalletResponse'
+import { RegisterIdentityFromWalletResponse } from './messages/response/RegisterIdentityFromWalletResponse'
 import { CheckPasswordResponse } from './messages/response/CheckPasswordResponse'
 import { CheckPasswordPayload } from './messages/payloads/CheckPasswordPayload'
 import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
@@ -430,6 +432,16 @@ export class PrivateAPIClient {
     }
 
     return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
+  // Registers an identity with the wallet's own Core coins: reserves a funding
+  // address, pays it from the wallet's unspent outputs and creates the identity
+  // from that deposit. Safe to call again after an interruption - it continues
+  // from the deposit already on L1 instead of paying twice.
+  async registerIdentityFromWallet (amountDuffs: string, password: string): Promise<RegisterIdentityFromWalletResponse> {
+    const payload: RegisterIdentityFromWalletPayload = { amountDuffs, password }
+
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY_FROM_WALLET, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
   async topUpIdentity (
