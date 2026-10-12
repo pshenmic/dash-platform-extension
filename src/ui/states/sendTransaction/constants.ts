@@ -63,7 +63,7 @@ export const WITHDRAW_WARNINGS: Partial<Record<TransferMode, string>> = {
   shieldedWithdraw: SHIELDED_WITHDRAW_WARNING
 }
 
-// Network fee shown when Retry finishes a top up whose Core payment was made earlier.
+// Network fee shown when a top up reuses a Core payment made earlier.
 export const ALREADY_PAID_LABEL = 'Already paid'
 
 export const PREPAID_TOP_UP_MESSAGE = 'Finishes a top up paid earlier. No new payment.'
@@ -71,11 +71,11 @@ export const PREPAID_TOP_UP_MESSAGE = 'Finishes a top up paid earlier. No new pa
 // Warning on directions that still run on mocked backend methods.
 export const MOCK_TRANSFER_WARNING = 'Preview: this transfer runs on a test mock and does not move any funds yet.'
 
-// Top up from Core works only for identities of this wallet.
-export const CORE_TOP_UP_OWN_IDENTITY_MESSAGE = 'Top up from Dash Core works only for identities in this wallet.'
+// Retry of a shielding from Core whose asset lock is already on L1: repeating it would pay again.
+export const SHIELD_NOT_RESUMABLE_MESSAGE = 'This shielding was already paid on L1 and cannot be resumed yet. Retrying would pay again.'
 
 // Most recipients one Advanced transfer can pay.
 export const MAX_RECIPIENTS = 1000
 
-// Estimated fee of a Core send while the wallet UTXOs are unknown: one input, recipient and change outputs.
+// Estimated fee of a Core send while its estimate is loading or failed: one input, recipient and change outputs.
 export const CORE_TRANSFER_FEE_ESTIMATE_DUFFS = 226n

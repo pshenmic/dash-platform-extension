@@ -7,7 +7,7 @@ import { useCoreBalance, usePlatformAddresses, useWalletCapabilities, useWalletP
 import { locationReturnPath } from '../../types'
 import type { OutletContext } from '../../types'
 import { parseSendScope } from '../../utils/sendPath'
-import { checkRecipients, CORE_DASH_DECIMALS, formatDashAmount, parseDashAmount, transferAmountLimits, unfinishedTopUps, validateTransferAmount } from '../../../utils'
+import { checkRecipients, CORE_DASH_DECIMALS, findUnfinishedTopUp, formatDashAmount, hasPendingShield, parseDashAmount, transferAmountLimits, unfinishedTopUps, validateTransferAmount } from '../../../utils'
 import type { TransferCapabilities, UnfinishedTopUp } from '../../../utils'
 import type { AddressData } from '../../components/addresses/types'
 import { resolveEntryDefaults } from './entry/resolveEntryDefaults'
@@ -21,11 +21,12 @@ import { coreMaxAmount, recipientCount, shieldedMaxAmount, useTransferFee } from
 import { useTransferSubmit } from './hooks/useTransferSubmit'
 import type { TransferResume } from './hooks/useTransferOperation'
 import { useTransferOperation } from './hooks/useTransferOperation'
+import { useCoreTransferEstimate } from './hooks/useCoreTransferEstimate'
 import { useIdentityHeader } from './hooks/useIdentityHeader'
 import { useTransferApi } from './transferApi'
 import { WizardHeader } from './components/WizardHeader'
 import { UnfinishedTopUpBanners } from './components/UnfinishedTopUpBanners'
-import { MAX_RECIPIENTS, CORE_TOP_UP_OWN_IDENTITY_MESSAGE, SAME_PARTY_MESSAGE } from './constants'
+import { MAX_RECIPIENTS, SAME_PARTY_MESSAGE, SHIELD_NOT_RESUMABLE_MESSAGE } from './constants'
 import { MIN_FEE_RELAY } from '../../../constants'
 import { FromToStep } from './steps/FromToStep/FromToStep'
 import { isShieldToMyself } from './steps/FromToStep/RecipientRow'
@@ -36,7 +37,7 @@ import { ResultStep } from './steps/ResultStep'
 import { RecipientsOverlay } from './overlays/RecipientsOverlay'
 import { AdvancedSummary } from './steps/FromToStep/AdvancedSummary'
 import type { TransferOutcome } from './steps/ResultStep'
-import type { CoreUtxo, SourceIdentity, TransferDraft, WizardStep } from './types'
+import type { SourceIdentity, TransferDraft, WizardStep } from './types'
 
 const STEP_INDEX: Record<WizardStep, number> = { fromTo: 0, amount: 1, confirm: 2, progress: 3, result: 3, error: 3 }
 
@@ -72,7 +73,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const [assetMenuOpen, setAssetMenuOpen] = useState(false)
   const [recipientsOpen, setRecipientsOpen] = useState(false)
   const [changeAddresses, setChangeAddresses] = useState<string[]>([])
-  const [utxos, setUtxos] = useState<CoreUtxo[] | null>(null)
+  const [retryBlock, setRetryBlock] = useState<string | null>(null)
   const [pendingTopUps, setPendingTopUps] = useState<UnfinishedTopUp[]>([])
 
   const identityId = draft.from.type === 'identity' ? draft.from.identityId : null
@@ -83,7 +84,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const platformData = useWalletPlatformData(availableIdentities, currentNetwork)
   const shielded = useShieldedBalance()
   const core = useCoreBalance(currentWallet, capabilities.hasCoreLayer)
-  const coreBalance = core.balance != null ? BigInt(core.balance.balance) : null
+  const coreBalance = core.balance != null ? BigInt(core.balance.available) : null
 
   const resolution = resolveDirection(draft.from.type, draft.to.type, draft.asset, capabilities)
   const config = resolution.supported ? resolution.config : null
@@ -95,20 +96,21 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const advancedAvailable = config?.advanced === true && draft.asset.type === 'dash'
   const amount = draft.isAdvanced ? recipientsCheck.total : parseDashAmount(draft.amount, balance.decimals)
   const isDash = draft.asset.type === 'dash'
-  const fee = useTransferFee({ config, draft, amount, utxos, network, shieldedSpendEstimates: shielded.spendEstimates })
-  const knownMax = shieldedMaxAmount(config, shielded.spendEstimates) ?? coreMaxAmount(config, recipientCount(draft), utxos)
+  const coreEstimate = useCoreTransferEstimate({ api, config, draft, amount, recipientsValid: recipientsCheck.isValid, balanceKey: core.balance?.available ?? null })
+  const fee = useTransferFee({ config, draft, coreFeeDuffs: coreEstimate.feeDuffs, network, shieldedSpendEstimates: shielded.spendEstimates })
+  const knownMax = shieldedMaxAmount(config, shielded.spendEstimates) ?? coreMaxAmount(config, recipientCount(draft), coreEstimate.maxSendableDuffs)
   const maxAmount = knownMax ?? (balance.amount == null ? null : isDash && fee != null && fee.decimals === balance.decimals ? balance.amount - fee.amount : balance.amount)
   const amountError = limits != null ? validateTransferAmount(amount, maxAmount, draft.isAdvanced ? { min: 1n, max: null } : limits, balance.decimals, balance.unit) : null
 
   const resume = retry != null && retry.draft === draft ? retry.resume : null
-  const isResumingFunding = resume?.type === 'funding'
+  const isResumingFunding = resume != null
 
-  const operation = useTransferOperation(api)
+  const operation = useTransferOperation()
   const { isChecking, submit } = useTransferSubmit({ api, mode: config?.mode ?? null, draft, amount, sourceAddress: balance.sourceAddress, walletId: currentWallet, network, track: operation.track })
   const operationState = operation.state
   const outcome: TransferOutcome | null = operationState.status === 'success'
-    ? { type: 'success', hashes: operationState.hashes, fee: operationState.fee }
-    : operationState.status === 'failed' ? { type: 'error', message: operationState.error } : null
+    ? { type: 'success', hashes: operationState.hashes, fee: operationState.fee, prepaid: operationState.prepaid }
+    : operationState.status === 'failed' ? { type: 'error', message: retryBlock ?? operationState.error } : null
 
   useIdentityHeader({ currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent })
 
@@ -120,8 +122,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
     : isSameParty
       ? SAME_PARTY_MESSAGE
       : recipientsCheck.isValid ? amountError : null
-  const isForeignTopUp = config?.mode === 'coreTopUp' && draft.to.recipient !== '' && !availableIdentities.some(identity => identity.identifier === draft.to.recipient)
-  const recipientError = draft.isAdvanced ? null : isSameParty ? SAME_PARTY_MESSAGE : isForeignTopUp ? CORE_TOP_UP_OWN_IDENTITY_MESSAGE : null
+  const recipientError = !draft.isAdvanced && isSameParty ? SAME_PARTY_MESSAGE : null
   const received = amount != null && (config?.mode === 'coreTopUp' || config?.mode === 'coreFund' || config?.mode === 'coreShield') ? amount - MIN_FEE_RELAY : null
   const shieldedReady = draft.from.type !== 'shielded' || (shielded.balance != null && !shielded.isWarmingProver)
   const fromToValid = config != null &&
@@ -149,12 +150,12 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
 
   const settledStatus = operationState.status === 'success' || operationState.status === 'failed' ? operationState.status : null
 
-  // Loads the wallet UTXOs and unfinished top ups for a Core sender, again once a transfer settles.
+  // Loads unfinished top ups for a Core sender and refreshes its balance once a transfer settles.
   useEffect(() => {
     if (draft.from.type !== 'core') return
-    api.listCoreUtxos().then(setUtxos).catch(e => { console.log('listCoreUtxos error', e); setUtxos(null) })
+    if (settledStatus != null) core.reload()
     api.listPendingAssetLocks().then(locks => setPendingTopUps(unfinishedTopUps(locks))).catch(e => console.log('listPendingAssetLocks error', e))
-  }, [api, draft.from.type, settledStatus])
+  }, [api, draft.from.type, settledStatus, core.reload])
 
   // Falls back to Simple once the direction or asset has no multi-output transfer.
   useEffect(() => {
@@ -204,15 +205,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
       .catch(e => console.log('submit error', e))
   }
 
-  const handleRetry = (): void => {
-    const failed = operationState.status === 'failed' ? operationState : null
-    setRetry(failed?.resume != null ? { draft, resume: failed.resume } : null)
-    operation.reset()
-    goToStep('confirm', true)
-  }
-
   // Fills the draft from an unfinished top up and opens Confirm to finish it with the same payment.
-  const handleRetryTopUp = (topUp: UnfinishedTopUp): void => {
+  const resumeTopUp = (topUp: UnfinishedTopUp, replace = false): void => {
     const toType = topUp.purpose === 'topUp' ? 'identity' : 'platformAddress'
     const next: TransferDraft = {
       ...draft,
@@ -225,8 +219,47 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
       changeAddress: null
     }
     actions.reset(next)
-    setRetry({ draft: next, resume: { type: 'funding', address: topUp.fundingAddress, txid: topUp.fundingTxid } })
-    goToStep('confirm')
+    setRetry({ draft: next, resume: { address: topUp.fundingAddress, txid: topUp.fundingTxid } })
+    setRetryBlock(null)
+    goToStep('confirm', replace)
+  }
+
+  const repeatTransfer = (): void => {
+    setRetry(null)
+    setRetryBlock(null)
+    operation.reset()
+    goToStep('confirm', true)
+  }
+
+  // Retry of a Core -> Platform transfer finishes a paid asset lock instead of paying again; a paid shielding is not repeated.
+  const handleRetry = (): void => {
+    const mode = config?.mode
+    if (mode !== 'coreTopUp' && mode !== 'coreFund' && mode !== 'coreShield') {
+      repeatTransfer()
+      return
+    }
+
+    api.listPendingAssetLocks()
+      .then(locks => {
+        const topUps = unfinishedTopUps(locks)
+        setPendingTopUps(topUps)
+
+        if (mode === 'coreShield') {
+          if (hasPendingShield(locks)) setRetryBlock(SHIELD_NOT_RESUMABLE_MESSAGE)
+          else repeatTransfer()
+          return
+        }
+
+        const purpose = mode === 'coreTopUp' ? 'topUp' : 'fundAddress'
+        const topUp = findUnfinishedTopUp(topUps, purpose, draft.to.recipient, amount != null ? amount - MIN_FEE_RELAY : null)
+        if (topUp == null) {
+          repeatTransfer()
+          return
+        }
+        operation.reset()
+        resumeTopUp(topUp, true)
+      })
+      .catch(e => setRetryBlock(e instanceof Error ? e.message : String(e)))
   }
 
   const identities = availableIdentities.map((identity): SourceIdentity => {
@@ -255,7 +288,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           canContinue={fromToValid}
           recipientError={recipientError}
           onOpenAsset={() => setAssetMenuOpen(true)}
-          unfinishedTopUps={draft.from.type === 'core' && <UnfinishedTopUpBanners topUps={pendingTopUps} onRetry={handleRetryTopUp} />}
+          unfinishedTopUps={draft.from.type === 'core' && <UnfinishedTopUpBanners topUps={pendingTopUps} onRetry={(topUp) => resumeTopUp(topUp)} />}
           recipientsLabel={`(${draft.recipients.length}/${MAX_RECIPIENTS})`}
           onOpenRecipients={() => setRecipientsOpen(true)}
           advancedSummary={<AdvancedSummary fromType={draft.from.type} balance={balance} recipientsTotal={recipientsCheck.total} fee={fee} rate={rate} error={advancedError} />}
@@ -313,7 +346,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           network={network}
           onDone={() => { void navigate(returnPath, { replace: true }) }}
           isPrepaid={isResumingFunding}
-          onRetry={handleRetry}
+          onRetry={retryBlock == null ? handleRetry : undefined}
         />
       )}
 
@@ -325,7 +358,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           changeAddress={draft.changeAddress}
           changeAddresses={changeAddresses}
           decimals={balance.decimals}
-          availableFor={(count) => coreMaxAmount(config, count, utxos) ?? maxAmount}
+          availableFor={(count) => coreMaxAmount(config, count, coreEstimate.maxSendableDuffs) ?? maxAmount}
           minAmount={limits.min}
           excludeIdentifier={balance.sourceAddress}
           network={network}

@@ -23,7 +23,6 @@ export interface DirectionDetails {
   hashes: HashType[]
   advanced: boolean
   feeSource: FeeSource
-  usesMock: boolean
 }
 
 export interface DirectionConfig extends DirectionDetails {
@@ -37,7 +36,7 @@ const SENT_TO_ADDRESS = 'Funds were successfully sent to the address.'
 const SENT_TO_IDENTITY = 'Funds were successfully sent to the identity balance.'
 const SENT_TO_PLATFORM_ADDRESS = 'Funds were successfully sent to the platform address.'
 const SENT_TO_OWN_SHIELDED = 'Funds were successfully sent to your shielded balance.'
-const SENT_TO_SHIELDED_ADDRESS = 'Funds were successfully sent to the shielded address.'
+export const SENT_TO_SHIELDED_ADDRESS = 'Funds were successfully sent to the shielded address.'
 const SENT_TO_CORE = 'Sent to Core Chain. It will confirm after some time.'
 
 const TOP_UP_IDENTITY_CARD: InfoCardConfig = {
@@ -54,7 +53,7 @@ const TOP_UP_ADDRESS_CARD: InfoCardConfig = {
 
 const TWO_STEP_SHIELDING_CARD: InfoCardConfig = {
   title: 'Two-step Shielding',
-  text: 'Locking Dash broadcasts an L1 transaction, waits for a Chain Lock (a few minutes) and then shields the credits straight into your shielded balance. The L1 lock amount stays publicly visible; the process resumes automatically if interrupted.',
+  text: 'Locking Dash broadcasts an L1 transaction, waits for a Chain Lock (a few minutes) and then shields the credits into your shielded balance or the shielded address you enter. The L1 lock amount stays publicly visible.',
   duration: CROSS_LAYER_DURATION
 }
 
@@ -72,16 +71,14 @@ const SHIELDING_CARD: InfoCardConfig = {
 const SINGLE_HASH = {
   hasProgress: false,
   hashes: ['single'] as HashType[],
-  advanced: false,
-  usesMock: false
+  advanced: false
 }
 
 const CORE_TO_PLATFORM = {
   confirmLabel: 'Top Up',
   hashes: ['core', 'platform'] as HashType[],
   advanced: false,
-  feeSource: 'coreEstimate' as const,
-  usesMock: false
+  feeSource: 'coreEstimate' as const
 }
 
 const WITHDRAWAL = {
@@ -90,8 +87,7 @@ const WITHDRAWAL = {
   successMessage: SENT_TO_CORE,
   hashes: ['core', 'platform'] as HashType[],
   advanced: false,
-  feeSource: 'withdrawal' as const,
-  usesMock: false
+  feeSource: 'withdrawal' as const
 }
 
 // Details of every supported direction; unsupported pairs have no entry.
@@ -102,8 +98,7 @@ export const DIRECTION_DETAILS: Partial<Record<Direction, DirectionDetails>> = {
     successMessage: SENT_TO_ADDRESS,
     hashes: ['single'],
     advanced: true,
-    feeSource: 'coreEstimate',
-    usesMock: false
+    feeSource: 'coreEstimate'
   },
   'core->identity': {
     ...CORE_TO_PLATFORM,
@@ -122,8 +117,7 @@ export const DIRECTION_DETAILS: Partial<Record<Direction, DirectionDetails>> = {
     infoCard: TWO_STEP_SHIELDING_CARD,
     confirmLabel: 'Shield',
     hasProgress: true,
-    successMessage: SENT_TO_OWN_SHIELDED,
-    usesMock: true
+    successMessage: SENT_TO_OWN_SHIELDED
   },
   'identity->core': {
     ...WITHDRAWAL,
@@ -156,8 +150,7 @@ export const DIRECTION_DETAILS: Partial<Record<Direction, DirectionDetails>> = {
     confirmLabel: 'Send',
     successMessage: SENT_TO_PLATFORM_ADDRESS,
     advanced: true,
-    feeSource: 'platformTransfer',
-    usesMock: false
+    feeSource: 'platformTransfer'
   },
   'platformAddress->shielded': {
     ...SINGLE_HASH,

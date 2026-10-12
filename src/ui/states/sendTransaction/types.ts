@@ -96,29 +96,6 @@ export interface TransferDraft {
   changeAddress: string | null
 }
 
-// Unspent Core output of the wallet.
-export interface CoreUtxo {
-  address: string
-  txid: string
-  vout: number
-  amountDuffs: string
-}
-
-export type TransferOperationType = 'shieldFromCore'
-
-export type TransferStageStatus = 'pending' | 'active' | 'done' | 'failed'
-
-// Multi-stage transfer tracked by the Progress screen.
-export interface TransferOperation {
-  operationId: string
-  type: TransferOperationType
-  stages: Array<{ id: string, status: TransferStageStatus }>
-  coreTxHash?: string
-  platformTxHash?: string
-  fee?: string
-  error?: string
-}
-
 // Wallet identity offered as a transfer source, with its credit balance once known.
 export interface SourceIdentity {
   identifier: string

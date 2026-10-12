@@ -10,11 +10,36 @@ import type { ShieldedSpendKind } from '../../../types/ShieldedSpendKind'
 import type { PendingAssetLock } from '../../../types/messages/response/ListPendingAssetLocksResponse'
 import { trackShieldedSync } from '../../utils/shieldedSync'
 import * as mock from './mocks/transferApiMock'
-import type { CoreUtxo } from './types'
 
 export interface TransferTxResult {
   txHash: string
 }
+
+// Core payment with its fee in duffs.
+export interface CorePaymentResult extends TransferTxResult {
+  feeDuffs: bigint
+}
+
+// Wallet payment locked into Platform: the Platform hash, the Core payment and its fee in duffs ("0" when an earlier payment was reused).
+export interface CoreFundingResult extends TransferTxResult {
+  coreTxHash: string
+  feeDuffs: bigint
+}
+
+// Core payment output; amount in duffs.
+export interface CoreOutput {
+  address: string
+  amountDuffs: bigint
+}
+
+// Fee in duffs of a Core payment and the most its inputs can pay out.
+export interface CoreTransferEstimate {
+  feeDuffs: bigint
+  maxSendableDuffs: bigint
+}
+
+const toOutputPayload = (outputs: CoreOutput[]): Array<{ address: string, amountDuffs: string }> =>
+  outputs.map(output => ({ address: output.address, amountDuffs: output.amountDuffs.toString() }))
 
 // Registers an identity state transition, signs it with a matching key and broadcasts it.
 const signAndBroadcast = async (
@@ -105,9 +130,19 @@ export class TransferApi {
     return { txHash: (await this.extensionAPI.withdrawShieldedToCore(toCoreAddress, amountCredits.toString(), password)).stHash }
   }
 
-  async sendCoreTransfer (toAddress: string, amountDuffs: bigint, password: string): Promise<TransferTxResult & { feeDuffs: bigint }> {
+  async sendCoreTransfer (toAddress: string, amountDuffs: bigint, password: string): Promise<CorePaymentResult> {
     const { txid, feeDuffs } = await this.extensionAPI.sendCoreTransfer(toAddress, amountDuffs.toString(), password)
     return { txHash: txid, feeDuffs: BigInt(feeDuffs) }
+  }
+
+  async sendCoreTransaction (outputs: CoreOutput[], password: string, changeAddress?: string): Promise<CorePaymentResult> {
+    const { txid, feeDuffs } = await this.extensionAPI.sendCoreTransaction({ outputs: toOutputPayload(outputs), changeAddress }, password)
+    return { txHash: txid, feeDuffs: BigInt(feeDuffs) }
+  }
+
+  async estimateCoreTransfer (outputs: CoreOutput[], changeAddress?: string, sendMax?: boolean): Promise<CoreTransferEstimate> {
+    const { feeDuffs, maxSendableDuffs } = await this.extensionAPI.estimateCoreTransfer({ outputs: toOutputPayload(outputs), changeAddress, sendMax })
+    return { feeDuffs: BigInt(feeDuffs), maxSendableDuffs: BigInt(maxSendableDuffs) }
   }
 
   async listCoreAddresses (): Promise<string[]> {
@@ -118,16 +153,23 @@ export class TransferApi {
     return (await this.extensionAPI.getCoreReceiveAddress()).address
   }
 
-  async listCoreUtxos (): Promise<CoreUtxo[]> {
-    return await this.extensionAPI.listCoreUtxos()
-  }
-
   async listPendingAssetLocks (): Promise<PendingAssetLock[]> {
     return await this.extensionAPI.listPendingAssetLocks()
   }
 
-  async requestAssetLockFundingAddress (): Promise<string> {
-    return (await this.extensionAPI.requestAssetLockFundingAddress()).address
+  async topUpIdentityFromWallet (identityId: string, amountDuffs: bigint, password: string, walletId?: string, network?: NetworkType): Promise<CoreFundingResult> {
+    const { stateTransitionHash, fundingTxid, coreFeeDuffs } = await this.extensionAPI.topUpIdentityFromWallet(amountDuffs.toString(), password, identityId, walletId, network)
+    return { txHash: stateTransitionHash, coreTxHash: fundingTxid, feeDuffs: BigInt(coreFeeDuffs) }
+  }
+
+  async fundPlatformAddressFromWallet (platformAddress: string, amountDuffs: bigint, password: string): Promise<CoreFundingResult> {
+    const { stateTransitionHash, fundingTxid, coreFeeDuffs } = await this.extensionAPI.fundPlatformAddressFromWallet(platformAddress, amountDuffs.toString(), password)
+    return { txHash: stateTransitionHash, coreTxHash: fundingTxid, feeDuffs: BigInt(coreFeeDuffs) }
+  }
+
+  async shieldFromWallet (amountDuffs: bigint, password: string, toShieldedAddress?: string): Promise<CoreFundingResult> {
+    const { stHash, fundingTxid, coreFeeDuffs } = await this.extensionAPI.shieldFromWallet(amountDuffs.toString(), password, toShieldedAddress)
+    return { txHash: stHash, coreTxHash: fundingTxid, feeDuffs: BigInt(coreFeeDuffs) }
   }
 
   async topUpIdentityFromFunding (identityId: string, fundingAddress: string, fundingTxid: string, password: string, walletId?: string, network?: NetworkType): Promise<TransferTxResult> {
@@ -146,10 +188,6 @@ export class TransferApi {
     await trackShieldedSync(this.extensionAPI.syncShieldedNotes(password, undefined, walletId, network))
   }
 
-  readonly sendCoreTransaction = mock.sendCoreTransaction
-  readonly shieldFromCore = mock.shieldFromCore
-  readonly getTransferOperation = mock.getTransferOperation
-  readonly retryTransferOperation = mock.retryTransferOperation
   readonly sendPlatformTransferFromInputs = mock.sendPlatformTransfer
 }
 

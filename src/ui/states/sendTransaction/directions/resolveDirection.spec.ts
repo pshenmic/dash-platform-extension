@@ -114,13 +114,6 @@ describe('DIRECTION_DETAILS', () => {
     expect(advanced.sort()).toEqual(['core->core', 'platformAddress->platformAddress'])
   })
 
-  it('runs Core senders on the real API except Core -> Shielded', () => {
-    for (const to of ['core', 'identity', 'platformAddress'] as const) {
-      expect(DIRECTION_DETAILS[`core->${to}`]?.usesMock).toBe(false)
-    }
-    expect(DIRECTION_DETAILS['core->shielded']?.usesMock).toBe(true)
-  })
-
   it('shows Progress for asset lock and withdrawal directions', () => {
     for (const direction of ['core->identity', 'core->platformAddress', 'core->shielded', 'identity->core', 'platformAddress->core'] as const) {
       expect(DIRECTION_DETAILS[direction]?.hasProgress).toBe(true)
@@ -145,15 +138,15 @@ describe('runsOnMock', () => {
     return result.config
   }
 
-  it('uses the real API for Simple transfers of real directions', () => {
+  it('uses the real API for Simple transfers and Advanced Core -> Core', () => {
     expect(runsOnMock(config('core', 'core'), false)).toBe(false)
     expect(runsOnMock(config('core', 'identity'), false)).toBe(false)
+    expect(runsOnMock(config('core', 'shielded'), false)).toBe(false)
     expect(runsOnMock(config('platformAddress', 'platformAddress'), false)).toBe(false)
+    expect(runsOnMock(config('core', 'core'), true)).toBe(false)
   })
 
-  it('switches to mocks for mocked directions and Advanced', () => {
-    expect(runsOnMock(config('core', 'shielded'), false)).toBe(true)
-    expect(runsOnMock(config('core', 'core'), true)).toBe(true)
+  it('switches to the mock for Advanced Address -> Address', () => {
     expect(runsOnMock(config('platformAddress', 'platformAddress'), true)).toBe(true)
   })
 })

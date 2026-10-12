@@ -34,6 +34,18 @@ describe('transferDraftReducer', () => {
     expect(transferDraftReducer(DRAFT, { type: 'setToType', endpointType: 'identity' }).to.recipient).toBe('')
   })
 
+  it('shields to myself again after the To type changes', () => {
+    const custom = { ...DRAFT, to: { type: 'shielded' as const, recipient: 'dash1shielded', shieldToMyself: false } }
+
+    expect(transferDraftReducer(custom, { type: 'setToType', endpointType: 'core' }).to.shieldToMyself).toBe(true)
+  })
+
+  it('clears the recipient when Shield to Myself changes', () => {
+    const next = transferDraftReducer(DRAFT, { type: 'setShieldToMyself', value: false })
+
+    expect(next.to).toEqual({ ...DRAFT.to, recipient: '', shieldToMyself: false })
+  })
+
   it('locks a token to identity -> identity and resets the amount', () => {
     const draft = { ...DRAFT, from: { ...DRAFT.from, type: 'platformAddress' as const } }
     const next = transferDraftReducer(draft, { type: 'setAsset', asset: { type: 'token', tokenId: 't' }, capabilities: SEED })

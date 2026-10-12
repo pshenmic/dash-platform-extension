@@ -33,11 +33,11 @@ export const transferDraftReducer = (draft: TransferDraft, action: TransferDraft
       return { ...draft, from: { ...draft.from, identityId: action.identityId } }
     case 'setToType':
       if (action.endpointType === draft.to.type) return draft
-      return { ...draft, to: { ...draft.to, type: action.endpointType, recipient: '' }, recipients: [], changeAddress: null }
+      return { ...draft, to: { type: action.endpointType, recipient: '', shieldToMyself: true }, recipients: [], changeAddress: null }
     case 'setRecipient':
       return { ...draft, to: { ...draft.to, recipient: action.recipient } }
     case 'setShieldToMyself':
-      return { ...draft, to: { ...draft.to, shieldToMyself: action.value } }
+      return { ...draft, to: { ...draft.to, recipient: '', shieldToMyself: action.value } }
     case 'setAsset': {
       const from = action.asset.type === 'token' ? { ...draft.from, type: 'identity' as const } : draft.from
       return withTarget({ ...draft, from, asset: action.asset, amount: '' }, action.capabilities)

@@ -17,7 +17,7 @@ import type { TransferFee } from '../../hooks/useTransferFee'
 import type { EndpointType, SourceIdentity, TransferDraft } from '../../types'
 import { EndpointCard } from './EndpointCard'
 import { SourceRow } from './SourceRow'
-import { RecipientRow, isShieldToMyself } from './RecipientRow'
+import { RecipientRow, canShieldToOthers, isShieldToMyself } from './RecipientRow'
 
 interface FromToStepProps {
   draft: TransferDraft
@@ -84,6 +84,7 @@ export function FromToStep ({
   })
 
   const infoCard = resolution.supported ? resolution.config.infoCard : undefined
+  const showsShieldToMyself = draft.to.type === 'shielded' && draft.from.type !== 'shielded'
   const feeText = fee != null ? `${formatDashAmount(fee.amount, fee.decimals)} Dash` : 'small'
 
   return (
@@ -116,7 +117,9 @@ export function FromToStep ({
         <EndpointCard
           label='To'
           position='bottom'
-          headerAction={isShieldToMyself(draft) && <Checkbox checked disabled onChange={() => {}} label='Shield to Myself' />}
+          headerAction={showsShieldToMyself && (
+            <Checkbox checked={isShieldToMyself(draft)} disabled={!canShieldToOthers(draft)} onChange={(value) => actions.setShieldToMyself(value)} label='Shield to Myself' />
+          )}
         >
           {draft.isAdvanced
             ? (
@@ -128,7 +131,7 @@ export function FromToStep ({
             : <EndpointTypeSelect value={draft.to.type} options={toOptions} onChange={(type) => actions.setToType(type)} />}
           {!draft.isAdvanced && (
             <RecipientRow
-              key={`${draft.from.type}-${draft.to.type}`}
+              key={`${draft.from.type}-${draft.to.type}-${String(draft.to.shieldToMyself)}`}
               draft={draft}
               excludeIdentifier={draft.from.type === 'identity' ? draft.from.identityId : null}
               network={network}

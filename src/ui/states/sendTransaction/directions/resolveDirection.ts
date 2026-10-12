@@ -21,5 +21,5 @@ export const resolveDirection = (from: EndpointType, to: EndpointType, asset: As
   return { supported: true, direction: pair.direction, config: { ...details, supported: true, mode: pair.mode } }
 }
 
-// Whether the transfer goes to a mocked backend method, by direction or Advanced mode.
-export const runsOnMock = (config: DirectionConfig, isAdvanced: boolean): boolean => config.usesMock || isAdvanced
+// Whether the transfer goes to a mocked backend method: only Advanced Address -> Address does.
+export const runsOnMock = (config: DirectionConfig, isAdvanced: boolean): boolean => isAdvanced && config.mode === 'send'

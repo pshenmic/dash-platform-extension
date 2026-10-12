@@ -9,16 +9,20 @@ export interface UnfinishedTopUp {
   lockedDuffs: bigint
 }
 
-const recipientOf = (lock: PendingAssetLock): string | null => {
-  if (lock.purpose === 'topUp') return lock.identityId
-  if (lock.purpose === 'fundAddress') return lock.platformAddress
-  return null
-}
-
-// Identity top ups and address fundings that can be retried; registrations and records without the payment are left out.
+// Identity top ups and address fundings that can be retried; registrations, shieldings and records without the payment are left out.
 export const unfinishedTopUps = (locks: PendingAssetLock[]): UnfinishedTopUp[] =>
   locks.flatMap((lock): UnfinishedTopUp[] => {
-    const recipient = recipientOf(lock)
-    if (lock.purpose === 'registration' || recipient == null || lock.fundingAddress == null || lock.fundingTxid == null || lock.amountDuffs == null) return []
+    if (lock.purpose !== 'topUp' && lock.purpose !== 'fundAddress') return []
+    const recipient = lock.purpose === 'topUp' ? lock.identityId : lock.platformAddress
+    if (recipient == null || lock.fundingAddress == null || lock.fundingTxid == null || lock.amountDuffs == null) return []
     return [{ purpose: lock.purpose, recipient, fundingAddress: lock.fundingAddress, fundingTxid: lock.fundingTxid, lockedDuffs: BigInt(lock.amountDuffs) }]
   })
+
+// Unfinished top up of `recipient` to finish instead of paying again: the one locking `lockedDuffs`, else the first listed.
+export const findUnfinishedTopUp = (topUps: UnfinishedTopUp[], purpose: UnfinishedTopUp['purpose'], recipient: string, lockedDuffs: bigint | null): UnfinishedTopUp | null => {
+  const matches = topUps.filter(topUp => topUp.purpose === purpose && topUp.recipient === recipient)
+  return matches.find(topUp => topUp.lockedDuffs === lockedDuffs) ?? matches[0] ?? null
+}
+
+// Whether a shielding from Core left a paid asset lock behind.
+export const hasPendingShield = (locks: PendingAssetLock[]): boolean => locks.some(lock => lock.purpose === 'shield')
