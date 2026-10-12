@@ -3,12 +3,14 @@ import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
+import { PendingAssetLocksRepository } from '../../../repository/PendingAssetLocksRepository'
 import { AssetLockFundingService } from '../../../services/AssetLockFundingService'
 import { RequestAssetLockFundingAddressHandler } from '../assetLocks/requestAssetLockFundingAddress'
 import { RegisterIdentityHandler } from './registerIdentity'
 import { RegisterIdentityFromWalletPayload } from '../../../../types/messages/payloads/RegisterIdentityFromWalletPayload'
 import { RegisterIdentityFromWalletResponse } from '../../../../types/messages/response/RegisterIdentityFromWalletResponse'
 import { deriveCoreAccountXpub } from '../../../../utils/coreAddresses'
+import { findUnfinishedAssetLock } from '../../../../utils/pendingAssetLocks'
 import { WalletType } from '../../../../types/WalletType'
 import { MIN_FEE_RELAY } from '../../../../constants'
 
@@ -23,6 +25,7 @@ import { MIN_FEE_RELAY } from '../../../../constants'
 export class RegisterIdentityFromWalletHandler implements APIHandler {
   walletRepository: WalletRepository
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
+  pendingAssetLocksRepository: PendingAssetLocksRepository
   assetLockFunding: AssetLockFundingService
   requestAssetLockFundingAddress: RequestAssetLockFundingAddressHandler
   registerIdentity: RegisterIdentityHandler
@@ -31,6 +34,7 @@ export class RegisterIdentityFromWalletHandler implements APIHandler {
   constructor (
     walletRepository: WalletRepository,
     assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository,
+    pendingAssetLocksRepository: PendingAssetLocksRepository,
     assetLockFunding: AssetLockFundingService,
     requestAssetLockFundingAddress: RequestAssetLockFundingAddressHandler,
     registerIdentity: RegisterIdentityHandler,
@@ -38,6 +42,7 @@ export class RegisterIdentityFromWalletHandler implements APIHandler {
   ) {
     this.walletRepository = walletRepository
     this.assetLockFundingAddressesRepository = assetLockFundingAddressesRepository
+    this.pendingAssetLocksRepository = pendingAssetLocksRepository
     this.assetLockFunding = assetLockFunding
     this.requestAssetLockFundingAddress = requestAssetLockFundingAddress
     this.registerIdentity = registerIdentity
@@ -53,6 +58,19 @@ export class RegisterIdentityFromWalletHandler implements APIHandler {
     }
     if (wallet.type !== WalletType.seedphrase) {
       throw new Error('Identity registration is only supported for seedphrase wallets')
+    }
+
+    // An earlier attempt may have got as far as putting the asset lock on L1.
+    // A registration names no recipient - it creates one - so any unfinished
+    // registration is this one, and finishing it is what a repeat is for.
+    const unfinished = findUnfinishedAssetLock(
+      await this.pendingAssetLocksRepository.getAll(), 'registration', null
+    )
+
+    if (unfinished != null) {
+      const resumed = await this.register(unfinished.fundingAddress, unfinished.fundingTxid, payload.password, event)
+
+      return { ...resumed, coreFeeDuffs: '0', resumed: true }
     }
 
     const account = 0
@@ -77,12 +95,23 @@ export class RegisterIdentityFromWalletHandler implements APIHandler {
       assetLockFundingAddressesRepository: this.assetLockFundingAddressesRepository
     })
 
+    const registered = await this.register(fundingAddress, funding.fundingTxid, payload.password, event)
+
+    return {
+      ...registered,
+      coreFeeDuffs: funding.feeDuffs.toString(),
+      resumed: false
+    }
+  }
+
+  // The Platform half: create the identity from this deposit.
+  private async register (fundingAddress: string, fundingTxid: string, password: string, event: EventData): Promise<Omit<RegisterIdentityFromWalletResponse, 'coreFeeDuffs' | 'resumed'>> {
     const registered = await this.registerIdentity.handle({
       ...event,
       payload: {
         assetLockFundingAddress: fundingAddress,
-        assetLockFundingTxid: funding.fundingTxid,
-        password: payload.password
+        assetLockFundingTxid: fundingTxid,
+        password
       }
     })
 
@@ -91,8 +120,7 @@ export class RegisterIdentityFromWalletHandler implements APIHandler {
       stateTransitionHash: registered.stateTransitionHash,
       assetLockTxid: registered.assetLockTxid,
       fundingAddress,
-      fundingTxid: funding.fundingTxid,
-      coreFeeDuffs: funding.feeDuffs.toString()
+      fundingTxid
     }
   }
 

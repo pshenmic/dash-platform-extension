@@ -4,6 +4,7 @@ import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
+import { PendingAssetLocksRepository } from '../../../repository/PendingAssetLocksRepository'
 import { AssetLockFundingService } from '../../../services/AssetLockFundingService'
 import { RequestTopUpFundingAddressHandler } from '../assetLocks/requestTopUpFundingAddress'
 import { TopUpIdentityHandler } from './topUpIdentity'
@@ -12,6 +13,7 @@ import { TopUpIdentityFromWalletResponse } from '../../../../types/messages/resp
 import { RepositoryScope } from '../../../../types/RepositoryScope'
 import { validateRepositoryScopePayload } from '../../../../utils/validateRepositoryScopePayload'
 import { deriveCoreAccountXpub } from '../../../../utils/coreAddresses'
+import { findUnfinishedAssetLock } from '../../../../utils/pendingAssetLocks'
 import { MIN_FEE_RELAY } from '../../../../constants'
 
 // Tops up an identity with the wallet's own Core coins, in one call: reserve a
@@ -26,6 +28,7 @@ import { MIN_FEE_RELAY } from '../../../../constants'
 export class TopUpIdentityFromWalletHandler implements APIHandler {
   walletRepository: WalletRepository
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
+  pendingAssetLocksRepository: PendingAssetLocksRepository
   assetLockFunding: AssetLockFundingService
   requestTopUpFundingAddress: RequestTopUpFundingAddressHandler
   topUpIdentity: TopUpIdentityHandler
@@ -35,6 +38,7 @@ export class TopUpIdentityFromWalletHandler implements APIHandler {
   constructor (
     walletRepository: WalletRepository,
     assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository,
+    pendingAssetLocksRepository: PendingAssetLocksRepository,
     assetLockFunding: AssetLockFundingService,
     requestTopUpFundingAddress: RequestTopUpFundingAddressHandler,
     topUpIdentity: TopUpIdentityHandler,
@@ -43,6 +47,7 @@ export class TopUpIdentityFromWalletHandler implements APIHandler {
   ) {
     this.walletRepository = walletRepository
     this.assetLockFundingAddressesRepository = assetLockFundingAddressesRepository
+    this.pendingAssetLocksRepository = pendingAssetLocksRepository
     this.assetLockFunding = assetLockFunding
     this.requestTopUpFundingAddress = requestTopUpFundingAddress
     this.topUpIdentity = topUpIdentity
@@ -74,6 +79,20 @@ export class TopUpIdentityFromWalletHandler implements APIHandler {
       throw new Error('No identity is chosen to top up')
     }
 
+    // An earlier attempt may have got as far as putting the asset lock on L1,
+    // which is past the point where a fresh start would help: its credits are
+    // committed and only the Platform side is missing. Finish that one instead
+    // of reserving an address and paying again.
+    const unfinished = findUnfinishedAssetLock(
+      await this.pendingAssetLocksRepository.forScope(scope).getAll(), 'topUp', identityId
+    )
+
+    if (unfinished != null) {
+      const resumed = await this.topUp(scope, identityId, unfinished.fundingAddress, unfinished.fundingTxid, payload.password, event)
+
+      return { ...resumed, coreFeeDuffs: '0', resumed: true }
+    }
+
     const account = 0
     // The payment spends the wallet's BIP44 outputs, so the account xpub has to
     // be there. A wallet made before Core support has none cached; deriving it
@@ -101,13 +120,24 @@ export class TopUpIdentityFromWalletHandler implements APIHandler {
       assetLockFundingAddressesRepository: this.assetLockFundingAddressesRepository.forScope(scope)
     })
 
+    const topUp = await this.topUp(scope, identityId, fundingAddress, funding.fundingTxid, payload.password, event)
+
+    return {
+      ...topUp,
+      coreFeeDuffs: funding.feeDuffs.toString(),
+      resumed: false
+    }
+  }
+
+  // The Platform half: turn this deposit into credits on the identity.
+  private async topUp (scope: RepositoryScope, identityId: string, fundingAddress: string, fundingTxid: string, password: string, event: EventData): Promise<Omit<TopUpIdentityFromWalletResponse, 'coreFeeDuffs' | 'resumed'>> {
     const topUp = await this.topUpIdentity.handle({
       ...event,
       payload: {
         identityId,
         assetLockFundingAddress: fundingAddress,
-        assetLockFundingTxid: funding.fundingTxid,
-        password: payload.password,
+        assetLockFundingTxid: fundingTxid,
+        password,
         walletId: scope.walletId,
         network: scope.network
       }
@@ -119,8 +149,7 @@ export class TopUpIdentityFromWalletHandler implements APIHandler {
       topUpAmount: topUp.topUpAmount,
       assetLockTxid: topUp.assetLockTxid,
       fundingAddress,
-      fundingTxid: funding.fundingTxid,
-      coreFeeDuffs: funding.feeDuffs.toString()
+      fundingTxid
     }
   }
 

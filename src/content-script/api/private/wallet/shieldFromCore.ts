@@ -91,6 +91,13 @@ export class ShieldFromCoreHandler implements APIHandler {
       purpose: 'shield',
       identityId: null,
       platformAddress: null,
+      // Written down only when the caller named someone else's pool, because
+      // finishing the operation later has to deposit into that same pool. A
+      // shield into the wallet's own stays unrecorded: it is derived from the
+      // seed, and a null recipient is what says "own pool".
+      shieldedAddress: payload.toShieldedAddress != null && payload.toShieldedAddress.length > 0
+        ? payload.toShieldedAddress
+        : null,
       assetLockFundingAddressesRepository: this.assetLockFundingAddressesRepository,
       pendingAssetLocksRepository: this.pendingAssetLocksRepository
     })

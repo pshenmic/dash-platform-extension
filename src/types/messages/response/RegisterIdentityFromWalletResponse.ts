@@ -9,4 +9,8 @@ export interface RegisterIdentityFromWalletResponse {
   // Fee of that payment, in duffs; "0" when the funding address already held a
   // deposit and this call paid nothing.
   coreFeeDuffs: string
+  // true when this call finished a registration an earlier one had left with its
+  // asset lock already on L1. Nothing was paid, and the identity was created
+  // with what that operation started with.
+  resumed: boolean
 }

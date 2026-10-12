@@ -190,6 +190,7 @@ export class TopUpIdentityHandler implements APIHandler {
         purpose: 'topUp',
         identityId: payload.identityId,
         platformAddress: null,
+        shieldedAddress: null,
         amountDuffs: lockedAmount.toString(),
         createdAt: Date.now()
       })

@@ -16,6 +16,7 @@ const XPUB = 'tpubAccountXpub'
 describe('FundPlatformAddressFromWalletHandler', () => {
   let walletRepository: any
   let assetLockFundingAddressesRepository: any
+  let pendingAssetLocksRepository: any
   let assetLockFunding: any
   let requestAssetLockFundingAddress: any
   let fundPlatformAddressFromCore: any
@@ -35,6 +36,7 @@ describe('FundPlatformAddressFromWalletHandler', () => {
       getCoreAccountXpub: jest.fn(async () => XPUB)
     }
     assetLockFundingAddressesRepository = {}
+    pendingAssetLocksRepository = { getAll: jest.fn(async () => []) }
 
     assetLockFunding = {
       fundFromWallet: jest.fn(async () => ({
@@ -55,6 +57,7 @@ describe('FundPlatformAddressFromWalletHandler', () => {
     handler = new FundPlatformAddressFromWalletHandler(
       walletRepository,
       assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
       assetLockFunding,
       requestAssetLockFundingAddress,
       fundPlatformAddressFromCore,
@@ -87,15 +90,61 @@ describe('FundPlatformAddressFromWalletHandler', () => {
       assetLockTxid: 'c'.repeat(64),
       fundingAddress: FUNDING_ADDRESS,
       fundingTxid: 'b'.repeat(64),
-      coreFeeDuffs: '226'
+      coreFeeDuffs: '226',
+      resumed: false
     })
+  })
+
+  it('finishes an unfinished funding of this address instead of paying again', async () => {
+    pendingAssetLocksRepository.getAll.mockResolvedValue([{
+      assetLockTxid: 'd'.repeat(64),
+      fundingAddress: 'yEarlierAddress',
+      fundingTxid: 'e'.repeat(64),
+      purpose: 'fundAddress',
+      identityId: null,
+      platformAddress: PLATFORM_ADDRESS,
+      shieldedAddress: null,
+      amountDuffs: '99999000',
+      createdAt: 1000
+    }])
+
+    const response = await handle()
+
+    expect(requestAssetLockFundingAddress.handle).not.toHaveBeenCalled()
+    expect(assetLockFunding.fundFromWallet).not.toHaveBeenCalled()
+    expect(fundPlatformAddressFromCore.handle).toHaveBeenCalledWith(expect.objectContaining({
+      payload: expect.objectContaining({
+        assetLockFundingAddress: 'yEarlierAddress',
+        assetLockFundingTxid: 'e'.repeat(64)
+      })
+    }))
+    expect(response).toMatchObject({ resumed: true, coreFeeDuffs: '0' })
+  })
+
+  it('leaves an unfinished funding of another address alone', async () => {
+    pendingAssetLocksRepository.getAll.mockResolvedValue([{
+      assetLockTxid: 'd'.repeat(64),
+      fundingAddress: 'yEarlierAddress',
+      fundingTxid: 'e'.repeat(64),
+      purpose: 'fundAddress',
+      identityId: null,
+      platformAddress: 'tdash1someoneelse',
+      shieldedAddress: null,
+      amountDuffs: '99999000',
+      createdAt: 1000
+    }])
+
+    const response = await handle()
+
+    expect(assetLockFunding.fundFromWallet).toHaveBeenCalled()
+    expect(response.resumed).toBe(false)
   })
 
   it('asks for an address of its own purpose, not one a registration waits on', async () => {
     await handle()
 
     expect(requestAssetLockFundingAddress.handle).toHaveBeenCalledWith(expect.objectContaining({
-      payload: { purpose: 'fundAddress' }
+      payload: { purpose: 'fundAddress', recipient: PLATFORM_ADDRESS }
     }))
   })
 

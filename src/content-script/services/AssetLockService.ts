@@ -24,6 +24,9 @@ export interface CommitAssetLockParams {
   purpose: AssetLockFundingPurpose
   identityId: string | null
   platformAddress: string | null
+  // The shielded address a shield deposits into, or null for the wallet's own
+  // pool - which is also what a caller that is not shielding passes.
+  shieldedAddress?: string | null
   // Both scoped to the (network, wallet) the operation runs against.
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
   pendingAssetLocksRepository: PendingAssetLocksRepository
@@ -101,6 +104,7 @@ export class AssetLockService {
         purpose: params.purpose,
         identityId: params.identityId,
         platformAddress: params.platformAddress,
+        shieldedAddress: params.shieldedAddress ?? null,
         amountDuffs: lockedAmount.toString(),
         createdAt: Date.now()
       })

@@ -806,3 +806,55 @@ describe('IdentitiesRepository remove', () => {
     await expect(repo.remove('missing')).resolves.toBeUndefined()
   })
 })
+
+describe('AssetLockFundingAddressesRepository recipient reservation', () => {
+  const storageKey = 'assetLockFundingAddresses_testnet_wallet1'
+
+  let storage: TestStorageAdapter
+  let repository: AssetLockFundingAddressesRepository
+
+  const entry = (address: string, purpose: any, recipient?: string): any => ({
+    address, encryptedPrivateKey: 'k', used: false, purpose, ...(recipient != null ? { recipient } : {})
+  })
+
+  beforeEach(async () => {
+    storage = new TestStorageAdapter()
+    await storage.set('network', 'testnet')
+    await storage.set('currentWalletId', 'wallet1')
+    repository = new AssetLockFundingAddressesRepository(storage)
+  })
+
+  test('findUnused only offers an address reserved for the same recipient', async () => {
+    await storage.set(storageKey, {
+      theirs: entry('theirs', 'fundAddress', 'tdash1them'),
+      ours: entry('ours', 'fundAddress', 'tdash1us')
+    })
+
+    expect((await repository.findUnused('fundAddress', 'tdash1us'))?.address).toBe('ours')
+    expect(await repository.findUnused('fundAddress', 'tdash1nobody')).toBeNull()
+  })
+
+  test('findUnused still offers an address nobody claimed', async () => {
+    await storage.set(storageKey, { free: entry('free', 'shield') })
+
+    expect((await repository.findUnused('shield', 'tdashshielded1anyone'))?.address).toBe('free')
+  })
+
+  test('bindToRecipient claims a free address and is idempotent', async () => {
+    await storage.set(storageKey, { free: entry('free', 'shield') })
+
+    await repository.bindToRecipient('free', 'own')
+    await repository.bindToRecipient('free', 'own')
+
+    expect((await repository.getByAddress('free'))?.recipient).toBe('own')
+  })
+
+  test('bindToRecipient refuses to re-point an address at another recipient', async () => {
+    await storage.set(storageKey, { taken: entry('taken', 'fundAddress', 'tdash1them') })
+
+    await expect(repository.bindToRecipient('taken', 'tdash1us'))
+      .rejects.toThrow('is already reserved for tdash1them')
+
+    expect((await repository.getByAddress('taken'))?.recipient).toBe('tdash1them')
+  })
+})

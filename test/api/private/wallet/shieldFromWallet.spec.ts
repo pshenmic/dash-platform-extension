@@ -8,6 +8,7 @@ const XPUB = 'tpubAccountXpub'
 describe('ShieldFromWalletHandler', () => {
   let walletRepository: any
   let assetLockFundingAddressesRepository: any
+  let pendingAssetLocksRepository: any
   let assetLockFunding: any
   let requestAssetLockFundingAddress: any
   let shieldFromCore: any
@@ -36,6 +37,7 @@ describe('ShieldFromWalletHandler', () => {
       getCoreAccountXpub: jest.fn(async () => XPUB)
     }
     assetLockFundingAddressesRepository = {}
+    pendingAssetLocksRepository = { getAll: jest.fn(async () => []) }
 
     assetLockFunding = {
       fundFromWallet: jest.fn(async () => ({
@@ -51,6 +53,7 @@ describe('ShieldFromWalletHandler', () => {
     handler = new ShieldFromWalletHandler(
       walletRepository,
       assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
       assetLockFunding,
       requestAssetLockFundingAddress,
       shieldFromCore,
@@ -82,15 +85,63 @@ describe('ShieldFromWalletHandler', () => {
       ...shieldedResult,
       fundingAddress: FUNDING_ADDRESS,
       fundingTxid: 'b'.repeat(64),
-      coreFeeDuffs: '226'
+      coreFeeDuffs: '226',
+      resumed: false
     })
+  })
+
+  it('finishes an unfinished shield into the same pool instead of paying again', async () => {
+    pendingAssetLocksRepository.getAll.mockResolvedValue([{
+      assetLockTxid: 'd'.repeat(64),
+      fundingAddress: 'yEarlierAddress',
+      fundingTxid: 'e'.repeat(64),
+      purpose: 'shield',
+      identityId: null,
+      platformAddress: null,
+      shieldedAddress: null,
+      amountDuffs: '99999000',
+      createdAt: 1000
+    }])
+
+    const response = await handle()
+
+    expect(requestAssetLockFundingAddress.handle).not.toHaveBeenCalled()
+    expect(assetLockFunding.fundFromWallet).not.toHaveBeenCalled()
+    expect(response).toMatchObject({ resumed: true, coreFeeDuffs: '0', fundingAddress: 'yEarlierAddress' })
+  })
+
+  it('leaves an unfinished shield into another pool alone', async () => {
+    pendingAssetLocksRepository.getAll.mockResolvedValue([{
+      assetLockTxid: 'd'.repeat(64),
+      fundingAddress: 'yEarlierAddress',
+      fundingTxid: 'e'.repeat(64),
+      purpose: 'shield',
+      identityId: null,
+      platformAddress: null,
+      shieldedAddress: 'tdashshielded1someoneelse',
+      amountDuffs: '99999000',
+      createdAt: 1000
+    }])
+
+    const response = await handle()
+
+    expect(assetLockFunding.fundFromWallet).toHaveBeenCalled()
+    expect(response.resumed).toBe(false)
   })
 
   it('asks for a funding address of its own purpose', async () => {
     await handle()
 
     expect(requestAssetLockFundingAddress.handle).toHaveBeenCalledWith(expect.objectContaining({
-      payload: { purpose: 'shield' }
+      payload: { purpose: 'shield', recipient: 'own' }
+    }))
+  })
+
+  it('reserves the address for the pool it shields into', async () => {
+    await handle({ amountDuffs: '100000000', password: 'test', toShieldedAddress: 'tdashshielded1other' })
+
+    expect(requestAssetLockFundingAddress.handle).toHaveBeenCalledWith(expect.objectContaining({
+      payload: { purpose: 'shield', recipient: 'tdashshielded1other' }
     }))
   })
 

@@ -226,6 +226,7 @@ export class PrivateAPI {
       [MessagingMethods.REGISTER_IDENTITY_FROM_WALLET]: new RegisterIdentityFromWalletHandler(
         walletRepository,
         assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
         assetLockFunding,
         requestAssetLockFundingAddress,
         registerIdentity,
@@ -235,6 +236,7 @@ export class PrivateAPI {
       [MessagingMethods.TOP_UP_IDENTITY_FROM_WALLET]: new TopUpIdentityFromWalletHandler(
         walletRepository,
         assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
         assetLockFunding,
         requestTopUpFundingAddress,
         topUpIdentity,
@@ -266,6 +268,7 @@ export class PrivateAPI {
       [MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_WALLET]: new FundPlatformAddressFromWalletHandler(
         walletRepository,
         assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
         assetLockFunding,
         requestAssetLockFundingAddress,
         fundPlatformAddressFromCore,
@@ -284,6 +287,7 @@ export class PrivateAPI {
       [MessagingMethods.SHIELD_FROM_WALLET]: new ShieldFromWalletHandler(
         walletRepository,
         assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
         assetLockFunding,
         requestAssetLockFundingAddress,
         shieldFromCore,
