@@ -72,6 +72,7 @@ import { SendPlatformTransferHandler } from './private/wallet/sendPlatformTransf
 import { IdentityCreditTransferToAddressesHandler } from './private/wallet/identityCreditTransferToAddresses'
 import { TopUpIdentityFromAddressHandler } from './private/wallet/topUpIdentityFromAddress'
 import { WithdrawPlatformAddressToCoreHandler } from './private/wallet/withdrawPlatformAddressToCore'
+import { EstimateWithdrawalFeeHandler } from './private/wallet/estimateWithdrawalFee'
 import { RegisterIdentityFromAddressHandler } from './private/wallet/registerIdentityFromAddress'
 import { FundPlatformAddressFromCoreHandler } from './private/wallet/fundPlatformAddressFromCore'
 import { FundPlatformAddressFromWalletHandler } from './private/wallet/fundPlatformAddressFromWallet'
@@ -245,6 +246,7 @@ export class PrivateAPI {
       [MessagingMethods.IDENTITY_CREDIT_TRANSFER_TO_ADDRESSES]: new IdentityCreditTransferToAddressesHandler(walletRepository, identitiesRepository, keypairRepository, this.sdk),
       [MessagingMethods.TOP_UP_IDENTITY_FROM_ADDRESS]: new TopUpIdentityFromAddressHandler(walletRepository, this.sdk),
       [MessagingMethods.WITHDRAW_PLATFORM_ADDRESS_TO_CORE]: new WithdrawPlatformAddressToCoreHandler(walletRepository, this.sdk),
+      [MessagingMethods.ESTIMATE_WITHDRAWAL_FEE]: new EstimateWithdrawalFeeHandler(walletRepository, this.sdk),
       [MessagingMethods.REGISTER_IDENTITY_FROM_ADDRESS]: new RegisterIdentityFromAddressHandler(walletRepository, identitiesRepository, this.sdk),
       [MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE]: fundPlatformAddressFromCore,
       [MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_WALLET]: new FundPlatformAddressFromWalletHandler(

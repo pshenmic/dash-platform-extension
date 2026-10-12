@@ -45,12 +45,17 @@ export interface PlatformSourceCandidate {
 
 // Picks the platform address to spend from: the explicit one if given, otherwise
 // the largest balance that covers amount + fee.
-export const selectPlatformSource = (candidates: PlatformSourceCandidate[], amountCredits: bigint, fromAddress?: string): PlatformSourceCandidate => {
+//
+// `feeCredits` is what this operation has to carry; the default is the flat
+// reserve an ordinary transfer uses. A withdrawal costs far more and passes its
+// own, otherwise an address that cannot pay would be chosen and Platform would
+// refuse the transition.
+export const selectPlatformSource = (candidates: PlatformSourceCandidate[], amountCredits: bigint, fromAddress?: string, feeCredits: bigint = TRANSFER_FEE_CREDITS): PlatformSourceCandidate => {
   if (amountCredits < MIN_OUTPUT_CREDITS) {
     throw new Error(`Minimum Platform transfer is ${MIN_OUTPUT_CREDITS.toString()} credits`)
   }
 
-  const required = amountCredits + TRANSFER_FEE_CREDITS
+  const required = amountCredits + feeCredits
 
   if (fromAddress != null) {
     const chosen = candidates.find(candidate => candidate.platformAddress === fromAddress)
