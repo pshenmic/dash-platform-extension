@@ -1,6 +1,7 @@
 import { PrivateKey } from 'dash-core-sdk'
 import { SendCoreTransferHandler } from '../../../../src/content-script/api/private/core/sendCoreTransfer'
 import { CoreUtxosService } from '../../../../src/content-script/services/CoreUtxosService'
+import { CoreSpendService } from '../../../../src/content-script/services/CoreSpendService'
 import { CoreAddressChain } from '../../../../src/types/enums/CoreAddressChain'
 import { deriveCoreAddressesFromXpub, deriveCoreAddressKeyAtIndex } from '../../../../src/utils/coreAddresses'
 import { deriveWalletHdKey } from '../../../../src/utils'
@@ -107,11 +108,12 @@ describe('SendCoreTransferHandler', () => {
     sdk = {}
     coreSDK = { broadcastTransaction: jest.fn(async () => ({ transactionId: 'broadcasted' })) }
 
-    // The real service over the mocked explorer: the send must pick from exactly
-    // the set the UTXO list and the balance report.
+    // The real services over the mocked explorer: the send must pick from
+    // exactly the set the UTXO list and the balance report.
     const coreUtxos = new CoreUtxosService(sdk, coreExplorer, corePendingSpendsRepository)
+    const coreSpend = new CoreSpendService(sdk, coreSDK, coreUtxos, corePendingSpendsRepository)
 
-    handler = new SendCoreTransferHandler(walletRepository, corePendingSpendsRepository, coreUtxos, sdk, coreSDK)
+    handler = new SendCoreTransferHandler(walletRepository, corePendingSpendsRepository, coreSpend, sdk)
   })
 
   it('spends the wallet outputs, signs and broadcasts the transaction', async () => {

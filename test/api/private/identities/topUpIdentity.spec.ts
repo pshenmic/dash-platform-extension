@@ -167,7 +167,8 @@ describe('TopUpIdentityHandler', () => {
     sdk = {
       getNetwork: jest.fn(() => 'testnet'),
       identities: {
-        createStateTransition: jest.fn(() => stateTransition)
+        createStateTransition: jest.fn(() => stateTransition),
+        getIdentityByIdentifier: jest.fn(async () => ({ id: identityId }))
       },
       stateTransitions: {
         broadcast: jest.fn(async () => {
@@ -222,7 +223,8 @@ describe('TopUpIdentityHandler', () => {
     expect(result).toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: '100000000'
+      topUpAmount: '100000000',
+      assetLockTxid
     })
 
     expect(buildAssetLockFromFundingTxMock).toHaveBeenCalledWith(
@@ -261,10 +263,23 @@ describe('TopUpIdentityHandler', () => {
     ])
   })
 
-  test('rejects identity that does not belong to the scoped wallet', async () => {
-    identitiesRepository.getByIdentifier.mockResolvedValueOnce(null)
+  // Credits can be sent to an identity this wallet does not own: the state
+  // transition is signed by the asset lock key, not by an identity key.
+  test('tops up an identity that does not belong to the scoped wallet', async () => {
+    identitiesRepository.getByIdentifier.mockResolvedValue(null)
 
-    await expect(handle()).rejects.toThrow(`Identity ${identityId} does not belong to wallet wallet1 on testnet`)
+    const response = await handle()
+
+    expect(sdk.identities.getIdentityByIdentifier).toHaveBeenCalledWith(identityId)
+    expect(response.identityId).toBe(identityId)
+    expect(sdk.stateTransitions.broadcast).toHaveBeenCalled()
+  })
+
+  test('rejects an identity that is not on Platform', async () => {
+    identitiesRepository.getByIdentifier.mockResolvedValue(null)
+    sdk.identities.getIdentityByIdentifier.mockRejectedValue(new Error('not found'))
+
+    await expect(handle()).rejects.toThrow(`Identity ${identityId} does not exist on testnet`)
 
     expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
@@ -329,7 +344,8 @@ describe('TopUpIdentityHandler', () => {
     await expect(handle()).resolves.toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: '100000000'
+      topUpAmount: '100000000',
+      assetLockTxid
     })
   })
 
@@ -338,7 +354,8 @@ describe('TopUpIdentityHandler', () => {
     await expect(handle()).resolves.toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: '100000000'
+      topUpAmount: '100000000',
+      assetLockTxid
     })
   })
 
@@ -380,7 +397,8 @@ describe('TopUpIdentityHandler', () => {
     expect(result).toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: '100000000'
+      topUpAmount: '100000000',
+      assetLockTxid
     })
     expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
   })
@@ -395,7 +413,8 @@ describe('TopUpIdentityHandler', () => {
     expect(result).toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: '100000000'
+      topUpAmount: '100000000',
+      assetLockTxid
     })
     expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
     expect(sdk.stateTransitions.waitForStateTransitionResult).not.toHaveBeenCalled()
@@ -693,6 +712,63 @@ describe('AssetLockFundingAddressesRepository identity reservation', () => {
 
   test('bindToIdentity fails for a missing entry', async () => {
     await expect(repository.bindToIdentity('missing', 'identityA')).rejects.toThrow('not found')
+  })
+})
+
+describe('AssetLockFundingAddressesRepository own payment record', () => {
+  const storageKey = 'assetLockFundingAddresses_testnet_wallet1'
+  const fundingTxid = 'b'.repeat(64)
+
+  let storage: TestStorageAdapter
+  let repository: AssetLockFundingAddressesRepository
+
+  const entry = (extra: Record<string, any> = {}): any => ({
+    address: 'mine', encryptedPrivateKey: 'k', used: false, ...extra
+  })
+
+  beforeEach(async () => {
+    storage = new TestStorageAdapter()
+    await storage.set('network', 'testnet')
+    await storage.set('currentWalletId', 'wallet1')
+    repository = new AssetLockFundingAddressesRepository(storage)
+  })
+
+  test('markAsFunded records the transaction that paid the address', async () => {
+    await storage.set(storageKey, { mine: entry() })
+
+    await repository.markAsFunded('mine', fundingTxid)
+
+    expect((await repository.getByAddress('mine'))?.fundingTxid).toBe(fundingTxid)
+  })
+
+  test('markAsFunded is idempotent for the same transaction', async () => {
+    await storage.set(storageKey, { mine: entry({ fundingTxid }) })
+
+    await expect(repository.markAsFunded('mine', fundingTxid)).resolves.toBeUndefined()
+  })
+
+  test('markAsFunded refuses a second, different payment', async () => {
+    await storage.set(storageKey, { mine: entry({ fundingTxid }) })
+
+    await expect(repository.markAsFunded('mine', 'c'.repeat(64)))
+      .rejects.toThrow(`is already funded by transaction ${fundingTxid}`)
+
+    expect((await repository.getByAddress('mine'))?.fundingTxid).toBe(fundingTxid)
+  })
+
+  test('markAsFunded fails for a used or missing entry', async () => {
+    await storage.set(storageKey, { mine: entry({ used: true }) })
+
+    await expect(repository.markAsFunded('mine', fundingTxid)).rejects.toThrow('has already been used')
+    await expect(repository.markAsFunded('missing', fundingTxid)).rejects.toThrow('not found')
+  })
+
+  test('markAsUsed preserves the recorded payment', async () => {
+    await storage.set(storageKey, { mine: entry({ fundingTxid }) })
+
+    await repository.markAsUsed('mine')
+
+    expect(await repository.getByAddress('mine')).toEqual(entry({ fundingTxid, used: true }))
   })
 })
 

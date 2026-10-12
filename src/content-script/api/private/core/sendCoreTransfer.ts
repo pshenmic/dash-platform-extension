@@ -1,14 +1,10 @@
-import { DashCoreSDK, PrivateKey } from 'dash-core-sdk'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
-import { CoreUtxosService } from '../../../services/CoreUtxosService'
+import { CoreSpendService } from '../../../services/CoreSpendService'
 import { CorePendingSpendsRepository } from '../../../repository/CorePendingSpendsRepository'
-import { CoreAddressChain } from '../../../../types/enums/CoreAddressChain'
-import { CoreAddressEntry, deriveCoreAddressesFromXpub, deriveCoreAddressKeyAtIndex } from '../../../../utils/coreAddresses'
-import { buildCoreTransfer, selectCoreUtxos } from '../../../../utils/coreTransfer'
-import { deriveWalletHdKey, validateCoreAddress } from '../../../../utils'
+import { validateCoreAddress } from '../../../../utils'
 import { SendCoreTransferPayload } from '../../../../types/messages/payloads/SendCoreTransferPayload'
 import { SendCoreTransferResponse } from '../../../../types/messages/response/SendCoreTransferResponse'
 
@@ -24,16 +20,14 @@ import { SendCoreTransferResponse } from '../../../../types/messages/response/Se
 export class SendCoreTransferHandler implements APIHandler {
   walletRepository: WalletRepository
   corePendingSpendsRepository: CorePendingSpendsRepository
-  coreUtxos: CoreUtxosService
+  coreSpend: CoreSpendService
   sdk: DashPlatformSDK
-  coreSDK: DashCoreSDK
 
-  constructor (walletRepository: WalletRepository, corePendingSpendsRepository: CorePendingSpendsRepository, coreUtxos: CoreUtxosService, sdk: DashPlatformSDK, coreSDK: DashCoreSDK) {
+  constructor (walletRepository: WalletRepository, corePendingSpendsRepository: CorePendingSpendsRepository, coreSpend: CoreSpendService, sdk: DashPlatformSDK) {
     this.walletRepository = walletRepository
     this.corePendingSpendsRepository = corePendingSpendsRepository
-    this.coreUtxos = coreUtxos
+    this.coreSpend = coreSpend
     this.sdk = sdk
-    this.coreSDK = coreSDK
   }
 
   async handle (event: EventData): Promise<SendCoreTransferResponse> {
@@ -51,8 +45,6 @@ export class SendCoreTransferHandler implements APIHandler {
     }
 
     const account = 0
-    const amountDuffs = BigInt(payload.amountDuffs)
-
     const xpub = await this.walletRepository.getCoreAccountXpub(account)
 
     if (xpub == null) {
@@ -61,90 +53,27 @@ export class SendCoreTransferHandler implements APIHandler {
       throw new Error('Core xpub is not initialized. Call INIT_ACCOUNT_XPUBS with the wallet password after unlocking')
     }
 
-    const fromAddress = payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
-
-    // The same read ListCoreUtxos and the balance use: the explorer's set with
-    // the outputs a just-broadcast send of ours consumed taken out and the change
-    // it paid us put in. Without it two sends in a row pick the same inputs and
-    // the second is rejected as a double spend.
-    const { utxos: spendable, owned, nextUnused, resolvedTxids } = await this.coreUtxos.spendable(
-      wallet, xpub, account, fromAddress != null ? [fromAddress] : undefined
-    )
-
-    await this.corePendingSpendsRepository.remove(resolvedTxids)
-
-    if (spendable.length === 0) {
-      throw new Error(fromAddress != null
-        ? `Core address ${fromAddress} has no unspent outputs`
-        : 'This wallet has no unspent Core outputs to spend')
-    }
-
-    const selection = selectCoreUtxos(spendable, amountDuffs)
-
-    // Change goes to the next free address on the internal chain. Two sends in a
-    // row can reuse it: the explorer only lists mined outputs, so the first
-    // change output is invisible until it is in a block.
-    const [changeEntry] = deriveCoreAddressesFromXpub(
-      this.sdk, xpub, wallet.network, account, CoreAddressChain.change, 1, nextUnused.change
-    )
-
-    const transaction = buildCoreTransfer(
-      selection.inputs, payload.toAddress, amountDuffs, changeEntry.address, selection.change, wallet.network
-    )
-
-    // One decryption of the seed for the whole transaction, then one key per
-    // input in the order Transaction.sign expects.
-    const walletHdKey = deriveWalletHdKey(wallet, payload.password, this.sdk)
-    const privateKeys: PrivateKey[] = []
-
-    for (const utxo of selection.inputs) {
-      const entry = owned.get(utxo.address) as CoreAddressEntry
-      const privateKey = await deriveCoreAddressKeyAtIndex(
-        walletHdKey, wallet.network, account, entry.chain, entry.index, this.sdk
-      )
-
-      // The xpub the address was listed from and the seed signing for it must
-      // agree. If they do not, the signature is invalid and the inputs are spent
-      // on a transaction nobody will relay — so refuse before broadcasting.
-      if (privateKey.getAddress() !== utxo.address) {
-        throw new Error(`Derived key does not match Core address ${utxo.address}: the stored xpub and the wallet seed disagree`)
-      }
-
-      privateKeys.push(privateKey)
-    }
-
-    transaction.sign(privateKeys)
-
-    const txid = transaction.hash()
-
-    await this.coreSDK.broadcastTransaction(transaction.bytes())
-
-    // buildCoreTransfer puts the change last, so it is the final output whenever
-    // there is one at all.
-    await this.corePendingSpendsRepository.record({
-      txid,
-      spentOutpoints: selection.inputs.map(utxo => `${utxo.txid}:${utxo.vout}`),
-      ...(selection.change > 0n
-        ? {
-            change: {
-              txid,
-              vout: transaction.outputs.length - 1,
-              amount: selection.change.toString(),
-              address: changeEntry.address
-            }
-          }
-        : {}),
-      broadcastedAt: Date.now()
+    const prepared = await this.coreSpend.prepare({
+      wallet,
+      xpub,
+      account,
+      toAddress: payload.toAddress,
+      amountDuffs: BigInt(payload.amountDuffs),
+      password: payload.password,
+      fromAddress: payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
     })
 
+    await this.corePendingSpendsRepository.remove(prepared.resolvedTxids)
+    await this.coreSpend.broadcast(prepared)
+
     return {
-      txid,
-      amountDuffs: amountDuffs.toString(),
-      feeDuffs: selection.fee.toString(),
-      changeDuffs: selection.change.toString(),
+      txid: prepared.txid,
+      amountDuffs: prepared.amountDuffs.toString(),
+      feeDuffs: prepared.feeDuffs.toString(),
+      changeDuffs: prepared.changeDuffs.toString(),
       toAddress: payload.toAddress,
-      changeAddress: selection.change > 0n ? changeEntry.address : null,
-      fromAddresses: [...new Set(selection.inputs.map(utxo => utxo.address))]
+      changeAddress: prepared.changeAddress,
+      fromAddresses: prepared.fromAddresses
     }
   }
 
