@@ -11,7 +11,11 @@ import { GetCoreTransactionsResponse } from './messages/response/GetCoreTransact
 import { InitAccountXpubsPayload } from './messages/payloads/InitAccountXpubsPayload'
 import { InitAccountXpubsResponse } from './messages/response/InitAccountXpubsResponse'
 import { SendCoreTransferPayload } from './messages/payloads/SendCoreTransferPayload'
+import { SendCoreTransactionPayload } from './messages/payloads/SendCoreTransactionPayload'
+import { EstimateCoreTransferPayload } from './messages/payloads/EstimateCoreTransferPayload'
 import { SendCoreTransferResponse } from './messages/response/SendCoreTransferResponse'
+import { SendCoreTransactionResponse } from './messages/response/SendCoreTransactionResponse'
+import { EstimateCoreTransferResponse } from './messages/response/EstimateCoreTransferResponse'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -532,6 +536,22 @@ export class PrivateAPIClient {
     const payload: SendCoreTransferPayload = { toAddress, amountDuffs, password, fromAddress }
 
     return await this._rpcCall(MessagingMethods.SEND_CORE_TRANSFER, payload)
+  }
+
+  // One Core transaction paying several recipients, optionally out of outputs
+  // the caller picked (from listCoreUtxos) and with change to an address of this
+  // wallet. The general form of sendCoreTransfer.
+  async sendCoreTransaction (params: Omit<SendCoreTransactionPayload, 'password'>, password: string): Promise<SendCoreTransactionResponse> {
+    const payload: SendCoreTransactionPayload = { ...params, password }
+
+    return await this._rpcCall(MessagingMethods.SEND_CORE_TRANSACTION, payload)
+  }
+
+  // What a Core payment would cost before it is signed: its inputs, its fee, its
+  // change and the most those inputs can pay out. Runs the same coin selection
+  // the send runs, and needs no password.
+  async estimateCoreTransfer (params: EstimateCoreTransferPayload): Promise<EstimateCoreTransferResponse> {
+    return await this._rpcCall(MessagingMethods.ESTIMATE_CORE_TRANSFER, params)
   }
 
   async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {

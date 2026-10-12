@@ -57,8 +57,7 @@ export class SendCoreTransferHandler implements APIHandler {
       wallet,
       xpub,
       account,
-      toAddress: payload.toAddress,
-      amountDuffs: BigInt(payload.amountDuffs),
+      outputs: [{ address: payload.toAddress, amountDuffs: BigInt(payload.amountDuffs) }],
       password: payload.password,
       fromAddress: payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
     })
