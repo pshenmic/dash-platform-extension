@@ -1,4 +1,4 @@
-import { resolveDirection, runsOnMock } from './resolveDirection'
+import { resolveDirection } from './resolveDirection'
 import { DIRECTION_DETAILS, FEE_PLACEHOLDER } from './directionConfig'
 import { ENDPOINT_TYPE_ORDER, fallbackTargetType } from '../../../../utils'
 import type { TransferCapabilities } from '../../../../utils'
@@ -108,10 +108,10 @@ describe('DIRECTION_DETAILS', () => {
     }
   })
 
-  it('enables advanced only for core -> core and address -> address', () => {
+  it('enables advanced only for core -> core', () => {
     const advanced = Object.entries(DIRECTION_DETAILS).filter(([, details]) => details?.advanced).map(([direction]) => direction)
 
-    expect(advanced.sort()).toEqual(['core->core', 'platformAddress->platformAddress'])
+    expect(advanced).toEqual(['core->core'])
   })
 
   it('shows Progress for asset lock and withdrawal directions', () => {
@@ -128,25 +128,5 @@ describe('DIRECTION_DETAILS', () => {
 
     expect(text).toContain(FEE_PLACEHOLDER)
     expect(text).not.toContain('400,000,000')
-  })
-})
-
-describe('runsOnMock', () => {
-  const config = (from: EndpointType, to: EndpointType): NonNullable<ReturnType<typeof resolveDirection> & { supported: true }>['config'] => {
-    const result = resolveDirection(from, to, DASH, SEED)
-    if (!result.supported) throw new Error('unsupported')
-    return result.config
-  }
-
-  it('uses the real API for Simple transfers and Advanced Core -> Core', () => {
-    expect(runsOnMock(config('core', 'core'), false)).toBe(false)
-    expect(runsOnMock(config('core', 'identity'), false)).toBe(false)
-    expect(runsOnMock(config('core', 'shielded'), false)).toBe(false)
-    expect(runsOnMock(config('platformAddress', 'platformAddress'), false)).toBe(false)
-    expect(runsOnMock(config('core', 'core'), true)).toBe(false)
-  })
-
-  it('switches to the mock for Advanced Address -> Address', () => {
-    expect(runsOnMock(config('platformAddress', 'platformAddress'), true)).toBe(true)
   })
 })

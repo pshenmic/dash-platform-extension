@@ -68,9 +68,6 @@ export const ALREADY_PAID_LABEL = 'Already paid'
 
 export const PREPAID_TOP_UP_MESSAGE = 'Finishes a top up paid earlier. No new payment.'
 
-// Warning on directions that still run on mocked backend methods.
-export const MOCK_TRANSFER_WARNING = 'Preview: this transfer runs on a test mock and does not move any funds yet.'
-
 // Retry of a shielding from Core whose asset lock is already on L1: repeating it would pay again.
 export const SHIELD_NOT_RESUMABLE_MESSAGE = 'This shielding was already paid on L1 and cannot be resumed yet. Retrying would pay again.'
 

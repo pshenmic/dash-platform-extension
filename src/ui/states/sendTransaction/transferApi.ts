@@ -9,7 +9,6 @@ import type { NetworkType, PrivateAPIClient } from '../../../types'
 import type { ShieldedSpendKind } from '../../../types/ShieldedSpendKind'
 import type { PendingAssetLock } from '../../../types/messages/response/ListPendingAssetLocksResponse'
 import { trackShieldedSync } from '../../utils/shieldedSync'
-import * as mock from './mocks/transferApiMock'
 
 export interface TransferTxResult {
   txHash: string
@@ -61,7 +60,7 @@ const signAndBroadcast = async (
   return { txHash }
 }
 
-// Single entry point of the send wizard for transfer API calls, real or mocked.
+// Single entry point of the send wizard for transfer API calls.
 export class TransferApi {
   constructor (private readonly sdk: DashPlatformSDK, private readonly extensionAPI: PrivateAPIClient) {}
 
@@ -187,8 +186,6 @@ export class TransferApi {
   async syncShieldedNotes (password: string, walletId?: string, network?: NetworkType): Promise<void> {
     await trackShieldedSync(this.extensionAPI.syncShieldedNotes(password, undefined, walletId, network))
   }
-
-  readonly sendPlatformTransferFromInputs = mock.sendPlatformTransfer
 }
 
 // Transfer API bound to the current SDK and extension client.

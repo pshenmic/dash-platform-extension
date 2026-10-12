@@ -12,7 +12,7 @@ import type { TransferCapabilities, UnfinishedTopUp } from '../../../utils'
 import type { AddressData } from '../../components/addresses/types'
 import { resolveEntryDefaults } from './entry/resolveEntryDefaults'
 import type { EntryDefaults } from './entry/resolveEntryDefaults'
-import { resolveDirection, runsOnMock } from './directions/resolveDirection'
+import { resolveDirection } from './directions/resolveDirection'
 import { useTransferDraft } from './hooks/useTransferDraft'
 import { useSendScreenData } from './hooks/useSendScreenData'
 import { useShieldedBalance } from './hooks/useShieldedBalance'
@@ -323,7 +323,6 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           balance={balance}
           fee={fee}
           received={received}
-          isMock={runsOnMock(config, draft.isAdvanced)}
           isPrepaid={isResumingFunding}
           rate={rate}
           isSubmitting={isChecking || operationState.status === 'running'}

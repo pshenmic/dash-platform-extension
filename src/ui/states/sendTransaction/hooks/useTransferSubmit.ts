@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { CORE_DASH_DECIMALS, parseDashAmount, PLATFORM_DASH_DECIMALS } from '../../../../utils'
+import { CORE_DASH_DECIMALS, parseDashAmount } from '../../../../utils'
 import { SHIELDED_MODES } from '../types'
 import type { NetworkType } from '../../../../types'
 import type { CoreFundingResult, CorePaymentResult, TransferApi } from '../transferApi'
@@ -52,24 +52,11 @@ interface TransferContext {
   network: NetworkType
 }
 
-// Sends one transfer to every Advanced recipient; the platform address one is a mock.
-const startAdvancedTransfer = async ({ api, mode, draft, amount, sourceAddress, password }: TransferContext): Promise<TransferResult> => {
-  const decimals = mode === 'coreSend' ? CORE_DASH_DECIMALS : PLATFORM_DASH_DECIMALS
-  const amounts = draft.recipients.map(recipient => ({ address: recipient.address, amount: parseDashAmount(recipient.amount, decimals) ?? 0n }))
-
-  if (mode === 'coreSend') {
-    const outputs = amounts.map(output => ({ address: output.address, amountDuffs: output.amount }))
-    return await corePayment(api.sendCoreTransaction(outputs, password, draft.changeAddress ?? undefined))
-  }
-
-  if (mode === 'send') {
-    if (sourceAddress == null) throw new Error('No platform address holds enough funds')
-    const inputs = [{ address: sourceAddress, amount: amount.toString() }]
-    const outputs = amounts.map(output => ({ address: output.address, amount: output.amount.toString() }))
-    return await done(api.sendPlatformTransferFromInputs({ inputs, outputs }, password).then(({ stHash }) => ({ txHash: stHash })))
-  }
-
-  throw new Error('Several recipients are not supported for this transfer')
+// Sends one Core transaction to every Advanced recipient.
+const startAdvancedTransfer = async ({ api, mode, draft, password }: TransferContext): Promise<TransferResult> => {
+  if (mode !== 'coreSend') throw new Error('Several recipients are not supported for this transfer')
+  const outputs = draft.recipients.map(recipient => ({ address: recipient.address, amountDuffs: parseDashAmount(recipient.amount, CORE_DASH_DECIMALS) ?? 0n }))
+  return await corePayment(api.sendCoreTransaction(outputs, password, draft.changeAddress ?? undefined))
 }
 
 // Starts the API call of the resolved transfer mode, or locks the earlier payment of `resume`.
