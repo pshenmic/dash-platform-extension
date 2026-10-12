@@ -47,7 +47,9 @@ import { IdentityCreditTransferToAddressesResponse } from './messages/response/I
 import { TopUpIdentityFromAddressPayload } from './messages/payloads/TopUpIdentityFromAddressPayload'
 import { TopUpIdentityFromAddressResponse } from './messages/response/TopUpIdentityFromAddressResponse'
 import { WithdrawPlatformAddressToCorePayload } from './messages/payloads/WithdrawPlatformAddressToCorePayload'
+import { EstimateWithdrawalFeePayload } from './messages/payloads/EstimateWithdrawalFeePayload'
 import { WithdrawPlatformAddressToCoreResponse } from './messages/response/WithdrawPlatformAddressToCoreResponse'
+import { EstimateWithdrawalFeeResponse } from './messages/response/EstimateWithdrawalFeeResponse'
 import { RegisterIdentityFromAddressPayload } from './messages/payloads/RegisterIdentityFromAddressPayload'
 import { RegisterIdentityFromAddressResponse } from './messages/response/RegisterIdentityFromAddressResponse'
 import { FundPlatformAddressFromCorePayload } from './messages/payloads/FundPlatformAddressFromCorePayload'
@@ -512,6 +514,14 @@ export class PrivateAPIClient {
     const payload: TopUpIdentityFromAddressPayload = { identityId, amountCredits, password, fromAddress }
 
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_ADDRESS, payload)
+  }
+
+  // What a withdrawal to Core costs before it is signed: the fee Platform
+  // demands, the balance behind it and the amount window it accepts. Needs no
+  // password. A shielded withdrawal is priced by estimateShieldedFee with
+  // kind 'withdrawal' instead, since its fee depends on the notes it spends.
+  async estimateWithdrawalFee (params: EstimateWithdrawalFeePayload): Promise<EstimateWithdrawalFeeResponse> {
+    return await this._rpcCall(MessagingMethods.ESTIMATE_WITHDRAWAL_FEE, params)
   }
 
   async withdrawPlatformAddressToCore (toCoreAddress: string, amountCredits: string, password: string, fromAddress?: string): Promise<WithdrawPlatformAddressToCoreResponse> {
