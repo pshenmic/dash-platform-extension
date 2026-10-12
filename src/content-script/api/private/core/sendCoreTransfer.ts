@@ -3,12 +3,11 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
-import { CoreExplorerService } from '../../../services/CoreExplorerService'
+import { CoreUtxosService } from '../../../services/CoreUtxosService'
 import { CorePendingSpendsRepository } from '../../../repository/CorePendingSpendsRepository'
-import { NetworkType } from '../../../../types/PlatformExplorer'
 import { CoreAddressChain } from '../../../../types/enums/CoreAddressChain'
 import { CoreAddressEntry, deriveCoreAddressesFromXpub, deriveCoreAddressKeyAtIndex } from '../../../../utils/coreAddresses'
-import { buildCoreTransfer, reconcilePendingSpends, selectCoreUtxos } from '../../../../utils/coreTransfer'
+import { buildCoreTransfer, selectCoreUtxos } from '../../../../utils/coreTransfer'
 import { deriveWalletHdKey, validateCoreAddress } from '../../../../utils'
 import { SendCoreTransferPayload } from '../../../../types/messages/payloads/SendCoreTransferPayload'
 import { SendCoreTransferResponse } from '../../../../types/messages/response/SendCoreTransferResponse'
@@ -25,14 +24,14 @@ import { SendCoreTransferResponse } from '../../../../types/messages/response/Se
 export class SendCoreTransferHandler implements APIHandler {
   walletRepository: WalletRepository
   corePendingSpendsRepository: CorePendingSpendsRepository
-  coreExplorer: CoreExplorerService
+  coreUtxos: CoreUtxosService
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
 
-  constructor (walletRepository: WalletRepository, corePendingSpendsRepository: CorePendingSpendsRepository, coreExplorer: CoreExplorerService, sdk: DashPlatformSDK, coreSDK: DashCoreSDK) {
+  constructor (walletRepository: WalletRepository, corePendingSpendsRepository: CorePendingSpendsRepository, coreUtxos: CoreUtxosService, sdk: DashPlatformSDK, coreSDK: DashCoreSDK) {
     this.walletRepository = walletRepository
     this.corePendingSpendsRepository = corePendingSpendsRepository
-    this.coreExplorer = coreExplorer
+    this.coreUtxos = coreUtxos
     this.sdk = sdk
     this.coreSDK = coreSDK
   }
@@ -62,46 +61,17 @@ export class SendCoreTransferHandler implements APIHandler {
       throw new Error('Core xpub is not initialized. Call INIT_ACCOUNT_XPUBS with the wallet password after unlocking')
     }
 
-    const { nextUnused } = await this.coreExplorer.getXpubSummary(xpub, wallet.network as NetworkType)
-
-    // Every address the explorer has seen on either chain, plus the next free
-    // one — the same extent ListCoreAddresses reports, so what the user sees as
-    // their addresses is exactly what can be spent from here.
-    const owned = new Map<string, CoreAddressEntry>()
-
-    for (const chain of [CoreAddressChain.receiving, CoreAddressChain.change]) {
-      const entries = deriveCoreAddressesFromXpub(
-        this.sdk, xpub, wallet.network, account, chain, nextUnused[chain] + 1
-      )
-
-      for (const entry of entries) {
-        owned.set(entry.address, entry)
-      }
-    }
-
     const fromAddress = payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
 
-    if (fromAddress != null && !owned.has(fromAddress)) {
-      throw new Error('Source address not found in this wallet')
-    }
-
-    const sourceAddresses = fromAddress != null ? [fromAddress] : [...owned.keys()]
-    const utxos = await this.coreExplorer.getAddressesUtxos(sourceAddresses, wallet.network as NetworkType)
-
-    // The explorer only sees mined transactions, so a send made minutes ago is
-    // missing from its view: it still offers the inputs that send consumed, and
-    // hides the change it produced. Correct both from what we recorded locally,
-    // otherwise two sends in a row pick the same inputs and the second is
-    // rejected as a double spend.
-    const pending = await this.corePendingSpendsRepository.getAll()
-    const { candidates, resolvedTxids } = reconcilePendingSpends(utxos, pending, Date.now())
+    // The same read ListCoreUtxos and the balance use: the explorer's set with
+    // the outputs a just-broadcast send of ours consumed taken out and the change
+    // it paid us put in. Without it two sends in a row pick the same inputs and
+    // the second is rejected as a double spend.
+    const { utxos: spendable, owned, nextUnused, resolvedTxids } = await this.coreUtxos.spendable(
+      wallet, xpub, account, fromAddress != null ? [fromAddress] : undefined
+    )
 
     await this.corePendingSpendsRepository.remove(resolvedTxids)
-
-    // An entry the explorer could not attribute to one of the addresses we asked
-    // about has no key to sign it, and must not reach coin selection.
-    const sourceSet = new Set(sourceAddresses)
-    const spendable = candidates.filter(utxo => sourceSet.has(utxo.address))
 
     if (spendable.length === 0) {
       throw new Error(fromAddress != null
