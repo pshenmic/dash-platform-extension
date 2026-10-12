@@ -2,7 +2,7 @@ import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { BalanceCard } from '../../../../components/cards'
 import { endpointLayer } from '../../../../components/controls'
-import { dashAmountToUsd, formatDashAmount } from '../../../../../utils'
+import { dashAmountToUsd, feeOnLayer, formatDashAmount } from '../../../../../utils'
 import type { EndpointType } from '../../types'
 import type { SourceBalance } from '../../hooks/useSourceBalance'
 import type { TransferFee } from '../../hooks/useTransferFee'
@@ -19,7 +19,7 @@ interface AdvancedSummaryProps {
 // Balance and Transaction Summary cards under the From / To card in Advanced mode.
 export function AdvancedSummary ({ fromType, balance, recipientsTotal, fee, rate, error }: AdvancedSummaryProps): React.JSX.Element {
   const { decimals } = balance
-  const feeAmount = fee != null && fee.decimals === decimals ? fee.amount : 0n
+  const feeAmount = feeOnLayer(fee, decimals)
 
   return (
     <div className='flex flex-col gap-2.5'>

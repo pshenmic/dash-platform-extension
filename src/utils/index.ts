@@ -31,16 +31,18 @@ export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedIdentityT
 export type { PlatformSourceCandidate } from './platformTransfer'
 export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, maxShieldedSpend } from './shieldedFee'
 export type { ShieldedNoteSelection, ShieldedSpendEstimate } from './shieldedFee'
-export { ENDPOINT_TYPE_ORDER, toDirection, getSourceUnavailableReason, resolveTransferPair, fallbackTargetType } from './transferDirection'
-export type { TransferCapabilities, TransferUnavailableReason, TransferPairResolution } from './transferDirection'
+export { ENDPOINT_TYPE_ORDER, getSourceUnavailableReason, resolveTransferPair, fallbackTargetType, canShieldToOthers, isShieldToMyself } from './transferDirection'
+export type { TransferCapabilities, TransferUnavailableReason } from './transferDirection'
 export { formatDateTime } from './datetime'
-export { checkRecipients } from './transferRecipients'
+export { checkRecipients, coreRecipientOutputs } from './transferRecipients'
 export type { RecipientsCheck } from './transferRecipients'
 export { coreMaxForOutputs, extraCoreOutputsFee } from './coreSendMax'
 export { findUnfinishedTopUp, hasPendingShield, unfinishedTopUps } from './unfinishedTopUps'
 export type { UnfinishedTopUp } from './unfinishedTopUps'
-export { CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS, endpointDashDecimals, isDashInputAllowed, parseDashAmount, formatDashAmount, dashAmountToUsd, transferAmountLimits, validateTransferAmount, usdToDashAmount } from './transferAmount'
+export { CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS, endpointDashDecimals, isDashInputAllowed, parseDashAmount, formatDashAmount, dashAmountToUsd, transferAmountLimits, validateTransferAmount, usdToDashAmount, isAssetLockMode, assetLockReceived, assetLockPayment, feeOnLayer } from './transferAmount'
 export type { TransferAmountLimits } from './transferAmount'
+export { transferAmountInput, validateTransfer } from './transferValidation'
+export type { TransferAmountInput, TransferValidation } from './transferValidation'
 
 export const hexToBytes = (hex: string): Uint8Array => {
   return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))

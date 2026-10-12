@@ -13,7 +13,7 @@ interface WizardHeaderProps {
   onAdvancedChange: (value: boolean) => void
 }
 
-const VIEW_OPTIONS = (advancedAvailable: boolean): Array<{ label: string, value: TransferView, disabled?: boolean }> => [
+const viewOptions = (advancedAvailable: boolean): Array<{ label: string, value: TransferView, disabled?: boolean }> => [
   { label: 'Simple', value: 'simple' },
   { label: 'Advanced', value: 'advanced', disabled: !advancedAvailable }
 ]
@@ -35,7 +35,7 @@ export function WizardHeader ({ activeStep, isAdvanced, advancedAvailable, onAdv
           Send
         </Text>
         <Switch<TransferView>
-          options={VIEW_OPTIONS(advancedAvailable)}
+          options={viewOptions(advancedAvailable)}
           value={isAdvanced ? 'advanced' : 'simple'}
           onChange={(view) => onAdvancedChange(view === 'advanced')}
           size='sm'

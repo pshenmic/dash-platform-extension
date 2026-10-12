@@ -3,7 +3,7 @@ import { Accordion, Button, Text } from 'dash-ui-kit/react'
 import { ResultHeader } from '../../../components/layout/ResultHeader'
 import { SummaryRow } from '../../../components/cards'
 import { TransactionHashBlock } from '../../../components/transactions'
-import { dashAmountToUsd, formatDashAmount, getCoreTransactionExplorerUrl } from '../../../../utils'
+import { canShieldToOthers, dashAmountToUsd, formatDashAmount, getCoreTransactionExplorerUrl, isShieldToMyself } from '../../../../utils'
 import type { NetworkType } from '../../../../types'
 import { transferErrorMessage } from '../constants'
 import { SENT_TO_SHIELDED_ADDRESS } from '../directions/directionConfig'
@@ -13,7 +13,6 @@ import type { TransferFee } from '../hooks/useTransferFee'
 import type { TransferHashes } from '../hooks/useTransferOperation'
 import type { TransferDraft } from '../types'
 import { TransferDetails } from './TransferDetails'
-import { canShieldToOthers, isShieldToMyself } from './FromToStep/RecipientRow'
 
 export type TransferOutcome =
   | { type: 'success', hashes: TransferHashes, fee?: TransferFee, prepaid?: boolean }
@@ -35,14 +34,14 @@ interface ResultStepProps {
   onRetry?: () => void
 }
 
-const hashLabel = (hashType: HashType, draft: TransferDraft): string =>
-  hashType === 'single' && draft.from.type === 'core' ? 'Transaction ID:' : HASH_LABELS[hashType]
-
 const HASH_LABELS: Record<HashType, string> = {
   single: 'Transaction Hash:',
   core: 'Core TX Hash:',
   platform: 'Platform TX Hash:'
 }
+
+const hashLabel = (hashType: HashType, draft: TransferDraft): string =>
+  hashType === 'single' && draft.from.type === 'core' ? 'Transaction ID:' : HASH_LABELS[hashType]
 
 // Final screen of the send wizard for a successful or failed transfer.
 export function ResultStep ({ outcome, draft, config, amount, balance, fee, isPrepaid, received, rate, network, onDone, onRetry }: ResultStepProps): React.JSX.Element {

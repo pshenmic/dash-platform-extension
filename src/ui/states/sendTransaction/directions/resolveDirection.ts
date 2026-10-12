@@ -18,5 +18,5 @@ export const resolveDirection = (from: EndpointType, to: EndpointType, asset: As
 
   if (details == null) return { supported: false, direction: pair.direction, reason: 'unsupportedPair' }
 
-  return { supported: true, direction: pair.direction, config: { ...details, supported: true, mode: pair.mode } }
+  return { supported: true, direction: pair.direction, config: { ...details, mode: pair.mode } }
 }

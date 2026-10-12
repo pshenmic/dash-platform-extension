@@ -1,4 +1,5 @@
-import { dashAmountToUsd, endpointDashDecimals, formatDashAmount, isDashInputAllowed, parseDashAmount, transferAmountLimits, validateTransferAmount, usdToDashAmount } from './transferAmount'
+import { assetLockPayment, assetLockReceived, dashAmountToUsd, endpointDashDecimals, feeOnLayer, formatDashAmount, isAssetLockMode, isDashInputAllowed, parseDashAmount, transferAmountLimits, validateTransferAmount, usdToDashAmount } from './transferAmount'
+import { MIN_FEE_RELAY } from '../constants'
 
 describe('transferAmount', () => {
   it('uses 8 decimals for Core and 11 for Platform', () => {
@@ -65,5 +66,24 @@ describe('transferAmount', () => {
     expect(usdToDashAmount('0.01', 20, 11)).toBe(50000000n)
     expect(usdToDashAmount('', 20, 8)).toBeNull()
     expect(usdToDashAmount('5', null, 8)).toBeNull()
+  })
+
+  it('tells the asset lock modes apart', () => {
+    expect(isAssetLockMode('coreTopUp')).toBe(true)
+    expect(isAssetLockMode('coreFund')).toBe(true)
+    expect(isAssetLockMode('coreShield')).toBe(true)
+    expect(isAssetLockMode('coreSend')).toBe(false)
+    expect(isAssetLockMode(null)).toBe(false)
+  })
+
+  it('keeps the relay fee on L1 between the payment and the lock', () => {
+    expect(assetLockReceived(100000n)).toBe(100000n - MIN_FEE_RELAY)
+    expect(assetLockPayment(100000n - MIN_FEE_RELAY)).toBe(100000n)
+  })
+
+  it('counts a fee only when it is paid in the same base units', () => {
+    expect(feeOnLayer({ amount: 226n, decimals: 8 }, 8)).toBe(226n)
+    expect(feeOnLayer({ amount: 226n, decimals: 8 }, 11)).toBe(0n)
+    expect(feeOnLayer(null, 8)).toBe(0n)
   })
 })

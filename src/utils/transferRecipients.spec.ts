@@ -1,4 +1,4 @@
-import { checkRecipients } from './transferRecipients'
+import { checkRecipients, coreRecipientOutputs } from './transferRecipients'
 
 describe('checkRecipients', () => {
   it('sums valid amounts and accepts a full list', () => {
@@ -30,5 +30,12 @@ describe('checkRecipients', () => {
   it('reports a duplicate address', () => {
     const result = checkRecipients([{ id: '1', address: 'a', amount: '1' }, { id: '2', address: 'a', amount: '1' }], 8, 547n)
     expect(result.errors).toEqual({ 1: 'This address is already a recipient.', 2: 'This address is already a recipient.' })
+  })
+
+  it('maps recipients to Core outputs in duffs, paying nothing for a bad amount', () => {
+    expect(coreRecipientOutputs([{ id: '1', address: 'a', amount: '1' }, { id: '2', address: 'b', amount: '' }])).toEqual([
+      { address: 'a', amountDuffs: 100000000n },
+      { address: 'b', amountDuffs: 0n }
+    ])
   })
 })

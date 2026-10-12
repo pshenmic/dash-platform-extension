@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { RecipientSearchInput } from '../../../../components/Identities'
 import type { NetworkType } from '../../../../../types'
+import { isShieldToMyself } from '../../../../../utils'
 import type { RecipientSearchResult, RecipientTargetType } from '../../../../../utils'
 import { RECIPIENT_PLACEHOLDERS } from '../../constants'
 import type { EndpointType, TransferDraft } from '../../types'
@@ -18,14 +19,6 @@ const ACCEPTED_TYPES: Record<EndpointType, RecipientTargetType> = {
   platformAddress: 'platformAddress',
   shielded: 'shieldAddress'
 }
-
-// Whether the sender can shield to a typed shielded address instead of its own balance.
-export const canShieldToOthers = (draft: TransferDraft): boolean =>
-  draft.to.type === 'shielded' && draft.from.type === 'core'
-
-// Whether the To side is the wallet's own shielded balance with no address to enter.
-export const isShieldToMyself = (draft: TransferDraft): boolean =>
-  draft.to.type === 'shielded' && draft.from.type !== 'shielded' && (!canShieldToOthers(draft) || draft.to.shieldToMyself)
 
 // Second row of the To card: recipient field matching the To type.
 export function RecipientRow ({ draft, excludeIdentifier, network, onRecipientChange }: RecipientRowProps): React.JSX.Element | null {

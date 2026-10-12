@@ -1,4 +1,4 @@
-import { formatDashAmount, parseDashAmount } from './transferAmount'
+import { CORE_DASH_DECIMALS, formatDashAmount, parseDashAmount } from './transferAmount'
 import type { TransferRecipient } from '../ui/states/sendTransaction/types'
 
 export interface RecipientsCheck {
@@ -26,3 +26,7 @@ export const checkRecipients = (recipients: TransferRecipient[], decimals: numbe
 
   return { total, errors, isValid: recipients.length > 0 && Object.values(errors).every(error => error == null) }
 }
+
+// Core outputs paid to the Advanced recipients; an amount that does not parse pays nothing.
+export const coreRecipientOutputs = (recipients: TransferRecipient[]): Array<{ address: string, amountDuffs: bigint }> =>
+  recipients.map(recipient => ({ address: recipient.address, amountDuffs: parseDashAmount(recipient.amount, CORE_DASH_DECIMALS) ?? 0n }))

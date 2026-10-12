@@ -1,10 +1,10 @@
 import React from 'react'
 import { Badge, Button, CreditsIcon, FilterIcon, PendingIcon, Text } from 'dash-ui-kit/react'
 import { Checkbox, SideActionButton } from '../../../../components/controls'
-import { EndpointTypeSelect } from '../../../../components/transfer'
+import { EndpointCard, EndpointTypeSelect } from '../../../../components/transfer'
 import type { EndpointTypeOption } from '../../../../components/transfer'
 import { InfoCard } from '../../../../components/common'
-import { formatDashAmount, getSourceUnavailableReason } from '../../../../../utils'
+import { canShieldToOthers, formatDashAmount, getSourceUnavailableReason, isShieldToMyself } from '../../../../../utils'
 import type { TransferCapabilities } from '../../../../../utils'
 import type { NetworkType, TokenData } from '../../../../../types'
 import { UNAVAILABLE_REASON_HINTS } from '../../constants'
@@ -15,9 +15,8 @@ import type { TransferDraftActions } from '../../hooks/useTransferDraft'
 import type { SourceBalance } from '../../hooks/useSourceBalance'
 import type { TransferFee } from '../../hooks/useTransferFee'
 import type { EndpointType, SourceIdentity, TransferDraft } from '../../types'
-import { EndpointCard } from './EndpointCard'
 import { SourceRow } from './SourceRow'
-import { RecipientRow, canShieldToOthers, isShieldToMyself } from './RecipientRow'
+import { RecipientRow } from './RecipientRow'
 
 interface FromToStepProps {
   draft: TransferDraft
@@ -40,13 +39,6 @@ interface FromToStepProps {
   advancedSummary: React.ReactNode
   unfinishedTopUps: React.ReactNode
   onNext: () => void
-}
-
-const tokenSymbol = (draft: TransferDraft, tokens: TokenData[]): string => {
-  if (draft.asset.type !== 'token') return 'Dash'
-  const { tokenId } = draft.asset
-  const token = tokens.find(item => item.identifier === tokenId)
-  return token?.localizations?.en?.singularForm ?? 'Token'
 }
 
 // Step 1 of the send wizard: where the funds come from and where they go.
@@ -97,7 +89,7 @@ export function FromToStep ({
               <SideActionButton
                 icon={<CreditsIcon className='w-4 h-4' />}
                 title='Asset'
-                subtitle={tokenSymbol(draft, tokens)}
+                subtitle={balance.unit}
                 onClick={onOpenAsset}
                 disabled={tokens.length === 0}
                 className='shrink-0 max-w-[45%]'

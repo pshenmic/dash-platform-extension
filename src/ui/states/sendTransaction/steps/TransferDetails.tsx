@@ -1,11 +1,10 @@
 import React from 'react'
-import { Avatar, Identifier, ShieldSmallIcon, Text } from 'dash-ui-kit/react'
+import { Identifier, ShieldSmallIcon, Text } from 'dash-ui-kit/react'
 import { SummaryRow } from '../../../components/cards'
 import { FiatChip } from '../../../components/common'
 import { ENDPOINT_TYPE_LABELS } from '../../../components/transfer'
-import { dashAmountToUsd, formatDashAmount } from '../../../../utils'
-import { isShieldToMyself } from './FromToStep/RecipientRow'
-import { ALREADY_PAID_LABEL } from '../constants'
+import { dashAmountToUsd, feeOnLayer, formatDashAmount, isShieldToMyself } from '../../../../utils'
+import { ALREADY_PAID_LABEL, recipientsCountLabel } from '../constants'
 import type { SourceBalance } from '../hooks/useSourceBalance'
 import type { TransferFee } from '../hooks/useTransferFee'
 import type { EndpointType, TransferDraft } from '../types'
@@ -26,14 +25,7 @@ interface TransferDetailsProps {
 const LAYER_SUFFIX: Record<EndpointType, string> = { core: '(L1)', identity: '(L2)', platformAddress: '(L2)', shielded: '' }
 
 function IdentityValue ({ identifier }: { identifier: string }): React.JSX.Element {
-  return (
-    <div className='flex items-center gap-2 min-w-0'>
-      <div className='w-5 h-5 rounded-full overflow-hidden shrink-0'>
-        <Avatar username={identifier} className='w-5 h-5' />
-      </div>
-      <Identifier highlight='both' middleEllipsis edgeChars={5} className='!text-xs'>{identifier}</Identifier>
-    </div>
-  )
+  return <Identifier avatar highlight='both' middleEllipsis edgeChars={5} className='min-w-0 !text-xs'>{identifier}</Identifier>
 }
 
 function TypeValue ({ type, label }: { type: EndpointType, label?: string }): React.JSX.Element {
@@ -68,7 +60,7 @@ const sourceValue = (draft: TransferDraft, sourceAddress: string | null): React.
 
 const targetValue = (draft: TransferDraft): React.ReactNode => {
   const { type, recipient } = draft.to
-  if (draft.isAdvanced) return <Text size='xs' weight='bold'>{draft.recipients.length} {draft.recipients.length === 1 ? 'recipient' : 'recipients'}</Text>
+  if (draft.isAdvanced) return <Text size='xs' weight='bold'>{recipientsCountLabel(draft.recipients.length)}</Text>
   if (isShieldToMyself(draft)) return <TypeValue type='shielded' label='Your Shielded Balance' />
   if (type === 'identity') return <IdentityValue identifier={recipient} />
   if (type === 'core' && draft.from.type !== 'core') return <TypeValue type='core' />
@@ -79,7 +71,7 @@ const targetValue = (draft: TransferDraft): React.ReactNode => {
 export function TransferDetails ({ draft, amount, balance, fee, feeExact = false, received = null, rate, showTotal = false, prepaid = false }: TransferDetailsProps): React.JSX.Element {
   const isDash = draft.asset.type === 'dash'
   const feeLabel = fee != null ? `${feeExact ? '' : '~'}${formatDashAmount(fee.amount, fee.decimals)} Dash` : 'Calculated when sending'
-  const total = isDash && fee != null && fee.decimals === balance.decimals ? amount + fee.amount : amount
+  const total = amount + (isDash ? feeOnLayer(fee, balance.decimals) : 0n)
 
   return (
     <div className='flex flex-col gap-2.5'>

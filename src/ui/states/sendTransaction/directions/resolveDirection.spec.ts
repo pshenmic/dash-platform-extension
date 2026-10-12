@@ -47,7 +47,6 @@ describe('resolveDirection', () => {
       if (result.supported) {
         expect(result.direction).toBe(`${from}->${to}`)
         expect(result.config.mode).toBe(mode)
-        expect(result.config.supported).toBe(true)
       }
     })
   })

@@ -1,10 +1,9 @@
 import { useCallback, useRef, useState } from 'react'
-import { CORE_DASH_DECIMALS, parseDashAmount } from '../../../../utils'
+import { CORE_DASH_DECIMALS, coreRecipientOutputs, isShieldToMyself } from '../../../../utils'
 import { SHIELDED_MODES } from '../types'
 import type { NetworkType } from '../../../../types'
 import type { CoreFundingResult, CorePaymentResult, TransferApi } from '../transferApi'
 import type { TransferDraft, TransferMode } from '../types'
-import { isShieldToMyself } from '../steps/FromToStep/RecipientRow'
 import type { TransferResult, TransferResume } from './useTransferOperation'
 
 interface TransferSubmitParams {
@@ -55,8 +54,7 @@ interface TransferContext {
 // Sends one Core transaction to every Advanced recipient.
 const startAdvancedTransfer = async ({ api, mode, draft, password }: TransferContext): Promise<TransferResult> => {
   if (mode !== 'coreSend') throw new Error('Several recipients are not supported for this transfer')
-  const outputs = draft.recipients.map(recipient => ({ address: recipient.address, amountDuffs: parseDashAmount(recipient.amount, CORE_DASH_DECIMALS) ?? 0n }))
-  return await corePayment(api.sendCoreTransaction(outputs, password, draft.changeAddress ?? undefined))
+  return await corePayment(api.sendCoreTransaction(coreRecipientOutputs(draft.recipients), password, draft.changeAddress ?? undefined))
 }
 
 // Starts the API call of the resolved transfer mode, or locks the earlier payment of `resume`.

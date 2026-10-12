@@ -1,9 +1,9 @@
 import React from 'react'
 import { ChevronIcon, Identifier, OverlayMenu, Text } from 'dash-ui-kit/react'
-import { AssetBalanceLabel } from '../../../../components/data'
-import { PLATFORM_DASH_DECIMALS, dashAmountToUsd, formatDashAmount } from '../../../../../utils'
+import { PLATFORM_DASH_DECIMALS } from '../../../../../utils'
 import type { SourceBalance } from '../../hooks/useSourceBalance'
 import type { SourceIdentity } from '../../types'
+import { SourceBalanceLabel } from './SourceBalanceLabel'
 
 interface SourceIdentitySelectProps {
   identities: SourceIdentity[]
@@ -18,13 +18,7 @@ function IdentityRow ({ identifier, balance, rate }: { identifier: string, balan
   return (
     <div className='flex flex-col gap-1 min-w-0'>
       <Identifier avatar highlight='both' ellipsis className='min-w-0 !text-[0.65625rem] !font-light'>{identifier}</Identifier>
-      {balance.amount != null && (
-        <AssetBalanceLabel
-          balance={formatDashAmount(balance.amount, balance.decimals)}
-          unit={balance.unit}
-          usdValue={balance.unit === 'Dash' ? dashAmountToUsd(balance.amount, balance.decimals, rate) : null}
-        />
-      )}
+      <SourceBalanceLabel balance={balance} rate={rate} />
     </div>
   )
 }

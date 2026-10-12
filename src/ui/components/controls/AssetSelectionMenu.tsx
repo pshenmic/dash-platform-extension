@@ -48,7 +48,7 @@ export function buildAssetOptions (tokens: TokenData[] = []): AssetOption[] {
   return [CREDITS_OPTION, ...tokenOptions]
 }
 
-// Shown instead of a balance that hasn't loaded yet — a real 0 would claim the
+// Shown instead of a balance that hasn't loaded yet - a real 0 would claim the
 // account is empty.
 const UNKNOWN_BALANCE = '—'
 

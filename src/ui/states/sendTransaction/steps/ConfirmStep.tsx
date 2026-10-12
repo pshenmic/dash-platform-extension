@@ -5,7 +5,7 @@ import { Banner } from '../../../components/cards'
 import { PROVING_WARNING } from '../../../constants/transferWarnings'
 import { formatDashAmount, parseDashAmount } from '../../../../utils'
 import { SHIELDED_MODES } from '../types'
-import { KEEP_OPEN_MESSAGE, PREPAID_TOP_UP_MESSAGE, WITHDRAW_WARNINGS } from '../constants'
+import { KEEP_OPEN_MESSAGE, PREPAID_TOP_UP_MESSAGE, WITHDRAW_WARNINGS, recipientsCountLabel } from '../constants'
 import type { DirectionConfig } from '../directions/directionConfig'
 import type { SourceBalance } from '../hooks/useSourceBalance'
 import type { TransferFee } from '../hooks/useTransferFee'
@@ -38,7 +38,7 @@ export function ConfirmStep ({ draft, config, amount, balance, fee, received, is
       <TransferDetails draft={draft} amount={amount} balance={balance} fee={fee} received={received} rate={rate} showTotal prepaid={isPrepaid} />
 
       {draft.isAdvanced && (
-        <Accordion title={`${draft.recipients.length} ${draft.recipients.length === 1 ? 'recipient' : 'recipients'}`}>
+        <Accordion title={recipientsCountLabel(draft.recipients.length)}>
           <div className='flex flex-col gap-2'>
             {draft.recipients.map(recipient => (
               <div key={recipient.id} className='flex items-center justify-between gap-3'>

@@ -1,5 +1,5 @@
 import { fromBaseUnit, toBaseUnit } from './bigintUtils'
-import { CORE_DUST_THRESHOLD, MAX_WITHDRAWAL_CREDITS, MIN_OUTPUT_CREDITS, MIN_TOPUP_FUNDING_DUFFS, MIN_WITHDRAWAL_CREDITS } from '../constants'
+import { CORE_DUST_THRESHOLD, MAX_WITHDRAWAL_CREDITS, MIN_FEE_RELAY, MIN_OUTPUT_CREDITS, MIN_TOPUP_FUNDING_DUFFS, MIN_WITHDRAWAL_CREDITS } from '../constants'
 import { MIN_CREDIT_TRANSFER } from '../ui/constants/transaction'
 import type { EndpointType, TransferMode } from '../ui/states/sendTransaction/types'
 
@@ -44,6 +44,20 @@ export interface TransferAmountLimits {
 
 const WITHDRAWAL_MODES: TransferMode[] = ['identityWithdraw', 'withdraw', 'shieldedWithdraw']
 const ASSET_LOCK_MODES: TransferMode[] = ['coreTopUp', 'coreFund', 'coreShield']
+
+// Whether the mode locks a Core payment on L1 to deliver it on Platform.
+export const isAssetLockMode = (mode: TransferMode | null | undefined): boolean =>
+  mode != null && ASSET_LOCK_MODES.includes(mode)
+
+// What an asset lock delivers on Platform: the Core payment minus the relay fee kept on L1.
+export const assetLockReceived = (paymentDuffs: bigint): bigint => paymentDuffs - MIN_FEE_RELAY
+
+// Core payment that delivers `lockedDuffs`: the lock plus the relay fee kept on L1.
+export const assetLockPayment = (lockedDuffs: bigint): bigint => lockedDuffs + MIN_FEE_RELAY
+
+// Fee amount when it is paid in the same base units as the transfer, else 0n for a fee paid on the other layer.
+export const feeOnLayer = (fee: { amount: bigint, decimals: number } | null, decimals: number): bigint =>
+  fee != null && fee.decimals === decimals ? fee.amount : 0n
 
 // Allowed amount range of a transfer mode in source base units: duffs for Core, credits for Platform, token units for tokens.
 export const transferAmountLimits = (mode: TransferMode): TransferAmountLimits => {

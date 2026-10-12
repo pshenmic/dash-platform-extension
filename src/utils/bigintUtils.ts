@@ -117,17 +117,6 @@ export function dashToCreditsBigInt (dash: string | number): bigint {
 }
 
 /**
- * Parse a user-entered credits amount string into an integer bigint of credits.
- * Returns null for empty/partial/invalid input ('', '.', NaN) so callers can
- * guard instead of throwing from BigInt(Math.floor(Number(amount))).
- */
-export function parseCreditsAmount (amount: string): bigint | null {
-  const n = Number(amount)
-  if (amount === '' || amount === '.' || !Number.isFinite(n) || n <= 0) return null
-  return BigInt(Math.floor(n))
-}
-
-/**
  * Parse a credits value coming from an API into a bigint.
  * Balances arrive as strings, so a malformed or empty one would otherwise throw
  * from a bare BigInt() in the middle of a render. Returns null instead.

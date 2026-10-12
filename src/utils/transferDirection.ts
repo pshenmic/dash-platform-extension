@@ -1,4 +1,4 @@
-import type { AssetId, Direction, EndpointType, TransferMode } from '../ui/states/sendTransaction/types'
+import type { AssetId, Direction, EndpointType, TransferDraft, TransferMode } from '../ui/states/sendTransaction/types'
 
 // Wallet features that decide which endpoint types can be used.
 export interface TransferCapabilities {
@@ -30,7 +30,7 @@ const PAIR_MODES: Record<EndpointType, Record<EndpointType, TransferMode>> = {
   shielded: { core: 'shieldedWithdraw', identity: 'unsupported', platformAddress: 'unshield', shielded: 'shieldedTransfer' }
 }
 
-export const toDirection = (from: EndpointType, to: EndpointType): Direction => `${from}->${to}`
+const toDirection = (from: EndpointType, to: EndpointType): Direction => `${from}->${to}`
 
 const isTokenAsset = (asset: AssetId): boolean => asset.type === 'token'
 
@@ -71,3 +71,11 @@ export const fallbackTargetType = (from: EndpointType, current: EndpointType, as
 
   return ENDPOINT_TYPE_ORDER.find(type => resolveTransferPair(from, type, asset, capabilities).supported) ?? null
 }
+
+// Whether the sender can shield to a typed shielded address instead of its own balance.
+export const canShieldToOthers = (draft: TransferDraft): boolean =>
+  draft.to.type === 'shielded' && draft.from.type === 'core'
+
+// Whether the To side is the wallet's own shielded balance with no address to enter.
+export const isShieldToMyself = (draft: TransferDraft): boolean =>
+  draft.to.type === 'shielded' && draft.from.type !== 'shielded' && (!canShieldToOthers(draft) || draft.to.shieldToMyself)

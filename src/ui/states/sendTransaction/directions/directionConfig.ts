@@ -26,7 +26,6 @@ export interface DirectionDetails {
 }
 
 export interface DirectionConfig extends DirectionDetails {
-  supported: boolean
   mode: TransferMode
 }
 

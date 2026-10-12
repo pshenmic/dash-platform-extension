@@ -2,12 +2,11 @@ import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { PasswordGate } from '../../../../components/forms'
 import { Banner } from '../../../../components/cards'
-import { AssetBalanceLabel } from '../../../../components/data'
-import { dashAmountToUsd, formatDashAmount } from '../../../../../utils'
 import { SHIELDED_UNLOCK_DESCRIPTION } from '../../constants'
 import type { SourceIdentity, TransferDraft } from '../../types'
 import type { SourceBalance } from '../../hooks/useSourceBalance'
 import { SourceIdentitySelect } from './SourceIdentitySelect'
+import { SourceBalanceLabel } from './SourceBalanceLabel'
 
 interface ShieldedState {
   balance: bigint | null
@@ -48,13 +47,7 @@ export function SourceRow ({ draft, identities, onIdentityChange, balance, rate,
 
   return (
     <div className='flex flex-col gap-2'>
-      {balance.amount != null && (
-        <AssetBalanceLabel
-          balance={formatDashAmount(balance.amount, balance.decimals)}
-          unit={balance.unit}
-          usdValue={balance.unit === 'Dash' ? dashAmountToUsd(balance.amount, balance.decimals, rate) : null}
-        />
-      )}
+      <SourceBalanceLabel balance={balance} rate={rate} />
       {draft.from.type === 'shielded' && shielded.isWarmingProver && (
         <Text size='xs' dim>Preparing private prover...</Text>
       )}

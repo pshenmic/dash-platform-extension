@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CORE_DUST_THRESHOLD } from '../../../../constants'
-import { CORE_DASH_DECIMALS, parseDashAmount } from '../../../../utils'
+import { coreRecipientOutputs } from '../../../../utils'
 import type { DirectionConfig } from '../directions/directionConfig'
 import type { CoreOutput, TransferApi } from '../transferApi'
 import type { TransferDraft } from '../types'
@@ -30,10 +30,7 @@ const DEBOUNCE_MS = 400
 
 // Outputs the transfer pays; an empty address stands for the wallet's own receive address.
 const paidOutputs = (config: DirectionConfig, draft: TransferDraft, amount: bigint | null, recipientsValid: boolean): CoreOutput[] | null => {
-  if (draft.isAdvanced) {
-    if (!recipientsValid) return null
-    return draft.recipients.map(recipient => ({ address: recipient.address, amountDuffs: parseDashAmount(recipient.amount, CORE_DASH_DECIMALS) ?? 0n }))
-  }
+  if (draft.isAdvanced) return recipientsValid ? coreRecipientOutputs(draft.recipients) : null
   if (amount == null) return null
   // Core -> Platform deposits price as a plain one-output payment of the deposit.
   return [{ address: config.mode === 'coreSend' ? draft.to.recipient : '', amountDuffs: amount }]

@@ -14,6 +14,3 @@ export const ESTIMATED_FEES = {
     tokens: 110000000n
   }
 } as const
-
-export type NetworkType = keyof typeof ESTIMATED_FEES
-export type AssetType = keyof typeof ESTIMATED_FEES.testnet
