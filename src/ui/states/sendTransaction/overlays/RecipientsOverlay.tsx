@@ -16,7 +16,8 @@ interface RecipientsOverlayProps {
   changeAddress: string | null
   changeAddresses: string[]
   decimals: number
-  available: bigint | null
+  // Most the recipients can receive in total, by their number: each Core output adds to the fee.
+  availableFor: (recipientCount: number) => bigint | null
   minAmount: bigint
   excludeIdentifier: string | null
   network: NetworkType
@@ -92,11 +93,12 @@ function RecipientCard ({ index, recipient, isCore, decimals, maxAmount, error, 
 }
 
 // Advanced recipients screen: addresses with amounts and an optional Core change address; mounted fresh on every open.
-export function RecipientsOverlay ({ isOpen, isCore, recipients, changeAddress, changeAddresses, decimals, available, minAmount, excludeIdentifier, network, onClose, onApply }: RecipientsOverlayProps): React.JSX.Element {
+export function RecipientsOverlay ({ isOpen, isCore, recipients, changeAddress, changeAddresses, decimals, availableFor, minAmount, excludeIdentifier, network, onClose, onApply }: RecipientsOverlayProps): React.JSX.Element {
   const [list, setList] = useState<TransferRecipient[]>(recipients.length > 0 ? recipients : [newRecipient()])
   const [change, setChange] = useState<string | null>(changeAddress)
   const [showErrors, setShowErrors] = useState(false)
 
+  const available = availableFor(list.length)
   const check = checkRecipients(list, decimals, minAmount)
   const overBalance = available != null && check.total > available
   const changeMissing = isCore && change === ''

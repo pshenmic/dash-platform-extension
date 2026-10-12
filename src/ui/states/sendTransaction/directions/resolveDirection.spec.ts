@@ -1,4 +1,4 @@
-import { maxPlatformInputs, resolveDirection, runsOnMock } from './resolveDirection'
+import { resolveDirection, runsOnMock } from './resolveDirection'
 import { DIRECTION_DETAILS, FEE_PLACEHOLDER } from './directionConfig'
 import { ENDPOINT_TYPE_ORDER, fallbackTargetType } from '../../../../utils'
 import type { TransferCapabilities } from '../../../../utils'
@@ -123,11 +123,11 @@ describe('DIRECTION_DETAILS', () => {
 
   it('shows Progress for asset lock and withdrawal directions', () => {
     for (const direction of ['core->identity', 'core->platformAddress', 'core->shielded', 'identity->core', 'platformAddress->core'] as const) {
-      expect(DIRECTION_DETAILS[direction]?.stages.length).toBeGreaterThan(1)
+      expect(DIRECTION_DETAILS[direction]?.hasProgress).toBe(true)
       expect(DIRECTION_DETAILS[direction]?.hashes).toEqual(['core', 'platform'])
     }
-    expect(DIRECTION_DETAILS['core->core']?.stages).toEqual([])
-    expect(DIRECTION_DETAILS['identity->identity']?.stages).toEqual([])
+    expect(DIRECTION_DETAILS['core->core']?.hasProgress).toBe(false)
+    expect(DIRECTION_DETAILS['identity->identity']?.hasProgress).toBe(false)
   })
 
   it('takes the withdrawal fee from the estimate instead of a hardcoded value', () => {
@@ -138,29 +138,22 @@ describe('DIRECTION_DETAILS', () => {
   })
 })
 
-describe('runsOnMock / maxPlatformInputs', () => {
+describe('runsOnMock', () => {
   const config = (from: EndpointType, to: EndpointType): NonNullable<ReturnType<typeof resolveDirection> & { supported: true }>['config'] => {
     const result = resolveDirection(from, to, DASH, SEED)
     if (!result.supported) throw new Error('unsupported')
     return result.config
   }
 
-  it('uses the real API for automatic and single-address selections', () => {
-    expect(runsOnMock(config('core', 'core'), { type: 'automatic' }, false)).toBe(false)
-    expect(runsOnMock(config('platformAddress', 'platformAddress'), { type: 'platformInputs', inputs: [{ address: 'a', amount: '1' }] }, false)).toBe(false)
+  it('uses the real API for Simple transfers of real directions', () => {
+    expect(runsOnMock(config('core', 'core'), false)).toBe(false)
+    expect(runsOnMock(config('core', 'identity'), false)).toBe(false)
+    expect(runsOnMock(config('platformAddress', 'platformAddress'), false)).toBe(false)
   })
 
-  it('switches to mocks for picked UTXOs, notes and several addresses', () => {
-    expect(runsOnMock(config('core', 'core'), { type: 'utxo', inputs: [{ txid: 't', vout: 0 }] }, false)).toBe(true)
-    expect(runsOnMock(config('shielded', 'platformAddress'), { type: 'shieldedNotes', noteIds: ['n'] }, false)).toBe(true)
-    expect(runsOnMock(config('platformAddress', 'core'), { type: 'platformInputs', inputs: [{ address: 'a', amount: '1' }, { address: 'b', amount: '1' }] }, false)).toBe(true)
-    expect(runsOnMock(config('core', 'shielded'), { type: 'automatic' }, false)).toBe(true)
-    expect(runsOnMock(config('core', 'core'), { type: 'automatic' }, true)).toBe(true)
-  })
-
-  it('allows several platform addresses only where a multi-input method exists', () => {
-    expect(maxPlatformInputs(config('platformAddress', 'platformAddress'))).toBe(Number.POSITIVE_INFINITY)
-    expect(maxPlatformInputs(config('platformAddress', 'core'))).toBe(Number.POSITIVE_INFINITY)
-    expect(maxPlatformInputs(config('platformAddress', 'identity'))).toBe(1)
+  it('switches to mocks for mocked directions and Advanced', () => {
+    expect(runsOnMock(config('core', 'shielded'), false)).toBe(true)
+    expect(runsOnMock(config('core', 'core'), true)).toBe(true)
+    expect(runsOnMock(config('platformAddress', 'platformAddress'), true)).toBe(true)
   })
 })

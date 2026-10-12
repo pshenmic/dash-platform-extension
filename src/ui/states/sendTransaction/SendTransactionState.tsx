@@ -7,36 +7,36 @@ import { useCoreBalance, usePlatformAddresses, useWalletCapabilities, useWalletP
 import { locationReturnPath } from '../../types'
 import type { OutletContext } from '../../types'
 import { parseSendScope } from '../../utils/sendPath'
-import { checkRecipients, formatDashAmount, parseDashAmount, summarizeCoinControl, transferAmountLimits, validateTransferAmount } from '../../../utils'
-import type { TransferCapabilities } from '../../../utils'
+import { checkRecipients, CORE_DASH_DECIMALS, formatDashAmount, parseDashAmount, transferAmountLimits, unfinishedTopUps, validateTransferAmount } from '../../../utils'
+import type { TransferCapabilities, UnfinishedTopUp } from '../../../utils'
 import type { AddressData } from '../../components/addresses/types'
 import { resolveEntryDefaults } from './entry/resolveEntryDefaults'
 import type { EntryDefaults } from './entry/resolveEntryDefaults'
-import { maxPlatformInputs, resolveDirection, runsOnMock } from './directions/resolveDirection'
+import { resolveDirection, runsOnMock } from './directions/resolveDirection'
 import { useTransferDraft } from './hooks/useTransferDraft'
 import { useSendScreenData } from './hooks/useSendScreenData'
 import { useShieldedBalance } from './hooks/useShieldedBalance'
 import { useSourceBalance } from './hooks/useSourceBalance'
-import { shieldedMaxAmount, useTransferFee } from './hooks/useTransferFee'
+import { coreMaxAmount, recipientCount, shieldedMaxAmount, useTransferFee } from './hooks/useTransferFee'
 import { useTransferSubmit } from './hooks/useTransferSubmit'
-import type { ResumedTransfer } from './hooks/useTransferOperation'
+import type { TransferResume } from './hooks/useTransferOperation'
 import { useTransferOperation } from './hooks/useTransferOperation'
 import { useIdentityHeader } from './hooks/useIdentityHeader'
 import { useTransferApi } from './transferApi'
 import { WizardHeader } from './components/WizardHeader'
-import { MAX_RECIPIENTS, COIN_CONTROL_AMOUNT_HINT, CORE_MAX_FEE_RESERVE_DUFFS, CORE_TOP_UP_OWN_IDENTITY_MESSAGE, SAME_PARTY_MESSAGE } from './constants'
-import { MIN_FEE_RELAY, TRANSFER_FEE_CREDITS } from '../../../constants'
+import { UnfinishedTopUpBanners } from './components/UnfinishedTopUpBanners'
+import { MAX_RECIPIENTS, CORE_TOP_UP_OWN_IDENTITY_MESSAGE, SAME_PARTY_MESSAGE } from './constants'
+import { MIN_FEE_RELAY } from '../../../constants'
 import { FromToStep } from './steps/FromToStep/FromToStep'
 import { isShieldToMyself } from './steps/FromToStep/RecipientRow'
 import { AmountStep } from './steps/AmountStep'
 import { ConfirmStep } from './steps/ConfirmStep'
 import { ProgressStep } from './steps/ProgressStep'
 import { ResultStep } from './steps/ResultStep'
-import { CoinControlOverlay } from './overlays/CoinControl/CoinControlOverlay'
 import { RecipientsOverlay } from './overlays/RecipientsOverlay'
 import { AdvancedSummary } from './steps/FromToStep/AdvancedSummary'
 import type { TransferOutcome } from './steps/ResultStep'
-import type { CoinControlSelection, CoreUtxo, ShieldedNote, SourceIdentity, WizardStep } from './types'
+import type { CoreUtxo, SourceIdentity, TransferDraft, WizardStep } from './types'
 
 const STEP_INDEX: Record<WizardStep, number> = { fromTo: 0, amount: 1, confirm: 2, progress: 3, result: 3, error: 3 }
 
@@ -44,6 +44,12 @@ const ROUTED_STEPS: WizardStep[] = ['fromTo', 'amount', 'confirm', 'progress', '
 
 const parseStep = (value: string | null): WizardStep =>
   ROUTED_STEPS.find(step => step === value) ?? 'fromTo'
+
+// Retry that continues a transfer, valid only while the draft it was made for is current.
+interface PendingRetry {
+  draft: TransferDraft
+  resume: TransferResume
+}
 
 interface SendWizardProps {
   entry: EntryDefaults
@@ -61,14 +67,13 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const returnPath = useRef(locationReturnPath(location.state, '/')).current
 
   const { draft, actions } = useTransferDraft(entry.draft, capabilities)
-  const [resumed, setResumed] = useState<ResumedTransfer | null>(null)
+  const [retry, setRetry] = useState<PendingRetry | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [assetMenuOpen, setAssetMenuOpen] = useState(false)
-  const [coinControlOpen, setCoinControlOpen] = useState(false)
   const [recipientsOpen, setRecipientsOpen] = useState(false)
   const [changeAddresses, setChangeAddresses] = useState<string[]>([])
-  const [utxos, setUtxos] = useState<CoreUtxo[]>([])
-  const [notes, setNotes] = useState<ShieldedNote[] | null>(null)
+  const [utxos, setUtxos] = useState<CoreUtxo[] | null>(null)
+  const [pendingTopUps, setPendingTopUps] = useState<UnfinishedTopUp[]>([])
 
   const identityId = draft.from.type === 'identity' ? draft.from.identityId : null
   const { balance: identityBalance, rate, tokensState } = useSendScreenData({ senderIdentity: identityId, tokensIdentity: identityId, currentNetwork })
@@ -76,37 +81,29 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const token = draft.asset.type === 'token' ? tokens.find(item => draft.asset.type === 'token' && item.identifier === draft.asset.tokenId) : undefined
   // Platform Explorer answers faster than DAPI, so it supplies the balances of the identity list.
   const platformData = useWalletPlatformData(availableIdentities, currentNetwork)
-  const shieldedBalance = useShieldedBalance()
-  const shielded = {
-    ...shieldedBalance,
-    // Unlocks the shielded balance and loads its notes for Coin Control.
-    unlock: async (password: string): Promise<string | null> => {
-      const error = await shieldedBalance.unlock(password)
-      if (error == null) api.listShieldedNotes(password).then(setNotes).catch(e => { console.log('listShieldedNotes error', e); setNotes([]) })
-      return error
-    }
-  }
+  const shielded = useShieldedBalance()
   const core = useCoreBalance(currentWallet, capabilities.hasCoreLayer)
   const coreBalance = core.balance != null ? BigInt(core.balance.balance) : null
 
   const resolution = resolveDirection(draft.from.type, draft.to.type, draft.asset, capabilities)
   const config = resolution.supported ? resolution.config : null
 
-  const balance = useSourceBalance({ draft, identityBalance, coreBalance, platformAddresses, shieldedBalance: shielded.balance, utxos, notes: notes ?? [], token })
-  const fee = useTransferFee({ config, draft, network, shieldedSpendEstimates: shielded.spendEstimates })
+  const balance = useSourceBalance({ draft, identityBalance, coreBalance, platformAddresses, shieldedBalance: shielded.balance, token })
 
   const limits = config != null ? transferAmountLimits(config.mode) : null
   const recipientsCheck = checkRecipients(draft.recipients, balance.decimals, limits?.min ?? 1n)
   const advancedAvailable = config?.advanced === true && draft.asset.type === 'dash'
   const amount = draft.isAdvanced ? recipientsCheck.total : parseDashAmount(draft.amount, balance.decimals)
   const isDash = draft.asset.type === 'dash'
-  const feeReserve = draft.from.type === 'core' && draft.coinControl.type === 'automatic' ? CORE_MAX_FEE_RESERVE_DUFFS : 0n
-  const shieldedMax = shieldedMaxAmount(config, draft, shielded.spendEstimates)
-  const maxAmount = shieldedMax ?? (balance.amount == null ? null : isDash && fee != null && fee.decimals === balance.decimals ? balance.amount - fee.amount - feeReserve : balance.amount)
+  const fee = useTransferFee({ config, draft, amount, utxos, network, shieldedSpendEstimates: shielded.spendEstimates })
+  const knownMax = shieldedMaxAmount(config, shielded.spendEstimates) ?? coreMaxAmount(config, recipientCount(draft), utxos)
+  const maxAmount = knownMax ?? (balance.amount == null ? null : isDash && fee != null && fee.decimals === balance.decimals ? balance.amount - fee.amount : balance.amount)
   const amountError = limits != null ? validateTransferAmount(amount, maxAmount, draft.isAdvanced ? { min: 1n, max: null } : limits, balance.decimals, balance.unit) : null
 
-  const stageCount = config?.stages.length ?? 0
-  const operation = useTransferOperation(api, stageCount)
+  const resume = retry != null && retry.draft === draft ? retry.resume : null
+  const isResumingFunding = resume?.type === 'funding'
+
+  const operation = useTransferOperation(api)
   const { isChecking, submit } = useTransferSubmit({ api, mode: config?.mode ?? null, draft, amount, sourceAddress: balance.sourceAddress, walletId: currentWallet, network, track: operation.track })
   const operationState = operation.state
   const outcome: TransferOutcome | null = operationState.status === 'success'
@@ -116,18 +113,13 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   useIdentityHeader({ currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent })
 
   const senderIdentifier = draft.from.type === 'identity' ? draft.from.identityId : balance.sourceAddress
-  const pickedAddresses = draft.coinControl.type === 'platformInputs' ? draft.coinControl.inputs.map(input => input.address) : []
-  const isSender = (address: string): boolean => address !== '' && (address === senderIdentifier || pickedAddresses.includes(address))
+  const isSender = (address: string): boolean => address !== '' && address === senderIdentifier
   const isSameParty = draft.isAdvanced ? draft.recipients.some(recipient => isSender(recipient.address)) : isSender(draft.to.recipient)
-  const inputsTotal = draft.coinControl.type === 'platformInputs' ? summarizeCoinControl(draft.coinControl, [], []).total : null
-  const inputsMismatch = draft.isAdvanced && inputsTotal != null && recipientsCheck.total !== inputsTotal
   const advancedError = !draft.isAdvanced
     ? null
     : isSameParty
       ? SAME_PARTY_MESSAGE
-      : inputsMismatch && inputsTotal != null
-        ? `Recipients must receive exactly the ${formatDashAmount(inputsTotal, balance.decimals)} Dash selected in Coin Control.`
-        : recipientsCheck.isValid ? amountError : null
+      : recipientsCheck.isValid ? amountError : null
   const isForeignTopUp = config?.mode === 'coreTopUp' && draft.to.recipient !== '' && !availableIdentities.some(identity => identity.identifier === draft.to.recipient)
   const recipientError = draft.isAdvanced ? null : isSameParty ? SAME_PARTY_MESSAGE : isForeignTopUp ? CORE_TOP_UP_OWN_IDENTITY_MESSAGE : null
   const received = amount != null && (config?.mode === 'coreTopUp' || config?.mode === 'coreFund' || config?.mode === 'coreShield') ? amount - MIN_FEE_RELAY : null
@@ -138,7 +130,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
     (draft.isAdvanced ? recipientsCheck.isValid && advancedError == null && draft.changeAddress !== '' : isShieldToMyself(draft) || draft.to.recipient !== '') &&
     (draft.isAdvanced || recipientError == null) &&
     shieldedReady
-  const amountValid = fromToValid && balance.amount != null && amount != null && amount > 0n && amountError == null
+  // A paid top up is resumed without spending the balance again.
+  const amountValid = fromToValid && amount != null && amount > 0n && (isResumingFunding || (balance.amount != null && amountError == null))
 
   const requestedStep = parseStep(searchParams.get('step'))
   const step: WizardStep =
@@ -154,11 +147,14 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
     setSearchParams(params, { replace, state: location.state })
   }
 
-  // Reloads the wallet UTXOs for Coin Control whenever Core is picked or the screen opens.
+  const settledStatus = operationState.status === 'success' || operationState.status === 'failed' ? operationState.status : null
+
+  // Loads the wallet UTXOs and unfinished top ups for a Core sender, again once a transfer settles.
   useEffect(() => {
     if (draft.from.type !== 'core') return
-    api.listCoreUtxos().then(setUtxos).catch(e => console.log('listCoreUtxos error', e))
-  }, [api, draft.from.type, coinControlOpen])
+    api.listCoreUtxos().then(setUtxos).catch(e => { console.log('listCoreUtxos error', e); setUtxos(null) })
+    api.listPendingAssetLocks().then(locks => setPendingTopUps(unfinishedTopUps(locks))).catch(e => console.log('listPendingAssetLocks error', e))
+  }, [api, draft.from.type, settledStatus])
 
   // Falls back to Simple once the direction or asset has no multi-output transfer.
   useEffect(() => {
@@ -170,23 +166,6 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
     if (!draft.isAdvanced || draft.from.type !== 'core') return
     api.listCoreAddresses().then(setChangeAddresses).catch(e => console.log('listCoreAddresses error', e))
   }, [api, draft.isAdvanced, draft.from.type, currentWallet, network])
-
-  // Drops a multi-address pick once the direction can spend from one address only.
-  useEffect(() => {
-    if (config != null && draft.coinControl.type === 'platformInputs' && draft.coinControl.inputs.length > maxPlatformInputs(config)) {
-      actions.setCoinControl({ type: 'automatic' })
-    }
-  }, [config, draft.coinControl, actions])
-
-  const coinControlType = config?.coinControl ?? null
-  const coinControlCount = summarizeCoinControl(draft.coinControl, utxos, notes ?? []).count
-  const coinControlReady = coinControlType != null && (draft.from.type !== 'shielded' || notes != null)
-
-  const handleCoinControlApply = (selection: CoinControlSelection): void => {
-    const inputsTotal = selection.type === 'platformInputs' ? selection.inputs.reduce((sum, input) => sum + BigInt(input.amount), 0n) : null
-    actions.setCoinControl(selection, inputsTotal != null ? formatDashAmount(inputsTotal, balance.decimals) : undefined)
-    setCoinControlOpen(false)
-  }
 
   // Rewrites a step the draft cannot reach yet back to the first step.
   useEffect(() => {
@@ -200,13 +179,9 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   }, [draft.asset, tokensState.data, tokensState.error, token, actions])
 
   // Moves to the result once the tracked transfer settles.
-  const settledStatus = operationState.status === 'success' || operationState.status === 'failed' ? operationState.status : null
   useEffect(() => {
     if (settledStatus != null && (step === 'confirm' || step === 'progress')) goToStep(settledStatus === 'success' ? 'result' : 'error', true)
   }, [settledStatus, step])
-
-  // Forgets a pending Retry once the draft changes, so it never resumes a different transfer.
-  useEffect(() => { setResumed(null) }, [draft])
 
   // Hides the header back button while the transfer runs and on the final screens.
   const isFinal = step === 'result' || step === 'error'
@@ -218,22 +193,40 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   }, [hideBack, setHeaderConfigOverride])
 
   const handleConfirm = (password: string): void => {
-    submit(password, resumed)
+    submit(password, resume)
       .then(result => {
         if (result === 'invalidPassword') {
           setPasswordError('Invalid password')
           return
         }
-        if (result === 'started' && stageCount > 1) goToStep('progress', true)
+        if (result === 'started' && config?.hasProgress === true) goToStep('progress', true)
       })
       .catch(e => console.log('submit error', e))
   }
 
   const handleRetry = (): void => {
     const failed = operationState.status === 'failed' ? operationState : null
-    setResumed(failed?.resume != null ? { resume: failed.resume, stages: failed.stages } : null)
+    setRetry(failed?.resume != null ? { draft, resume: failed.resume } : null)
     operation.reset()
     goToStep('confirm', true)
+  }
+
+  // Fills the draft from an unfinished top up and opens Confirm to finish it with the same payment.
+  const handleRetryTopUp = (topUp: UnfinishedTopUp): void => {
+    const toType = topUp.purpose === 'topUp' ? 'identity' : 'platformAddress'
+    const next: TransferDraft = {
+      ...draft,
+      from: { ...draft.from, type: 'core' },
+      to: { ...draft.to, type: toType, recipient: topUp.recipient },
+      asset: { type: 'dash' },
+      amount: formatDashAmount(topUp.lockedDuffs + MIN_FEE_RELAY, CORE_DASH_DECIMALS),
+      isAdvanced: false,
+      recipients: [],
+      changeAddress: null
+    }
+    actions.reset(next)
+    setRetry({ draft: next, resume: { type: 'funding', address: topUp.fundingAddress, txid: topUp.fundingTxid } })
+    goToStep('confirm')
   }
 
   const identities = availableIdentities.map((identity): SourceIdentity => {
@@ -262,8 +255,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           canContinue={fromToValid}
           recipientError={recipientError}
           onOpenAsset={() => setAssetMenuOpen(true)}
-          coinControlLabel={draft.coinControl.type === 'automatic' ? 'Automatic' : `${coinControlCount} selected`}
-          onOpenCoinControl={coinControlReady ? () => setCoinControlOpen(true) : null}
+          unfinishedTopUps={draft.from.type === 'core' && <UnfinishedTopUpBanners topUps={pendingTopUps} onRetry={handleRetryTopUp} />}
           recipientsLabel={`(${draft.recipients.length}/${MAX_RECIPIENTS})`}
           onOpenRecipients={() => setRecipientsOpen(true)}
           advancedSummary={<AdvancedSummary fromType={draft.from.type} balance={balance} recipientsTotal={recipientsCheck.total} fee={fee} rate={rate} error={advancedError} />}
@@ -271,10 +263,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
         />
       )}
 
-      {step === 'progress' && config != null && operationState.status !== 'idle' && (
+      {step === 'progress' && operationState.status !== 'idle' && (
         <ProgressStep
-          labels={config.stages}
-          stages={operationState.stages}
           isRunning={operationState.status === 'running'}
           onClose={() => { void navigate(returnPath, { replace: true }) }}
         />
@@ -288,7 +278,6 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           amountError={amountError}
           rate={rate}
           onAmountChange={(value) => actions.setAmount(value)}
-          lockedHint={draft.coinControl.type === 'platformInputs' ? COIN_CONTROL_AMOUNT_HINT : undefined}
           onNext={() => goToStep('confirm')}
         />
       )}
@@ -301,7 +290,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           balance={balance}
           fee={fee}
           received={received}
-          isMock={runsOnMock(config, draft.coinControl, draft.isAdvanced)}
+          isMock={runsOnMock(config, draft.isAdvanced)}
+          isPrepaid={isResumingFunding}
           rate={rate}
           isSubmitting={isChecking || operationState.status === 'running'}
           passwordError={passwordError}
@@ -322,6 +312,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           rate={rate}
           network={network}
           onDone={() => { void navigate(returnPath, { replace: true }) }}
+          isPrepaid={isResumingFunding}
           onRetry={handleRetry}
         />
       )}
@@ -334,7 +325,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           changeAddress={draft.changeAddress}
           changeAddresses={changeAddresses}
           decimals={balance.decimals}
-          available={maxAmount}
+          availableFor={(count) => coreMaxAmount(config, count, utxos) ?? maxAmount}
           minAmount={limits.min}
           excludeIdentifier={balance.sourceAddress}
           network={network}
@@ -344,23 +335,6 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
             actions.setChangeAddress(changeAddress)
             setRecipientsOpen(false)
           }}
-        />
-      )}
-
-      {coinControlType != null && config != null && (
-        <CoinControlOverlay
-          isOpen={coinControlOpen}
-          coinControlType={coinControlType}
-          selection={draft.coinControl}
-          decimals={balance.decimals}
-          utxos={utxos}
-          addresses={platformAddresses}
-          notes={notes ?? []}
-          maxInputs={maxPlatformInputs(config)}
-          platformFee={fee != null && fee.decimals === balance.decimals ? fee.amount : TRANSFER_FEE_CREDITS}
-          rate={rate}
-          onClose={() => setCoinControlOpen(false)}
-          onApply={handleCoinControlApply}
         />
       )}
 

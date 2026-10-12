@@ -1,10 +1,8 @@
 import {
-  estimateCoreFee,
   getTransferOperation,
-  listCoreUtxos,
   retryTransferOperation,
+  sendCoreTransaction,
   shieldFromCore,
-  topUpIdentityFromCore,
   transferMockSettings
 } from './transferApiMock'
 
@@ -26,18 +24,14 @@ describe('transferApiMock', () => {
     jest.useRealTimers()
   })
 
-  it('estimates the automatic fee in duffs for one input with change', async () => {
-    const result = await settle(estimateCoreFee({ outputs: [{ address: 'y1', amount: '300000000' }] }))
+  it('charges a Core transaction one input and an output per recipient plus change', async () => {
+    const result = await settle(sendCoreTransaction({ outputs: [{ address: 'y1', amount: '1000' }, { address: 'y2', amount: '1000' }] }, 'secret'))
 
-    expect(result.fee).toBe('226')
-  })
-
-  it('returns wallet UTXOs', async () => {
-    expect((await settle(listCoreUtxos())).length).toBeGreaterThan(0)
+    expect(result.fee).toBe('260')
   })
 
   it('rejects the wrong password', async () => {
-    const promise = topUpIdentityFromCore('id', '100000', transferMockSettings.rejectedPassword)
+    const promise = shieldFromCore('100000', transferMockSettings.rejectedPassword)
     const assertion = expect(promise).rejects.toThrow('Invalid password')
 
     await jest.advanceTimersByTimeAsync(2000)
@@ -45,7 +39,7 @@ describe('transferApiMock', () => {
   })
 
   it('moves an asset lock operation through its stages', async () => {
-    const { operationId } = await settle(topUpIdentityFromCore('id', '100000', 'secret'))
+    const { operationId } = await settle(shieldFromCore('100000', 'secret'))
 
     const started = await statuses(operationId)
     expect(started).toContain('active')

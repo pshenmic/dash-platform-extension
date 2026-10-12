@@ -5,6 +5,7 @@ import { FiatChip } from '../../../components/common'
 import { ENDPOINT_TYPE_LABELS } from '../../../components/transfer'
 import { dashAmountToUsd, formatDashAmount } from '../../../../utils'
 import { isShieldToMyself } from './FromToStep/RecipientRow'
+import { ALREADY_PAID_LABEL } from '../constants'
 import type { SourceBalance } from '../hooks/useSourceBalance'
 import type { TransferFee } from '../hooks/useTransferFee'
 import type { EndpointType, TransferDraft } from '../types'
@@ -18,6 +19,8 @@ interface TransferDetailsProps {
   received?: bigint | null
   rate: number | null
   showTotal?: boolean
+  // The Core payment was made earlier: no fee and no total to pay now.
+  prepaid?: boolean
 }
 
 const LAYER_SUFFIX: Record<EndpointType, string> = { core: '(L1)', identity: '(L2)', platformAddress: '(L2)', shielded: '' }
@@ -73,7 +76,7 @@ const targetValue = (draft: TransferDraft): React.ReactNode => {
 }
 
 // From / To / Network Fee rows (and Total on Confirm) of the transfer.
-export function TransferDetails ({ draft, amount, balance, fee, feeExact = false, received = null, rate, showTotal = false }: TransferDetailsProps): React.JSX.Element {
+export function TransferDetails ({ draft, amount, balance, fee, feeExact = false, received = null, rate, showTotal = false, prepaid = false }: TransferDetailsProps): React.JSX.Element {
   const isDash = draft.asset.type === 'dash'
   const feeLabel = fee != null ? `${feeExact ? '' : '~'}${formatDashAmount(fee.amount, fee.decimals)} Dash` : 'Calculated when sending'
   const total = isDash && fee != null && fee.decimals === balance.decimals ? amount + fee.amount : amount
@@ -85,10 +88,12 @@ export function TransferDetails ({ draft, amount, balance, fee, feeExact = false
       <div className='flex flex-col gap-2 py-3 rounded-[0.9375rem] bg-dash-primary-dark-blue/[0.03] dark:bg-white/5'>
         <SummaryRow
           label='Network Fee:'
-          value={<><Text size='xs' weight='medium'>{feeLabel}</Text><UsdChip label={dashAmountToUsd(fee?.amount ?? null, fee?.decimals ?? 0, rate)} accent={false} /></>}
+          value={prepaid
+            ? <Text size='xs' weight='medium'>{ALREADY_PAID_LABEL}</Text>
+            : <><Text size='xs' weight='medium'>{feeLabel}</Text><UsdChip label={dashAmountToUsd(fee?.amount ?? null, fee?.decimals ?? 0, rate)} accent={false} /></>}
           className='!bg-transparent !py-0'
         />
-        {showTotal && (
+        {showTotal && !prepaid && (
           <SummaryRow
             label={<Text size='sm' weight='medium'>Total Amount:</Text>}
             value={

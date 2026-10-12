@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useReducer } from 'react'
 import { fallbackTargetType } from '../../../../utils'
 import type { TransferCapabilities } from '../../../../utils'
-import type { AssetId, CoinControlSelection, EndpointType, TransferDraft, TransferRecipient } from '../types'
+import type { AssetId, EndpointType, TransferDraft, TransferRecipient } from '../types'
 
 export type TransferDraftAction =
   | { type: 'setFromType', endpointType: EndpointType, capabilities: TransferCapabilities }
@@ -11,7 +11,6 @@ export type TransferDraftAction =
   | { type: 'setShieldToMyself', value: boolean }
   | { type: 'setAsset', asset: AssetId, capabilities: TransferCapabilities }
   | { type: 'setAmount', amount: string }
-  | { type: 'setCoinControl', selection: CoinControlSelection, amount?: string }
   | { type: 'setAdvanced', value: boolean }
   | { type: 'setRecipients', recipients: TransferRecipient[] }
   | { type: 'setChangeAddress', address: string | null }
@@ -29,7 +28,7 @@ export const transferDraftReducer = (draft: TransferDraft, action: TransferDraft
   switch (action.type) {
     case 'setFromType':
       if (action.endpointType === draft.from.type) return draft
-      return withTarget({ ...draft, from: { ...draft.from, type: action.endpointType }, coinControl: { type: 'automatic' }, changeAddress: null }, action.capabilities)
+      return withTarget({ ...draft, from: { ...draft.from, type: action.endpointType }, changeAddress: null }, action.capabilities)
     case 'setFromIdentity':
       return { ...draft, from: { ...draft.from, identityId: action.identityId } }
     case 'setToType':
@@ -41,13 +40,10 @@ export const transferDraftReducer = (draft: TransferDraft, action: TransferDraft
       return { ...draft, to: { ...draft.to, shieldToMyself: action.value } }
     case 'setAsset': {
       const from = action.asset.type === 'token' ? { ...draft.from, type: 'identity' as const } : draft.from
-      const coinControl = from.type === draft.from.type ? draft.coinControl : { type: 'automatic' as const }
-      return withTarget({ ...draft, from, coinControl, asset: action.asset, amount: '' }, action.capabilities)
+      return withTarget({ ...draft, from, asset: action.asset, amount: '' }, action.capabilities)
     }
     case 'setAmount':
       return { ...draft, amount: action.amount }
-    case 'setCoinControl':
-      return { ...draft, coinControl: action.selection, amount: action.amount ?? draft.amount }
     case 'setAdvanced': {
       const seeded = action.value && draft.recipients.length === 0
         ? [{ id: '1', address: draft.to.recipient, amount: draft.amount }]
@@ -71,7 +67,6 @@ export interface TransferDraftActions {
   setShieldToMyself: (value: boolean) => void
   setAsset: (asset: AssetId) => void
   setAmount: (amount: string) => void
-  setCoinControl: (selection: CoinControlSelection, amount?: string) => void
   setAdvanced: (value: boolean) => void
   setRecipients: (recipients: TransferRecipient[]) => void
   setChangeAddress: (address: string | null) => void
@@ -93,7 +88,6 @@ export function useTransferDraft (initial: TransferDraft, capabilities: Transfer
     setRecipient: (recipient) => dispatch({ type: 'setRecipient', recipient }),
     setShieldToMyself: (value) => dispatch({ type: 'setShieldToMyself', value }),
     setAmount: (amount) => dispatch({ type: 'setAmount', amount }),
-    setCoinControl: (selection, amount) => dispatch({ type: 'setCoinControl', selection, amount }),
     setAdvanced: (value) => dispatch({ type: 'setAdvanced', value }),
     setRecipients: (recipients) => dispatch({ type: 'setRecipients', recipients }),
     setChangeAddress: (address) => dispatch({ type: 'setChangeAddress', address }),

@@ -10,7 +10,6 @@ const DRAFT: TransferDraft = {
   asset: { type: 'dash' },
   amount: '1',
   isAdvanced: false,
-  coinControl: { type: 'automatic' },
   recipients: [],
   changeAddress: null
 }
@@ -41,16 +40,6 @@ describe('transferDraftReducer', () => {
 
     expect([next.from.type, next.to.type]).toEqual(['identity', 'identity'])
     expect(next.amount).toBe('')
-  })
-
-  it('resets coin control when the source type changes', () => {
-    const manual = transferDraftReducer(DRAFT, { type: 'setCoinControl', selection: { type: 'shieldedNotes', noteIds: ['n'] } })
-    expect(transferDraftReducer(manual, { type: 'setFromType', endpointType: 'core', capabilities: SEED }).coinControl).toEqual({ type: 'automatic' })
-  })
-
-  it('sets the amount from platform inputs', () => {
-    const next = transferDraftReducer(DRAFT, { type: 'setCoinControl', selection: { type: 'platformInputs', inputs: [{ address: 'a', amount: '1' }] }, amount: '0.5' })
-    expect(next.amount).toBe('0.5')
   })
 
   it('seeds Advanced recipients from the Simple recipient and amount', () => {

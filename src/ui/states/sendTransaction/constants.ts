@@ -36,7 +36,10 @@ export const MODE_WARNINGS: Partial<Record<TransferMode, string>> = {
 // Labels of the wizard stepper.
 export const WIZARD_STEP_LABELS = ['From & To', 'Amount', 'Confirm']
 
-// Shown while a multi-stage transfer runs in this window.
+// Title of the Progress screen.
+export const PROGRESS_TITLE = 'Transfer in progress'
+
+// Shown while a multi-step transfer runs in this window.
 export const KEEP_OPEN_MESSAGE = 'Keep this window open until the transfer completes.'
 
 export const RECIPIENT_PLACEHOLDERS = {
@@ -60,28 +63,19 @@ export const WITHDRAW_WARNINGS: Partial<Record<TransferMode, string>> = {
   shieldedWithdraw: SHIELDED_WITHDRAW_WARNING
 }
 
+// Network fee shown when Retry finishes a top up whose Core payment was made earlier.
+export const ALREADY_PAID_LABEL = 'Already paid'
+
+export const PREPAID_TOP_UP_MESSAGE = 'Finishes a top up paid earlier. No new payment.'
+
 // Warning on directions that still run on mocked backend methods.
 export const MOCK_TRANSFER_WARNING = 'Preview: this transfer runs on a test mock and does not move any funds yet.'
-
-// Extra duffs Max leaves on Core for inputs the one-input fee estimate does not cover (about 67 inputs).
-export const CORE_MAX_FEE_RESERVE_DUFFS = 10_000n
 
 // Top up from Core works only for identities of this wallet.
 export const CORE_TOP_UP_OWN_IDENTITY_MESSAGE = 'Top up from Dash Core works only for identities in this wallet.'
 
-export const COIN_CONTROL_AUTOMATIC_TITLE = 'Let The Wallet Choose'
-export const COIN_CONTROL_AUTOMATIC_TEXT = 'The wallet will select enough available inputs for the amount and fee.'
-export const COIN_CONTROL_AMOUNT_HINT = 'The amount is the sum taken from the addresses selected in Coin Control.'
-
-// Name of one selectable input per Coin Control list.
-export const COIN_CONTROL_UNITS = {
-  utxo: ['UTXO', 'UTXOs'],
-  platformInputs: ['Input', 'Inputs'],
-  shieldedNotes: ['Note', 'Notes']
-} as const
-
-// Most recipients one Advanced transfer can pay (06-backend-questions.md, question 6).
+// Most recipients one Advanced transfer can pay.
 export const MAX_RECIPIENTS = 1000
 
-// Estimated fee of a Core send while coin selection is automatic: one input, recipient and change outputs.
+// Estimated fee of a Core send while the wallet UTXOs are unknown: one input, recipient and change outputs.
 export const CORE_TRANSFER_FEE_ESTIMATE_DUFFS = 226n

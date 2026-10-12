@@ -7,8 +7,10 @@ import { getStateTransitionKeyRequirements, loadSigningKeys, pickSigningKey } fr
 import { WITHDRAWAL_POOLING } from '../../../constants'
 import type { NetworkType, PrivateAPIClient } from '../../../types'
 import type { ShieldedSpendKind } from '../../../types/ShieldedSpendKind'
+import type { PendingAssetLock } from '../../../types/messages/response/ListPendingAssetLocksResponse'
 import { trackShieldedSync } from '../../utils/shieldedSync'
 import * as mock from './mocks/transferApiMock'
+import type { CoreUtxo } from './types'
 
 export interface TransferTxResult {
   txHash: string
@@ -112,8 +114,16 @@ export class TransferApi {
     return (await this.extensionAPI.listCoreAddresses()).map(entry => entry.address)
   }
 
-  async requestTopUpFundingAddress (password: string, identityId: string, walletId?: string, network?: NetworkType): Promise<string> {
-    return (await this.extensionAPI.requestTopUpFundingAddress(password, identityId, walletId, network)).address
+  async getCoreReceiveAddress (): Promise<string> {
+    return (await this.extensionAPI.getCoreReceiveAddress()).address
+  }
+
+  async listCoreUtxos (): Promise<CoreUtxo[]> {
+    return await this.extensionAPI.listCoreUtxos()
+  }
+
+  async listPendingAssetLocks (): Promise<PendingAssetLock[]> {
+    return await this.extensionAPI.listPendingAssetLocks()
   }
 
   async requestAssetLockFundingAddress (): Promise<string> {
@@ -136,20 +146,11 @@ export class TransferApi {
     await trackShieldedSync(this.extensionAPI.syncShieldedNotes(password, undefined, walletId, network))
   }
 
-  readonly listCoreUtxos = mock.listCoreUtxos
   readonly sendCoreTransaction = mock.sendCoreTransaction
   readonly shieldFromCore = mock.shieldFromCore
-  readonly topUpIdentityFromCoreInputs = mock.topUpIdentityFromCore
-  readonly fundPlatformAddressFromCoreInputs = mock.fundPlatformAddressFromWallet
   readonly getTransferOperation = mock.getTransferOperation
-  readonly listPendingTransferOperations = mock.listPendingTransferOperations
   readonly retryTransferOperation = mock.retryTransferOperation
   readonly sendPlatformTransferFromInputs = mock.sendPlatformTransfer
-  readonly withdrawPlatformAddressToCoreFromInputs = mock.withdrawPlatformAddressToCore
-  readonly listShieldedNotes = mock.listShieldedNotes
-  readonly sendShieldedTransferFromNotes = mock.sendShieldedTransfer
-  readonly unshieldToAddressFromNotes = mock.unshieldToAddress
-  readonly withdrawShieldedToCoreFromNotes = mock.withdrawShieldedToCore
 }
 
 // Transfer API bound to the current SDK and extension client.

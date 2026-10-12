@@ -5,7 +5,7 @@ import { Banner } from '../../../components/cards'
 import { PROVING_WARNING } from '../../../constants/transferWarnings'
 import { formatDashAmount, parseDashAmount } from '../../../../utils'
 import { SHIELDED_MODES } from '../types'
-import { KEEP_OPEN_MESSAGE, MOCK_TRANSFER_WARNING, WITHDRAW_WARNINGS } from '../constants'
+import { KEEP_OPEN_MESSAGE, MOCK_TRANSFER_WARNING, PREPAID_TOP_UP_MESSAGE, WITHDRAW_WARNINGS } from '../constants'
 import type { DirectionConfig } from '../directions/directionConfig'
 import type { SourceBalance } from '../hooks/useSourceBalance'
 import type { TransferFee } from '../hooks/useTransferFee'
@@ -20,6 +20,7 @@ interface ConfirmStepProps {
   fee: TransferFee | null
   received: bigint | null
   isMock: boolean
+  isPrepaid: boolean
   rate: number | null
   isSubmitting: boolean
   passwordError: string | null
@@ -28,14 +29,14 @@ interface ConfirmStepProps {
 }
 
 // Step 3 of the send wizard: transfer details, password and the action button.
-export function ConfirmStep ({ draft, config, amount, balance, fee, received, isMock, rate, isSubmitting, passwordError, onPasswordChange, onConfirm }: ConfirmStepProps): React.JSX.Element {
+export function ConfirmStep ({ draft, config, amount, balance, fee, received, isMock, isPrepaid, rate, isSubmitting, passwordError, onPasswordChange, onConfirm }: ConfirmStepProps): React.JSX.Element {
   const [password, setPassword] = useState('')
   const isProving = SHIELDED_MODES.includes(config.mode) || config.mode === 'coreShield'
   const isCrossLayerFromCore = draft.from.type === 'core' && draft.to.type !== 'core'
 
   return (
     <div className='flex flex-col gap-6'>
-      <TransferDetails draft={draft} amount={amount} balance={balance} fee={fee} received={received} rate={rate} showTotal />
+      <TransferDetails draft={draft} amount={amount} balance={balance} fee={fee} received={received} rate={rate} showTotal prepaid={isPrepaid} />
 
       {draft.isAdvanced && (
         <Accordion title={`${draft.recipients.length} ${draft.recipients.length === 1 ? 'recipient' : 'recipients'}`}>
@@ -50,6 +51,7 @@ export function ConfirmStep ({ draft, config, amount, balance, fee, received, is
         </Accordion>
       )}
 
+      <Banner variant='info' message={isPrepaid ? PREPAID_TOP_UP_MESSAGE : null} />
       <Banner variant='info' message={isMock ? MOCK_TRANSFER_WARNING : null} />
       <Banner variant='warning' message={WITHDRAW_WARNINGS[config.mode] ?? null} />
       {isProving && <Banner variant='warning' message={PROVING_WARNING} />}

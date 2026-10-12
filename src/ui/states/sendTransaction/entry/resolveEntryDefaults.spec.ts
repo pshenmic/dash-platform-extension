@@ -26,7 +26,6 @@ describe('resolveEntryDefaults', () => {
     expect(draft).toMatchObject({
       amount: '',
       isAdvanced: false,
-      coinControl: { type: 'automatic' },
       recipients: [],
       changeAddress: null,
       asset: { type: 'dash' },

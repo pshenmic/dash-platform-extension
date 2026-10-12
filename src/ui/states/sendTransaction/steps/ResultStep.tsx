@@ -24,6 +24,7 @@ interface ResultStepProps {
   amount: bigint
   balance: SourceBalance
   fee: TransferFee | null
+  isPrepaid: boolean
   received: bigint | null
   rate: number | null
   network: NetworkType
@@ -41,7 +42,7 @@ const HASH_LABELS: Record<HashType, string> = {
 }
 
 // Final screen of the send wizard for a successful or failed transfer.
-export function ResultStep ({ outcome, draft, config, amount, balance, fee, received, rate, network, onDone, onRetry }: ResultStepProps): React.JSX.Element {
+export function ResultStep ({ outcome, draft, config, amount, balance, fee, isPrepaid, received, rate, network, onDone, onRetry }: ResultStepProps): React.JSX.Element {
   const isSuccess = outcome.type === 'success'
   const usd = draft.asset.type === 'dash' ? dashAmountToUsd(amount, balance.decimals, rate) : undefined
   const actualFee = outcome.type === 'success' ? outcome.fee : undefined
@@ -55,7 +56,7 @@ export function ResultStep ({ outcome, draft, config, amount, balance, fee, rece
         message={isSuccess ? config.successMessage : transferErrorMessage(balance.unit)}
       />
 
-      <TransferDetails draft={draft} amount={amount} balance={balance} fee={actualFee ?? fee} feeExact={actualFee != null} received={received} rate={rate} />
+      <TransferDetails draft={draft} amount={amount} balance={balance} fee={actualFee ?? fee} feeExact={actualFee != null} received={received} rate={rate} prepaid={isPrepaid && actualFee == null} />
 
       {outcome.type === 'success' && config.hashes.map(hashType => {
         const hash = outcome.hashes[hashType]

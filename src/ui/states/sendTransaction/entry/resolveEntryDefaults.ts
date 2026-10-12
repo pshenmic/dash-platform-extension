@@ -45,7 +45,6 @@ export const resolveEntryDefaults = ({ scope, identityId, selectedToken, current
       asset,
       amount: '',
       isAdvanced: false,
-      coinControl: { type: 'automatic' },
       recipients: [],
       changeAddress: null
     },

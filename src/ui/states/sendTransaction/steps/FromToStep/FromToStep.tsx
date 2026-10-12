@@ -35,16 +35,12 @@ interface FromToStepProps {
   canContinue: boolean
   recipientError: string | null
   onOpenAsset: () => void
-  coinControlLabel: string
   recipientsLabel: string
   onOpenRecipients: () => void
   advancedSummary: React.ReactNode
-  onOpenCoinControl: (() => void) | null
+  unfinishedTopUps: React.ReactNode
   onNext: () => void
 }
-
-// TODO: replace with a Coin Control icon once it is added to dash-ui-kit.
-const COIN_CONTROL_ICON = <span className='text-sm font-bold leading-none'>C</span>
 
 const tokenSymbol = (draft: TransferDraft, tokens: TokenData[]): string => {
   if (draft.asset.type !== 'token') return 'Dash'
@@ -70,11 +66,10 @@ export function FromToStep ({
   canContinue,
   recipientError,
   onOpenAsset,
-  coinControlLabel,
   recipientsLabel,
   onOpenRecipients,
   advancedSummary,
-  onOpenCoinControl,
+  unfinishedTopUps,
   onNext
 }: FromToStepProps): React.JSX.Element {
   const fromOptions = typeOrder.map((type): EndpointTypeOption => {
@@ -97,18 +92,16 @@ export function FromToStep ({
         <EndpointCard label='From' position='top'>
           <div className='flex gap-3'>
             <EndpointTypeSelect value={draft.from.type} options={fromOptions} onChange={(type) => actions.setFromType(type)} className='flex-1 min-w-0' />
-            {draft.from.type === 'identity'
-              ? (
-                <SideActionButton
-                  icon={<CreditsIcon className='w-4 h-4' />}
-                  title='Asset'
-                  subtitle={tokenSymbol(draft, tokens)}
-                  onClick={onOpenAsset}
-                  disabled={tokens.length === 0}
-                  className='shrink-0 max-w-[45%]'
-                />
-                )
-              : <SideActionButton icon={COIN_CONTROL_ICON} title='Coin Control' subtitle={coinControlLabel} onClick={onOpenCoinControl ?? undefined} disabled={onOpenCoinControl == null} className='shrink-0 max-w-[45%]' />}
+            {draft.from.type === 'identity' && (
+              <SideActionButton
+                icon={<CreditsIcon className='w-4 h-4' />}
+                title='Asset'
+                subtitle={tokenSymbol(draft, tokens)}
+                onClick={onOpenAsset}
+                disabled={tokens.length === 0}
+                className='shrink-0 max-w-[45%]'
+              />
+            )}
           </div>
           <SourceRow
             draft={draft}
@@ -162,6 +155,8 @@ export function FromToStep ({
           {infoCard.text.replace(FEE_PLACEHOLDER, feeText)}
         </InfoCard>
       )}
+
+      {unfinishedTopUps}
 
       <Button colorScheme='brand' size='xl' className='w-full' disabled={!canContinue} onClick={onNext}>
         Next

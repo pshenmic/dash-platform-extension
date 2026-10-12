@@ -5,7 +5,6 @@ import type { Direction, TransferMode } from '../types'
 export const FEE_PLACEHOLDER = '{fee}'
 
 export type HashType = 'core' | 'platform' | 'single'
-export type CoinControlType = 'utxo' | 'platformInputs' | 'shieldedNotes'
 export type FeeSource = 'coreEstimate' | 'identityEstimate' | 'platformTransfer' | 'shieldedEstimate' | 'withdrawal'
 
 export interface InfoCardConfig {
@@ -18,10 +17,10 @@ export interface InfoCardConfig {
 export interface DirectionDetails {
   infoCard?: InfoCardConfig
   confirmLabel: string
-  stages: string[]
+  // Multi-step transfer that shows the Progress screen.
+  hasProgress: boolean
   successMessage: string
   hashes: HashType[]
-  coinControl: CoinControlType | null
   advanced: boolean
   feeSource: FeeSource
   usesMock: boolean
@@ -33,12 +32,6 @@ export interface DirectionConfig extends DirectionDetails {
 }
 
 const CROSS_LAYER_DURATION = '1-3 Min'
-
-const STAGE_L1_BROADCAST = 'Broadcasting the L1 asset lock transaction'
-const STAGE_L1_CONFIRMATION = 'Waiting for confirmation (InstantSend or ChainLock)'
-const STAGE_L2_BROADCAST = 'Broadcasting the L2 transaction'
-const STAGE_FINALIZATION = 'Waiting for transaction finalization'
-const STAGE_PROVING = 'Proving the transaction'
 
 const SENT_TO_ADDRESS = 'Funds were successfully sent to the address.'
 const SENT_TO_IDENTITY = 'Funds were successfully sent to the identity balance.'
@@ -77,7 +70,7 @@ const SHIELDING_CARD: InfoCardConfig = {
 }
 
 const SINGLE_HASH = {
-  stages: [],
+  hasProgress: false,
   hashes: ['single'] as HashType[],
   advanced: false,
   usesMock: false
@@ -86,7 +79,6 @@ const SINGLE_HASH = {
 const CORE_TO_PLATFORM = {
   confirmLabel: 'Top Up',
   hashes: ['core', 'platform'] as HashType[],
-  coinControl: 'utxo' as const,
   advanced: false,
   feeSource: 'coreEstimate' as const,
   usesMock: false
@@ -106,10 +98,9 @@ const WITHDRAWAL = {
 export const DIRECTION_DETAILS: Partial<Record<Direction, DirectionDetails>> = {
   'core->core': {
     confirmLabel: 'Send',
-    stages: [],
+    hasProgress: false,
     successMessage: SENT_TO_ADDRESS,
     hashes: ['single'],
-    coinControl: 'utxo',
     advanced: true,
     feeSource: 'coreEstimate',
     usesMock: false
@@ -117,59 +108,53 @@ export const DIRECTION_DETAILS: Partial<Record<Direction, DirectionDetails>> = {
   'core->identity': {
     ...CORE_TO_PLATFORM,
     infoCard: TOP_UP_IDENTITY_CARD,
-    stages: [STAGE_L1_BROADCAST, STAGE_L1_CONFIRMATION, 'Topping up the Platform Identity'],
+    hasProgress: true,
     successMessage: SENT_TO_IDENTITY
   },
   'core->platformAddress': {
     ...CORE_TO_PLATFORM,
     infoCard: TOP_UP_ADDRESS_CARD,
-    stages: [STAGE_L1_BROADCAST, STAGE_L1_CONFIRMATION, 'Topping up the Platform Address'],
+    hasProgress: true,
     successMessage: SENT_TO_PLATFORM_ADDRESS
   },
   'core->shielded': {
     ...CORE_TO_PLATFORM,
     infoCard: TWO_STEP_SHIELDING_CARD,
     confirmLabel: 'Shield',
-    stages: [STAGE_L1_BROADCAST, STAGE_L1_CONFIRMATION, 'Proving and Shielding credits'],
+    hasProgress: true,
     successMessage: SENT_TO_OWN_SHIELDED,
     usesMock: true
   },
   'identity->core': {
     ...WITHDRAWAL,
-    stages: [STAGE_L2_BROADCAST, STAGE_FINALIZATION],
-    coinControl: null
+    hasProgress: true
   },
   'identity->identity': {
     ...SINGLE_HASH,
     confirmLabel: 'Send',
     successMessage: SENT_TO_IDENTITY,
-    coinControl: null,
     feeSource: 'identityEstimate'
   },
   'identity->platformAddress': {
     ...SINGLE_HASH,
     confirmLabel: 'Send',
     successMessage: SENT_TO_PLATFORM_ADDRESS,
-    coinControl: null,
     feeSource: 'platformTransfer'
   },
   'platformAddress->core': {
     ...WITHDRAWAL,
-    stages: [STAGE_L2_BROADCAST, STAGE_FINALIZATION],
-    coinControl: 'platformInputs'
+    hasProgress: true
   },
   'platformAddress->identity': {
     ...SINGLE_HASH,
     confirmLabel: 'Top Up',
     successMessage: SENT_TO_IDENTITY,
-    coinControl: 'platformInputs',
     feeSource: 'platformTransfer'
   },
   'platformAddress->platformAddress': {
     ...SINGLE_HASH,
     confirmLabel: 'Send',
     successMessage: SENT_TO_PLATFORM_ADDRESS,
-    coinControl: 'platformInputs',
     advanced: true,
     feeSource: 'platformTransfer',
     usesMock: false
@@ -178,30 +163,26 @@ export const DIRECTION_DETAILS: Partial<Record<Direction, DirectionDetails>> = {
     ...SINGLE_HASH,
     infoCard: SHIELDING_CARD,
     confirmLabel: 'Shield',
-    stages: [STAGE_PROVING, STAGE_L2_BROADCAST],
+    hasProgress: true,
     successMessage: SENT_TO_OWN_SHIELDED,
-    coinControl: 'platformInputs',
     feeSource: 'shieldedEstimate'
   },
   'shielded->core': {
     ...WITHDRAWAL,
-    stages: [STAGE_PROVING, STAGE_L2_BROADCAST, STAGE_FINALIZATION],
-    coinControl: 'shieldedNotes'
+    hasProgress: true
   },
   'shielded->platformAddress': {
     ...SINGLE_HASH,
     confirmLabel: 'Unshield',
-    stages: [STAGE_PROVING, STAGE_L2_BROADCAST],
+    hasProgress: true,
     successMessage: SENT_TO_PLATFORM_ADDRESS,
-    coinControl: 'shieldedNotes',
     feeSource: 'shieldedEstimate'
   },
   'shielded->shielded': {
     ...SINGLE_HASH,
     confirmLabel: 'Send',
-    stages: [STAGE_PROVING, STAGE_L2_BROADCAST],
+    hasProgress: true,
     successMessage: SENT_TO_SHIELDED_ADDRESS,
-    coinControl: 'shieldedNotes',
     feeSource: 'shieldedEstimate'
   }
 }

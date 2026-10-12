@@ -1,12 +1,12 @@
 import { ESTIMATED_FEES } from '../../../constants'
-import { CORE_FEE_PER_BYTE, CORE_P2PKH_INPUT_BYTES, CORE_P2PKH_OUTPUT_BYTES, CORE_TX_OVERHEAD_BYTES, SHIELDED_SPEND_FEE_CREDITS, TRANSFER_FEE_CREDITS } from '../../../../constants'
-import { computeShieldedSpendFee, CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS } from '../../../../utils'
+import { CORE_FEE_PER_BYTE, CORE_P2PKH_OUTPUT_BYTES, SHIELDED_SPEND_FEE_CREDITS, TRANSFER_FEE_CREDITS } from '../../../../constants'
+import { CORE_DASH_DECIMALS, estimateCoreSendFee, maxCoreSendAmount, PLATFORM_DASH_DECIMALS } from '../../../../utils'
 import type { ShieldedSpendEstimate } from '../../../../utils'
 import type { NetworkType } from '../../../../types'
 import type { ShieldedSpendKind } from '../../../../types/ShieldedSpendKind'
 import type { DirectionConfig } from '../directions/directionConfig'
 import { CORE_TRANSFER_FEE_ESTIMATE_DUFFS } from '../constants'
-import type { TransferDraft } from '../types'
+import type { CoreUtxo, TransferDraft } from '../types'
 
 // Network fee in base units of the layer that pays it: duffs on Core, credits on Platform.
 export interface TransferFee {
@@ -17,6 +17,8 @@ export interface TransferFee {
 interface TransferFeeParams {
   config: DirectionConfig | null
   draft: TransferDraft
+  amount: bigint | null
+  utxos: CoreUtxo[] | null
   network: NetworkType
   shieldedSpendEstimates: Partial<Record<ShieldedSpendKind, ShieldedSpendEstimate>>
 }
@@ -44,33 +46,37 @@ const SHIELDED_SPEND_TYPES: Partial<Record<string, ShieldedSpendKind>> = {
   shieldedWithdraw: 'withdrawal'
 }
 
-// Largest amount an automatic shielded spend can send after its fee; null when it does not apply or is unknown.
-export const shieldedMaxAmount = (config: DirectionConfig | null, draft: TransferDraft, estimates: Partial<Record<ShieldedSpendKind, ShieldedSpendEstimate>>): bigint | null => {
+// Largest amount a shielded spend can send after its fee; null when it does not apply or is unknown.
+export const shieldedMaxAmount = (config: DirectionConfig | null, estimates: Partial<Record<ShieldedSpendKind, ShieldedSpendEstimate>>): bigint | null => {
   const spendType = config != null ? SHIELDED_SPEND_TYPES[config.mode] : undefined
-  if (spendType == null || draft.coinControl.type !== 'automatic') return null
+  if (spendType == null) return null
   return estimates[spendType]?.amountCredits ?? null
 }
 
-// Core fee in duffs: by transaction size when Coin Control picked the inputs, otherwise the estimate plus extra Advanced outputs.
-const coreFee = (draft: TransferDraft): bigint => {
-  const recipients = draft.isAdvanced ? Math.max(draft.recipients.length, 1) : 1
+// Outputs paid by the transfer: every Advanced recipient, or the one Simple recipient.
+export const recipientCount = (draft: TransferDraft): number => draft.isAdvanced ? Math.max(draft.recipients.length, 1) : 1
 
-  if (draft.coinControl.type === 'utxo') {
-    const bytes = CORE_TX_OVERHEAD_BYTES + draft.coinControl.inputs.length * CORE_P2PKH_INPUT_BYTES + (recipients + 1) * CORE_P2PKH_OUTPUT_BYTES
-    return BigInt(bytes) * CORE_FEE_PER_BYTE
-  }
-  return CORE_TRANSFER_FEE_ESTIMATE_DUFFS + BigInt((recipients - 1) * CORE_P2PKH_OUTPUT_BYTES) * CORE_FEE_PER_BYTE
+const utxoAmounts = (utxos: CoreUtxo[]): bigint[] => utxos.map(utxo => BigInt(utxo.amountDuffs))
+
+// Core fee in duffs for the inputs `sendCoreTransfer` would pick; the one-input estimate while the UTXOs or the amount are unknown.
+const coreFee = (draft: TransferDraft, amount: bigint | null, utxos: CoreUtxo[] | null): bigint => {
+  const recipients = recipientCount(draft)
+  const fee = utxos != null && amount != null && amount > 0n ? estimateCoreSendFee(utxoAmounts(utxos), amount, recipients) : null
+  return fee ?? CORE_TRANSFER_FEE_ESTIMATE_DUFFS + BigInt((recipients - 1) * CORE_P2PKH_OUTPUT_BYTES) * CORE_FEE_PER_BYTE
+}
+
+// Largest Core amount to `recipients` outputs: every wallet UTXO minus the fee; null when the source is not Core or the UTXOs are unknown.
+export const coreMaxAmount = (config: DirectionConfig | null, recipients: number, utxos: CoreUtxo[] | null): bigint | null => {
+  if (config?.feeSource !== 'coreEstimate' || utxos == null) return null
+  return maxCoreSendAmount(utxoAmounts(utxos), recipients)
 }
 
 // Estimated network fee of the transfer; null while unknown.
-export function useTransferFee ({ config, draft, network, shieldedSpendEstimates }: TransferFeeParams): TransferFee | null {
+export function useTransferFee ({ config, draft, amount, utxos, network, shieldedSpendEstimates }: TransferFeeParams): TransferFee | null {
   if (config == null) return null
-  if (config.feeSource === 'coreEstimate') return { amount: coreFee(draft), decimals: CORE_DASH_DECIMALS }
+  if (config.feeSource === 'coreEstimate') return { amount: coreFee(draft, amount, utxos), decimals: CORE_DASH_DECIMALS }
 
   const spendType = SHIELDED_SPEND_TYPES[config.mode]
-  if (spendType != null && draft.coinControl.type === 'shieldedNotes') {
-    return { amount: computeShieldedSpendFee(spendType, draft.coinControl.noteIds.length), decimals: PLATFORM_DASH_DECIMALS }
-  }
   const estimate = spendType != null ? shieldedSpendEstimates[spendType]?.feeCredits : undefined
   return { amount: estimate ?? staticFee(config, draft, network), decimals: PLATFORM_DASH_DECIMALS }
 }

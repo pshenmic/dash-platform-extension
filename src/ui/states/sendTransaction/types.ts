@@ -61,23 +61,11 @@ export type AssetId = { type: 'dash' } | { type: 'token', tokenId: string }
 // Screens of the send wizard.
 export type WizardStep = 'fromTo' | 'amount' | 'confirm' | 'progress' | 'result' | 'error'
 
-export interface UtxoRef {
-  txid: string
-  vout: number
-}
-
 // Address with an amount: credits for Platform, duffs for Core.
 export interface AddressAmount {
   address: string
   amount: string
 }
-
-// Manual input selection made in Coin Control.
-export type CoinControlSelection =
-  | { type: 'automatic' }
-  | { type: 'utxo', inputs: UtxoRef[] }
-  | { type: 'platformInputs', inputs: AddressAmount[] }
-  | { type: 'shieldedNotes', noteIds: string[] }
 
 export interface TransferSource {
   type: EndpointType
@@ -104,27 +92,19 @@ export interface TransferDraft {
   asset: AssetId
   amount: string
   isAdvanced: boolean
-  coinControl: CoinControlSelection
   recipients: TransferRecipient[]
   changeAddress: string | null
 }
 
-// Unspent Core output of the wallet; amount is in duffs.
-export interface CoreUtxo extends UtxoRef {
+// Unspent Core output of the wallet.
+export interface CoreUtxo {
   address: string
-  amount: string
-  timestamp: number
-  confirmations: number
+  txid: string
+  vout: number
+  amountDuffs: string
 }
 
-// Spendable shielded note; amount is in credits.
-export interface ShieldedNote {
-  noteId: string
-  address: string
-  amount: string
-}
-
-export type TransferOperationType = 'shieldFromCore' | 'topUpFromCore' | 'fundAddressFromCore' | 'identityWithdraw' | 'addressWithdraw'
+export type TransferOperationType = 'shieldFromCore'
 
 export type TransferStageStatus = 'pending' | 'active' | 'done' | 'failed'
 
