@@ -86,7 +86,8 @@ export interface PendingAssetLockSchema {
   fundingTxid: string
   purpose: AssetLockFundingPurpose
   // The identity a top-up was meant for, or the platform address a funding was
-  // meant for; null for a registration.
+  // meant for; both null for a registration and for a shield, whose recipient is
+  // a shielded address and is deliberately not written down.
   identityId: string | null
   platformAddress: string | null
   // Locked amount in duffs, so a caller can tell what is at stake.
@@ -98,7 +99,7 @@ export interface PendingAssetLocksSchema {
   [assetLockTxid: string]: PendingAssetLockSchema
 }
 
-export type AssetLockFundingPurpose = 'registration' | 'topUp' | 'fundAddress'
+export type AssetLockFundingPurpose = 'registration' | 'topUp' | 'fundAddress' | 'shield'
 
 export interface AssetLockFundingAddressSchema {
   address: string

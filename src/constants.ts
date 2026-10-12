@@ -10,6 +10,8 @@ export const POPUP_WINDOW_HEIGHT = 500
 
 // ── Identity registration / asset lock pipeline ──────────────────────────────
 export const MIN_FEE_RELAY = 1000n
+// Platform counts credits, L1 counts duffs: one duff locked is 1000 credits.
+export const CREDITS_PER_DUFF = 1000n
 export const LOCK_POLL_INTERVAL_MS = 5000
 export const LOCK_TIMEOUT_MS = 15 * 60 * 1000
 export const MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS = 6

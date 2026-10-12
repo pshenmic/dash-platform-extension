@@ -45,6 +45,7 @@ import { CoreExplorerService } from '../services/CoreExplorerService'
 import { CoreUtxosService } from '../services/CoreUtxosService'
 import { CoreSpendService } from '../services/CoreSpendService'
 import { AssetLockFundingService } from '../services/AssetLockFundingService'
+import { AssetLockService } from '../services/AssetLockService'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
@@ -82,6 +83,7 @@ import { ShieldedService } from '../services/ShieldedService'
 import { EstimateShieldedFeeHandler } from './private/wallet/estimateShieldedFee'
 import { InitShieldHandler } from './private/wallet/initShield'
 import { ShieldFromPlatformAddressHandler } from './private/wallet/shieldFromPlatformAddress'
+import { ShieldFromWalletHandler } from './private/wallet/shieldFromWallet'
 import { SendShieldedTransferHandler } from './private/wallet/sendShieldedTransfer'
 import { UnshieldToPlatformAddressHandler } from './private/wallet/unshieldToPlatformAddress'
 import { WithdrawShieldedToCoreHandler } from './private/wallet/withdrawShieldedToCore'
@@ -142,6 +144,7 @@ export class PrivateAPI {
     const coreUtxos = new CoreUtxosService(this.sdk, coreExplorer, corePendingSpendsRepository)
     const coreSpend = new CoreSpendService(this.sdk, this.coreSDK, coreUtxos, corePendingSpendsRepository)
     const assetLockFunding = new AssetLockFundingService(coreExplorer, coreSpend, corePendingSpendsRepository)
+    const assetLock = new AssetLockService(this.sdk, this.coreSDK)
     const shielded = new ShieldedService(this.storageAdapter, this.sdk)
 
     // The handlers a chained operation delegates to: one instance each, so
@@ -248,6 +251,16 @@ export class PrivateAPI {
       [MessagingMethods.ESTIMATE_SHIELDED_FEE]: new EstimateShieldedFeeHandler(walletRepository, shielded),
       [MessagingMethods.INIT_SHIELD]: new InitShieldHandler(this.sdk),
       [MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS]: new ShieldFromPlatformAddressHandler(walletRepository, this.sdk, shielded),
+      [MessagingMethods.SHIELD_FROM_WALLET]: new ShieldFromWalletHandler(
+        walletRepository,
+        assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
+        assetLockFunding,
+        assetLock,
+        requestAssetLockFundingAddress,
+        this.sdk,
+        shielded
+      ),
       [MessagingMethods.SEND_SHIELDED_TRANSFER]: new SendShieldedTransferHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.UNSHIELD_TO_PLATFORM_ADDRESS]: new UnshieldToPlatformAddressHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.WITHDRAW_SHIELDED_TO_CORE]: new WithdrawShieldedToCoreHandler(walletRepository, this.sdk, shielded)

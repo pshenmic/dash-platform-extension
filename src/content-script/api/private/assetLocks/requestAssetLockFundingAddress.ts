@@ -67,8 +67,8 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
   }
 
   validatePayload (payload: RequestAssetLockFundingAddressPayload): null | string {
-    if (payload?.purpose != null && payload.purpose !== 'registration' && payload.purpose !== 'fundAddress') {
-      return "purpose must be 'registration' or 'fundAddress'"
+    if (payload?.purpose != null && !['registration', 'fundAddress', 'shield'].includes(payload.purpose)) {
+      return "purpose must be 'registration', 'fundAddress' or 'shield'"
     }
 
     return null

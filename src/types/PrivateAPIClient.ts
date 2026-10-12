@@ -34,7 +34,9 @@ import { EstimateShieldedFeePayload } from './messages/payloads/EstimateShielded
 import { EstimateShieldedFeeResponse } from './messages/response/EstimateShieldedFeeResponse'
 import { ShieldedSpendKind } from './ShieldedSpendKind'
 import { ShieldFromPlatformAddressPayload } from './messages/payloads/ShieldFromPlatformAddressPayload'
+import { ShieldFromWalletPayload } from './messages/payloads/ShieldFromWalletPayload'
 import { ShieldFromPlatformAddressResponse } from './messages/response/ShieldFromPlatformAddressResponse'
+import { ShieldFromWalletResponse } from './messages/response/ShieldFromWalletResponse'
 import { SendShieldedTransferPayload } from './messages/payloads/SendShieldedTransferPayload'
 import { SendShieldedTransferResponse } from './messages/response/SendShieldedTransferResponse'
 import { UnshieldToPlatformAddressPayload } from './messages/payloads/UnshieldToPlatformAddressPayload'
@@ -677,6 +679,17 @@ export class PrivateAPIClient {
     const payload: ShieldFromPlatformAddressPayload = { amountCredits, password, fromAddress, memo }
 
     return await this._rpcCall(MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  // Shields the wallet's own Core (L1) coins: pays an asset lock funding address
+  // out of the wallet, locks the deposit and deposits its credits into the pool
+  // in one transition. `toShieldedAddress` omitted shields to this wallet's own
+  // shielded address. Safe to call again after an interruption - it continues
+  // from the deposit already on L1 instead of paying twice.
+  async shieldFromWallet (amountDuffs: string, password: string, toShieldedAddress?: string, memo?: string, account?: number): Promise<ShieldFromWalletResponse> {
+    const payload: ShieldFromWalletPayload = { amountDuffs, password, toShieldedAddress, memo, account }
+
+    return await this._rpcCall(MessagingMethods.SHIELD_FROM_WALLET, payload, SHIELDED_PROVE_TIMEOUT)
   }
 
   /** @deprecated Renamed to shieldFromPlatformAddress; kept so existing callers keep working. */
