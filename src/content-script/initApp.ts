@@ -10,12 +10,16 @@ import { EventData } from '../types'
 import { MessagingMethods } from '../types/enums/MessagingMethods'
 import { injectScript } from '../utils'
 import { Network } from '../types/enums/Network'
+import { PLATFORM_DAPI_URLS } from '../constants'
 
 export async function initApp (): Promise<void> {
   const extensionStorageAdapter = new ExtensionStorageAdapter()
   const network = await extensionStorageAdapter.get('network') as string
 
-  const sdk = new DashPlatformSDK({ network: Network[network] })
+  const sdk = new DashPlatformSDK({
+    network: Network[network],
+    grpc: { poolLimit: 5, dapiUrl: PLATFORM_DAPI_URLS[Network[network]] }
+  })
 
   const coreSDK = new DashCoreSDK({ network: Network[network] })
 

@@ -2,6 +2,7 @@ import { EventData } from '../../types/EventData'
 import { DashCoreSDK } from 'dash-core-sdk'
 import { Network } from '../../types/enums/Network'
 import { PLATFORM_DAPI_URLS } from '../../constants'
+import { pickLiveDapiUrls } from '../../utils/dapiNodes'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
@@ -101,12 +102,12 @@ export class PrivateAPI {
    * them if the table is built again - which is what left a switched wallet
    * talking to the old chain until the extension was reloaded.
    */
-  setNetwork (network: Network): void {
+  async setNetwork (network: Network): Promise<void> {
     // The SDK rebuilds its connection pool from the options it was built with,
     // and the nodes differ per network - so the list has to be swapped before
     // the switch, or mainnet would be asked of testnet nodes.
     if (this.sdk.options?.grpc != null) {
-      this.sdk.options.grpc.dapiUrl = PLATFORM_DAPI_URLS[network]
+      this.sdk.options.grpc.dapiUrl = await pickLiveDapiUrls(PLATFORM_DAPI_URLS[network])
     }
 
     this.sdk.setNetwork(network)
@@ -175,7 +176,7 @@ export class PrivateAPI {
       [MessagingMethods.CREATE_WALLET]: new CreateWalletHandler(walletRepository, this.sdk, this.storageAdapter),
       [MessagingMethods.REMOVE_WALLET]: new RemoveWalletHandler(walletRepository, this.storageAdapter),
       [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository, this.storageAdapter),
-      [MessagingMethods.SWITCH_NETWORK]: new SwitchNetworkHandler(walletRepository, this.storageAdapter, network => this.setNetwork(network)),
+      [MessagingMethods.SWITCH_NETWORK]: new SwitchNetworkHandler(walletRepository, this.storageAdapter, async network => await this.setNetwork(network)),
       [MessagingMethods.RESYNC_IDENTITIES]: new ResyncIdentitiesHandler(identitiesRepository, walletRepository, this.sdk, this.storageAdapter),
       [MessagingMethods.SET_WALLET_LABEL]: new SetWalletLabelHandler(walletRepository),
       [MessagingMethods.GET_APP_CONNECT]: new GetAppConnectHandler(appConnectRepository),

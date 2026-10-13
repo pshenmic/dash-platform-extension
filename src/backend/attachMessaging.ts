@@ -10,7 +10,7 @@ import type { PrivateAPI } from '../content-script/api/PrivateAPI'
  * the backend is still booting queue on it instead of hitting "receiving end
  * does not exist" — the listener is registered synchronously by the caller.
  */
-export function attachMessaging (backend: Promise<PrivateAPI>): void {
+export function attachMessaging (backend: Promise<PrivateAPI>): (data: EventData) => void {
   const respond = (request: EventData, payload: any, error: string | null): void => {
     const message: EventData = {
       id: request.id,
@@ -30,7 +30,7 @@ export function attachMessaging (backend: Promise<PrivateAPI>): void {
     })
   }
 
-  ext.runtime.onMessage.addListener((data: EventData) => {
+  const onMessage = (data: EventData): void => {
     if (data?.context !== 'dash-platform-extension') return
     if (data.type === 'response') return
 
@@ -47,5 +47,11 @@ export function attachMessaging (backend: Promise<PrivateAPI>): void {
         e instanceof BroadcastError ? { signedHex: e.signedHex } : null,
         e.message
       ))
-  })
+  }
+
+  ext.runtime.onMessage.addListener(onMessage)
+
+  // Handed back so a caller that attaches more than one backend over the life of
+  // a page - the tests do, one per case - can take the previous one off the bus.
+  return onMessage
 }

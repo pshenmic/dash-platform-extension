@@ -15,9 +15,9 @@ import { StorageAdapter } from '../../../storage/storageAdapter'
 export class SwitchNetworkHandler implements APIHandler {
   walletRepository: WalletRepository
   storageAdapter: StorageAdapter
-  setNetwork: (network: Network) => void
+  setNetwork: (network: Network) => Promise<void>
 
-  constructor (walletRepository: WalletRepository, storageAdapter: StorageAdapter, setNetwork: (network: Network) => void) {
+  constructor (walletRepository: WalletRepository, storageAdapter: StorageAdapter, setNetwork: (network: Network) => Promise<void>) {
     this.walletRepository = walletRepository
     this.storageAdapter = storageAdapter
     this.setNetwork = setNetwork
@@ -41,7 +41,7 @@ export class SwitchNetworkHandler implements APIHandler {
 
     // Last, so a failure above leaves the backend pointed where the stored
     // selection still says it is.
-    this.setNetwork(network)
+    await this.setNetwork(network)
 
     return {}
   }

@@ -1,4 +1,4 @@
-import { DashPlatformSDK } from 'dash-platform-sdk'
+import { testSdk } from '../../../helpers/testSdk'
 import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateKey } from 'eciesjs'
 import hash from 'hash.js'
@@ -17,7 +17,7 @@ describe('switch identity', () => {
   let secretKey: PrivateKey
 
   beforeEach(async () => {
-    const sdk = new DashPlatformSDK({ network: 'testnet' })
+    const sdk = await testSdk()
     const coreSDK = new DashCoreSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 

@@ -1,4 +1,4 @@
-import { DashPlatformSDK } from 'dash-platform-sdk'
+import { testSdk } from '../../../helpers/testSdk'
 import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPIClient, WalletType } from '../../../../src/types'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
@@ -25,7 +25,7 @@ describe('remove wallet', () => {
   const password = 'test'
 
   beforeEach(async () => {
-    const sdk = new DashPlatformSDK({ network: 'testnet' })
+    const sdk = await testSdk()
     const coreSDK = new DashCoreSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 

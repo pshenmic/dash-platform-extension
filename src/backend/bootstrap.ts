@@ -5,6 +5,7 @@ import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPI } from '../content-script/api/PrivateAPI'
 import { Network } from '../types/enums/Network'
 import { PLATFORM_DAPI_URLS } from '../constants'
+import { pickLiveDapiUrls } from '../utils/dapiNodes'
 
 /**
  * Boots the wallet backend: runs storage migrations, constructs the SDKs and
@@ -26,10 +27,11 @@ export async function startBackend (): Promise<PrivateAPI> {
   await runMigrations(storageAdapter)
 
   const network = await storageAdapter.get('network') as string
-  // Naming the nodes ourselves, so one of them being down is not the end of it.
+  // Only the nodes answering right now: the SDK picks one at random per call and
+  // does not retry elsewhere, so an unreachable node in the pool costs requests.
   const sdk = new DashPlatformSDK({
     network: Network[network],
-    grpc: { poolLimit: 5, dapiUrl: PLATFORM_DAPI_URLS[Network[network]] }
+    grpc: { poolLimit: 5, dapiUrl: await pickLiveDapiUrls(PLATFORM_DAPI_URLS[Network[network]]) }
   })
   const coreSDK = new DashCoreSDK({ network: Network[network] })
 

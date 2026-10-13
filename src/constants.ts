@@ -32,13 +32,17 @@ export const TOPUP_FUNDING_GAP_LIMIT = 20
 // Upper bound for scanning identity indexes when picking the next free one.
 export const IDENTITY_INDEX_SCAN_LIMIT = 20
 
-// Platform nodes the SDK talks to, first one first. The SDK ships a single
-// hardcoded seed, and when that machine went down on 12 October 2026 it took
-// Platform with it for every wallet on both networks - so the extension names
-// its own list and the pool moves on to the next one by itself.
+// Platform nodes this extension is willing to talk to. The ones answering at
+// boot make up the pool: the SDK picks a node at random per call and never
+// retries on another, so an unreachable node in the pool costs its share of
+// every request.
 //
-// Mainnet keeps the node it has had until its fallbacks are verified against the
-// live chain; testnet carries the official seeds, which were.
+// The SDK ships a single hardcoded seed and discovers the rest through the
+// platform explorer. On 12 October 2026 the explorer and that seed went down
+// together and took Platform with them, for every wallet on both networks.
+//
+// Mainnet keeps the node it has had until its alternatives are verified against
+// the live chain; testnet carries the official seeds, which were.
 export const PLATFORM_DAPI_URLS = {
   testnet: [
     'https://158.160.14.115:1443',
