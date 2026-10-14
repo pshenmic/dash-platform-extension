@@ -115,6 +115,7 @@ export class FundPlatformAddressFromCoreHandler implements APIHandler {
         purpose: 'fundAddress',
         identityId: null,
         platformAddress: payload.platformAddress,
+        shieldedAddress: null,
         amountDuffs: lockedAmount.toString(),
         createdAt: Date.now()
       })

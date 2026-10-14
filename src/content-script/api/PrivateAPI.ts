@@ -49,6 +49,7 @@ import { AssetLockService } from '../services/AssetLockService'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
+import { RegisterIdentityFromWalletHandler } from './private/identities/registerIdentityFromWallet'
 import { RemoveWalletHandler } from './private/wallet/removeWallet'
 import { TopUpIdentityHandler } from './private/identities/topUpIdentity'
 import { TopUpIdentityFromWalletHandler } from './private/identities/topUpIdentityFromWallet'
@@ -69,9 +70,12 @@ import { GeneratePlatformAddressesHandler } from './private/wallet/generatePlatf
 import { ListPlatformAddressesHandler } from './private/wallet/listPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
 import { SendPlatformTransferHandler } from './private/wallet/sendPlatformTransfer'
+import { SendPlatformTransactionHandler } from './private/wallet/sendPlatformTransaction'
+import { EstimatePlatformTransferHandler } from './private/wallet/estimatePlatformTransfer'
 import { IdentityCreditTransferToAddressesHandler } from './private/wallet/identityCreditTransferToAddresses'
 import { TopUpIdentityFromAddressHandler } from './private/wallet/topUpIdentityFromAddress'
 import { WithdrawPlatformAddressToCoreHandler } from './private/wallet/withdrawPlatformAddressToCore'
+import { EstimateWithdrawalFeeHandler } from './private/wallet/estimateWithdrawalFee'
 import { RegisterIdentityFromAddressHandler } from './private/wallet/registerIdentityFromAddress'
 import { FundPlatformAddressFromCoreHandler } from './private/wallet/fundPlatformAddressFromCore'
 import { FundPlatformAddressFromWalletHandler } from './private/wallet/fundPlatformAddressFromWallet'
@@ -86,6 +90,7 @@ import { EstimateShieldedFeeHandler } from './private/wallet/estimateShieldedFee
 import { InitShieldHandler } from './private/wallet/initShield'
 import { ShieldFromPlatformAddressHandler } from './private/wallet/shieldFromPlatformAddress'
 import { ShieldFromWalletHandler } from './private/wallet/shieldFromWallet'
+import { ShieldFromCoreHandler } from './private/wallet/shieldFromCore'
 import { SendShieldedTransferHandler } from './private/wallet/sendShieldedTransfer'
 import { UnshieldToPlatformAddressHandler } from './private/wallet/unshieldToPlatformAddress'
 import { WithdrawShieldedToCoreHandler } from './private/wallet/withdrawShieldedToCore'
@@ -163,6 +168,24 @@ export class PrivateAPI {
       coreExplorer
     )
     const fundPlatformAddressFromCore = new FundPlatformAddressFromCoreHandler(walletRepository, assetLockFundingAddressesRepository, pendingAssetLocksRepository, this.sdk, this.coreSDK)
+    const shieldFromCore = new ShieldFromCoreHandler(
+      walletRepository,
+      assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
+      assetLock,
+      this.sdk,
+      shielded
+    )
+    const registerIdentity = new RegisterIdentityHandler(
+      walletRepository,
+      identitiesRepository,
+      assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
+      this.storageAdapter,
+      this.sdk,
+      this.coreSDK,
+      coreExplorer
+    )
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter, walletRepository),
@@ -199,20 +222,21 @@ export class PrivateAPI {
       [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: requestAssetLockFundingAddress,
       [MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS]: requestTopUpFundingAddress,
       [MessagingMethods.LIST_PENDING_ASSET_LOCKS]: new ListPendingAssetLocksHandler(pendingAssetLocksRepository, assetLockFundingAddressesRepository),
-      [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
+      [MessagingMethods.REGISTER_IDENTITY]: registerIdentity,
+      [MessagingMethods.REGISTER_IDENTITY_FROM_WALLET]: new RegisterIdentityFromWalletHandler(
         walletRepository,
-        identitiesRepository,
         assetLockFundingAddressesRepository,
         pendingAssetLocksRepository,
-        this.storageAdapter,
-        this.sdk,
-        this.coreSDK,
-        coreExplorer
+        assetLockFunding,
+        requestAssetLockFundingAddress,
+        registerIdentity,
+        this.sdk
       ),
       [MessagingMethods.TOP_UP_IDENTITY]: topUpIdentity,
       [MessagingMethods.TOP_UP_IDENTITY_FROM_WALLET]: new TopUpIdentityFromWalletHandler(
         walletRepository,
         assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
         assetLockFunding,
         requestTopUpFundingAddress,
         topUpIdentity,
@@ -233,14 +257,18 @@ export class PrivateAPI {
       [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk),
       [MessagingMethods.SEND_PLATFORM_TRANSFER]: new SendPlatformTransferHandler(walletRepository, this.sdk),
+      [MessagingMethods.SEND_PLATFORM_TRANSACTION]: new SendPlatformTransactionHandler(walletRepository, this.sdk),
+      [MessagingMethods.ESTIMATE_PLATFORM_TRANSFER]: new EstimatePlatformTransferHandler(walletRepository, this.sdk),
       [MessagingMethods.IDENTITY_CREDIT_TRANSFER_TO_ADDRESSES]: new IdentityCreditTransferToAddressesHandler(walletRepository, identitiesRepository, keypairRepository, this.sdk),
       [MessagingMethods.TOP_UP_IDENTITY_FROM_ADDRESS]: new TopUpIdentityFromAddressHandler(walletRepository, this.sdk),
       [MessagingMethods.WITHDRAW_PLATFORM_ADDRESS_TO_CORE]: new WithdrawPlatformAddressToCoreHandler(walletRepository, this.sdk),
+      [MessagingMethods.ESTIMATE_WITHDRAWAL_FEE]: new EstimateWithdrawalFeeHandler(walletRepository, this.sdk),
       [MessagingMethods.REGISTER_IDENTITY_FROM_ADDRESS]: new RegisterIdentityFromAddressHandler(walletRepository, identitiesRepository, this.sdk),
       [MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE]: fundPlatformAddressFromCore,
       [MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_WALLET]: new FundPlatformAddressFromWalletHandler(
         walletRepository,
         assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
         assetLockFunding,
         requestAssetLockFundingAddress,
         fundPlatformAddressFromCore,
@@ -255,13 +283,14 @@ export class PrivateAPI {
       [MessagingMethods.ESTIMATE_SHIELDED_FEE]: new EstimateShieldedFeeHandler(walletRepository, shielded),
       [MessagingMethods.INIT_SHIELD]: new InitShieldHandler(this.sdk),
       [MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS]: new ShieldFromPlatformAddressHandler(walletRepository, this.sdk, shielded),
+      [MessagingMethods.SHIELD_FROM_CORE]: shieldFromCore,
       [MessagingMethods.SHIELD_FROM_WALLET]: new ShieldFromWalletHandler(
         walletRepository,
         assetLockFundingAddressesRepository,
         pendingAssetLocksRepository,
         assetLockFunding,
-        assetLock,
         requestAssetLockFundingAddress,
+        shieldFromCore,
         this.sdk,
         shielded
       ),

@@ -48,6 +48,7 @@ describe('pending asset locks', () => {
       purpose: 'topUp',
       identityId,
       platformAddress: null,
+      shieldedAddress: null,
       amountDuffs: '100000000',
       createdAt: 1000
     })
@@ -59,6 +60,7 @@ describe('pending asset locks', () => {
       purpose: 'topUp',
       identityId,
       platformAddress: null,
+      shieldedAddress: null,
       amountDuffs: '100000000',
       createdAt: 1000
     }])
@@ -76,6 +78,7 @@ describe('pending asset locks', () => {
       purpose: 'registration',
       identityId: null,
       platformAddress: null,
+      shieldedAddress: null,
       amountDuffs: null,
       createdAt: null
     }])
@@ -89,6 +92,7 @@ describe('pending asset locks', () => {
       purpose: 'fundAddress',
       identityId: null,
       platformAddress: 'tdash1qplatform',
+      shieldedAddress: null,
       amountDuffs: '50000000',
       createdAt: 1000
     })
@@ -101,8 +105,8 @@ describe('pending asset locks', () => {
   })
 
   it('newest first, and the same asset lock is not reported twice', async () => {
-    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, platformAddress: null, amountDuffs: '1', createdAt: 2000 })
-    await pendingAssetLocksRepository.create({ assetLockTxid: 'c'.repeat(64), fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, platformAddress: null, amountDuffs: '2', createdAt: 3000 })
+    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, platformAddress: null, shieldedAddress: null, amountDuffs: '1', createdAt: 2000 })
+    await pendingAssetLocksRepository.create({ assetLockTxid: 'c'.repeat(64), fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, platformAddress: null, shieldedAddress: null, amountDuffs: '2', createdAt: 3000 })
     assetLockFundingAddressesRepository.findAllBroadcasted.mockResolvedValue([
       { address: 'yDeposit', assetLockTxid: ownTxid, used: false, purpose: 'registration' }
     ])
@@ -114,14 +118,14 @@ describe('pending asset locks', () => {
   })
 
   it('forgets an operation once it is finished', async () => {
-    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, platformAddress: null, amountDuffs: '1', createdAt: 1000 })
+    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, platformAddress: null, shieldedAddress: null, amountDuffs: '1', createdAt: 1000 })
     await pendingAssetLocksRepository.remove(ownTxid)
 
     expect(await list()).toEqual({ assetLocks: [] })
   })
 
   it('keeps entries of one wallet out of another', async () => {
-    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, platformAddress: null, amountDuffs: '1', createdAt: 1000 })
+    await pendingAssetLocksRepository.create({ assetLockTxid: ownTxid, fundingAddress: 'yOwnAddress', fundingTxid, purpose: 'registration', identityId: null, platformAddress: null, shieldedAddress: null, amountDuffs: '1', createdAt: 1000 })
 
     const otherWallet = pendingAssetLocksRepository.forScope({ network: 'testnet', walletId: `${walletId}-other` })
 

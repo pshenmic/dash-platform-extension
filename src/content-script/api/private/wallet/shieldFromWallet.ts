@@ -1,38 +1,37 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { OrchardAddressWASM } from 'pshenmic-dpp'
 import { EventData } from '../../../../types'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
 import { PendingAssetLocksRepository } from '../../../repository/PendingAssetLocksRepository'
 import { AssetLockFundingService } from '../../../services/AssetLockFundingService'
-import { AssetLockService } from '../../../services/AssetLockService'
 import { ShieldedService } from '../../../services/ShieldedService'
 import { RequestAssetLockFundingAddressHandler } from '../assetLocks/requestAssetLockFundingAddress'
+import { ShieldFromCoreHandler } from './shieldFromCore'
 import { ShieldFromWalletPayload } from '../../../../types/messages/payloads/ShieldFromWalletPayload'
 import { ShieldFromWalletResponse } from '../../../../types/messages/response/ShieldFromWalletResponse'
+import { ShieldFromCoreResponse } from '../../../../types/messages/response/ShieldFromCoreResponse'
 import { deriveCoreAccountXpub } from '../../../../utils/coreAddresses'
-import { decryptAssetLockFundingKey } from '../../../../utils/assetLockFundingKey'
+import { findUnfinishedAssetLock } from '../../../../utils/pendingAssetLocks'
 import { computeShieldedDepositFee } from '../../../../utils/shieldedFee'
 import { CREDITS_PER_DUFF, MIN_FEE_RELAY } from '../../../../constants'
 
-// Shields the wallet's own Core (L1) coins straight into the Orchard pool: pay
-// an asset lock funding address from the wallet's unspent outputs, lock the
-// deposit, then deposit its credits into the pool with a shieldFromAssetLock
-// state transition.
+// Shields the wallet's own Core (L1) coins: pays an asset lock funding address
+// out of the wallet's unspent outputs, then hands that deposit to
+// SHIELD_FROM_CORE, which locks it and deposits its credits into the pool.
 //
-// One Platform transition rather than two: the asset lock credits never land on
-// a Platform address, so nothing of this operation is visible on the transparent
-// side beyond the asset lock itself. The recipient is the wallet's own shielded
-// address unless the caller names another one - shielding to someone else's
-// address is a deposit on their behalf, and valid.
+// Splitting it there is what makes a shield resumable. Once the asset lock is on
+// L1 this method cannot be the way back in - it would start over with a fresh
+// funding address and pay twice - so an interrupted shield is finished by
+// calling SHIELD_FROM_CORE with the address and transaction
+// LIST_PENDING_ASSET_LOCKS reports for it.
 export class ShieldFromWalletHandler implements APIHandler {
   walletRepository: WalletRepository
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
   pendingAssetLocksRepository: PendingAssetLocksRepository
   assetLockFunding: AssetLockFundingService
-  assetLock: AssetLockService
   requestAssetLockFundingAddress: RequestAssetLockFundingAddressHandler
+  shieldFromCore: ShieldFromCoreHandler
   sdk: DashPlatformSDK
   shielded: ShieldedService
 
@@ -41,8 +40,8 @@ export class ShieldFromWalletHandler implements APIHandler {
     assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository,
     pendingAssetLocksRepository: PendingAssetLocksRepository,
     assetLockFunding: AssetLockFundingService,
-    assetLock: AssetLockService,
     requestAssetLockFundingAddress: RequestAssetLockFundingAddressHandler,
+    shieldFromCore: ShieldFromCoreHandler,
     sdk: DashPlatformSDK,
     shielded: ShieldedService
   ) {
@@ -50,8 +49,8 @@ export class ShieldFromWalletHandler implements APIHandler {
     this.assetLockFundingAddressesRepository = assetLockFundingAddressesRepository
     this.pendingAssetLocksRepository = pendingAssetLocksRepository
     this.assetLockFunding = assetLockFunding
-    this.assetLock = assetLock
     this.requestAssetLockFundingAddress = requestAssetLockFundingAddress
+    this.shieldFromCore = shieldFromCore
     this.sdk = sdk
     this.shielded = shielded
   }
@@ -67,25 +66,36 @@ export class ShieldFromWalletHandler implements APIHandler {
       throw new Error('Shielding from the wallet is only supported for a seedphrase wallet')
     }
 
-    const account = payload.account ?? 0
-    const seed = this.shielded.deriveSeed(wallet, payload.password)
-
-    // "Shield to myself" is the common case, so an absent recipient means the
-    // wallet's own shielded address.
+    // The pool a shield deposits into: the address the caller named, or the
+    // wallet's own, which is recorded as no recipient at all.
     const recipient = payload.toShieldedAddress != null && payload.toShieldedAddress.length > 0
-      ? OrchardAddressWASM.fromBech32m(payload.toShieldedAddress)
-      : this.sdk.keyPair.deriveShieldedAddress(seed, wallet.network, account)
-    // Lets the wallet read back the memo of a deposit it sent to someone else.
-    const senderOvk = this.sdk.keyPair.deriveShieldedOutgoingViewingKey(seed, wallet.network, account)
+      ? payload.toShieldedAddress
+      : null
+
+    // An earlier attempt may have got as far as putting the asset lock on L1,
+    // where a fresh start would pay a second time and leave those credits with
+    // nothing to spend them on. Finish that one instead.
+    const unfinished = findUnfinishedAssetLock(
+      await this.pendingAssetLocksRepository.getAll(), 'shield', recipient
+    )
+
+    if (unfinished != null) {
+      const resumed = await this.shield(unfinished.fundingAddress, unfinished.fundingTxid, payload, event)
+
+      return { ...resumed, fundingAddress: unfinished.fundingAddress, fundingTxid: unfinished.fundingTxid, coreFeeDuffs: '0', resumed: true }
+    }
 
     const xpub = await this.walletRepository.getCoreAccountXpub(0) ??
       await deriveCoreAccountXpub(wallet, payload.password, 0, this.sdk)
 
-    // A purpose of its own: a deposit meant for the pool is never the address an
-    // unfinished identity registration is waiting on.
+    // A purpose of its own, and reserved for this recipient: a deposit meant for
+    // the pool is never the address an unfinished registration is waiting on,
+    // and never one paid for a different pool - that money is not this call's to
+    // spend. 'own' stands for the wallet's own pool, whose address is derived
+    // from the seed rather than written down.
     const { address: fundingAddress } = await this.requestAssetLockFundingAddress.handle({
       ...event,
-      payload: { purpose: 'shield' }
+      payload: { purpose: 'shield', recipient: recipient ?? 'own' }
     })
 
     const funding = await this.assetLockFunding.fundFromWallet({
@@ -97,67 +107,30 @@ export class ShieldFromWalletHandler implements APIHandler {
       assetLockFundingAddressesRepository: this.assetLockFundingAddressesRepository
     })
 
-    const entry = await this.assetLockFundingAddressesRepository.getByAddress(fundingAddress)
-
-    if (entry == null) {
-      throw new Error(`Asset lock funding address ${fundingAddress} not found`)
-    }
-
-    const fundingKey = decryptAssetLockFundingKey(entry, payload.password, wallet.network)
-
-    // The funding key owns the credit output as well, because it is what signs
-    // the shield transition.
-    const { assetLockTxid, lockedAmount, assetLockProof } = await this.assetLock.commit({
-      wallet,
-      fundingAddress,
-      fundingTxid: funding.fundingTxid,
-      fundingKey,
-      creditOutputAddress: fundingAddress,
-      purpose: 'shield',
-      identityId: null,
-      platformAddress: null,
-      assetLockFundingAddressesRepository: this.assetLockFundingAddressesRepository,
-      pendingAssetLocksRepository: this.pendingAssetLocksRepository
-    })
-
-    // The pool pays no fee from anywhere else, so the deposit carries it: the
-    // note is the asset lock credits minus what the transition costs.
-    const feeCredits = computeShieldedDepositFee()
-    const shieldAmount = lockedAmount * CREDITS_PER_DUFF - feeCredits
-
-    if (shieldAmount <= 0n) {
-      throw new Error(
-        `The deposit of ${lockedAmount.toString()} duffs leaves nothing to shield after the shield fee ` +
-        `(${feeCredits.toString()} credits). Shield at least ${(feeCredits / CREDITS_PER_DUFF + MIN_FEE_RELAY + 1n).toString()} duffs`
-      )
-    }
-
-    const stateTransition = await this.sdk.shielded.createStateTransition('shieldFromAssetLock', {
-      recipient,
-      shieldAmount,
-      assetLockProof,
-      privateKey: fundingKey,
-      memo: payload.memo,
-      dummyOutputs: 0,
-      senderOvk
-    })
-
-    await this.sdk.stateTransitions.broadcast(stateTransition)
-    await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
-
-    await this.assetLockFundingAddressesRepository.markAsUsed(fundingAddress)
-    await this.pendingAssetLocksRepository.remove(assetLockTxid)
+    const shielded = await this.shield(fundingAddress, funding.fundingTxid, payload, event)
 
     return {
-      stHash: stateTransition.hash(false),
-      shieldedAmountCredits: shieldAmount.toString(),
-      shieldFeeCredits: feeCredits.toString(),
-      toShieldedAddress: recipient.toBech32m(wallet.network),
-      assetLockTxid,
+      ...shielded,
       fundingAddress,
       fundingTxid: funding.fundingTxid,
-      coreFeeDuffs: funding.feeDuffs.toString()
+      coreFeeDuffs: funding.feeDuffs.toString(),
+      resumed: false
     }
+  }
+
+  // The Platform half: lock this deposit and put its credits into the pool.
+  private async shield (fundingAddress: string, fundingTxid: string, payload: ShieldFromWalletPayload, event: EventData): Promise<ShieldFromCoreResponse> {
+    return await this.shieldFromCore.handle({
+      ...event,
+      payload: {
+        assetLockFundingAddress: fundingAddress,
+        assetLockFundingTxid: fundingTxid,
+        password: payload.password,
+        toShieldedAddress: payload.toShieldedAddress,
+        memo: payload.memo,
+        account: payload.account
+      }
+    })
   }
 
   validatePayload (payload: ShieldFromWalletPayload): string | null {

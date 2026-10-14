@@ -39,10 +39,20 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
     // Identity registration is what this handler was written for, so a caller
     // that names no purpose still gets a registration address.
     const purpose = payload.purpose ?? 'registration'
+    // Who the deposit is for. An address is only reused for the same recipient:
+    // an operation interrupted after paying leaves its deposit here, and handing
+    // that deposit to the next recipient would credit them with someone else's
+    // money and silently ignore the amount they asked for.
+    const recipient = payload.recipient
 
-    const existingUnused = await this.assetLockFundingAddressesRepository.findUnused(purpose)
+    const existingUnused = await this.assetLockFundingAddressesRepository.findUnused(purpose, recipient)
 
     if (existingUnused != null) {
+      if (recipient != null) {
+        // An entry with no owner predates reservation; claim it on the way out.
+        await this.assetLockFundingAddressesRepository.bindToRecipient(existingUnused.address, recipient)
+      }
+
       return { address: existingUnused.address }
     }
 
@@ -60,7 +70,8 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
       address,
       encryptedPrivateKey,
       used: false,
-      purpose
+      purpose,
+      ...(recipient != null ? { recipient } : {})
     })
 
     return { address }
@@ -69,6 +80,9 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
   validatePayload (payload: RequestAssetLockFundingAddressPayload): null | string {
     if (payload?.purpose != null && !['registration', 'fundAddress', 'shield'].includes(payload.purpose)) {
       return "purpose must be 'registration', 'fundAddress' or 'shield'"
+    }
+    if (payload?.recipient != null && (typeof payload.recipient !== 'string' || payload.recipient.length === 0)) {
+      return 'recipient must be a non-empty string when provided'
     }
 
     return null

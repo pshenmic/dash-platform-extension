@@ -230,7 +230,8 @@ describe('RegisterIdentityHandler', () => {
 
     expect(result).toEqual({
       identifier,
-      stateTransitionHash: 'stateTransitionHash'
+      stateTransitionHash: 'stateTransitionHash',
+      assetLockTxid
     })
 
     expect(coreSDK.broadcastTransaction).toHaveBeenCalledWith(assetLockTx.bytes())
@@ -376,7 +377,8 @@ describe('RegisterIdentityHandler', () => {
 
     expect(result).toEqual({
       identifier,
-      stateTransitionHash: 'stateTransitionHash'
+      stateTransitionHash: 'stateTransitionHash',
+      assetLockTxid
     })
     expect(sdk.stateTransitions.waitForStateTransitionResult).not.toHaveBeenCalled()
     expect(identitiesRepository.remove).not.toHaveBeenCalled()

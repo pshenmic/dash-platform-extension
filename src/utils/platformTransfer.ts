@@ -45,12 +45,17 @@ export interface PlatformSourceCandidate {
 
 // Picks the platform address to spend from: the explicit one if given, otherwise
 // the largest balance that covers amount + fee.
-export const selectPlatformSource = (candidates: PlatformSourceCandidate[], amountCredits: bigint, fromAddress?: string): PlatformSourceCandidate => {
+//
+// `feeCredits` is what this operation has to carry; the default is the flat
+// reserve an ordinary transfer uses. A withdrawal costs far more and passes its
+// own, otherwise an address that cannot pay would be chosen and Platform would
+// refuse the transition.
+export const selectPlatformSource = (candidates: PlatformSourceCandidate[], amountCredits: bigint, fromAddress?: string, feeCredits: bigint = TRANSFER_FEE_CREDITS): PlatformSourceCandidate => {
   if (amountCredits < MIN_OUTPUT_CREDITS) {
     throw new Error(`Minimum Platform transfer is ${MIN_OUTPUT_CREDITS.toString()} credits`)
   }
 
-  const required = amountCredits + TRANSFER_FEE_CREDITS
+  const required = amountCredits + feeCredits
 
   if (fromAddress != null) {
     const chosen = candidates.find(candidate => candidate.platformAddress === fromAddress)
@@ -78,9 +83,26 @@ export const selectPlatformSource = (candidates: PlatformSourceCandidate[], amou
 // the source (nonce + 1) and a single output to the recipient, with the fee
 // deducted from the input. The SDK assembles the transition; we sign the signable
 // bytes and attach a P2PKH witness.
-export const buildSignedPlatformTransfer = (sdk: DashPlatformSDK, sourceAddress: string, sourceNonce: number, toAddress: string, amountCredits: bigint, sourcePrivateKey: PrivateKeyWASM): StateTransitionWASM => {
-  const inputs = [new InputAddressWASM(sourceAddress, sourceNonce + 1, amountCredits)]
-  const outputs = [new OutputAddressWASM(toAddress, amountCredits)]
+export interface PlatformTransferOutput {
+  address: string
+  amountCredits: bigint
+}
+
+// What Platform demands of a transfer with this shape, from dpp's own fee model.
+// It grows with every recipient, so a flat reserve is wrong as soon as there is
+// more than one of them.
+export const platformTransferFeeCredits = (outputCount: number = 1, inputCount: number = 1): bigint => {
+  return AddressFundsTransferTransitionWASM.estimateMinFee(inputCount, outputCount)
+}
+
+// Builds and signs an addressFundsTransfer paying several recipients from one
+// address: a single input spending their total, one output each, and the fee
+// deducted from that input on top.
+export const buildSignedPlatformTransferMulti = (sdk: DashPlatformSDK, sourceAddress: string, sourceNonce: number, recipients: PlatformTransferOutput[], sourcePrivateKey: PrivateKeyWASM): StateTransitionWASM => {
+  const total = recipients.reduce((sum, recipient) => sum + recipient.amountCredits, 0n)
+
+  const inputs = [new InputAddressWASM(sourceAddress, sourceNonce + 1, total)]
+  const outputs = recipients.map(recipient => new OutputAddressWASM(recipient.address, recipient.amountCredits))
   const feeStrategy = [AddressFundsFeeStrategyStepWASM.DeductFromInput(0)]
 
   const unsignedSt = sdk.platformAddresses.createStateTransition('addressFundsTransfer', {
@@ -88,6 +110,11 @@ export const buildSignedPlatformTransfer = (sdk: DashPlatformSDK, sourceAddress:
   })
 
   return signWithAddressWitness(unsignedSt, AddressFundsTransferTransitionWASM, sourcePrivateKey)
+}
+
+// One recipient, the common case.
+export const buildSignedPlatformTransfer = (sdk: DashPlatformSDK, sourceAddress: string, sourceNonce: number, toAddress: string, amountCredits: bigint, sourcePrivateKey: PrivateKeyWASM): StateTransitionWASM => {
+  return buildSignedPlatformTransferMulti(sdk, sourceAddress, sourceNonce, [{ address: toAddress, amountCredits }], sourcePrivateKey)
 }
 
 // Builds and signs an identity top-up from a platform address: spends `amount`

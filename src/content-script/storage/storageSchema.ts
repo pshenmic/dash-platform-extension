@@ -85,11 +85,14 @@ export interface PendingAssetLockSchema {
   fundingAddress: string
   fundingTxid: string
   purpose: AssetLockFundingPurpose
-  // The identity a top-up was meant for, or the platform address a funding was
-  // meant for; both null for a registration and for a shield, whose recipient is
-  // a shielded address and is deliberately not written down.
+  // Who the money was for: an identity for a top-up, a platform address for a
+  // funding, a shielded address for a shield. All null for a registration, which
+  // creates its recipient. A shield into the wallet's own pool leaves
+  // shieldedAddress null too - the address is derived from the seed, and writing
+  // it down would say more than the record needs to.
   identityId: string | null
   platformAddress: string | null
+  shieldedAddress: string | null
   // Locked amount in duffs, so a caller can tell what is at stake.
   amountDuffs: string
   createdAt: number
@@ -130,6 +133,12 @@ export interface AssetLockFundingAddressSchema {
   // rejected as already used. Absent on registration entries, and on top-up
   // entries created before addresses were reserved per identity.
   identityId?: string
+  // Who a 'fundAddress' or 'shield' address is reserved for: the platform
+  // address to credit, or the shielded address to deposit into ('own' for the
+  // wallet's own pool). The identity counterpart of `identityId`, and reserved
+  // for the same reason: without it an interrupted operation's deposit is handed
+  // to the next operation, which would send one recipient's money to another.
+  recipient?: string
 }
 
 export interface AssetLockFundingAddressesSchema {

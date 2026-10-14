@@ -39,8 +39,10 @@ import { EstimateShieldedFeeResponse } from './messages/response/EstimateShielde
 import { ShieldedSpendKind } from './ShieldedSpendKind'
 import { ShieldFromPlatformAddressPayload } from './messages/payloads/ShieldFromPlatformAddressPayload'
 import { ShieldFromWalletPayload } from './messages/payloads/ShieldFromWalletPayload'
+import { ShieldFromCorePayload } from './messages/payloads/ShieldFromCorePayload'
 import { ShieldFromPlatformAddressResponse } from './messages/response/ShieldFromPlatformAddressResponse'
 import { ShieldFromWalletResponse } from './messages/response/ShieldFromWalletResponse'
+import { ShieldFromCoreResponse } from './messages/response/ShieldFromCoreResponse'
 import { SendShieldedTransferPayload } from './messages/payloads/SendShieldedTransferPayload'
 import { SendShieldedTransferResponse } from './messages/response/SendShieldedTransferResponse'
 import { UnshieldToPlatformAddressPayload } from './messages/payloads/UnshieldToPlatformAddressPayload'
@@ -51,22 +53,30 @@ import { GetPlatformAddressesResponse } from './messages/response/GetPlatformAdd
 import { GetPlatformAddressesInfosPayload } from './messages/payloads/GetPlatformAddressesInfosPayload'
 import { GetPlatformAddressesInfosResponse, PlatformAddressBalance } from './messages/response/GetPlatformAddressesInfosResponse'
 import { SendPlatformTransferPayload } from './messages/payloads/SendPlatformTransferPayload'
+import { SendPlatformTransactionPayload } from './messages/payloads/SendPlatformTransactionPayload'
+import { EstimatePlatformTransferPayload } from './messages/payloads/EstimatePlatformTransferPayload'
 import { SendPlatformTransferResponse } from './messages/response/SendPlatformTransferResponse'
+import { SendPlatformTransactionResponse } from './messages/response/SendPlatformTransactionResponse'
+import { EstimatePlatformTransferResponse } from './messages/response/EstimatePlatformTransferResponse'
 import { IdentityCreditTransferToAddressesPayload } from './messages/payloads/IdentityCreditTransferToAddressesPayload'
 import { IdentityCreditTransferToAddressesResponse } from './messages/response/IdentityCreditTransferToAddressesResponse'
 import { TopUpIdentityFromAddressPayload } from './messages/payloads/TopUpIdentityFromAddressPayload'
 import { TopUpIdentityFromAddressResponse } from './messages/response/TopUpIdentityFromAddressResponse'
 import { WithdrawPlatformAddressToCorePayload } from './messages/payloads/WithdrawPlatformAddressToCorePayload'
+import { EstimateWithdrawalFeePayload } from './messages/payloads/EstimateWithdrawalFeePayload'
 import { WithdrawPlatformAddressToCoreResponse } from './messages/response/WithdrawPlatformAddressToCoreResponse'
+import { EstimateWithdrawalFeeResponse } from './messages/response/EstimateWithdrawalFeeResponse'
 import { RegisterIdentityFromAddressPayload } from './messages/payloads/RegisterIdentityFromAddressPayload'
 import { RegisterIdentityFromAddressResponse } from './messages/response/RegisterIdentityFromAddressResponse'
 import { FundPlatformAddressFromCorePayload } from './messages/payloads/FundPlatformAddressFromCorePayload'
 import { FundPlatformAddressFromWalletPayload } from './messages/payloads/FundPlatformAddressFromWalletPayload'
 import { RequestAssetLockFundingAddressPayload } from './messages/payloads/RequestAssetLockFundingAddressPayload'
 import { TopUpIdentityFromWalletPayload } from './messages/payloads/TopUpIdentityFromWalletPayload'
+import { RegisterIdentityFromWalletPayload } from './messages/payloads/RegisterIdentityFromWalletPayload'
 import { FundPlatformAddressFromCoreResponse } from './messages/response/FundPlatformAddressFromCoreResponse'
 import { FundPlatformAddressFromWalletResponse } from './messages/response/FundPlatformAddressFromWalletResponse'
 import { TopUpIdentityFromWalletResponse } from './messages/response/TopUpIdentityFromWalletResponse'
+import { RegisterIdentityFromWalletResponse } from './messages/response/RegisterIdentityFromWalletResponse'
 import { CheckPasswordResponse } from './messages/response/CheckPasswordResponse'
 import { CheckPasswordPayload } from './messages/payloads/CheckPasswordPayload'
 import { CreateWalletPayload } from './messages/payloads/CreateWalletPayload'
@@ -428,6 +438,16 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
   }
 
+  // Registers an identity with the wallet's own Core coins: reserves a funding
+  // address, pays it from the wallet's unspent outputs and creates the identity
+  // from that deposit. Safe to call again after an interruption - it continues
+  // from the deposit already on L1 instead of paying twice.
+  async registerIdentityFromWallet (amountDuffs: string, password: string): Promise<RegisterIdentityFromWalletResponse> {
+    const payload: RegisterIdentityFromWalletPayload = { amountDuffs, password }
+
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY_FROM_WALLET, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
   async topUpIdentity (
     identityId: string,
     assetLockFundingAddress: string,
@@ -582,6 +602,24 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SEND_PLATFORM_TRANSFER, payload)
   }
 
+  // Pays several Platform addresses from one of the wallet's own in a single
+  // transition. The general form of sendPlatformTransfer; the fee grows with
+  // every recipient, so the response says what it was.
+  async sendPlatformTransaction (params: Omit<SendPlatformTransactionPayload, 'password'>, password: string): Promise<SendPlatformTransactionResponse> {
+    const payload: SendPlatformTransactionPayload = { ...params, password }
+
+    return await this._rpcCall(MessagingMethods.SEND_PLATFORM_TRANSACTION, payload)
+  }
+
+  // What such a transfer costs and the most a source can send once it is paid.
+  // Needs no password. `outputCount` is how many recipients it would pay, since
+  // the fee grows with them.
+  async estimatePlatformTransfer (outputCount?: number, fromAddress?: string): Promise<EstimatePlatformTransferResponse> {
+    const payload: EstimatePlatformTransferPayload = { outputCount, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.ESTIMATE_PLATFORM_TRANSFER, payload)
+  }
+
   async identityCreditTransferToAddresses (toAddress: string, amountCredits: string, password: string, fromIdentity?: string): Promise<IdentityCreditTransferToAddressesResponse> {
     const payload: IdentityCreditTransferToAddressesPayload = { toAddress, amountCredits, password, fromIdentity }
 
@@ -592,6 +630,14 @@ export class PrivateAPIClient {
     const payload: TopUpIdentityFromAddressPayload = { identityId, amountCredits, password, fromAddress }
 
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_ADDRESS, payload)
+  }
+
+  // What a withdrawal to Core costs before it is signed: the fee Platform
+  // demands, the balance behind it and the amount window it accepts. Needs no
+  // password. A shielded withdrawal is priced by estimateShieldedFee with
+  // kind 'withdrawal' instead, since its fee depends on the notes it spends.
+  async estimateWithdrawalFee (params: EstimateWithdrawalFeePayload): Promise<EstimateWithdrawalFeeResponse> {
+    return await this._rpcCall(MessagingMethods.ESTIMATE_WITHDRAWAL_FEE, params)
   }
 
   async withdrawPlatformAddressToCore (toCoreAddress: string, amountCredits: string, password: string, fromAddress?: string): Promise<WithdrawPlatformAddressToCoreResponse> {
@@ -710,6 +756,16 @@ export class PrivateAPIClient {
     const payload: ShieldFromWalletPayload = { amountDuffs, password, toShieldedAddress, memo, account }
 
     return await this._rpcCall(MessagingMethods.SHIELD_FROM_WALLET, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  // Turns a deposit already sitting on an asset lock funding address into a
+  // shielded note. This is how an interrupted shieldFromWallet is finished:
+  // listPendingAssetLocks reports the address and the transaction to pass, and
+  // calling shieldFromWallet again instead would start over and pay twice.
+  async shieldFromCore (assetLockFundingAddress: string, assetLockFundingTxid: string, password: string, toShieldedAddress?: string, memo?: string, account?: number): Promise<ShieldFromCoreResponse> {
+    const payload: ShieldFromCorePayload = { assetLockFundingAddress, assetLockFundingTxid, password, toShieldedAddress, memo, account }
+
+    return await this._rpcCall(MessagingMethods.SHIELD_FROM_CORE, payload, SHIELDED_PROVE_TIMEOUT)
   }
 
   /** @deprecated Renamed to shieldFromPlatformAddress; kept so existing callers keep working. */

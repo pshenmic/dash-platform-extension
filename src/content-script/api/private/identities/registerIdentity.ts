@@ -193,6 +193,7 @@ export class RegisterIdentityHandler implements APIHandler {
         purpose: 'registration',
         identityId: null,
         platformAddress: null,
+        shieldedAddress: null,
         amountDuffs: lockedAmount.toString(),
         createdAt: Date.now()
       })
@@ -315,7 +316,8 @@ export class RegisterIdentityHandler implements APIHandler {
 
     return {
       identifier,
-      stateTransitionHash
+      stateTransitionHash,
+      assetLockTxid
     }
   }
 

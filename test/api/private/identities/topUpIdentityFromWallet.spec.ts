@@ -7,6 +7,7 @@ const XPUB = 'tpubAccountXpub'
 describe('TopUpIdentityFromWalletHandler', () => {
   let walletRepository: any
   let assetLockFundingAddressesRepository: any
+  let pendingAssetLocksRepository: any
   let assetLockFunding: any
   let requestTopUpFundingAddress: any
   let topUpIdentity: any
@@ -35,6 +36,7 @@ describe('TopUpIdentityFromWalletHandler', () => {
       forScope: jest.fn(() => walletRepository)
     }
     assetLockFundingAddressesRepository = { forScope: jest.fn(() => assetLockFundingAddressesRepository) }
+    pendingAssetLocksRepository = { getAll: jest.fn(async () => []), forScope: jest.fn(() => pendingAssetLocksRepository) }
 
     assetLockFunding = {
       fundFromWallet: jest.fn(async () => ({
@@ -57,6 +59,7 @@ describe('TopUpIdentityFromWalletHandler', () => {
     handler = new TopUpIdentityFromWalletHandler(
       walletRepository,
       assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
       assetLockFunding,
       requestTopUpFundingAddress,
       topUpIdentity,
@@ -91,8 +94,54 @@ describe('TopUpIdentityFromWalletHandler', () => {
       assetLockTxid: 'c'.repeat(64),
       fundingAddress: FUNDING_ADDRESS,
       fundingTxid: 'b'.repeat(64),
-      coreFeeDuffs: '226'
+      coreFeeDuffs: '226',
+      resumed: false
     })
+  })
+
+  it('finishes an unfinished top-up for this identity instead of paying again', async () => {
+    pendingAssetLocksRepository.getAll.mockResolvedValue([{
+      assetLockTxid: 'd'.repeat(64),
+      fundingAddress: 'yEarlierAddress',
+      fundingTxid: 'e'.repeat(64),
+      purpose: 'topUp',
+      identityId: IDENTITY_ID,
+      platformAddress: null,
+      shieldedAddress: null,
+      amountDuffs: '99999000',
+      createdAt: 1000
+    }])
+
+    const response = await handle()
+
+    expect(requestTopUpFundingAddress.handle).not.toHaveBeenCalled()
+    expect(assetLockFunding.fundFromWallet).not.toHaveBeenCalled()
+    expect(topUpIdentity.handle).toHaveBeenCalledWith(expect.objectContaining({
+      payload: expect.objectContaining({
+        assetLockFundingAddress: 'yEarlierAddress',
+        assetLockFundingTxid: 'e'.repeat(64)
+      })
+    }))
+    expect(response).toMatchObject({ resumed: true, coreFeeDuffs: '0', fundingAddress: 'yEarlierAddress' })
+  })
+
+  it('leaves an unfinished top-up for another identity alone', async () => {
+    pendingAssetLocksRepository.getAll.mockResolvedValue([{
+      assetLockTxid: 'd'.repeat(64),
+      fundingAddress: 'yEarlierAddress',
+      fundingTxid: 'e'.repeat(64),
+      purpose: 'topUp',
+      identityId: '2Pzr4eUaDEdPzNYLZWsMJHpDTpBxJcM2LCMg2cQhLfoQ',
+      platformAddress: null,
+      shieldedAddress: null,
+      amountDuffs: '99999000',
+      createdAt: 1000
+    }])
+
+    const response = await handle()
+
+    expect(assetLockFunding.fundFromWallet).toHaveBeenCalled()
+    expect(response.resumed).toBe(false)
   })
 
   it('pays the amount it was given to the address it reserved', async () => {
