@@ -2,7 +2,7 @@ import { EventData } from '../../types/EventData'
 import { DashCoreSDK } from 'dash-core-sdk'
 import { Network } from '../../types/enums/Network'
 import { PLATFORM_DAPI_URLS } from '../../constants'
-import { pickLiveDapiUrls } from '../../utils/dapiNodes'
+import { asCoreDapiUrl, pickLiveDapiUrls } from '../../utils/dapiNodes'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
@@ -106,12 +106,14 @@ export class PrivateAPI {
     // The SDK rebuilds its connection pool from the options it was built with,
     // and the nodes differ per network - so the list has to be swapped before
     // the switch, or mainnet would be asked of testnet nodes.
+    const dapiUrl = await pickLiveDapiUrls(PLATFORM_DAPI_URLS[network])
+
     if (this.sdk.options?.grpc != null) {
-      this.sdk.options.grpc.dapiUrl = await pickLiveDapiUrls(PLATFORM_DAPI_URLS[network])
+      this.sdk.options.grpc.dapiUrl = dapiUrl
     }
 
     this.sdk.setNetwork(network)
-    this.coreSDK = new DashCoreSDK({ network })
+    this.coreSDK = new DashCoreSDK({ network, dapiUrl: asCoreDapiUrl(dapiUrl) })
 
     this.buildHandlers()
   }

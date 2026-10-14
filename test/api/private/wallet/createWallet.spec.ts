@@ -1,5 +1,4 @@
-import { testSdk } from '../../../helpers/testSdk'
-import { DashCoreSDK } from 'dash-core-sdk'
+import { testCoreSdk, testSdk } from '../../../helpers/testSdk'
 import { PrivateAPIClient } from '../../../../src/types/PrivateAPIClient'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { connectBackend } from '../../../helpers/connectBackend'
@@ -20,7 +19,7 @@ describe('create wallet', () => {
 
   beforeEach(async () => {
     const sdk = await testSdk()
-    const coreSDK = new DashCoreSDK({ network: 'testnet' })
+    const coreSDK = await testCoreSdk()
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter

@@ -34,3 +34,9 @@ export const pickLiveDapiUrls = async (candidates: string[], timeoutMs: number =
   // with their own errors.
   return live.length > 0 ? live : candidates
 }
+
+// dash-core-sdk's pool takes a list of nodes - `grpcConnectionPool` is typed
+// `string | string[]` and branches on an array at runtime - but the SDK's own
+// options still type `dapiUrl` as a single string. Handing it the list is right;
+// the cast can go once that type catches up.
+export const asCoreDapiUrl = (urls: string[]): string => urls as unknown as string

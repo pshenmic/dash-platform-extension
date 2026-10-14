@@ -1,5 +1,4 @@
-import { testSdk } from '../../../helpers/testSdk'
-import { DashCoreSDK } from 'dash-core-sdk'
+import { testCoreSdk, testSdk } from '../../../helpers/testSdk'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { connectBackend } from '../../../helpers/connectBackend'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
@@ -19,7 +18,7 @@ describe('remove identity private key', () => {
 
   beforeEach(async () => {
     const sdk = await testSdk()
-    const coreSDK = new DashCoreSDK({ network: 'testnet' })
+    const coreSDK = await testCoreSdk()
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter

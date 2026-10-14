@@ -1,5 +1,4 @@
-import { testSdk } from '../../../helpers/testSdk'
-import { DashCoreSDK } from 'dash-core-sdk'
+import { testCoreSdk, testSdk } from '../../../helpers/testSdk'
 import { PrivateKey } from 'eciesjs'
 import hash from 'hash.js'
 import { PrivateAPIClient, WalletType } from '../../../../src/types'
@@ -18,7 +17,7 @@ describe('exportPrivateKey', () => {
 
   beforeEach(async () => {
     const sdk = await testSdk()
-    const coreSDK = new DashCoreSDK({ network: 'testnet' })
+    const coreSDK = await testCoreSdk()
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter
