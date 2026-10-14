@@ -3,6 +3,7 @@ import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { AssetLockFundingAddressesRepository } from '../../../repository/AssetLockFundingAddressesRepository'
 import { RequestAssetLockFundingAddressResponse } from '../../../../types/messages/response/RequestAssetLockFundingAddressResponse'
+import { RequestAssetLockFundingAddressPayload } from '../../../../types/messages/payloads/RequestAssetLockFundingAddressPayload'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { StorageAdapter } from '../../../storage/storageAdapter'
@@ -27,14 +28,19 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
     this.storageAdapter = storageAdapter
   }
 
-  async handle (_event: EventData): Promise<RequestAssetLockFundingAddressResponse> {
+  async handle (event: EventData): Promise<RequestAssetLockFundingAddressResponse> {
+    const payload: RequestAssetLockFundingAddressPayload = event.payload ?? {}
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
       throw new Error('Wallet is not chosen')
     }
 
-    const existingUnused = await this.assetLockFundingAddressesRepository.findUnused()
+    // Identity registration is what this handler was written for, so a caller
+    // that names no purpose still gets a registration address.
+    const purpose = payload.purpose ?? 'registration'
+
+    const existingUnused = await this.assetLockFundingAddressesRepository.findUnused(purpose)
 
     if (existingUnused != null) {
       return { address: existingUnused.address }
@@ -53,13 +59,18 @@ export class RequestAssetLockFundingAddressHandler implements APIHandler {
     await this.assetLockFundingAddressesRepository.create({
       address,
       encryptedPrivateKey,
-      used: false
+      used: false,
+      purpose
     })
 
     return { address }
   }
 
-  validatePayload (_payload: unknown): null | string {
+  validatePayload (payload: RequestAssetLockFundingAddressPayload): null | string {
+    if (payload?.purpose != null && !['registration', 'fundAddress', 'shield'].includes(payload.purpose)) {
+      return "purpose must be 'registration', 'fundAddress' or 'shield'"
+    }
+
     return null
   }
 }
