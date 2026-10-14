@@ -1,32 +1,57 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { DashLogo } from 'dash-ui-kit/react'
 import { AutoSizingInput, PercentageSlider } from '../controls'
-import { parseDecimalInput } from '../../../utils'
+import { clampDashInput, clampToMax, dashAmountToUsd, formatDashAmount, parseDashAmount, parseDecimalInput, usdToDashAmount } from '../../../utils'
 
 interface AmountInputSectionProps {
   amount: string
-  equivalentAmount: string
+  // Dash amount already capped at `max`.
   onAmountChange: (value: string) => void
-  onEquivalentChange: (value: string) => void
   onQuickAmount: (percentage: number) => void
   selectedAsset: string
   assetDecimals: number
   maxBalance?: string | null
+  // USD per Dash; the USD field stays empty without it.
+  rate: number | null
+  // Input cap in base units, null for no cap.
+  max: bigint | null
   // Smaller amount with a Dash icon, for amounts inside a card.
   compact?: boolean
 }
 
 export function AmountInputSection ({
   amount,
-  equivalentAmount,
   onAmountChange,
-  onEquivalentChange,
   onQuickAmount,
   selectedAsset,
   assetDecimals,
   maxBalance,
+  rate,
+  max,
   compact = false
 }: AmountInputSectionProps): React.JSX.Element {
+  const isDash = selectedAsset === 'credits'
+  // USD text as typed, kept only while the Dash amount is still the one it produced.
+  const [typedUsd, setTypedUsd] = useState<{ usd: string, amount: string } | null>(null)
+
+  const usdFor = (value: bigint | null): string =>
+    isDash && value != null && rate != null ? (dashAmountToUsd(value, assetDecimals, rate) ?? '').replace('~ $', '') : ''
+
+  const equivalentAmount = typedUsd != null && typedUsd.amount === amount ? typedUsd.usd : usdFor(parseDashAmount(amount, assetDecimals))
+
+  const handleAmountChange = (value: string): void => {
+    setTypedUsd(null)
+    onAmountChange(clampDashInput(value, assetDecimals, max))
+  }
+
+  const handleUsdChange = (value: string): void => {
+    const converted = usdToDashAmount(value, rate, assetDecimals)
+    const capped = converted != null ? clampToMax(converted, max) : null
+    const nextAmount = capped != null ? formatDashAmount(capped, assetDecimals) : ''
+    setTypedUsd({ usd: capped !== converted ? usdFor(capped) : value, amount: nextAmount })
+    onAmountChange(nextAmount)
+  }
+
   return (
     <div className={`flex flex-col items-center w-full ${compact ? 'gap-3' : 'gap-[1.125rem] py-3'}`}>
       {/* Dual Input Row */}
@@ -35,7 +60,7 @@ export function AmountInputSection ({
         {/* Main Amount Input */}
         <AutoSizingInput
           value={amount}
-          onChange={onAmountChange}
+          onChange={handleAmountChange}
           placeholder='0'
           useDefaultStyles={false}
           sizing='fill'
@@ -54,10 +79,10 @@ export function AmountInputSection ({
         />
 
         {/* USD equivalent, only for credits */}
-        {selectedAsset === 'credits' && (
+        {isDash && (
           <AutoSizingInput
             value={equivalentAmount}
-            onChange={onEquivalentChange}
+            onChange={handleUsdChange}
             placeholder='0'
             useDefaultStyles={false}
             sizing='auto'

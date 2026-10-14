@@ -6,7 +6,6 @@ import { formatDashAmount, multiplyBigIntByPercentage } from '../../../../utils'
 import type { RecipientSearchResult } from '../../../../utils'
 import type { NetworkType } from '../../../../types'
 import { RECIPIENT_PLACEHOLDERS } from '../constants'
-import { useUsdAmount } from '../hooks/useUsdAmount'
 import type { TransferRecipient } from '../types'
 
 interface RecipientCardProps {
@@ -29,7 +28,7 @@ export function RecipientCard ({ index, recipient, isCore, decimals, maxAmount, 
   const [text, setText] = useState(recipient.address)
   const [isEditing, setIsEditing] = useState(recipient.address === '')
   const [typeError, setTypeError] = useState(false)
-  const { usd, setAmount, setUsd } = useUsdAmount(recipient.amount, decimals, rate, true, maxAmount, (amount) => onChange({ ...recipient, amount }))
+  const setAmount = (amount: string): void => onChange({ ...recipient, amount })
 
   const handleSelect = (result: RecipientSearchResult): void => {
     const accepted = result.type === (isCore ? 'coreAddress' : 'platformAddress')
@@ -78,13 +77,13 @@ export function RecipientCard ({ index, recipient, isCore, decimals, maxAmount, 
 
       <AmountInputSection
         amount={recipient.amount}
-        equivalentAmount={usd}
         onAmountChange={setAmount}
-        onEquivalentChange={setUsd}
         onQuickAmount={(percentage) => { if (maxAmount != null) setAmount(formatDashAmount(multiplyBigIntByPercentage(maxAmount, percentage), decimals)) }}
         selectedAsset='credits'
         assetDecimals={decimals}
         maxBalance={maxAmount != null && maxAmount > 0n ? formatDashAmount(maxAmount, decimals) : null}
+        rate={rate}
+        max={maxAmount}
         compact
       />
 
