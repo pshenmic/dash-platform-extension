@@ -3,7 +3,7 @@ import { Identifier, ShieldSmallIcon, Text } from 'dash-ui-kit/react'
 import { SummaryRow } from '../../../components/cards'
 import { FiatChip } from '../../../components/common'
 import { ENDPOINT_TYPE_LABELS } from '../../../components/transfer'
-import { dashAmountToUsd, feeOnLayer, formatDashAmount, isShieldToMyself } from '../../../../utils'
+import { dashAmountToUsd, feeOnLayer, formatDashAmount, isShieldToMyself, shownFee } from '../../../../utils'
 import { ALREADY_PAID_LABEL, recipientsCountLabel } from '../constants'
 import type { SourceBalance } from '../hooks/useSourceBalance'
 import type { TransferFee } from '../hooks/useTransferFee'
@@ -16,6 +16,8 @@ interface TransferDetailsProps {
   fee: TransferFee | null
   feeExact?: boolean
   received?: bigint | null
+  // Exact amount Platform received, from the response; replaces the `received` estimate.
+  credited?: TransferFee | null
   rate: number | null
   showTotal?: boolean
   // The Core payment was made earlier: no fee and no total to pay now.
@@ -68,10 +70,11 @@ const targetValue = (draft: TransferDraft): React.ReactNode => {
 }
 
 // From / To / Network Fee rows (and Total on Confirm) of the transfer.
-export function TransferDetails ({ draft, amount, balance, fee, feeExact = false, received = null, rate, showTotal = false, prepaid = false }: TransferDetailsProps): React.JSX.Element {
+export function TransferDetails ({ draft, amount, balance, fee: pricedFee, feeExact = false, received = null, credited = null, rate, showTotal = false, prepaid = false }: TransferDetailsProps): React.JSX.Element {
   const isDash = draft.asset.type === 'dash'
+  const fee = shownFee(pricedFee)
   const feeLabel = fee != null ? `${feeExact ? '' : '~'}${formatDashAmount(fee.amount, fee.decimals)} Dash` : 'Calculated when sending'
-  const total = amount + (isDash ? feeOnLayer(fee, balance.decimals) : 0n)
+  const total = amount + (isDash && fee?.takenFromAmount !== true ? feeOnLayer(fee, balance.decimals) : 0n)
 
   return (
     <div className='flex flex-col gap-2.5'>
@@ -97,7 +100,14 @@ export function TransferDetails ({ draft, amount, balance, fee, feeExact = false
             className='!bg-transparent !py-0'
           />
         )}
-        {received != null && (
+        {credited != null && (
+          <SummaryRow
+            label='Received:'
+            value={<Text size='xs' weight='medium'>{formatDashAmount(credited.amount, credited.decimals)} {balance.unit}</Text>}
+            className='!bg-transparent !py-0'
+          />
+        )}
+        {credited == null && received != null && (
           <SummaryRow
             label='Received:'
             value={<Text size='xs' weight='medium'>~{formatDashAmount(received, balance.decimals)} {balance.unit}</Text>}

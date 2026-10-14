@@ -22,12 +22,13 @@ import { useTransferSubmit } from './hooks/useTransferSubmit'
 import { useTransferOperation } from './hooks/useTransferOperation'
 import { useTransferRetry } from './hooks/useTransferRetry'
 import { useCoreTransferEstimate } from './hooks/useCoreTransferEstimate'
+import { usePlatformFeeEstimate } from './hooks/usePlatformFeeEstimate'
 import { useChangeAddresses } from './hooks/useChangeAddresses'
 import { useIdentityHeader } from './hooks/useIdentityHeader'
 import { STEP_INDEX, useStepNavigation, useWizardStep } from './hooks/useWizardStep'
 import { useTransferApi } from './transferApi'
 import { WizardHeader } from './components/WizardHeader'
-import { UnfinishedTopUpBanners } from './components/UnfinishedTopUpBanners'
+import { UnfinishedOperationBanners } from './components/UnfinishedOperationBanners'
 import { MAX_RECIPIENTS } from './constants'
 import { FromToStep } from './steps/FromToStep/FromToStep'
 import { AmountStep } from './steps/AmountStep'
@@ -67,7 +68,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const platformData = useWalletPlatformData(availableIdentities, currentNetwork)
   const shielded = useShieldedBalance()
   const core = useCoreBalance(currentWallet, capabilities.hasCoreLayer)
-  const coreBalance = core.balance != null ? BigInt(core.balance.available) : null
+  const coreBalance = core.balance != null ? BigInt(core.balance.balance) : null
 
   const resolution = resolveDirection(draft.from.type, draft.to.type, draft.asset, capabilities)
   const config = resolution.supported ? resolution.config : null
@@ -77,9 +78,10 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const balance = useSourceBalance({ draft, identityBalance, coreBalance, platformAddresses, shieldedBalance: shielded.balance, token })
   const input = transferAmountInput(draft, mode, balance.decimals)
   const { limits, recipientsCheck, amount } = input
-  const coreEstimate = useCoreTransferEstimate({ api, config, draft, amount, recipientsValid: recipientsCheck.isValid, balanceKey: core.balance?.available ?? null })
-  const fee = useTransferFee({ config, draft, coreFeeDuffs: coreEstimate.feeDuffs, network, shieldedSpendEstimates: shielded.spendEstimates })
-  const knownMax = shieldedMaxAmount(config, shielded.spendEstimates) ?? coreMaxAmount(config, recipientCount(draft), coreEstimate.maxSendableDuffs)
+  const coreEstimate = useCoreTransferEstimate({ api, config, draft, amount, recipientsValid: recipientsCheck.isValid, balance: coreBalance })
+  const platformEstimate = usePlatformFeeEstimate({ api, mode, identityId, sourceAddress: balance.sourceAddress, balance: balance.amount })
+  const fee = useTransferFee({ config, draft, coreEstimate, platformEstimate, network, shieldedSpendEstimates: shielded.spendEstimates })
+  const knownMax = shieldedMaxAmount(config, shielded.spendEstimates) ?? coreMaxAmount(config, recipientCount(draft), coreEstimate.maxAmountDuffs) ?? platformEstimate.estimate?.maxAmountCredits ?? null
 
   const operation = useTransferOperation()
   const operationState = operation.state
@@ -88,8 +90,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
 
   const navigation = useStepNavigation()
   const { goToStep } = navigation
-  const { resume, retryBlock, pendingTopUps, resumeTopUp, handleRetry } = useTransferRetry({ api, draft, mode, amount, settledStatus, reloadCoreBalance: core.reload, resetDraft: actions.reset, resetOperation: operation.reset, goToStep })
-  const isResumingFunding = resume != null
+  const { isContinuing, pendingOperations, continueOperation, handleRetry } = useTransferRetry({ api, draft, settledStatus, reloadCoreBalance: core.reload, resetDraft: actions.reset, resetOperation: operation.reset, goToStep })
 
   const validation = validateTransfer({
     draft,
@@ -98,10 +99,11 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
     assetKnown: draft.asset.type === 'dash' || token != null,
     fee,
     knownMax,
+    knownMin: platformEstimate.estimate?.minAmountCredits ?? null,
     input,
     senderIdentifier: draft.from.type === 'identity' ? draft.from.identityId : balance.sourceAddress,
     shieldedReady: draft.from.type !== 'shielded' || (shielded.balance != null && !shielded.isWarmingProver),
-    isResumingFunding
+    isResumingFunding: isContinuing
   })
   const { maxAmount, amountError, advancedError, recipientError, received, fromToValid, amountValid } = validation
   const step = useWizardStep(navigation, {
@@ -114,8 +116,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   })
 
   const outcome: TransferOutcome | null = operationState.status === 'success'
-    ? { type: 'success', hashes: operationState.hashes, fee: operationState.fee, prepaid: operationState.prepaid }
-    : operationState.status === 'failed' ? { type: 'error', message: retryBlock ?? operationState.error } : null
+    ? { type: 'success', hashes: operationState.hashes, fee: operationState.fee, continued: operationState.continued, credited: operationState.credited }
+    : operationState.status === 'failed' ? { type: 'error', message: operationState.error } : null
 
   const changeAddresses = useChangeAddresses(api, draft.isAdvanced && draft.from.type === 'core', currentWallet, network)
 
@@ -142,7 +144,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   }, [hideBack, setHeaderConfigOverride])
 
   const handleConfirm = (password: string): void => {
-    submit(password, resume)
+    submit(password)
       .then(result => {
         if (result === 'invalidPassword') {
           setPasswordError('Invalid password')
@@ -181,7 +183,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           canContinue={fromToValid}
           recipientError={recipientError}
           onOpenAsset={() => setAssetMenuOpen(true)}
-          unfinishedTopUps={draft.from.type === 'core' && <UnfinishedTopUpBanners topUps={pendingTopUps} onRetry={resumeTopUp} />}
+          unfinishedOperations={draft.from.type === 'core' && <UnfinishedOperationBanners operations={pendingOperations} onContinue={continueOperation} />}
           recipientsLabel={`(${draft.recipients.length}/${MAX_RECIPIENTS})`}
           onOpenRecipients={() => setRecipientsOpen(true)}
           advancedSummary={<AdvancedSummary fromType={draft.from.type} balance={balance} recipientsTotal={recipientsCheck.total} fee={fee} rate={rate} error={advancedError} />}
@@ -213,7 +215,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           balance={balance}
           fee={fee}
           received={received}
-          isPrepaid={isResumingFunding}
+          isPrepaid={isContinuing}
           rate={rate}
           isSubmitting={isChecking || operationState.status === 'running'}
           passwordError={passwordError}
@@ -234,8 +236,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           rate={rate}
           network={network}
           onDone={close}
-          isPrepaid={isResumingFunding}
-          onRetry={retryBlock == null ? handleRetry : undefined}
+          isPrepaid={isContinuing}
+          onRetry={handleRetry}
         />
       )}
 
@@ -247,7 +249,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           changeAddress={draft.changeAddress}
           changeAddresses={changeAddresses}
           decimals={balance.decimals}
-          availableFor={(count) => coreMaxAmount(config, count, coreEstimate.maxSendableDuffs) ?? maxAmount}
+          availableFor={(count) => coreMaxAmount(config, count, coreEstimate.maxAmountDuffs) ?? maxAmount}
           minAmount={limits.min}
           excludeIdentifier={balance.sourceAddress}
           network={network}

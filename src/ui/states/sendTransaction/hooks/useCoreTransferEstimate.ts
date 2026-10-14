@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { CORE_DUST_THRESHOLD } from '../../../../constants'
-import { coreRecipientOutputs } from '../../../../utils'
+import { coreFallbackFeeDuffs, coreFallbackMaxDuffs, coreRecipientOutputs } from '../../../../utils'
 import type { DirectionConfig } from '../directions/directionConfig'
 import type { CoreOutput, TransferApi } from '../transferApi'
 import type { TransferDraft } from '../types'
+import { useEstimateGrace } from './useEstimateGrace'
+import { recipientCount } from './useTransferFee'
 
 interface CoreTransferEstimateParams {
   api: TransferApi
@@ -11,19 +13,23 @@ interface CoreTransferEstimateParams {
   draft: TransferDraft
   amount: bigint | null
   recipientsValid: boolean
-  // Changes whenever the Core balance does, so Max is priced again.
-  balanceKey: string | null
+  // A change prices Max again, which also retries a failed estimate.
+  balance: bigint | null
 }
 
-// Fee in duffs of the typed Core payment and the most one output can get; null while unknown.
+// Fee in duffs of the typed Core payment and the most one output can get after the fee, the fallbacks while unknown; null for other sources.
 export interface CoreTransferEstimate {
   feeDuffs: bigint | null
-  maxSendableDuffs: bigint | null
+  maxAmountDuffs: bigint | null
+  isFeeFallback: boolean
+  // Fee request still inside its grace period.
+  isFeeLoading: boolean
 }
 
 interface Keyed {
   key: string
-  value: bigint
+  // Null when the request failed.
+  value: bigint | null
 }
 
 const DEBOUNCE_MS = 400
@@ -40,7 +46,7 @@ const outputsKey = (outputs: CoreOutput[], changeAddress: string | null): string
   JSON.stringify([outputs.map(output => [output.address, output.amountDuffs.toString()]), changeAddress])
 
 // Prices a Core payment with the same coin selection the send runs; no password needed.
-export function useCoreTransferEstimate ({ api, config, draft, amount, recipientsValid, balanceKey }: CoreTransferEstimateParams): CoreTransferEstimate {
+export function useCoreTransferEstimate ({ api, config, draft, amount, recipientsValid, balance }: CoreTransferEstimateParams): CoreTransferEstimate {
   const enabled = config?.feeSource === 'coreEstimate'
   const [ownAddress, setOwnAddress] = useState<string | null>(null)
   const [max, setMax] = useState<Keyed | null>(null)
@@ -56,15 +62,18 @@ export function useCoreTransferEstimate ({ api, config, draft, amount, recipient
     return () => { active = false }
   }, [api, enabled, ownAddress])
 
-  const maxKey = enabled && ownAddress != null ? `${ownAddress}|${balanceKey ?? ''}` : null
+  const maxKey = enabled && ownAddress != null ? `${ownAddress}|${balance?.toString() ?? ''}` : null
 
-  // Prices sending everything to one output, again whenever the balance changes.
+  // Prices sending everything to one output, again whenever the balance changes; the amount is ignored under send-max.
   useEffect(() => {
     if (maxKey == null || ownAddress == null) return
     let active = true
-    api.estimateCoreTransfer([{ address: ownAddress, amountDuffs: 0n }], undefined, true)
-      .then(estimate => { if (active) setMax({ key: maxKey, value: estimate.maxSendableDuffs }) })
-      .catch(e => console.log('estimateCoreTransfer max error', e))
+    api.estimateCoreTransfer([{ address: ownAddress, amountDuffs: 1n }], undefined, true)
+      .then(estimate => { if (active) setMax({ key: maxKey, value: estimate.amountDuffs }) })
+      .catch(e => {
+        console.log('estimateCoreTransfer max error', e)
+        if (active) setMax({ key: maxKey, value: null })
+      })
     return () => { active = false }
   }, [api, maxKey, ownAddress])
 
@@ -83,7 +92,10 @@ export function useCoreTransferEstimate ({ api, config, draft, amount, recipient
     const timer = setTimeout(() => {
       api.estimateCoreTransfer(outputs, changeAddress ?? undefined)
         .then(estimate => { if (active) setFee({ key: feeKey, value: estimate.feeDuffs }) })
-        .catch(e => console.log('estimateCoreTransfer error', e))
+        .catch(e => {
+          console.log('estimateCoreTransfer error', e)
+          if (active) setFee({ key: feeKey, value: null })
+        })
     }, DEBOUNCE_MS)
     return () => {
       active = false
@@ -91,8 +103,16 @@ export function useCoreTransferEstimate ({ api, config, draft, amount, recipient
     }
   }, [api, feeKey])
 
+  const feeSettled = fee != null && fee.key === feeKey
+  const isFeeLoading = useEstimateGrace(feeKey != null && !feeSettled ? feeKey : null)
+  if (!enabled) return { feeDuffs: null, maxAmountDuffs: null, isFeeFallback: false, isFeeLoading: false }
+
+  const feeDuffs = feeSettled ? fee.value : null
+  const maxDuffs = max != null && max.key === maxKey ? max.value : null
   return {
-    feeDuffs: fee != null && fee.key === feeKey ? fee.value : null,
-    maxSendableDuffs: max != null && max.key === maxKey ? max.value : null
+    feeDuffs: feeDuffs ?? coreFallbackFeeDuffs(recipientCount(draft)),
+    maxAmountDuffs: maxDuffs ?? (balance != null ? coreFallbackMaxDuffs(balance) : null),
+    isFeeFallback: feeDuffs == null,
+    isFeeLoading
   }
 }

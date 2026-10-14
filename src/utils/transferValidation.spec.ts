@@ -26,6 +26,7 @@ const validate = (current: TransferDraft, overrides: Partial<Parameters<typeof v
     assetKnown: true,
     fee: { amount: 226n, decimals: 8 },
     knownMax: null,
+    knownMin: null,
     input: transferAmountInput(current, mode, CORE_BALANCE.decimals),
     senderIdentifier: null,
     shieldedReady: true,
@@ -64,6 +65,14 @@ describe('validateTransfer', () => {
 
   it('shows what an asset lock delivers', () => {
     expect(validate(draft({ to: { type: 'identity', recipient: 'id', shieldToMyself: true } }), { mode: 'coreTopUp' }).received).toBe(100000000n - MIN_FEE_RELAY)
+  })
+
+  it('shows the amount minus a fee taken from it', () => {
+    expect(validate(draft(), { fee: { amount: 1000n, decimals: 8, takenFromAmount: true } }).received).toBe(100000000n - 1000n)
+  })
+
+  it('checks the amount against a minimum from an estimate', () => {
+    expect(validate(draft(), { knownMin: 200000000n }).amountError).toBe('Minimum amount is 2 Dash.')
   })
 
   it('rejects the sender as its own recipient', () => {

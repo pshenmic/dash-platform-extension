@@ -1,11 +1,11 @@
 import React from 'react'
 import { Accordion, Button, Text } from 'dash-ui-kit/react'
 import { ResultHeader } from '../../../components/layout/ResultHeader'
-import { SummaryRow } from '../../../components/cards'
+import { Banner, SummaryRow } from '../../../components/cards'
 import { TransactionHashBlock } from '../../../components/transactions'
 import { canShieldToOthers, dashAmountToUsd, formatDashAmount, getCoreTransactionExplorerUrl, isShieldToMyself } from '../../../../utils'
 import type { NetworkType } from '../../../../types'
-import { transferErrorMessage } from '../constants'
+import { CONTINUED_TRANSFER_MESSAGE, transferErrorMessage } from '../constants'
 import { SENT_TO_SHIELDED_ADDRESS } from '../directions/directionConfig'
 import type { DirectionConfig, HashType } from '../directions/directionConfig'
 import type { SourceBalance } from '../hooks/useSourceBalance'
@@ -15,7 +15,7 @@ import type { TransferDraft } from '../types'
 import { TransferDetails } from './TransferDetails'
 
 export type TransferOutcome =
-  | { type: 'success', hashes: TransferHashes, fee?: TransferFee, prepaid?: boolean }
+  | { type: 'success', hashes: TransferHashes, fee?: TransferFee, continued?: boolean, credited?: TransferFee }
   | { type: 'error', message: string }
 
 interface ResultStepProps {
@@ -30,8 +30,7 @@ interface ResultStepProps {
   rate: number | null
   network: NetworkType
   onDone: () => void
-  // Absent when the failed transfer must not be repeated.
-  onRetry?: () => void
+  onRetry: () => void
 }
 
 const HASH_LABELS: Record<HashType, string> = {
@@ -46,21 +45,27 @@ const hashLabel = (hashType: HashType, draft: TransferDraft): string =>
 // Final screen of the send wizard for a successful or failed transfer.
 export function ResultStep ({ outcome, draft, config, amount, balance, fee, isPrepaid, received, rate, network, onDone, onRetry }: ResultStepProps): React.JSX.Element {
   const isSuccess = outcome.type === 'success'
-  const usd = draft.asset.type === 'dash' ? dashAmountToUsd(amount, balance.decimals, rate) : undefined
   const actualFee = outcome.type === 'success' ? outcome.fee : undefined
-  const prepaid = actualFee == null && (isPrepaid || (outcome.type === 'success' && outcome.prepaid === true))
+  const credited = outcome.type === 'success' ? outcome.credited ?? null : null
+  // Finished an earlier paid operation: its amount comes from the response, never from the draft.
+  const continued = outcome.type === 'success' && outcome.continued === true
+  const prepaid = actualFee == null && (isPrepaid || continued)
+  const shown = continued ? credited : { amount, decimals: balance.decimals }
+  const usd = draft.asset.type === 'dash' && shown != null ? dashAmountToUsd(shown.amount, shown.decimals, rate) : undefined
   const successMessage = canShieldToOthers(draft) && !isShieldToMyself(draft) ? SENT_TO_SHIELDED_ADDRESS : config.successMessage
 
   return (
     <div className='flex flex-col gap-6'>
       <ResultHeader
         status={outcome.type}
-        amount={<><span className='font-bold'>{formatDashAmount(amount, balance.decimals)}</span> {balance.unit}</>}
+        amount={shown != null ? <><span className='font-bold'>{formatDashAmount(shown.amount, shown.decimals)}</span> {balance.unit}</> : <span className='font-bold'>Completed</span>}
         usd={usd}
         message={isSuccess ? successMessage : transferErrorMessage(balance.unit)}
       />
 
-      <TransferDetails draft={draft} amount={amount} balance={balance} fee={actualFee ?? fee} feeExact={actualFee != null} received={received} rate={rate} prepaid={prepaid} />
+      <TransferDetails draft={draft} amount={amount} balance={balance} fee={actualFee ?? fee} feeExact={actualFee != null} received={continued ? null : received} credited={credited} rate={rate} prepaid={prepaid} />
+
+      {continued && <Banner variant='info' message={CONTINUED_TRANSFER_MESSAGE} />}
 
       {outcome.type === 'success' && config.hashes.map(hashType => {
         const hash = outcome.hashes[hashType]
@@ -76,8 +81,8 @@ export function ResultStep ({ outcome, draft, config, amount, balance, fee, isPr
         </Accordion>
       )}
 
-      <Button colorScheme='brand' size='xl' className='w-full' onClick={isSuccess || onRetry == null ? onDone : onRetry}>
-        {isSuccess || onRetry == null ? 'Done' : 'Retry'}
+      <Button colorScheme='brand' size='xl' className='w-full' onClick={isSuccess ? onDone : onRetry}>
+        {isSuccess ? 'Done' : 'Retry'}
       </Button>
     </div>
   )

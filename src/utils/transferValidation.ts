@@ -1,6 +1,6 @@
 import { checkRecipients } from './transferRecipients'
 import type { RecipientsCheck } from './transferRecipients'
-import { assetLockReceived, feeOnLayer, isAssetLockMode, parseDashAmount, transferAmountLimits, validateTransferAmount } from './transferAmount'
+import { assetLockReceived, feeOnLayer, isAssetLockMode, parseDashAmount, SHIELD_DEPOSIT_FEE_DUFFS, transferAmountLimits, validateTransferAmount } from './transferAmount'
 import type { TransferAmountLimits } from './transferAmount'
 import { isShieldToMyself } from './transferDirection'
 import type { TransferDraft, TransferMode } from '../ui/states/sendTransaction/types'
@@ -17,6 +17,8 @@ interface SourceAmount {
 interface LayerFee {
   amount: bigint
   decimals: number
+  // Fee comes out of the amount instead of on top of it.
+  takenFromAmount?: boolean
 }
 
 export interface TransferAmountInput {
@@ -34,6 +36,8 @@ interface TransferValidationParams {
   fee: LayerFee | null
   // Max from an estimate, which wins over the balance minus the fee.
   knownMax: bigint | null
+  // Min from an estimate, which wins over the mode minimum.
+  knownMin: bigint | null
   input: TransferAmountInput
   // Identity or address the funds leave, matched against the recipients.
   senderIdentifier: string | null
@@ -61,11 +65,21 @@ export const transferAmountInput = (draft: TransferDraft, mode: TransferMode | n
 }
 
 // Errors and step readiness of the draft.
-export const validateTransfer = ({ draft, mode, balance, assetKnown, fee, knownMax, input, senderIdentifier, shieldedReady, isResumingFunding }: TransferValidationParams): TransferValidation => {
+// What the recipient gets when fees come out of the amount; null when it gets the amount itself.
+const receivedAmount = (amount: bigint | null, mode: TransferMode | null, fee: LayerFee | null): bigint | null => {
+  if (amount == null) return null
+  if (mode === 'coreShield') return assetLockReceived(amount) - SHIELD_DEPOSIT_FEE_DUFFS
+  if (isAssetLockMode(mode)) return assetLockReceived(amount)
+  if (fee?.takenFromAmount === true) return amount > fee.amount ? amount - fee.amount : 0n
+  return null
+}
+
+export const validateTransfer = ({ draft, mode, balance, assetKnown, fee, knownMax, knownMin, input, senderIdentifier, shieldedReady, isResumingFunding }: TransferValidationParams): TransferValidation => {
   const { limits, recipientsCheck, amount } = input
   const isDash = draft.asset.type === 'dash'
   const maxAmount = knownMax ?? (balance.amount == null ? null : balance.amount - (isDash ? feeOnLayer(fee, balance.decimals) : 0n))
-  const amountError = limits != null ? validateTransferAmount(amount, maxAmount, draft.isAdvanced ? { min: 1n, max: null } : limits, balance.decimals, balance.unit) : null
+  const amountLimits = limits != null ? { ...limits, min: knownMin ?? limits.min } : null
+  const amountError = amountLimits != null ? validateTransferAmount(amount, maxAmount, draft.isAdvanced ? { min: 1n, max: null } : amountLimits, balance.decimals, balance.unit) : null
 
   const isSender = (address: string): boolean => address !== '' && address === senderIdentifier
   const isSameParty = draft.isAdvanced ? draft.recipients.some(recipient => isSender(recipient.address)) : isSender(draft.to.recipient)
@@ -75,7 +89,7 @@ export const validateTransfer = ({ draft, mode, balance, assetKnown, fee, knownM
       ? SAME_PARTY_MESSAGE
       : recipientsCheck.isValid ? amountError : null
   const recipientError = !draft.isAdvanced && isSameParty ? SAME_PARTY_MESSAGE : null
-  const received = amount != null && isAssetLockMode(mode) ? assetLockReceived(amount) : null
+  const received = receivedAmount(amount, mode, fee)
 
   const fromToValid = mode != null &&
     assetKnown &&

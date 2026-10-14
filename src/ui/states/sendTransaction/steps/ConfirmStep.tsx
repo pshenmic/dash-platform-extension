@@ -5,7 +5,7 @@ import { Banner } from '../../../components/cards'
 import { PROVING_WARNING } from '../../../constants/transferWarnings'
 import { formatDashAmount, parseDashAmount } from '../../../../utils'
 import { SHIELDED_MODES } from '../types'
-import { KEEP_OPEN_MESSAGE, PREPAID_TOP_UP_MESSAGE, WITHDRAW_WARNINGS, recipientsCountLabel } from '../constants'
+import { KEEP_OPEN_MESSAGE, PREPAID_TRANSFER_MESSAGE, WITHDRAW_WARNINGS, recipientsCountLabel } from '../constants'
 import type { DirectionConfig } from '../directions/directionConfig'
 import type { SourceBalance } from '../hooks/useSourceBalance'
 import type { TransferFee } from '../hooks/useTransferFee'
@@ -50,7 +50,7 @@ export function ConfirmStep ({ draft, config, amount, balance, fee, received, is
         </Accordion>
       )}
 
-      <Banner variant='info' message={isPrepaid ? PREPAID_TOP_UP_MESSAGE : null} />
+      <Banner variant='info' message={isPrepaid ? PREPAID_TRANSFER_MESSAGE : null} />
       <Banner variant='warning' message={WITHDRAW_WARNINGS[config.mode] ?? null} />
       {isProving && <Banner variant='warning' message={PROVING_WARNING} />}
 

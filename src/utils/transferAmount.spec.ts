@@ -49,6 +49,7 @@ describe('transferAmount', () => {
     expect(transferAmountLimits('tokenTransfer')).toEqual({ min: 1n, max: null })
     expect(transferAmountLimits('coreSend')).toEqual({ min: 547n, max: null })
     expect(transferAmountLimits('coreTopUp')).toEqual({ min: 100000n, max: null })
+    expect(transferAmountLimits('coreShield')).toEqual({ min: 213852n, max: null })
   })
 
   it('validates the amount against balance and limits in Dash', () => {

@@ -7,17 +7,12 @@ export interface TransferHashes {
   platform?: string
 }
 
-// What a finished transfer returns; `prepaid` when its Core payment was made earlier.
+// What a finished transfer returns; `continued` when it finished an earlier paid operation, `credited` is what Platform received when known.
 export interface TransferResult {
   hashes: TransferHashes
   fee?: TransferFee
-  prepaid?: boolean
-}
-
-// Core payment made earlier that Retry locks into Platform without paying again.
-export interface TransferResume {
-  address: string
-  txid: string
+  continued?: boolean
+  credited?: TransferFee
 }
 
 export type TransferOperationState =

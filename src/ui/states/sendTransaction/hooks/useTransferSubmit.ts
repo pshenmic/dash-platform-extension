@@ -1,10 +1,10 @@
 import { useCallback, useRef, useState } from 'react'
-import { CORE_DASH_DECIMALS, coreRecipientOutputs, isShieldToMyself } from '../../../../utils'
+import { CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS, coreRecipientOutputs, isShieldToMyself } from '../../../../utils'
 import { SHIELDED_MODES } from '../types'
 import type { NetworkType } from '../../../../types'
 import type { CoreFundingResult, CorePaymentResult, TransferApi } from '../transferApi'
 import type { TransferDraft, TransferMode } from '../types'
-import type { TransferResult, TransferResume } from './useTransferOperation'
+import type { TransferResult } from './useTransferOperation'
 
 interface TransferSubmitParams {
   api: TransferApi
@@ -27,17 +27,14 @@ const corePayment = async (call: Promise<CorePaymentResult>): Promise<TransferRe
   return { hashes: { single: txHash }, fee: { amount: feeDuffs, decimals: CORE_DASH_DECIMALS } }
 }
 
-// Wallet payment locked into Platform; a zero fee means an earlier payment was reused.
+// Wallet payment locked into Platform; resumed or a zero fee means an earlier payment was finished and nothing new was paid.
 const coreFunding = async (call: Promise<CoreFundingResult>): Promise<TransferResult> => {
-  const { txHash, coreTxHash, feeDuffs } = await call
+  const { txHash, coreTxHash, feeDuffs, resumed, creditedCredits } = await call
   const hashes = { core: coreTxHash, platform: txHash }
-  return feeDuffs > 0n ? { hashes, fee: { amount: feeDuffs, decimals: CORE_DASH_DECIMALS } } : { hashes, prepaid: true }
-}
-
-// Locks a Core payment made earlier into Platform.
-const prepaidFunding = async (resume: TransferResume, call: Promise<{ txHash: string }>): Promise<TransferResult> => {
-  const { txHash } = await call
-  return { hashes: { core: resume.txid, platform: txHash }, prepaid: true }
+  const credited = creditedCredits != null ? { amount: creditedCredits, decimals: PLATFORM_DASH_DECIMALS } : undefined
+  return resumed || feeDuffs === 0n
+    ? { hashes, credited, continued: true }
+    : { hashes, credited, fee: { amount: feeDuffs, decimals: CORE_DASH_DECIMALS } }
 }
 
 interface TransferContext {
@@ -57,8 +54,8 @@ const startAdvancedTransfer = async ({ api, mode, draft, password }: TransferCon
   return await corePayment(api.sendCoreTransaction(coreRecipientOutputs(draft.recipients), password, draft.changeAddress ?? undefined))
 }
 
-// Starts the API call of the resolved transfer mode, or locks the earlier payment of `resume`.
-const startTransfer = async (context: TransferContext, resume: TransferResume | null): Promise<TransferResult> => {
+// Starts the API call of the resolved transfer mode; a *FromWallet call finishes its own unfinished operation.
+const startTransfer = async (context: TransferContext): Promise<TransferResult> => {
   const { api, mode, draft, amount, sourceAddress, password, walletId, network } = context
   const identityId = draft.from.identityId ?? ''
   const recipient = draft.to.recipient
@@ -70,13 +67,9 @@ const startTransfer = async (context: TransferContext, resume: TransferResume | 
     case 'coreSend':
       return await corePayment(api.sendCoreTransfer(recipient, amount, password))
     case 'coreTopUp':
-      return resume != null
-        ? await prepaidFunding(resume, api.topUpIdentityFromFunding(recipient, resume.address, resume.txid, password, walletId, network))
-        : await coreFunding(api.topUpIdentityFromWallet(recipient, amount, password, walletId, network))
+      return await coreFunding(api.topUpIdentityFromWallet(recipient, amount, password, walletId, network))
     case 'coreFund':
-      return resume != null
-        ? await prepaidFunding(resume, api.fundPlatformAddressFromFunding(recipient, resume.address, resume.txid, password))
-        : await coreFunding(api.fundPlatformAddressFromWallet(recipient, amount, password))
+      return await coreFunding(api.fundPlatformAddressFromWallet(recipient, amount, password))
     case 'coreShield':
       return await coreFunding(api.shieldFromWallet(amount, password, isShieldToMyself(draft) ? undefined : recipient))
     case 'creditTransfer':
@@ -107,15 +100,15 @@ const startTransfer = async (context: TransferContext, resume: TransferResume | 
   }
 }
 
-// Checks the password and starts the transfer of the current draft, or finishes a paid one from `resume`.
+// Checks the password and starts the transfer of the current draft.
 export function useTransferSubmit ({ api, mode, draft, amount, sourceAddress, walletId, network, track }: TransferSubmitParams): {
   isChecking: boolean
-  submit: (password: string, resume?: TransferResume | null) => Promise<'started' | 'invalidPassword' | 'ignored'>
+  submit: (password: string) => Promise<'started' | 'invalidPassword' | 'ignored'>
 } {
   const [isChecking, setIsChecking] = useState(false)
   const inFlightRef = useRef(false)
 
-  const submit = useCallback(async (password: string, resume?: TransferResume | null): Promise<'started' | 'invalidPassword' | 'ignored'> => {
+  const submit = useCallback(async (password: string): Promise<'started' | 'invalidPassword' | 'ignored'> => {
     if (mode == null || amount == null || inFlightRef.current) return 'ignored'
 
     inFlightRef.current = true
@@ -129,7 +122,7 @@ export function useTransferSubmit ({ api, mode, draft, amount, sourceAddress, wa
     const shielded = SHIELDED_MODES.includes(mode) || (mode === 'coreShield' && isShieldToMyself(draft))
 
     track(async () => {
-      const result = await startTransfer({ api, mode, draft, amount, sourceAddress, password, walletId: walletId ?? undefined, network }, resume ?? null)
+      const result = await startTransfer({ api, mode, draft, amount, sourceAddress, password, walletId: walletId ?? undefined, network })
       if (shielded) api.syncShieldedNotes(password, walletId ?? undefined, network).catch(e => console.log('syncShieldedNotes error', e))
       return result
     })

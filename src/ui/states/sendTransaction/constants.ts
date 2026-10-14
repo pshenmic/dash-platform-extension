@@ -45,16 +45,17 @@ export const WITHDRAW_WARNINGS: Partial<Record<TransferMode, string>> = {
   shieldedWithdraw: SHIELDED_WITHDRAW_WARNING
 }
 
-// Network fee shown when a top up reuses a Core payment made earlier.
+// Network fee shown when a transfer finishes a Core payment made earlier.
 export const ALREADY_PAID_LABEL = 'Already paid'
 
-export const PREPAID_TOP_UP_MESSAGE = 'Finishes a top up paid earlier. No new payment.'
+// Confirm notice for a draft continuing an unfinished operation.
+export const PREPAID_TRANSFER_MESSAGE = 'Finishes a transfer paid earlier. No new payment.'
 
-// Retry of a shielding from Core whose asset lock is already on L1: repeating it would pay again.
-export const SHIELD_NOT_RESUMABLE_MESSAGE = 'This shielding was already paid on L1 and cannot be resumed yet. Retrying would pay again.'
+// Result notice when the call finished an earlier unfinished operation instead of paying again.
+export const CONTINUED_TRANSFER_MESSAGE = 'An earlier unfinished transfer to this recipient was completed. Nothing new was paid.'
 
 // Most recipients one Advanced transfer can pay.
 export const MAX_RECIPIENTS = 1000
 
-// Estimated fee of a Core send while its estimate is loading or failed: one input, recipient and change outputs.
-export const CORE_TRANSFER_FEE_ESTIMATE_DUFFS = 226n
+// How long a loading fee estimate shows as pending before the fallback fee is shown.
+export const ESTIMATE_GRACE_MS = 2500

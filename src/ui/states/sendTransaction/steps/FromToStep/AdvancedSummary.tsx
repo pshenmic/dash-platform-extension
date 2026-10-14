@@ -2,7 +2,7 @@ import React from 'react'
 import { Text } from 'dash-ui-kit/react'
 import { BalanceCard } from '../../../../components/cards'
 import { endpointLayer } from '../../../../components/controls'
-import { dashAmountToUsd, feeOnLayer, formatDashAmount } from '../../../../../utils'
+import { dashAmountToUsd, feeOnLayer, formatDashAmount, shownFee } from '../../../../../utils'
 import type { EndpointType } from '../../types'
 import type { SourceBalance } from '../../hooks/useSourceBalance'
 import type { TransferFee } from '../../hooks/useTransferFee'
@@ -17,9 +17,11 @@ interface AdvancedSummaryProps {
 }
 
 // Balance and Transaction Summary cards under the From / To card in Advanced mode.
-export function AdvancedSummary ({ fromType, balance, recipientsTotal, fee, rate, error }: AdvancedSummaryProps): React.JSX.Element {
+export function AdvancedSummary ({ fromType, balance, recipientsTotal, fee: pricedFee, rate, error }: AdvancedSummaryProps): React.JSX.Element {
   const { decimals } = balance
+  const fee = shownFee(pricedFee)
   const feeAmount = feeOnLayer(fee, decimals)
+  const approximate = fee?.isApproximate === true ? '~' : ''
 
   return (
     <div className='flex flex-col gap-2.5'>
@@ -35,11 +37,11 @@ export function AdvancedSummary ({ fromType, balance, recipientsTotal, fee, rate
         <div className='flex items-end justify-between gap-3'>
           <div className='flex flex-col gap-1.5'>
             <Text size='xs' dim>Recipients Receive: <span className='font-bold text-dash-primary-dark-blue'>{formatDashAmount(recipientsTotal, decimals)}</span> Dash</Text>
-            <Text size='xs' dim>Network Fee: <span className='font-bold text-dash-primary-dark-blue'>{fee != null ? formatDashAmount(fee.amount, fee.decimals) : '-'}</span> Dash</Text>
+            <Text size='xs' dim>Network Fee: <span className='font-bold text-dash-primary-dark-blue'>{fee != null ? `${approximate}${formatDashAmount(fee.amount, fee.decimals)}` : '-'}</span> Dash</Text>
           </div>
           <div className='flex flex-col items-end px-3 py-2 rounded-[0.75rem] bg-dash-brand/10'>
             <Text size='xs' className='!text-dash-brand'>Send Total:</Text>
-            <Text size='md' className='!text-dash-brand'><span className='font-bold'>{formatDashAmount(recipientsTotal + feeAmount, decimals)}</span> Dash</Text>
+            <Text size='md' className='!text-dash-brand'><span className='font-bold'>{approximate}{formatDashAmount(recipientsTotal + feeAmount, decimals)}</span> Dash</Text>
           </div>
         </div>
       </div>

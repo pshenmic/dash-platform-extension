@@ -1,22 +1,12 @@
 import { useEffect, useState } from 'react'
-import { CORE_DASH_DECIMALS, assetLockPayment, assetLockReceived, findUnfinishedTopUp, formatDashAmount, hasPendingShield, isAssetLockMode, unfinishedTopUps } from '../../../../utils'
-import type { UnfinishedTopUp } from '../../../../utils'
-import { SHIELD_NOT_RESUMABLE_MESSAGE } from '../constants'
+import { CORE_DASH_DECIMALS, assetLockPayment, formatDashAmount, unfinishedOperations } from '../../../../utils'
+import type { UnfinishedOperation } from '../../../../utils'
 import type { TransferApi } from '../transferApi'
-import type { TransferDraft, TransferMode, WizardStep } from '../types'
-import type { TransferResume } from './useTransferOperation'
-
-// Retry that continues a transfer, valid only while the draft it was made for is current.
-interface PendingRetry {
-  draft: TransferDraft
-  resume: TransferResume
-}
+import type { EndpointType, TransferDraft, WizardStep } from '../types'
 
 interface TransferRetryParams {
   api: TransferApi
   draft: TransferDraft
-  mode: TransferMode | null
-  amount: bigint | null
   settledStatus: 'success' | 'failed' | null
   reloadCoreBalance: () => void
   resetDraft: (draft: TransferDraft) => void
@@ -25,85 +15,49 @@ interface TransferRetryParams {
 }
 
 export interface TransferRetryState {
-  // Paid Core payment the next Confirm locks into Platform instead of paying again.
-  resume: TransferResume | null
-  // Why the failed transfer must not be retried.
-  retryBlock: string | null
-  pendingTopUps: UnfinishedTopUp[]
-  resumeTopUp: (topUp: UnfinishedTopUp) => void
+  // The current draft continues an unfinished operation, so Confirm pays nothing new.
+  isContinuing: boolean
+  pendingOperations: UnfinishedOperation[]
+  continueOperation: (operation: UnfinishedOperation) => void
   handleRetry: () => void
 }
 
-// Unfinished Core top ups of the wallet and the Retry of a failed transfer.
-export function useTransferRetry ({ api, draft, mode, amount, settledStatus, reloadCoreBalance, resetDraft, resetOperation, goToStep }: TransferRetryParams): TransferRetryState {
-  const [retry, setRetry] = useState<PendingRetry | null>(null)
-  const [retryBlock, setRetryBlock] = useState<string | null>(null)
-  const [pendingTopUps, setPendingTopUps] = useState<UnfinishedTopUp[]>([])
+const TARGET_TYPES: Record<UnfinishedOperation['purpose'], EndpointType> = { topUp: 'identity', fundAddress: 'platformAddress', shield: 'shielded' }
 
-  const resume = retry != null && retry.draft === draft ? retry.resume : null
+// Unfinished Core operations of the wallet and the Retry of a failed transfer, both repeating the same *FromWallet call.
+export function useTransferRetry ({ api, draft, settledStatus, reloadCoreBalance, resetDraft, resetOperation, goToStep }: TransferRetryParams): TransferRetryState {
+  const [continuedDraft, setContinuedDraft] = useState<TransferDraft | null>(null)
+  const [pendingOperations, setPendingOperations] = useState<UnfinishedOperation[]>([])
 
-  // Loads unfinished top ups for a Core sender and refreshes its balance once a transfer settles.
+  // Loads unfinished operations for a Core sender and refreshes its balance once a transfer settles.
   useEffect(() => {
     if (draft.from.type !== 'core') return
     if (settledStatus != null) reloadCoreBalance()
-    api.listPendingAssetLocks().then(locks => setPendingTopUps(unfinishedTopUps(locks))).catch(e => console.log('listPendingAssetLocks error', e))
+    api.listPendingAssetLocks().then(locks => setPendingOperations(unfinishedOperations(locks))).catch(e => console.log('listPendingAssetLocks error', e))
   }, [api, draft.from.type, settledStatus, reloadCoreBalance])
 
-  // Fills the draft from an unfinished top up and opens Confirm to finish it with the same payment.
-  const resumeTopUp = (topUp: UnfinishedTopUp, replace = false): void => {
-    const toType = topUp.purpose === 'topUp' ? 'identity' : 'platformAddress'
+  // Fills the draft from an unfinished operation and opens Confirm; submitting it resumes that operation.
+  const continueOperation = (operation: UnfinishedOperation): void => {
     const next: TransferDraft = {
       ...draft,
       from: { ...draft.from, type: 'core' },
-      to: { ...draft.to, type: toType, recipient: topUp.recipient },
+      to: { type: TARGET_TYPES[operation.purpose], recipient: operation.recipient ?? '', shieldToMyself: operation.recipient == null },
       asset: { type: 'dash' },
-      amount: formatDashAmount(assetLockPayment(topUp.lockedDuffs), CORE_DASH_DECIMALS),
+      amount: formatDashAmount(assetLockPayment(operation.lockedDuffs), CORE_DASH_DECIMALS),
       isAdvanced: false,
       recipients: [],
       changeAddress: null
     }
     resetDraft(next)
-    setRetry({ draft: next, resume: { address: topUp.fundingAddress, txid: topUp.fundingTxid } })
-    setRetryBlock(null)
-    goToStep('confirm', replace)
+    setContinuedDraft(next)
+    goToStep('confirm')
   }
 
-  const repeatTransfer = (): void => {
-    setRetry(null)
-    setRetryBlock(null)
+  // Repeats the same call; the backend resumes a payment already locked on L1.
+  const handleRetry = (): void => {
     resetOperation()
     goToStep('confirm', true)
   }
 
-  // Retry of a Core -> Platform transfer finishes a paid asset lock instead of paying again; a paid shielding is not repeated.
-  const handleRetry = (): void => {
-    if (!isAssetLockMode(mode)) {
-      repeatTransfer()
-      return
-    }
-
-    api.listPendingAssetLocks()
-      .then(locks => {
-        const topUps = unfinishedTopUps(locks)
-        setPendingTopUps(topUps)
-
-        if (mode === 'coreShield') {
-          if (hasPendingShield(locks)) setRetryBlock(SHIELD_NOT_RESUMABLE_MESSAGE)
-          else repeatTransfer()
-          return
-        }
-
-        const purpose = mode === 'coreTopUp' ? 'topUp' : 'fundAddress'
-        const topUp = findUnfinishedTopUp(topUps, purpose, draft.to.recipient, amount != null ? assetLockReceived(amount) : null)
-        if (topUp == null) {
-          repeatTransfer()
-          return
-        }
-        resetOperation()
-        resumeTopUp(topUp, true)
-      })
-      .catch(e => setRetryBlock(e instanceof Error ? e.message : String(e)))
-  }
-
-  return { resume, retryBlock, pendingTopUps, resumeTopUp: (topUp) => resumeTopUp(topUp), handleRetry }
+  return { isContinuing: continuedDraft != null && continuedDraft === draft, pendingOperations, continueOperation, handleRetry }
 }

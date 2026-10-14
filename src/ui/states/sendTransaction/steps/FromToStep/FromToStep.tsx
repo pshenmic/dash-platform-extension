@@ -4,7 +4,7 @@ import { Checkbox, SideActionButton } from '../../../../components/controls'
 import { EndpointCard, EndpointTypeSelect } from '../../../../components/transfer'
 import type { EndpointTypeOption } from '../../../../components/transfer'
 import { InfoCard } from '../../../../components/common'
-import { canShieldToOthers, formatDashAmount, getSourceUnavailableReason, isShieldToMyself } from '../../../../../utils'
+import { canShieldToOthers, formatDashAmount, getSourceUnavailableReason, isShieldToMyself, shownFee } from '../../../../../utils'
 import type { TransferCapabilities } from '../../../../../utils'
 import type { NetworkType, TokenData } from '../../../../../types'
 import { UNAVAILABLE_REASON_HINTS } from '../../constants'
@@ -37,7 +37,7 @@ interface FromToStepProps {
   recipientsLabel: string
   onOpenRecipients: () => void
   advancedSummary: React.ReactNode
-  unfinishedTopUps: React.ReactNode
+  unfinishedOperations: React.ReactNode
   onNext: () => void
 }
 
@@ -61,7 +61,7 @@ export function FromToStep ({
   recipientsLabel,
   onOpenRecipients,
   advancedSummary,
-  unfinishedTopUps,
+  unfinishedOperations,
   onNext
 }: FromToStepProps): React.JSX.Element {
   const fromOptions = typeOrder.map((type): EndpointTypeOption => {
@@ -77,7 +77,8 @@ export function FromToStep ({
 
   const infoCard = resolution.supported ? resolution.config.infoCard : undefined
   const showsShieldToMyself = draft.to.type === 'shielded' && draft.from.type !== 'shielded'
-  const feeText = fee != null ? `${formatDashAmount(fee.amount, fee.decimals)} Dash` : 'small'
+  const feeShown = shownFee(fee)
+  const feeText = feeShown != null ? `${feeShown.isApproximate === true ? '~' : ''}${formatDashAmount(feeShown.amount, feeShown.decimals)} Dash` : 'small'
 
   return (
     <div className='flex flex-col gap-6'>
@@ -151,7 +152,7 @@ export function FromToStep ({
         </InfoCard>
       )}
 
-      {unfinishedTopUps}
+      {unfinishedOperations}
 
       <Button colorScheme='brand' size='xl' className='w-full' disabled={!canContinue} onClick={onNext}>
         Next

@@ -1,5 +1,6 @@
 import { fromBaseUnit, toBaseUnit } from './bigintUtils'
-import { CORE_DUST_THRESHOLD, MAX_WITHDRAWAL_CREDITS, MIN_FEE_RELAY, MIN_OUTPUT_CREDITS, MIN_TOPUP_FUNDING_DUFFS, MIN_WITHDRAWAL_CREDITS } from '../constants'
+import { computeShieldedDepositFee } from './shieldedFee'
+import { CORE_DUST_THRESHOLD, CREDITS_PER_DUFF, MAX_WITHDRAWAL_CREDITS, MIN_FEE_RELAY, MIN_OUTPUT_CREDITS, MIN_TOPUP_FUNDING_DUFFS, MIN_WITHDRAWAL_CREDITS } from '../constants'
 import { MIN_CREDIT_TRANSFER } from '../ui/constants/transaction'
 import type { EndpointType, TransferMode } from '../ui/states/sendTransaction/types'
 
@@ -52,6 +53,12 @@ export const isAssetLockMode = (mode: TransferMode | null | undefined): boolean 
 // What an asset lock delivers on Platform: the Core payment minus the relay fee kept on L1.
 export const assetLockReceived = (paymentDuffs: bigint): bigint => paymentDuffs - MIN_FEE_RELAY
 
+// Fee in duffs a shield from Core pays into the pool out of the locked amount.
+export const SHIELD_DEPOSIT_FEE_DUFFS = computeShieldedDepositFee() / CREDITS_PER_DUFF
+
+// Smallest Core payment a shield from Core accepts: it must exceed the relay and shield fees.
+const MIN_CORE_SHIELD_DUFFS = MIN_FEE_RELAY + SHIELD_DEPOSIT_FEE_DUFFS + 1n
+
 // Core payment that delivers `lockedDuffs`: the lock plus the relay fee kept on L1.
 export const assetLockPayment = (lockedDuffs: bigint): bigint => lockedDuffs + MIN_FEE_RELAY
 
@@ -61,6 +68,7 @@ export const feeOnLayer = (fee: { amount: bigint, decimals: number } | null, dec
 
 // Allowed amount range of a transfer mode in source base units: duffs for Core, credits for Platform, token units for tokens.
 export const transferAmountLimits = (mode: TransferMode): TransferAmountLimits => {
+  if (mode === 'coreShield') return { min: MIN_CORE_SHIELD_DUFFS > MIN_TOPUP_FUNDING_DUFFS ? MIN_CORE_SHIELD_DUFFS : MIN_TOPUP_FUNDING_DUFFS, max: null }
   if (ASSET_LOCK_MODES.includes(mode)) return { min: MIN_TOPUP_FUNDING_DUFFS, max: null }
   if (mode === 'coreSend') return { min: CORE_DUST_THRESHOLD + 1n, max: null }
   if (WITHDRAWAL_MODES.includes(mode)) return { min: MIN_WITHDRAWAL_CREDITS, max: MAX_WITHDRAWAL_CREDITS }
