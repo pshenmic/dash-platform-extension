@@ -10,6 +10,8 @@ export const POPUP_WINDOW_HEIGHT = 500
 
 // ── Identity registration / asset lock pipeline ──────────────────────────────
 export const MIN_FEE_RELAY = 1000n
+// Platform counts credits, L1 counts duffs: one duff locked is 1000 credits.
+export const CREDITS_PER_DUFF = 1000n
 export const LOCK_POLL_INTERVAL_MS = 5000
 export const LOCK_TIMEOUT_MS = 15 * 60 * 1000
 export const MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS = 6
@@ -48,6 +50,36 @@ export const CORE_EXPLORER_URLS = {
 export const CORE_EXPLORER_MAX_PAGE_LIMIT = 100
 // Transactions per page when the caller does not ask for a size (the explorer's own default).
 export const CORE_TRANSACTIONS_DEFAULT_LIMIT = 25
+
+// ── Core (L1) spending ───────────────────────────────────────────────────────
+// Sizes of the pieces of a signed P2PKH transaction, in bytes, used to price the
+// fee before the inputs are signed. These are exact upper bounds rather than
+// guesses: dash-core-sdk signs with lowS, so s never carries a sign-padding byte
+// and the scriptSig tops out at 107 — a signed transaction lands on the estimate
+// or just under it, never above.
+//   input : 32 txid + 4 vout + 1 script length + 107 scriptSig + 4 sequence
+//   output: 8 value + 1 script length + 25 P2PKH script
+//   header: 4 version|type + 1 input count + 1 output count + 4 nLockTime
+export const CORE_P2PKH_INPUT_BYTES = 148
+export const CORE_P2PKH_OUTPUT_BYTES = 34
+export const CORE_TX_OVERHEAD_BYTES = 10
+// Dash's minimum relay fee is 1000 duffs per kB, which is 1 duff per byte. Note
+// that MIN_FEE_RELAY above is that same rate written per kB: it is a rate, not a
+// minimum fee amount, so it must not be used as a floor on a computed fee.
+export const CORE_FEE_PER_BYTE = 1n
+// Dash Core's dust threshold for a P2PKH output: (34 output + 148 spending
+// input) * 3000 duffs/kB dustRelayFee. Outputs at or below it are non-standard,
+// so an amount that small is rejected and change that small is dropped into the fee.
+export const CORE_DUST_THRESHOLD = 546n
+// dashscan takes the address list in the query string; chunk it so a wallet with
+// many used addresses cannot blow the URL length limit.
+export const CORE_UTXO_ADDRESS_BATCH = 50
+// How long a broadcast transaction the explorer has not indexed keeps its inputs
+// reserved. Normally an entry is dropped as soon as the explorer stops listing
+// those inputs, well inside this window — Dash mines every 2.5 minutes. The
+// deadline only matters for a transaction that never confirms, so that a
+// dropped or conflicting one cannot strand the funds forever.
+export const CORE_PENDING_SPEND_TTL_MS = 6 * 60 * 60 * 1000
 
 // ── DIP-17 Platform payment addresses ────────────────────────────
 // Derived at m/9'/coin'/17'/account'/keyClass'/index; keyClass 0 = clear funds.
@@ -116,6 +148,12 @@ export const SHIELDED_PER_ACTION_PROCESSING_FEE_CREDITS = 22_000_000n
 export const SHIELDED_STORAGE_BYTES_PER_ACTION = 344n
 export const SHIELDED_STORAGE_CREDITS_PER_BYTE = 27_400n
 export const SHIELDED_UNSHIELD_ADDRESS_STORAGE_BYTES = 222n
+// Flat surcharge a shield funded by an asset lock pays on top of the action
+// fees, for the asset lock proof itself. Measured against testnet: a lock of
+// 1 999 000 000 credits was refused for a note of 1 836 148 800 with "needs
+// 2 049 000 000 credits to start processing", which puts the fee at
+// 212 851 200 - exactly the action fees plus this.
+export const SHIELDED_ASSET_LOCK_FEE_CREDITS = 50_000_000n
 export const SHIELDED_WITHDRAWAL_DOCUMENT_STORAGE_BYTES = 4100n
 // Orchard pads every bundle to at least this many actions.
 export const SHIELDED_MIN_ACTIONS = 2
