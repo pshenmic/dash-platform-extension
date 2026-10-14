@@ -8,7 +8,8 @@ import {
   SHIELDED_STORAGE_BYTES_PER_ACTION,
   SHIELDED_STORAGE_CREDITS_PER_BYTE,
   SHIELDED_UNSHIELD_ADDRESS_STORAGE_BYTES,
-  SHIELDED_WITHDRAWAL_DOCUMENT_STORAGE_BYTES
+  SHIELDED_WITHDRAWAL_DOCUMENT_STORAGE_BYTES,
+  SHIELDED_ASSET_LOCK_FEE_CREDITS
 } from '../constants'
 
 export const SHIELDED_SPEND_KINDS: ShieldedSpendKind[] = ['transfer', 'unshield', 'withdrawal']
@@ -93,8 +94,11 @@ export const maxShieldedSpend = (spendable: RecoveredNoteWASM[], kind: ShieldedS
   return best
 }
 
-// What a deposit into the pool costs. A shield spends no notes, so it is charged
-// Orchard's minimum action count - the same base fee a transfer of one note pays,
-// without any of the per-kind storage extras. Deducted from the credits of the
-// asset lock a Core deposit produced, since there is nothing else to take it from.
-export const computeShieldedDepositFee = (): bigint => computeShieldedSpendFee('transfer', 0)
+// What a deposit into the pool costs when an asset lock funds it. A shield
+// spends no notes, so consensus prices it at Orchard's minimum action count -
+// `max(spends, outputs + 1, 2)` - and the asset lock proof adds a flat
+// surcharge on top. Deducted from the credits of the lock, since there is
+// nothing else to take it from.
+export const computeShieldedDepositFee = (): bigint => {
+  return computeShieldedSpendFee('transfer', 0) + SHIELDED_ASSET_LOCK_FEE_CREDITS
+}
