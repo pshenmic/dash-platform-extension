@@ -17,12 +17,11 @@ import { CREDITS_PER_DUFF, MIN_FEE_RELAY, TXID_HEX_LENGTH } from '../../../../co
 // the deposit and deposits its credits into the pool with a shieldFromAssetLock
 // state transition.
 //
-// The Core to Platform half of a shield, and the method to call again when one
-// stopped after its asset lock reached L1: the asset lock is rebuilt from the
+// The Core to Platform half of a shield: the asset lock is rebuilt from the
 // same deposit, recognised rather than broadcast twice, and the pool side is
-// retried. The address and the transaction to pass come from
-// LIST_PENDING_ASSET_LOCKS, where such an operation is listed with
-// `purpose: 'shield'`.
+// retried. SHIELD_FROM_WALLET calls it, and a caller that keeps the deposit
+// itself - from LIST_PENDING_ASSET_LOCKS, where such an operation is listed
+// with `purpose: 'shield'` - can call it directly.
 export class ShieldFromCoreHandler implements APIHandler {
   walletRepository: WalletRepository
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository

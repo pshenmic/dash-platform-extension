@@ -10,7 +10,7 @@ import {
   buildSignedPlatformTransferMulti,
   platformTransferFeeCredits
 } from '../../../../utils'
-import { MIN_OUTPUT_CREDITS } from '../../../../constants'
+import { MAX_PLATFORM_OUTPUTS, MIN_OUTPUT_CREDITS } from '../../../../constants'
 import { SendPlatformTransactionPayload } from '../../../../types/messages/payloads/SendPlatformTransactionPayload'
 import { SendPlatformTransactionResponse } from '../../../../types/messages/response/SendPlatformTransactionResponse'
 
@@ -96,6 +96,9 @@ export class SendPlatformTransactionHandler implements APIHandler {
   validatePayload (payload: SendPlatformTransactionPayload): string | null {
     if (!Array.isArray(payload?.outputs) || payload.outputs.length === 0) {
       return 'outputs must be a non-empty array'
+    }
+    if (payload.outputs.length > MAX_PLATFORM_OUTPUTS) {
+      return `A transition pays at most ${MAX_PLATFORM_OUTPUTS} recipients, ${payload.outputs.length} given`
     }
 
     const addresses = new Set<string>()

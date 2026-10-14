@@ -20,11 +20,11 @@ import { CREDITS_PER_DUFF, MIN_FEE_RELAY } from '../../../../constants'
 // out of the wallet's unspent outputs, then hands that deposit to
 // SHIELD_FROM_CORE, which locks it and deposits its credits into the pool.
 //
-// Splitting it there is what makes a shield resumable. Once the asset lock is on
-// L1 this method cannot be the way back in - it would start over with a fresh
-// funding address and pay twice - so an interrupted shield is finished by
-// calling SHIELD_FROM_CORE with the address and transaction
-// LIST_PENDING_ASSET_LOCKS reports for it.
+// Splitting it there is what makes a shield resumable. Calling this method
+// again is the way back in at either point: it finds the operation left
+// unfinished for the same pool and continues it, whether the money is still on
+// the funding address or already locked. SHIELD_FROM_CORE is for a caller that
+// would rather drive that last step itself.
 export class ShieldFromWalletHandler implements APIHandler {
   walletRepository: WalletRepository
   assetLockFundingAddressesRepository: AssetLockFundingAddressesRepository
@@ -114,7 +114,9 @@ export class ShieldFromWalletHandler implements APIHandler {
       fundingAddress,
       fundingTxid: funding.fundingTxid,
       coreFeeDuffs: funding.feeDuffs.toString(),
-      resumed: false
+      // Nothing was paid when the funding address already held the deposit of
+      // an earlier attempt, so this call continued that one.
+      resumed: !funding.paid
     }
   }
 

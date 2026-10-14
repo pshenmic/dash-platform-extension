@@ -1,13 +1,13 @@
 export interface GetCoreBalanceResponse {
   // duffs, crossing the messaging boundary as strings (bigint does not
-  // serialize); parse with BigInt(...) on the consumer side. `balance` includes
-  // deposits still sitting in the mempool.
+  // serialize); parse with BigInt(...) on the consumer side.
+  //
+  // The explorer indexes a transaction as soon as it reaches the mempool, so
+  // this already accounts for a send made a moment ago - the outputs it spent
+  // are gone from it and its change is in. A Max button still cannot be built
+  // from it: that needs the fee and the inputs a send would pick, which is
+  // ESTIMATE_CORE_TRANSFER with `sendMax`.
   balance: string
-  // What can be spent right now: `balance` minus the outputs a send of ours has
-  // already consumed and is waiting for a block to confirm, plus the change
-  // that send paid us. Use this one for Max and for the balance card; `balance`
-  // is the explorer's number and lags a send by a block.
-  available: string
   received: string
   sent: string
   txCount: number
