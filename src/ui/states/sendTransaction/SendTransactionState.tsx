@@ -221,6 +221,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           balance={balance}
           maxAmount={maxAmount}
           amountError={amountError}
+          isPrepaid={isContinuing}
           rate={rate}
           onAmountChange={(value) => actions.setAmount(value)}
           onNext={() => goToStep('confirm')}
@@ -274,6 +275,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           availableFor={availableFor}
           onCountChange={setOverlayCount}
           minAmount={limits.min}
+          rate={rate}
           excludeIdentifier={balance.sourceAddress}
           network={network}
           onClose={closeRecipients}

@@ -1,4 +1,4 @@
-import { assetLockPayment, assetLockReceived, dashAmountToUsd, endpointDashDecimals, feeOnLayer, formatDashAmount, isAssetLockMode, isDashInputAllowed, parseDashAmount, transferAmountLimits, validateTransferAmount, usdToDashAmount } from './transferAmount'
+import { assetLockPayment, assetLockReceived, clampDashInput, clampToMax, dashAmountToUsd, endpointDashDecimals, feeOnLayer, formatDashAmount, isAssetLockMode, isDashInputAllowed, parseDashAmount, transferAmountLimits, validateTransferAmount, usdToDashAmount } from './transferAmount'
 import { MIN_FEE_RELAY } from '../constants'
 
 describe('transferAmount', () => {
@@ -86,5 +86,26 @@ describe('transferAmount', () => {
     expect(feeOnLayer({ amount: 226n, decimals: 8 }, 8)).toBe(226n)
     expect(feeOnLayer({ amount: 226n, decimals: 8 }, 11)).toBe(0n)
     expect(feeOnLayer(null, 8)).toBe(0n)
+  })
+
+  it('caps an amount at the max', () => {
+    expect(clampToMax(150n, 100n)).toBe(100n)
+    expect(clampToMax(50n, 100n)).toBe(50n)
+    expect(clampToMax(100n, 100n)).toBe(100n)
+    expect(clampToMax(5n, 0n)).toBe(0n)
+    expect(clampToMax(5n, -10n)).toBe(0n)
+    expect(clampToMax(5n, null)).toBe(5n)
+  })
+
+  it('caps typed Dash input at the max', () => {
+    expect(clampDashInput('2', 8, 150000000n)).toBe('1.5')
+    expect(clampDashInput('1.2', 8, 150000000n)).toBe('1.2')
+    expect(clampDashInput('1.50', 8, 150000000n)).toBe('1.50')
+    expect(clampDashInput('1.', 8, 150000000n)).toBe('1.')
+    expect(clampDashInput('3', 8, 0n)).toBe('0')
+    expect(clampDashInput('0.', 8, 0n)).toBe('0.')
+    expect(clampDashInput('', 8, 0n)).toBe('')
+    expect(clampDashInput('.', 8, 0n)).toBe('.')
+    expect(clampDashInput('1000', 8, null)).toBe('1000')
   })
 })

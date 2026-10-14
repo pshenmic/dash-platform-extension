@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Button, Input, PlusIcon, Select, Text } from 'dash-ui-kit/react'
+import { Button, PlusIcon, Text } from 'dash-ui-kit/react'
 import { OverlayMenu } from '../../../components/common'
-import { PercentageSlider, Toggle } from '../../../components/controls'
-import { RecipientSearchInput } from '../../../components/Identities'
-import { checkRecipients, formatDashAmount, isDashInputAllowed, multiplyBigIntByPercentage, parseDashAmount } from '../../../../utils'
-import type { RecipientSearchResult } from '../../../../utils'
+import { Toggle } from '../../../components/controls'
+import { checkRecipients, formatDashAmount, parseDashAmount } from '../../../../utils'
 import type { NetworkType } from '../../../../types'
-import { RECIPIENT_PLACEHOLDERS } from '../constants'
 import type { TransferRecipient } from '../types'
+import { RecipientCard } from './RecipientCard'
+import { ChangeAddressSelect } from './ChangeAddressSelect'
 
 interface RecipientsOverlayProps {
   isOpen: boolean
@@ -22,81 +21,17 @@ interface RecipientsOverlayProps {
   // Reports the edited count so its fee can be priced.
   onCountChange?: (recipientCount: number) => void
   minAmount: bigint
+  rate: number | null
   excludeIdentifier: string | null
   network: NetworkType
   onClose: () => void
   onApply: (recipients: TransferRecipient[], changeAddress: string | null) => void
 }
 
-interface RecipientCardProps {
-  index: number
-  recipient: TransferRecipient
-  isCore: boolean
-  decimals: number
-  maxAmount: bigint
-  error: string | null
-  canRemove: boolean
-  excludeIdentifier: string | null
-  network: NetworkType
-  onChange: (recipient: TransferRecipient) => void
-  onRemove: () => void
-}
-
 const newRecipient = (): TransferRecipient => ({ id: String(Date.now() + Math.random()), address: '', amount: '' })
 
-// One Advanced recipient: address, amount and slider up to what the others leave.
-function RecipientCard ({ index, recipient, isCore, decimals, maxAmount, error, canRemove, excludeIdentifier, network, onChange, onRemove }: RecipientCardProps): React.JSX.Element {
-  const [text, setText] = useState(recipient.address)
-  const [typeError, setTypeError] = useState(false)
-  const amount = parseDashAmount(recipient.amount, decimals) ?? 0n
-
-  const handleSelect = (result: RecipientSearchResult): void => {
-    const accepted = result.type === (isCore ? 'coreAddress' : 'platformAddress')
-    setTypeError(!accepted)
-    onChange({ ...recipient, address: accepted ? result.identifier : '' })
-  }
-
-  return (
-    <div className='flex flex-col gap-3 p-3 rounded-[1rem] bg-dash-primary-dark-blue/[0.03] dark:bg-white/5'>
-      <div className='flex items-center justify-between'>
-        <Text size='xs' dim>Recipient {index + 1}</Text>
-        {canRemove && (
-          <button type='button' className='text-xs text-dash-brand cursor-pointer' onClick={onRemove}>Remove</button>
-        )}
-      </div>
-      <RecipientSearchInput
-        value={text}
-        onChange={(value) => { setText(value); setTypeError(false); onChange({ ...recipient, address: '' }) }}
-        onSelect={handleSelect}
-        excludeIdentifier={excludeIdentifier}
-        placeholder={RECIPIENT_PLACEHOLDERS[isCore ? 'core' : 'platformAddress']}
-        allowCoreAddress={isCore}
-        allowPlatformAddress={!isCore}
-        network={network}
-      />
-      <Input
-        value={recipient.amount}
-        placeholder='0'
-        onChange={(e) => { if (isDashInputAllowed(e.target.value, decimals)) onChange({ ...recipient, amount: e.target.value }) }}
-        size='sm'
-        className='w-full'
-      />
-      {maxAmount > 0n && (
-        <PercentageSlider
-          amount={formatDashAmount(amount, decimals)}
-          maxBalance={formatDashAmount(maxAmount, decimals)}
-          onPercentage={(percentage) => onChange({ ...recipient, amount: formatDashAmount(multiplyBigIntByPercentage(maxAmount, percentage), decimals) })}
-          onClear={() => onChange({ ...recipient, amount: '' })}
-        />
-      )}
-      {typeError && <Text size='xs' className='!text-red-500'>This is not a {isCore ? 'Dash Core' : 'Platform'} address.</Text>}
-      {error != null && <Text size='xs' className='!text-red-500'>{error}</Text>}
-    </div>
-  )
-}
-
 // Advanced recipients screen: addresses with amounts and an optional Core change address; mounted fresh on every open.
-export function RecipientsOverlay ({ isOpen, isCore, recipients, changeAddress, changeAddresses, decimals, maxRecipients, availableFor, onCountChange, minAmount, excludeIdentifier, network, onClose, onApply }: RecipientsOverlayProps): React.JSX.Element {
+export function RecipientsOverlay ({ isOpen, isCore, recipients, changeAddress, changeAddresses, decimals, maxRecipients, availableFor, onCountChange, minAmount, rate, excludeIdentifier, network, onClose, onApply }: RecipientsOverlayProps): React.JSX.Element {
   const [list, setList] = useState<TransferRecipient[]>(recipients.length > 0 ? recipients : [newRecipient()])
   const [change, setChange] = useState<string | null>(changeAddress)
   const [showErrors, setShowErrors] = useState(false)
@@ -113,77 +48,83 @@ export function RecipientsOverlay ({ isOpen, isCore, recipients, changeAddress, 
   const othersTotal = (id: string): bigint => list.filter(item => item.id !== id).reduce((sum, item) => sum + (parseDashAmount(item.amount, decimals) ?? 0n), 0n)
 
   return (
-    <OverlayMenu isOpen={isOpen} onClose={onClose} title='Recipients' showBackButton onBack={onClose}>
+    <OverlayMenu isOpen={isOpen} onClose={onClose} title='Recipients' showBackButton onBack={onClose} titleClassName='!text-[2.125rem] !leading-[1.25] tracking-[-0.03em]'>
       <div className='flex flex-col gap-4 min-h-full'>
-        <Text size='xs' dim>
+        <Text size='sm' weight='medium' dim>
           <span className='font-bold text-dash-primary-dark-blue'>Choose amounts and addresses</span> that will receive transferred funds.
         </Text>
 
-        <div className='flex items-center justify-between gap-2'>
-          <Text size='xs' dim>
-            Total: <span className='text-dash-primary-dark-blue'>{list.length} {list.length === 1 ? 'Recipient' : 'Recipients'} - {formatDashAmount(check.total, decimals)} Dash</span>
-          </Text>
-          <Button colorScheme='lightBlue' size='sm' disabled={list.length >= maxRecipients} onClick={() => setList([...list, newRecipient()])}>
-            <PlusIcon size={12} /> Add Recipient
-          </Button>
-        </div>
-
-        {isCore && (
-          <div className='flex flex-col gap-2'>
-            <Toggle checked={change != null} onChange={(on) => setChange(on ? '' : null)} label='Custom Change Address' />
-            {change != null && (
-              <Select
-                value={change === '' ? undefined : change}
-                onChange={(value: string) => setChange(value)}
-                options={changeAddresses.map(address => ({ value: address, label: address }))}
-                placeholder='Select change address'
-                size='sm'
-              />
+        <div className='flex flex-col flex-1 gap-3 p-4 rounded-[1.5rem] bg-white shadow-[0_0_35px_0_rgba(12,28,51,0.08)] dark:bg-gray-900'>
+          <div className='flex flex-col gap-1.5'>
+            <Text size='md' dim>
+              Total: <span className='text-dash-primary-dark-blue dark:text-white'>{list.length} {list.length === 1 ? 'Recipient' : 'Recipients'} - {formatDashAmount(check.total, decimals)} Dash</span>
+            </Text>
+            {overBalance && available != null && (
+              <Text size='xs' className='!text-red-500'>Insufficient balance. Maximum is {formatDashAmount(available > 0n ? available : 0n, decimals)} Dash.</Text>
             )}
           </div>
-        )}
 
-        <div className='flex flex-col gap-2'>
-          {list.map((recipient, index) => (
-            <RecipientCard
-              key={recipient.id}
-              index={index}
-              recipient={recipient}
-              isCore={isCore}
-              decimals={decimals}
-              maxAmount={available != null && available > othersTotal(recipient.id) ? available - othersTotal(recipient.id) : 0n}
-              error={showErrors ? check.errors[recipient.id] ?? null : null}
-              canRemove={list.length > 1}
-              excludeIdentifier={excludeIdentifier}
-              network={network}
-              onChange={update}
-              onRemove={() => setList(list.filter(item => item.id !== recipient.id))}
+          <div className='flex items-center justify-between gap-2'>
+            {isCore ? <Toggle checked={change != null} onChange={(on) => setChange(on ? '' : null)} label='Custom Change Address' className='whitespace-nowrap' /> : <span />}
+            <Button
+              colorScheme='lightBlue'
+              size='sm'
+              className='!h-auto !min-h-0 !px-3 !py-1.5 !text-sm gap-2 shrink-0'
+              disabled={list.length >= maxRecipients}
+              onClick={() => setList([...list, newRecipient()])}
+            >
+              <PlusIcon size={12} /> Add Recipient
+            </Button>
+          </div>
+
+          {isCore && change != null && (
+            <ChangeAddressSelect
+              addresses={changeAddresses}
+              value={change}
+              onChange={setChange}
+              error={showErrors && changeMissing ? 'Select a change address.' : null}
             />
-          ))}
-        </div>
+          )}
 
-        {overBalance && available != null && (
-          <Text size='xs' className='!text-red-500'>Insufficient balance. Maximum is {formatDashAmount(available > 0n ? available : 0n, decimals)} Dash.</Text>
-        )}
+          <div className='flex flex-col gap-2'>
+            {list.map((recipient, index) => (
+              <RecipientCard
+                key={recipient.id}
+                index={index}
+                recipient={recipient}
+                isCore={isCore}
+                decimals={decimals}
+                maxAmount={available == null ? null : available > othersTotal(recipient.id) ? available - othersTotal(recipient.id) : 0n}
+                rate={rate}
+                error={showErrors ? check.errors[recipient.id] ?? null : null}
+                canRemove={list.length > 1}
+                excludeIdentifier={excludeIdentifier}
+                network={network}
+                onChange={update}
+                onRemove={() => setList(list.filter(item => item.id !== recipient.id))}
+              />
+            ))}
+          </div>
 
-        <div className='sticky bottom-0 mt-auto flex gap-3 pt-3 bg-white dark:bg-gray-900'>
-          <Button colorScheme='lightBlue' size='xl' className='flex-1' onClick={() => { setList([newRecipient()]); setChange(null) }}>
-            Reset
-          </Button>
-          <Button
-            colorScheme='brand'
-            size='xl'
-            className='flex-1'
-            onClick={() => {
-              if (!canApply) {
-                setShowErrors(true)
-                return
-              }
-              onApply(list, change)
-            }}
-          >
-            Apply
-          </Button>
+          <div className='sticky bottom-0 mt-auto flex gap-3 -mx-4 -mb-4 p-4 rounded-b-[1.5rem] bg-white dark:bg-gray-900'>
+            <Button colorScheme='lightBlue' size='xl' className='flex-1' onClick={() => { setList([newRecipient()]); setChange(null); setShowErrors(false) }}>
+              Reset
+            </Button>
+            <Button
+              colorScheme='brand'
+              size='xl'
+              className='flex-1'
+              onClick={() => {
+                if (!canApply) {
+                  setShowErrors(true)
+                  return
+                }
+                onApply(list, change)
+              }}
+            >
+              Apply
+            </Button>
+          </div>
         </div>
       </div>
     </OverlayMenu>

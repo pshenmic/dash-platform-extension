@@ -32,6 +32,21 @@ export const parseDashAmount = (input: string, decimals: number): bigint | null 
 export const formatDashAmount = (baseUnits: bigint, decimals: number): string =>
   fromBaseUnit(baseUnits, decimals)
 
+// Amount capped at the max, a negative max counting as 0; unchanged while the max is unknown.
+export const clampToMax = (value: bigint, max: bigint | null): bigint => {
+  if (max == null) return value
+  const cap = max > 0n ? max : 0n
+  return value > cap ? cap : value
+}
+
+// Typed Dash amount capped at the max in base units; empty or partial input is kept as typed.
+export const clampDashInput = (input: string, decimals: number, max: bigint | null): string => {
+  const value = parseDashAmount(input, decimals)
+  if (value == null) return input
+  const clamped = clampToMax(value, max)
+  return clamped === value ? input : formatDashAmount(clamped, decimals)
+}
+
 // USD label for a base-unit amount, or null without a rate.
 export const dashAmountToUsd = (baseUnits: bigint | null, decimals: number, rate: number | null): string | null => {
   if (baseUnits == null || rate == null) return null

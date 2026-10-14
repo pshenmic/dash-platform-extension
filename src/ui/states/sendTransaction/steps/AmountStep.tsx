@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Button, Text } from 'dash-ui-kit/react'
 import { AmountInputSection } from '../../../components/forms'
 import { BalanceCard } from '../../../components/cards'
 import { endpointLayer } from '../../../components/controls'
-import { dashAmountToUsd, formatDashAmount, multiplyBigIntByPercentage, parseDashAmount, usdToDashAmount } from '../../../../utils'
+import { dashAmountToUsd, formatDashAmount, multiplyBigIntByPercentage, parseDashAmount } from '../../../../utils'
+import { useUsdAmount } from '../hooks/useUsdAmount'
 import type { SourceBalance } from '../hooks/useSourceBalance'
 import type { TransferDraft } from '../types'
 
@@ -12,32 +13,20 @@ interface AmountStepProps {
   balance: SourceBalance
   maxAmount: bigint | null
   amountError: string | null
+  // A resumed operation sends its earlier amount, so typing is not capped.
+  isPrepaid: boolean
   rate: number | null
   onAmountChange: (amount: string) => void
   onNext: () => void
 }
 
 // Step 2 of the send wizard: amount with slider, Max and the source balance.
-export function AmountStep ({ draft, balance, maxAmount, amountError, rate, onAmountChange, onNext }: AmountStepProps): React.JSX.Element {
+export function AmountStep ({ draft, balance, maxAmount, amountError, isPrepaid, rate, onAmountChange, onNext }: AmountStepProps): React.JSX.Element {
   const { decimals } = balance
   const isDash = draft.asset.type === 'dash'
   const parsed = parseDashAmount(draft.amount, decimals)
 
-  const usdFor = (value: bigint | null): string =>
-    isDash && value != null && rate != null ? (dashAmountToUsd(value, decimals, rate) ?? '').replace('~ $', '') : ''
-
-  const [usd, setUsd] = useState(() => usdFor(parsed))
-
-  const handleAmountChange = (value: string): void => {
-    onAmountChange(value)
-    setUsd(usdFor(parseDashAmount(value, decimals)))
-  }
-
-  const handleUsdChange = (value: string): void => {
-    setUsd(value)
-    const converted = usdToDashAmount(value, rate, decimals)
-    onAmountChange(converted != null ? formatDashAmount(converted, decimals) : '')
-  }
+  const { usd, setAmount: handleAmountChange, setUsd: handleUsdChange } = useUsdAmount(draft.amount, decimals, rate, isDash, isPrepaid ? null : maxAmount, onAmountChange)
 
   return (
     <div className='flex flex-col gap-6'>
@@ -50,8 +39,6 @@ export function AmountStep ({ draft, balance, maxAmount, amountError, rate, onAm
           if (maxAmount != null) handleAmountChange(formatDashAmount(multiplyBigIntByPercentage(maxAmount, percentage), decimals))
         }}
         selectedAsset={isDash ? 'credits' : 'token'}
-        equivalentCurrency='usd'
-        onEquivalentCurrencyChange={() => {}}
         assetDecimals={decimals}
         maxBalance={maxAmount != null && maxAmount > 0n ? formatDashAmount(maxAmount, decimals) : null}
       />

@@ -10,6 +10,8 @@ interface PercentageSliderProps {
   onPercentage: (percentage: number) => void
   /** Called when user explicitly clears (sets to 0) */
   onClear: () => void
+  // Drops the 0 button on the left of the track.
+  hideZero?: boolean
   className?: string
 }
 
@@ -18,6 +20,7 @@ export function PercentageSlider ({
   maxBalance,
   onPercentage,
   onClear,
+  hideZero = false,
   className
 }: PercentageSliderProps): React.JSX.Element {
   const sliderValue = useMemo((): number => {
@@ -41,13 +44,15 @@ export function PercentageSlider ({
 
   return (
     <div className={`flex items-center gap-[1.125rem] w-full ${className ?? ''}`}>
-      <button
-        type='button'
-        className='text-[0.75rem] font-medium leading-[1.2] text-brand border-none bg-transparent cursor-pointer p-0 rounded shrink-0'
-        onClick={() => handleChange(0)}
-      >
-        0
-      </button>
+      {!hideZero && (
+        <button
+          type='button'
+          className='text-[0.75rem] font-medium leading-[1.2] text-brand border-none bg-transparent cursor-pointer p-0 rounded shrink-0'
+          onClick={() => handleChange(0)}
+        >
+          0
+        </button>
+      )}
 
       <div className='flex-1 min-w-0'>
         <input

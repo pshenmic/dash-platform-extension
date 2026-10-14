@@ -32,6 +32,9 @@ interface RecipientSearchInputProps {
   // pool. Shown in the empty field so they're discoverable without typing.
   pinnedRecipients?: RecipientSearchResult[]
   network?: NetworkType
+  // Grey borderless field, for a field inside a card.
+  filled?: boolean
+  autoFocus?: boolean
 }
 
 // Label shown above a typed-address result, per recipient type.
@@ -56,7 +59,9 @@ export function RecipientSearchInput ({
   allowCoreAddress = false,
   allowShieldAddress = false,
   pinnedRecipients = [],
-  network = 'testnet'
+  network = 'testnet',
+  filled = false,
+  autoFocus = false
 }: RecipientSearchInputProps): React.JSX.Element {
   const sdk = useSdk()
   const [isSearching, setIsSearching] = useState(false)
@@ -164,7 +169,7 @@ export function RecipientSearchInput ({
   return (
     <div ref={containerRef} className='relative'>
       {/* Expanded Container with Input and Search Results */}
-      <div className={`border border-dash-primary-dark-blue/24 rounded-2xl bg-white transition-all ${
+      <div className={`rounded-2xl transition-all ${filled ? 'bg-dash-primary-dark-blue/[0.05] dark:bg-white/5' : 'border border-dash-primary-dark-blue/24 bg-white'} ${
         showSearchResults ? 'pb-5' : ''
       } ${(error !== null && error !== undefined) ? 'border-red-500' : (selectedResult != null) ? 'border-green-500' : ''}`}
       >
@@ -189,6 +194,7 @@ export function RecipientSearchInput ({
               onChange={handleInputChange}
               placeholder={placeholder}
               spellCheck={false}
+              autoFocus={autoFocus}
               className='flex-1 text-sm font-light text-dash-primary-dark-blue outline-none bg-transparent font-dash-grotesque'
             />
 
