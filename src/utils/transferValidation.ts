@@ -79,7 +79,8 @@ export const validateTransfer = ({ draft, mode, balance, assetKnown, fee, knownM
   const isDash = draft.asset.type === 'dash'
   const maxAmount = knownMax ?? (balance.amount == null ? null : balance.amount - (isDash ? feeOnLayer(fee, balance.decimals) : 0n))
   const amountLimits = limits != null ? { ...limits, min: knownMin ?? limits.min } : null
-  const amountError = amountLimits != null ? validateTransferAmount(amount, maxAmount, draft.isAdvanced ? { min: 1n, max: null } : amountLimits, balance.decimals, balance.unit) : null
+  // A resumed operation sends the amount locked earlier, so the typed one is not checked.
+  const amountError = !isResumingFunding && amountLimits != null ? validateTransferAmount(amount, maxAmount, draft.isAdvanced ? { min: 1n, max: null } : amountLimits, balance.decimals, balance.unit) : null
 
   const isSender = (address: string): boolean => address !== '' && address === senderIdentifier
   const isSameParty = draft.isAdvanced ? draft.recipients.some(recipient => isSender(recipient.address)) : isSender(draft.to.recipient)

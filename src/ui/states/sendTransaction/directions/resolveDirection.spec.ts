@@ -107,10 +107,10 @@ describe('DIRECTION_DETAILS', () => {
     }
   })
 
-  it('enables advanced only for core -> core', () => {
+  it('enables advanced only for core -> core and address -> address', () => {
     const advanced = Object.entries(DIRECTION_DETAILS).filter(([, details]) => details?.advanced).map(([direction]) => direction)
 
-    expect(advanced).toEqual(['core->core'])
+    expect(advanced.sort()).toEqual(['core->core', 'platformAddress->platformAddress'])
   })
 
   it('shows Progress for asset lock and withdrawal directions', () => {

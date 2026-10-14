@@ -27,6 +27,17 @@ export interface CoreFundingResult extends TransferTxResult {
   creditedCredits: bigint | null
 }
 
+// Platform payment with its fee in credits.
+export interface PlatformPaymentResult extends TransferTxResult {
+  feeCredits: bigint
+}
+
+// Platform address payment output; amount in credits.
+export interface PlatformOutput {
+  address: string
+  amountCredits: bigint
+}
+
 // Core payment output; amount in duffs.
 export interface CoreOutput {
   address: string
@@ -112,10 +123,15 @@ export class TransferApi {
     return { txHash: (await this.extensionAPI.identityCreditTransferToAddresses(toAddress, amountCredits.toString(), password, identityId)).stHash }
   }
 
-  async send (toAddress: string, amountCredits: bigint, password: string, fromAddress?: string): Promise<TransferTxResult> {
-    // Same fee model as estimatePlatformTransfer, so its Max is accepted.
-    const outputs = [{ address: toAddress, amountCredits: amountCredits.toString() }]
-    return { txHash: (await this.extensionAPI.sendPlatformTransaction({ outputs, fromAddress }, password)).stHash }
+  async send (toAddress: string, amountCredits: bigint, password: string, fromAddress?: string): Promise<PlatformPaymentResult> {
+    return await this.sendPlatformTransaction([{ address: toAddress, amountCredits }], password, fromAddress)
+  }
+
+  // Pays every output from one platform address; same fee model as estimatePlatformTransfer, so its Max is accepted.
+  async sendPlatformTransaction (outputs: PlatformOutput[], password: string, fromAddress?: string): Promise<PlatformPaymentResult> {
+    const payload = outputs.map(output => ({ address: output.address, amountCredits: output.amountCredits.toString() }))
+    const { stHash, feeCredits } = await this.extensionAPI.sendPlatformTransaction({ outputs: payload, fromAddress }, password)
+    return { txHash: stHash, feeCredits: BigInt(feeCredits) }
   }
 
   async topup (identityId: string, amountCredits: bigint, password: string, fromAddress?: string): Promise<TransferTxResult> {
@@ -157,8 +173,8 @@ export class TransferApi {
     return { feeDuffs: BigInt(feeDuffs), amountDuffs: BigInt(amountDuffs) }
   }
 
-  async estimatePlatformTransfer (fromAddress?: string): Promise<PlatformFeeEstimate> {
-    const { feeCredits, maxAmountCredits } = await this.extensionAPI.estimatePlatformTransfer(1, fromAddress)
+  async estimatePlatformTransfer (outputCount: number, fromAddress?: string): Promise<PlatformFeeEstimate> {
+    const { feeCredits, maxAmountCredits } = await this.extensionAPI.estimatePlatformTransfer(outputCount, fromAddress)
     return { feeCredits: BigInt(feeCredits), maxAmountCredits: BigInt(maxAmountCredits), minAmountCredits: null, feeTakenFromAmount: false }
   }
 

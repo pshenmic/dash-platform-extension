@@ -1,6 +1,6 @@
 import type { TransferUnavailableReason } from '../../../utils'
 import { WITHDRAW_TO_CORE_WARNING, SHIELDED_WITHDRAW_WARNING } from '../../constants'
-import type { TransferMode } from './types'
+import type { EndpointType, TransferMode } from './types'
 
 // Shown when the sender can't pay the chosen recipient type (no API for it).
 const UNSUPPORTED_TRANSFER_MESSAGE = 'This sender cannot pay this recipient. Change the sender or the recipient.'
@@ -51,11 +51,21 @@ export const ALREADY_PAID_LABEL = 'Already paid'
 // Confirm notice for a draft continuing an unfinished operation.
 export const PREPAID_TRANSFER_MESSAGE = 'Finishes a transfer paid earlier. No new payment.'
 
+// Confirm notice when the recipient has an unfinished transfer that this call completes instead of the typed amount.
+export const interruptedTransferMessage = (amount: string): string =>
+  `The interrupted transfer of ${amount} Dash to this recipient will be completed first. The new amount won't be sent.`
+
 // Result notice when the call finished an earlier unfinished operation instead of paying again.
 export const CONTINUED_TRANSFER_MESSAGE = 'An earlier unfinished transfer to this recipient was completed. Nothing new was paid.'
 
-// Most recipients one Advanced transfer can pay.
+// Most recipients one Advanced Core transfer can pay.
 export const MAX_RECIPIENTS = 1000
+
+// Most outputs Platform accepts in one address transfer (max_address_outputs).
+export const MAX_PLATFORM_RECIPIENTS = 128
+
+// Most recipients one Advanced transfer from this source type can pay.
+export const maxRecipients = (fromType: EndpointType): number => fromType === 'core' ? MAX_RECIPIENTS : MAX_PLATFORM_RECIPIENTS
 
 // How long a loading fee estimate shows as pending before the fallback fee is shown.
 export const ESTIMATE_GRACE_MS = 2500

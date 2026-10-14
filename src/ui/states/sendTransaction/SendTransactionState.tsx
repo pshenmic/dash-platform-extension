@@ -7,7 +7,8 @@ import { useCoreBalance, usePlatformAddresses, useWalletCapabilities, useWalletP
 import { locationReturnPath } from '../../types'
 import type { OutletContext } from '../../types'
 import { parseSendScope } from '../../utils/sendPath'
-import { transferAmountInput, validateTransfer } from '../../../utils'
+import type { SendContinueState } from '../../utils/sendPath'
+import { resumedAmounts, transferAmountInput, validateTransfer } from '../../../utils'
 import type { TransferCapabilities } from '../../../utils'
 import type { AddressData } from '../../components/addresses/types'
 import { resolveEntryDefaults } from './entry/resolveEntryDefaults'
@@ -29,7 +30,7 @@ import { STEP_INDEX, useStepNavigation, useWizardStep } from './hooks/useWizardS
 import { useTransferApi } from './transferApi'
 import { WizardHeader } from './components/WizardHeader'
 import { UnfinishedOperationBanners } from './components/UnfinishedOperationBanners'
-import { MAX_RECIPIENTS } from './constants'
+import { maxRecipients } from './constants'
 import { FromToStep } from './steps/FromToStep/FromToStep'
 import { AmountStep } from './steps/AmountStep'
 import { ConfirmStep } from './steps/ConfirmStep'
@@ -58,6 +59,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [assetMenuOpen, setAssetMenuOpen] = useState(false)
   const [recipientsOpen, setRecipientsOpen] = useState(false)
+  // Recipients being edited in the overlay, priced before they are applied.
+  const [overlayCount, setOverlayCount] = useState<number | null>(null)
 
   const identityId = draft.from.type === 'identity' ? draft.from.identityId : null
   const tokenId = draft.asset.type === 'token' ? draft.asset.tokenId : null
@@ -79,18 +82,24 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const input = transferAmountInput(draft, mode, balance.decimals)
   const { limits, recipientsCheck, amount } = input
   const coreEstimate = useCoreTransferEstimate({ api, config, draft, amount, recipientsValid: recipientsCheck.isValid, balance: coreBalance })
-  const platformEstimate = usePlatformFeeEstimate({ api, mode, identityId, sourceAddress: balance.sourceAddress, balance: balance.amount })
+  const platformOutputCount = recipientsOpen && overlayCount != null ? overlayCount : recipientCount(draft)
+  const platformEstimate = usePlatformFeeEstimate({ api, mode, identityId, sourceAddress: balance.sourceAddress, outputCount: platformOutputCount, balance: balance.amount })
   const fee = useTransferFee({ config, draft, coreEstimate, platformEstimate, network, shieldedSpendEstimates: shielded.spendEstimates })
   const knownMax = shieldedMaxAmount(config, shielded.spendEstimates) ?? coreMaxAmount(config, recipientCount(draft), coreEstimate.maxAmountDuffs) ?? platformEstimate.estimate?.maxAmountCredits ?? null
 
   const operation = useTransferOperation()
   const operationState = operation.state
   const settledStatus = operationState.status === 'success' || operationState.status === 'failed' ? operationState.status : null
-  const { isChecking, submit } = useTransferSubmit({ api, mode, draft, amount, sourceAddress: balance.sourceAddress, walletId: currentWallet, network, track: operation.track })
-
   const navigation = useStepNavigation()
   const { goToStep } = navigation
-  const { isContinuing, pendingOperations, continueOperation, handleRetry } = useTransferRetry({ api, draft, settledStatus, reloadCoreBalance: core.reload, resetDraft: actions.reset, resetOperation: operation.reset, goToStep })
+  const continueTxid = (location.state as SendContinueState | null)?.continueAssetLockTxid ?? null
+  const { resumedOperation, pendingOperations, continueOperation, handleRetry } = useTransferRetry({ api, draft, settledStatus, continueTxid, reloadCoreBalance: core.reload, resetDraft: actions.reset, resetOperation: operation.reset, goToStep })
+  const isContinuing = resumedOperation != null
+  // An unfinished operation to the same recipient is completed instead of the typed amount.
+  const resumed = resumedOperation != null ? resumedAmounts(resumedOperation) : null
+  const sentAmount = resumed?.amount ?? amount
+
+  const { isChecking, submit } = useTransferSubmit({ api, mode, draft, amount: sentAmount, sourceAddress: balance.sourceAddress, walletId: currentWallet, network, track: operation.track })
 
   const validation = validateTransfer({
     draft,
@@ -162,6 +171,17 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
 
   const close = (): void => { void navigate(returnPath, { replace: true }) }
 
+  const closeRecipients = (): void => {
+    setRecipientsOpen(false)
+    setOverlayCount(null)
+  }
+
+  // Most `count` Advanced recipients can receive in total; an address transfer is known only for the priced count.
+  const availableFor = (count: number): bigint | null => {
+    if (mode === 'send') return count === platformOutputCount ? platformEstimate.estimate?.maxAmountCredits ?? null : null
+    return coreMaxAmount(config, count, coreEstimate.maxAmountDuffs) ?? maxAmount
+  }
+
   return (
     <div className='screen-content'>
       {!isFinal && <WizardHeader activeStep={STEP_INDEX[step]} isAdvanced={draft.isAdvanced} advancedAvailable={advancedAvailable && step === 'fromTo'} onAdvancedChange={(value) => actions.setAdvanced(value)} />}
@@ -184,7 +204,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           recipientError={recipientError}
           onOpenAsset={() => setAssetMenuOpen(true)}
           unfinishedOperations={draft.from.type === 'core' && <UnfinishedOperationBanners operations={pendingOperations} onContinue={continueOperation} />}
-          recipientsLabel={`(${draft.recipients.length}/${MAX_RECIPIENTS})`}
+          recipientsLabel={`(${draft.recipients.length}/${maxRecipients(draft.from.type)})`}
           onOpenRecipients={() => setRecipientsOpen(true)}
           advancedSummary={<AdvancedSummary fromType={draft.from.type} balance={balance} recipientsTotal={recipientsCheck.total} fee={fee} rate={rate} error={advancedError} />}
           onNext={() => goToStep(draft.isAdvanced ? 'confirm' : 'amount')}
@@ -207,15 +227,16 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
         />
       )}
 
-      {step === 'confirm' && config != null && amount != null && (
+      {step === 'confirm' && config != null && sentAmount != null && (
         <ConfirmStep
           draft={draft}
           config={config}
-          amount={amount}
+          amount={sentAmount}
           balance={balance}
           fee={fee}
-          received={received}
+          received={resumed?.received ?? received}
           isPrepaid={isContinuing}
+          typedAmount={amount}
           rate={rate}
           isSubmitting={isChecking || operationState.status === 'running'}
           passwordError={passwordError}
@@ -224,15 +245,15 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
         />
       )}
 
-      {isFinal && outcome != null && config != null && amount != null && (
+      {isFinal && outcome != null && config != null && sentAmount != null && (
         <ResultStep
           outcome={outcome}
           draft={draft}
           config={config}
-          amount={amount}
+          amount={sentAmount}
           balance={balance}
           fee={fee}
-          received={received}
+          received={resumed?.received ?? received}
           rate={rate}
           network={network}
           onDone={close}
@@ -249,15 +270,17 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           changeAddress={draft.changeAddress}
           changeAddresses={changeAddresses}
           decimals={balance.decimals}
-          availableFor={(count) => coreMaxAmount(config, count, coreEstimate.maxAmountDuffs) ?? maxAmount}
+          maxRecipients={maxRecipients(draft.from.type)}
+          availableFor={availableFor}
+          onCountChange={setOverlayCount}
           minAmount={limits.min}
           excludeIdentifier={balance.sourceAddress}
           network={network}
-          onClose={() => setRecipientsOpen(false)}
+          onClose={closeRecipients}
           onApply={(recipients, changeAddress) => {
             actions.setRecipients(recipients)
             actions.setChangeAddress(changeAddress)
-            setRecipientsOpen(false)
+            closeRecipients()
           }}
         />
       )}

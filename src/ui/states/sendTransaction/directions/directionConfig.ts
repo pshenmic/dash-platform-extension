@@ -148,7 +148,7 @@ export const DIRECTION_DETAILS: Partial<Record<Direction, DirectionDetails>> = {
     ...SINGLE_HASH,
     confirmLabel: 'Send',
     successMessage: SENT_TO_PLATFORM_ADDRESS,
-    advanced: false,
+    advanced: true,
     feeSource: 'platformTransfer'
   },
   'platformAddress->shielded': {

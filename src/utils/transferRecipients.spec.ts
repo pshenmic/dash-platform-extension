@@ -1,4 +1,4 @@
-import { checkRecipients, coreRecipientOutputs } from './transferRecipients'
+import { checkRecipients, coreRecipientOutputs, platformRecipientOutputs } from './transferRecipients'
 
 describe('checkRecipients', () => {
   it('sums valid amounts and accepts a full list', () => {
@@ -36,6 +36,13 @@ describe('checkRecipients', () => {
     expect(coreRecipientOutputs([{ id: '1', address: 'a', amount: '1' }, { id: '2', address: 'b', amount: '' }])).toEqual([
       { address: 'a', amountDuffs: 100000000n },
       { address: 'b', amountDuffs: 0n }
+    ])
+  })
+
+  it('maps recipients to Platform outputs in credits, paying nothing for a bad amount', () => {
+    expect(platformRecipientOutputs([{ id: '1', address: 'a', amount: '0.01' }, { id: '2', address: 'b', amount: 'x' }])).toEqual([
+      { address: 'a', amountCredits: 1000000000n },
+      { address: 'b', amountCredits: 0n }
     ])
   })
 })

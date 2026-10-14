@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button, Input, PlusIcon, Select, Text } from 'dash-ui-kit/react'
 import { OverlayMenu } from '../../../components/common'
 import { PercentageSlider, Toggle } from '../../../components/controls'
@@ -6,7 +6,7 @@ import { RecipientSearchInput } from '../../../components/Identities'
 import { checkRecipients, formatDashAmount, isDashInputAllowed, multiplyBigIntByPercentage, parseDashAmount } from '../../../../utils'
 import type { RecipientSearchResult } from '../../../../utils'
 import type { NetworkType } from '../../../../types'
-import { MAX_RECIPIENTS, RECIPIENT_PLACEHOLDERS } from '../constants'
+import { RECIPIENT_PLACEHOLDERS } from '../constants'
 import type { TransferRecipient } from '../types'
 
 interface RecipientsOverlayProps {
@@ -16,8 +16,11 @@ interface RecipientsOverlayProps {
   changeAddress: string | null
   changeAddresses: string[]
   decimals: number
-  // Most the recipients can receive in total, by their number: each Core output adds to the fee.
+  maxRecipients: number
+  // Most the recipients can receive in total, by their number: each output adds to the fee; null while unknown.
   availableFor: (recipientCount: number) => bigint | null
+  // Reports the edited count so its fee can be priced.
+  onCountChange?: (recipientCount: number) => void
   minAmount: bigint
   excludeIdentifier: string | null
   network: NetworkType
@@ -93,10 +96,12 @@ function RecipientCard ({ index, recipient, isCore, decimals, maxAmount, error, 
 }
 
 // Advanced recipients screen: addresses with amounts and an optional Core change address; mounted fresh on every open.
-export function RecipientsOverlay ({ isOpen, isCore, recipients, changeAddress, changeAddresses, decimals, availableFor, minAmount, excludeIdentifier, network, onClose, onApply }: RecipientsOverlayProps): React.JSX.Element {
+export function RecipientsOverlay ({ isOpen, isCore, recipients, changeAddress, changeAddresses, decimals, maxRecipients, availableFor, onCountChange, minAmount, excludeIdentifier, network, onClose, onApply }: RecipientsOverlayProps): React.JSX.Element {
   const [list, setList] = useState<TransferRecipient[]>(recipients.length > 0 ? recipients : [newRecipient()])
   const [change, setChange] = useState<string | null>(changeAddress)
   const [showErrors, setShowErrors] = useState(false)
+
+  useEffect(() => { onCountChange?.(list.length) }, [list.length, onCountChange])
 
   const available = availableFor(list.length)
   const check = checkRecipients(list, decimals, minAmount)
@@ -118,7 +123,7 @@ export function RecipientsOverlay ({ isOpen, isCore, recipients, changeAddress, 
           <Text size='xs' dim>
             Total: <span className='text-dash-primary-dark-blue'>{list.length} {list.length === 1 ? 'Recipient' : 'Recipients'} - {formatDashAmount(check.total, decimals)} Dash</span>
           </Text>
-          <Button colorScheme='lightBlue' size='sm' disabled={list.length >= MAX_RECIPIENTS} onClick={() => setList([...list, newRecipient()])}>
+          <Button colorScheme='lightBlue' size='sm' disabled={list.length >= maxRecipients} onClick={() => setList([...list, newRecipient()])}>
             <PlusIcon size={12} /> Add Recipient
           </Button>
         </div>

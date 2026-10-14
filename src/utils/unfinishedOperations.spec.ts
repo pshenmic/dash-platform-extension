@@ -1,5 +1,8 @@
-import { unfinishedOperations } from './unfinishedOperations'
+import { continuationDraft, findResumedOperation, resumedAmounts, unfinishedOperations } from './unfinishedOperations'
+import type { UnfinishedOperation } from './unfinishedOperations'
+import { SHIELD_DEPOSIT_FEE_DUFFS, assetLockPayment } from './transferAmount'
 import type { PendingAssetLock } from '../types/messages/response/ListPendingAssetLocksResponse'
+import type { TransferDraft } from '../ui/states/sendTransaction/types'
 
 const lock = (fields: Partial<PendingAssetLock>): PendingAssetLock => ({
   assetLockTxid: 'lock',
@@ -52,5 +55,63 @@ describe('unfinishedOperations', () => {
       lock({ purpose: 'fundAddress', identityId: null, platformAddress: null }),
       lock({ amountDuffs: null })
     ])).toEqual([])
+  })
+})
+
+const operation = (fields: Partial<UnfinishedOperation>): UnfinishedOperation => ({
+  purpose: 'topUp',
+  recipient: 'identity',
+  assetLockTxid: 'lock',
+  lockedDuffs: 99000n,
+  ...fields
+})
+
+const draft = (fields: Partial<TransferDraft>): TransferDraft => ({
+  from: { type: 'core', identityId: null },
+  to: { type: 'identity', recipient: 'identity', shieldToMyself: false },
+  asset: { type: 'dash' },
+  amount: '0.5',
+  isAdvanced: false,
+  recipients: [],
+  changeAddress: null,
+  ...fields
+})
+
+describe('findResumedOperation', () => {
+  const operations = [
+    operation({}),
+    operation({ purpose: 'fundAddress', recipient: 'tdash1address', assetLockTxid: 'fund' }),
+    operation({ purpose: 'shield', recipient: null, assetLockTxid: 'own' }),
+    operation({ purpose: 'shield', recipient: 'tdash1zother', assetLockTxid: 'other' })
+  ]
+
+  it('matches the purpose and the recipient of a Core draft', () => {
+    expect(findResumedOperation(operations, draft({}))?.assetLockTxid).toBe('lock')
+    expect(findResumedOperation(operations, draft({ to: { type: 'platformAddress', recipient: ' tdash1address ', shieldToMyself: false } }))?.assetLockTxid).toBe('fund')
+    expect(findResumedOperation(operations, draft({ to: { type: 'shielded', recipient: '', shieldToMyself: true } }))?.assetLockTxid).toBe('own')
+    expect(findResumedOperation(operations, draft({ to: { type: 'shielded', recipient: 'tdash1zother', shieldToMyself: false } }))?.assetLockTxid).toBe('other')
+  })
+
+  it('finds nothing for another recipient, type or sender, and in Advanced mode', () => {
+    expect(findResumedOperation(operations, draft({ to: { type: 'identity', recipient: 'someone', shieldToMyself: false } }))).toBeNull()
+    expect(findResumedOperation(operations, draft({ to: { type: 'platformAddress', recipient: 'identity', shieldToMyself: false } }))).toBeNull()
+    expect(findResumedOperation(operations, draft({ from: { type: 'identity', identityId: 'sender' } }))).toBeNull()
+    expect(findResumedOperation(operations, draft({ isAdvanced: true }))).toBeNull()
+  })
+})
+
+describe('resumedAmounts', () => {
+  it('pays the lock plus the relay fee and delivers the lock, minus the shield fee for a shield', () => {
+    expect(resumedAmounts(operation({}))).toEqual({ amount: assetLockPayment(99000n), received: 99000n })
+    expect(resumedAmounts(operation({ purpose: 'shield', recipient: null })).received).toBe(99000n - SHIELD_DEPOSIT_FEE_DUFFS)
+  })
+})
+
+describe('continuationDraft', () => {
+  it('fills a simple Core payment of the operation and finds it again', () => {
+    const next = continuationDraft(draft({ from: { type: 'identity', identityId: 'sender' }, isAdvanced: true }), operation({ purpose: 'shield', recipient: null }))
+
+    expect(next).toMatchObject({ from: { type: 'core' }, to: { type: 'shielded', recipient: '', shieldToMyself: true }, asset: { type: 'dash' }, isAdvanced: false })
+    expect(findResumedOperation([operation({ purpose: 'shield', recipient: null })], next)).not.toBeNull()
   })
 })

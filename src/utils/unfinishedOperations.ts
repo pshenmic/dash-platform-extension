@@ -1,4 +1,7 @@
 import type { PendingAssetLock } from '../types/messages/response/ListPendingAssetLocksResponse'
+import type { EndpointType, TransferDraft } from '../ui/states/sendTransaction/types'
+import { CORE_DASH_DECIMALS, SHIELD_DEPOSIT_FEE_DUFFS, assetLockPayment, formatDashAmount } from './transferAmount'
+import { isShieldToMyself } from './transferDirection'
 
 // Core payment locked on L1 whose Platform side the same *FromWallet call finishes; `recipient` null is the wallet's own shielded pool.
 export interface UnfinishedOperation {
@@ -35,3 +38,32 @@ export const unfinishedOperations = (locks: PendingAssetLock[]): UnfinishedOpera
     return [{ purpose: lock.purpose, recipient: recipient ?? null, assetLockTxid: lock.assetLockTxid, lockedDuffs: BigInt(lock.amountDuffs) }]
   })
 }
+
+// Recipient type each unfinished operation pays.
+export const UNFINISHED_OPERATION_TARGETS: Record<UnfinishedOperation['purpose'], EndpointType> = { topUp: 'identity', fundAddress: 'platformAddress', shield: 'shielded' }
+
+// Operation a submit of the draft would resume instead of paying: a simple Core payment of Dash to the same recipient.
+export const findResumedOperation = (operations: UnfinishedOperation[], draft: TransferDraft): UnfinishedOperation | null => {
+  if (draft.from.type !== 'core' || draft.isAdvanced || draft.asset.type !== 'dash') return null
+  const recipient = isShieldToMyself(draft) ? null : draft.to.recipient.trim()
+
+  return operations.find(operation => UNFINISHED_OPERATION_TARGETS[operation.purpose] === draft.to.type && operation.recipient === recipient) ?? null
+}
+
+// Core payment and the amount delivered on Platform of an unfinished operation, in duffs.
+export const resumedAmounts = (operation: UnfinishedOperation): { amount: bigint, received: bigint } => ({
+  amount: assetLockPayment(operation.lockedDuffs),
+  received: operation.purpose === 'shield' ? operation.lockedDuffs - SHIELD_DEPOSIT_FEE_DUFFS : operation.lockedDuffs
+})
+
+// Draft that resumes the operation: a simple Core payment of its amount to its recipient.
+export const continuationDraft = (draft: TransferDraft, operation: UnfinishedOperation): TransferDraft => ({
+  ...draft,
+  from: { ...draft.from, type: 'core' },
+  to: { type: UNFINISHED_OPERATION_TARGETS[operation.purpose], recipient: operation.recipient ?? '', shieldToMyself: operation.recipient == null },
+  asset: { type: 'dash' },
+  amount: formatDashAmount(assetLockPayment(operation.lockedDuffs), CORE_DASH_DECIMALS),
+  isAdvanced: false,
+  recipients: [],
+  changeAddress: null
+})

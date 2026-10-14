@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
-import { CORE_DASH_DECIMALS, assetLockPayment, formatDashAmount, unfinishedOperations } from '../../../../utils'
+import { useEffect, useRef, useState } from 'react'
+import { continuationDraft, findResumedOperation, unfinishedOperations } from '../../../../utils'
 import type { UnfinishedOperation } from '../../../../utils'
 import type { TransferApi } from '../transferApi'
-import type { EndpointType, TransferDraft, WizardStep } from '../types'
+import type { TransferDraft, WizardStep } from '../types'
 
 interface TransferRetryParams {
   api: TransferApi
   draft: TransferDraft
   settledStatus: 'success' | 'failed' | null
+  // Asset lock of an operation to continue once it is loaded, e.g. from a notification.
+  continueTxid: string | null
   reloadCoreBalance: () => void
   resetDraft: (draft: TransferDraft) => void
   resetOperation: () => void
@@ -15,43 +17,39 @@ interface TransferRetryParams {
 }
 
 export interface TransferRetryState {
-  // The current draft continues an unfinished operation, so Confirm pays nothing new.
-  isContinuing: boolean
+  // Unfinished operation the current draft resumes, so Confirm pays nothing new.
+  resumedOperation: UnfinishedOperation | null
   pendingOperations: UnfinishedOperation[]
   continueOperation: (operation: UnfinishedOperation) => void
   handleRetry: () => void
 }
 
-const TARGET_TYPES: Record<UnfinishedOperation['purpose'], EndpointType> = { topUp: 'identity', fundAddress: 'platformAddress', shield: 'shielded' }
-
 // Unfinished Core operations of the wallet and the Retry of a failed transfer, both repeating the same *FromWallet call.
-export function useTransferRetry ({ api, draft, settledStatus, reloadCoreBalance, resetDraft, resetOperation, goToStep }: TransferRetryParams): TransferRetryState {
-  const [continuedDraft, setContinuedDraft] = useState<TransferDraft | null>(null)
+export function useTransferRetry ({ api, draft, settledStatus, continueTxid, reloadCoreBalance, resetDraft, resetOperation, goToStep }: TransferRetryParams): TransferRetryState {
   const [pendingOperations, setPendingOperations] = useState<UnfinishedOperation[]>([])
+  const continueTxidRef = useRef(continueTxid)
 
-  // Loads unfinished operations for a Core sender and refreshes its balance once a transfer settles.
+  // Loads unfinished operations for a Core sender and refreshes its balance once a transfer settles; a success keeps the list the result was shown with.
   useEffect(() => {
     if (draft.from.type !== 'core') return
     if (settledStatus != null) reloadCoreBalance()
+    if (settledStatus === 'success') return
     api.listPendingAssetLocks().then(locks => setPendingOperations(unfinishedOperations(locks))).catch(e => console.log('listPendingAssetLocks error', e))
   }, [api, draft.from.type, settledStatus, reloadCoreBalance])
 
   // Fills the draft from an unfinished operation and opens Confirm; submitting it resumes that operation.
   const continueOperation = (operation: UnfinishedOperation): void => {
-    const next: TransferDraft = {
-      ...draft,
-      from: { ...draft.from, type: 'core' },
-      to: { type: TARGET_TYPES[operation.purpose], recipient: operation.recipient ?? '', shieldToMyself: operation.recipient == null },
-      asset: { type: 'dash' },
-      amount: formatDashAmount(assetLockPayment(operation.lockedDuffs), CORE_DASH_DECIMALS),
-      isAdvanced: false,
-      recipients: [],
-      changeAddress: null
-    }
-    resetDraft(next)
-    setContinuedDraft(next)
+    resetDraft(continuationDraft(draft, operation))
     goToStep('confirm')
   }
+
+  // Continues the requested operation once the list holds it.
+  useEffect(() => {
+    const operation = pendingOperations.find(item => item.assetLockTxid === continueTxidRef.current)
+    if (operation == null) return
+    continueTxidRef.current = null
+    continueOperation(operation)
+  }, [pendingOperations])
 
   // Repeats the same call; the backend resumes a payment already locked on L1.
   const handleRetry = (): void => {
@@ -59,5 +57,5 @@ export function useTransferRetry ({ api, draft, settledStatus, reloadCoreBalance
     goToStep('confirm', true)
   }
 
-  return { isContinuing: continuedDraft != null && continuedDraft === draft, pendingOperations, continueOperation, handleRetry }
+  return { resumedOperation: findResumedOperation(pendingOperations, draft), pendingOperations, continueOperation, handleRetry }
 }

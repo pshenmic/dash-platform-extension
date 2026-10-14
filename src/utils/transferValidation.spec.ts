@@ -93,6 +93,7 @@ describe('validateTransfer', () => {
     expect(validate(over).amountValid).toBe(false)
     expect(validate(over).amountError).toContain('Insufficient balance')
     expect(validate(over, { isResumingFunding: true }).amountValid).toBe(true)
+    expect(validate(over, { isResumingFunding: true }).amountError).toBeNull()
     expect(validate(draft({ amount: '' })).amountValid).toBe(false)
   })
 

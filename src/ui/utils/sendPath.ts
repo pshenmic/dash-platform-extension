@@ -17,3 +17,8 @@ export function parseSendScope (value: string | null): SendScope {
 
   return 'all'
 }
+
+// Send screen location state: the asset lock of an unfinished operation to continue on open.
+export interface SendContinueState {
+  continueAssetLockTxid?: string
+}

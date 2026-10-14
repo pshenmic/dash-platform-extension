@@ -1,5 +1,5 @@
 import { CORE_FEE_PER_BYTE, CORE_P2PKH_INPUT_BYTES, CORE_P2PKH_OUTPUT_BYTES, CORE_TX_OVERHEAD_BYTES, MAX_WITHDRAWAL_CREDITS, MIN_WITHDRAWAL_CREDITS, SHIELDED_MAX_SPEND_NOTES } from '../constants'
-import { CORE_FALLBACK_FEE_INPUTS, PLATFORM_TRANSFER_FALLBACK_FEE_CREDITS, WITHDRAWAL_FALLBACK_FEE_CREDITS } from '../ui/constants/transaction'
+import { CORE_FALLBACK_FEE_INPUTS, PLATFORM_TRANSFER_FALLBACK_FEE_CREDITS, PLATFORM_TRANSFER_FALLBACK_FEE_PER_OUTPUT_CREDITS, WITHDRAWAL_FALLBACK_FEE_CREDITS } from '../ui/constants/transaction'
 import { computeShieldedSpendFee } from './shieldedFee'
 import type { ShieldedSpendKind } from '../types/ShieldedSpendKind'
 import type { PlatformFeeEstimate } from '../ui/states/sendTransaction/transferApi'
@@ -16,11 +16,15 @@ export const coreFallbackFeeDuffs = (outputs: number): bigint => {
 // Fallback for the one-output send-max amount of a Core balance.
 export const coreFallbackMaxDuffs = (balance: bigint): bigint => positive(balance - coreFallbackFeeDuffs(1))
 
+// Fallback fee in credits of an address transfer paying `outputs` recipients.
+export const platformFallbackFeeCredits = (outputs: number): bigint =>
+  PLATFORM_TRANSFER_FALLBACK_FEE_CREDITS + BigInt(Math.max(outputs, 1) - 1) * PLATFORM_TRANSFER_FALLBACK_FEE_PER_OUTPUT_CREDITS
+
 // Fallback estimate of a Platform-priced mode, shaped like the backend one; null for other modes or an unknown balance.
-export const platformFallbackEstimate = (mode: TransferMode | null, balance: bigint | null): PlatformFeeEstimate | null => {
+export const platformFallbackEstimate = (mode: TransferMode | null, balance: bigint | null, outputs: number = 1): PlatformFeeEstimate | null => {
   if (balance == null) return null
   if (mode === 'send') {
-    const feeCredits = PLATFORM_TRANSFER_FALLBACK_FEE_CREDITS
+    const feeCredits = platformFallbackFeeCredits(outputs)
     return { feeCredits, maxAmountCredits: positive(balance - feeCredits), minAmountCredits: null, feeTakenFromAmount: false }
   }
   if (mode !== 'withdraw' && mode !== 'identityWithdraw') return null

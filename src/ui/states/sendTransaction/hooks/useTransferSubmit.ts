@@ -1,8 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
-import { CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS, coreRecipientOutputs, isShieldToMyself } from '../../../../utils'
+import { CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS, coreRecipientOutputs, isShieldToMyself, platformRecipientOutputs } from '../../../../utils'
 import { SHIELDED_MODES } from '../types'
 import type { NetworkType } from '../../../../types'
-import type { CoreFundingResult, CorePaymentResult, TransferApi } from '../transferApi'
+import type { CoreFundingResult, CorePaymentResult, PlatformPaymentResult, TransferApi } from '../transferApi'
 import type { TransferDraft, TransferMode } from '../types'
 import type { TransferResult } from './useTransferOperation'
 
@@ -27,6 +27,12 @@ const corePayment = async (call: Promise<CorePaymentResult>): Promise<TransferRe
   return { hashes: { single: txHash }, fee: { amount: feeDuffs, decimals: CORE_DASH_DECIMALS } }
 }
 
+// Platform address payment with its fee in credits.
+const platformPayment = async (call: Promise<PlatformPaymentResult>): Promise<TransferResult> => {
+  const { txHash, feeCredits } = await call
+  return { hashes: { single: txHash, platform: txHash }, fee: { amount: feeCredits, decimals: PLATFORM_DASH_DECIMALS } }
+}
+
 // Wallet payment locked into Platform; resumed or a zero fee means an earlier payment was finished and nothing new was paid.
 const coreFunding = async (call: Promise<CoreFundingResult>): Promise<TransferResult> => {
   const { txHash, coreTxHash, feeDuffs, resumed, creditedCredits } = await call
@@ -48,10 +54,11 @@ interface TransferContext {
   network: NetworkType
 }
 
-// Sends one Core transaction to every Advanced recipient.
-const startAdvancedTransfer = async ({ api, mode, draft, password }: TransferContext): Promise<TransferResult> => {
-  if (mode !== 'coreSend') throw new Error('Several recipients are not supported for this transfer')
-  return await corePayment(api.sendCoreTransaction(coreRecipientOutputs(draft.recipients), password, draft.changeAddress ?? undefined))
+// Pays every Advanced recipient in one Core transaction or one Platform address transfer.
+const startAdvancedTransfer = async ({ api, mode, draft, sourceAddress, password }: TransferContext): Promise<TransferResult> => {
+  if (mode === 'coreSend') return await corePayment(api.sendCoreTransaction(coreRecipientOutputs(draft.recipients), password, draft.changeAddress ?? undefined))
+  if (mode === 'send') return await platformPayment(api.sendPlatformTransaction(platformRecipientOutputs(draft.recipients), password, sourceAddress ?? undefined))
+  throw new Error('Several recipients are not supported for this transfer')
 }
 
 // Starts the API call of the resolved transfer mode; a *FromWallet call finishes its own unfinished operation.
@@ -82,7 +89,7 @@ const startTransfer = async (context: TransferContext): Promise<TransferResult> 
     case 'fund':
       return await done(api.fund(identityId, recipient, amount, password))
     case 'send':
-      return await done(api.send(recipient, amount, password, fromAddress))
+      return await platformPayment(api.send(recipient, amount, password, fromAddress))
     case 'topup':
       return await done(api.topup(recipient, amount, password, fromAddress))
     case 'withdraw':

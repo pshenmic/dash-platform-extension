@@ -1,5 +1,6 @@
-import { coreFallbackFeeDuffs, coreFallbackMaxDuffs, platformFallbackEstimate, shieldedFallbackFee, shownFee } from './transferFeeFallback'
+import { coreFallbackFeeDuffs, coreFallbackMaxDuffs, platformFallbackEstimate, platformFallbackFeeCredits, shieldedFallbackFee, shownFee } from './transferFeeFallback'
 import { coreMaxForOutputs } from './coreSendMax'
+import { platformTransferFeeCredits } from './platformTransfer'
 import { computeShieldedSpendFee } from './shieldedFee'
 import { MAX_WITHDRAWAL_CREDITS, MIN_WITHDRAWAL_CREDITS, SHIELDED_MAX_SPEND_NOTES } from '../constants'
 
@@ -51,9 +52,28 @@ describe('platformFallbackEstimate', () => {
     expect(platformFallbackEstimate('send', 1000n)?.maxAmountCredits).toBe(0n)
   })
 
+  it('reserves the fee of every recipient of an address transfer', () => {
+    expect(platformFallbackEstimate('send', 100_000_000n, 3)).toEqual({ feeCredits: 39_000_000n, maxAmountCredits: 61_000_000n, minAmountCredits: null, feeTakenFromAmount: false })
+  })
+
   it('is null for other modes or an unknown balance', () => {
     expect(platformFallbackEstimate('creditTransfer', 100n)).toBeNull()
     expect(platformFallbackEstimate('send', null)).toBeNull()
+  })
+})
+
+describe('platformFallbackFeeCredits', () => {
+  it('is 15M for one recipient and 12M more for each extra one', () => {
+    expect(platformFallbackFeeCredits(1)).toBe(15_000_000n)
+    expect(platformFallbackFeeCredits(2)).toBe(27_000_000n)
+  })
+
+  it('treats no recipients as one', () => {
+    expect(platformFallbackFeeCredits(0)).toBe(15_000_000n)
+  })
+
+  it('stays above the dpp fee up to the Platform output cap', () => {
+    for (const outputs of [1, 2, 10, 128]) expect(platformFallbackFeeCredits(outputs) > platformTransferFeeCredits(outputs)).toBe(true)
   })
 })
 

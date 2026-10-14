@@ -5,7 +5,7 @@ import { Banner } from '../../../components/cards'
 import { PROVING_WARNING } from '../../../constants/transferWarnings'
 import { formatDashAmount, parseDashAmount } from '../../../../utils'
 import { SHIELDED_MODES } from '../types'
-import { KEEP_OPEN_MESSAGE, PREPAID_TRANSFER_MESSAGE, WITHDRAW_WARNINGS, recipientsCountLabel } from '../constants'
+import { KEEP_OPEN_MESSAGE, PREPAID_TRANSFER_MESSAGE, WITHDRAW_WARNINGS, interruptedTransferMessage, recipientsCountLabel } from '../constants'
 import type { DirectionConfig } from '../directions/directionConfig'
 import type { SourceBalance } from '../hooks/useSourceBalance'
 import type { TransferFee } from '../hooks/useTransferFee'
@@ -20,6 +20,8 @@ interface ConfirmStepProps {
   fee: TransferFee | null
   received: bigint | null
   isPrepaid: boolean
+  // Amount typed in the draft; a prepaid transfer completes `amount` instead.
+  typedAmount: bigint | null
   rate: number | null
   isSubmitting: boolean
   passwordError: string | null
@@ -28,10 +30,11 @@ interface ConfirmStepProps {
 }
 
 // Step 3 of the send wizard: transfer details, password and the action button.
-export function ConfirmStep ({ draft, config, amount, balance, fee, received, isPrepaid, rate, isSubmitting, passwordError, onPasswordChange, onConfirm }: ConfirmStepProps): React.JSX.Element {
+export function ConfirmStep ({ draft, config, amount, balance, fee, received, isPrepaid, typedAmount, rate, isSubmitting, passwordError, onPasswordChange, onConfirm }: ConfirmStepProps): React.JSX.Element {
   const [password, setPassword] = useState('')
   const isProving = SHIELDED_MODES.includes(config.mode) || config.mode === 'coreShield'
   const isCrossLayerFromCore = draft.from.type === 'core' && draft.to.type !== 'core'
+  const isAmountReplaced = isPrepaid && typedAmount != null && typedAmount !== amount
 
   return (
     <div className='flex flex-col gap-6'>
@@ -50,7 +53,8 @@ export function ConfirmStep ({ draft, config, amount, balance, fee, received, is
         </Accordion>
       )}
 
-      <Banner variant='info' message={isPrepaid ? PREPAID_TRANSFER_MESSAGE : null} />
+      <Banner variant='info' message={isPrepaid && !isAmountReplaced ? PREPAID_TRANSFER_MESSAGE : null} />
+      <Banner variant='warning' message={isAmountReplaced ? interruptedTransferMessage(formatDashAmount(amount, balance.decimals)) : null} />
       <Banner variant='warning' message={WITHDRAW_WARNINGS[config.mode] ?? null} />
       {isProving && <Banner variant='warning' message={PROVING_WARNING} />}
 
