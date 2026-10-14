@@ -7,6 +7,7 @@ import { StorageAdapter } from '../../../../src/content-script/storage/storageAd
 import { bytesToHex, hexToBytes } from '../../../../src/utils'
 import { buildAssetLockFromFundingTx } from '../../../../src/utils/buildAssetLockFromFundingTx'
 import { waitForAssetLockProof } from '../../../../src/utils/waitForAssetLockProof'
+import { deriveCoreAddressPrivateKey } from '../../../../src/utils/coreAddresses'
 import { WalletType } from '../../../../src/types'
 import { IdentityType } from '../../../../src/types/enums/IdentityType'
 
@@ -18,8 +19,14 @@ jest.mock('../../../../src/utils/waitForAssetLockProof', () => ({
   waitForAssetLockProof: jest.fn()
 }))
 
+jest.mock('../../../../src/utils/coreAddresses', () => ({
+  ...jest.requireActual('../../../../src/utils/coreAddresses'),
+  deriveCoreAddressPrivateKey: jest.fn()
+}))
+
 const buildAssetLockFromFundingTxMock = buildAssetLockFromFundingTx as jest.MockedFunction<typeof buildAssetLockFromFundingTx>
 const waitForAssetLockProofMock = waitForAssetLockProof as jest.MockedFunction<typeof waitForAssetLockProof>
+const deriveCoreAddressPrivateKeyMock = deriveCoreAddressPrivateKey as jest.MockedFunction<typeof deriveCoreAddressPrivateKey>
 
 class TestStorageAdapter implements StorageAdapter {
   cache: Record<string, object | number | string | null> = {}
@@ -60,7 +67,9 @@ describe('TopUpIdentityHandler', () => {
   let walletRepository: any
   let identitiesRepository: any
   let assetLockFundingAddressesRepository: any
+  let pendingAssetLocksRepository: any
   let coreSDK: any
+  let coreExplorer: any
   let sdk: any
   let handler: TopUpIdentityHandler
   let encryptedPrivateKey: string
@@ -94,7 +103,8 @@ describe('TopUpIdentityHandler', () => {
         encryptedMnemonic: null,
         seedHash: null,
         currentIdentity: identityId
-      }))
+      })),
+      getCoreAccountXpub: jest.fn(async () => 'tpub')
     }
 
     identitiesRepository = {
@@ -128,6 +138,19 @@ describe('TopUpIdentityHandler', () => {
     identitiesRepository.forScope = jest.fn(() => identitiesRepository)
     assetLockFundingAddressesRepository.forScope = jest.fn(() => assetLockFundingAddressesRepository)
 
+    pendingAssetLocksRepository = {
+      create: jest.fn(async () => {}),
+      remove: jest.fn(async () => {}),
+      getAll: jest.fn(async () => []),
+      forScope: jest.fn(() => pendingAssetLocksRepository)
+    }
+
+    coreExplorer = {
+      getOutputSpender: jest.fn(async () => null),
+      getXpubSummary: jest.fn(async () => ({ nextUnused: { receiving: 0, change: 0 } })),
+      isAddressUsed: jest.fn(async () => false)
+    }
+
     coreSDK = {
       // Both SDKs are fixed to a network for the lifetime of their document, and
       // the handler refuses to run against a scope they cannot serve.
@@ -144,7 +167,8 @@ describe('TopUpIdentityHandler', () => {
     sdk = {
       getNetwork: jest.fn(() => 'testnet'),
       identities: {
-        createStateTransition: jest.fn(() => stateTransition)
+        createStateTransition: jest.fn(() => stateTransition),
+        getIdentityByIdentifier: jest.fn(async () => ({ id: identityId }))
       },
       stateTransitions: {
         broadcast: jest.fn(async () => {
@@ -170,8 +194,10 @@ describe('TopUpIdentityHandler', () => {
       walletRepository,
       identitiesRepository,
       assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
       sdk,
-      coreSDK
+      coreSDK,
+      coreExplorer
     )
   })
 
@@ -197,7 +223,8 @@ describe('TopUpIdentityHandler', () => {
     expect(result).toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: '100000000'
+      topUpAmount: '100000000',
+      assetLockTxid
     })
 
     expect(buildAssetLockFromFundingTxMock).toHaveBeenCalledWith(
@@ -236,20 +263,38 @@ describe('TopUpIdentityHandler', () => {
     ])
   })
 
-  test('rejects identity that does not belong to the scoped wallet', async () => {
-    identitiesRepository.getByIdentifier.mockResolvedValueOnce(null)
+  // Credits can be sent to an identity this wallet does not own: the state
+  // transition is signed by the asset lock key, not by an identity key.
+  test('tops up an identity that does not belong to the scoped wallet', async () => {
+    identitiesRepository.getByIdentifier.mockResolvedValue(null)
 
-    await expect(handle()).rejects.toThrow(`Identity ${identityId} does not belong to wallet wallet1 on testnet`)
+    const response = await handle()
+
+    expect(sdk.identities.getIdentityByIdentifier).toHaveBeenCalledWith(identityId)
+    expect(response.identityId).toBe(identityId)
+    expect(sdk.stateTransitions.broadcast).toHaveBeenCalled()
+  })
+
+  test('rejects an identity that is not on Platform', async () => {
+    identitiesRepository.getByIdentifier.mockResolvedValue(null)
+    sdk.identities.getIdentityByIdentifier.mockRejectedValue(new Error('not found'))
+
+    await expect(handle()).rejects.toThrow(`Identity ${identityId} does not exist on testnet`)
 
     expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
     expect(sdk.stateTransitions.broadcast).not.toHaveBeenCalled()
   })
 
-  test('rejects missing funding address', async () => {
-    assetLockFundingAddressesRepository.getByAddress.mockResolvedValueOnce(null)
+  // No record means the caller is paying with the wallet's own coins, which the
+  // own-coins suite covers. Here: an address that is neither is refused.
+  test('rejects a funding address the wallet does not own', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue(null)
+    deriveCoreAddressPrivateKeyMock.mockRejectedValueOnce(
+      new Error(`Core address ${assetLockFundingAddress} is not one of this wallet's own addresses`)
+    )
 
-    await expect(handle()).rejects.toThrow(`Asset lock funding address ${assetLockFundingAddress} not found`)
+    await expect(handle()).rejects.toThrow('is not one of this wallet')
 
     expect(assetLockFundingAddressesRepository.markAsBroadcasted).not.toHaveBeenCalled()
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
@@ -299,7 +344,8 @@ describe('TopUpIdentityHandler', () => {
     await expect(handle()).resolves.toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: '100000000'
+      topUpAmount: '100000000',
+      assetLockTxid
     })
   })
 
@@ -308,7 +354,8 @@ describe('TopUpIdentityHandler', () => {
     await expect(handle()).resolves.toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: '100000000'
+      topUpAmount: '100000000',
+      assetLockTxid
     })
   })
 
@@ -350,7 +397,8 @@ describe('TopUpIdentityHandler', () => {
     expect(result).toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: '100000000'
+      topUpAmount: '100000000',
+      assetLockTxid
     })
     expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
   })
@@ -365,7 +413,8 @@ describe('TopUpIdentityHandler', () => {
     expect(result).toEqual({
       identityId,
       stateTransitionHash: 'stateTransitionHash',
-      topUpAmount: '100000000'
+      topUpAmount: '100000000',
+      assetLockTxid
     })
     expect(assetLockFundingAddressesRepository.markAsUsed).toHaveBeenCalledWith(assetLockFundingAddress)
     expect(sdk.stateTransitions.waitForStateTransitionResult).not.toHaveBeenCalled()
@@ -666,6 +715,63 @@ describe('AssetLockFundingAddressesRepository identity reservation', () => {
   })
 })
 
+describe('AssetLockFundingAddressesRepository own payment record', () => {
+  const storageKey = 'assetLockFundingAddresses_testnet_wallet1'
+  const fundingTxid = 'b'.repeat(64)
+
+  let storage: TestStorageAdapter
+  let repository: AssetLockFundingAddressesRepository
+
+  const entry = (extra: Record<string, any> = {}): any => ({
+    address: 'mine', encryptedPrivateKey: 'k', used: false, ...extra
+  })
+
+  beforeEach(async () => {
+    storage = new TestStorageAdapter()
+    await storage.set('network', 'testnet')
+    await storage.set('currentWalletId', 'wallet1')
+    repository = new AssetLockFundingAddressesRepository(storage)
+  })
+
+  test('markAsFunded records the transaction that paid the address', async () => {
+    await storage.set(storageKey, { mine: entry() })
+
+    await repository.markAsFunded('mine', fundingTxid)
+
+    expect((await repository.getByAddress('mine'))?.fundingTxid).toBe(fundingTxid)
+  })
+
+  test('markAsFunded is idempotent for the same transaction', async () => {
+    await storage.set(storageKey, { mine: entry({ fundingTxid }) })
+
+    await expect(repository.markAsFunded('mine', fundingTxid)).resolves.toBeUndefined()
+  })
+
+  test('markAsFunded refuses a second, different payment', async () => {
+    await storage.set(storageKey, { mine: entry({ fundingTxid }) })
+
+    await expect(repository.markAsFunded('mine', 'c'.repeat(64)))
+      .rejects.toThrow(`is already funded by transaction ${fundingTxid}`)
+
+    expect((await repository.getByAddress('mine'))?.fundingTxid).toBe(fundingTxid)
+  })
+
+  test('markAsFunded fails for a used or missing entry', async () => {
+    await storage.set(storageKey, { mine: entry({ used: true }) })
+
+    await expect(repository.markAsFunded('mine', fundingTxid)).rejects.toThrow('has already been used')
+    await expect(repository.markAsFunded('missing', fundingTxid)).rejects.toThrow('not found')
+  })
+
+  test('markAsUsed preserves the recorded payment', async () => {
+    await storage.set(storageKey, { mine: entry({ fundingTxid }) })
+
+    await repository.markAsUsed('mine')
+
+    expect(await repository.getByAddress('mine')).toEqual(entry({ fundingTxid, used: true }))
+  })
+})
+
 describe('IdentitiesRepository remove', () => {
   const storageKey = 'identities_testnet_wallet1'
 
@@ -698,5 +804,57 @@ describe('IdentitiesRepository remove', () => {
     const repo = new IdentitiesRepository(storage, {} as any)
 
     await expect(repo.remove('missing')).resolves.toBeUndefined()
+  })
+})
+
+describe('AssetLockFundingAddressesRepository recipient reservation', () => {
+  const storageKey = 'assetLockFundingAddresses_testnet_wallet1'
+
+  let storage: TestStorageAdapter
+  let repository: AssetLockFundingAddressesRepository
+
+  const entry = (address: string, purpose: any, recipient?: string): any => ({
+    address, encryptedPrivateKey: 'k', used: false, purpose, ...(recipient != null ? { recipient } : {})
+  })
+
+  beforeEach(async () => {
+    storage = new TestStorageAdapter()
+    await storage.set('network', 'testnet')
+    await storage.set('currentWalletId', 'wallet1')
+    repository = new AssetLockFundingAddressesRepository(storage)
+  })
+
+  test('findUnused only offers an address reserved for the same recipient', async () => {
+    await storage.set(storageKey, {
+      theirs: entry('theirs', 'fundAddress', 'tdash1them'),
+      ours: entry('ours', 'fundAddress', 'tdash1us')
+    })
+
+    expect((await repository.findUnused('fundAddress', 'tdash1us'))?.address).toBe('ours')
+    expect(await repository.findUnused('fundAddress', 'tdash1nobody')).toBeNull()
+  })
+
+  test('findUnused still offers an address nobody claimed', async () => {
+    await storage.set(storageKey, { free: entry('free', 'shield') })
+
+    expect((await repository.findUnused('shield', 'tdashshielded1anyone'))?.address).toBe('free')
+  })
+
+  test('bindToRecipient claims a free address and is idempotent', async () => {
+    await storage.set(storageKey, { free: entry('free', 'shield') })
+
+    await repository.bindToRecipient('free', 'own')
+    await repository.bindToRecipient('free', 'own')
+
+    expect((await repository.getByAddress('free'))?.recipient).toBe('own')
+  })
+
+  test('bindToRecipient refuses to re-point an address at another recipient', async () => {
+    await storage.set(storageKey, { taken: entry('taken', 'fundAddress', 'tdash1them') })
+
+    await expect(repository.bindToRecipient('taken', 'tdash1us'))
+      .rejects.toThrow('is already reserved for tdash1them')
+
+    expect((await repository.getByAddress('taken'))?.recipient).toBe('tdash1them')
   })
 })

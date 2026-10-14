@@ -1,5 +1,5 @@
 import { NetworkType } from '../../types/PlatformExplorer'
-import { CORE_EXPLORER_MAX_PAGE_LIMIT, CORE_EXPLORER_URLS } from '../../constants'
+import { CORE_EXPLORER_MAX_PAGE_LIMIT, CORE_EXPLORER_URLS, CORE_UTXO_ADDRESS_BATCH } from '../../constants'
 
 export interface CoreAddressInfo {
   txCount: number
@@ -24,6 +24,10 @@ export interface CoreAddressUtxo {
   txid: string
   vout: number
   amount: bigint
+}
+
+export interface CoreXpubUtxo extends CoreAddressUtxo {
+  address: string
 }
 
 export interface CoreExplorerTransactionInput {
@@ -57,6 +61,17 @@ export interface CoreExplorerTransactionsPage {
   transactions: CoreExplorerTransaction[]
   // Pass back to get the next page; null on the last one.
   nextCursor: string | null
+}
+
+// A UTXO read across several addresses at once, so it has to say which address
+// it pays to — that is what tells the spender which key signs its input.
+export interface CoreWalletUtxo extends CoreAddressUtxo {
+  address: string
+  // Absent for change of a transaction that is still waiting for its block: it
+  // has no height or time yet, and no confirmations by definition.
+  blockHeight?: number
+  confirmations?: number
+  timestamp?: number
 }
 
 const getBaseUrl = (network: NetworkType = 'testnet'): string => {
@@ -212,6 +227,39 @@ export class CoreExplorerService {
     }
   }
 
+  // Every spendable output of the xpub's addresses, so an asset lock can be
+  // funded from the wallet's own coins without deriving and asking address by
+  // address.
+  async getXpubUtxos (xpub: string, network: NetworkType = 'testnet'): Promise<CoreXpubUtxo[]> {
+    const baseUrl = getBaseUrl(network)
+    const utxos: CoreXpubUtxo[] = []
+
+    let fetched = 0
+    for (let page = 1; ; page++) {
+      const response = await postJson(`${baseUrl}/xpub/utxo`, { xpub, page, limit: CORE_EXPLORER_MAX_PAGE_LIMIT })
+
+      if (!response.ok) {
+        throw new Error(`Core explorer error for xpub utxo: HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      const rows: any[] = Array.isArray(data?.resultSet) ? data.resultSet : []
+
+      fetched += rows.length
+      for (const row of rows) {
+        const address = toAddress(row.address)
+
+        if (address != null) {
+          utxos.push({ address, txid: String(row.prevTxHash), vout: toCount(row.vOutIndex), amount: toBigInt(row.amount) })
+        }
+      }
+
+      if (rows.length === 0 || fetched >= toCount(data?.pagination?.total)) {
+        return utxos
+      }
+    }
+  }
+
   // One page of the transactions touching the xpub's addresses, newest first.
   // The first page also carries every mempool transaction, ahead of the
   // confirmed ones. `cursor` is the previous page's `nextCursor`.
@@ -241,6 +289,35 @@ export class CoreExplorerService {
     return info != null && info.txCount > 0
   }
 
+  // Transaction that spent this transaction's output to `address`, or null while
+  // it is unspent. Recovers the asset lock committed by an earlier attempt: the
+  // funding transaction is known, the asset lock built from it is not.
+  async getOutputSpender (txid: string, address: string, network: NetworkType = 'testnet'): Promise<string | null> {
+    const baseUrl = getBaseUrl(network)
+    const response = await fetch(`${baseUrl}/transaction/${txid}`)
+
+    if (response.status === 404) {
+      return null
+    }
+
+    if (!response.ok) {
+      throw new Error(`Core explorer error for transaction ${txid}: HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+    const outputs: any[] = Array.isArray(data?.vOut) ? data.vOut : []
+
+    for (const output of outputs) {
+      // Every output paying the address funds the same asset lock, so the first
+      // spent one names it.
+      if (toAddress(output.address) === address && typeof output.spentTxId === 'string' && output.spentTxId !== '') {
+        return output.spentTxId
+      }
+    }
+
+    return null
+  }
+
   // Confirmed UTXOs for an address. Empty when the address is unseen or has no
   // spendable outputs. Used for recovery, not for first-deposit detection.
   async getAddressUtxos (address: string, network: NetworkType = 'testnet'): Promise<CoreAddressUtxo[]> {
@@ -263,5 +340,49 @@ export class CoreExplorerService {
       vout: toCount(utxo.vOutIndex),
       amount: toBigInt(utxo.amount)
     }))
+  }
+
+  // Confirmed UTXOs across many addresses in one call — the spendable set of a
+  // wallet, tagged with the address each output pays to. The addresses go in the
+  // query string, so the list is chunked to stay under the URL length limit.
+  //
+  // dashscan indexes blocks, so an output that is still in the mempool (change
+  // from a send that has not been mined yet) is not listed here.
+  async getAddressesUtxos (addresses: string[], network: NetworkType = 'testnet'): Promise<CoreWalletUtxo[]> {
+    if (addresses.length === 0) {
+      return []
+    }
+
+    const baseUrl = getBaseUrl(network)
+    const utxos: CoreWalletUtxo[] = []
+
+    for (let offset = 0; offset < addresses.length; offset += CORE_UTXO_ADDRESS_BATCH) {
+      const batch = addresses.slice(offset, offset + CORE_UTXO_ADDRESS_BATCH)
+      const response = await fetch(`${baseUrl}/addresses/utxo?addresses=${batch.join(',')}`)
+
+      if (!response.ok) {
+        throw new Error(`Core explorer error for addresses utxo: HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!Array.isArray(data)) {
+        continue
+      }
+
+      for (const utxo of data) {
+        utxos.push({
+          txid: utxo.prevTxHash,
+          vout: toCount(utxo.vOutIndex),
+          amount: toBigInt(utxo.amount),
+          address: utxo.address,
+          blockHeight: utxo.blockHeight == null ? undefined : toCount(utxo.blockHeight),
+          confirmations: utxo.confirmations == null ? undefined : toCount(utxo.confirmations),
+          timestamp: typeof utxo.timestamp === 'string' ? Date.parse(utxo.timestamp) : undefined
+        })
+      }
+    }
+
+    return utxos
   }
 }

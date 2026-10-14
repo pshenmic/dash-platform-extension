@@ -1,5 +1,5 @@
 import { CoreExplorerService } from '../../../src/content-script/services/CoreExplorerService'
-import { CORE_EXPLORER_URLS } from '../../../src/constants'
+import { CORE_EXPLORER_URLS, CORE_UTXO_ADDRESS_BATCH } from '../../../src/constants'
 
 describe('CoreExplorerService', () => {
   const testnetBase = CORE_EXPLORER_URLS.testnet.api
@@ -209,6 +209,74 @@ describe('CoreExplorerService', () => {
     })
   })
 
+  describe('getXpubUtxos', () => {
+    const page = (rows: Array<[string, string]>, total: number): unknown => ({
+      resultSet: rows.map(([address, amount], index) => ({ address, prevTxHash: 'f'.repeat(64), vOutIndex: index, amount })),
+      pagination: { page: 1, limit: 100, total }
+    })
+
+    it('maps the account outputs and keeps the address that received each one', async () => {
+      mockResponse({ json: page([['yOwnA', '100000000'], ['yOwnB', '250']], 2) })
+
+      const utxos = await service.getXpubUtxos('tpubXpub', 'testnet')
+
+      expect(fetchMock.mock.calls[0][0]).toBe(`${testnetBase}/xpub/utxo`)
+      expect(utxos).toEqual([
+        { address: 'yOwnA', txid: 'f'.repeat(64), vout: 0, amount: 100000000n },
+        { address: 'yOwnB', txid: 'f'.repeat(64), vout: 1, amount: 250n }
+      ])
+    })
+
+    it('walks every page the explorer reports', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ status: 200, ok: true, json: async () => page(Array.from({ length: 100 }, () => ['yOwn', '1'] as [string, string]), 101) })
+        .mockResolvedValueOnce({ status: 200, ok: true, json: async () => page([['yOwn', '1']], 101) })
+
+      expect(await service.getXpubUtxos('tpubXpub', 'testnet')).toHaveLength(101)
+      expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ xpub: 'tpubXpub', page: 2, limit: 100 })
+    })
+
+    it('throws on a non-OK response', async () => {
+      mockResponse({ status: 500, json: {} })
+
+      await expect(service.getXpubUtxos('tpubXpub', 'testnet')).rejects.toThrow('HTTP 500')
+    })
+  })
+
+  describe('getOutputSpender', () => {
+    const transaction = (outputs: unknown[]): unknown => ({ hash: 'a'.repeat(64), vOut: outputs })
+
+    it('names the transaction that spent the output paying the address', async () => {
+      mockResponse({
+        json: transaction([
+          { number: 0, address: 'yOther', spentTxId: 'c'.repeat(64) },
+          { number: 1, address: 'yOwn', spentTxId: 'd'.repeat(64) }
+        ])
+      })
+
+      expect(await service.getOutputSpender('a'.repeat(64), 'yOwn', 'testnet')).toBe('d'.repeat(64))
+      expect(fetchMock).toHaveBeenCalledWith(`${testnetBase}/transaction/${'a'.repeat(64)}`)
+    })
+
+    it('is null while the output is unspent', async () => {
+      mockResponse({ json: transaction([{ number: 0, address: 'yOwn', spentTxId: null }]) })
+
+      expect(await service.getOutputSpender('a'.repeat(64), 'yOwn', 'testnet')).toBeNull()
+    })
+
+    it('is null for a transaction the explorer does not know (404)', async () => {
+      mockResponse({ status: 404, json: { error: 'Transaction not found' } })
+
+      expect(await service.getOutputSpender('a'.repeat(64), 'yOwn', 'testnet')).toBeNull()
+    })
+
+    it('throws on other non-OK responses', async () => {
+      mockResponse({ status: 500, json: {} })
+
+      await expect(service.getOutputSpender('a'.repeat(64), 'yOwn', 'testnet')).rejects.toThrow('HTTP 500')
+    })
+  })
+
   describe('getXpubTransactions', () => {
     // Trimmed from the explorer's real reply for testnet transaction 96a08147…
     const confirmed = {
@@ -277,6 +345,50 @@ describe('CoreExplorerService', () => {
       mockResponse({ status: 400, json: { error: 'Unknown cursor transaction' } })
 
       await expect(service.getXpubTransactions('tpubXpub', 'testnet', 25, 'd'.repeat(64))).rejects.toThrow('HTTP 400')
+    })
+  })
+
+  describe('getAddressesUtxos', () => {
+    const okUtxos = (body: unknown): void => {
+      fetchMock.mockResolvedValue({ status: 200, ok: true, json: async () => body })
+    }
+
+    it('asks for every address in one call and tags each utxo with its address', async () => {
+      okUtxos([
+        { prevTxHash: 'aa', vOutIndex: 0, address: 'yOne', amount: '1000' },
+        { prevTxHash: 'bb', vOutIndex: 1, address: 'yTwo', amount: '2500' }
+      ])
+
+      const utxos = await service.getAddressesUtxos(['yOne', 'yTwo'], 'testnet')
+
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock).toHaveBeenCalledWith(`${testnetBase}/addresses/utxo?addresses=yOne,yTwo`)
+      expect(utxos).toEqual([
+        { txid: 'aa', vout: 0, amount: 1000n, address: 'yOne' },
+        { txid: 'bb', vout: 1, amount: 2500n, address: 'yTwo' }
+      ])
+    })
+
+    it('chunks a long address list so the query string stays bounded', async () => {
+      okUtxos([])
+
+      const addresses = Array.from({ length: CORE_UTXO_ADDRESS_BATCH + 1 }, (_, index) => `yAddr${index}`)
+
+      await service.getAddressesUtxos(addresses, 'testnet')
+
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(fetchMock).toHaveBeenLastCalledWith(`${testnetBase}/addresses/utxo?addresses=yAddr${CORE_UTXO_ADDRESS_BATCH}`)
+    })
+
+    it('makes no request for an empty address list', async () => {
+      expect(await service.getAddressesUtxos([], 'testnet')).toEqual([])
+      expect(fetchMock).not.toHaveBeenCalled()
+    })
+
+    it('throws on a non-ok response', async () => {
+      fetchMock.mockResolvedValue({ status: 503, ok: false, json: async () => ({}) })
+
+      await expect(service.getAddressesUtxos(['yOne'], 'testnet')).rejects.toThrow('HTTP 503')
     })
   })
 })
