@@ -250,6 +250,7 @@ export class PrivateAPI {
       [MessagingMethods.LIST_CORE_UTXOS]: new ListCoreUtxosHandler(walletRepository, coreUtxos),
       [MessagingMethods.GET_CORE_BALANCE]: new GetCoreBalanceHandler(walletRepository, coreExplorer, coreUtxos),
       [MessagingMethods.GET_CORE_TRANSACTIONS]: new GetCoreTransactionsHandler(walletRepository, coreExplorer),
+      [MessagingMethods.SEND_CORE_TRANSFER]: new SendCoreTransferHandler(walletRepository, coreExplorer, this.sdk, this.coreSDK),
       [MessagingMethods.SEND_CORE_TRANSFER]: new SendCoreTransferHandler(walletRepository, corePendingSpendsRepository, coreSpend, this.sdk),
       [MessagingMethods.SEND_CORE_TRANSACTION]: new SendCoreTransactionHandler(walletRepository, corePendingSpendsRepository, coreSpend),
       [MessagingMethods.ESTIMATE_CORE_TRANSFER]: new EstimateCoreTransferHandler(walletRepository, coreSpend),

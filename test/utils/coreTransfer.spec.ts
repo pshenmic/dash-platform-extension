@@ -1,7 +1,6 @@
-import { buildCoreTransfer, buildCoreTransferMulti, estimateCoreFee, estimateCoreTxSize, maxCoreSpend, reconcilePendingSpends, selectCoreUtxos } from '../../src/utils/coreTransfer'
+import { buildCoreTransfer, buildCoreTransferMulti, maxCoreSpend, estimateCoreFee, estimateCoreTxSize, selectCoreUtxos } from '../../src/utils/coreTransfer'
 import { CoreWalletUtxo } from '../../src/content-script/services/CoreExplorerService'
-import { CorePendingSpendSchema } from '../../src/content-script/storage/storageSchema'
-import { CORE_DUST_THRESHOLD, CORE_PENDING_SPEND_TTL_MS } from '../../src/constants'
+import { CORE_DUST_THRESHOLD } from '../../src/constants'
 
 // Valid testnet P2PKH addresses (base58check over a fixed hash160), so the real
 // address decoding runs instead of being stubbed.
