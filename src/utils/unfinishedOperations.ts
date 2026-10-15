@@ -3,11 +3,11 @@ import type { EndpointType, TransferDraft } from '../ui/states/sendTransaction/t
 import { CORE_DASH_DECIMALS, SHIELD_DEPOSIT_FEE_DUFFS, assetLockPayment, formatDashAmount } from './transferAmount'
 import { isShieldToMyself } from './transferDirection'
 
-// Core payment locked on L1 whose Platform side the same *FromWallet call finishes; `recipient` null is the wallet's own shielded pool.
+// Core payment made on L1 whose Platform side the same *FromWallet call finishes; `recipient` null is the wallet's own shielded pool.
 export interface UnfinishedOperation {
   purpose: 'topUp' | 'fundAddress' | 'shield'
   recipient: string | null
-  assetLockTxid: string
+  fundingTxid: string
   lockedDuffs: bigint
 }
 
@@ -35,7 +35,7 @@ export const unfinishedOperations = (locks: PendingAssetLock[]): UnfinishedOpera
     if (seen.has(key)) return []
     seen.add(key)
 
-    return [{ purpose: lock.purpose, recipient: recipient ?? null, assetLockTxid: lock.assetLockTxid, lockedDuffs: BigInt(lock.amountDuffs) }]
+    return [{ purpose: lock.purpose, recipient: recipient ?? null, fundingTxid: lock.fundingTxid, lockedDuffs: BigInt(lock.amountDuffs) }]
   })
 }
 

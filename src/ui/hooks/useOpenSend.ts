@@ -17,13 +17,13 @@ export function useOpenSend (scope: SendScope = 'all', identityId?: string): () 
   }, [navigate, location.pathname, location.search, scope, identityId])
 }
 
-/** Opens the send screen on Confirm of the unfinished operation with this asset lock. */
-export function useOpenContinueOperation (): (assetLockTxid: string) => void {
+/** Opens the send screen on Confirm of the unfinished operation with this funding transaction. */
+export function useOpenContinueOperation (): (fundingTxid: string) => void {
   const navigate = useNavigate()
   const location = useLocation()
 
-  return useCallback((assetLockTxid: string): void => {
-    const state: SendContinueState = { ...locationReturnState(`${location.pathname}${location.search}`), continueAssetLockTxid: assetLockTxid }
+  return useCallback((fundingTxid: string): void => {
+    const state: SendContinueState = { ...locationReturnState(`${location.pathname}${location.search}`), continueFundingTxid: fundingTxid }
     void navigate(sendPath('core'), { state })
   }, [navigate, location.pathname, location.search])
 }

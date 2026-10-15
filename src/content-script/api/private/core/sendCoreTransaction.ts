@@ -1,6 +1,5 @@
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
-import { CorePendingSpendsRepository } from '../../../repository/CorePendingSpendsRepository'
 import { CoreSpendService } from '../../../services/CoreSpendService'
 import { EventData } from '../../../../types/EventData'
 import { SendCoreTransactionPayload } from '../../../../types/messages/payloads/SendCoreTransactionPayload'
@@ -13,12 +12,10 @@ import { validateCoreAddress } from '../../../../utils'
 // form of SEND_CORE_TRANSFER, which stays as the one-recipient shorthand.
 export class SendCoreTransactionHandler implements APIHandler {
   walletRepository: WalletRepository
-  corePendingSpendsRepository: CorePendingSpendsRepository
   coreSpend: CoreSpendService
 
-  constructor (walletRepository: WalletRepository, corePendingSpendsRepository: CorePendingSpendsRepository, coreSpend: CoreSpendService) {
+  constructor (walletRepository: WalletRepository, coreSpend: CoreSpendService) {
     this.walletRepository = walletRepository
-    this.corePendingSpendsRepository = corePendingSpendsRepository
     this.coreSpend = coreSpend
   }
 
@@ -58,7 +55,6 @@ export class SendCoreTransactionHandler implements APIHandler {
       sendMax: payload.sendMax
     })
 
-    await this.corePendingSpendsRepository.remove(prepared.resolvedTxids)
     await this.coreSpend.broadcast(prepared)
 
     return {

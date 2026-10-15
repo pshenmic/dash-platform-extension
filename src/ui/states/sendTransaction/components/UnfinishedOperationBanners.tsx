@@ -16,7 +16,7 @@ export function UnfinishedOperationBanners ({ operations, onContinue }: Unfinish
   return (
     <div className='flex flex-col gap-2'>
       {operations.map(operation => (
-        <Banner key={operation.assetLockTxid} variant='warning'>
+        <Banner key={operation.fundingTxid} variant='warning'>
           <div className='flex items-center gap-3 w-full'>
             <UnfinishedOperationSummary operation={operation} />
             <Button colorScheme='lightBlue' size='sm' className='shrink-0' onClick={() => onContinue(operation)}>Continue</Button>

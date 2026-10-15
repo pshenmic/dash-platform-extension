@@ -8,15 +8,13 @@ describe('AssetLockFundingService', () => {
 
   let coreExplorer: any
   let coreSpend: any
-  let corePendingSpendsRepository: any
   let assetLockFundingAddressesRepository: any
   let service: AssetLockFundingService
 
   const prepared = {
     txid: 'b'.repeat(64),
     feeDuffs: 226n,
-    changeDuffs: 89_774n,
-    resolvedTxids: ['c'.repeat(64)]
+    changeDuffs: 89_774n
   }
 
   const fund = async (amountDuffs = 100_000n): Promise<any> => await service.fundFromWallet({
@@ -36,13 +34,12 @@ describe('AssetLockFundingService', () => {
       prepare: jest.fn(async () => prepared),
       broadcast: jest.fn(async () => {})
     }
-    corePendingSpendsRepository = { remove: jest.fn(async () => {}) }
     assetLockFundingAddressesRepository = {
       getByAddress: jest.fn(async () => ({ address: FUNDING_ADDRESS, used: false })),
       markAsFunded: jest.fn(async () => {})
     }
 
-    service = new AssetLockFundingService(coreExplorer, coreSpend, corePendingSpendsRepository)
+    service = new AssetLockFundingService(coreExplorer, coreSpend)
   })
 
   it('pays the funding address out of the wallet and reports the transaction', async () => {
@@ -67,12 +64,6 @@ describe('AssetLockFundingService', () => {
     // is sitting on the address when the operation stops here.
     expect(assetLockFundingAddressesRepository.markAsFunded).toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000')
     expect(order).toEqual(['markAsFunded', 'broadcast'])
-  })
-
-  it('forgets pending spends the explorer has caught up with', async () => {
-    await fund()
-
-    expect(corePendingSpendsRepository.remove).toHaveBeenCalledWith(prepared.resolvedTxids)
   })
 
   it('pays nothing when the recorded payment is already on its way', async () => {

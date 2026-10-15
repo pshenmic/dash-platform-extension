@@ -92,7 +92,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const settledStatus = operationState.status === 'success' || operationState.status === 'failed' ? operationState.status : null
   const navigation = useStepNavigation()
   const { goToStep } = navigation
-  const continueTxid = (location.state as SendContinueState | null)?.continueAssetLockTxid ?? null
+  const continueTxid = (location.state as SendContinueState | null)?.continueFundingTxid ?? null
   const { resumedOperation, pendingOperations, continueOperation, handleRetry } = useTransferRetry({ api, draft, settledStatus, continueTxid, reloadCoreBalance: core.reload, resetDraft: actions.reset, resetOperation: operation.reset, goToStep })
   const isContinuing = resumedOperation != null
   // An unfinished operation to the same recipient is completed instead of the typed amount.

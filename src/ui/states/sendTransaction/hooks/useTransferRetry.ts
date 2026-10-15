@@ -45,7 +45,7 @@ export function useTransferRetry ({ api, draft, settledStatus, continueTxid, rel
 
   // Continues the requested operation once the list holds it.
   useEffect(() => {
-    const operation = pendingOperations.find(item => item.assetLockTxid === continueTxidRef.current)
+    const operation = pendingOperations.find(item => item.fundingTxid === continueTxidRef.current)
     if (operation == null) return
     continueTxidRef.current = null
     continueOperation(operation)

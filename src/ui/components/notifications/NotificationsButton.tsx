@@ -25,9 +25,9 @@ export function NotificationsButton ({ walletId, network, isLightChrome }: Notif
     if (open) reload()
   }
 
-  const continueOperation = (assetLockTxid: string): void => {
+  const continueOperation = (fundingTxid: string): void => {
     setIsOpen(false)
-    openContinueOperation(assetLockTxid)
+    openContinueOperation(fundingTxid)
   }
 
   const content = (

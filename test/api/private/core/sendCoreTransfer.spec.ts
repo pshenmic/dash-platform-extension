@@ -46,7 +46,6 @@ describe('SendCoreTransferHandler', () => {
   const password = 'test'
 
   let walletRepository: any
-  let corePendingSpendsRepository: any
   let coreExplorer: any
   let sdk: any
   let coreSDK: any
@@ -68,12 +67,6 @@ describe('SendCoreTransferHandler', () => {
         currentIdentity: null
       })),
       getCoreAccountXpub: jest.fn(async () => 'tpubAccountXpub')
-    }
-
-    corePendingSpendsRepository = {
-      getAll: jest.fn(async () => []),
-      record: jest.fn(async () => {}),
-      remove: jest.fn(async () => {})
     }
 
     coreExplorer = {
@@ -110,10 +103,10 @@ describe('SendCoreTransferHandler', () => {
 
     // The real services over the mocked explorer: the send must pick from
     // exactly the set the UTXO list and the balance report.
-    const coreUtxos = new CoreUtxosService(sdk, coreExplorer, corePendingSpendsRepository)
-    const coreSpend = new CoreSpendService(sdk, coreSDK, coreUtxos, corePendingSpendsRepository)
+    const coreUtxos = new CoreUtxosService(sdk, coreExplorer)
+    const coreSpend = new CoreSpendService(sdk, coreSDK, coreUtxos)
 
-    handler = new SendCoreTransferHandler(walletRepository, corePendingSpendsRepository, coreSpend, sdk)
+    handler = new SendCoreTransferHandler(walletRepository, coreSpend, sdk)
   })
 
   it('spends the wallet outputs, signs and broadcasts the transaction', async () => {

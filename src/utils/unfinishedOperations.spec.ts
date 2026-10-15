@@ -9,6 +9,7 @@ const lock = (fields: Partial<PendingAssetLock>): PendingAssetLock => ({
   fundingAddress: 'yFunding',
   fundingTxid: 'paid',
   purpose: 'topUp',
+  stage: 'assetLocked',
   identityId: 'identity',
   platformAddress: null,
   shieldedAddress: null,
@@ -26,9 +27,15 @@ describe('unfinishedOperations', () => {
     ])
 
     expect(result).toEqual([
-      { purpose: 'topUp', recipient: 'identity', assetLockTxid: 'lock', lockedDuffs: 99000n },
-      { purpose: 'fundAddress', recipient: 'tdash1address', assetLockTxid: 'lock', lockedDuffs: 99000n },
-      { purpose: 'shield', recipient: 'tdash1shielded', assetLockTxid: 'lock', lockedDuffs: 99000n }
+      { purpose: 'topUp', recipient: 'identity', fundingTxid: 'paid', lockedDuffs: 99000n },
+      { purpose: 'fundAddress', recipient: 'tdash1address', fundingTxid: 'paid', lockedDuffs: 99000n },
+      { purpose: 'shield', recipient: 'tdash1shielded', fundingTxid: 'paid', lockedDuffs: 99000n }
+    ])
+  })
+
+  it('keeps a funded record that has no asset lock yet', () => {
+    expect(unfinishedOperations([lock({ stage: 'funded', assetLockTxid: null })])).toEqual([
+      { purpose: 'topUp', recipient: 'identity', fundingTxid: 'paid', lockedDuffs: 99000n }
     ])
   })
 
@@ -39,12 +46,12 @@ describe('unfinishedOperations', () => {
 
   it('keeps only the oldest record per purpose and recipient', () => {
     const result = unfinishedOperations([
-      lock({ assetLockTxid: 'newer', createdAt: 5 }),
-      lock({ assetLockTxid: 'older', createdAt: 2 }),
-      lock({ assetLockTxid: 'other', identityId: 'other', createdAt: 3 })
+      lock({ fundingTxid: 'newer', createdAt: 5 }),
+      lock({ fundingTxid: 'older', createdAt: 2 }),
+      lock({ fundingTxid: 'other', identityId: 'other', createdAt: 3 })
     ])
 
-    expect(result.map(operation => operation.assetLockTxid)).toEqual(['older', 'other'])
+    expect(result.map(operation => operation.fundingTxid)).toEqual(['older', 'other'])
   })
 
   it('leaves out registrations and records a repeated call does not resume', () => {
@@ -61,7 +68,7 @@ describe('unfinishedOperations', () => {
 const operation = (fields: Partial<UnfinishedOperation>): UnfinishedOperation => ({
   purpose: 'topUp',
   recipient: 'identity',
-  assetLockTxid: 'lock',
+  fundingTxid: 'paid',
   lockedDuffs: 99000n,
   ...fields
 })
@@ -80,16 +87,16 @@ const draft = (fields: Partial<TransferDraft>): TransferDraft => ({
 describe('findResumedOperation', () => {
   const operations = [
     operation({}),
-    operation({ purpose: 'fundAddress', recipient: 'tdash1address', assetLockTxid: 'fund' }),
-    operation({ purpose: 'shield', recipient: null, assetLockTxid: 'own' }),
-    operation({ purpose: 'shield', recipient: 'tdash1zother', assetLockTxid: 'other' })
+    operation({ purpose: 'fundAddress', recipient: 'tdash1address', fundingTxid: 'fund' }),
+    operation({ purpose: 'shield', recipient: null, fundingTxid: 'own' }),
+    operation({ purpose: 'shield', recipient: 'tdash1zother', fundingTxid: 'other' })
   ]
 
   it('matches the purpose and the recipient of a Core draft', () => {
-    expect(findResumedOperation(operations, draft({}))?.assetLockTxid).toBe('lock')
-    expect(findResumedOperation(operations, draft({ to: { type: 'platformAddress', recipient: ' tdash1address ', shieldToMyself: false } }))?.assetLockTxid).toBe('fund')
-    expect(findResumedOperation(operations, draft({ to: { type: 'shielded', recipient: '', shieldToMyself: true } }))?.assetLockTxid).toBe('own')
-    expect(findResumedOperation(operations, draft({ to: { type: 'shielded', recipient: 'tdash1zother', shieldToMyself: false } }))?.assetLockTxid).toBe('other')
+    expect(findResumedOperation(operations, draft({}))?.fundingTxid).toBe('paid')
+    expect(findResumedOperation(operations, draft({ to: { type: 'platformAddress', recipient: ' tdash1address ', shieldToMyself: false } }))?.fundingTxid).toBe('fund')
+    expect(findResumedOperation(operations, draft({ to: { type: 'shielded', recipient: '', shieldToMyself: true } }))?.fundingTxid).toBe('own')
+    expect(findResumedOperation(operations, draft({ to: { type: 'shielded', recipient: 'tdash1zother', shieldToMyself: false } }))?.fundingTxid).toBe('other')
   })
 
   it('finds nothing for another recipient, type or sender, and in Advanced mode', () => {

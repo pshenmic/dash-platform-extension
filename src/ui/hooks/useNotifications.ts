@@ -37,7 +37,7 @@ export function useNotifications ({ enabled, walletId, network }: NotificationsP
     extensionAPI.listPendingAssetLocks()
       .then(locks => {
         if (request !== requestRef.current) return
-        setNotifications(unfinishedOperations(locks).map(operation => ({ type: 'unfinishedOperation', id: operation.assetLockTxid, operation })))
+        setNotifications(unfinishedOperations(locks).map(operation => ({ type: 'unfinishedOperation', id: operation.fundingTxid, operation })))
       })
       .catch(e => console.log('listPendingAssetLocks error', e))
   }, [extensionAPI, enabled, walletId, network])
