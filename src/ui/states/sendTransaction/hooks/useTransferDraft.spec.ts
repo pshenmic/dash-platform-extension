@@ -1,0 +1,71 @@
+import { transferDraftReducer } from './useTransferDraft'
+import type { TransferCapabilities } from '../../../../utils'
+import type { TransferDraft } from '../types'
+
+const SEED: TransferCapabilities = { hasCoreLayer: true, hasAddressLayer: true, hasPlatformAddresses: true }
+
+const DRAFT: TransferDraft = {
+  from: { type: 'identity', identityId: 'X' },
+  to: { type: 'core', recipient: 'yAddress', shieldToMyself: true },
+  asset: { type: 'dash' },
+  amount: '1',
+  isAdvanced: false,
+  recipients: [],
+  changeAddress: null
+}
+
+describe('transferDraftReducer', () => {
+  it('keeps a supported To type and its recipient when From changes', () => {
+    const next = transferDraftReducer(DRAFT, { type: 'setFromType', endpointType: 'platformAddress', capabilities: SEED })
+
+    expect(next.to).toEqual(DRAFT.to)
+    expect(next.from.type).toBe('platformAddress')
+  })
+
+  it('moves To to the first supported type and clears the recipient', () => {
+    const shielded = transferDraftReducer(DRAFT, { type: 'setFromType', endpointType: 'shielded', capabilities: SEED })
+    const toIdentity = transferDraftReducer({ ...shielded, to: { ...shielded.to, type: 'shielded' } }, { type: 'setFromType', endpointType: 'identity', capabilities: SEED })
+
+    expect(toIdentity.to.type).toBe('core')
+    expect(toIdentity.to.recipient).toBe('')
+  })
+
+  it('clears the recipient when the To type changes', () => {
+    expect(transferDraftReducer(DRAFT, { type: 'setToType', endpointType: 'identity' }).to.recipient).toBe('')
+  })
+
+  it('shields to myself again after the To type changes', () => {
+    const custom = { ...DRAFT, to: { type: 'shielded' as const, recipient: 'dash1shielded', shieldToMyself: false } }
+
+    expect(transferDraftReducer(custom, { type: 'setToType', endpointType: 'core' }).to.shieldToMyself).toBe(true)
+  })
+
+  it('clears the recipient when Shield to Myself changes', () => {
+    const next = transferDraftReducer(DRAFT, { type: 'setShieldToMyself', value: false })
+
+    expect(next.to).toEqual({ ...DRAFT.to, recipient: '', shieldToMyself: false })
+  })
+
+  it('locks a token to identity -> identity and resets the amount', () => {
+    const draft = { ...DRAFT, from: { ...DRAFT.from, type: 'platformAddress' as const } }
+    const next = transferDraftReducer(draft, { type: 'setAsset', asset: { type: 'token', tokenId: 't' }, capabilities: SEED })
+
+    expect([next.from.type, next.to.type]).toEqual(['identity', 'identity'])
+    expect(next.amount).toBe('')
+  })
+
+  it('seeds Advanced recipients from the Simple recipient and amount', () => {
+    const next = transferDraftReducer(DRAFT, { type: 'setAdvanced', value: true })
+
+    expect(next.isAdvanced).toBe(true)
+    expect(next.recipients).toEqual([{ id: '1', address: 'yAddress', amount: '1' }])
+  })
+
+  it('clears recipients and the change address when the To type changes', () => {
+    const advanced = { ...DRAFT, recipients: [{ id: '1', address: 'a', amount: '1' }], changeAddress: 'yChange' }
+    const next = transferDraftReducer(advanced, { type: 'setToType', endpointType: 'identity' })
+
+    expect(next.recipients).toEqual([])
+    expect(next.changeAddress).toBeNull()
+  })
+})

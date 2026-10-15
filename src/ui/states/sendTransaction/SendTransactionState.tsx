@@ -1,382 +1,336 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { useOutletContext, useLocation, useSearchParams } from 'react-router-dom'
-import { Button, Text } from 'dash-ui-kit/react'
-import { AssetSelectionMenu, AssetSelectorBadge, buildAssetOptions } from '../../components/controls'
-import { TransferSummaryCard } from '../../components/cards'
-import { AmountInputSection } from '../../components/forms'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import {
-  useSendTransactionForm,
-  useTransactionCalculations
-} from '../../hooks'
-import { RecipientSearchInput } from '../../components/Identities'
 import ScreenLoader from '../../components/layout/screens/ScreenLoader'
-import type { TokenData } from '../../../types'
+import { AssetSelectionMenu } from '../../components/controls'
+import { useCoreBalance, usePlatformAddresses, useWalletCapabilities, useWalletPlatformData } from '../../hooks'
+import { locationReturnPath } from '../../types'
 import type { OutletContext } from '../../types'
-import { WalletType } from '../../../types'
-import { ESTIMATED_FEES } from '../../constants/transaction'
-import { TRANSFER_FEE_CREDITS, SHIELDED_SPEND_FEE_CREDITS } from '../../../constants'
-import {
-  getFormattedBalance,
-  getAssetLabel,
-  getAssetDecimals
-} from '../../../utils/transactionFormatters'
-import { AssetBalanceLabel } from '../../components/data'
-import { parseCreditsAmount } from '../../../utils'
-import type { SenderType, TransferMode } from './types'
 import { parseSendScope } from '../../utils/sendPath'
-import { SHIELDED_POOL_OPTIONS } from './constants'
-import { buildTransferSummary } from './transferSummary'
-import { usePlatformAddresses } from './hooks/usePlatformAddresses'
-import { useIdentityBalances } from './hooks/useIdentityBalances'
-import { useShieldedBalance } from './hooks/useShieldedBalance'
-import { useSendSubmit } from './hooks/useSendSubmit'
+import type { SendContinueState } from '../../utils/sendPath'
+import { resumedAmounts, transferAmountInput, validateTransfer } from '../../../utils'
+import type { TransferCapabilities } from '../../../utils'
+import type { AddressData } from '../../components/addresses/types'
+import { resolveEntryDefaults } from './entry/resolveEntryDefaults'
+import type { EntryDefaults } from './entry/resolveEntryDefaults'
+import { resolveDirection } from './directions/resolveDirection'
+import { useTransferDraft } from './hooks/useTransferDraft'
 import { useSendScreenData } from './hooks/useSendScreenData'
+import { useShieldedBalance } from './hooks/useShieldedBalance'
+import { useSourceBalance } from './hooks/useSourceBalance'
+import { coreMaxAmount, recipientCount, shieldedMaxAmount, useTransferFee } from './hooks/useTransferFee'
+import { useTransferSubmit } from './hooks/useTransferSubmit'
+import { useTransferOperation } from './hooks/useTransferOperation'
+import { useTransferRetry } from './hooks/useTransferRetry'
+import { useCoreTransferEstimate } from './hooks/useCoreTransferEstimate'
+import { usePlatformFeeEstimate } from './hooks/usePlatformFeeEstimate'
+import { useChangeAddresses } from './hooks/useChangeAddresses'
 import { useIdentityHeader } from './hooks/useIdentityHeader'
-import { SenderSelector } from './components/SenderSelector'
-import { ShieldedSenderPanel } from './components/ShieldedSenderPanel'
-import { AssetSelectionStep } from './components/AssetSelectionStep'
-import { SendValidationBanners } from './components/SendValidationBanners'
+import { STEP_INDEX, useStepNavigation, useWizardStep } from './hooks/useWizardStep'
+import { useTransferApi } from './transferApi'
+import { WizardHeader } from './components/WizardHeader'
+import { UnfinishedOperationBanners } from './components/UnfinishedOperationBanners'
+import { maxRecipients } from './constants'
+import { FromToStep } from './steps/FromToStep/FromToStep'
+import { AmountStep } from './steps/AmountStep'
+import { ConfirmStep } from './steps/ConfirmStep'
+import { ProgressStep } from './steps/ProgressStep'
+import { ResultStep } from './steps/ResultStep'
+import { RecipientsOverlay } from './overlays/RecipientsOverlay'
+import { AdvancedSummary } from './steps/FromToStep/AdvancedSummary'
+import type { TransferOutcome } from './steps/ResultStep'
+import type { SourceIdentity } from './types'
 
-function SendTransactionState (): React.JSX.Element {
+interface SendWizardProps {
+  entry: EntryDefaults
+  capabilities: TransferCapabilities
+  platformAddresses: AddressData[]
+}
+
+function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps): React.JSX.Element {
+  const navigate = useNavigate()
   const location = useLocation()
-  const { currentNetwork, currentIdentity, setHeaderComponent, allWallets, currentWallet, availableIdentities } = useOutletContext<OutletContext>()
-  const locationState = location.state as { selectedToken?: string } | null
-  const [searchParams] = useSearchParams()
-  const [showAssetSelection, setShowAssetSelection] = useState(false)
+  const { currentNetwork, currentWallet, currentIdentity, allWallets, availableIdentities, setHeaderComponent, setHeaderConfigOverride } = useOutletContext<OutletContext>()
+  const network = currentNetwork ?? 'testnet'
+  const api = useTransferApi()
+  const returnPath = useRef(locationReturnPath(location.state, '/')).current
 
-  // Tokens belong to a single identity, so they are only offered when the screen
-  // was opened from that identity's dashboard. Every other entry sends credits.
-  const sendScope = parseSendScope(searchParams.get('scope'))
-  const scopeIdentity = sendScope === 'identity' ? searchParams.get('identity') : null
-  const tokensEnabled = scopeIdentity != null && scopeIdentity !== ''
+  const { draft, actions } = useTransferDraft(entry.draft, capabilities)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [assetMenuOpen, setAssetMenuOpen] = useState(false)
+  const [recipientsOpen, setRecipientsOpen] = useState(false)
+  // Recipients being edited in the overlay, priced before they are applied.
+  const [overlayCount, setOverlayCount] = useState<number | null>(null)
 
-  const [assetChosen, setAssetChosen] = useState(locationState?.selectedToken != null)
-  const [senderType, setSenderType] = useState<SenderType>('identity')
-  const [selectedPlatformAddress, setSelectedPlatformAddress] = useState<string | null>(null)
-  const [selectedShieldedAddress, setSelectedShieldedAddress] = useState<string | null>(null)
-  // An identity scope names its sender, so the selector starts there instead of
-  // on whichever identity happens to be current.
-  const [selectedIdentity, setSelectedIdentity] = useState<string | null>(tokensEnabled ? scopeIdentity : null)
-  const senderIdentity = selectedIdentity ?? currentIdentity
-
-  // Sender balance, exchange rate and token list.
-  const { balance, rate, tokensState } = useSendScreenData({
-    senderIdentity,
-    tokensIdentity: tokensEnabled ? scopeIdentity : null,
-    currentNetwork
-  })
-
-  // Wallet type of the current wallet (platform transfers are seedphrase-only).
-  const walletType = useMemo((): string | null => {
-    if (currentWallet == null || allWallets == null) return null
-    return allWallets.find(wallet => wallet.walletId === currentWallet)?.type ?? null
-  }, [allWallets, currentWallet])
-
-  // Platform addresses + balances (seedphrase wallets only).
-  const { platformAddresses, platformBalances } = usePlatformAddresses(walletType, currentWallet)
-
-  // The new sender-selection flow is only offered for seedphrase wallets that
-  // have already initialized (created) platform addresses.
-  const platformFlowEnabled = walletType === WalletType.seedphrase && platformAddresses.length > 0
-
-  // A keystore wallet has no address layers, but it can still hold several
-  // identities — it gets the identity picker alone, without the sender types.
-  const senderSelectEnabled = platformFlowEnabled || availableIdentities.length > 1
-
-  // Balances for the sender identity selector.
-  const { identityBalances, identityBalancesLoading } = useIdentityBalances(senderSelectEnabled, availableIdentities)
-
-  // Shielded balance — password-gated, so it stays null until the user unlocks it.
+  const identityId = draft.from.type === 'identity' ? draft.from.identityId : null
+  const tokenId = draft.asset.type === 'token' ? draft.asset.tokenId : null
+  const { balance: identityBalance, rate, tokensState } = useSendScreenData(identityId, network)
+  const tokens = useMemo(() => tokensState.data ?? [], [tokensState.data])
+  const token = tokenId != null ? tokens.find(item => item.identifier === tokenId) : undefined
+  // Platform Explorer answers faster than DAPI, so it supplies the balances of the identity list.
+  const platformData = useWalletPlatformData(availableIdentities, currentNetwork)
   const shielded = useShieldedBalance()
+  const core = useCoreBalance(currentWallet, capabilities.hasCoreLayer)
+  const coreBalance = core.balance != null ? BigInt(core.balance.balance) : null
 
-  // Balance of the selected sender (platform address / unlocked pool / identity),
-  // driving the amount Max/slider so it can't exceed the spendable funds.
-  const selectedPlatformBalance = selectedPlatformAddress != null
-    ? platformBalances.get(selectedPlatformAddress) ?? null
-    : null
-  // Restricting the spend to one shielded address caps the amount at what that
-  // address holds; spending the whole pool uses the aggregate.
-  const shieldedSenderBalance = selectedShieldedAddress != null
-    ? shielded.addresses.find(entry => entry.address === selectedShieldedAddress)?.balance ?? null
-    : shielded.balance
-  const senderBalance = senderType === 'platform'
-    ? selectedPlatformBalance
-    : senderType === 'shielded'
-      ? shieldedSenderBalance
-      : balance
+  const resolution = resolveDirection(draft.from.type, draft.to.type, draft.asset, capabilities)
+  const config = resolution.supported ? resolution.config : null
+  const mode = config?.mode ?? null
+  const advancedAvailable = config?.advanced === true && draft.asset.type === 'dash'
 
-  // Shielded spends estimate their own fee; transparent platform transfers use
-  // the flat transfer fee.
-  const platformFeeCredits = senderType === 'shielded' ? SHIELDED_SPEND_FEE_CREDITS : TRANSFER_FEE_CREDITS
+  const balance = useSourceBalance({ draft, identityBalance, coreBalance, platformAddresses, shieldedBalance: shielded.balance, token })
+  const input = transferAmountInput(draft, mode, balance.decimals)
+  const { limits, recipientsCheck, amount } = input
+  const coreEstimate = useCoreTransferEstimate({ api, config, draft, amount, recipientsValid: recipientsCheck.isValid, balance: coreBalance })
+  const platformOutputCount = recipientsOpen && overlayCount != null ? overlayCount : recipientCount(draft)
+  const platformEstimate = usePlatformFeeEstimate({ api, mode, identityId, sourceAddress: balance.sourceAddress, outputCount: platformOutputCount, balance: balance.amount })
+  const fee = useTransferFee({ config, draft, coreEstimate, platformEstimate, network, shieldedSpendEstimates: shielded.spendEstimates })
+  const knownMax = shieldedMaxAmount(config, shielded.spendEstimates) ?? coreMaxAmount(config, recipientCount(draft), coreEstimate.maxAmountDuffs) ?? platformEstimate.estimate?.maxAmountCredits ?? null
 
-  // Form state hook
-  const formState = useSendTransactionForm({
-    balance: senderBalance,
-    rate,
-    currentNetwork,
-    tokens: tokensState.data ?? [],
-    platformTransfer: senderType !== 'identity',
-    platformFeeCredits
-  })
+  const operation = useTransferOperation()
+  const operationState = operation.state
+  const settledStatus = operationState.status === 'success' || operationState.status === 'failed' ? operationState.status : null
+  const navigation = useStepNavigation()
+  const { goToStep } = navigation
+  const continueTxid = (location.state as SendContinueState | null)?.continueFundingTxid ?? null
+  const { resumedOperation, pendingOperations, continueOperation, handleRetry } = useTransferRetry({ api, draft, settledStatus, continueTxid, reloadCoreBalance: core.reload, resetDraft: actions.reset, resetOperation: operation.reset, goToStep })
+  const isContinuing = resumedOperation != null
+  // An unfinished operation to the same recipient is completed instead of the typed amount.
+  const resumed = resumedOperation != null ? resumedAmounts(resumedOperation) : null
+  const sentAmount = resumed?.amount ?? amount
 
-  // Get selected token helper
-  const getSelectedToken = (): TokenData | undefined => {
-    if (formState.formData.selectedAsset === 'credits') {
-      return undefined
-    }
-    return tokensState.data?.find(token => token.identifier === formState.formData.selectedAsset)
-  }
+  const { isChecking, submit } = useTransferSubmit({ api, mode, draft, amount: sentAmount, sourceAddress: balance.sourceAddress, walletId: currentWallet, network, track: operation.track })
 
-  // Transaction calculations hook
-  const calculations = useTransactionCalculations({
-    selectedAsset: formState.formData.selectedAsset,
-    amount: formState.formData.amount,
+  const validation = validateTransfer({
+    draft,
+    mode,
     balance,
-    rate,
-    currentNetwork,
-    token: getSelectedToken()
+    assetKnown: draft.asset.type === 'dash' || token != null,
+    fee,
+    knownMax,
+    knownMin: platformEstimate.estimate?.minAmountCredits ?? null,
+    input,
+    senderIdentifier: draft.from.type === 'identity' ? draft.from.identityId : balance.sourceAddress,
+    shieldedReady: draft.from.type !== 'shielded' || (shielded.balance != null && !shielded.isWarmingProver),
+    isResumingFunding: isContinuing
+  })
+  const { maxAmount, amountError, advancedError, recipientError, received, fromToValid, amountValid } = validation
+  const step = useWizardStep(navigation, {
+    fromToValid,
+    amountValid,
+    isAdvanced: draft.isAdvanced,
+    hasOutcome: settledStatus != null,
+    isOperationIdle: operationState.status === 'idle',
+    settledStatus
   })
 
-  const isCredits = formState.formData.selectedAsset === 'credits'
-  const recipientType = formState.selectedRecipient?.type ?? null
+  const outcome: TransferOutcome | null = operationState.status === 'success'
+    ? { type: 'success', hashes: operationState.hashes, fee: operationState.fee, continued: operationState.continued, credited: operationState.credited }
+    : operationState.status === 'failed' ? { type: 'error', message: operationState.error } : null
 
-  // Sender identifier, used to keep it out of the recipient field and block
-  // self-sends. The shielded pool has no identifier to collide with.
-  const senderIdentifier = senderType === 'platform'
-    ? selectedPlatformAddress
-    : senderType === 'shielded'
-      ? selectedShieldedAddress
-      : senderIdentity
-  // The recipient identity (if any), kept out of the sender identity selector.
-  const recipientIdentity = formState.selectedRecipient?.type === 'identity' ? formState.selectedRecipient.identifier : null
-  const isSameParty = formState.selectedRecipient != null &&
-    senderIdentifier != null &&
-    formState.selectedRecipient.identifier === senderIdentifier
-
-  // Recipients paid through a platform transfer (flat fee).
-  // Identity -> Core (L1) is an identity withdrawal, so it is not one of them.
-  const isAddressRecipient = recipientType != null && recipientType !== 'identity' &&
-    !(senderType === 'identity' && recipientType === 'coreAddress')
-
-  // Resolve the transfer action from the sender × recipient matrix (see the table
-  // in PLATFORM_ADDRESSES_UI_TODO.md). Anything not matched has no API → 'unsupported'.
-  const transferMode: TransferMode = useMemo(() => {
-    if (formState.selectedRecipient == null) return 'incomplete'
-    if (!isCredits) return 'tokenTransfer'
-    if (senderType === 'identity') {
-      if (recipientType === 'platformAddress') return 'fund'
-      if (recipientType === 'identity') return 'creditTransfer'
-      if (recipientType === 'coreAddress') return 'identityWithdraw'
-      return 'unsupported'
-    }
-    if (senderType === 'platform') {
-      if (recipientType === 'platformAddress') return 'send'
-      if (recipientType === 'identity') return 'topup'
-      if (recipientType === 'coreAddress') return 'withdraw'
-      if (recipientType === 'shieldedPool') return 'shield'
-      return 'unsupported'
-    }
-    if (recipientType === 'shieldAddress') return 'shieldedTransfer'
-    if (recipientType === 'platformAddress') return 'unshield'
-    if (recipientType === 'coreAddress') return 'shieldedWithdraw'
-    return 'unsupported'
-  }, [formState.selectedRecipient, isCredits, senderType, recipientType])
-
-  const shieldedSourceSupported = transferMode === 'incomplete' || transferMode === 'shieldedTransfer'
-
-  // Whether the fee/summary should reflect a platform transfer. Driven by the
-  // sender type (and recipient) rather than the fully-resolved transferMode, so
-  // switching the sender to a platform address updates the fee immediately.
-  const isPlatformMode = isCredits && (senderType !== 'identity' || isAddressRecipient)
-
-  const token = getSelectedToken()
-
-  const { isLoading, handleSend } = useSendSubmit({
-    currentIdentity,
-    selectedIdentity,
-    formState,
-    transferMode,
-    isSameParty,
-    selectedPlatformAddress,
-    selectedShieldedAddress: shieldedSourceSupported ? selectedShieldedAddress : null,
-    token
-  })
-
-  // Set selected token from navigation state
-  useEffect(() => {
-    if (locationState?.selectedToken != null && tokensState.data != null) {
-      const tokenExists = tokensState.data.some(token => token.identifier === locationState.selectedToken)
-      if (tokenExists) {
-        formState.handleAssetSelect(locationState.selectedToken)
-        setAssetChosen(true)
-      }
-
-      window.history.replaceState({}, document.title)
-    }
-  }, [locationState, tokensState.data, formState.handleAssetSelect])
+  const changeAddresses = useChangeAddresses(api, draft.isAdvanced && draft.from.type === 'core', currentWallet, network)
 
   useIdentityHeader({ currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent })
 
-  // Tokens can only be transferred between identities, so a token asset forces
-  // the sender back to Identity.
+  // Falls back to Simple once the direction or asset has no multi-output transfer.
   useEffect(() => {
-    if (!isCredits && senderType !== 'identity') {
-      setSenderType('identity')
-    }
-  }, [isCredits, senderType])
+    if (draft.isAdvanced && !advancedAvailable) actions.setAdvanced(false)
+  }, [draft.isAdvanced, advancedAvailable, actions])
 
-  // Drop a picked shielded source when the resolved transfer can't spend from it,
-  // or when a re-read of the pool no longer reports that address.
+  // Leaves an unknown token for Dash once the identity's tokens are known.
   useEffect(() => {
-    if (selectedShieldedAddress === null) return
+    const tokensKnown = tokensState.data != null || tokensState.error != null
+    if (draft.asset.type === 'token' && tokensKnown && token == null) actions.setAsset({ type: 'dash' })
+  }, [draft.asset, tokensState.data, tokensState.error, token, actions])
 
-    const stillPresent = shielded.addresses.some(entry => entry.address === selectedShieldedAddress)
-
-    if (!shieldedSourceSupported || !stillPresent) {
-      setSelectedShieldedAddress(null)
-    }
-  }, [shieldedSourceSupported, selectedShieldedAddress, shielded.addresses])
-
-  // Clamp the amount to the sender's available balance whenever the sender
-  // changes: async (identity balance loads) in Case 1, sync (sender type /
-  // platform address) in Case 2.
-  const prevBalanceRef = useRef<bigint | null>(null)
-
-  // Case 1: identity balance loaded/changed -> clamp if needed
+  // Hides the header back button while the transfer runs and on the final screens.
+  const isFinal = step === 'result' || step === 'error'
+  const hideBack = isFinal || step === 'progress'
   useEffect(() => {
-    const prev = prevBalanceRef.current
-    prevBalanceRef.current = balance
+    if (!hideBack) return
+    setHeaderConfigOverride({ hideLeftSection: true })
+    return () => setHeaderConfigOverride(null)
+  }, [hideBack, setHeaderConfigOverride])
 
-    // Skip initial null -> first value transition and cases with no amount
-    if (prev === null || balance === null || balance === prev) return
-    if (formState.formData.amount === '' || formState.formData.amount === '.') return
-
-    const network = currentNetwork ?? 'testnet'
-    const isPlatformRecipient = isAddressRecipient
-    const fee = isPlatformRecipient ? platformFeeCredits : ESTIMATED_FEES[network].credits
-    const available = balance - fee
-
-    if (available <= 0n || Number(formState.formData.amount) > Number(available)) {
-      formState.handleQuickAmount(1)
-    }
-  }, [balance])
-
-  // Case 2: sender type or platform address changed -> clamp against known balances
-  const isMountedSenderRef = useRef(false)
-  useEffect(() => {
-    if (!isMountedSenderRef.current) {
-      isMountedSenderRef.current = true
-      return
-    }
-    if (formState.formData.amount === '' || formState.formData.amount === '.') return
-
-    if (senderType === 'platform' || senderType === 'shielded') {
-      // Spendable funds of the new sender; unknown (no address / pool locked) -> clear.
-      const sourceBalance = senderType === 'platform'
-        ? (selectedPlatformAddress !== null ? platformBalances.get(selectedPlatformAddress) ?? null : null)
-        : shieldedSenderBalance
-
-      if (sourceBalance == null) {
-        formState.handleAmountChange('')
-        return
-      }
-
-      const available = sourceBalance > platformFeeCredits ? sourceBalance - platformFeeCredits : 0n
-      if (available <= 0n || Number(formState.formData.amount) > Number(available)) {
-        if (available <= 0n) {
-          formState.handleAmountChange('')
-        } else {
-          formState.handleQuickAmount(1)
+  const handleConfirm = (password: string): void => {
+    submit(password)
+      .then(result => {
+        if (result === 'invalidPassword') {
+          setPasswordError('Invalid password')
+          return
         }
-      }
-    } else if (balance !== null) {
-      // Switched back to identity — balance already reflects current identity
-      const network = currentNetwork ?? 'testnet'
-      const isPlatformRecipient = isAddressRecipient
-      const fee = isPlatformRecipient ? platformFeeCredits : ESTIMATED_FEES[network].credits
-      const available = balance - fee
-      if (available <= 0n || Number(formState.formData.amount) > Number(available)) {
-        if (available <= 0n) {
-          formState.handleAmountChange('')
-        } else {
-          formState.handleQuickAmount(1)
-        }
-      }
-    }
-  }, [senderType, selectedPlatformAddress, selectedShieldedAddress, shieldedSenderBalance])
+        if (result === 'started' && config?.hasProgress === true) goToStep('progress', true)
+      })
+      .catch(e => console.log('submit error', e))
+  }
 
-  const formattedBalance = getFormattedBalance(formState.formData.selectedAsset, balance, token)
-  const assetLabel = getAssetLabel(formState.formData.selectedAsset, token)
-  const assetDecimals = getAssetDecimals(formState.formData.selectedAsset, token)
-
-  // Available balance for the percentage slider — for credits, fee is deducted so
-  // 100% on the slider matches exactly what Max produces.
-  const availableBalanceForSlider = useMemo((): string | null => {
-    if (isCredits) {
-      if (senderBalance === null || senderBalance === 0n) return null
-      const network = currentNetwork ?? 'testnet'
-      const isPlatformTransfer = senderType !== 'identity' || isAddressRecipient
-      const fee = isPlatformTransfer ? platformFeeCredits : ESTIMATED_FEES[network].credits
-      const available = senderBalance - fee
-      return available > 0n ? available.toString() : null
-    }
-    return formattedBalance !== '0' ? formattedBalance : null
-  }, [isCredits, senderBalance, senderType, currentNetwork, formState.selectedRecipient, formattedBalance])
-
-  // The sender block (with its own balance display) only shows when there is a
-  // sender to pick and the asset is credits. Otherwise the balance is shown
-  // under the title.
-  const senderBlockShown = senderSelectEnabled && isCredits
-  const showHeaderBalance = !senderBlockShown &&
-    ((isCredits && balance !== null) || (!isCredits && token != null))
-
-  const hasTokens = (tokensState.data?.length ?? 0) > 0
-
-  const tokensReady = tokensState.data !== null || tokensState.error !== null
-
-  // Options for the initial "what to send" step (Credits + any tokens).
-  const assetOptions = useMemo(() => buildAssetOptions(tokensState.data ?? []), [tokensState.data])
-
-  const summary = buildTransferSummary({
-    isCredits,
-    isPlatformMode,
-    amount: formState.formData.amount,
-    platformFeeCredits,
-    estimatedFeeCredits: calculations.getEstimatedFeeBigInt(),
-    tokenWillBeSent: calculations.getWillBeSentAmount(),
-    tokenTotal: calculations.getTotalAmount(),
-    tokenUnit: calculations.getTotalAmountUnit()
+  const identities = availableIdentities.map((identity): SourceIdentity => {
+    const credits = platformData.identities.find(item => item.identifier === identity.identifier)?.credits
+    return { identifier: identity.identifier, balance: credits != null ? BigInt(credits) : null }
   })
 
-  // Note selection happens after the (slow) proof starts, so check up front that
-  // the chosen shielded source covers the amount plus its fee.
-  const shieldedSourceShortfall = useMemo((): boolean => {
-    if (senderType !== 'shielded' || shieldedSenderBalance === null) return false
+  const close = (): void => { void navigate(returnPath, { replace: true }) }
 
-    const amountCredits = parseCreditsAmount(formState.formData.amount)
+  const closeRecipients = (): void => {
+    setRecipientsOpen(false)
+    setOverlayCount(null)
+  }
 
-    return amountCredits !== null && amountCredits + SHIELDED_SPEND_FEE_CREDITS > shieldedSenderBalance
-  }, [senderType, shieldedSenderBalance, formState.formData.amount])
+  // Most `count` Advanced recipients can receive in total; an address transfer is known only for the priced count.
+  const availableFor = (count: number): bigint | null => {
+    if (mode === 'send') return count === platformOutputCount ? platformEstimate.estimate?.maxAmountCredits ?? null : null
+    return coreMaxAmount(config, count, coreEstimate.maxAmountDuffs) ?? maxAmount
+  }
 
-  // Modes that spend from a platform address need one selected.
-  const spendsFromPlatformAddress = transferMode === 'send' || transferMode === 'topup' ||
-    transferMode === 'withdraw' || transferMode === 'shield'
+  return (
+    <div className='screen-content'>
+      {!isFinal && <WizardHeader activeStep={STEP_INDEX[step]} isAdvanced={draft.isAdvanced} advancedAvailable={advancedAvailable && step === 'fromTo'} onAdvancedChange={(value) => actions.setAdvanced(value)} />}
 
-  const nextDisabled = isLoading ||
-    formState.selectedRecipient === null ||
-    formState.formData.amount === '' ||
-    formState.amountError !== null ||
-    isSameParty ||
-    transferMode === 'unsupported' ||
-    (spendsFromPlatformAddress && selectedPlatformAddress === null) ||
-    // Spending shielded notes needs the pool unlocked first (known balance)
-    // and the prover fully warmed - starting a spend mid-warm-up would race
-    // the builder cache.
-    (senderType === 'shielded' && (shielded.balance === null || shielded.isWarmingProver)) ||
-    shieldedSourceShortfall
+      {step === 'fromTo' && (
+        <FromToStep
+          draft={draft}
+          actions={actions}
+          resolution={resolution}
+          typeOrder={entry.typeOrder}
+          capabilities={capabilities}
+          identities={identities}
+          balance={balance}
+          rate={rate}
+          shielded={shielded}
+          tokens={tokens}
+          fee={fee}
+          network={network}
+          canContinue={fromToValid}
+          recipientError={recipientError}
+          onOpenAsset={() => setAssetMenuOpen(true)}
+          unfinishedOperations={draft.from.type === 'core' && <UnfinishedOperationBanners operations={pendingOperations} onContinue={continueOperation} />}
+          recipientsLabel={`(${draft.recipients.length}/${maxRecipients(draft.from.type)})`}
+          onOpenRecipients={() => setRecipientsOpen(true)}
+          advancedSummary={<AdvancedSummary fromType={draft.from.type} balance={balance} recipientsTotal={recipientsCheck.total} fee={fee} rate={rate} error={advancedError} />}
+          onNext={() => goToStep(draft.isAdvanced ? 'confirm' : 'amount')}
+        />
+      )}
 
-  if (!tokensReady) {
+      {step === 'progress' && operationState.status !== 'idle' && (
+        <ProgressStep isRunning={operationState.status === 'running'} onClose={close} />
+      )}
+
+      {step === 'amount' && (
+        <AmountStep
+          draft={draft}
+          balance={balance}
+          maxAmount={maxAmount}
+          amountError={amountError}
+          isPrepaid={isContinuing}
+          rate={rate}
+          onAmountChange={(value) => actions.setAmount(value)}
+          onNext={() => goToStep('confirm')}
+        />
+      )}
+
+      {step === 'confirm' && config != null && sentAmount != null && (
+        <ConfirmStep
+          draft={draft}
+          config={config}
+          amount={sentAmount}
+          balance={balance}
+          fee={fee}
+          received={resumed?.received ?? received}
+          isPrepaid={isContinuing}
+          typedAmount={amount}
+          rate={rate}
+          isSubmitting={isChecking || operationState.status === 'running'}
+          passwordError={passwordError}
+          onPasswordChange={() => setPasswordError(null)}
+          onConfirm={handleConfirm}
+        />
+      )}
+
+      {isFinal && outcome != null && config != null && sentAmount != null && (
+        <ResultStep
+          outcome={outcome}
+          draft={draft}
+          config={config}
+          amount={sentAmount}
+          balance={balance}
+          fee={fee}
+          received={resumed?.received ?? received}
+          rate={rate}
+          network={network}
+          onDone={close}
+          isPrepaid={isContinuing}
+          onRetry={handleRetry}
+        />
+      )}
+
+      {advancedAvailable && limits != null && recipientsOpen && (
+        <RecipientsOverlay
+          isOpen
+          isCore={draft.from.type === 'core'}
+          recipients={draft.recipients}
+          changeAddress={draft.changeAddress}
+          changeAddresses={changeAddresses}
+          decimals={balance.decimals}
+          maxRecipients={maxRecipients(draft.from.type)}
+          availableFor={availableFor}
+          onCountChange={setOverlayCount}
+          minAmount={limits.min}
+          rate={rate}
+          excludeIdentifier={balance.sourceAddress}
+          network={network}
+          onClose={closeRecipients}
+          onApply={(recipients, changeAddress) => {
+            actions.setRecipients(recipients)
+            actions.setChangeAddress(changeAddress)
+            closeRecipients()
+          }}
+        />
+      )}
+
+      <AssetSelectionMenu
+        isOpen={assetMenuOpen}
+        onClose={() => setAssetMenuOpen(false)}
+        selectedAsset={tokenId ?? 'credits'}
+        onAssetSelect={(value) => actions.setAsset(value === 'credits' ? { type: 'dash' } : { type: 'token', tokenId: value })}
+        creditsBalance={identityBalance?.toString()}
+        tokens={tokens}
+      />
+    </div>
+  )
+}
+
+function SendTransactionState (): React.JSX.Element {
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const { currentNetwork, currentWallet, currentIdentity, walletsLoaded } = useOutletContext<OutletContext>()
+  const walletCapabilities = useWalletCapabilities()
+  const platform = usePlatformAddresses(currentNetwork, currentWallet ?? undefined)
+  const [entry, setEntry] = useState<EntryDefaults | null>(null)
+
+  // Waits for the address list only; balances come from Platform and may take long.
+  const addressesKnown = platform.hasLoaded || platform.addresses.length > 0 || platform.error != null
+  const ready = walletsLoaded && (!walletCapabilities.hasAddressLayer || addressesKnown)
+
+  const capabilities = useMemo((): TransferCapabilities => ({
+    hasCoreLayer: walletCapabilities.hasCoreLayer,
+    hasAddressLayer: walletCapabilities.hasAddressLayer,
+    hasPlatformAddresses: platform.addresses.length > 0
+  }), [walletCapabilities, platform.addresses.length])
+
+  // Builds the initial draft once the wallet capabilities are known.
+  useEffect(() => {
+    if (!ready || entry != null) return
+    const locationState = location.state as { selectedToken?: string } | null
+    setEntry(resolveEntryDefaults({
+      scope: parseSendScope(searchParams.get('scope')),
+      identityId: searchParams.get('identity'),
+      selectedToken: locationState?.selectedToken ?? null,
+      currentIdentityId: currentIdentity,
+      capabilities
+    }))
+  }, [ready, entry, location.state, searchParams, currentIdentity, capabilities])
+
+  if (entry == null) {
     return (
       <div className='screen-content'>
         <ScreenLoader />
@@ -384,178 +338,7 @@ function SendTransactionState (): React.JSX.Element {
     )
   }
 
-  // Initial asset-selection step: only shown when the identity holds tokens and
-  // no asset has been chosen yet (single-asset wallets skip straight to Credits).
-  if (hasTokens && !assetChosen) {
-    return (
-      <AssetSelectionStep
-        assetOptions={assetOptions}
-        balance={balance}
-        onSelect={(assetValue) => {
-          formState.handleAssetSelect(assetValue)
-          setAssetChosen(true)
-        }}
-      />
-    )
-  }
-
-  return (
-    <div className='screen-content'>
-      {/* Title Section with Asset Selector */}
-      <div className='flex flex-col gap-6'>
-        <div className='flex flex-col gap-2'>
-          {/* Title and Asset Selector */}
-          <div className='flex items-center gap-[1.125rem]'>
-            <Text className='text-dash-primary-dark-blue !text-[2.5rem] !font-medium !leading-[1.25] tracking-[-0.03em]'>
-              Transfer
-            </Text>
-
-            {tokensEnabled && (
-              <AssetSelectorBadge
-                selectedAsset={formState.formData.selectedAsset}
-                token={token}
-                onClick={() => setShowAssetSelection(true)}
-                disabled
-              />
-            )}
-          </div>
-
-          {/* Balance Display — shown here when the sender block isn't */}
-          {showHeaderBalance && (
-            <AssetBalanceLabel
-              balance={formattedBalance}
-              unit={assetLabel}
-              usdValue={calculations.getBalanceUSDValue()}
-            />
-          )}
-        </div>
-
-        {/* Description */}
-        <Text size='xs' weight='medium' className='text-dash-primary-dark-blue opacity-50' dim>
-          You are going to transfer {formState.formData.selectedAsset === 'credits' ? 'credits' : 'tokens'} from your account with this transaction. Carefully check the transaction details before proceeding to the next step.
-        </Text>
-      </div>
-
-      {/* Recipient Input */}
-      <div className='flex flex-col gap-2.5'>
-        <Text size='md' className='text-dash-primary-dark-blue opacity-50' dim>
-          Recipient
-        </Text>
-        <RecipientSearchInput
-          value={formState.formData.recipient}
-          onChange={formState.handleRecipientChange}
-          onSelect={formState.handleRecipientSelect}
-          excludeIdentifier={senderIdentifier}
-          placeholder='Enter recipient identity or address'
-          allowPlatformAddress={isCredits}
-          allowCoreAddress={isCredits}
-          allowShieldAddress={isCredits && senderType === 'shielded'}
-          pinnedRecipients={isCredits && senderType === 'platform' ? SHIELDED_POOL_OPTIONS : undefined}
-          network={currentNetwork ?? 'testnet'}
-        />
-      </div>
-
-      {/* Sender selection (platform flow only, credits only) */}
-      {senderBlockShown && (
-        <SenderSelector
-          showSenderTypes={platformFlowEnabled}
-          senderType={senderType}
-          onSenderTypeChange={setSenderType}
-          availableIdentities={availableIdentities}
-          senderIdentity={senderIdentity}
-          onIdentityChange={setSelectedIdentity}
-          recipientIdentity={recipientIdentity}
-          identityBalances={identityBalances}
-          identityBalancesLoading={identityBalancesLoading}
-          platformAddresses={platformAddresses}
-          platformBalances={platformBalances}
-          selectedPlatformAddress={selectedPlatformAddress}
-          onPlatformAddressChange={setSelectedPlatformAddress}
-          rate={rate}
-          shieldedPanel={
-            <ShieldedSenderPanel
-              info={shielded.info}
-              addresses={shielded.addresses}
-              selectedAddress={selectedShieldedAddress}
-              onAddressChange={setSelectedShieldedAddress}
-              sourceSelectionSupported={shieldedSourceSupported}
-              isUnlocking={shielded.isUnlocking}
-              isWarmingProver={shielded.isWarmingProver}
-              error={shielded.error}
-              rate={rate}
-              onUnlock={(password) => { void shielded.unlock(password) }}
-              onErrorClear={() => shielded.clearError()}
-            />
-          }
-        />
-      )}
-
-      {/* Amount Input Section */}
-      <AmountInputSection
-        amount={formState.formData.amount}
-        equivalentAmount={formState.equivalentAmount}
-        onAmountChange={formState.handleAmountChange}
-        onEquivalentChange={formState.handleEquivalentChange}
-        onQuickAmount={formState.handleQuickAmount}
-        selectedAsset={formState.formData.selectedAsset}
-        equivalentCurrency={formState.equivalentCurrency}
-        onEquivalentCurrencyChange={formState.handleEquivalentCurrencyChange}
-        assetDecimals={assetDecimals}
-        maxBalance={availableBalanceForSlider}
-      />
-
-      {/* Validation and mode warnings */}
-      <SendValidationBanners
-        formError={formState.error ?? null}
-        amountError={formState.amountError}
-        isSameParty={isSameParty}
-        transferMode={transferMode}
-        shieldedSourceShortfall={shieldedSourceShortfall}
-        selectedShieldedAddress={selectedShieldedAddress}
-      />
-
-      {/* Transaction Summary Card - hidden while the amount is out of limits */}
-      {formState.amountError === null && (
-        <TransferSummaryCard
-          fees={summary.fees}
-          willBeSent={summary.willBeSent}
-          total={summary.total}
-          unit={summary.unit}
-          hasAmount={summary.hasAmount}
-          selectedAsset={formState.formData.selectedAsset}
-        />
-      )}
-
-      {/* Action Button */}
-      <div className='flex flex-col gap-4'>
-        <Button
-          colorScheme='brand'
-          size='xl'
-          className='w-full'
-          onClick={() => {
-            handleSend().catch(e => console.log('handleSend error', e))
-          }}
-          disabled={nextDisabled}
-        >
-          {isLoading
-            ? 'Creating Transaction...'
-            : (senderType === 'shielded' && shielded.isWarmingProver)
-                ? 'Preparing private prover...'
-                : 'Next'}
-        </Button>
-      </div>
-
-      {/* Asset Selection Menu */}
-      <AssetSelectionMenu
-        isOpen={tokensEnabled && showAssetSelection}
-        onClose={() => setShowAssetSelection(false)}
-        selectedAsset={formState.formData.selectedAsset}
-        onAssetSelect={formState.handleAssetSelect}
-        creditsBalance={(balance !== null && balance !== undefined) ? balance.toString() : undefined}
-        tokens={tokensState.data ?? []}
-      />
-    </div>
-  )
+  return <SendWizard entry={entry} capabilities={capabilities} platformAddresses={platform.addresses} />
 }
 
 export default withAccessControl(SendTransactionState, { requireWallet: true })

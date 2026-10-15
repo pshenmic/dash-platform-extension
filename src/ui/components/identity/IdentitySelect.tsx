@@ -26,7 +26,7 @@ export interface IdentitySelectProps {
   /**
    * Size of the select component
    */
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'sm' | 'md' | 'xl'
 
   /**
    * Show arrow indicator

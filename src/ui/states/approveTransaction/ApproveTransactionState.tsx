@@ -10,15 +10,13 @@ import { FieldLabel } from '../../components/typography'
 import { TitleBlock } from '../../components/layout/TitleBlock'
 import { useExtensionAPI, useSigningKeys } from '../../hooks'
 import { StateTransitionWASM } from 'dash-platform-sdk/types'
-import type { PurposeLike } from 'pshenmic-dpp'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types'
 import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { IdentitySelect } from '../../components/identity/IdentitySelect'
 import { TransactionDetails } from './details'
-import { decodeStateTransition } from '../../../utils'
-import { StateTransitionTypeEnum } from '../../../enums/TransactionTypes'
+import { decodeStateTransition, getStateTransitionKeyRequirements } from '../../../utils'
 import { SigningErrorDetails } from '../../components/errors'
 
 function ApproveTransactionState (): React.JSX.Element {
@@ -174,35 +172,11 @@ function ApproveTransactionState (): React.JSX.Element {
       return
     }
 
-    // Withdrawal requires a Transfer/Critical key
-    if (stateTransitionWASM.getActionTypeNumber() === StateTransitionTypeEnum.IDENTITY_CREDIT_WITHDRAWAL) {
-      setKeyRequirements([{ purpose: 'TRANSFER', securityLevel: 'CRITICAL' }])
-      return
-    }
+    const hasTokenTransfer: boolean = Array.isArray(decodedTransaction?.transitions) &&
+      decodedTransaction.transitions.some((t: any) => t.action === 'TOKEN_TRANSFER')
 
     try {
-      const purposeRequirements = stateTransitionWASM.getPurposeRequirement()
-      const requirements: KeyRequirement[] = []
-
-      const hasTokenTransfer: boolean = Array.isArray(decodedTransaction?.transitions) &&
-        decodedTransaction.transitions.some((t: any) => t.action === 'TOKEN_TRANSFER')
-
-      if (Array.isArray(purposeRequirements)) {
-        for (const purpose of purposeRequirements) {
-          const securityLevel = stateTransitionWASM.getKeyLevelRequirement(purpose as PurposeLike)
-
-          if (Array.isArray(securityLevel)) {
-            securityLevel.forEach(level => {
-              requirements.push({
-                purpose,
-                securityLevel: hasTokenTransfer ? 'CRITICAL' : level
-              })
-            })
-          }
-        }
-      }
-
-      setKeyRequirements(requirements)
+      setKeyRequirements(getStateTransitionKeyRequirements(stateTransitionWASM, hasTokenTransfer))
     } catch (error) {
       console.log('Error extracting key requirements:', error)
       setKeyRequirements([])

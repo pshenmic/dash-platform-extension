@@ -32,6 +32,9 @@ interface RecipientSearchInputProps {
   // pool. Shown in the empty field so they're discoverable without typing.
   pinnedRecipients?: RecipientSearchResult[]
   network?: NetworkType
+  // Grey borderless field, for a field inside a card.
+  filled?: boolean
+  autoFocus?: boolean
 }
 
 // Label shown above a typed-address result, per recipient type.
@@ -56,7 +59,9 @@ export function RecipientSearchInput ({
   allowCoreAddress = false,
   allowShieldAddress = false,
   pinnedRecipients = [],
-  network = 'testnet'
+  network = 'testnet',
+  filled = false,
+  autoFocus = false
 }: RecipientSearchInputProps): React.JSX.Element {
   const sdk = useSdk()
   const [isSearching, setIsSearching] = useState(false)
@@ -164,14 +169,14 @@ export function RecipientSearchInput ({
   return (
     <div ref={containerRef} className='relative'>
       {/* Expanded Container with Input and Search Results */}
-      <div className={`border border-dash-primary-dark-blue/35 rounded-[0.9375rem] bg-white transition-all ${
+      <div className={`rounded-2xl transition-all ${filled ? 'bg-dash-primary-dark-blue/[0.05] dark:bg-white/5' : 'border border-dash-primary-dark-blue/24 bg-white'} ${
         showSearchResults ? 'pb-5' : ''
       } ${(error !== null && error !== undefined) ? 'border-red-500' : (selectedResult != null) ? 'border-green-500' : ''}`}
       >
 
         {/* Input Section */}
         <div className='flex flex-col gap-2'>
-          <div className='flex items-center gap-3 px-[1.5625rem] py-[1.25rem]'>
+          <div className='flex items-center gap-3 px-3 py-4'>
             {selectedResult?.type === 'identity' && (
               <div className={`${selectedResult?.type === 'identity' ? 'w-5' : 'w-0'} h-5 flex items-center justify-center transition-all overflow-hidden`}>
 
@@ -189,6 +194,7 @@ export function RecipientSearchInput ({
               onChange={handleInputChange}
               placeholder={placeholder}
               spellCheck={false}
+              autoFocus={autoFocus}
               className='flex-1 text-sm font-light text-dash-primary-dark-blue outline-none bg-transparent font-dash-grotesque'
             />
 
@@ -210,7 +216,7 @@ export function RecipientSearchInput ({
 
           {/* Selected Identifier Display */}
           {(selectedResult?.name != null) && (
-            <div className='px-[1.5625rem] pb-3'>
+            <div className='px-3 pb-3'>
               <Identifier
                 highlight='both'
                 className='text-xs'
@@ -227,7 +233,7 @@ export function RecipientSearchInput ({
           <div className='max-h-[18.75rem] overflow-y-auto'>
             {showPinned
               ? (
-                <div className='flex flex-col gap-2 px-6'>
+                <div className='flex flex-col gap-2 px-3'>
                   {pinnedRecipients.map(pinned => (
                     <div
                       key={pinned.identifier}
@@ -251,7 +257,7 @@ export function RecipientSearchInput ({
                 )
               : unsupportedAddress
                 ? (
-                  <div className='py-4 text-center px-6'>
+                  <div className='py-4 text-center px-3'>
                     <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
                       {(recipientType === 'shieldAddress' && pinnedRecipients.length > 0)
                         ? 'Credits can only be shielded into your own pool — clear the field and pick “My shielded balance”'
@@ -261,7 +267,7 @@ export function RecipientSearchInput ({
                   )
                 : isExcludedAddress
                   ? (
-                    <div className='py-4 text-center px-6'>
+                    <div className='py-4 text-center px-3'>
                       <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
                         Recipient must be different from the sender
                       </Text>
@@ -269,7 +275,7 @@ export function RecipientSearchInput ({
                     )
                   : addressResult != null
                     ? (
-                      <div className='flex flex-col gap-2 px-6'>
+                      <div className='flex flex-col gap-2 px-3'>
                         <div
                           onClick={() => handleSelectResult(addressResult)}
                           className='flex flex-col gap-2.5 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
@@ -294,7 +300,7 @@ export function RecipientSearchInput ({
                         )
                       : filteredResults.length > 0
                         ? (
-                          <div className='flex flex-col gap-2 px-6'>
+                          <div className='flex flex-col gap-2 px-3'>
                             {filteredResults.map((result, index) => (
                               <div
                                 key={`${result.identifier}-${index}`}

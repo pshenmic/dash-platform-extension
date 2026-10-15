@@ -9,6 +9,7 @@ interface OverlayMenuProps {
   children: React.ReactNode
   showBackButton?: boolean
   onBack?: () => void
+  titleClassName?: string
 }
 
 export const OverlayMenu: React.FC<OverlayMenuProps> = ({
@@ -17,7 +18,8 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
   title,
   children,
   showBackButton = false,
-  onBack
+  onBack,
+  titleClassName
 }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent): void => {
@@ -46,7 +48,7 @@ export const OverlayMenu: React.FC<OverlayMenuProps> = ({
           {showBackButton && (onBack != null) && (
             <BackButton onClick={onBack} />
           )}
-          <Text size='xl' weight='medium' className='text-dash-primary-dark-blue'>
+          <Text size='xl' weight='medium' className={`text-dash-primary-dark-blue ${titleClassName ?? ''}`}>
             {title}
           </Text>
         </div>

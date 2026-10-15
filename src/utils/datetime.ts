@@ -100,3 +100,11 @@ export function getTimeDelta (
 
   return 'Invalid format'
 }
+
+// Absolute date and time such as "7 Aug 2026, 23:41".
+export const formatDateTime = (timestamp: number): string => {
+  const date = new Date(timestamp)
+  const day = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  return `${day}, ${time}`
+}

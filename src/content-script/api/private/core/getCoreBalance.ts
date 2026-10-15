@@ -1,6 +1,7 @@
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { CoreExplorerService } from '../../../services/CoreExplorerService'
+import { CoreUtxosService } from '../../../services/CoreUtxosService'
 import { NetworkType } from '../../../../types/PlatformExplorer'
 import { EmptyPayload } from '../../../../types/messages/payloads/EmptyPayload'
 import { GetCoreBalanceResponse } from '../../../../types/messages/response/GetCoreBalanceResponse'
@@ -13,10 +14,12 @@ import { GetCoreBalanceResponse } from '../../../../types/messages/response/GetC
 export class GetCoreBalanceHandler implements APIHandler {
   walletRepository: WalletRepository
   coreExplorer: CoreExplorerService
+  coreUtxos: CoreUtxosService
 
-  constructor (walletRepository: WalletRepository, coreExplorer: CoreExplorerService) {
+  constructor (walletRepository: WalletRepository, coreExplorer: CoreExplorerService, coreUtxos: CoreUtxosService) {
     this.walletRepository = walletRepository
     this.coreExplorer = coreExplorer
+    this.coreUtxos = coreUtxos
   }
 
   async handle (): Promise<GetCoreBalanceResponse> {
