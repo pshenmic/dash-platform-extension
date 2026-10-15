@@ -5,7 +5,7 @@ import { EventData } from '../../../../types/EventData'
 import { EstimateCoreTransferPayload } from '../../../../types/messages/payloads/EstimateCoreTransferPayload'
 import { EstimateCoreTransferResponse } from '../../../../types/messages/response/EstimateCoreTransferResponse'
 import { validateCoreAddress } from '../../../../utils'
-import { CORE_DUST_THRESHOLD, MIN_FEE_RELAY } from '../../../../constants'
+import { CORE_DUST_THRESHOLD, MAX_CORE_OUTPUTS, MIN_FEE_RELAY } from '../../../../constants'
 
 // What a Core (L1) payment would cost, before anything is signed or sent: the
 // inputs it would spend, its fee, its change and the most these inputs can pay
@@ -55,16 +55,17 @@ export class EstimateCoreTransferHandler implements APIHandler {
       sendMax: payload.sendMax
     })
 
-    // An asset lock spends the deposit this payment creates, and pays its own
-    // fee out of it, so a Core to Platform operation costs both. The locked
-    // amount is the deposit minus this.
+    // The asset lock that would spend this deposit pays its own fee out of it,
+    // so it is reported but not added to the cost: what leaves the wallet is
+    // the deposit plus the fee of the payment that creates it. What arrives on
+    // the other side is the deposit minus this.
     const assetLockFeeDuffs = payload.type === 'assetLock' ? MIN_FEE_RELAY : 0n
 
     return {
       amountDuffs: plan.amountDuffs.toString(),
       feeDuffs: plan.feeDuffs.toString(),
       assetLockFeeDuffs: assetLockFeeDuffs.toString(),
-      totalCostDuffs: (plan.amountDuffs + plan.feeDuffs + assetLockFeeDuffs).toString(),
+      totalCostDuffs: (plan.amountDuffs + plan.feeDuffs).toString(),
       changeDuffs: plan.changeDuffs.toString(),
       changeAddress: plan.changeAddress,
       inputs: plan.inputs.map(utxo => ({
@@ -94,6 +95,9 @@ export const validateCoreOutputsPayload = (payload: {
 }): string | null => {
   if (!Array.isArray(payload?.outputs) || payload.outputs.length === 0) {
     return 'outputs must be a non-empty array'
+  }
+  if (payload.outputs.length > MAX_CORE_OUTPUTS) {
+    return `A transaction pays at most ${MAX_CORE_OUTPUTS} recipients, ${payload.outputs.length} given`
   }
   if (payload.sendMax === true && payload.outputs.length !== 1) {
     return 'sendMax requires exactly one output'

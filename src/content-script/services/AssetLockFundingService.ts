@@ -96,7 +96,7 @@ export class AssetLockFundingService {
       // Written while the payment is still only in memory: from the broadcast on,
       // the coins are at the funding address, and a repeat has to continue from
       // this transaction rather than pay the address a second time.
-      await assetLockFundingAddressesRepository.markAsFunded(fundingAddress, prepared.txid)
+      await assetLockFundingAddressesRepository.markAsFunded(fundingAddress, prepared.txid, amountDuffs.toString())
     }
 
     await this.coreSpend.broadcast(prepared)

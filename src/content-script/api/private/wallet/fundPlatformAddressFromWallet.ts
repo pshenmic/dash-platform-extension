@@ -108,7 +108,9 @@ export class FundPlatformAddressFromWalletHandler implements APIHandler {
     return {
       ...funded,
       coreFeeDuffs: funding.feeDuffs.toString(),
-      resumed: false
+      // Nothing was paid when the funding address already held the deposit of
+      // an earlier attempt, so this call continued that one.
+      resumed: !funding.paid
     }
   }
 

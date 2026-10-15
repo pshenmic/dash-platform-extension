@@ -80,7 +80,7 @@ export class AssetLockFundingAddressesRepository {
   // payment is refused rather than overwriting the first, because the asset lock
   // is built from one funding transaction and the earlier payment would be left
   // at the address with nothing coming back for it.
-  async markAsFunded (address: string, fundingTxid: string): Promise<void> {
+  async markAsFunded (address: string, fundingTxid: string, amountDuffs?: string): Promise<void> {
     const storageKey = await this.getStorageKey()
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
 
@@ -104,7 +104,11 @@ export class AssetLockFundingAddressesRepository {
       )
     }
 
-    addresses[address] = { ...entry, fundingTxid }
+    addresses[address] = {
+      ...entry,
+      fundingTxid,
+      ...(amountDuffs != null ? { fundedAmountDuffs: amountDuffs, fundedAt: Date.now() } : {})
+    }
 
     await this.storageAdapter.set(storageKey, addresses)
   }
@@ -199,6 +203,18 @@ export class AssetLockFundingAddressesRepository {
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
 
     return Object.values(addresses).filter(entry => !entry.used && entry.assetLockTxid != null)
+  }
+
+  // Addresses this wallet paid for an operation that never reached its asset
+  // lock: the money is on the address, nothing is on L1 yet, and the operation
+  // only finishes when it is asked for again.
+  async findAllFundedWithoutAssetLock (): Promise<AssetLockFundingAddressSchema[]> {
+    const storageKey = await this.getStorageKey()
+    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
+
+    return Object.values(addresses).filter(
+      entry => !entry.used && entry.assetLockTxid == null && entry.fundingTxid != null
+    )
   }
 
   async findUnused (purpose: AssetLockFundingPurpose = 'registration', owner?: string): Promise<AssetLockFundingAddressSchema | null> {

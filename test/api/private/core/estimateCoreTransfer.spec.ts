@@ -118,13 +118,15 @@ describe('core payment estimate and multi-output send', () => {
       expect(deriveWalletHdKeyMock).not.toHaveBeenCalled()
     })
 
-    it('prices the asset lock a Core to Platform operation pays on top', async () => {
+    it('names the asset lock fee without charging it to the wallet', async () => {
       const result = await estimate.handle(event({
         outputs: [{ address: DESTINATION, amountDuffs: '10000' }], type: 'assetLock'
       }))
 
+      // The asset lock pays its fee out of the deposit, so what leaves the
+      // wallet is the deposit plus the fee of the payment that creates it.
       expect(result.assetLockFeeDuffs).toBe('1000')
-      expect(result.totalCostDuffs).toBe('11226')
+      expect(result.totalCostDuffs).toBe('10226')
     })
 
     it('prices paying out everything the wallet holds', async () => {

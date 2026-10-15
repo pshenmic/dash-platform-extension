@@ -63,7 +63,9 @@ describe('AssetLockFundingService', () => {
 
     await fund()
 
-    expect(assetLockFundingAddressesRepository.markAsFunded).toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid)
+    // The amount goes down with it, so LIST_PENDING_ASSET_LOCKS can say how much
+    // is sitting on the address when the operation stops here.
+    expect(assetLockFundingAddressesRepository.markAsFunded).toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000')
     expect(order).toEqual(['markAsFunded', 'broadcast'])
   })
 

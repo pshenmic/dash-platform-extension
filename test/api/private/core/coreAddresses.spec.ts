@@ -223,7 +223,6 @@ describe('core address handlers', () => {
       expect(coreExplorer.getXpubSummary).toHaveBeenCalledWith(XPUB, 'testnet')
       expect(result).toEqual({
         balance: '399337281',
-        available: '299337281',
         received: '4827233218',
         sent: '4427895937',
         txCount: 21,
@@ -250,14 +249,11 @@ describe('core address handlers', () => {
       await expect(handler.handle()).rejects.toThrow('No wallet is chosen')
     })
 
-    test('reports what is spendable now, apart from the explorer balance', async () => {
+    test('reports the explorer balance, which already counts the mempool', async () => {
       const result = await handler.handle()
 
-      expect(coreUtxos.availableDuffs).toHaveBeenCalledWith(
-        expect.objectContaining({ walletId: 'wallet1' }), XPUB, 0
-      )
-      expect(result.available).toBe('299337281')
-      expect(result.available).not.toBe(result.balance)
+      expect(result.balance).toBe('399337281')
+      expect(coreUtxos.availableDuffs).not.toHaveBeenCalled()
     })
 
     test('throws when the xpub was never cached', async () => {

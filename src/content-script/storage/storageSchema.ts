@@ -125,6 +125,11 @@ export interface AssetLockFundingAddressSchema {
   // explorer cannot see a payment made moments ago, so without it the address
   // reads as unfunded and would be paid again.
   fundingTxid?: string
+  // What that payment put on the address, in duffs, and when it was made. An
+  // operation interrupted here has money sitting on an address and nothing on
+  // L1 to show for it, so LIST_PENDING_ASSET_LOCKS reports it from these.
+  fundedAmountDuffs?: string
+  fundedAt?: number
   // Defaults to 'registration' when absent (legacy entries predate top-up).
   purpose?: AssetLockFundingPurpose
   // The identity a 'topUp' address is reserved for. Without an owner every

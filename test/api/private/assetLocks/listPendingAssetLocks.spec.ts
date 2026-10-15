@@ -31,7 +31,10 @@ describe('pending asset locks', () => {
     await storage.set('currentWalletId', walletId)
 
     pendingAssetLocksRepository = new PendingAssetLocksRepository(storage)
-    assetLockFundingAddressesRepository = { findAllBroadcasted: jest.fn(async () => []) }
+    assetLockFundingAddressesRepository = {
+      findAllBroadcasted: jest.fn(async () => []),
+      findAllFundedWithoutAssetLock: jest.fn(async () => [])
+    }
 
     handler = new ListPendingAssetLocksHandler(pendingAssetLocksRepository, assetLockFundingAddressesRepository)
   })
@@ -55,6 +58,7 @@ describe('pending asset locks', () => {
 
     expect((await list()).assetLocks).toEqual([{
       assetLockTxid: ownTxid,
+      stage: 'assetLocked',
       fundingAddress: 'yOwnAddress',
       fundingTxid,
       purpose: 'topUp',
@@ -73,6 +77,7 @@ describe('pending asset locks', () => {
 
     expect((await list()).assetLocks).toEqual([{
       assetLockTxid: depositTxid,
+      stage: 'assetLocked',
       fundingAddress: 'yDeposit',
       fundingTxid: null,
       purpose: 'registration',
@@ -130,5 +135,73 @@ describe('pending asset locks', () => {
     const otherWallet = pendingAssetLocksRepository.forScope({ network: 'testnet', walletId: `${walletId}-other` })
 
     expect(await otherWallet.getAll()).toEqual([])
+  })
+
+  it('reports a funding address this wallet paid before the asset lock', async () => {
+    assetLockFundingAddressesRepository.findAllFundedWithoutAssetLock.mockResolvedValue([
+      {
+        address: 'yFundingAddress',
+        encryptedPrivateKey: 'k',
+        used: false,
+        purpose: 'topUp',
+        identityId,
+        fundingTxid,
+        fundedAmountDuffs: '2000000',
+        fundedAt: 5000
+      }
+    ])
+
+    const [entry] = (await list()).assetLocks
+
+    expect(entry).toEqual({
+      assetLockTxid: null,
+      stage: 'funded',
+      fundingAddress: 'yFundingAddress',
+      fundingTxid,
+      purpose: 'topUp',
+      identityId,
+      platformAddress: null,
+      shieldedAddress: null,
+      amountDuffs: '2000000',
+      createdAt: 5000
+    })
+  })
+
+  it('reports a paid shield into the own pool with no recipient at all', async () => {
+    assetLockFundingAddressesRepository.findAllFundedWithoutAssetLock.mockResolvedValue([
+      {
+        address: 'yShieldFunding',
+        encryptedPrivateKey: 'k',
+        used: false,
+        purpose: 'shield',
+        recipient: 'own',
+        fundingTxid,
+        fundedAmountDuffs: '2000000',
+        fundedAt: 6000
+      }
+    ])
+
+    const [entry] = (await list()).assetLocks
+
+    expect(entry).toMatchObject({ stage: 'funded', purpose: 'shield', shieldedAddress: null })
+  })
+
+  it('names the pool a paid shield to someone else was meant for', async () => {
+    assetLockFundingAddressesRepository.findAllFundedWithoutAssetLock.mockResolvedValue([
+      {
+        address: 'yShieldFunding',
+        encryptedPrivateKey: 'k',
+        used: false,
+        purpose: 'shield',
+        recipient: 'tdashshielded1them',
+        fundingTxid,
+        fundedAmountDuffs: '2000000',
+        fundedAt: 6000
+      }
+    ])
+
+    const [entry] = (await list()).assetLocks
+
+    expect(entry.shieldedAddress).toBe('tdashshielded1them')
   })
 })

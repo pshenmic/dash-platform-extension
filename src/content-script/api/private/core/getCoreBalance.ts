@@ -37,14 +37,10 @@ export class GetCoreBalanceHandler implements APIHandler {
     }
 
     const summary = await this.coreExplorer.getXpubSummary(xpub, wallet.network as NetworkType)
-    // The explorer's balance still counts what a send of ours spent moments ago,
-    // so what is actually spendable is summed from the reconciled outputs.
-    const available = await this.coreUtxos.availableDuffs(wallet, xpub, account)
 
     // Amounts cross the messaging boundary as strings; bigint does not serialize.
     return {
       balance: summary.balance.toString(),
-      available: available.toString(),
       received: summary.received.toString(),
       sent: summary.sent.toString(),
       txCount: summary.txCount,
