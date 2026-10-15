@@ -11,14 +11,10 @@ export interface UnfinishedOperation {
   lockedDuffs: bigint
 }
 
-// Pool a shield went to; null, undefined and 'own' all mean the wallet's own.
-const shieldRecipient = (address: string | null | undefined): string | null =>
-  address == null || address === 'own' ? null : address
-
 const recipientOf = (lock: PendingAssetLock): string | null | undefined => {
   if (lock.purpose === 'topUp') return lock.identityId
   if (lock.purpose === 'fundAddress') return lock.platformAddress
-  return shieldRecipient(lock.shieldedAddress)
+  return lock.shieldedAddress
 }
 
 // Operations a repeated *FromWallet call resumes: the oldest wallet-paid record per purpose and recipient; registrations, deposit-address entries and records without an amount are left out.

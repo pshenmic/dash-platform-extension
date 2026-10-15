@@ -19,7 +19,7 @@ export interface CorePaymentResult extends TransferTxResult {
   feeDuffs: bigint
 }
 
-// Wallet payment locked into Platform; `resumed` and a zero fee mean an earlier payment was finished, `creditedCredits` is null when the response has no amount.
+// Wallet payment locked into Platform; `resumed` means an earlier payment was finished, `creditedCredits` is null when the response has no amount.
 export interface CoreFundingResult extends TransferTxResult {
   coreTxHash: string
   feeDuffs: bigint

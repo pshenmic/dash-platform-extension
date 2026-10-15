@@ -39,8 +39,7 @@ describe('unfinishedOperations', () => {
     ])
   })
 
-  it('treats a missing or own shielded address as the wallet pool', () => {
-    expect(unfinishedOperations([lock({ purpose: 'shield', identityId: null, shieldedAddress: 'own' })])[0].recipient).toBeNull()
+  it('treats a missing shielded address as the wallet pool', () => {
     expect(unfinishedOperations([lock({ purpose: 'shield', identityId: null, shieldedAddress: undefined as unknown as null })])[0].recipient).toBeNull()
   })
 

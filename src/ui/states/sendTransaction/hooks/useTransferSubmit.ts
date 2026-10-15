@@ -33,12 +33,12 @@ const platformPayment = async (call: Promise<PlatformPaymentResult>): Promise<Tr
   return { hashes: { single: txHash, platform: txHash }, fee: { amount: feeCredits, decimals: PLATFORM_DASH_DECIMALS } }
 }
 
-// Wallet payment locked into Platform; resumed or a zero fee means an earlier payment was finished and nothing new was paid.
+// Wallet payment locked into Platform; resumed means an earlier payment was finished and nothing new was paid.
 const coreFunding = async (call: Promise<CoreFundingResult>): Promise<TransferResult> => {
   const { txHash, coreTxHash, feeDuffs, resumed, creditedCredits } = await call
   const hashes = { core: coreTxHash, platform: txHash }
   const credited = creditedCredits != null ? { amount: creditedCredits, decimals: PLATFORM_DASH_DECIMALS } : undefined
-  return resumed || feeDuffs === 0n
+  return resumed
     ? { hashes, credited, continued: true }
     : { hashes, credited, fee: { amount: feeDuffs, decimals: CORE_DASH_DECIMALS } }
 }
