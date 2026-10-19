@@ -124,42 +124,28 @@ describe('AssetLockFundingService', () => {
     expect(assetLockFundingAddressesRepository.clearFunding).not.toHaveBeenCalled()
   })
 
-  // Written down before the bytes were kept: there is nothing to send again, so
-  // the only way out is to establish that the payment never happened.
-  it('pays again once both the node and the explorer place the payment nowhere', async () => {
-    assetLockFundingAddressesRepository.getByAddress
-      .mockResolvedValueOnce({ address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64) })
-      .mockResolvedValue({ address: FUNDING_ADDRESS, used: false })
-    coreSpend.isBroadcast.mockResolvedValue(false)
-    coreExplorer.hasTransaction.mockResolvedValue(false)
-
-    expect((await fund()).paid).toBe(true)
-    expect(assetLockFundingAddressesRepository.clearFunding).toHaveBeenCalledWith(FUNDING_ADDRESS)
-    expect(assetLockFundingAddressesRepository.markAsFunded)
-      .toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000', PREPARED_HEX)
-  })
-
-  it('keeps waiting for a payment the explorer still has when the node cannot answer', async () => {
+  // Written down before the bytes were kept: there is nothing to send again.
+  // Paying the address a second time is the one thing that must not happen here,
+  // because the recorded payment can be in a mempool this node has not seen.
+  it('refuses to guess when a payment it cannot re-send is nowhere to be found', async () => {
     assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
       address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64)
     })
     coreSpend.isBroadcast.mockResolvedValue(false)
-    coreExplorer.hasTransaction.mockResolvedValue(true)
+
+    await expect(fund()).rejects.toThrow('cannot be sent again')
+
+    expect(coreSpend.prepare).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.clearFunding).not.toHaveBeenCalled()
+  })
+
+  it('continues on a payment it cannot re-send while a node still has it', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
+      address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64)
+    })
+    coreSpend.isBroadcast.mockResolvedValue(true)
 
     expect(await fund()).toEqual({ fundingTxid: 'd'.repeat(64), paid: false, feeDuffs: 0n, changeDuffs: 0n })
-    expect(assetLockFundingAddressesRepository.clearFunding).not.toHaveBeenCalled()
-    expect(coreSpend.prepare).not.toHaveBeenCalled()
-  })
-
-  it('refuses to forget a payment while the explorer cannot be reached', async () => {
-    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
-      address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64)
-    })
-    coreSpend.isBroadcast.mockResolvedValue(false)
-    coreExplorer.hasTransaction.mockRejectedValue(new Error('Core explorer error for transaction: HTTP 502'))
-
-    await expect(fund()).rejects.toThrow('HTTP 502')
-    expect(assetLockFundingAddressesRepository.clearFunding).not.toHaveBeenCalled()
     expect(coreSpend.prepare).not.toHaveBeenCalled()
   })
 

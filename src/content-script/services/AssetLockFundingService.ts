@@ -51,18 +51,10 @@ export class AssetLockFundingService {
     const { wallet, xpub, fundingAddress, amountDuffs, password, assetLockFundingAddressesRepository } = params
     const account = params.account ?? 0
 
-    let entry = await assetLockFundingAddressesRepository.getByAddress(fundingAddress)
+    const entry = await assetLockFundingAddressesRepository.getByAddress(fundingAddress)
 
     if (entry?.fundingTxid != null) {
-      const continued = await this.continueRecordedPayment(entry.address, entry.fundingTxid, params, entry.assetLockTxid, entry.fundingTxHex)
-
-      if (continued != null) {
-        return continued
-      }
-
-      // The payment never reached the network and was forgotten, so this call
-      // pays the address as if nothing had been recorded.
-      entry = await assetLockFundingAddressesRepository.getByAddress(fundingAddress)
+      return await this.continueRecordedPayment(entry.address, entry.fundingTxid, entry.assetLockTxid, entry.fundingTxHex)
     }
 
     if (entry?.assetLockTxid != null) {
@@ -123,24 +115,19 @@ export class AssetLockFundingService {
   }
 
   /**
-   * Continues the payment an earlier attempt recorded, or reports that there is
-   * nothing to continue.
+   * Continues the payment an earlier attempt recorded.
    *
    * The payment is written down before it is broadcast, so an attempt that died
    * in between leaves a record of a transaction the network may never have seen.
    * Returning the txid regardless is what left such an operation waiting forever
    * for a transaction nobody has.
-   *
-   * Returns null only when the payment provably never happened, which is the one
-   * case where paying the address again is the right move.
    */
   async continueRecordedPayment (
     fundingAddress: string,
     fundingTxid: string,
-    params: FundAssetLockAddressParams,
     assetLockTxid?: string | null,
     fundingTxHex?: string
-  ): Promise<FundedAssetLockAddress | null> {
+  ): Promise<FundedAssetLockAddress> {
     if (assetLockTxid != null) {
       // The deposit is already spent by an asset lock, so the payment is on L1
       // whatever any node currently answers.
@@ -155,21 +142,20 @@ export class AssetLockFundingService {
       return { fundingTxid, ...CONTINUED }
     }
 
-    if (await this.coreSpend.isBroadcast(fundingTxid)) {
-      return { fundingTxid, ...CONTINUED }
+    // Recorded before the bytes were kept, so there is nothing to send again.
+    // Nothing here may pay the address a second time: the recorded transaction
+    // can be sitting in a mempool this node has not seen, and a second payment
+    // would put two deposits on an address an asset lock spends one of. Say
+    // what is stuck instead, and leave discarding it to a caller who asked for
+    // it knowingly.
+    if (!await this.coreSpend.isBroadcast(fundingTxid)) {
+      throw new Error(
+        `Funding payment ${fundingTxid} for ${fundingAddress} was recorded before the signed transaction was kept, ` +
+        'and no node has it, so it cannot be sent again. It may still be propagating; if it never arrives, ' +
+        'discard it with DISCARD_ASSET_LOCK_FUNDING to pay the address once more'
+      )
     }
 
-    // Recorded before the bytes were kept, and the node the SDK asked has no
-    // such transaction. A node that is merely unreachable answers the same way,
-    // so the explorer decides: it indexes the mempool, and it raises rather than
-    // answering when it cannot look. Both of them missing the transaction is what
-    // makes "never broadcast" a fact instead of a guess.
-    if (await this.coreExplorer.hasTransaction(fundingTxid, params.wallet.network as NetworkType)) {
-      return { fundingTxid, ...CONTINUED }
-    }
-
-    await params.assetLockFundingAddressesRepository.clearFunding(fundingAddress)
-
-    return null
+    return { fundingTxid, ...CONTINUED }
   }
 }

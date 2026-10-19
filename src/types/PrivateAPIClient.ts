@@ -4,6 +4,8 @@ import { EventData } from './EventData'
 import { NetworkType } from './NetworkType'
 import { ListCoreUtxosResponse } from './messages/response/ListCoreUtxosResponse'
 import { ListPendingAssetLocksResponse } from './messages/response/ListPendingAssetLocksResponse'
+import { DiscardAssetLockFundingResponse } from './messages/response/DiscardAssetLockFundingResponse'
+import { DiscardAssetLockFundingPayload } from './messages/payloads/DiscardAssetLockFundingPayload'
 import { GetCoreAddressesResponse } from './messages/response/GetCoreAddressesResponse'
 import { GetCoreBalanceResponse } from './messages/response/GetCoreBalanceResponse'
 import { GetCoreTransactionsPayload } from './messages/payloads/GetCoreTransactionsPayload'
@@ -524,6 +526,20 @@ export class PrivateAPIClient {
     const response: ListPendingAssetLocksResponse = await this._rpcCall(MessagingMethods.LIST_PENDING_ASSET_LOCKS, payload)
 
     return response.assetLocks
+  }
+
+  // Forgets a funding payment the network never took, so the operation can pay
+  // its address again. Only for an operation stuck on a record written before
+  // the signed payment was kept; it refuses while any source still has that
+  // transaction, because then the operation can simply be repeated.
+  async discardAssetLockFunding (fundingAddress: string, walletId?: string, network?: NetworkType): Promise<DiscardAssetLockFundingResponse> {
+    const payload: DiscardAssetLockFundingPayload = {
+      fundingAddress,
+      ...(walletId != null ? { walletId } : {}),
+      ...(network != null ? { network } : {})
+    }
+
+    return await this._rpcCall(MessagingMethods.DISCARD_ASSET_LOCK_FUNDING, payload)
   }
 
   async listCoreUtxos (): Promise<ListCoreUtxosResponse['utxos']> {
