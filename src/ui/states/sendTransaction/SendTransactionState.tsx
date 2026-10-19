@@ -203,6 +203,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           fee={fee}
           network={network}
           ownCoreAddress={ownCoreAddress}
+          ownPlatformAddresses={platformAddresses.map(item => item.address)}
           canContinue={fromToValid}
           recipientError={recipientError}
           onOpenAsset={() => setAssetMenuOpen(true)}

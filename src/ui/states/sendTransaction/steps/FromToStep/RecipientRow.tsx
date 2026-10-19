@@ -14,6 +14,7 @@ interface RecipientRowProps {
   network: NetworkType
   ownCoreAddress: string | null
   ownIdentities: string[]
+  ownPlatformAddresses: string[]
   onRecipientChange: (recipient: string) => void
 }
 
@@ -25,13 +26,14 @@ const ACCEPTED_TYPES: Record<EndpointType, RecipientTargetType> = {
 }
 
 // Second row of the To card: recipient field matching the To type.
-export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddress, ownIdentities, onRecipientChange }: RecipientRowProps): React.JSX.Element | null {
+export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddress, ownIdentities, ownPlatformAddresses, onRecipientChange }: RecipientRowProps): React.JSX.Element | null {
   const [text, setText] = useState(draft.to.recipient)
   const toType = draft.to.type
 
   if (isShieldToMyself(draft)) return null
 
   const otherIdentities = ownIdentities.filter(identifier => identifier !== excludeIdentifier)
+  const otherPlatformAddresses = ownPlatformAddresses.filter(address => address !== excludeIdentifier)
   const pinned: PinnedSuggestion | null = toType === 'core' && ownCoreAddress != null
     ? {
         title: 'My Core address',
@@ -51,7 +53,17 @@ export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddres
             content: <Identifier avatar highlight='both' ellipsis className='min-w-0 text-xs' disableCopy>{identifier}</Identifier>
           }))
         }
-      : null
+      : toType === 'platformAddress' && otherPlatformAddresses.length > 0
+        ? {
+            title: otherPlatformAddresses.length === 1 ? 'My Platform address' : 'My Platform addresses',
+            description: `${otherPlatformAddresses.length} addresses in this wallet`,
+            icon: <WalletIcon size={14} />,
+            recipients: otherPlatformAddresses.map(address => ({
+              result: { identifier: address, type: 'platformAddress' },
+              content: <Identifier highlight='both' className='text-xs' disableCopy>{address}</Identifier>
+            }))
+          }
+        : null
 
   const handleSelect = (result: RecipientSearchResult): void => {
     const type = result.type ?? 'identity'

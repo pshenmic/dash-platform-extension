@@ -32,6 +32,7 @@ interface FromToStepProps {
   fee: TransferFee | null
   network: NetworkType
   ownCoreAddress: string | null
+  ownPlatformAddresses: string[]
   canContinue: boolean
   recipientError: string | null
   onOpenAsset: () => void
@@ -57,6 +58,7 @@ export function FromToStep ({
   fee,
   network,
   ownCoreAddress,
+  ownPlatformAddresses,
   canContinue,
   recipientError,
   onOpenAsset,
@@ -128,10 +130,11 @@ export function FromToStep ({
             <RecipientRow
               key={`${draft.from.type}-${draft.to.type}-${String(draft.to.shieldToMyself)}`}
               draft={draft}
-              excludeIdentifier={draft.from.type === 'identity' ? draft.from.identityId : null}
+              excludeIdentifier={draft.from.type === 'identity' ? draft.from.identityId : balance.sourceAddress}
               network={network}
               ownCoreAddress={ownCoreAddress}
               ownIdentities={identities.map(identity => identity.identifier)}
+              ownPlatformAddresses={ownPlatformAddresses}
               onRecipientChange={(recipient) => actions.setRecipient(recipient)}
             />
           )}
