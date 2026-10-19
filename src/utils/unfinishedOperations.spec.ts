@@ -1,4 +1,4 @@
-import { continuationDraft, findResumedOperation, resumedAmounts, unfinishedOperations } from './unfinishedOperations'
+import { continuationDraft, findResumedOperation, isUnsendableFundingError, resumedAmounts, unfinishedOperations } from './unfinishedOperations'
 import type { UnfinishedOperation } from './unfinishedOperations'
 import { SHIELD_DEPOSIT_FEE_DUFFS, assetLockPayment } from './transferAmount'
 import type { PendingAssetLock } from '../types/messages/response/ListPendingAssetLocksResponse'
@@ -27,15 +27,15 @@ describe('unfinishedOperations', () => {
     ])
 
     expect(result).toEqual([
-      { purpose: 'topUp', recipient: 'identity', fundingTxid: 'paid', lockedDuffs: 99000n },
-      { purpose: 'fundAddress', recipient: 'tdash1address', fundingTxid: 'paid', lockedDuffs: 99000n },
-      { purpose: 'shield', recipient: 'tdash1shielded', fundingTxid: 'paid', lockedDuffs: 99000n }
+      { purpose: 'topUp', recipient: 'identity', fundingTxid: 'paid', fundingAddress: 'yFunding', lockedDuffs: 99000n },
+      { purpose: 'fundAddress', recipient: 'tdash1address', fundingTxid: 'paid', fundingAddress: 'yFunding', lockedDuffs: 99000n },
+      { purpose: 'shield', recipient: 'tdash1shielded', fundingTxid: 'paid', fundingAddress: 'yFunding', lockedDuffs: 99000n }
     ])
   })
 
   it('keeps a funded record that has no asset lock yet', () => {
     expect(unfinishedOperations([lock({ stage: 'funded', assetLockTxid: null })])).toEqual([
-      { purpose: 'topUp', recipient: 'identity', fundingTxid: 'paid', lockedDuffs: 99000n }
+      { purpose: 'topUp', recipient: 'identity', fundingTxid: 'paid', fundingAddress: 'yFunding', lockedDuffs: 99000n }
     ])
   })
 
@@ -64,10 +64,18 @@ describe('unfinishedOperations', () => {
   })
 })
 
+describe('isUnsendableFundingError', () => {
+  it('recognises a payment that cannot be sent again', () => {
+    expect(isUnsendableFundingError('Funding payment abc was recorded without its signed transaction and cannot be sent again')).toBe(true)
+    expect(isUnsendableFundingError('Failed to fetch')).toBe(false)
+  })
+})
+
 const operation = (fields: Partial<UnfinishedOperation>): UnfinishedOperation => ({
   purpose: 'topUp',
   recipient: 'identity',
   fundingTxid: 'paid',
+  fundingAddress: 'yFunding',
   lockedDuffs: 99000n,
   ...fields
 })

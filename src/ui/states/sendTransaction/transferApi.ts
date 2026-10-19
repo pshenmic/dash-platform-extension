@@ -195,6 +195,10 @@ export class TransferApi {
     return await this.extensionAPI.listPendingAssetLocks()
   }
 
+  async discardAssetLockFunding (fundingAddress: string): Promise<void> {
+    await this.extensionAPI.discardAssetLockFunding(fundingAddress)
+  }
+
   async topUpIdentityFromWallet (identityId: string, amountDuffs: bigint, password: string, walletId?: string, network?: NetworkType): Promise<CoreFundingResult> {
     const response = await this.extensionAPI.topUpIdentityFromWallet(amountDuffs.toString(), password, identityId, walletId, network)
     return { txHash: response.stateTransitionHash, coreTxHash: response.fundingTxid, feeDuffs: BigInt(response.coreFeeDuffs), resumed: response.resumed, creditedCredits: BigInt(response.topUpAmount) }

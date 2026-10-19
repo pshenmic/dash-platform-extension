@@ -38,7 +38,7 @@ export { checkRecipients, coreRecipientOutputs, platformRecipientOutputs } from 
 export type { RecipientsCheck } from './transferRecipients'
 export { coreMaxForOutputs, extraCoreOutputsFee } from './coreSendMax'
 export { coreFallbackFeeDuffs, coreFallbackMaxDuffs, platformFallbackEstimate, platformFallbackFeeCredits, shieldedFallbackFee, shownFee } from './transferFeeFallback'
-export { UNFINISHED_OPERATION_TARGETS, continuationDraft, findResumedOperation, resumedAmounts, unfinishedOperations } from './unfinishedOperations'
+export { UNFINISHED_OPERATION_TARGETS, continuationDraft, findResumedOperation, isUnsendableFundingError, resumedAmounts, unfinishedOperations } from './unfinishedOperations'
 export type { UnfinishedOperation } from './unfinishedOperations'
 export { CORE_DASH_DECIMALS, PLATFORM_DASH_DECIMALS, endpointDashDecimals, isDashInputAllowed, parseDashAmount, formatDashAmount, clampToMax, clampDashInput, dashAmountToUsd, transferAmountLimits, validateTransferAmount, usdToDashAmount, isAssetLockMode, assetLockReceived, assetLockPayment, feeOnLayer } from './transferAmount'
 export type { TransferAmountLimits } from './transferAmount'

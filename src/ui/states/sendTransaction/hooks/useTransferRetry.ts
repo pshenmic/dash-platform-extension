@@ -22,12 +22,23 @@ export interface TransferRetryState {
   pendingOperations: UnfinishedOperation[]
   continueOperation: (operation: UnfinishedOperation) => void
   handleRetry: () => void
+  discard: DiscardState
+  discardResumed: () => void
 }
+
+export interface DiscardState {
+  isDiscarding: boolean
+  error: string | null
+}
+
+const IDLE_DISCARD: DiscardState = { isDiscarding: false, error: null }
 
 // Unfinished Core operations of the wallet and the Retry of a failed transfer, both repeating the same *FromWallet call.
 export function useTransferRetry ({ api, draft, settledStatus, continueTxid, reloadCoreBalance, resetDraft, resetOperation, goToStep }: TransferRetryParams): TransferRetryState {
   const [pendingOperations, setPendingOperations] = useState<UnfinishedOperation[]>([])
   const continueTxidRef = useRef(continueTxid)
+  const [discard, setDiscard] = useState<DiscardState>(IDLE_DISCARD)
+  const resumedOperation = findResumedOperation(pendingOperations, draft)
 
   // Loads unfinished operations for a Core sender and refreshes its balance once a transfer settles; a success keeps the list the result was shown with.
   useEffect(() => {
@@ -53,9 +64,22 @@ export function useTransferRetry ({ api, draft, settledStatus, continueTxid, rel
 
   // Repeats the same call; the backend resumes a payment already locked on L1.
   const handleRetry = (): void => {
+    setDiscard(IDLE_DISCARD)
     resetOperation()
     goToStep('confirm', true)
   }
 
-  return { resumedOperation: findResumedOperation(pendingOperations, draft), pendingOperations, continueOperation, handleRetry }
+  const discardResumed = (): void => {
+    const operation = resumedOperation
+    if (operation?.fundingAddress == null) return
+    setDiscard({ isDiscarding: true, error: null })
+    api.discardAssetLockFunding(operation.fundingAddress)
+      .then(() => {
+        setPendingOperations(items => items.filter(item => item.fundingTxid !== operation.fundingTxid))
+        handleRetry()
+      })
+      .catch(e => setDiscard({ isDiscarding: false, error: e instanceof Error ? e.message : String(e) }))
+  }
+
+  return { resumedOperation, pendingOperations, continueOperation, handleRetry, discard, discardResumed }
 }

@@ -5,11 +5,12 @@ import { Banner, SummaryRow } from '../../../components/cards'
 import { TransactionHashBlock } from '../../../components/transactions'
 import { canShieldToOthers, dashAmountToUsd, formatDashAmount, getCoreTransactionExplorerUrl, isShieldToMyself } from '../../../../utils'
 import type { NetworkType } from '../../../../types'
-import { CONTINUED_TRANSFER_MESSAGE, transferErrorMessage } from '../constants'
+import { CONTINUED_TRANSFER_MESSAGE, UNSENDABLE_FUNDING_MESSAGE, transferErrorMessage } from '../constants'
 import { SENT_TO_SHIELDED_ADDRESS } from '../directions/directionConfig'
 import type { DirectionConfig, HashType } from '../directions/directionConfig'
 import type { SourceBalance } from '../hooks/useSourceBalance'
 import type { TransferFee } from '../hooks/useTransferFee'
+import type { DiscardState } from '../hooks/useTransferRetry'
 import type { TransferHashes } from '../hooks/useTransferOperation'
 import type { TransferDraft } from '../types'
 import { TransferDetails } from './TransferDetails'
@@ -31,6 +32,9 @@ interface ResultStepProps {
   network: NetworkType
   onDone: () => void
   onRetry: () => void
+  // Offered when the resumed payment cannot be sent again; null otherwise.
+  discard: DiscardState | null
+  onDiscard: () => void
 }
 
 const HASH_LABELS: Record<HashType, string> = {
@@ -43,7 +47,7 @@ const hashLabel = (hashType: HashType, draft: TransferDraft): string =>
   hashType === 'single' && draft.from.type === 'core' ? 'Transaction ID:' : HASH_LABELS[hashType]
 
 // Final screen of the send wizard for a successful or failed transfer.
-export function ResultStep ({ outcome, draft, config, amount, balance, fee, isPrepaid, received, rate, network, onDone, onRetry }: ResultStepProps): React.JSX.Element {
+export function ResultStep ({ outcome, draft, config, amount, balance, fee, isPrepaid, received, rate, network, onDone, onRetry, discard, onDiscard }: ResultStepProps): React.JSX.Element {
   const isSuccess = outcome.type === 'success'
   const actualFee = outcome.type === 'success' ? outcome.fee : undefined
   const credited = outcome.type === 'success' ? outcome.credited ?? null : null
@@ -79,6 +83,18 @@ export function ResultStep ({ outcome, draft, config, amount, balance, fee, isPr
         <Accordion title='Details'>
           <Text size='xs' className='break-words'>{outcome.message}</Text>
         </Accordion>
+      )}
+
+      {discard != null && (
+        <Banner variant='warning'>
+          <div className='flex flex-col gap-3 w-full'>
+            <Text size='sm' className='whitespace-normal'>{UNSENDABLE_FUNDING_MESSAGE}</Text>
+            <Button colorScheme='lightBlue' size='sm' disabled={discard.isDiscarding} onClick={onDiscard}>
+              {discard.isDiscarding ? 'Discarding...' : 'Discard payment'}
+            </Button>
+            {discard.error != null && <Text size='xs' className='!text-red-500 break-words'>{discard.error}</Text>}
+          </div>
+        </Banner>
       )}
 
       <Button colorScheme='brand' size='xl' className='w-full' onClick={isSuccess ? onDone : onRetry}>

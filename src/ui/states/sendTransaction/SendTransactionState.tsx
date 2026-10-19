@@ -8,7 +8,7 @@ import { locationReturnPath } from '../../types'
 import type { OutletContext } from '../../types'
 import { parseSendScope } from '../../utils/sendPath'
 import type { SendContinueState } from '../../utils/sendPath'
-import { resumedAmounts, transferAmountInput, validateTransfer } from '../../../utils'
+import { isUnsendableFundingError, resumedAmounts, transferAmountInput, validateTransfer } from '../../../utils'
 import type { TransferCapabilities } from '../../../utils'
 import type { AddressData } from '../../components/addresses/types'
 import { resolveEntryDefaults } from './entry/resolveEntryDefaults'
@@ -94,7 +94,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const navigation = useStepNavigation()
   const { goToStep } = navigation
   const continueTxid = (location.state as SendContinueState | null)?.continueFundingTxid ?? null
-  const { resumedOperation, pendingOperations, continueOperation, handleRetry } = useTransferRetry({ api, draft, settledStatus, continueTxid, reloadCoreBalance: core.reload, resetDraft: actions.reset, resetOperation: operation.reset, goToStep })
+  const { resumedOperation, pendingOperations, continueOperation, handleRetry, discard, discardResumed } = useTransferRetry({ api, draft, settledStatus, continueTxid, reloadCoreBalance: core.reload, resetDraft: actions.reset, resetOperation: operation.reset, goToStep })
   const isContinuing = resumedOperation != null
   // An unfinished operation to the same recipient is completed instead of the typed amount.
   const resumed = resumedOperation != null ? resumedAmounts(resumedOperation) : null
@@ -265,6 +265,8 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           onDone={close}
           isPrepaid={isContinuing}
           onRetry={handleRetry}
+          discard={operationState.status === 'failed' && isUnsendableFundingError(operationState.error) && resumedOperation?.fundingAddress != null ? discard : null}
+          onDiscard={discardResumed}
         />
       )}
 

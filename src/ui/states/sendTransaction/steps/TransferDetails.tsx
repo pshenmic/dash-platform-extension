@@ -32,8 +32,8 @@ function IdentityValue ({ identifier }: { identifier: string }): React.JSX.Eleme
 
 function TypeValue ({ type, label }: { type: EndpointType, label?: string }): React.JSX.Element {
   return (
-    <Text size='xs' weight='medium' className='flex items-center gap-1'>
-      {type === 'shielded' && <ShieldSmallIcon size={12} color='currentColor' className='text-dash-brand' />}
+    <Text size='xs' weight='medium' className='!flex items-center gap-1'>
+      {type === 'shielded' && <ShieldSmallIcon size={12} color='currentColor' className='shrink-0 text-dash-brand' />}
       <span className='font-bold'>{label ?? ENDPOINT_TYPE_LABELS[type]}</span>
       <span className='opacity-50'>{LAYER_SUFFIX[type]}</span>
     </Text>

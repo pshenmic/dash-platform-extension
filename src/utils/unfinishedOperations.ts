@@ -8,6 +8,7 @@ export interface UnfinishedOperation {
   purpose: 'topUp' | 'fundAddress' | 'shield'
   recipient: string | null
   fundingTxid: string
+  fundingAddress: string | null
   lockedDuffs: bigint
 }
 
@@ -31,9 +32,12 @@ export const unfinishedOperations = (locks: PendingAssetLock[]): UnfinishedOpera
     if (seen.has(key)) return []
     seen.add(key)
 
-    return [{ purpose: lock.purpose, recipient: recipient ?? null, fundingTxid: lock.fundingTxid, lockedDuffs: BigInt(lock.amountDuffs) }]
+    return [{ purpose: lock.purpose, recipient: recipient ?? null, fundingTxid: lock.fundingTxid, fundingAddress: lock.fundingAddress, lockedDuffs: BigInt(lock.amountDuffs) }]
   })
 }
+
+// Error of a resumed operation whose payment never reached the network and was recorded without a copy to send again.
+export const isUnsendableFundingError = (message: string): boolean => /cannot be sent again/i.test(message)
 
 // Recipient type each unfinished operation pays.
 export const UNFINISHED_OPERATION_TARGETS: Record<UnfinishedOperation['purpose'], EndpointType> = { topUp: 'identity', fundAddress: 'platformAddress', shield: 'shielded' }

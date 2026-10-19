@@ -57,6 +57,8 @@ export const interruptedTransferMessage = (amount: string): string =>
   `The interrupted transfer of ${amount} Dash to this recipient will be completed first. The new amount won't be sent.`
 
 // Result notice when the call finished an earlier unfinished operation instead of paying again.
+export const UNSENDABLE_FUNDING_MESSAGE = 'The earlier payment is not on the network and cannot be sent again. Discard it to pay for this transfer anew; a payment still on its way is not discarded.'
+
 export const CONTINUED_TRANSFER_MESSAGE = 'An earlier unfinished transfer to this recipient was completed. Nothing new was paid.'
 
 // Most recipients one Advanced transfer from this source type can pay.
