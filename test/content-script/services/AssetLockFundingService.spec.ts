@@ -8,7 +8,6 @@ describe('AssetLockFundingService', () => {
 
   let coreExplorer: any
   let coreSpend: any
-  let corePendingSpendsRepository: any
   let assetLockFundingAddressesRepository: any
   let service: AssetLockFundingService
 
@@ -18,7 +17,6 @@ describe('AssetLockFundingService', () => {
     txid: 'b'.repeat(64),
     feeDuffs: 226n,
     changeDuffs: 89_774n,
-    resolvedTxids: ['c'.repeat(64)],
     transaction: { bytes: () => Uint8Array.from([0xde, 0xad, 0xbe, 0xef]) }
   }
 
@@ -44,7 +42,6 @@ describe('AssetLockFundingService', () => {
       rebroadcast: jest.fn(async () => {}),
       isBroadcast: jest.fn(async () => true)
     }
-    corePendingSpendsRepository = { remove: jest.fn(async () => {}) }
     assetLockFundingAddressesRepository = {
       getByAddress: jest.fn(async () => ({ address: FUNDING_ADDRESS, used: false })),
       markAsFunded: jest.fn(async () => {}),
@@ -87,12 +84,6 @@ describe('AssetLockFundingService', () => {
 
     expect(assetLockFundingAddressesRepository.markAsFunded)
       .toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000', PREPARED_HEX)
-  })
-
-  it('forgets pending spends the explorer has caught up with', async () => {
-    await fund()
-
-    expect(corePendingSpendsRepository.remove).toHaveBeenCalledWith(prepared.resolvedTxids)
   })
 
   it('pays nothing when the recorded payment is already on its way', async () => {
