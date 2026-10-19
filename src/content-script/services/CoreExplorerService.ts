@@ -289,6 +289,25 @@ export class CoreExplorerService {
     return info != null && info.txCount > 0
   }
 
+  // True when the explorer knows the transaction at all. It indexes the mempool,
+  // so a payment broadcast a moment ago is already there: a 404 means nothing on
+  // the network has this transaction. An explorer that cannot answer raises
+  // instead, so a caller never reads a failure as "never happened".
+  async hasTransaction (txid: string, network: NetworkType = 'testnet'): Promise<boolean> {
+    const baseUrl = getBaseUrl(network)
+    const response = await fetch(`${baseUrl}/transaction/${txid}`)
+
+    if (response.status === 404) {
+      return false
+    }
+
+    if (!response.ok) {
+      throw new Error(`Core explorer error for transaction ${txid}: HTTP ${response.status}`)
+    }
+
+    return true
+  }
+
   // Transaction that spent this transaction's output to `address`, or null while
   // it is unspent. Recovers the asset lock committed by an earlier attempt: the
   // funding transaction is known, the asset lock built from it is not.

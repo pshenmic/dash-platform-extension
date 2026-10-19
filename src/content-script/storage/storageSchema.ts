@@ -130,6 +130,13 @@ export interface AssetLockFundingAddressSchema {
   // L1 to show for it, so LIST_PENDING_ASSET_LOCKS reports it from these.
   fundedAmountDuffs?: string
   fundedAt?: number
+  // The signed payment itself, kept until the deposit is spent by an asset lock.
+  // Writing the txid before broadcasting keeps a repeat from paying twice, but
+  // on its own it leaves the chain waiting for a transaction nobody has when the
+  // broadcast itself fails. With the bytes here the repeat sends that exact
+  // transaction again: same inputs, same txid, so the network either accepts it
+  // or reports it as already known.
+  fundingTxHex?: string
   // Defaults to 'registration' when absent (legacy entries predate top-up).
   purpose?: AssetLockFundingPurpose
   // The identity a 'topUp' address is reserved for. Without an owner every

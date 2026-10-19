@@ -3,6 +3,7 @@ import { NetworkType } from '../../types/PlatformExplorer'
 import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFundingAddressesRepository'
 import { CoreExplorerService } from './CoreExplorerService'
 import { CoreSpendService } from './CoreSpendService'
+import { bytesToHex } from '../../utils'
 
 export interface FundAssetLockAddressParams {
   wallet: Wallet
@@ -22,6 +23,8 @@ export interface FundedAssetLockAddress {
   feeDuffs: bigint
   changeDuffs: bigint
 }
+
+const CONTINUED = { paid: false, feeDuffs: 0n, changeDuffs: 0n }
 
 /**
  * Puts a deposit on an asset lock funding address out of the wallet's own coins.
@@ -48,7 +51,7 @@ export class AssetLockFundingService {
     const entry = await assetLockFundingAddressesRepository.getByAddress(fundingAddress)
 
     if (entry?.fundingTxid != null) {
-      return { fundingTxid: entry.fundingTxid, paid: false, feeDuffs: 0n, changeDuffs: 0n }
+      return await this.continueRecordedPayment(entry.address, entry.fundingTxid, entry.assetLockTxid, entry.fundingTxHex)
     }
 
     if (entry?.assetLockTxid != null) {
@@ -80,7 +83,7 @@ export class AssetLockFundingService {
         await assetLockFundingAddressesRepository.markAsFunded(fundingAddress, depositTxids[0])
       }
 
-      return { fundingTxid: depositTxids[0], paid: false, feeDuffs: 0n, changeDuffs: 0n }
+      return { fundingTxid: depositTxids[0], ...CONTINUED }
     }
 
     const prepared = await this.coreSpend.prepare({
@@ -91,7 +94,9 @@ export class AssetLockFundingService {
       // Written while the payment is still only in memory: from the broadcast on,
       // the coins are at the funding address, and a repeat has to continue from
       // this transaction rather than pay the address a second time.
-      await assetLockFundingAddressesRepository.markAsFunded(fundingAddress, prepared.txid, amountDuffs.toString())
+      await assetLockFundingAddressesRepository.markAsFunded(
+        fundingAddress, prepared.txid, amountDuffs.toString(), bytesToHex(prepared.transaction.bytes())
+      )
     }
 
     await this.coreSpend.broadcast(prepared)
@@ -102,5 +107,50 @@ export class AssetLockFundingService {
       feeDuffs: prepared.feeDuffs,
       changeDuffs: prepared.changeDuffs
     }
+  }
+
+  /**
+   * Continues the payment an earlier attempt recorded.
+   *
+   * The payment is written down before it is broadcast, so an attempt that died
+   * in between leaves a record of a transaction the network may never have seen.
+   * Returning the txid regardless is what left such an operation waiting forever
+   * for a transaction nobody has.
+   */
+  async continueRecordedPayment (
+    fundingAddress: string,
+    fundingTxid: string,
+    assetLockTxid?: string | null,
+    fundingTxHex?: string
+  ): Promise<FundedAssetLockAddress> {
+    if (assetLockTxid != null) {
+      // The deposit is already spent by an asset lock, so the payment is on L1
+      // whatever any node currently answers.
+      return { fundingTxid, ...CONTINUED }
+    }
+
+    if (fundingTxHex != null) {
+      // Idempotent: the same transaction either enters the network now or is
+      // reported as one it already has.
+      await this.coreSpend.rebroadcast(fundingTxid, fundingTxHex)
+
+      return { fundingTxid, ...CONTINUED }
+    }
+
+    // Recorded before the bytes were kept, so there is nothing to send again.
+    // Nothing here may pay the address a second time: the recorded transaction
+    // can be sitting in a mempool this node has not seen, and a second payment
+    // would put two deposits on an address an asset lock spends one of. Say
+    // what is stuck instead, and leave discarding it to a caller who asked for
+    // it knowingly.
+    if (!await this.coreSpend.isBroadcast(fundingTxid)) {
+      throw new Error(
+        `Funding payment ${fundingTxid} for ${fundingAddress} was recorded before the signed transaction was kept, ` +
+        'and no node has it, so it cannot be sent again. It may still be propagating; if it never arrives, ' +
+        'discard it with DISCARD_ASSET_LOCK_FUNDING to pay the address once more'
+      )
+    }
+
+    return { fundingTxid, ...CONTINUED }
   }
 }

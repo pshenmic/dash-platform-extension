@@ -8,13 +8,18 @@ describe('AssetLockFundingService', () => {
 
   let coreExplorer: any
   let coreSpend: any
+  let corePendingSpendsRepository: any
   let assetLockFundingAddressesRepository: any
   let service: AssetLockFundingService
+
+  const PREPARED_HEX = 'deadbeef'
 
   const prepared = {
     txid: 'b'.repeat(64),
     feeDuffs: 226n,
-    changeDuffs: 89_774n
+    changeDuffs: 89_774n,
+    resolvedTxids: ['c'.repeat(64)],
+    transaction: { bytes: () => Uint8Array.from([0xde, 0xad, 0xbe, 0xef]) }
   }
 
   const fund = async (amountDuffs = 100_000n): Promise<any> => await service.fundFromWallet({
@@ -29,14 +34,21 @@ describe('AssetLockFundingService', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    coreExplorer = { getAddressUtxos: jest.fn(async () => []) }
+    coreExplorer = {
+      getAddressUtxos: jest.fn(async () => []),
+      hasTransaction: jest.fn(async () => true)
+    }
     coreSpend = {
       prepare: jest.fn(async () => prepared),
-      broadcast: jest.fn(async () => {})
+      broadcast: jest.fn(async () => {}),
+      rebroadcast: jest.fn(async () => {}),
+      isBroadcast: jest.fn(async () => true)
     }
+    corePendingSpendsRepository = { remove: jest.fn(async () => {}) }
     assetLockFundingAddressesRepository = {
       getByAddress: jest.fn(async () => ({ address: FUNDING_ADDRESS, used: false })),
-      markAsFunded: jest.fn(async () => {})
+      markAsFunded: jest.fn(async () => {}),
+      clearFunding: jest.fn(async () => {})
     }
 
     service = new AssetLockFundingService(coreExplorer, coreSpend)
@@ -62,14 +74,76 @@ describe('AssetLockFundingService', () => {
 
     // The amount goes down with it, so LIST_PENDING_ASSET_LOCKS can say how much
     // is sitting on the address when the operation stops here.
-    expect(assetLockFundingAddressesRepository.markAsFunded).toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000')
+    expect(assetLockFundingAddressesRepository.markAsFunded).toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000', PREPARED_HEX)
     expect(order).toEqual(['markAsFunded', 'broadcast'])
+  })
+
+  // The payment is written down before it is broadcast, so the broadcast is the
+  // step that can fail with the record already in place.
+  it('keeps the signed payment, so a broadcast that failed can be sent again', async () => {
+    coreSpend.broadcast.mockRejectedValue(new Error('Failed to fetch'))
+
+    await expect(fund()).rejects.toThrow('Failed to fetch')
+
+    expect(assetLockFundingAddressesRepository.markAsFunded)
+      .toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000', PREPARED_HEX)
+  })
+
+  it('forgets pending spends the explorer has caught up with', async () => {
+    await fund()
+
+    expect(corePendingSpendsRepository.remove).toHaveBeenCalledWith(prepared.resolvedTxids)
   })
 
   it('pays nothing when the recorded payment is already on its way', async () => {
     assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
       address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64)
     })
+
+    expect(await fund()).toEqual({ fundingTxid: 'd'.repeat(64), paid: false, feeDuffs: 0n, changeDuffs: 0n })
+    expect(coreSpend.prepare).not.toHaveBeenCalled()
+  })
+
+  it('sends the recorded payment again instead of paying a second time', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
+      address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64), fundingTxHex: PREPARED_HEX
+    })
+
+    expect(await fund()).toEqual({ fundingTxid: 'd'.repeat(64), paid: false, feeDuffs: 0n, changeDuffs: 0n })
+    expect(coreSpend.rebroadcast).toHaveBeenCalledWith('d'.repeat(64), PREPARED_HEX)
+    expect(coreSpend.prepare).not.toHaveBeenCalled()
+  })
+
+  it('does not look up a payment whose deposit an asset lock already spent', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
+      address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64), assetLockTxid: 'a'.repeat(64)
+    })
+
+    expect(await fund()).toEqual({ fundingTxid: 'd'.repeat(64), paid: false, feeDuffs: 0n, changeDuffs: 0n })
+    expect(coreSpend.isBroadcast).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.clearFunding).not.toHaveBeenCalled()
+  })
+
+  // Written down before the bytes were kept: there is nothing to send again.
+  // Paying the address a second time is the one thing that must not happen here,
+  // because the recorded payment can be in a mempool this node has not seen.
+  it('refuses to guess when a payment it cannot re-send is nowhere to be found', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
+      address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64)
+    })
+    coreSpend.isBroadcast.mockResolvedValue(false)
+
+    await expect(fund()).rejects.toThrow('cannot be sent again')
+
+    expect(coreSpend.prepare).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.clearFunding).not.toHaveBeenCalled()
+  })
+
+  it('continues on a payment it cannot re-send while a node still has it', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
+      address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64)
+    })
+    coreSpend.isBroadcast.mockResolvedValue(true)
 
     expect(await fund()).toEqual({ fundingTxid: 'd'.repeat(64), paid: false, feeDuffs: 0n, changeDuffs: 0n })
     expect(coreSpend.prepare).not.toHaveBeenCalled()

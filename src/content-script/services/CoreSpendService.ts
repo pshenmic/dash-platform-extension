@@ -4,7 +4,7 @@ import { Wallet } from '../../types/Wallet'
 import { CoreAddressChain } from '../../types/enums/CoreAddressChain'
 import { CoreAddressEntry, deriveCoreAddressesFromXpub, deriveCoreAddressKeyAtIndex } from '../../utils/coreAddresses'
 import { buildCoreTransferMulti, CoreTransferOutput, maxCoreSpend, selectCoreUtxos } from '../../utils/coreTransfer'
-import { deriveWalletHdKey } from '../../utils'
+import { deriveWalletHdKey, hexToBytes } from '../../utils'
 import { CoreWalletUtxo } from './CoreExplorerService'
 import { CoreUtxosService } from './CoreUtxosService'
 
@@ -215,5 +215,25 @@ export class CoreSpendService {
   // Sends a prepared transaction to the network.
   async broadcast (prepared: PreparedCoreSpend): Promise<void> {
     await this.coreSDK.broadcastTransaction(prepared.transaction.bytes())
+  }
+
+  // True once the network has the transaction, in a block or in its mempool.
+  // A node that cannot answer is not an answer, so a failure reads as unknown
+  // and the caller decides what to do about it.
+  async isBroadcast (txid: string): Promise<boolean> {
+    return await this.coreSDK.getTransaction(txid).then(() => true, () => false)
+  }
+
+  // Sends a payment an earlier attempt signed and wrote down. It is the same
+  // transaction byte for byte, so the network either takes it or reports it as
+  // one it already has, and both mean the money is on its way.
+  async rebroadcast (txid: string, txHex: string): Promise<void> {
+    try {
+      await this.coreSDK.broadcastTransaction(hexToBytes(txHex))
+    } catch (e) {
+      if (!await this.isBroadcast(txid)) {
+        throw e
+      }
+    }
   }
 }

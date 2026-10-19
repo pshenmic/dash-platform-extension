@@ -44,6 +44,7 @@ import { CreateIdentityPrivateKeyHandler } from './private/identities/createIden
 import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFundingAddressesRepository'
 import { PendingAssetLocksRepository } from '../repository/PendingAssetLocksRepository'
 import { ListPendingAssetLocksHandler } from './private/assetLocks/listPendingAssetLocks'
+import { DiscardAssetLockFundingHandler } from './private/assetLocks/discardAssetLockFunding'
 import { CoreExplorerService } from '../services/CoreExplorerService'
 import { CoreUtxosService } from '../services/CoreUtxosService'
 import { CoreSpendService } from '../services/CoreSpendService'
@@ -248,6 +249,7 @@ export class PrivateAPI {
       [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: requestAssetLockFundingAddress,
       [MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS]: requestTopUpFundingAddress,
       [MessagingMethods.LIST_PENDING_ASSET_LOCKS]: new ListPendingAssetLocksHandler(pendingAssetLocksRepository, assetLockFundingAddressesRepository),
+      [MessagingMethods.DISCARD_ASSET_LOCK_FUNDING]: new DiscardAssetLockFundingHandler(walletRepository, assetLockFundingAddressesRepository, coreExplorer, this.coreSDK),
       [MessagingMethods.REGISTER_IDENTITY]: registerIdentity,
       [MessagingMethods.REGISTER_IDENTITY_FROM_WALLET]: new RegisterIdentityFromWalletHandler(
         walletRepository,
