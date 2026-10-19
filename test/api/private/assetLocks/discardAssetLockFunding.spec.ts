@@ -1,6 +1,19 @@
+import { Input, Output, Script, Transaction } from 'dash-core-sdk'
 import { DiscardAssetLockFundingHandler } from '../../../../src/content-script/api/private/assetLocks/discardAssetLockFunding'
+import { bytesToHex } from '../../../../src/utils'
 import { AssetLockFundingAddressesRepository } from '../../../../src/content-script/repository/AssetLockFundingAddressesRepository'
 import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
+
+// A real signed shape, so the code that reads a kept payment's inputs has
+// something it can actually parse.
+const conflictable = (): { hex: string, txid: string } => {
+  const transaction = new Transaction(
+    [new Input(`${'a'.repeat(63)}1`, 3, Script.fromASM('OP_0'), 0xffffffff)],
+    [Output.createP2PKH(100_000n, 'yYaCeiBLVeiDvR3ryAcTtifeRckEpbipBk')]
+  )
+
+  return { hex: bytesToHex(transaction.bytes()), txid: transaction.hash() }
+}
 
 // The way out of an operation stuck on a payment recorded before the signed
 // transaction was kept. It must refuse while anything still has that
@@ -39,7 +52,7 @@ describe('discard asset lock funding', () => {
 
     repository = new AssetLockFundingAddressesRepository(storage)
     walletRepository = { getCurrent: jest.fn(async () => ({ walletId, network: 'testnet' })) }
-    coreExplorer = { hasTransaction: jest.fn(async () => false) }
+    coreExplorer = { hasTransaction: jest.fn(async () => false), getOutpointSpender: jest.fn(async () => null) }
     coreSDK = { getTransaction: jest.fn(async () => { throw new Error('Transaction not found') }) }
 
     handler = new DiscardAssetLockFundingHandler(walletRepository, repository, coreExplorer, coreSDK)
@@ -85,11 +98,26 @@ describe('discard asset lock funding', () => {
   })
 
   it('refuses a payment that can simply be sent again', async () => {
-    await store({ fundingTxid, fundingTxHex: 'deadbeef' })
+    const { hex, txid } = conflictable()
+
+    await store({ fundingTxid: txid, fundingTxHex: hex })
 
     await expect(discard()).rejects.toThrow('can be sent again')
 
     expect(coreSDK.getTransaction).not.toHaveBeenCalled()
+  })
+
+  // Kept, but dead: another transaction holds its input, so re-sending it would
+  // earn a conflict from every node forever.
+  it('discards a kept payment that can never confirm', async () => {
+    const { hex, txid } = conflictable()
+
+    await store({ fundingTxid: txid, fundingTxHex: hex, fundedAmountDuffs: '2000000' })
+    coreExplorer.getOutpointSpender.mockResolvedValue('c'.repeat(64))
+
+    expect(await discard()).toEqual({ fundingAddress: FUNDING_ADDRESS, fundingTxid: txid, amountDuffs: '2000000' })
+
+    expect((await repository.getByAddress(FUNDING_ADDRESS))?.fundingTxid).toBeUndefined()
   })
 
   it('refuses an address with no recorded payment, and an unknown one', async () => {

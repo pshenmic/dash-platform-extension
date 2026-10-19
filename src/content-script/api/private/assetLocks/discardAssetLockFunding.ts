@@ -8,6 +8,7 @@ import { DiscardAssetLockFundingPayload } from '../../../../types/messages/paylo
 import { DiscardAssetLockFundingResponse } from '../../../../types/messages/response/DiscardAssetLockFundingResponse'
 import { RepositoryScope } from '../../../../types/RepositoryScope'
 import { validateRepositoryScopePayload } from '../../../../utils/validateRepositoryScopePayload'
+import { findConflictingSpend } from '../../../../utils/conflictingSpend'
 
 // Forgets a funding payment the network never took, so the operation can pay
 // its address again.
@@ -57,10 +58,28 @@ export class DiscardAssetLockFundingHandler implements APIHandler {
     }
 
     if (entry.fundingTxHex != null) {
-      throw new Error(
-        `Funding payment ${entry.fundingTxid} is kept as a signed transaction and can be sent again, ` +
-        'so repeat the operation instead of discarding its payment'
+      // A kept payment is normally re-sent rather than discarded. Unless another
+      // transaction has taken one of its inputs: then it can never confirm, and
+      // re-sending it forever is the only thing repeating the operation would
+      // achieve.
+      const conflict = await findConflictingSpend(
+        this.coreExplorer, entry.fundingTxid, entry.fundingTxHex, scope.network
       )
+
+      if (conflict == null) {
+        throw new Error(
+          `Funding payment ${entry.fundingTxid} is kept as a signed transaction and can be sent again, ` +
+          'so repeat the operation instead of discarding its payment'
+        )
+      }
+
+      await repository.clearFunding(payload.fundingAddress)
+
+      return {
+        fundingAddress: payload.fundingAddress,
+        fundingTxid: entry.fundingTxid,
+        amountDuffs: entry.fundedAmountDuffs ?? null
+      }
     }
 
     // A node that answers is the authority on its own mempool, so finding the
