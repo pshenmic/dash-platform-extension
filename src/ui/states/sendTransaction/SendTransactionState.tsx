@@ -25,6 +25,7 @@ import { useTransferRetry } from './hooks/useTransferRetry'
 import { useCoreTransferEstimate } from './hooks/useCoreTransferEstimate'
 import { usePlatformFeeEstimate } from './hooks/usePlatformFeeEstimate'
 import { useChangeAddresses } from './hooks/useChangeAddresses'
+import { useOwnCoreAddress } from './hooks/useOwnCoreAddress'
 import { useIdentityHeader } from './hooks/useIdentityHeader'
 import { STEP_INDEX, useStepNavigation, useWizardStep } from './hooks/useWizardStep'
 import { useTransferApi } from './transferApi'
@@ -129,6 +130,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
     : operationState.status === 'failed' ? { type: 'error', message: operationState.error } : null
 
   const changeAddresses = useChangeAddresses(api, draft.isAdvanced && draft.from.type === 'core', currentWallet, network)
+  const ownCoreAddress = useOwnCoreAddress(api, !draft.isAdvanced && draft.to.type === 'core' && capabilities.hasCoreLayer, currentWallet, network)
 
   useIdentityHeader({ currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent })
 
@@ -200,6 +202,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           tokens={tokens}
           fee={fee}
           network={network}
+          ownCoreAddress={ownCoreAddress}
           canContinue={fromToValid}
           recipientError={recipientError}
           onOpenAsset={() => setAssetMenuOpen(true)}

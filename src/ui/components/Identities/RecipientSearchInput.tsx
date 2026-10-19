@@ -6,12 +6,19 @@ import {
   ErrorIcon,
   Identifier,
   SearchIcon,
-  ShieldSmallIcon,
   ValueCard
 } from 'dash-ui-kit/react'
 import { useSdk, useDebounce } from '../../hooks'
 import { searchRecipients, type RecipientSearchResult, type RecipientTargetType, normalizeName, detectRecipientType } from '../../../utils'
 import type { NetworkType } from '../../../types'
+
+// Recipient offered in the empty field without a search, e.g. the wallet's own address.
+export interface PinnedRecipient {
+  result: RecipientSearchResult
+  title: string
+  description: React.ReactNode
+  icon: React.ReactNode
+}
 
 interface RecipientSearchInputProps {
   value: string
@@ -28,9 +35,9 @@ interface RecipientSearchInputProps {
   allowCoreAddress?: boolean
   // When true, an Orchard shielded address becomes a selectable result.
   allowShieldAddress?: boolean
-  // Recipients offered outright (not searched) — e.g. the wallet's own shielded
-  // pool. Shown in the empty field so they're discoverable without typing.
-  pinnedRecipients?: RecipientSearchResult[]
+  // Recipients offered outright (not searched) — e.g. the wallet's own Core
+  // address. Shown in the empty field so they're discoverable without typing.
+  pinnedRecipients?: PinnedRecipient[]
   network?: NetworkType
   // Grey borderless field, for a field inside a card.
   filled?: boolean
@@ -236,20 +243,18 @@ export function RecipientSearchInput ({
                 <div className='flex flex-col gap-2 px-3'>
                   {pinnedRecipients.map(pinned => (
                     <div
-                      key={pinned.identifier}
-                      onClick={() => handleSelectResult(pinned)}
+                      key={pinned.result.identifier}
+                      onClick={() => handleSelectResult(pinned.result)}
                       className='flex items-center gap-3 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
                     >
-                      <div className='w-[1.875rem] h-[1.875rem] shrink-0 flex items-center justify-center bg-dash-primary-dark-blue/5 rounded-full'>
-                        <ShieldSmallIcon size={14} className='text-dash-primary-dark-blue opacity-50' />
+                      <div className='w-[1.875rem] h-[1.875rem] shrink-0 flex items-center justify-center bg-dash-primary-dark-blue/5 rounded-full text-dash-primary-dark-blue/50'>
+                        {pinned.icon}
                       </div>
-                      <div className='flex flex-col gap-0.5 min-w-0'>
+                      <div className='flex flex-col gap-0.5 min-w-0 flex-1'>
                         <Text size='sm' className='text-dash-primary-dark-blue'>
-                          {pinned.label ?? pinned.identifier}
+                          {pinned.title}
                         </Text>
-                        <Text className='text-xs' dim>
-                          Move credits into your own private balance
-                        </Text>
+                        {pinned.description}
                       </div>
                     </div>
                   ))}
@@ -259,7 +264,7 @@ export function RecipientSearchInput ({
                 ? (
                   <div className='py-4 text-center px-3'>
                     <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
-                      {(recipientType === 'shieldAddress' && pinnedRecipients.length > 0)
+                      {(recipientType === 'shieldAddress' && pinnedRecipients.some(pinned => pinned.result.type === 'shieldAddress'))
                         ? 'Credits can only be shielded into your own pool — clear the field and pick “My shielded balance”'
                         : UNSUPPORTED_ADDRESS_MESSAGES[recipientType] ?? 'This address type is not supported here'}
                     </Text>
