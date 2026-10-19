@@ -4,6 +4,7 @@ import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFund
 import { CorePendingSpendsRepository } from '../repository/CorePendingSpendsRepository'
 import { CoreExplorerService } from './CoreExplorerService'
 import { CoreSpendService } from './CoreSpendService'
+import { bytesToHex } from '../../utils'
 
 export interface FundAssetLockAddressParams {
   wallet: Wallet
@@ -23,6 +24,8 @@ export interface FundedAssetLockAddress {
   feeDuffs: bigint
   changeDuffs: bigint
 }
+
+const CONTINUED = { paid: false, feeDuffs: 0n, changeDuffs: 0n }
 
 /**
  * Puts a deposit on an asset lock funding address out of the wallet's own coins.
@@ -48,10 +51,18 @@ export class AssetLockFundingService {
     const { wallet, xpub, fundingAddress, amountDuffs, password, assetLockFundingAddressesRepository } = params
     const account = params.account ?? 0
 
-    const entry = await assetLockFundingAddressesRepository.getByAddress(fundingAddress)
+    let entry = await assetLockFundingAddressesRepository.getByAddress(fundingAddress)
 
     if (entry?.fundingTxid != null) {
-      return { fundingTxid: entry.fundingTxid, paid: false, feeDuffs: 0n, changeDuffs: 0n }
+      const continued = await this.continueRecordedPayment(entry.address, entry.fundingTxid, params, entry.assetLockTxid, entry.fundingTxHex)
+
+      if (continued != null) {
+        return continued
+      }
+
+      // The payment never reached the network and was forgotten, so this call
+      // pays the address as if nothing had been recorded.
+      entry = await assetLockFundingAddressesRepository.getByAddress(fundingAddress)
     }
 
     if (entry?.assetLockTxid != null) {
@@ -83,7 +94,7 @@ export class AssetLockFundingService {
         await assetLockFundingAddressesRepository.markAsFunded(fundingAddress, depositTxids[0])
       }
 
-      return { fundingTxid: depositTxids[0], paid: false, feeDuffs: 0n, changeDuffs: 0n }
+      return { fundingTxid: depositTxids[0], ...CONTINUED }
     }
 
     const prepared = await this.coreSpend.prepare({
@@ -96,7 +107,9 @@ export class AssetLockFundingService {
       // Written while the payment is still only in memory: from the broadcast on,
       // the coins are at the funding address, and a repeat has to continue from
       // this transaction rather than pay the address a second time.
-      await assetLockFundingAddressesRepository.markAsFunded(fundingAddress, prepared.txid, amountDuffs.toString())
+      await assetLockFundingAddressesRepository.markAsFunded(
+        fundingAddress, prepared.txid, amountDuffs.toString(), bytesToHex(prepared.transaction.bytes())
+      )
     }
 
     await this.coreSpend.broadcast(prepared)
@@ -107,5 +120,56 @@ export class AssetLockFundingService {
       feeDuffs: prepared.feeDuffs,
       changeDuffs: prepared.changeDuffs
     }
+  }
+
+  /**
+   * Continues the payment an earlier attempt recorded, or reports that there is
+   * nothing to continue.
+   *
+   * The payment is written down before it is broadcast, so an attempt that died
+   * in between leaves a record of a transaction the network may never have seen.
+   * Returning the txid regardless is what left such an operation waiting forever
+   * for a transaction nobody has.
+   *
+   * Returns null only when the payment provably never happened, which is the one
+   * case where paying the address again is the right move.
+   */
+  async continueRecordedPayment (
+    fundingAddress: string,
+    fundingTxid: string,
+    params: FundAssetLockAddressParams,
+    assetLockTxid?: string | null,
+    fundingTxHex?: string
+  ): Promise<FundedAssetLockAddress | null> {
+    if (assetLockTxid != null) {
+      // The deposit is already spent by an asset lock, so the payment is on L1
+      // whatever any node currently answers.
+      return { fundingTxid, ...CONTINUED }
+    }
+
+    if (fundingTxHex != null) {
+      // Idempotent: the same transaction either enters the network now or is
+      // reported as one it already has.
+      await this.coreSpend.rebroadcast(fundingTxid, fundingTxHex)
+
+      return { fundingTxid, ...CONTINUED }
+    }
+
+    if (await this.coreSpend.isBroadcast(fundingTxid)) {
+      return { fundingTxid, ...CONTINUED }
+    }
+
+    // Recorded before the bytes were kept, and the node the SDK asked has no
+    // such transaction. A node that is merely unreachable answers the same way,
+    // so the explorer decides: it indexes the mempool, and it raises rather than
+    // answering when it cannot look. Both of them missing the transaction is what
+    // makes "never broadcast" a fact instead of a guess.
+    if (await this.coreExplorer.hasTransaction(fundingTxid, params.wallet.network as NetworkType)) {
+      return { fundingTxid, ...CONTINUED }
+    }
+
+    await params.assetLockFundingAddressesRepository.clearFunding(fundingAddress)
+
+    return null
   }
 }

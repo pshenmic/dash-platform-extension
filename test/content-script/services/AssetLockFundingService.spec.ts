@@ -12,11 +12,14 @@ describe('AssetLockFundingService', () => {
   let assetLockFundingAddressesRepository: any
   let service: AssetLockFundingService
 
+  const PREPARED_HEX = 'deadbeef'
+
   const prepared = {
     txid: 'b'.repeat(64),
     feeDuffs: 226n,
     changeDuffs: 89_774n,
-    resolvedTxids: ['c'.repeat(64)]
+    resolvedTxids: ['c'.repeat(64)],
+    transaction: { bytes: () => Uint8Array.from([0xde, 0xad, 0xbe, 0xef]) }
   }
 
   const fund = async (amountDuffs = 100_000n): Promise<any> => await service.fundFromWallet({
@@ -31,15 +34,21 @@ describe('AssetLockFundingService', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    coreExplorer = { getAddressUtxos: jest.fn(async () => []) }
+    coreExplorer = {
+      getAddressUtxos: jest.fn(async () => []),
+      hasTransaction: jest.fn(async () => true)
+    }
     coreSpend = {
       prepare: jest.fn(async () => prepared),
-      broadcast: jest.fn(async () => {})
+      broadcast: jest.fn(async () => {}),
+      rebroadcast: jest.fn(async () => {}),
+      isBroadcast: jest.fn(async () => true)
     }
     corePendingSpendsRepository = { remove: jest.fn(async () => {}) }
     assetLockFundingAddressesRepository = {
       getByAddress: jest.fn(async () => ({ address: FUNDING_ADDRESS, used: false })),
-      markAsFunded: jest.fn(async () => {})
+      markAsFunded: jest.fn(async () => {}),
+      clearFunding: jest.fn(async () => {})
     }
 
     service = new AssetLockFundingService(coreExplorer, coreSpend, corePendingSpendsRepository)
@@ -65,8 +74,19 @@ describe('AssetLockFundingService', () => {
 
     // The amount goes down with it, so LIST_PENDING_ASSET_LOCKS can say how much
     // is sitting on the address when the operation stops here.
-    expect(assetLockFundingAddressesRepository.markAsFunded).toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000')
+    expect(assetLockFundingAddressesRepository.markAsFunded).toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000', PREPARED_HEX)
     expect(order).toEqual(['markAsFunded', 'broadcast'])
+  })
+
+  // The payment is written down before it is broadcast, so the broadcast is the
+  // step that can fail with the record already in place.
+  it('keeps the signed payment, so a broadcast that failed can be sent again', async () => {
+    coreSpend.broadcast.mockRejectedValue(new Error('Failed to fetch'))
+
+    await expect(fund()).rejects.toThrow('Failed to fetch')
+
+    expect(assetLockFundingAddressesRepository.markAsFunded)
+      .toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000', PREPARED_HEX)
   })
 
   it('forgets pending spends the explorer has caught up with', async () => {
@@ -81,6 +101,65 @@ describe('AssetLockFundingService', () => {
     })
 
     expect(await fund()).toEqual({ fundingTxid: 'd'.repeat(64), paid: false, feeDuffs: 0n, changeDuffs: 0n })
+    expect(coreSpend.prepare).not.toHaveBeenCalled()
+  })
+
+  it('sends the recorded payment again instead of paying a second time', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
+      address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64), fundingTxHex: PREPARED_HEX
+    })
+
+    expect(await fund()).toEqual({ fundingTxid: 'd'.repeat(64), paid: false, feeDuffs: 0n, changeDuffs: 0n })
+    expect(coreSpend.rebroadcast).toHaveBeenCalledWith('d'.repeat(64), PREPARED_HEX)
+    expect(coreSpend.prepare).not.toHaveBeenCalled()
+  })
+
+  it('does not look up a payment whose deposit an asset lock already spent', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
+      address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64), assetLockTxid: 'a'.repeat(64)
+    })
+
+    expect(await fund()).toEqual({ fundingTxid: 'd'.repeat(64), paid: false, feeDuffs: 0n, changeDuffs: 0n })
+    expect(coreSpend.isBroadcast).not.toHaveBeenCalled()
+    expect(assetLockFundingAddressesRepository.clearFunding).not.toHaveBeenCalled()
+  })
+
+  // Written down before the bytes were kept: there is nothing to send again, so
+  // the only way out is to establish that the payment never happened.
+  it('pays again once both the node and the explorer place the payment nowhere', async () => {
+    assetLockFundingAddressesRepository.getByAddress
+      .mockResolvedValueOnce({ address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64) })
+      .mockResolvedValue({ address: FUNDING_ADDRESS, used: false })
+    coreSpend.isBroadcast.mockResolvedValue(false)
+    coreExplorer.hasTransaction.mockResolvedValue(false)
+
+    expect((await fund()).paid).toBe(true)
+    expect(assetLockFundingAddressesRepository.clearFunding).toHaveBeenCalledWith(FUNDING_ADDRESS)
+    expect(assetLockFundingAddressesRepository.markAsFunded)
+      .toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000', PREPARED_HEX)
+  })
+
+  it('keeps waiting for a payment the explorer still has when the node cannot answer', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
+      address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64)
+    })
+    coreSpend.isBroadcast.mockResolvedValue(false)
+    coreExplorer.hasTransaction.mockResolvedValue(true)
+
+    expect(await fund()).toEqual({ fundingTxid: 'd'.repeat(64), paid: false, feeDuffs: 0n, changeDuffs: 0n })
+    expect(assetLockFundingAddressesRepository.clearFunding).not.toHaveBeenCalled()
+    expect(coreSpend.prepare).not.toHaveBeenCalled()
+  })
+
+  it('refuses to forget a payment while the explorer cannot be reached', async () => {
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
+      address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64)
+    })
+    coreSpend.isBroadcast.mockResolvedValue(false)
+    coreExplorer.hasTransaction.mockRejectedValue(new Error('Core explorer error for transaction: HTTP 502'))
+
+    await expect(fund()).rejects.toThrow('HTTP 502')
+    expect(assetLockFundingAddressesRepository.clearFunding).not.toHaveBeenCalled()
     expect(coreSpend.prepare).not.toHaveBeenCalled()
   })
 
