@@ -3,7 +3,6 @@ import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { CoreSpendService } from '../../../services/CoreSpendService'
-import { CorePendingSpendsRepository } from '../../../repository/CorePendingSpendsRepository'
 import { validateCoreAddress } from '../../../../utils'
 import { SendCoreTransferPayload } from '../../../../types/messages/payloads/SendCoreTransferPayload'
 import { SendCoreTransferResponse } from '../../../../types/messages/response/SendCoreTransferResponse'
@@ -19,13 +18,11 @@ import { SendCoreTransferResponse } from '../../../../types/messages/response/Se
 // same seed are spendable here too.
 export class SendCoreTransferHandler implements APIHandler {
   walletRepository: WalletRepository
-  corePendingSpendsRepository: CorePendingSpendsRepository
   coreSpend: CoreSpendService
   sdk: DashPlatformSDK
 
-  constructor (walletRepository: WalletRepository, corePendingSpendsRepository: CorePendingSpendsRepository, coreSpend: CoreSpendService, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, coreSpend: CoreSpendService, sdk: DashPlatformSDK) {
     this.walletRepository = walletRepository
-    this.corePendingSpendsRepository = corePendingSpendsRepository
     this.coreSpend = coreSpend
     this.sdk = sdk
   }
@@ -62,7 +59,6 @@ export class SendCoreTransferHandler implements APIHandler {
       fromAddress: payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
     })
 
-    await this.corePendingSpendsRepository.remove(prepared.resolvedTxids)
     await this.coreSpend.broadcast(prepared)
 
     return {

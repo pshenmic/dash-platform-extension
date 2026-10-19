@@ -42,7 +42,6 @@ describe('core payment estimate and multi-output send', () => {
   const password = 'test'
 
   let walletRepository: any
-  let corePendingSpendsRepository: any
   let coreExplorer: any
   let coreSDK: any
   let estimate: EstimateCoreTransferHandler
@@ -58,11 +57,6 @@ describe('core payment estimate and multi-output send', () => {
         walletId: 'wallet1', type: 'seedphrase', network: 'testnet', currentIdentity: null
       })),
       getCoreAccountXpub: jest.fn(async () => 'tpubAccountXpub')
-    }
-    corePendingSpendsRepository = {
-      getAll: jest.fn(async () => []),
-      record: jest.fn(async () => {}),
-      remove: jest.fn(async () => {})
     }
     coreExplorer = {
       getXpubSummary: jest.fn(async () => ({ nextUnused: { receiving: 1, change: 1 } })),
@@ -91,11 +85,11 @@ describe('core payment estimate and multi-output send', () => {
     const sdk: any = {}
     coreSDK = { broadcastTransaction: jest.fn(async () => ({ transactionId: 'broadcasted' })) }
 
-    const coreUtxos = new CoreUtxosService(sdk, coreExplorer, corePendingSpendsRepository)
-    const coreSpend = new CoreSpendService(sdk, coreSDK, coreUtxos, corePendingSpendsRepository)
+    const coreUtxos = new CoreUtxosService(sdk, coreExplorer)
+    const coreSpend = new CoreSpendService(sdk, coreSDK, coreUtxos)
 
     estimate = new EstimateCoreTransferHandler(walletRepository, coreSpend)
-    send = new SendCoreTransactionHandler(walletRepository, corePendingSpendsRepository, coreSpend)
+    send = new SendCoreTransactionHandler(walletRepository, coreSpend)
   })
 
   describe('EstimateCoreTransferHandler', () => {
@@ -229,9 +223,6 @@ describe('core payment estimate and multi-output send', () => {
       }))
 
       expect(response.changeAddress).toBe(CHANGE[0])
-      expect(corePendingSpendsRepository.record).toHaveBeenCalledWith(expect.objectContaining({
-        change: expect.objectContaining({ address: CHANGE[0] })
-      }))
     })
 
     it('needs a password', () => {

@@ -7,7 +7,6 @@ import { buildCoreTransferMulti, CoreTransferOutput, maxCoreSpend, selectCoreUtx
 import { deriveWalletHdKey, hexToBytes } from '../../utils'
 import { CoreWalletUtxo } from './CoreExplorerService'
 import { CoreUtxosService } from './CoreUtxosService'
-import { CorePendingSpendsRepository } from '../repository/CorePendingSpendsRepository'
 
 export interface CoreOutpoint {
   txid: string
@@ -52,7 +51,6 @@ export interface CoreSpendPlan {
   // The largest total the inputs this spend could draw on can pay out, across
   // the same number of outputs. What a Max button offers.
   maxSendableDuffs: bigint
-  resolvedTxids: string[]
   owned: Map<string, CoreAddressEntry>
 }
 
@@ -70,11 +68,7 @@ export interface PreparedCoreSpend {
   // null when the leftover was too small to pay for its own output and went to
   // the fee instead.
   changeAddress: string | null
-  changeVout: number | null
   fromAddresses: string[]
-  // Pending spend entries the explorer has caught up with; the caller may forget
-  // them.
-  resolvedTxids: string[]
 }
 
 /**
@@ -110,13 +104,11 @@ export class CoreSpendService {
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
   coreUtxos: CoreUtxosService
-  corePendingSpendsRepository: CorePendingSpendsRepository
 
-  constructor (sdk: DashPlatformSDK, coreSDK: DashCoreSDK, coreUtxos: CoreUtxosService, corePendingSpendsRepository: CorePendingSpendsRepository) {
+  constructor (sdk: DashPlatformSDK, coreSDK: DashCoreSDK, coreUtxos: CoreUtxosService) {
     this.sdk = sdk
     this.coreSDK = coreSDK
     this.coreUtxos = coreUtxos
-    this.corePendingSpendsRepository = corePendingSpendsRepository
   }
 
   // Coin selection and fee, with nothing signed and nothing sent. The same
@@ -126,7 +118,7 @@ export class CoreSpendService {
     const { wallet, xpub, outputs, fromAddress } = params
     const account = params.account ?? 0
 
-    const { utxos, owned, nextUnused, resolvedTxids } = await this.coreUtxos.spendable(
+    const { utxos, owned, nextUnused } = await this.coreUtxos.spendable(
       wallet, xpub, account, fromAddress != null ? [fromAddress] : undefined
     )
 
@@ -168,7 +160,6 @@ export class CoreSpendService {
       changeDuffs: selection.change,
       changeAddress,
       maxSendableDuffs: maxCoreSpend(spendable, effectiveOutputs.length),
-      resolvedTxids,
       owned
     }
   }
@@ -177,7 +168,7 @@ export class CoreSpendService {
     const { wallet, password } = params
 
     const plan = await this.plan(params)
-    const { inputs, amountDuffs, feeDuffs, changeDuffs, changeAddress, owned, resolvedTxids } = plan
+    const { inputs, amountDuffs, feeDuffs, changeDuffs, changeAddress, owned } = plan
     const account = params.account ?? 0
 
     const transaction = buildCoreTransferMulti(
@@ -218,32 +209,13 @@ export class CoreSpendService {
       // The change output is built last, so it is the final one whenever there
       // is one at all.
       changeAddress: changeDuffs > 0n ? changeAddress : null,
-      changeVout: changeDuffs > 0n ? transaction.outputs.length - 1 : null,
-      fromAddresses: [...new Set(inputs.map(utxo => utxo.address))],
-      resolvedTxids
+      fromAddresses: [...new Set(inputs.map(utxo => utxo.address))]
     }
   }
 
-  // Sends a prepared transaction and records what it spent, so the next spend
-  // does not offer the same outputs while the explorer catches up.
+  // Sends a prepared transaction to the network.
   async broadcast (prepared: PreparedCoreSpend): Promise<void> {
     await this.coreSDK.broadcastTransaction(prepared.transaction.bytes())
-
-    await this.corePendingSpendsRepository.record({
-      txid: prepared.txid,
-      spentOutpoints: prepared.inputs.map(utxo => `${utxo.txid}:${utxo.vout}`),
-      ...(prepared.changeAddress != null && prepared.changeVout != null
-        ? {
-            change: {
-              txid: prepared.txid,
-              vout: prepared.changeVout,
-              amount: prepared.changeDuffs.toString(),
-              address: prepared.changeAddress
-            }
-          }
-        : {}),
-      broadcastedAt: Date.now()
-    })
   }
 
   // True once the network has the transaction, in a block or in its mempool.

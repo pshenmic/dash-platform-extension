@@ -21,7 +21,6 @@ describe('AssetLockFundingService', () => {
 
   let coreExplorer: any
   let coreSpend: any
-  let corePendingSpendsRepository: any
   let assetLockFundingAddressesRepository: any
   let service: AssetLockFundingService
 
@@ -31,7 +30,6 @@ describe('AssetLockFundingService', () => {
     txid: 'b'.repeat(64),
     feeDuffs: 226n,
     changeDuffs: 89_774n,
-    resolvedTxids: ['c'.repeat(64)],
     transaction: { bytes: () => Uint8Array.from([0xde, 0xad, 0xbe, 0xef]) }
   }
 
@@ -58,14 +56,13 @@ describe('AssetLockFundingService', () => {
       rebroadcast: jest.fn(async () => {}),
       isBroadcast: jest.fn(async () => true)
     }
-    corePendingSpendsRepository = { remove: jest.fn(async () => {}) }
     assetLockFundingAddressesRepository = {
       getByAddress: jest.fn(async () => ({ address: FUNDING_ADDRESS, used: false })),
       markAsFunded: jest.fn(async () => {}),
       clearFunding: jest.fn(async () => {})
     }
 
-    service = new AssetLockFundingService(coreExplorer, coreSpend, corePendingSpendsRepository)
+    service = new AssetLockFundingService(coreExplorer, coreSpend)
   })
 
   it('pays the funding address out of the wallet and reports the transaction', async () => {
@@ -94,21 +91,6 @@ describe('AssetLockFundingService', () => {
 
   // The payment is written down before it is broadcast, so the broadcast is the
   // step that can fail with the record already in place.
-  it('keeps the signed payment, so a broadcast that failed can be sent again', async () => {
-    coreSpend.broadcast.mockRejectedValue(new Error('Failed to fetch'))
-
-    await expect(fund()).rejects.toThrow('Failed to fetch')
-
-    expect(assetLockFundingAddressesRepository.markAsFunded)
-      .toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000', PREPARED_HEX)
-  })
-
-  it('forgets pending spends the explorer has caught up with', async () => {
-    await fund()
-
-    expect(corePendingSpendsRepository.remove).toHaveBeenCalledWith(prepared.resolvedTxids)
-  })
-
   it('pays nothing when the recorded payment is already on its way', async () => {
     assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
       address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64)

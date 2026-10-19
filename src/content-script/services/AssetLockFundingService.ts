@@ -1,7 +1,6 @@
 import { Wallet } from '../../types/Wallet'
 import { NetworkType } from '../../types/PlatformExplorer'
 import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFundingAddressesRepository'
-import { CorePendingSpendsRepository } from '../repository/CorePendingSpendsRepository'
 import { CoreExplorerService } from './CoreExplorerService'
 import { CoreSpendService } from './CoreSpendService'
 import { bytesToHex } from '../../utils'
@@ -40,12 +39,10 @@ const CONTINUED = { paid: false, feeDuffs: 0n, changeDuffs: 0n }
 export class AssetLockFundingService {
   coreExplorer: CoreExplorerService
   coreSpend: CoreSpendService
-  corePendingSpendsRepository: CorePendingSpendsRepository
 
-  constructor (coreExplorer: CoreExplorerService, coreSpend: CoreSpendService, corePendingSpendsRepository: CorePendingSpendsRepository) {
+  constructor (coreExplorer: CoreExplorerService, coreSpend: CoreSpendService) {
     this.coreExplorer = coreExplorer
     this.coreSpend = coreSpend
-    this.corePendingSpendsRepository = corePendingSpendsRepository
   }
 
   async fundFromWallet (params: FundAssetLockAddressParams): Promise<FundedAssetLockAddress> {
@@ -95,8 +92,6 @@ export class AssetLockFundingService {
     const prepared = await this.coreSpend.prepare({
       wallet, xpub, account, outputs: [{ address: fundingAddress, amountDuffs }], password
     })
-
-    await this.corePendingSpendsRepository.remove(prepared.resolvedTxids)
 
     if (entry != null) {
       // Written while the payment is still only in memory: from the broadcast on,

@@ -3,40 +3,31 @@ import { Wallet } from '../../types/Wallet'
 import { NetworkType } from '../../types/PlatformExplorer'
 import { CoreAddressChain } from '../../types/enums/CoreAddressChain'
 import { CoreAddressEntry, deriveCoreAddressesFromXpub } from '../../utils/coreAddresses'
-import { reconcilePendingSpends } from '../../utils/coreTransfer'
 import { CoreExplorerService, CoreWalletUtxo } from './CoreExplorerService'
-import { CorePendingSpendsRepository } from '../repository/CorePendingSpendsRepository'
 
 export interface SpendableCoreUtxos {
-  // What can really be spent now: the explorer's set minus the outputs a
-  // just-broadcast transaction already consumed, plus the change it paid us.
+  // What can be spent now. The explorer indexes the mempool, so a send made a
+  // moment ago is already reflected: the outputs it consumed are gone from this
+  // set and the change it paid us is in it.
   utxos: CoreWalletUtxo[]
   // Every address of the account the explorer has seen, plus the next free one
   // on each chain - the extent that counts as "this wallet's own".
   owned: Map<string, CoreAddressEntry>
   nextUnused: Record<CoreAddressChain, number>
-  // Pending entries that no longer matter; the caller may forget them.
-  resolvedTxids: string[]
 }
 
 /**
  * One answer to "what does this wallet have on L1 right now", shared by the
- * UTXO list, the balance and the send.
- *
- * The explorer only sees mined transactions, so a send made minutes ago is
- * missing from its view: it still offers the inputs that send consumed and hides
- * the change it produced. Correcting that in one place is what keeps the list,
- * the balance, the fee and the coin selection from disagreeing with each other.
+ * UTXO list, the balance, the fee estimate and the send, so that none of them
+ * can disagree with the others.
  */
 export class CoreUtxosService {
   sdk: DashPlatformSDK
   coreExplorer: CoreExplorerService
-  corePendingSpendsRepository: CorePendingSpendsRepository
 
-  constructor (sdk: DashPlatformSDK, coreExplorer: CoreExplorerService, corePendingSpendsRepository: CorePendingSpendsRepository) {
+  constructor (sdk: DashPlatformSDK, coreExplorer: CoreExplorerService) {
     this.sdk = sdk
     this.coreExplorer = coreExplorer
-    this.corePendingSpendsRepository = corePendingSpendsRepository
   }
 
   // `addresses` narrows the read to some of the wallet's own addresses; without
@@ -64,23 +55,18 @@ export class CoreUtxosService {
     const asked = addresses ?? [...owned.keys()]
     const explorerUtxos = await this.coreExplorer.getAddressesUtxos(asked, network)
 
-    const pending = await this.corePendingSpendsRepository.getAll()
-    const { candidates, resolvedTxids } = reconcilePendingSpends(explorerUtxos, pending, Date.now())
-
     // An output the explorer could not attribute to one of the addresses we
     // asked about has no key to sign it, and must not reach coin selection.
     const askedSet = new Set(asked)
 
     return {
-      utxos: candidates.filter(utxo => askedSet.has(utxo.address)),
+      utxos: explorerUtxos.filter(utxo => askedSet.has(utxo.address)),
       owned,
-      nextUnused,
-      resolvedTxids
+      nextUnused
     }
   }
 
-  // Sum of what can be spent now. Differs from the explorer's balance while a
-  // send of ours is still waiting for its block.
+  // Sum of what can be spent now.
   async availableDuffs (wallet: Wallet, xpub: string, account: number = 0): Promise<bigint> {
     const { utxos } = await this.spendable(wallet, xpub, account)
 
