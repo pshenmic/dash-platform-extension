@@ -1,5 +1,4 @@
-import { DashPlatformSDK } from 'dash-platform-sdk'
-import { DashCoreSDK } from 'dash-core-sdk'
+import { testCoreSdk, testSdk } from '../../../helpers/testSdk'
 import { PrivateAPIClient } from '../../../../src/types/PrivateAPIClient'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { connectBackend } from '../../../helpers/connectBackend'
@@ -18,8 +17,8 @@ describe('add identity private key', () => {
   let secretKey: PrivateKey
 
   beforeEach(async () => {
-    const sdk = new DashPlatformSDK({ network: 'testnet' })
-    const coreSDK = new DashCoreSDK({ network: 'testnet' })
+    const sdk = await testSdk()
+    const coreSDK = await testCoreSdk()
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter
