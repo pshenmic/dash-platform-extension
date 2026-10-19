@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Avatar,
+  ChevronIcon,
   Text,
   CircleProcessIcon,
   ErrorIcon,
@@ -12,12 +13,19 @@ import { useSdk, useDebounce } from '../../hooks'
 import { searchRecipients, type RecipientSearchResult, type RecipientTargetType, normalizeName, detectRecipientType } from '../../../utils'
 import type { NetworkType } from '../../../types'
 
-// Recipient offered in the empty field without a search, e.g. the wallet's own address.
+// Recipient of a pinned suggestion with what its row shows.
 export interface PinnedRecipient {
   result: RecipientSearchResult
+  content: React.ReactNode
+}
+
+// Own recipients offered in the empty field without a search; one recipient fills the row, several open as a list.
+export interface PinnedSuggestion {
   title: string
-  description: React.ReactNode
+  // Shown under the title while the list of several recipients is closed.
+  description?: string
   icon: React.ReactNode
+  recipients: PinnedRecipient[]
 }
 
 interface RecipientSearchInputProps {
@@ -37,7 +45,7 @@ interface RecipientSearchInputProps {
   allowShieldAddress?: boolean
   // Recipients offered outright (not searched) — e.g. the wallet's own Core
   // address. Shown in the empty field so they're discoverable without typing.
-  pinnedRecipients?: PinnedRecipient[]
+  pinned?: PinnedSuggestion | null
   network?: NetworkType
   // Grey borderless field, for a field inside a card.
   filled?: boolean
@@ -65,7 +73,7 @@ export function RecipientSearchInput ({
   allowPlatformAddress = false,
   allowCoreAddress = false,
   allowShieldAddress = false,
-  pinnedRecipients = [],
+  pinned = null,
   network = 'testnet',
   filled = false,
   autoFocus = false
@@ -75,6 +83,7 @@ export function RecipientSearchInput ({
   const [searchResults, setSearchResults] = useState<RecipientSearchResult[]>([])
   const [selectedResult, setSelectedResult] = useState<RecipientSearchResult | null>(null)
   const [isSearchActive, setIsSearchActive] = useState(false)
+  const [isPinnedOpen, setIsPinnedOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -161,7 +170,8 @@ export function RecipientSearchInput ({
 
   // Pinned recipients are an entry point, not a search result: shown in the empty
   // field as a suggestion, they step aside the moment the user types.
-  const showPinned = pinnedRecipients.length > 0 && selectedResult == null && value.trim() === ''
+  const pinnedRecipients = pinned?.recipients ?? []
+  const showPinned = pinned != null && pinnedRecipients.length > 0 && selectedResult == null && value.trim() === ''
 
   const showSearchResults = selectedResult == null && (
     showPinned ||
@@ -240,12 +250,11 @@ export function RecipientSearchInput ({
           <div className='max-h-[18.75rem] overflow-y-auto'>
             {showPinned
               ? (
-                <div className='flex flex-col gap-2 px-3'>
-                  {pinnedRecipients.map(pinned => (
+                <div className='px-3'>
+                  <div className='flex flex-col gap-2 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03]'>
                     <div
-                      key={pinned.result.identifier}
-                      onClick={() => handleSelectResult(pinned.result)}
-                      className='flex items-center gap-3 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
+                      onClick={() => pinnedRecipients.length === 1 ? handleSelectResult(pinnedRecipients[0].result) : setIsPinnedOpen(open => !open)}
+                      className='flex items-center gap-3 cursor-pointer'
                     >
                       <div className='w-[1.875rem] h-[1.875rem] shrink-0 flex items-center justify-center bg-dash-primary-dark-blue/5 rounded-full text-dash-primary-dark-blue/50'>
                         {pinned.icon}
@@ -254,17 +263,36 @@ export function RecipientSearchInput ({
                         <Text size='sm' className='text-dash-primary-dark-blue'>
                           {pinned.title}
                         </Text>
-                        {pinned.description}
+                        {pinnedRecipients.length === 1
+                          ? pinnedRecipients[0].content
+                          : !isPinnedOpen && pinned.description != null && <Text className='text-xs' dim>{pinned.description}</Text>}
                       </div>
+                      {pinnedRecipients.length > 1 && (
+                        <ChevronIcon size={14} color='currentColor' className={`shrink-0 text-dash-primary-dark-blue/48 transition-transform ${isPinnedOpen ? 'rotate-180' : ''}`} />
+                      )}
                     </div>
-                  ))}
+                    {pinnedRecipients.length > 1 && isPinnedOpen && (
+                      <div className='flex flex-col gap-1'>
+                        {pinnedRecipients.map(recipient => (
+                          <button
+                            key={recipient.result.identifier}
+                            type='button'
+                            onClick={() => handleSelectResult(recipient.result)}
+                            className='w-full min-w-0 px-3 py-2.5 rounded-xl bg-white hover:bg-dash-primary-dark-blue/[0.08] dark:bg-white/10 text-left cursor-pointer transition-colors'
+                          >
+                            {recipient.content}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 )
               : unsupportedAddress
                 ? (
                   <div className='py-4 text-center px-3'>
                     <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
-                      {(recipientType === 'shieldAddress' && pinnedRecipients.some(pinned => pinned.result.type === 'shieldAddress'))
+                      {(recipientType === 'shieldAddress' && pinnedRecipients.some(recipient => recipient.result.type === 'shieldAddress'))
                         ? 'Credits can only be shielded into your own pool — clear the field and pick “My shielded balance”'
                         : UNSUPPORTED_ADDRESS_MESSAGES[recipientType] ?? 'This address type is not supported here'}
                     </Text>

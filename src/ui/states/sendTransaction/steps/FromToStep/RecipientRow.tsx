@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import { Identifier, WalletIcon } from 'dash-ui-kit/react'
+import { FaceIcon, Identifier, WalletIcon } from 'dash-ui-kit/react'
 import { RecipientSearchInput } from '../../../../components/Identities'
-import type { PinnedRecipient } from '../../../../components/Identities'
+import type { PinnedSuggestion } from '../../../../components/Identities'
 import type { NetworkType } from '../../../../../types'
 import { isShieldToMyself } from '../../../../../utils'
 import type { RecipientSearchResult, RecipientTargetType } from '../../../../../utils'
@@ -13,6 +13,7 @@ interface RecipientRowProps {
   excludeIdentifier: string | null
   network: NetworkType
   ownCoreAddress: string | null
+  ownIdentities: string[]
   onRecipientChange: (recipient: string) => void
 }
 
@@ -24,20 +25,33 @@ const ACCEPTED_TYPES: Record<EndpointType, RecipientTargetType> = {
 }
 
 // Second row of the To card: recipient field matching the To type.
-export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddress, onRecipientChange }: RecipientRowProps): React.JSX.Element | null {
+export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddress, ownIdentities, onRecipientChange }: RecipientRowProps): React.JSX.Element | null {
   const [text, setText] = useState(draft.to.recipient)
   const toType = draft.to.type
 
   if (isShieldToMyself(draft)) return null
 
-  const pinnedRecipients: PinnedRecipient[] = toType === 'core' && ownCoreAddress != null
-    ? [{
-        result: { identifier: ownCoreAddress, type: 'coreAddress' },
+  const otherIdentities = ownIdentities.filter(identifier => identifier !== excludeIdentifier)
+  const pinned: PinnedSuggestion | null = toType === 'core' && ownCoreAddress != null
+    ? {
         title: 'My Core address',
-        description: <Identifier highlight='both' middleEllipsis edgeChars={8} className='text-xs' disableCopy>{ownCoreAddress}</Identifier>,
-        icon: <WalletIcon size={14} />
-      }]
-    : []
+        icon: <WalletIcon size={14} />,
+        recipients: [{
+          result: { identifier: ownCoreAddress, type: 'coreAddress' },
+          content: <Identifier highlight='both' middleEllipsis edgeChars={8} className='text-xs' disableCopy>{ownCoreAddress}</Identifier>
+        }]
+      }
+    : toType === 'identity' && otherIdentities.length > 0
+      ? {
+          title: otherIdentities.length === 1 ? 'My identity' : 'My identities',
+          description: `${otherIdentities.length} identities in this wallet`,
+          icon: <FaceIcon size={14} />,
+          recipients: otherIdentities.map(identifier => ({
+            result: { identifier, type: 'identity' },
+            content: <Identifier avatar highlight='both' ellipsis className='min-w-0 text-xs' disableCopy>{identifier}</Identifier>
+          }))
+        }
+      : null
 
   const handleSelect = (result: RecipientSearchResult): void => {
     const type = result.type ?? 'identity'
@@ -54,7 +68,7 @@ export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddres
       allowCoreAddress={toType === 'core'}
       allowPlatformAddress={toType === 'platformAddress'}
       allowShieldAddress={toType === 'shielded'}
-      pinnedRecipients={pinnedRecipients}
+      pinned={pinned}
       network={network}
     />
   )

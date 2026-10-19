@@ -131,6 +131,7 @@ export function FromToStep ({
               excludeIdentifier={draft.from.type === 'identity' ? draft.from.identityId : null}
               network={network}
               ownCoreAddress={ownCoreAddress}
+              ownIdentities={identities.map(identity => identity.identifier)}
               onRecipientChange={(recipient) => actions.setRecipient(recipient)}
             />
           )}
