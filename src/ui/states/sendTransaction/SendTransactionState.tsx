@@ -226,6 +226,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
           amountError={amountError}
           isPrepaid={isContinuing}
           rate={rate}
+          canContinue={amountValid}
           onAmountChange={(value) => actions.setAmount(value)}
           onNext={() => goToStep('confirm')}
         />
