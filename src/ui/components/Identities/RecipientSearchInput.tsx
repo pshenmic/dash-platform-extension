@@ -1,17 +1,32 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Avatar,
+  ChevronIcon,
   Text,
   CircleProcessIcon,
   ErrorIcon,
   Identifier,
   SearchIcon,
-  ShieldSmallIcon,
   ValueCard
 } from 'dash-ui-kit/react'
 import { useSdk, useDebounce } from '../../hooks'
 import { searchRecipients, type RecipientSearchResult, type RecipientTargetType, normalizeName, detectRecipientType } from '../../../utils'
 import type { NetworkType } from '../../../types'
+
+// Recipient of a pinned suggestion with what its row shows.
+export interface PinnedRecipient {
+  result: RecipientSearchResult
+  content: React.ReactNode
+}
+
+// Own recipients offered in the empty field without a search; one recipient fills the row, several open as a list.
+export interface PinnedSuggestion {
+  title: string
+  // Shown under the title while the list of several recipients is closed.
+  description?: string
+  icon: React.ReactNode
+  recipients: PinnedRecipient[]
+}
 
 interface RecipientSearchInputProps {
   value: string
@@ -28,10 +43,17 @@ interface RecipientSearchInputProps {
   allowCoreAddress?: boolean
   // When true, an Orchard shielded address becomes a selectable result.
   allowShieldAddress?: boolean
-  // Recipients offered outright (not searched) — e.g. the wallet's own shielded
-  // pool. Shown in the empty field so they're discoverable without typing.
-  pinnedRecipients?: RecipientSearchResult[]
+  // Recipients offered outright (not searched) — e.g. the wallet's own Core
+  // address. Shown in the empty field so they're discoverable without typing.
+  pinned?: PinnedSuggestion | null
   network?: NetworkType
+  // Grey borderless field, for a field inside a card.
+  filled?: boolean
+  autoFocus?: boolean
+  // Recipient already chosen when the field mounts, shown as selected.
+  initialResult?: RecipientSearchResult | null
+  // Replaces the default hint for a recognized address type this field does not accept.
+  unsupportedAddressMessages?: Partial<Record<RecipientTargetType, string>>
 }
 
 // Label shown above a typed-address result, per recipient type.
@@ -55,14 +77,19 @@ export function RecipientSearchInput ({
   allowPlatformAddress = false,
   allowCoreAddress = false,
   allowShieldAddress = false,
-  pinnedRecipients = [],
-  network = 'testnet'
+  pinned = null,
+  network = 'testnet',
+  filled = false,
+  autoFocus = false,
+  initialResult = null,
+  unsupportedAddressMessages = {}
 }: RecipientSearchInputProps): React.JSX.Element {
   const sdk = useSdk()
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<RecipientSearchResult[]>([])
-  const [selectedResult, setSelectedResult] = useState<RecipientSearchResult | null>(null)
+  const [selectedResult, setSelectedResult] = useState<RecipientSearchResult | null>(initialResult)
   const [isSearchActive, setIsSearchActive] = useState(false)
+  const [isPinnedOpen, setIsPinnedOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -149,7 +176,8 @@ export function RecipientSearchInput ({
 
   // Pinned recipients are an entry point, not a search result: shown in the empty
   // field as a suggestion, they step aside the moment the user types.
-  const showPinned = pinnedRecipients.length > 0 && selectedResult == null && value.trim() === ''
+  const pinnedRecipients = pinned?.recipients ?? []
+  const showPinned = pinned != null && pinnedRecipients.length > 0 && selectedResult == null && value.trim() === ''
 
   const showSearchResults = selectedResult == null && (
     showPinned ||
@@ -164,14 +192,14 @@ export function RecipientSearchInput ({
   return (
     <div ref={containerRef} className='relative'>
       {/* Expanded Container with Input and Search Results */}
-      <div className={`border border-dash-primary-dark-blue/35 rounded-[0.9375rem] bg-white transition-all ${
+      <div className={`rounded-2xl transition-all ${filled ? 'bg-dash-primary-dark-blue/[0.05] dark:bg-white/5' : 'border border-dash-primary-dark-blue/24 bg-white'} ${
         showSearchResults ? 'pb-5' : ''
       } ${(error !== null && error !== undefined) ? 'border-red-500' : (selectedResult != null) ? 'border-green-500' : ''}`}
       >
 
         {/* Input Section */}
         <div className='flex flex-col gap-2'>
-          <div className='flex items-center gap-3 px-[1.5625rem] py-[1.25rem]'>
+          <div className='flex items-center gap-3 px-3 py-4'>
             {selectedResult?.type === 'identity' && (
               <div className={`${selectedResult?.type === 'identity' ? 'w-5' : 'w-0'} h-5 flex items-center justify-center transition-all overflow-hidden`}>
 
@@ -189,6 +217,7 @@ export function RecipientSearchInput ({
               onChange={handleInputChange}
               placeholder={placeholder}
               spellCheck={false}
+              autoFocus={autoFocus}
               className='flex-1 text-sm font-light text-dash-primary-dark-blue outline-none bg-transparent font-dash-grotesque'
             />
 
@@ -210,7 +239,7 @@ export function RecipientSearchInput ({
 
           {/* Selected Identifier Display */}
           {(selectedResult?.name != null) && (
-            <div className='px-[1.5625rem] pb-3'>
+            <div className='px-3 pb-3'>
               <Identifier
                 highlight='both'
                 className='text-xs'
@@ -227,41 +256,57 @@ export function RecipientSearchInput ({
           <div className='max-h-[18.75rem] overflow-y-auto'>
             {showPinned
               ? (
-                <div className='flex flex-col gap-2 px-6'>
-                  {pinnedRecipients.map(pinned => (
+                <div className='px-3'>
+                  <div className='flex flex-col gap-2 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03]'>
                     <div
-                      key={pinned.identifier}
-                      onClick={() => handleSelectResult(pinned)}
-                      className='flex items-center gap-3 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
+                      onClick={() => pinnedRecipients.length === 1 ? handleSelectResult(pinnedRecipients[0].result) : setIsPinnedOpen(open => !open)}
+                      className='flex items-center gap-3 cursor-pointer'
                     >
-                      <div className='w-[1.875rem] h-[1.875rem] shrink-0 flex items-center justify-center bg-dash-primary-dark-blue/5 rounded-full'>
-                        <ShieldSmallIcon size={14} className='text-dash-primary-dark-blue opacity-50' />
+                      <div className='w-[1.875rem] h-[1.875rem] shrink-0 flex items-center justify-center bg-dash-primary-dark-blue/5 rounded-full text-dash-primary-dark-blue/50'>
+                        {pinned.icon}
                       </div>
-                      <div className='flex flex-col gap-0.5 min-w-0'>
+                      <div className='flex flex-col gap-0.5 min-w-0 flex-1'>
                         <Text size='sm' className='text-dash-primary-dark-blue'>
-                          {pinned.label ?? pinned.identifier}
+                          {pinned.title}
                         </Text>
-                        <Text className='text-xs' dim>
-                          Move credits into your own private balance
-                        </Text>
+                        {pinnedRecipients.length === 1
+                          ? pinnedRecipients[0].content
+                          : !isPinnedOpen && pinned.description != null && <Text className='text-xs' dim>{pinned.description}</Text>}
                       </div>
+                      {pinnedRecipients.length > 1 && (
+                        <ChevronIcon size={14} color='currentColor' className={`shrink-0 text-dash-primary-dark-blue/48 transition-transform ${isPinnedOpen ? 'rotate-180' : ''}`} />
+                      )}
                     </div>
-                  ))}
+                    {pinnedRecipients.length > 1 && isPinnedOpen && (
+                      <div className='flex flex-col gap-1'>
+                        {pinnedRecipients.map(recipient => (
+                          <button
+                            key={recipient.result.identifier}
+                            type='button'
+                            onClick={() => handleSelectResult(recipient.result)}
+                            className='w-full min-w-0 px-3 py-2.5 rounded-xl bg-white hover:bg-dash-primary-dark-blue/[0.08] dark:bg-white/10 text-left cursor-pointer transition-colors'
+                          >
+                            {recipient.content}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 )
               : unsupportedAddress
                 ? (
-                  <div className='py-4 text-center px-6'>
+                  <div className='py-4 text-center px-3'>
                     <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
-                      {(recipientType === 'shieldAddress' && pinnedRecipients.length > 0)
+                      {(recipientType === 'shieldAddress' && pinnedRecipients.some(recipient => recipient.result.type === 'shieldAddress'))
                         ? 'Credits can only be shielded into your own pool — clear the field and pick “My shielded balance”'
-                        : UNSUPPORTED_ADDRESS_MESSAGES[recipientType] ?? 'This address type is not supported here'}
+                        : unsupportedAddressMessages[recipientType as RecipientTargetType] ?? UNSUPPORTED_ADDRESS_MESSAGES[recipientType] ?? 'This address type is not supported here'}
                     </Text>
                   </div>
                   )
                 : isExcludedAddress
                   ? (
-                    <div className='py-4 text-center px-6'>
+                    <div className='py-4 text-center px-3'>
                       <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
                         Recipient must be different from the sender
                       </Text>
@@ -269,7 +314,7 @@ export function RecipientSearchInput ({
                     )
                   : addressResult != null
                     ? (
-                      <div className='flex flex-col gap-2 px-6'>
+                      <div className='flex flex-col gap-2 px-3'>
                         <div
                           onClick={() => handleSelectResult(addressResult)}
                           className='flex flex-col gap-2.5 p-[1rem] rounded-[1rem] bg-dash-primary-dark-blue/[0.03] hover:bg-dash-primary-dark-blue/[0.08] cursor-pointer transition-colors'
@@ -294,7 +339,7 @@ export function RecipientSearchInput ({
                         )
                       : filteredResults.length > 0
                         ? (
-                          <div className='flex flex-col gap-2 px-6'>
+                          <div className='flex flex-col gap-2 px-3'>
                             {filteredResults.map((result, index) => (
                               <div
                                 key={`${result.identifier}-${index}`}

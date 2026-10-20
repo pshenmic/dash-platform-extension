@@ -17,3 +17,8 @@ export function parseSendScope (value: string | null): SendScope {
 
   return 'all'
 }
+
+// Send screen location state: the funding transaction of an unfinished operation to continue on open.
+export interface SendContinueState {
+  continueFundingTxid?: string
+}

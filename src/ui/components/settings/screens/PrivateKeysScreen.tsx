@@ -338,11 +338,10 @@ export const PrivateKeysScreen: React.FC<SettingsScreenProps> = ({ currentIdenti
       } catch (error) {
         console.error('Failed to load detailed key information:', error)
 
-        // Show error to user instead of mock data
+        // Shows the error and clears the list: partial key details are not shown.
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
         setError(`Failed to load key details from SDK: ${errorMessage}`)
 
-        // Clear keys list since we don't have complete data
         setPublicKeys([])
       } finally {
         setDetailsLoading(false)

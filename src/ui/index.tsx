@@ -28,7 +28,6 @@ const WelcomeState = React.lazy(async () => await import('./states/welcome/Welco
 const CreateSeedWalletState = React.lazy(async () => await import('./states/wallet/CreateSeedWalletState'))
 const IdentityRegistrationState = React.lazy(async () => await import('./states/identityRegistration/IdentityRegistrationState'))
 const TopUpIdentityState = React.lazy(async () => await import('./states/topup/TopUpIdentityState'))
-const PlatformTransferConfirmState = React.lazy(async () => await import('./states/platformTransfer/PlatformTransferConfirmState'))
 const CoreHomeState = React.lazy(async () => await import('./states/core/CoreHomeState'))
 const PlatformHomeState = React.lazy(async () => await import('./states/platform/PlatformHomeState'))
 const IdentityHomeState = React.lazy(async () => await import('./states/identity/IdentityHomeState'))
@@ -255,15 +254,6 @@ const App: React.FC = function () {
         {
           path: '/send-transaction',
           element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><SendTransactionState /></Suspense></PageWithHeader>,
-          handle: {
-            headerProps: {
-              variant: 'sendTransaction'
-            }
-          }
-        },
-        {
-          path: '/platform-transfer-confirm',
-          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><PlatformTransferConfirmState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'sendTransaction'

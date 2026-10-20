@@ -28,9 +28,7 @@ function getWalletName (
   return currentWalletData.label ?? `Wallet_${currentWalletIndex + 1}`
 }
 
-/**
- * Shows the identity + wallet badge in the screen header, clearing it on unmount.
- */
+// Shows the identity + wallet badge in the screen header, clearing it on unmount.
 export function useIdentityHeader ({
   currentIdentity,
   currentWallet,

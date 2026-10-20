@@ -1,5 +1,6 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { locationReturnState } from '../../types'
 import {
   AirplaneIcon,
   Avatar,
@@ -119,6 +120,7 @@ function TokenCardSkeleton (): React.JSX.Element {
 
 export function TokensTab ({ hide, network, loading, error, tokens, identityId }: TokensTabProps): React.JSX.Element {
   const navigate = useNavigate()
+  const location = useLocation()
   const explorerBase = PLATFORM_EXPLORER_URLS[network].explorer
 
   return (
@@ -140,7 +142,7 @@ export function TokensTab ({ hide, network, loading, error, tokens, identityId }
           explorerUrl={`${explorerBase}/token/${token.identifier}`}
           onTransfer={() => {
             void navigate(sendPath('identity', identityId), {
-              state: { selectedToken: token.identifier }
+              state: { ...locationReturnState(`${location.pathname}${location.search}`), selectedToken: token.identifier }
             })
           }}
         />

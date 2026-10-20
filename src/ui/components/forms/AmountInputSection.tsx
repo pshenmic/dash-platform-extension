@@ -1,84 +1,88 @@
-import React, { useRef, useEffect, useState } from 'react'
-import { ChevronIcon, DashLogo } from 'dash-ui-kit/react'
+import React, { useState } from 'react'
+import { DashLogo } from 'dash-ui-kit/react'
 import { AutoSizingInput, PercentageSlider } from '../controls'
-import { parseDecimalInput } from '../../../utils'
+import { clampDashInput, clampToMax, dashAmountToUsd, formatDashAmount, parseDashAmount, parseDecimalInput, usdToDashAmount } from '../../../utils'
 
 interface AmountInputSectionProps {
   amount: string
-  equivalentAmount: string
+  // Dash amount already capped at `max`.
   onAmountChange: (value: string) => void
-  onEquivalentChange: (value: string) => void
   onQuickAmount: (percentage: number) => void
   selectedAsset: string
-  equivalentCurrency: 'usd' | 'dash'
-  onEquivalentCurrencyChange: (currency: 'usd' | 'dash') => void
   assetDecimals: number
   maxBalance?: string | null
+  // USD per Dash; the USD field stays empty without it.
+  rate: number | null
+  // Input cap in base units, null for no cap.
+  max: bigint | null
+  // Smaller amount with a Dash icon, for amounts inside a card.
+  compact?: boolean
 }
 
 export function AmountInputSection ({
   amount,
-  equivalentAmount,
   onAmountChange,
-  onEquivalentChange,
   onQuickAmount,
   selectedAsset,
-  equivalentCurrency,
-  onEquivalentCurrencyChange,
   assetDecimals,
-  maxBalance
+  maxBalance,
+  rate,
+  max,
+  compact = false
 }: AmountInputSectionProps): React.JSX.Element {
-  const [showEquivalentCurrencyMenu, setShowEquivalentCurrencyMenu] = useState(false)
-  const currencyMenuRef = useRef<HTMLDivElement>(null)
+  const isDash = selectedAsset === 'credits'
+  // USD text as typed, kept only while the Dash amount is still the one it produced.
+  const [typedUsd, setTypedUsd] = useState<{ usd: string, amount: string } | null>(null)
 
-  // Close currency menu on click outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent): void => {
-      if (currencyMenuRef.current != null && !currencyMenuRef.current.contains(event.target as Node)) {
-        setShowEquivalentCurrencyMenu(false)
-      }
-    }
+  const usdFor = (value: bigint | null): string =>
+    isDash && value != null && rate != null ? (dashAmountToUsd(value, assetDecimals, rate) ?? '').replace('~ $', '') : ''
 
-    if (showEquivalentCurrencyMenu) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
+  const equivalentAmount = typedUsd != null && typedUsd.amount === amount ? typedUsd.usd : usdFor(parseDashAmount(amount, assetDecimals))
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showEquivalentCurrencyMenu])
+  const handleAmountChange = (value: string): void => {
+    setTypedUsd(null)
+    onAmountChange(clampDashInput(value, assetDecimals, max))
+  }
 
-  const handleCurrencyChange = (currency: 'usd' | 'dash'): void => {
-    setShowEquivalentCurrencyMenu(false)
-    onEquivalentCurrencyChange(currency)
+  const handleUsdChange = (value: string): void => {
+    const converted = usdToDashAmount(value, rate, assetDecimals)
+    const capped = converted != null ? clampToMax(converted, max) : null
+    const nextAmount = capped != null ? formatDashAmount(capped, assetDecimals) : ''
+    setTypedUsd({ usd: capped !== converted ? usdFor(capped) : value, amount: nextAmount })
+    onAmountChange(nextAmount)
   }
 
   return (
-    <div className='flex flex-col items-center gap-[1.125rem] py-3 w-full'>
+    <div className={`flex flex-col items-center w-full ${compact ? 'gap-3' : 'gap-[1.125rem] py-3'}`}>
       {/* Dual Input Row */}
       <div className='flex items-end justify-center gap-3 w-full max-w-full px-0'>
 
         {/* Main Amount Input */}
         <AutoSizingInput
           value={amount}
-          onChange={onAmountChange}
+          onChange={handleAmountChange}
           placeholder='0'
           useDefaultStyles={false}
           sizing='fill'
           containerClassName='flex-1 min-w-0'
           className='flex items-center gap-2 px-3 py-1 border-0 border-b border-solid border-[rgba(12,28,51,0.15)] rounded-xl'
-          inputClassName='text-dash-primary-dark-blue font-dash-grotesque font-bold text-[2rem] leading-[1.2] placeholder:text-[rgba(12,28,51,0.2)]'
+          inputClassName={`text-dash-primary-dark-blue font-dash-grotesque font-bold leading-[1.2] placeholder:text-[rgba(12,28,51,0.2)] ${compact ? 'text-[1.25rem] text-center' : 'text-[2rem]'}`}
           onChangeFilter={(value) => {
             const parsed = parseDecimalInput(value, assetDecimals)
             return parsed ?? amount
           }}
+          rightContent={compact && (
+            <div className='flex items-center justify-center w-4 h-4 shrink-0 rounded-full bg-[rgba(12,28,51,0.05)]'>
+              <DashLogo className='w-2.5 h-2.5' color='var(--color-dash-primary-dark-blue)' />
+            </div>
+          )}
         />
 
-        {/* Equivalent Input - Only for Credits */}
-        {selectedAsset === 'credits' && (
+        {/* USD equivalent, only for credits */}
+        {isDash && (
           <AutoSizingInput
             value={equivalentAmount}
-            onChange={onEquivalentChange}
+            onChange={handleUsdChange}
             placeholder='0'
             useDefaultStyles={false}
             sizing='auto'
@@ -87,41 +91,12 @@ export function AmountInputSection ({
             inputClassName='text-dash-primary-dark-blue opacity-35 font-dash-grotesque font-medium text-[1rem] leading-[1.2] placeholder:text-[rgba(12,28,51,0.2)]'
             minWidth={48}
             onChangeFilter={(value) => {
-              const decimals = equivalentCurrency === 'dash' ? 8 : 2
-              const parsed = parseDecimalInput(value, decimals)
+              const parsed = parseDecimalInput(value, 2)
               return parsed ?? equivalentAmount
             }}
             rightContent={
-              <div ref={currencyMenuRef} className='relative flex-shrink-0'>
-                <div
-                  className='flex items-center gap-1 px-1 py-1 rounded-[1.5rem] bg-[rgba(12,28,51,0.05)] cursor-pointer'
-                  onClick={() => setShowEquivalentCurrencyMenu(!showEquivalentCurrencyMenu)}
-                >
-                  <div className='w-4 h-4 rounded-full bg-dash-brand flex items-center justify-center'>
-                    {equivalentCurrency === 'usd'
-                      ? <span className='text-white text-[0.625rem] font-medium'>$</span>
-                      : <DashLogo className='w-2 h-2' color='white' />}
-                  </div>
-                  <ChevronIcon className='text-dash-primary-dark-blue w-2 h-1' />
-                </div>
-
-                {/* Currency Menu */}
-                {showEquivalentCurrencyMenu && (
-                  <div className='absolute top-full right-0 mt-1 flex flex-col gap-2 p-1 bg-[#F3F3F4] rounded-xl z-10'>
-                    <div
-                      className='w-4 h-4 rounded-full bg-dash-brand flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity'
-                      onClick={() => handleCurrencyChange('dash')}
-                    >
-                      <DashLogo className='w-2 h-2' color='white' />
-                    </div>
-                    <div
-                      className='w-4 h-4 rounded-full bg-dash-brand flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity'
-                      onClick={() => handleCurrencyChange('usd')}
-                    >
-                      <span className='text-white text-[0.625rem] font-medium'>$</span>
-                    </div>
-                  </div>
-                )}
+              <div className='flex items-center justify-center w-4 h-4 shrink-0 rounded-full bg-[rgba(12,28,51,0.05)]'>
+                <span className='text-dash-primary-dark-blue text-[0.625rem] font-medium'>$</span>
               </div>
             }
           />
@@ -135,6 +110,7 @@ export function AmountInputSection ({
           maxBalance={maxBalance}
           onPercentage={onQuickAmount}
           onClear={() => onAmountChange('')}
+          hideZero={compact}
           className='px-1'
         />
       )}
