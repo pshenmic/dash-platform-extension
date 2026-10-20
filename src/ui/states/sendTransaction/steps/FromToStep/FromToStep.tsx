@@ -139,6 +139,7 @@ export function FromToStep ({
               onRecipientChange={(recipient) => actions.setRecipient(recipient)}
               onTargetChange={(type, recipient) => {
                 actions.setToType(type)
+                if (type === 'shielded') actions.setShieldToMyself(false)
                 actions.setRecipient(recipient)
               }}
             />

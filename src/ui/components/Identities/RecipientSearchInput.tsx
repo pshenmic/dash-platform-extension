@@ -52,6 +52,8 @@ interface RecipientSearchInputProps {
   autoFocus?: boolean
   // Recipient already chosen when the field mounts, shown as selected.
   initialResult?: RecipientSearchResult | null
+  // Replaces the default hint for a recognized address type this field does not accept.
+  unsupportedAddressMessages?: Partial<Record<RecipientTargetType, string>>
 }
 
 // Label shown above a typed-address result, per recipient type.
@@ -79,7 +81,8 @@ export function RecipientSearchInput ({
   network = 'testnet',
   filled = false,
   autoFocus = false,
-  initialResult = null
+  initialResult = null,
+  unsupportedAddressMessages = {}
 }: RecipientSearchInputProps): React.JSX.Element {
   const sdk = useSdk()
   const [isSearching, setIsSearching] = useState(false)
@@ -297,7 +300,7 @@ export function RecipientSearchInput ({
                     <Text size='sm' className='text-dash-primary-dark-blue opacity-50'>
                       {(recipientType === 'shieldAddress' && pinnedRecipients.some(recipient => recipient.result.type === 'shieldAddress'))
                         ? 'Credits can only be shielded into your own pool — clear the field and pick “My shielded balance”'
-                        : UNSUPPORTED_ADDRESS_MESSAGES[recipientType] ?? 'This address type is not supported here'}
+                        : unsupportedAddressMessages[recipientType as RecipientTargetType] ?? UNSUPPORTED_ADDRESS_MESSAGES[recipientType] ?? 'This address type is not supported here'}
                     </Text>
                   </div>
                   )

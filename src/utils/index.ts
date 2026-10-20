@@ -31,7 +31,7 @@ export { selectPlatformSource, buildSignedPlatformTransfer, buildSignedPlatformT
 export type { PlatformSourceCandidate, PlatformTransferOutput } from './platformTransfer'
 export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, maxShieldedSpend } from './shieldedFee'
 export type { ShieldedNoteSelection, ShieldedSpendEstimate } from './shieldedFee'
-export { ENDPOINT_TYPE_ORDER, getSourceUnavailableReason, resolveTransferPair, fallbackTargetType, canShieldToOthers, isShieldToMyself } from './transferDirection'
+export { ENDPOINT_TYPE_ORDER, getSourceUnavailableReason, resolveTransferPair, fallbackTargetType, canPayShieldedAddress, canShieldToOthers, isShieldToMyself } from './transferDirection'
 export type { TransferCapabilities, TransferUnavailableReason } from './transferDirection'
 export { formatDateTime } from './datetime'
 export { checkRecipients, coreRecipientOutputs, platformRecipientOutputs } from './transferRecipients'

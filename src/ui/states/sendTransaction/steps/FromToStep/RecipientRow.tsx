@@ -3,7 +3,7 @@ import { FaceIcon, Identifier, WalletIcon } from 'dash-ui-kit/react'
 import { RecipientSearchInput } from '../../../../components/Identities'
 import type { PinnedSuggestion } from '../../../../components/Identities'
 import type { NetworkType } from '../../../../../types'
-import { isShieldToMyself } from '../../../../../utils'
+import { canPayShieldedAddress, isShieldToMyself } from '../../../../../utils'
 import type { RecipientSearchResult, RecipientTargetType } from '../../../../../utils'
 import { RECIPIENT_PLACEHOLDERS } from '../../constants'
 import type { EndpointType, TransferDraft } from '../../types'
@@ -29,12 +29,15 @@ const ACCEPTED_TYPES: Record<EndpointType, RecipientTargetType> = {
   shielded: 'shieldAddress'
 }
 
-// To types a recipient of another type switches to; a shielded recipient also needs Shield to Myself off, so it does not.
+// To types a recipient of another type switches to.
 const SWITCHABLE_TYPES: Partial<Record<RecipientTargetType, EndpointType>> = {
   coreAddress: 'core',
   identity: 'identity',
-  platformAddress: 'platformAddress'
+  platformAddress: 'platformAddress',
+  shieldAddress: 'shielded'
 }
+
+const SHIELDED_SENDER_HINT = 'Shielded addresses can only be paid from Dash Core or the shielded pool.'
 
 // Second row of the To card: recipient field matching the To type.
 export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddress, ownIdentities, ownPlatformAddresses, canTarget, onRecipientChange, onTargetChange }: RecipientRowProps): React.JSX.Element | null {
@@ -76,7 +79,10 @@ export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddres
           }
         : null
 
-  const canSwitchTo = (type: EndpointType): boolean => type === toType || canTarget(type)
+  // A typed shielded address also needs a sender that can pay one, not just a supported pair.
+  const canSwitchTo = (type: EndpointType): boolean =>
+    type === toType || (canTarget(type) && (type !== 'shielded' || canPayShieldedAddress(draft.from.type)))
+  const unsupportedAddressMessages = canSwitchTo('shielded') ? undefined : { shieldAddress: SHIELDED_SENDER_HINT }
 
   const handleSelect = (result: RecipientSearchResult): void => {
     const type = result.type ?? 'identity'
@@ -85,7 +91,7 @@ export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddres
       return
     }
     const target = SWITCHABLE_TYPES[type]
-    if (target != null && canTarget(target)) onTargetChange(target, result.identifier)
+    if (target != null && canSwitchTo(target)) onTargetChange(target, result.identifier)
     else onRecipientChange('')
   }
 
@@ -100,9 +106,10 @@ export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddres
       placeholder={RECIPIENT_PLACEHOLDERS[toType]}
       allowCoreAddress={canSwitchTo('core')}
       allowPlatformAddress={canSwitchTo('platformAddress')}
-      allowShieldAddress={toType === 'shielded'}
+      allowShieldAddress={canSwitchTo('shielded')}
       initialResult={initialResult}
       pinned={pinned}
+      unsupportedAddressMessages={unsupportedAddressMessages}
       network={network}
     />
   )

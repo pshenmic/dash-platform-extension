@@ -72,6 +72,10 @@ export const fallbackTargetType = (from: EndpointType, current: EndpointType, as
   return ENDPOINT_TYPE_ORDER.find(type => resolveTransferPair(from, type, asset, capabilities).supported) ?? null
 }
 
+// Whether the sender can pay a typed shielded address; Platform addresses shield only into the own pool.
+export const canPayShieldedAddress = (from: EndpointType): boolean =>
+  from === 'core' || from === 'shielded'
+
 // Whether the sender can shield to a typed shielded address instead of its own balance.
 export const canShieldToOthers = (draft: TransferDraft): boolean =>
   draft.to.type === 'shielded' && draft.from.type === 'core'
