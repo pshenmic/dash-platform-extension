@@ -1,6 +1,6 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ShieldedEncryptedNote, ShieldedNullifierStatus } from 'dash-platform-sdk/types'
-import { OrchardAddressWASM, RecoveredNoteWASM, SpendableNoteWASM } from 'pshenmic-dpp'
+import { OrchardAddressWASM, RecoveredNoteWASM, SpendableNoteWASM, StateTransitionWASM } from 'pshenmic-dpp'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { ShieldedNotesRepository } from '../repository/ShieldedNotesRepository'
 import { RepositoryScope } from '../../types/RepositoryScope'
@@ -32,6 +32,9 @@ export interface UnspentShieldedNotes {
 
 export interface ShieldedSpendInputs {
   spends: SpendableNoteWASM[]
+  // Nullifiers of the notes being spent. Platform holding them is what proves
+  // the spend executed, whatever the wait for its result managed to verify.
+  nullifiers: Uint8Array[]
   anchor: Uint8Array
   changeAddress: OrchardAddressWASM
   coinType: number
@@ -206,6 +209,44 @@ export class ShieldedService {
     return notes.map(note => note.isSpent || !spent.has(note.nullifier) ? note : { ...note, isSpent: true })
   }
 
+  /**
+   * Waits for a shielded spend to execute, telling "it did not execute" apart
+   * from "it executed and the result could not be verified".
+   *
+   * The wait verifies the proof the node answers with, and that verification
+   * can fail on its own: it needs data contracts the SDK does not always hand
+   * it, among other things. Reporting that as a failed spend is what makes a
+   * caller offer a retry, and a second shielded withdrawal spends real money.
+   *
+   * The spend's own nullifiers settle it. Only an executed transition puts them
+   * on Platform, so once they are there the spend is done, whatever the wait
+   * made of the proof. Anything short of all of them present leaves the original
+   * error standing: a success nobody can prove must not be reported as one.
+   */
+  async confirmSpend (stateTransition: StateTransitionWASM, nullifiers: Uint8Array[]): Promise<void> {
+    try {
+      await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+    } catch (e) {
+      if (!await this.allSpent(nullifiers)) {
+        throw e
+      }
+    }
+  }
+
+  // True once Platform holds every one of these nullifiers. A query that cannot
+  // answer counts as "no": it leaves the caller's own error in place rather than
+  // turning a network failure into a reported success.
+  async allSpent (nullifiers: Uint8Array[]): Promise<boolean> {
+    if (nullifiers.length === 0) {
+      return false
+    }
+
+    const statuses = await this.nullifierStatuses(nullifiers).catch(() => [])
+    const spent = new Set(statuses.filter(status => status.isSpent).map(status => bytesToHex(status.nullifier)))
+
+    return nullifiers.every(nullifier => spent.has(bytesToHex(nullifier)))
+  }
+
   deriveSeed (wallet: Wallet, password: string): Uint8Array {
     return this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, password))
   }
@@ -327,8 +368,9 @@ export class ShieldedService {
     const { notes: selected } = selectShieldedNotes(unspent, amountCredits, kind)
     const { spends, anchor } = this.sdk.shielded.buildSpendableNotes(allNotes, selected)
     const changeAddress = this.sdk.keyPair.deriveShieldedAddress(seed, network, account)
+    const nullifiers = selected.map(note => this.noteNullifier(note))
 
-    return { spends, anchor, changeAddress, coinType: PLATFORM_ADDRESS_COIN_TYPE[network] }
+    return { spends, nullifiers, anchor, changeAddress, coinType: PLATFORM_ADDRESS_COIN_TYPE[network] }
   }
 
   // An account with nothing stored yet: the shape callers get before the first

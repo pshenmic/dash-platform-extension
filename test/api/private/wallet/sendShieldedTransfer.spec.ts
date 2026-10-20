@@ -49,6 +49,7 @@ describe('SendShieldedTransferHandler', () => {
     jest.spyOn(shielded, 'deriveSeed').mockReturnValue(new Uint8Array([1, 2, 3]))
     prepareSpend = jest.spyOn(shielded, 'prepareSpend').mockResolvedValue({
       spends: [],
+      nullifiers: [new Uint8Array([7])],
       anchor: new Uint8Array([9]),
       changeAddress: {} as any,
       coinType: 1
