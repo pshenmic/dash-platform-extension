@@ -36,8 +36,8 @@ export const unfinishedOperations = (locks: PendingAssetLock[]): UnfinishedOpera
   })
 }
 
-// Error of a resumed operation whose payment never reached the network and was recorded without a copy to send again.
-export const isUnsendableFundingError = (message: string): boolean => /cannot be sent again/i.test(message)
+// Error of a resumed operation whose payment cannot reach the network: not kept to send again, or its inputs spent by another transaction.
+export const isUnsendableFundingError = (message: string): boolean => /cannot be sent again|can never confirm/i.test(message)
 
 // Recipient type each unfinished operation pays.
 export const UNFINISHED_OPERATION_TARGETS: Record<UnfinishedOperation['purpose'], EndpointType> = { topUp: 'identity', fundAddress: 'platformAddress', shield: 'shielded' }

@@ -67,6 +67,7 @@ describe('unfinishedOperations', () => {
 describe('isUnsendableFundingError', () => {
   it('recognises a payment that cannot be sent again', () => {
     expect(isUnsendableFundingError('Funding payment abc was recorded without its signed transaction and cannot be sent again')).toBe(true)
+    expect(isUnsendableFundingError('Funding payment abc for yAddr can never confirm: transaction def has spent one of its inputs')).toBe(true)
     expect(isUnsendableFundingError('Failed to fetch')).toBe(false)
   })
 })
