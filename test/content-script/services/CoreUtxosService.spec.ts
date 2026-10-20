@@ -78,4 +78,21 @@ describe('CoreUtxosService', () => {
 
     expect(utxos.map(entry => entry.address)).toEqual([RECEIVING[0]])
   })
+
+  describe('availableDuffs', () => {
+    it('sums what can be spent right now', async () => {
+      coreExplorer.getAddressesUtxos.mockResolvedValue([
+        utxo(RECEIVING[0], 100_000n),
+        utxo(CHANGE[1], 23_000n, 3)
+      ])
+
+      expect(await service.availableDuffs(wallet, XPUB)).toBe(123_000n)
+    })
+
+    it('is zero for a wallet with nothing to spend', async () => {
+      coreExplorer.getAddressesUtxos.mockResolvedValue([])
+
+      expect(await service.availableDuffs(wallet, XPUB)).toBe(0n)
+    })
+  })
 })

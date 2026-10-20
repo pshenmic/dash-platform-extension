@@ -1,4 +1,4 @@
-import { buildCoreTransfer, buildCoreTransferMulti, maxCoreSpend, estimateCoreFee, estimateCoreTxSize, selectCoreUtxos } from '../../src/utils/coreTransfer'
+import { buildCoreTransfer, buildCoreTransferMulti, estimateCoreFee, estimateCoreTxSize, maxCoreSpend, selectCoreUtxos } from '../../src/utils/coreTransfer'
 import { CoreWalletUtxo } from '../../src/content-script/services/CoreExplorerService'
 import { CORE_DUST_THRESHOLD } from '../../src/constants'
 

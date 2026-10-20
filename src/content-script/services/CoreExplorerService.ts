@@ -308,6 +308,32 @@ export class CoreExplorerService {
     return true
   }
 
+  // Transaction that spent one particular output, or null while it is unspent.
+  // An input of ours spent by somebody else is what makes our own transaction
+  // unable to confirm, ever, however long it is waited for.
+  async getOutpointSpender (txid: string, vout: number, network: NetworkType = 'testnet'): Promise<string | null> {
+    const baseUrl = getBaseUrl(network)
+    const response = await fetch(`${baseUrl}/transaction/${txid}`)
+
+    if (response.status === 404) {
+      return null
+    }
+
+    if (!response.ok) {
+      throw new Error(`Core explorer error for transaction ${txid}: HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+    const outputs: any[] = Array.isArray(data?.vOut) ? data.vOut : []
+    const output = outputs.find(entry => entry?.number === vout)
+
+    if (typeof output?.spentTxId !== 'string' || output.spentTxId === '') {
+      return null
+    }
+
+    return output.spentTxId
+  }
+
   // Transaction that spent this transaction's output to `address`, or null while
   // it is unspent. Recovers the asset lock committed by an earlier attempt: the
   // funding transaction is known, the asset lock built from it is not.

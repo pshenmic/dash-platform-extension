@@ -7,7 +7,8 @@ import { CoreExplorerService, CoreWalletUtxo } from './CoreExplorerService'
 
 export interface SpendableCoreUtxos {
   // What can be spent now. The explorer indexes the mempool, so a send made a
-  // moment ago is already reflected: its inputs are gone and its change is listed.
+  // moment ago is already reflected: the outputs it consumed are gone from this
+  // set and the change it paid us is in it.
   utxos: CoreWalletUtxo[]
   // Every address of the account the explorer has seen, plus the next free one
   // on each chain - the extent that counts as "this wallet's own".
@@ -17,7 +18,8 @@ export interface SpendableCoreUtxos {
 
 /**
  * One answer to "what does this wallet have on L1 right now", shared by the
- * UTXO list, the fee estimate and the send.
+ * UTXO list, the balance, the fee estimate and the send, so that none of them
+ * can disagree with the others.
  */
 export class CoreUtxosService {
   sdk: DashPlatformSDK
@@ -62,5 +64,12 @@ export class CoreUtxosService {
       owned,
       nextUnused
     }
+  }
+
+  // Sum of what can be spent now.
+  async availableDuffs (wallet: Wallet, xpub: string, account: number = 0): Promise<bigint> {
+    const { utxos } = await this.spendable(wallet, xpub, account)
+
+    return utxos.reduce((sum, utxo) => sum + utxo.amount, 0n)
   }
 }

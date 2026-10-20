@@ -4,6 +4,7 @@ import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFund
 import { CoreExplorerService } from './CoreExplorerService'
 import { CoreSpendService } from './CoreSpendService'
 import { bytesToHex } from '../../utils'
+import { findConflictingSpend } from '../../utils/conflictingSpend'
 
 export interface FundAssetLockAddressParams {
   wallet: Wallet
@@ -51,7 +52,9 @@ export class AssetLockFundingService {
     const entry = await assetLockFundingAddressesRepository.getByAddress(fundingAddress)
 
     if (entry?.fundingTxid != null) {
-      return await this.continueRecordedPayment(entry.address, entry.fundingTxid, entry.assetLockTxid, entry.fundingTxHex)
+      return await this.continueRecordedPayment(
+        entry.address, entry.fundingTxid, wallet.network as NetworkType, entry.assetLockTxid, entry.fundingTxHex
+      )
     }
 
     if (entry?.assetLockTxid != null) {
@@ -120,6 +123,7 @@ export class AssetLockFundingService {
   async continueRecordedPayment (
     fundingAddress: string,
     fundingTxid: string,
+    network: NetworkType,
     assetLockTxid?: string | null,
     fundingTxHex?: string
   ): Promise<FundedAssetLockAddress> {
@@ -132,7 +136,24 @@ export class AssetLockFundingService {
     if (fundingTxHex != null) {
       // Idempotent: the same transaction either enters the network now or is
       // reported as one it already has.
-      await this.coreSpend.rebroadcast(fundingTxid, fundingTxHex)
+      try {
+        await this.coreSpend.rebroadcast(fundingTxid, fundingTxHex)
+      } catch (e) {
+        // Every node will reject it the same way for as long as it exists, so
+        // say what happened to it rather than leaving the caller to retry into
+        // the same wall.
+        const conflict = await findConflictingSpend(this.coreExplorer, fundingTxid, fundingTxHex, network)
+
+        if (conflict == null) {
+          throw e
+        }
+
+        throw new Error(
+          `Funding payment ${fundingTxid} for ${fundingAddress} can never confirm: ` +
+          `transaction ${conflict} has spent one of its inputs. ` +
+          'Discard it with DISCARD_ASSET_LOCK_FUNDING to pay the address again'
+        )
+      }
 
       return { fundingTxid, ...CONTINUED }
     }

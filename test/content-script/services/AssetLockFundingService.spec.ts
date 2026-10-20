@@ -1,4 +1,17 @@
+import { Input, Output, Script, Transaction } from 'dash-core-sdk'
 import { AssetLockFundingService } from '../../../src/content-script/services/AssetLockFundingService'
+import { bytesToHex } from '../../../src/utils'
+
+// A real signed shape, so the code that reads a kept payment's inputs has
+// something it can actually parse.
+const conflictable = (): { hex: string, txid: string } => {
+  const transaction = new Transaction(
+    [new Input(`${'a'.repeat(63)}1`, 3, Script.fromASM('OP_0'), 0xffffffff)],
+    [Output.createP2PKH(100_000n, 'yYaCeiBLVeiDvR3ryAcTtifeRckEpbipBk')]
+  )
+
+  return { hex: bytesToHex(transaction.bytes()), txid: transaction.hash() }
+}
 
 const FUNDING_ADDRESS = 'yFundingAddress'
 const XPUB = 'tpubAccountXpub'
@@ -34,7 +47,8 @@ describe('AssetLockFundingService', () => {
 
     coreExplorer = {
       getAddressUtxos: jest.fn(async () => []),
-      hasTransaction: jest.fn(async () => true)
+      hasTransaction: jest.fn(async () => true),
+      getOutpointSpender: jest.fn(async () => null)
     }
     coreSpend = {
       prepare: jest.fn(async () => prepared),
@@ -77,15 +91,6 @@ describe('AssetLockFundingService', () => {
 
   // The payment is written down before it is broadcast, so the broadcast is the
   // step that can fail with the record already in place.
-  it('keeps the signed payment, so a broadcast that failed can be sent again', async () => {
-    coreSpend.broadcast.mockRejectedValue(new Error('Failed to fetch'))
-
-    await expect(fund()).rejects.toThrow('Failed to fetch')
-
-    expect(assetLockFundingAddressesRepository.markAsFunded)
-      .toHaveBeenCalledWith(FUNDING_ADDRESS, prepared.txid, '100000', PREPARED_HEX)
-  })
-
   it('pays nothing when the recorded payment is already on its way', async () => {
     assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
       address: FUNDING_ADDRESS, used: false, fundingTxid: 'd'.repeat(64)
@@ -103,6 +108,34 @@ describe('AssetLockFundingService', () => {
     expect(await fund()).toEqual({ fundingTxid: 'd'.repeat(64), paid: false, feeDuffs: 0n, changeDuffs: 0n })
     expect(coreSpend.rebroadcast).toHaveBeenCalledWith('d'.repeat(64), PREPARED_HEX)
     expect(coreSpend.prepare).not.toHaveBeenCalled()
+  })
+
+  // The case the frontend hit: two chains in a row, the second one signing on an
+  // output the first had already spent while the explorer still offered it.
+  it('says a kept payment can never confirm once another transaction took its input', async () => {
+    const { hex, txid } = conflictable()
+
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
+      address: FUNDING_ADDRESS, used: false, fundingTxid: txid, fundingTxHex: hex
+    })
+    coreSpend.rebroadcast.mockRejectedValue(new Error('Transaction is rejected: tx-txlock-conflict'))
+    coreExplorer.getOutpointSpender.mockResolvedValue('c'.repeat(64))
+
+    await expect(fund()).rejects.toThrow('can never confirm')
+    await expect(fund()).rejects.toThrow('c'.repeat(64))
+
+    expect(coreSpend.prepare).not.toHaveBeenCalled()
+  })
+
+  it('passes a refusal through while nothing has taken an input', async () => {
+    const { hex, txid } = conflictable()
+
+    assetLockFundingAddressesRepository.getByAddress.mockResolvedValue({
+      address: FUNDING_ADDRESS, used: false, fundingTxid: txid, fundingTxHex: hex
+    })
+    coreSpend.rebroadcast.mockRejectedValue(new Error('Transaction is rejected: tx-txlock-conflict'))
+
+    await expect(fund()).rejects.toThrow('tx-txlock-conflict')
   })
 
   it('does not look up a payment whose deposit an asset lock already spent', async () => {

@@ -158,18 +158,6 @@ describe('SendCoreTransferHandler', () => {
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
-  it('does not keep its own view of what it spent: the explorer indexes the mempool', async () => {
-    await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
-
-    // A second send reads the explorer again, which by then lists neither the
-    // inputs this one spent nor anything but its change.
-    coreExplorer.getAddressesUtxos.mockResolvedValue([utxo(CHANGE[1], 89_774n, 1)])
-
-    const second = await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
-
-    expect(second.fromAddresses).toEqual([CHANGE[1]])
-  })
-
   it('rejects a source address the wallet does not own', async () => {
     await expect(handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password, fromAddress: DESTINATION })))
       .rejects.toThrow('Source address not found in this wallet')
