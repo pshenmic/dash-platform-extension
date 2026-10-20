@@ -15,7 +15,11 @@ interface RecipientRowProps {
   ownCoreAddress: string | null
   ownIdentities: string[]
   ownPlatformAddresses: string[]
+  // Whether the To side can switch to this type for the current sender and asset.
+  canTarget: (type: EndpointType) => boolean
   onRecipientChange: (recipient: string) => void
+  // Switches the To type to match a recipient of another type.
+  onTargetChange: (type: EndpointType, recipient: string) => void
 }
 
 const ACCEPTED_TYPES: Record<EndpointType, RecipientTargetType> = {
@@ -25,8 +29,15 @@ const ACCEPTED_TYPES: Record<EndpointType, RecipientTargetType> = {
   shielded: 'shieldAddress'
 }
 
+// To types a recipient of another type switches to; a shielded recipient also needs Shield to Myself off, so it does not.
+const SWITCHABLE_TYPES: Partial<Record<RecipientTargetType, EndpointType>> = {
+  coreAddress: 'core',
+  identity: 'identity',
+  platformAddress: 'platformAddress'
+}
+
 // Second row of the To card: recipient field matching the To type.
-export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddress, ownIdentities, ownPlatformAddresses, onRecipientChange }: RecipientRowProps): React.JSX.Element | null {
+export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddress, ownIdentities, ownPlatformAddresses, canTarget, onRecipientChange, onTargetChange }: RecipientRowProps): React.JSX.Element | null {
   const [text, setText] = useState(draft.to.recipient)
   const toType = draft.to.type
 
@@ -65,10 +76,20 @@ export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddres
           }
         : null
 
+  const canSwitchTo = (type: EndpointType): boolean => type === toType || canTarget(type)
+
   const handleSelect = (result: RecipientSearchResult): void => {
     const type = result.type ?? 'identity'
-    onRecipientChange(type === ACCEPTED_TYPES[toType] ? result.identifier : '')
+    if (type === ACCEPTED_TYPES[toType]) {
+      onRecipientChange(result.identifier)
+      return
+    }
+    const target = SWITCHABLE_TYPES[type]
+    if (target != null && canTarget(target)) onTargetChange(target, result.identifier)
+    else onRecipientChange('')
   }
+
+  const initialResult: RecipientSearchResult | null = draft.to.recipient !== '' ? { identifier: draft.to.recipient, type: ACCEPTED_TYPES[toType] } : null
 
   return (
     <RecipientSearchInput
@@ -77,9 +98,10 @@ export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddres
       onSelect={handleSelect}
       excludeIdentifier={excludeIdentifier}
       placeholder={RECIPIENT_PLACEHOLDERS[toType]}
-      allowCoreAddress={toType === 'core'}
-      allowPlatformAddress={toType === 'platformAddress'}
+      allowCoreAddress={canSwitchTo('core')}
+      allowPlatformAddress={canSwitchTo('platformAddress')}
       allowShieldAddress={toType === 'shielded'}
+      initialResult={initialResult}
       pinned={pinned}
       network={network}
     />

@@ -130,7 +130,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
     : operationState.status === 'failed' ? { type: 'error', message: operationState.error } : null
 
   const changeAddresses = useChangeAddresses(api, draft.isAdvanced && draft.from.type === 'core', currentWallet, network)
-  const ownCoreAddress = useOwnCoreAddress(api, !draft.isAdvanced && draft.to.type === 'core' && capabilities.hasCoreLayer, currentWallet, network)
+  const ownCoreAddress = useOwnCoreAddress(api, !draft.isAdvanced && draft.from.type !== 'core' && draft.to.type === 'core' && capabilities.hasCoreLayer, currentWallet, network)
 
   useIdentityHeader({ currentIdentity, currentWallet, allWallets, currentNetwork, setHeaderComponent })
 

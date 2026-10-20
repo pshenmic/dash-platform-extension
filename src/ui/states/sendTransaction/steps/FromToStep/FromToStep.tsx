@@ -135,7 +135,12 @@ export function FromToStep ({
               ownCoreAddress={ownCoreAddress}
               ownIdentities={identities.map(identity => identity.identifier)}
               ownPlatformAddresses={ownPlatformAddresses}
+              canTarget={(type) => resolveDirection(draft.from.type, type, draft.asset, capabilities).supported}
               onRecipientChange={(recipient) => actions.setRecipient(recipient)}
+              onTargetChange={(type, recipient) => {
+                actions.setToType(type)
+                actions.setRecipient(recipient)
+              }}
             />
           )}
           {recipientError != null && <Text size='xs' className='!text-red-500'>{recipientError}</Text>}

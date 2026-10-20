@@ -50,6 +50,8 @@ interface RecipientSearchInputProps {
   // Grey borderless field, for a field inside a card.
   filled?: boolean
   autoFocus?: boolean
+  // Recipient already chosen when the field mounts, shown as selected.
+  initialResult?: RecipientSearchResult | null
 }
 
 // Label shown above a typed-address result, per recipient type.
@@ -76,12 +78,13 @@ export function RecipientSearchInput ({
   pinned = null,
   network = 'testnet',
   filled = false,
-  autoFocus = false
+  autoFocus = false,
+  initialResult = null
 }: RecipientSearchInputProps): React.JSX.Element {
   const sdk = useSdk()
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<RecipientSearchResult[]>([])
-  const [selectedResult, setSelectedResult] = useState<RecipientSearchResult | null>(null)
+  const [selectedResult, setSelectedResult] = useState<RecipientSearchResult | null>(initialResult)
   const [isSearchActive, setIsSearchActive] = useState(false)
   const [isPinnedOpen, setIsPinnedOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
