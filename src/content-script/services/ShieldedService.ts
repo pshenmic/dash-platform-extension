@@ -230,6 +230,14 @@ export class ShieldedService {
       if (!await this.allSpent(nullifiers)) {
         throw e
       }
+
+      // Not silent: the operation succeeded on a path nobody planned for, and
+      // the next person looking at a support log should see which of the two
+      // happened.
+      console.warn(
+        `[shielded] ${stateTransition.hash(false)} executed, but waiting for its result failed: ` +
+        `${e instanceof Error ? e.message : String(e)}. Its nullifiers are spent on Platform, so the spend stands.`
+      )
     }
   }
 
