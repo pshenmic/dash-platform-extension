@@ -95,6 +95,34 @@ export const platformTransferFeeCredits = (outputCount: number = 1, inputCount: 
   return AddressFundsTransferTransitionWASM.estimateMinFee(inputCount, outputCount)
 }
 
+/**
+ * What Platform will charge for a built transition, and a refusal when the
+ * chosen source cannot cover it.
+ *
+ * The source is picked before the transition exists, so it is picked against an
+ * estimate. Where that estimate is a flat figure it can be an order of magnitude
+ * short, and an address holding enough for the amount but not for the fee passes
+ * the check here only to be refused on chain - with an error that tells the
+ * caller nothing it can act on. This asks dpp for the real number once the
+ * transition is signed and says plainly what is missing.
+ */
+export const assertSourceCoversFee = (
+  stateTransition: StateTransitionWASM,
+  source: PlatformSourceCandidate,
+  amountCredits: bigint
+): bigint => {
+  const feeCredits = stateTransition.calculateMinRequiredFee()
+
+  if (source.balanceCredits < amountCredits + feeCredits) {
+    throw new Error(
+      `Platform address ${source.platformAddress} holds ${source.balanceCredits.toString()} credits, ` +
+      `which does not cover ${amountCredits.toString()} plus the fee of ${feeCredits.toString()} credits`
+    )
+  }
+
+  return feeCredits
+}
+
 // Builds and signs an addressFundsTransfer paying several recipients from one
 // address: a single input spending their total, one output each, and the fee
 // deducted from that input on top.
