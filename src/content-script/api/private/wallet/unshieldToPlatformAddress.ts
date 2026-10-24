@@ -36,7 +36,7 @@ export class UnshieldToPlatformAddressHandler implements APIHandler {
     const amountCredits = BigInt(payload.amountCredits)
     const seed = this.shielded.deriveSeed(wallet, payload.password)
 
-    const { spends, anchor, changeAddress, coinType } = await this.shielded.prepareSpend(seed, wallet.network, account, amountCredits, 'unshield')
+    const { spends, nullifiers, anchor, changeAddress, coinType } = await this.shielded.prepareSpend(seed, wallet.network, account, amountCredits, 'unshield')
 
     console.time('[shielded] unshield: build + prove')
     const stateTransition = await this.sdk.shielded.createStateTransition('unshield', {
@@ -54,7 +54,9 @@ export class UnshieldToPlatformAddressHandler implements APIHandler {
 
     console.log('[shielded] broadcasting…')
     await this.sdk.stateTransitions.broadcast(stateTransition)
-    await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+    // Not the SDK's wait on its own: a proof it cannot verify would otherwise
+    // read as a spend that never happened, and the caller would send another.
+    await this.shielded.confirmSpend(stateTransition, nullifiers)
 
     return {
       stHash: stateTransition.hash(false),
