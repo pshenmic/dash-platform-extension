@@ -39,7 +39,7 @@ export class WithdrawShieldedToCoreHandler implements APIHandler {
     const outputScript = coreAddressToScript(payload.toCoreAddress, wallet.network)
     const seed = this.shielded.deriveSeed(wallet, payload.password)
 
-    const { spends, anchor, changeAddress, coinType } = await this.shielded.prepareSpend(seed, wallet.network, account, amountCredits, 'withdrawal')
+    const { spends, nullifiers, anchor, changeAddress, coinType } = await this.shielded.prepareSpend(seed, wallet.network, account, amountCredits, 'withdrawal')
 
     console.time('[shielded] withdrawal: build + prove')
     const stateTransition = await this.sdk.shielded.createStateTransition('shieldedWithdrawal', {
@@ -59,7 +59,9 @@ export class WithdrawShieldedToCoreHandler implements APIHandler {
 
     console.log('[shielded] broadcasting…')
     await this.sdk.stateTransitions.broadcast(stateTransition)
-    await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+    // Not the SDK's wait on its own: a proof it cannot verify would otherwise
+    // read as a spend that never happened, and the caller would send another.
+    await this.shielded.confirmSpend(stateTransition, nullifiers)
 
     return {
       stHash: stateTransition.hash(false),
