@@ -8,6 +8,13 @@ import { GetCoreTransactionsPayload } from './messages/payloads/GetCoreTransacti
 import { GetCoreTransactionsResponse } from './messages/response/GetCoreTransactionsResponse'
 import { InitAccountXpubsPayload } from './messages/payloads/InitAccountXpubsPayload'
 import { InitAccountXpubsResponse } from './messages/response/InitAccountXpubsResponse'
+import { SendCoreTransferPayload } from './messages/payloads/SendCoreTransferPayload'
+import { SendCoreTransferResponse } from './messages/response/SendCoreTransferResponse'
+import { ListCoreUtxosResponse } from './messages/response/ListCoreUtxosResponse'
+import { EstimateCoreTransferResponse } from './messages/response/EstimateCoreTransferResponse'
+import { EstimateCoreTransferPayload } from './messages/payloads/EstimateCoreTransferPayload'
+import { SendCoreTransactionResponse } from './messages/response/SendCoreTransactionResponse'
+import { SendCoreTransactionPayload } from './messages/payloads/SendCoreTransactionPayload'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -470,6 +477,38 @@ export class PrivateAPIClient {
     const payload: GetCoreTransactionsPayload = { limit, cursor }
 
     return await this._rpcCall(MessagingMethods.GET_CORE_TRANSACTIONS, payload)
+  }
+
+  // Sends Core (L1) funds from the wallet's own addresses. `fromAddress` limits
+  // the spend to one of them; omitted, the largest unspent outputs are picked.
+  async listCoreUtxos (): Promise<ListCoreUtxosResponse['utxos']> {
+    const payload: EmptyPayload = {}
+
+    const response: ListCoreUtxosResponse = await this._rpcCall(MessagingMethods.LIST_CORE_UTXOS, payload)
+
+    return response.utxos
+  }
+
+  // What a Core payment would cost before it is signed: its inputs, its fee, its
+  // change and the most those inputs can pay out. Runs the same coin selection
+  // the send runs, and needs no password.
+  async estimateCoreTransfer (params: EstimateCoreTransferPayload): Promise<EstimateCoreTransferResponse> {
+    return await this._rpcCall(MessagingMethods.ESTIMATE_CORE_TRANSFER, params)
+  }
+
+  // One Core transaction paying several recipients, optionally out of outputs
+  // the caller picked (from listCoreUtxos) and with change to an address of this
+  // wallet. The general form of sendCoreTransfer.
+  async sendCoreTransaction (params: Omit<SendCoreTransactionPayload, 'password'>, password: string): Promise<SendCoreTransactionResponse> {
+    const payload: SendCoreTransactionPayload = { ...params, password }
+
+    return await this._rpcCall(MessagingMethods.SEND_CORE_TRANSACTION, payload)
+  }
+
+  async sendCoreTransfer (toAddress: string, amountDuffs: string, password: string, fromAddress?: string): Promise<SendCoreTransferResponse> {
+    const payload: SendCoreTransferPayload = { toAddress, amountDuffs, password, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.SEND_CORE_TRANSFER, payload)
   }
 
   async generatePlatformAddresses (password?: string, count?: number): Promise<GetPlatformAddressesResponse['addresses']> {
