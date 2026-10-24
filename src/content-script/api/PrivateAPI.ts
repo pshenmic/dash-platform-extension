@@ -42,6 +42,10 @@ import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFund
 import { CoreExplorerService } from '../services/CoreExplorerService'
 import { CoreUtxosService } from '../services/CoreUtxosService'
 import { CoreSpendService } from '../services/CoreSpendService'
+import { AssetLockFundingService } from '../services/AssetLockFundingService'
+import { PendingAssetLocksRepository } from '../repository/PendingAssetLocksRepository'
+import { RegisterIdentityFromWalletHandler } from './private/identities/registerIdentityFromWallet'
+import { ListPendingAssetLocksHandler } from './private/assetLocks/listPendingAssetLocks'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
@@ -132,9 +136,25 @@ export class PrivateAPI {
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
     const assetLockFundingAddressesRepository = new AssetLockFundingAddressesRepository(this.storageAdapter)
     const walletSettingsRepository = new WalletSettingsRepository(this.storageAdapter)
+    const pendingAssetLocksRepository = new PendingAssetLocksRepository(this.storageAdapter)
     const coreExplorer = new CoreExplorerService()
     const coreUtxos = new CoreUtxosService(this.sdk, coreExplorer)
     const coreSpend = new CoreSpendService(this.sdk, this.coreSDK, coreUtxos)
+    const assetLockFunding = new AssetLockFundingService(coreExplorer, coreSpend)
+
+    // Shared with the chains below: they hand the same instances their own scope
+    // rather than building a second copy per call.
+    const requestAssetLockFundingAddress = new RequestAssetLockFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, this.sdk, this.storageAdapter)
+    const registerIdentity = new RegisterIdentityHandler(
+      walletRepository,
+      identitiesRepository,
+      assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
+      this.storageAdapter,
+      this.sdk,
+      this.coreSDK,
+      coreExplorer
+    )
     const shielded = new ShieldedService(this.storageAdapter, this.sdk)
 
     this.handlers = {
@@ -169,15 +189,18 @@ export class PrivateAPI {
       [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
-      [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: new RequestAssetLockFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, this.sdk, this.storageAdapter),
+      [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: requestAssetLockFundingAddress,
+      [MessagingMethods.LIST_PENDING_ASSET_LOCKS]: new ListPendingAssetLocksHandler(pendingAssetLocksRepository, assetLockFundingAddressesRepository),
       [MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS]: new RequestTopUpFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, coreExplorer, this.sdk, this.storageAdapter),
-      [MessagingMethods.REGISTER_IDENTITY]: new RegisterIdentityHandler(
+      [MessagingMethods.REGISTER_IDENTITY]: registerIdentity,
+      [MessagingMethods.REGISTER_IDENTITY_FROM_WALLET]: new RegisterIdentityFromWalletHandler(
         walletRepository,
-        identitiesRepository,
         assetLockFundingAddressesRepository,
-        this.storageAdapter,
-        this.sdk,
-        this.coreSDK
+        pendingAssetLocksRepository,
+        assetLockFunding,
+        requestAssetLockFundingAddress,
+        registerIdentity,
+        this.sdk
       ),
       [MessagingMethods.TOP_UP_IDENTITY]: new TopUpIdentityHandler(
         walletRepository,
