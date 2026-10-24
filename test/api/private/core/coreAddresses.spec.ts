@@ -198,6 +198,7 @@ describe('core address handlers', () => {
 
   describe('GetCoreBalanceHandler', () => {
     let coreExplorer: any
+    let coreUtxos: any
     let handler: GetCoreBalanceHandler
 
     const summary = {
@@ -212,7 +213,8 @@ describe('core address handlers', () => {
 
     beforeEach(() => {
       coreExplorer = { getXpubSummary: jest.fn(async () => summary) }
-      handler = new GetCoreBalanceHandler(walletRepository, coreExplorer)
+      coreUtxos = { availableDuffs: jest.fn(async () => 299337281n) }
+      handler = new GetCoreBalanceHandler(walletRepository, coreExplorer, coreUtxos)
     })
 
     test('asks the explorer by xpub and returns amounts as strings', async () => {
@@ -245,6 +247,13 @@ describe('core address handlers', () => {
       walletRepository.getCurrent.mockResolvedValueOnce(null)
 
       await expect(handler.handle()).rejects.toThrow('No wallet is chosen')
+    })
+
+    test('reports the explorer balance, which already counts the mempool', async () => {
+      const result = await handler.handle()
+
+      expect(result.balance).toBe('399337281')
+      expect(coreUtxos.availableDuffs).not.toHaveBeenCalled()
     })
 
     test('throws when the xpub was never cached', async () => {
