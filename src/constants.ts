@@ -10,6 +10,8 @@ export const POPUP_WINDOW_HEIGHT = 500
 
 // ── Identity registration / asset lock pipeline ──────────────────────────────
 export const MIN_FEE_RELAY = 1000n
+// Platform counts credits, L1 counts duffs: one duff locked is 1000 credits.
+export const CREDITS_PER_DUFF = 1000n
 export const LOCK_POLL_INTERVAL_MS = 5000
 export const LOCK_TIMEOUT_MS = 15 * 60 * 1000
 export const MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS = 6
@@ -149,6 +151,11 @@ export const SHIELDED_PER_ACTION_PROCESSING_FEE_CREDITS = 22_000_000n
 export const SHIELDED_STORAGE_BYTES_PER_ACTION = 344n
 export const SHIELDED_STORAGE_CREDITS_PER_BYTE = 27_400n
 export const SHIELDED_UNSHIELD_ADDRESS_STORAGE_BYTES = 222n
+// Flat surcharge a shield funded by an asset lock pays on top of the action
+// fees, for the asset lock proof itself. Measured against testnet: a lock of
+// 1 999 000 000 credits was refused for a note of 1 836 148 800 with "needs
+// 2 049 000 000 credits to start processing", which puts the fee at
+// 212 851 200 - exactly the action fees plus this.
 export const SHIELDED_WITHDRAWAL_DOCUMENT_STORAGE_BYTES = 4100n
 // Orchard pads every bundle to at least this many actions.
 export const SHIELDED_MIN_ACTIONS = 2
