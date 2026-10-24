@@ -44,6 +44,11 @@ import { CoreExplorerService } from '../services/CoreExplorerService'
 import { CoreUtxosService } from '../services/CoreUtxosService'
 import { CoreSpendService } from '../services/CoreSpendService'
 import { AssetLockFundingService } from '../services/AssetLockFundingService'
+import { AssetLockService } from '../services/AssetLockService'
+import { ShieldFromCoreHandler } from './private/wallet/shieldFromCore'
+import { ShieldFromWalletHandler } from './private/wallet/shieldFromWallet'
+import { TopUpIdentityFromWalletHandler } from './private/identities/topUpIdentityFromWallet'
+import { FundPlatformAddressFromWalletHandler } from './private/wallet/fundPlatformAddressFromWallet'
 import { PendingAssetLocksRepository } from '../repository/PendingAssetLocksRepository'
 import { RegisterIdentityFromWalletHandler } from './private/identities/registerIdentityFromWallet'
 import { ListPendingAssetLocksHandler } from './private/assetLocks/listPendingAssetLocks'
@@ -162,10 +167,31 @@ export class PrivateAPI {
     const coreUtxos = new CoreUtxosService(this.sdk, coreExplorer)
     const coreSpend = new CoreSpendService(this.sdk, this.coreSDK, coreUtxos)
     const assetLockFunding = new AssetLockFundingService(coreExplorer, coreSpend)
+    const assetLock = new AssetLockService(this.sdk, this.coreSDK)
+    const shielded = new ShieldedService(this.storageAdapter, this.sdk)
 
     // Shared with the chains below: they hand the same instances their own scope
     // rather than building a second copy per call.
     const requestAssetLockFundingAddress = new RequestAssetLockFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, this.sdk, this.storageAdapter)
+    const requestTopUpFundingAddress = new RequestTopUpFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, coreExplorer, this.sdk, this.storageAdapter)
+    const topUpIdentity = new TopUpIdentityHandler(
+      walletRepository,
+      identitiesRepository,
+      assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
+      this.sdk,
+      this.coreSDK,
+      coreExplorer
+    )
+    const fundPlatformAddressFromCore = new FundPlatformAddressFromCoreHandler(walletRepository, assetLockFundingAddressesRepository, pendingAssetLocksRepository, this.sdk, this.coreSDK)
+    const shieldFromCore = new ShieldFromCoreHandler(
+      walletRepository,
+      assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
+      assetLock,
+      this.sdk,
+      shielded
+    )
     const registerIdentity = new RegisterIdentityHandler(
       walletRepository,
       identitiesRepository,
@@ -176,7 +202,6 @@ export class PrivateAPI {
       this.coreSDK,
       coreExplorer
     )
-    const shielded = new ShieldedService(this.storageAdapter, this.sdk)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter, walletRepository),
@@ -212,7 +237,7 @@ export class PrivateAPI {
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
       [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: requestAssetLockFundingAddress,
       [MessagingMethods.LIST_PENDING_ASSET_LOCKS]: new ListPendingAssetLocksHandler(pendingAssetLocksRepository, assetLockFundingAddressesRepository),
-      [MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS]: new RequestTopUpFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, coreExplorer, this.sdk, this.storageAdapter),
+      [MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS]: requestTopUpFundingAddress,
       [MessagingMethods.REGISTER_IDENTITY]: registerIdentity,
       [MessagingMethods.REGISTER_IDENTITY_FROM_WALLET]: new RegisterIdentityFromWalletHandler(
         walletRepository,
@@ -223,10 +248,14 @@ export class PrivateAPI {
         registerIdentity,
         this.sdk
       ),
-      [MessagingMethods.TOP_UP_IDENTITY]: new TopUpIdentityHandler(
+      [MessagingMethods.TOP_UP_IDENTITY]: topUpIdentity,
+      [MessagingMethods.TOP_UP_IDENTITY_FROM_WALLET]: new TopUpIdentityFromWalletHandler(
         walletRepository,
-        identitiesRepository,
         assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
+        assetLockFunding,
+        requestTopUpFundingAddress,
+        topUpIdentity,
         this.sdk,
         this.coreSDK
       ),
@@ -250,7 +279,27 @@ export class PrivateAPI {
       [MessagingMethods.WITHDRAW_PLATFORM_ADDRESS_TO_CORE]: new WithdrawPlatformAddressToCoreHandler(walletRepository, this.sdk),
       [MessagingMethods.ESTIMATE_WITHDRAWAL_FEE]: new EstimateWithdrawalFeeHandler(walletRepository, this.sdk),
       [MessagingMethods.REGISTER_IDENTITY_FROM_ADDRESS]: new RegisterIdentityFromAddressHandler(walletRepository, identitiesRepository, this.sdk),
-      [MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE]: new FundPlatformAddressFromCoreHandler(walletRepository, assetLockFundingAddressesRepository, this.sdk, this.coreSDK),
+      [MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_CORE]: fundPlatformAddressFromCore,
+      [MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_WALLET]: new FundPlatformAddressFromWalletHandler(
+        walletRepository,
+        assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
+        assetLockFunding,
+        requestAssetLockFundingAddress,
+        fundPlatformAddressFromCore,
+        this.sdk
+      ),
+      [MessagingMethods.SHIELD_FROM_CORE]: shieldFromCore,
+      [MessagingMethods.SHIELD_FROM_WALLET]: new ShieldFromWalletHandler(
+        walletRepository,
+        assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
+        assetLockFunding,
+        requestAssetLockFundingAddress,
+        shieldFromCore,
+        this.sdk,
+        shielded
+      ),
       [MessagingMethods.GENERATE_SHIELDED_ADDRESSES]: new GenerateShieldedAddressesHandler(walletRepository, shielded),
       [MessagingMethods.GET_SHIELDED_ADDRESSES]: new GetShieldedAddressesHandler(walletRepository, shielded),
       [MessagingMethods.GET_SHIELDED_BALANCE]: new GetShieldedBalanceHandler(walletRepository, shielded),
