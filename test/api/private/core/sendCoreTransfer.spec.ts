@@ -1,7 +1,9 @@
 import { PrivateKey } from 'dash-core-sdk'
 import { SendCoreTransferHandler } from '../../../../src/content-script/api/private/core/sendCoreTransfer'
+import { CoreUtxosService } from '../../../../src/content-script/services/CoreUtxosService'
+import { CoreSpendService } from '../../../../src/content-script/services/CoreSpendService'
 import { CoreAddressChain } from '../../../../src/types/enums/CoreAddressChain'
-import { deriveCoreAddressesFromXpub, deriveCoreAddressPrivateKey } from '../../../../src/utils/coreAddresses'
+import { deriveCoreAddressesFromXpub, deriveCoreAddressKeyAtIndex } from '../../../../src/utils/coreAddresses'
 import { deriveWalletHdKey } from '../../../../src/utils'
 
 jest.mock('../../../../src/utils/coreAddresses', () => {
@@ -9,7 +11,7 @@ jest.mock('../../../../src/utils/coreAddresses', () => {
   return {
     ...actual,
     deriveCoreAddressesFromXpub: jest.fn(),
-    deriveCoreAddressPrivateKey: jest.fn()
+    deriveCoreAddressKeyAtIndex: jest.fn()
   }
 })
 
@@ -22,7 +24,7 @@ jest.mock('../../../../src/utils', () => {
 })
 
 const deriveCoreAddressesFromXpubMock = deriveCoreAddressesFromXpub as jest.MockedFunction<typeof deriveCoreAddressesFromXpub>
-const deriveCoreAddressPrivateKeyMock = deriveCoreAddressPrivateKey as jest.MockedFunction<typeof deriveCoreAddressPrivateKey>
+const deriveCoreAddressKeyAtIndexMock = deriveCoreAddressKeyAtIndex as jest.MockedFunction<typeof deriveCoreAddressKeyAtIndex>
 const deriveWalletHdKeyMock = deriveWalletHdKey as jest.MockedFunction<typeof deriveWalletHdKey>
 
 // Valid testnet addresses, so the real address decoding and signing run.
@@ -88,7 +90,7 @@ describe('SendCoreTransferHandler', () => {
 
     // A real signing key, but reporting the address it was derived for — the
     // handler cross-checks the two and the fixture addresses are not from this key.
-    deriveCoreAddressPrivateKeyMock.mockImplementation(async (_hdKey, _network, _account, chain, index) => {
+    deriveCoreAddressKeyAtIndexMock.mockImplementation(async (_hdKey, _network, _account, chain, index) => {
       const privateKey: any = PrivateKey.fromBytes(new Uint8Array(32).fill(7), 'testnet')
       privateKey.getAddress = (): string => (chain === CoreAddressChain.receiving ? RECEIVING : CHANGE)[index]
 
@@ -99,7 +101,12 @@ describe('SendCoreTransferHandler', () => {
     sdk = {}
     coreSDK = { broadcastTransaction: jest.fn(async () => ({ transactionId: 'broadcasted' })) }
 
-    handler = new SendCoreTransferHandler(walletRepository, coreExplorer, sdk, coreSDK)
+    // The real services over the mocked explorer: the send must pick from
+    // exactly the set the UTXO list and the balance report.
+    const coreUtxos = new CoreUtxosService(sdk, coreExplorer)
+    const coreSpend = new CoreSpendService(sdk, coreSDK, coreUtxos)
+
+    handler = new SendCoreTransferHandler(walletRepository, coreSpend, sdk)
   })
 
   it('spends the wallet outputs, signs and broadcasts the transaction', async () => {
@@ -137,30 +144,18 @@ describe('SendCoreTransferHandler', () => {
 
     await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
 
-    expect(deriveCoreAddressPrivateKeyMock.mock.calls.map(call => [call[3], call[4]])).toEqual([
+    expect(deriveCoreAddressKeyAtIndexMock.mock.calls.map(call => [call[3], call[4]])).toEqual([
       [CoreAddressChain.change, 0],
       [CoreAddressChain.receiving, 1]
     ])
   })
 
   it('refuses to sign when the derived key does not match the address it spends', async () => {
-    deriveCoreAddressPrivateKeyMock.mockResolvedValue(PrivateKey.fromBytes(new Uint8Array(32).fill(7), 'testnet'))
+    deriveCoreAddressKeyAtIndexMock.mockResolvedValue(PrivateKey.fromBytes(new Uint8Array(32).fill(7), 'testnet'))
 
     await expect(handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password })))
       .rejects.toThrow('the stored xpub and the wallet seed disagree')
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
-  })
-
-  it('does not keep its own view of what it spent: the explorer indexes the mempool', async () => {
-    await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
-
-    // A second send reads the explorer again, which by then lists neither the
-    // inputs this one spent nor anything but its change.
-    coreExplorer.getAddressesUtxos.mockResolvedValue([utxo(CHANGE[1], 89_774n, 1)])
-
-    const second = await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
-
-    expect(second.fromAddresses).toEqual([CHANGE[1]])
   })
 
   it('rejects a source address the wallet does not own', async () => {

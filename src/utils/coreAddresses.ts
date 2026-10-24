@@ -1,12 +1,12 @@
 import { HDKey } from '@scure/bip32'
 import { PrivateKey } from 'dash-core-sdk'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { Network } from 'dash-platform-sdk/types'
+import { Network, PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { Wallet } from '../types/Wallet'
 import { NetworkType } from '../types/NetworkType'
 import { CoreAddressChain } from '../types/enums/CoreAddressChain'
 import { CORE_BIP32_VERSIONS } from '../constants'
-import { decryptMnemonic } from './index'
+import { decryptMnemonic, deriveWalletHdKey } from './index'
 
 // BIP44 derivation for Core (L1) addresses: m/44'/coin'/account'/chain/index.
 //
@@ -82,12 +82,46 @@ export const deriveCoreAddressesFromXpub = (
   return entries
 }
 
+// Private key of one of the wallet's own Core addresses, for signing an input
+// that spends its coins. Refuses an address the account does not derive, so a
+// caller cannot make the wallet sign for coins that are not its own.
+// `nextUnused` is the explorer's gap scan; an address that received coins always
+// sits below it.
+export const deriveCoreAddressPrivateKey = async (
+  wallet: Wallet,
+  password: string,
+  xpub: string,
+  address: string,
+  nextUnused: Record<CoreAddressChain, number>,
+  sdk: DashPlatformSDK,
+  account: number = 0
+): Promise<PrivateKeyWASM> => {
+  for (const chain of [CoreAddressChain.receiving, CoreAddressChain.change]) {
+    const entry = deriveCoreAddressesFromXpub(sdk, xpub, wallet.network, account, chain, nextUnused[chain] + 1)
+      .find(candidate => candidate.address === address)
+
+    if (entry == null) {
+      continue
+    }
+
+    const { privateKey } = await sdk.keyPair.derivePath(deriveWalletHdKey(wallet, password, sdk), entry.derivationPath)
+
+    if (privateKey == null) {
+      throw new Error(`Could not derive the private key of Core address ${address}`)
+    }
+
+    return PrivateKeyWASM.fromBytes(privateKey, wallet.network)
+  }
+
+  throw new Error(`Core address ${address} is not one of this wallet's own addresses`)
+}
+
 // Derives the key for one of our Core addresses: m/44'/coin'/account'/chain/index,
 // the private counterpart of `deriveCoreAddressesFromXpub`. Takes an already built
 // wallet HD key so that spending several inputs decrypts the seed only once.
 //
 // Returns a dash-core-sdk key because its only use is signing an L1 transaction.
-export const deriveCoreAddressPrivateKey = async (
+export const deriveCoreAddressKeyAtIndex = async (
   walletHdKey: HDKey,
   network: NetworkType,
   account: number,

@@ -51,7 +51,7 @@ export const estimateCoreFee = (inputCount: number, outputCount: number): bigint
  * Largest-first keeps the input count — and with it the fee and the signing
  * work — as low as possible, at the cost of not consolidating dust.
  */
-export const selectCoreUtxos = (candidates: CoreWalletUtxo[], amountDuffs: bigint): CoreUtxoSelection => {
+export const selectCoreUtxos = (candidates: CoreWalletUtxo[], amountDuffs: bigint, outputCount: number = 1): CoreUtxoSelection => {
   if (amountDuffs <= CORE_DUST_THRESHOLD) {
     throw new Error(`Minimum Core transfer is ${(CORE_DUST_THRESHOLD + 1n).toString()} duffs`)
   }
@@ -76,13 +76,13 @@ export const selectCoreUtxos = (candidates: CoreWalletUtxo[], amountDuffs: bigin
     // output, so that is what decides whether the inputs are enough. Gating on
     // the with-change fee instead would refuse the last 34 duffs' worth of
     // transactions — exactly the case of draining an address.
-    const feeWithoutChange = estimateCoreFee(inputs.length, 1)
+    const feeWithoutChange = estimateCoreFee(inputs.length, outputCount)
 
     if (totalIn < amountDuffs + feeWithoutChange) {
       continue
     }
 
-    const feeWithChange = estimateCoreFee(inputs.length, 2)
+    const feeWithChange = estimateCoreFee(inputs.length, outputCount + 1)
     const change = totalIn - amountDuffs - feeWithChange
 
     if (change > CORE_DUST_THRESHOLD) {
@@ -103,25 +103,31 @@ export const selectCoreUtxos = (candidates: CoreWalletUtxo[], amountDuffs: bigin
   )
 }
 
+export interface CoreTransferOutput {
+  address: string
+  amountDuffs: bigint
+}
+
 /**
- * Assembles the unsigned transfer: one output paying the recipient, an optional
- * change output, and one input per selected UTXO carrying the locking script of
+ * Assembles the unsigned transfer: one output per recipient, an optional change
+ * output last, and one input per selected UTXO carrying the locking script of
  * the address it pays to (what `Transaction.sign` needs to produce a sighash).
  *
- * The recipient script is decoded from its address, so a P2SH recipient gets a
+ * Each recipient script is decoded from its address, so a P2SH recipient gets a
  * P2SH script rather than being mis-encoded as P2PKH. Change is always ours and
  * always P2PKH.
  */
-export const buildCoreTransfer = (
+export const buildCoreTransferMulti = (
   inputs: CoreWalletUtxo[],
-  toAddress: string,
-  amountDuffs: bigint,
+  recipients: CoreTransferOutput[],
   changeAddress: string,
   changeDuffs: bigint,
   network: NetworkType
 ): Transaction => {
-  const recipientScript = Script.fromBytes(coreAddressToScript(toAddress, network).bytes())
-  const outputs = [new Output(amountDuffs, recipientScript)]
+  const outputs = recipients.map(recipient => new Output(
+    recipient.amountDuffs,
+    Script.fromBytes(coreAddressToScript(recipient.address, network).bytes())
+  ))
 
   if (changeDuffs > 0n) {
     outputs.push(Output.createP2PKH(changeDuffs, changeAddress))
@@ -136,4 +142,27 @@ export const buildCoreTransfer = (
   }
 
   return transaction
+}
+
+// One recipient, the common case.
+export const buildCoreTransfer = (
+  inputs: CoreWalletUtxo[],
+  toAddress: string,
+  amountDuffs: bigint,
+  changeAddress: string,
+  changeDuffs: bigint,
+  network: NetworkType
+): Transaction => {
+  return buildCoreTransferMulti(inputs, [{ address: toAddress, amountDuffs }], changeAddress, changeDuffs, network)
+}
+
+// The largest amount `inputs` can pay out across `outputCount` outputs: their
+// total minus the fee of the transaction that spends all of them, with no change
+// output. Zero when they cannot even cover that fee. This is what a Max button
+// means on L1.
+export const maxCoreSpend = (inputs: CoreWalletUtxo[], outputCount: number = 1): bigint => {
+  const totalIn = inputs.reduce((sum, utxo) => sum + utxo.amount, 0n)
+  const max = totalIn - estimateCoreFee(inputs.length, outputCount)
+
+  return max > 0n ? max : 0n
 }

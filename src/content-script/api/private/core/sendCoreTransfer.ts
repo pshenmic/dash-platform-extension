@@ -1,14 +1,9 @@
-import { DashCoreSDK, PrivateKey } from 'dash-core-sdk'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { EventData } from '../../../../types/EventData'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
-import { CoreExplorerService } from '../../../services/CoreExplorerService'
-import { NetworkType } from '../../../../types/PlatformExplorer'
-import { CoreAddressChain } from '../../../../types/enums/CoreAddressChain'
-import { CoreAddressEntry, deriveCoreAddressesFromXpub, deriveCoreAddressPrivateKey } from '../../../../utils/coreAddresses'
-import { buildCoreTransfer, selectCoreUtxos } from '../../../../utils/coreTransfer'
-import { deriveWalletHdKey, validateCoreAddress } from '../../../../utils'
+import { CoreSpendService } from '../../../services/CoreSpendService'
+import { validateCoreAddress } from '../../../../utils'
 import { SendCoreTransferPayload } from '../../../../types/messages/payloads/SendCoreTransferPayload'
 import { SendCoreTransferResponse } from '../../../../types/messages/response/SendCoreTransferResponse'
 
@@ -23,15 +18,13 @@ import { SendCoreTransferResponse } from '../../../../types/messages/response/Se
 // same seed are spendable here too.
 export class SendCoreTransferHandler implements APIHandler {
   walletRepository: WalletRepository
-  coreExplorer: CoreExplorerService
+  coreSpend: CoreSpendService
   sdk: DashPlatformSDK
-  coreSDK: DashCoreSDK
 
-  constructor (walletRepository: WalletRepository, coreExplorer: CoreExplorerService, sdk: DashPlatformSDK, coreSDK: DashCoreSDK) {
+  constructor (walletRepository: WalletRepository, coreSpend: CoreSpendService, sdk: DashPlatformSDK) {
     this.walletRepository = walletRepository
-    this.coreExplorer = coreExplorer
+    this.coreSpend = coreSpend
     this.sdk = sdk
-    this.coreSDK = coreSDK
   }
 
   async handle (event: EventData): Promise<SendCoreTransferResponse> {
@@ -49,8 +42,6 @@ export class SendCoreTransferHandler implements APIHandler {
     }
 
     const account = 0
-    const amountDuffs = BigInt(payload.amountDuffs)
-
     const xpub = await this.walletRepository.getCoreAccountXpub(account)
 
     if (xpub == null) {
@@ -59,94 +50,25 @@ export class SendCoreTransferHandler implements APIHandler {
       throw new Error('Core xpub is not initialized. Call INIT_ACCOUNT_XPUBS with the wallet password after unlocking')
     }
 
-    const { nextUnused } = await this.coreExplorer.getXpubSummary(xpub, wallet.network as NetworkType)
+    const prepared = await this.coreSpend.prepare({
+      wallet,
+      xpub,
+      account,
+      outputs: [{ address: payload.toAddress, amountDuffs: BigInt(payload.amountDuffs) }],
+      password: payload.password,
+      fromAddress: payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
+    })
 
-    // Every address the explorer has seen on either chain, plus the next free
-    // one — the same extent ListCoreAddresses reports, so what the user sees as
-    // their addresses is exactly what can be spent from here.
-    const owned = new Map<string, CoreAddressEntry>()
-
-    for (const chain of [CoreAddressChain.receiving, CoreAddressChain.change]) {
-      const entries = deriveCoreAddressesFromXpub(
-        this.sdk, xpub, wallet.network, account, chain, nextUnused[chain] + 1
-      )
-
-      for (const entry of entries) {
-        owned.set(entry.address, entry)
-      }
-    }
-
-    const fromAddress = payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
-
-    if (fromAddress != null && !owned.has(fromAddress)) {
-      throw new Error('Source address not found in this wallet')
-    }
-
-    const sourceAddresses = fromAddress != null ? [fromAddress] : [...owned.keys()]
-    // The explorer indexes a transaction as soon as it reaches the mempool, so a
-    // send made a moment ago is already reflected here: the inputs it spent are
-    // gone and the change it paid is listed.
-    const utxos = await this.coreExplorer.getAddressesUtxos(sourceAddresses, wallet.network as NetworkType)
-
-    // An entry the explorer could not attribute to one of the addresses we asked
-    // about has no key to sign it, and must not reach coin selection.
-    const sourceSet = new Set(sourceAddresses)
-    const spendable = utxos.filter(utxo => sourceSet.has(utxo.address))
-
-    if (spendable.length === 0) {
-      throw new Error(fromAddress != null
-        ? `Core address ${fromAddress} has no unspent outputs`
-        : 'This wallet has no unspent Core outputs to spend')
-    }
-
-    const selection = selectCoreUtxos(spendable, amountDuffs)
-
-    // Change goes to the next free address on the internal chain. Two sends in a
-    // row can reuse it: the explorer only lists mined outputs, so the first
-    // change output is invisible until it is in a block.
-    const [changeEntry] = deriveCoreAddressesFromXpub(
-      this.sdk, xpub, wallet.network, account, CoreAddressChain.change, 1, nextUnused.change
-    )
-
-    const transaction = buildCoreTransfer(
-      selection.inputs, payload.toAddress, amountDuffs, changeEntry.address, selection.change, wallet.network
-    )
-
-    // One decryption of the seed for the whole transaction, then one key per
-    // input in the order Transaction.sign expects.
-    const walletHdKey = deriveWalletHdKey(wallet, payload.password, this.sdk)
-    const privateKeys: PrivateKey[] = []
-
-    for (const utxo of selection.inputs) {
-      const entry = owned.get(utxo.address) as CoreAddressEntry
-      const privateKey = await deriveCoreAddressPrivateKey(
-        walletHdKey, wallet.network, account, entry.chain, entry.index, this.sdk
-      )
-
-      // The xpub the address was listed from and the seed signing for it must
-      // agree. If they do not, the signature is invalid and the inputs are spent
-      // on a transaction nobody will relay — so refuse before broadcasting.
-      if (privateKey.getAddress() !== utxo.address) {
-        throw new Error(`Derived key does not match Core address ${utxo.address}: the stored xpub and the wallet seed disagree`)
-      }
-
-      privateKeys.push(privateKey)
-    }
-
-    transaction.sign(privateKeys)
-
-    const txid = transaction.hash()
-
-    await this.coreSDK.broadcastTransaction(transaction.bytes())
+    await this.coreSpend.broadcast(prepared)
 
     return {
-      txid,
-      amountDuffs: amountDuffs.toString(),
-      feeDuffs: selection.fee.toString(),
-      changeDuffs: selection.change.toString(),
+      txid: prepared.txid,
+      amountDuffs: prepared.amountDuffs.toString(),
+      feeDuffs: prepared.feeDuffs.toString(),
+      changeDuffs: prepared.changeDuffs.toString(),
       toAddress: payload.toAddress,
-      changeAddress: selection.change > 0n ? changeEntry.address : null,
-      fromAddresses: [...new Set(selection.inputs.map(utxo => utxo.address))]
+      changeAddress: prepared.changeAddress,
+      fromAddresses: prepared.fromAddresses
     }
   }
 

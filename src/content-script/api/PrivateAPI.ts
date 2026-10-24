@@ -40,6 +40,8 @@ import { CreateStateTransitionHandler } from './private/stateTransitions/createS
 import { CreateIdentityPrivateKeyHandler } from './private/identities/createIdentityPrivateKey'
 import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFundingAddressesRepository'
 import { CoreExplorerService } from '../services/CoreExplorerService'
+import { CoreUtxosService } from '../services/CoreUtxosService'
+import { CoreSpendService } from '../services/CoreSpendService'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
@@ -54,6 +56,9 @@ import { ListCoreAddressesHandler } from './private/core/listCoreAddresses'
 import { GetCoreBalanceHandler } from './private/core/getCoreBalance'
 import { GetCoreTransactionsHandler } from './private/core/getCoreTransactions'
 import { SendCoreTransferHandler } from './private/core/sendCoreTransfer'
+import { SendCoreTransactionHandler } from './private/core/sendCoreTransaction'
+import { EstimateCoreTransferHandler } from './private/core/estimateCoreTransfer'
+import { ListCoreUtxosHandler } from './private/core/listCoreUtxos'
 import { GeneratePlatformAddressesHandler } from './private/wallet/generatePlatformAddresses'
 import { ListPlatformAddressesHandler } from './private/wallet/listPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
@@ -128,6 +133,8 @@ export class PrivateAPI {
     const assetLockFundingAddressesRepository = new AssetLockFundingAddressesRepository(this.storageAdapter)
     const walletSettingsRepository = new WalletSettingsRepository(this.storageAdapter)
     const coreExplorer = new CoreExplorerService()
+    const coreUtxos = new CoreUtxosService(this.sdk, coreExplorer)
+    const coreSpend = new CoreSpendService(this.sdk, this.coreSDK, coreUtxos)
     const shielded = new ShieldedService(this.storageAdapter, this.sdk)
 
     this.handlers = {
@@ -183,9 +190,12 @@ export class PrivateAPI {
       [MessagingMethods.SET_SETTINGS]: new SetSettingsHandler(walletSettingsRepository),
       [MessagingMethods.GET_CORE_RECEIVE_ADDRESS]: new GetCoreReceiveAddressHandler(walletRepository, coreExplorer, this.sdk),
       [MessagingMethods.LIST_CORE_ADDRESSES]: new ListCoreAddressesHandler(walletRepository, coreExplorer, this.sdk),
-      [MessagingMethods.GET_CORE_BALANCE]: new GetCoreBalanceHandler(walletRepository, coreExplorer),
+      [MessagingMethods.GET_CORE_BALANCE]: new GetCoreBalanceHandler(walletRepository, coreExplorer, coreUtxos),
+      [MessagingMethods.LIST_CORE_UTXOS]: new ListCoreUtxosHandler(walletRepository, coreUtxos),
       [MessagingMethods.GET_CORE_TRANSACTIONS]: new GetCoreTransactionsHandler(walletRepository, coreExplorer),
-      [MessagingMethods.SEND_CORE_TRANSFER]: new SendCoreTransferHandler(walletRepository, coreExplorer, this.sdk, this.coreSDK),
+      [MessagingMethods.SEND_CORE_TRANSFER]: new SendCoreTransferHandler(walletRepository, coreSpend, this.sdk),
+      [MessagingMethods.SEND_CORE_TRANSACTION]: new SendCoreTransactionHandler(walletRepository, coreSpend),
+      [MessagingMethods.ESTIMATE_CORE_TRANSFER]: new EstimateCoreTransferHandler(walletRepository, coreSpend),
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk),

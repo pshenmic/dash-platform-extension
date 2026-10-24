@@ -10,6 +10,8 @@ export const POPUP_WINDOW_HEIGHT = 500
 
 // ── Identity registration / asset lock pipeline ──────────────────────────────
 export const MIN_FEE_RELAY = 1000n
+// Platform counts credits, L1 counts duffs: one duff locked is 1000 credits.
+export const CREDITS_PER_DUFF = 1000n
 export const LOCK_POLL_INTERVAL_MS = 5000
 export const LOCK_TIMEOUT_MS = 15 * 60 * 1000
 export const MIN_ASSET_LOCK_FUNDING_TX_CONFIRMATIONS = 6
@@ -85,6 +87,11 @@ export const PLATFORM_ADDRESS_GENERATE_BATCH = 10
 // balance check and the estimated fee. Sized to the SDK's ~15M pre-flight demand.
 // MIN_OUTPUT_CREDITS guards against dust outputs.
 export const MIN_OUTPUT_CREDITS = 500_000n
+// Most recipients one transition or one transaction may pay. Platform refuses
+// an address transition above its own `max_address_outputs`; on L1 the limit is
+// practical rather than consensus - a transaction has to stay relayable, and
+// 1000 outputs is already 34 KB of them.
+export const MAX_CORE_OUTPUTS = 1000
 export const TRANSFER_FEE_CREDITS = 15_000_000n
 // Core (L1) base58check version bytes for decoding a withdrawal address to a script.
 export const CORE_ADDRESS_VERSIONS = {
@@ -140,6 +147,11 @@ export const SHIELDED_PER_ACTION_PROCESSING_FEE_CREDITS = 22_000_000n
 export const SHIELDED_STORAGE_BYTES_PER_ACTION = 344n
 export const SHIELDED_STORAGE_CREDITS_PER_BYTE = 27_400n
 export const SHIELDED_UNSHIELD_ADDRESS_STORAGE_BYTES = 222n
+// Flat surcharge a shield funded by an asset lock pays on top of the action
+// fees, for the asset lock proof itself. Measured against testnet: a lock of
+// 1 999 000 000 credits was refused for a note of 1 836 148 800 with "needs
+// 2 049 000 000 credits to start processing", which puts the fee at
+// 212 851 200 - exactly the action fees plus this.
 export const SHIELDED_WITHDRAWAL_DOCUMENT_STORAGE_BYTES = 4100n
 // Orchard pads every bundle to at least this many actions.
 export const SHIELDED_MIN_ACTIONS = 2
