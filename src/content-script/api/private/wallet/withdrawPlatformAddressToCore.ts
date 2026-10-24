@@ -9,7 +9,8 @@ import {
   selectPlatformSource,
   buildSignedAddressWithdrawal
 } from '../../../../utils'
-import { TRANSFER_FEE_CREDITS, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING, MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../../../constants'
+import { addressWithdrawalFeeCredits } from '../../../../utils/withdrawalFee'
+import { WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING, MIN_WITHDRAWAL_CREDITS, MAX_WITHDRAWAL_CREDITS } from '../../../../constants'
 import { WithdrawPlatformAddressToCorePayload } from '../../../../types/messages/payloads/WithdrawPlatformAddressToCorePayload'
 import { WithdrawPlatformAddressToCoreResponse } from '../../../../types/messages/response/WithdrawPlatformAddressToCoreResponse'
 
@@ -53,7 +54,11 @@ export class WithdrawPlatformAddressToCoreHandler implements APIHandler {
 
     const candidates = await buildPlatformSourceCandidates(this.sdk, xpub, wallet.network, account, count)
     const fromAddress = payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
-    const source = selectPlatformSource(candidates, amountCredits, fromAddress)
+    // What Platform demands of this withdrawal, which is an order of magnitude
+    // above the flat reserve a transfer uses: an address that cannot pay it must
+    // not be chosen here, the transition would only be refused later.
+    const feeCredits = addressWithdrawalFeeCredits(1, false)
+    const source = selectPlatformSource(candidates, amountCredits, fromAddress, feeCredits)
 
     const privateKey = await derivePlatformAddressPrivateKey(wallet, payload.password, account, source.index, this.sdk)
     const stateTransition = buildSignedAddressWithdrawal(this.sdk, outputScript, source.platformAddress, source.nonce, amountCredits, WITHDRAWAL_CORE_FEE_PER_BYTE, WITHDRAWAL_POOLING, privateKey)
@@ -64,7 +69,7 @@ export class WithdrawPlatformAddressToCoreHandler implements APIHandler {
     return {
       stHash: stateTransition.hash(false),
       amountCredits: amountCredits.toString(),
-      feeCredits: TRANSFER_FEE_CREDITS.toString(),
+      feeCredits: feeCredits.toString(),
       fromAddress: source.platformAddress,
       toCoreAddress: payload.toCoreAddress
     }

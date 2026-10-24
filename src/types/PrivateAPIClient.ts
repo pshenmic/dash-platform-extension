@@ -41,13 +41,19 @@ import { GetPlatformAddressesResponse } from './messages/response/GetPlatformAdd
 import { GetPlatformAddressesInfosPayload } from './messages/payloads/GetPlatformAddressesInfosPayload'
 import { GetPlatformAddressesInfosResponse, PlatformAddressBalance } from './messages/response/GetPlatformAddressesInfosResponse'
 import { SendPlatformTransferPayload } from './messages/payloads/SendPlatformTransferPayload'
+import { SendPlatformTransactionPayload } from './messages/payloads/SendPlatformTransactionPayload'
+import { EstimatePlatformTransferPayload } from './messages/payloads/EstimatePlatformTransferPayload'
 import { SendPlatformTransferResponse } from './messages/response/SendPlatformTransferResponse'
+import { SendPlatformTransactionResponse } from './messages/response/SendPlatformTransactionResponse'
+import { EstimatePlatformTransferResponse } from './messages/response/EstimatePlatformTransferResponse'
 import { IdentityCreditTransferToAddressesPayload } from './messages/payloads/IdentityCreditTransferToAddressesPayload'
 import { IdentityCreditTransferToAddressesResponse } from './messages/response/IdentityCreditTransferToAddressesResponse'
 import { TopUpIdentityFromAddressPayload } from './messages/payloads/TopUpIdentityFromAddressPayload'
 import { TopUpIdentityFromAddressResponse } from './messages/response/TopUpIdentityFromAddressResponse'
 import { WithdrawPlatformAddressToCorePayload } from './messages/payloads/WithdrawPlatformAddressToCorePayload'
+import { EstimateWithdrawalFeePayload } from './messages/payloads/EstimateWithdrawalFeePayload'
 import { WithdrawPlatformAddressToCoreResponse } from './messages/response/WithdrawPlatformAddressToCoreResponse'
+import { EstimateWithdrawalFeeResponse } from './messages/response/EstimateWithdrawalFeeResponse'
 import { RegisterIdentityFromAddressPayload } from './messages/payloads/RegisterIdentityFromAddressPayload'
 import { RegisterIdentityFromAddressResponse } from './messages/response/RegisterIdentityFromAddressResponse'
 import { FundPlatformAddressFromCorePayload } from './messages/payloads/FundPlatformAddressFromCorePayload'
@@ -502,6 +508,24 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.SEND_PLATFORM_TRANSFER, payload)
   }
 
+  // Pays several Platform addresses from one of the wallet's own in a single
+  // transition. The general form of sendPlatformTransfer; the fee grows with
+  // every recipient, so the response says what it was.
+  async sendPlatformTransaction (params: Omit<SendPlatformTransactionPayload, 'password'>, password: string): Promise<SendPlatformTransactionResponse> {
+    const payload: SendPlatformTransactionPayload = { ...params, password }
+
+    return await this._rpcCall(MessagingMethods.SEND_PLATFORM_TRANSACTION, payload)
+  }
+
+  // What such a transfer costs and the most a source can send once it is paid.
+  // Needs no password. `outputCount` is how many recipients it would pay, since
+  // the fee grows with them.
+  async estimatePlatformTransfer (outputCount?: number, fromAddress?: string): Promise<EstimatePlatformTransferResponse> {
+    const payload: EstimatePlatformTransferPayload = { outputCount, fromAddress }
+
+    return await this._rpcCall(MessagingMethods.ESTIMATE_PLATFORM_TRANSFER, payload)
+  }
+
   async identityCreditTransferToAddresses (toAddress: string, amountCredits: string, password: string, fromIdentity?: string): Promise<IdentityCreditTransferToAddressesResponse> {
     const payload: IdentityCreditTransferToAddressesPayload = { toAddress, amountCredits, password, fromIdentity }
 
@@ -512,6 +536,14 @@ export class PrivateAPIClient {
     const payload: TopUpIdentityFromAddressPayload = { identityId, amountCredits, password, fromAddress }
 
     return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_ADDRESS, payload)
+  }
+
+  // What a withdrawal to Core costs before it is signed: the fee Platform
+  // demands, the balance behind it and the amount window it accepts. Needs no
+  // password. A shielded withdrawal is priced by estimateShieldedFee with
+  // kind 'withdrawal' instead, since its fee depends on the notes it spends.
+  async estimateWithdrawalFee (params: EstimateWithdrawalFeePayload): Promise<EstimateWithdrawalFeeResponse> {
+    return await this._rpcCall(MessagingMethods.ESTIMATE_WITHDRAWAL_FEE, params)
   }
 
   async withdrawPlatformAddressToCore (toCoreAddress: string, amountCredits: string, password: string, fromAddress?: string): Promise<WithdrawPlatformAddressToCoreResponse> {

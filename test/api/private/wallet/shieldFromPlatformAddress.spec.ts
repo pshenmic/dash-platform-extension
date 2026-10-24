@@ -1,6 +1,10 @@
 import { ShieldFromPlatformAddressHandler } from '../../../../src/content-script/api/private/wallet/shieldFromPlatformAddress'
 import { ShieldedService } from '../../../../src/content-script/services/ShieldedService'
 import { buildPlatformSourceCandidates, decryptMnemonic, selectPlatformSource } from '../../../../src/utils'
+import { computeShieldedSpendFee } from '../../../../src/utils/shieldedFee'
+import { TRANSFER_FEE_CREDITS } from '../../../../src/constants'
+
+const SHIELD_FEE_CREDITS = computeShieldedSpendFee('transfer', 0)
 
 jest.mock('../../../../src/utils', () => {
   const actual = jest.requireActual('../../../../src/utils')
@@ -127,13 +131,25 @@ describe('ShieldFromPlatformAddressHandler', () => {
   test('passes an explicit fromAddress to the source selection', async () => {
     await handle({ fromAddress: 'yPinnedSource' })
 
-    expect(selectPlatformSourceMock).toHaveBeenCalledWith(candidates, 1000n, 'yPinnedSource')
+    expect(selectPlatformSourceMock).toHaveBeenCalledWith(candidates, 1000n, 'yPinnedSource', SHIELD_FEE_CREDITS)
   })
 
   test('treats an empty fromAddress as no preference', async () => {
     await handle({ fromAddress: '' })
 
-    expect(selectPlatformSourceMock).toHaveBeenCalledWith(candidates, 1000n, undefined)
+    expect(selectPlatformSourceMock).toHaveBeenCalledWith(candidates, 1000n, undefined, SHIELD_FEE_CREDITS)
+  })
+
+  // A shield is a shielded transition. Reserving the flat transfer fee instead
+  // lets an address with enough for the amount but not the fee pass this check
+  // and be refused by Platform.
+  test('reserves what a shielded transition really costs, not the flat transfer fee', async () => {
+    await handle()
+
+    const [, , , feeCredits] = selectPlatformSourceMock.mock.calls[0]
+
+    expect(feeCredits).toBe(computeShieldedSpendFee('transfer', 0))
+    expect(feeCredits).toBeGreaterThan(TRANSFER_FEE_CREDITS * 10n)
   })
 
   test('throws when no wallet is chosen', async () => {

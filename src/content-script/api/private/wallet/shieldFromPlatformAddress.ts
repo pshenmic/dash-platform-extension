@@ -5,6 +5,7 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ShieldedService } from '../../../services/ShieldedService'
 import { InputAddressWASM, AddressFundsFeeStrategyStepWASM } from 'pshenmic-dpp'
 import { buildPlatformSourceCandidates, decryptMnemonic, selectPlatformSource } from '../../../../utils'
+import { computeShieldedSpendFee } from '../../../../utils/shieldedFee'
 import { ShieldFromPlatformAddressPayload } from '../../../../types/messages/payloads/ShieldFromPlatformAddressPayload'
 import { ShieldFromPlatformAddressResponse } from '../../../../types/messages/response/ShieldFromPlatformAddressResponse'
 
@@ -50,7 +51,9 @@ export class ShieldFromPlatformAddressHandler implements APIHandler {
 
     const candidates = await buildPlatformSourceCandidates(this.sdk, xpub, wallet.network, account, count)
     const fromAddress = payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
-    const source = selectPlatformSource(candidates, amountCredits, fromAddress)
+    // A shield is a shielded transition, and its fee is an order of magnitude
+    // above the flat figure selectPlatformSource falls back to.
+    const source = selectPlatformSource(candidates, amountCredits, fromAddress, computeShieldedSpendFee('transfer', 0))
 
     const seed = this.sdk.keyPair.mnemonicToSeed(decryptMnemonic(wallet, payload.password))
     const privateKey = await this.sdk.keyPair.derivePlatformAddressPrivateKey(seed, wallet.network, account, source.index)
