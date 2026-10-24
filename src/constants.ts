@@ -137,6 +137,10 @@ export const SHIELDED_MAX_SPEND_NOTES = 5
 // Flat fee shown by the send UI. Spends no longer use it: they reserve the exact
 // fee from computeShieldedSpendFee.
 export const SHIELDED_SPEND_FEE_CREDITS = 15_000_000n
+// Platform charges a shield from an asset lock this much on top of the shielded
+// transition itself. Measured against a testnet rejection that named the exact
+// shortfall: without it a deposit is short by precisely this amount.
+export const SHIELDED_ASSET_LOCK_FEE_CREDITS = 50_000_000n
 // Platform's shielded fee constants (rs-platform-version event constants and
 // storage fee v1). A pool-paid spend is charged exactly
 // proof fee + actions × (processing fee + storage bytes × per-byte rate), plus a
