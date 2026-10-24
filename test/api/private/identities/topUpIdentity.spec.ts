@@ -763,6 +763,40 @@ describe('AssetLockFundingAddressesRepository own payment record', () => {
     await expect(repository.markAsFunded('missing', fundingTxid)).rejects.toThrow('not found')
   })
 
+  test('markAsFunded keeps the signed payment, so it can be sent again', async () => {
+    await storage.set(storageKey, { mine: entry() })
+
+    await repository.markAsFunded('mine', fundingTxid, '100000', 'deadbeef')
+
+    expect((await repository.getByAddress('mine'))?.fundingTxHex).toBe('deadbeef')
+  })
+
+  test('markAsFunded backfills the bytes of a payment recorded without them', async () => {
+    await storage.set(storageKey, { mine: entry({ fundingTxid }) })
+
+    await repository.markAsFunded('mine', fundingTxid, undefined, 'deadbeef')
+
+    expect((await repository.getByAddress('mine'))?.fundingTxHex).toBe('deadbeef')
+  })
+
+  test('clearFunding forgets a payment that never reached the network', async () => {
+    await storage.set(storageKey, {
+      mine: entry({ fundingTxid, fundedAmountDuffs: '100000', fundedAt: 1, fundingTxHex: 'deadbeef' })
+    })
+
+    await repository.clearFunding('mine')
+
+    expect(await repository.getByAddress('mine')).toEqual(entry())
+  })
+
+  test('clearFunding refuses an address whose deposit an asset lock spent', async () => {
+    await storage.set(storageKey, { mine: entry({ fundingTxid, assetLockTxid: 'a'.repeat(64) }) })
+
+    await expect(repository.clearFunding('mine')).rejects.toThrow('cannot be unfunded')
+
+    expect((await repository.getByAddress('mine'))?.fundingTxid).toBe(fundingTxid)
+  })
+
   test('markAsUsed preserves the recorded payment', async () => {
     await storage.set(storageKey, { mine: entry({ fundingTxid }) })
 

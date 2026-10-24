@@ -51,6 +51,7 @@ import { FundPlatformAddressFromWalletHandler } from './private/wallet/fundPlatf
 import { PendingAssetLocksRepository } from '../repository/PendingAssetLocksRepository'
 import { RegisterIdentityFromWalletHandler } from './private/identities/registerIdentityFromWallet'
 import { ListPendingAssetLocksHandler } from './private/assetLocks/listPendingAssetLocks'
+import { DiscardAssetLockFundingHandler } from './private/assetLocks/discardAssetLockFunding'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
@@ -216,6 +217,7 @@ export class PrivateAPI {
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
       [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: requestAssetLockFundingAddress,
       [MessagingMethods.LIST_PENDING_ASSET_LOCKS]: new ListPendingAssetLocksHandler(pendingAssetLocksRepository, assetLockFundingAddressesRepository),
+      [MessagingMethods.DISCARD_ASSET_LOCK_FUNDING]: new DiscardAssetLockFundingHandler(walletRepository, assetLockFundingAddressesRepository, coreExplorer, this.coreSDK),
       [MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS]: requestTopUpFundingAddress,
       [MessagingMethods.REGISTER_IDENTITY]: registerIdentity,
       [MessagingMethods.REGISTER_IDENTITY_FROM_WALLET]: new RegisterIdentityFromWalletHandler(
