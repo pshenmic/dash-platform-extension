@@ -7,6 +7,7 @@ import { PrivateKeyWASM } from 'dash-platform-sdk/types'
 import { IdentityType } from '../../../../types/enums/IdentityType'
 import {
   buildPlatformSourceCandidates,
+  assertSourceCoversFee,
   selectPlatformSource,
   derivePlatformAddressPrivateKey,
   deriveIdentityPrivateKey,
@@ -14,7 +15,7 @@ import {
 } from '../../../../utils'
 import { IDENTITY_KEY_DEFINITIONS, buildSignedIdentityCreateFromAddress } from '../../../../utils/identityRegistration'
 import { isIdentityNotFoundError } from '../../../../utils/isIdentityNotFoundError'
-import { IDENTITY_INDEX_SCAN_LIMIT, TRANSFER_FEE_CREDITS } from '../../../../constants'
+import { IDENTITY_INDEX_SCAN_LIMIT } from '../../../../constants'
 import { RegisterIdentityFromAddressPayload } from '../../../../types/messages/payloads/RegisterIdentityFromAddressPayload'
 import { RegisterIdentityFromAddressResponse } from '../../../../types/messages/response/RegisterIdentityFromAddressResponse'
 
@@ -95,6 +96,14 @@ export class RegisterIdentityFromAddressHandler implements APIHandler {
 
     const stateTransition = buildSignedIdentityCreateFromAddress(this.sdk, identityPrivateKeys, source.platformAddress, source.nonce, amountCredits, sourcePrivateKey)
 
+    // dpp knows what this transition costs once it is built; the source was
+
+    // picked against an estimate, so check it against the real number before
+
+    // Platform does it for us with an error nobody can act on.
+
+    const feeCredits = assertSourceCoversFee(stateTransition, source, amountCredits)
+
     await this.sdk.stateTransitions.broadcast(stateTransition)
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
@@ -121,7 +130,7 @@ export class RegisterIdentityFromAddressHandler implements APIHandler {
       identifier,
       stHash: stateTransition.hash(false),
       amountCredits: amountCredits.toString(),
-      feeCredits: TRANSFER_FEE_CREDITS.toString(),
+      feeCredits: feeCredits.toString(),
       fromAddress: source.platformAddress
     }
   }
