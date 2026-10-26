@@ -5,11 +5,12 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import {
   buildPlatformSourceCandidates,
   derivePlatformAddressPrivateKey,
+  assertSourceCoversFee,
   selectPlatformSource,
   buildSignedIdentityTopUpFromAddress,
   validateIdentifier
 } from '../../../../utils'
-import { TRANSFER_FEE_CREDITS } from '../../../../constants'
+
 import { TopUpIdentityFromAddressPayload } from '../../../../types/messages/payloads/TopUpIdentityFromAddressPayload'
 import { TopUpIdentityFromAddressResponse } from '../../../../types/messages/response/TopUpIdentityFromAddressResponse'
 
@@ -58,13 +59,21 @@ export class TopUpIdentityFromAddressHandler implements APIHandler {
     const privateKey = await derivePlatformAddressPrivateKey(wallet, payload.password, account, source.index, this.sdk)
     const stateTransition = buildSignedIdentityTopUpFromAddress(this.sdk, payload.identityId, source.platformAddress, source.nonce, amountCredits, privateKey)
 
+    // dpp knows what this transition costs once it is built; the source was
+
+    // picked against an estimate, so check it against the real number before
+
+    // Platform does it for us with an error nobody can act on.
+
+    const feeCredits = assertSourceCoversFee(stateTransition, source, amountCredits)
+
     await this.sdk.stateTransitions.broadcast(stateTransition)
     await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
     return {
       stHash: stateTransition.hash(false),
       amountCredits: amountCredits.toString(),
-      feeCredits: TRANSFER_FEE_CREDITS.toString(),
+      feeCredits: feeCredits.toString(),
       fromAddress: source.platformAddress,
       identityId: payload.identityId
     }

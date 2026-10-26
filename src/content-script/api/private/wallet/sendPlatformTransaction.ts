@@ -10,7 +10,7 @@ import {
   buildSignedPlatformTransferMulti,
   platformTransferFeeCredits
 } from '../../../../utils'
-import { MAX_PLATFORM_OUTPUTS, MIN_OUTPUT_CREDITS } from '../../../../constants'
+import { MIN_OUTPUT_CREDITS } from '../../../../constants'
 import { SendPlatformTransactionPayload } from '../../../../types/messages/payloads/SendPlatformTransactionPayload'
 import { SendPlatformTransactionResponse } from '../../../../types/messages/response/SendPlatformTransactionResponse'
 
