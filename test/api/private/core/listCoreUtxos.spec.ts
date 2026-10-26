@@ -29,7 +29,8 @@ describe('ListCoreUtxosHandler', () => {
       spendable: jest.fn(async () => ({
         utxos: [utxo('yRecv0', 100_000n, 0, 1_700_000_000, 900_100)],
         owned: new Map(),
-        nextUnused: { receiving: 1, change: 1 }
+        nextUnused: { receiving: 1, change: 1 },
+        resolvedTxids: []
       }))
     }
 
@@ -61,7 +62,8 @@ describe('ListCoreUtxosHandler', () => {
         utxo('yChange0', 3n, 2, undefined)
       ],
       owned: new Map(),
-      nextUnused: { receiving: 1, change: 1 }
+      nextUnused: { receiving: 1, change: 1 },
+      resolvedTxids: []
     })
 
     const result = await handler.handle()

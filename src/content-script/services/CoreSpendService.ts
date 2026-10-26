@@ -73,7 +73,8 @@ export interface PreparedCoreSpend {
 
 /**
  * Paying out of the wallet's own Core (L1) outputs, in two steps: `prepare`
- * selects the inputs and signs, `broadcast` sends the result to the network.
+ * selects the inputs and signs, `broadcast` sends the result to the network and
+ * records what it spent.
  *
  * The split is what makes a chained operation safe to repeat. An operation that
  * pays an address and then does something with that payment - funding an asset
