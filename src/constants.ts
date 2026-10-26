@@ -32,6 +32,10 @@ export const MIN_TOPUP_FUNDING_DASH = Number(MIN_TOPUP_FUNDING_DUFFS) / 1e8
 export const TOPUP_FUNDING_GAP_LIMIT = 20
 
 // Upper bound for scanning identity indexes when picking the next free one.
+// How many times an identity lookup is retried before the scan gives up. The
+// SDK picks a node at random per call and never retries, so a single unlucky
+// pick would otherwise truncate the wallet's identity list.
+export const IDENTITY_LOOKUP_ATTEMPTS = 3
 export const IDENTITY_INDEX_SCAN_LIMIT = 20
 
 // Platform nodes this extension is willing to talk to. The ones answering at
