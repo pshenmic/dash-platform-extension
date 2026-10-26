@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronIcon, Identifier, OverlayMenu, Text } from 'dash-ui-kit/react'
+import { Identifier, OverlayMenu, Text } from 'dash-ui-kit/react'
 
 interface ChangeAddressSelectProps {
   addresses: string[]
@@ -9,7 +9,7 @@ interface ChangeAddressSelectProps {
 }
 
 const AddressRow = ({ address }: { address: string }): React.JSX.Element => (
-  <Identifier highlight='both' ellipsis className='min-w-0 flex-1 !text-sm !font-light'>{address}</Identifier>
+  <Identifier weight='light' highlight='both' middleEllipsis='auto' className='min-w-0 flex-1'>{address}</Identifier>
 )
 
 // Dropdown of the wallet Core addresses that receive the change of an Advanced Core transfer.
@@ -18,11 +18,10 @@ export function ChangeAddressSelect ({ addresses, value, onChange, error }: Chan
     <div className='flex flex-col gap-1.5'>
       <OverlayMenu
         triggerContent={(
-          <div className='flex items-center justify-between gap-2 min-w-0 w-full'>
+          <div className='flex items-center min-w-0 w-full'>
             {value != null && value !== ''
               ? <AddressRow address={value} />
               : <Text size='sm' dim>Select change address</Text>}
-            <ChevronIcon size={14} color='currentColor' className='shrink-0 text-dash-primary-dark-blue/48 dark:text-white/48' />
           </div>
         )}
         items={addresses.map(address => ({
@@ -33,10 +32,11 @@ export function ChangeAddressSelect ({ addresses, value, onChange, error }: Chan
         }))}
         size='md'
         border={false}
-        showArrow={false}
+        error={error != null}
+        arrowClassName='text-dash-primary-dark-blue/48 dark:text-white/48'
         className='!w-full'
         contentClassName='!w-full'
-        triggerClassName={`!px-4 !py-3 !rounded-2xl !bg-dash-primary-dark-blue/[0.03] dark:!bg-white/5 [&>div]:min-w-0 ${error != null ? 'border border-red-500' : ''}`}
+        triggerClassName='gap-2 !px-4 !py-3 !rounded-2xl !bg-dash-primary-dark-blue/[0.03] dark:!bg-white/5'
       />
       {error != null && <Text size='xs' className='!text-red-500'>{error}</Text>}
     </div>

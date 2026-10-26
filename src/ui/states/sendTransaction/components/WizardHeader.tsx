@@ -1,7 +1,6 @@
 import React from 'react'
-import { Switch, Text } from 'dash-ui-kit/react'
-import { Stepper } from '../../../components/controls'
-import type { StepperStatus } from '../../../components/controls'
+import { Stepper, Switch, Text } from 'dash-ui-kit/react'
+import type { StepperStatus } from 'dash-ui-kit/react'
 import { WIZARD_STEP_LABELS } from '../constants'
 
 type TransferView = 'simple' | 'advanced'

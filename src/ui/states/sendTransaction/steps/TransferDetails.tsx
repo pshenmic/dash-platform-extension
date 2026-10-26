@@ -27,7 +27,7 @@ interface TransferDetailsProps {
 const LAYER_SUFFIX: Record<EndpointType, string> = { core: '(L1)', identity: '(L2)', platformAddress: '(L2)', shielded: '' }
 
 function IdentityValue ({ identifier }: { identifier: string }): React.JSX.Element {
-  return <Identifier avatar highlight='both' middleEllipsis edgeChars={5} className='min-w-0 !text-xs'>{identifier}</Identifier>
+  return <Identifier size='xs' avatar highlight='both' middleEllipsis edgeChars={5} className='min-w-0'>{identifier}</Identifier>
 }
 
 function TypeValue ({ type, label }: { type: EndpointType, label?: string }): React.JSX.Element {
@@ -41,7 +41,7 @@ function TypeValue ({ type, label }: { type: EndpointType, label?: string }): Re
 }
 
 function AddressValue ({ address }: { address: string }): React.JSX.Element {
-  return <Identifier highlight='both' middleEllipsis edgeChars={6} className='!text-xs'>{address}</Identifier>
+  return <Identifier size='xs' highlight='both' middleEllipsis edgeChars={6}>{address}</Identifier>
 }
 
 const UsdChip = ({ label, accent }: { label: string | null, accent: boolean }): React.JSX.Element => (

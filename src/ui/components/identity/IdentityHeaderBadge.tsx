@@ -23,7 +23,7 @@ function IdentityHeaderBadge ({ identity, walletName, onClick, className }: Iden
           <Avatar username={identity} className='w-4 h-4' />
         </div>
         <div className='flex flex-col gap-1'>
-          <Identifier className='text-xs leading-[100%]' highlight='both' middleEllipsis edgeChars={4}>
+          <Identifier size='xs' className='leading-[100%]' highlight='both' middleEllipsis edgeChars={4}>
             {identity}
           </Identifier>
           {walletName != null && walletName !== '' && (

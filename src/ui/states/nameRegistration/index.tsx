@@ -235,7 +235,7 @@ const NameRegistrationState: React.FC = () => {
               <Identifier
                 highlight='both'
                 size='xs'
-                className='text-center text-xs'
+                className='text-center'
               >
                 {currentIdentity ?? undefined}
               </Identifier>

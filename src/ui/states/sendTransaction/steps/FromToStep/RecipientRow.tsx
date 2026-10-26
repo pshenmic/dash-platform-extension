@@ -54,7 +54,7 @@ export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddres
         icon: <WalletIcon size={14} />,
         recipients: [{
           result: { identifier: ownCoreAddress, type: 'coreAddress' },
-          content: <Identifier highlight='both' middleEllipsis edgeChars={8} className='text-xs' disableCopy>{ownCoreAddress}</Identifier>
+          content: <Identifier size='xs' highlight='both' middleEllipsis edgeChars={8} disableCopy>{ownCoreAddress}</Identifier>
         }]
       }
     : toType === 'identity' && otherIdentities.length > 0
@@ -64,7 +64,7 @@ export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddres
           icon: <FaceIcon size={14} />,
           recipients: otherIdentities.map(identifier => ({
             result: { identifier, type: 'identity' },
-            content: <Identifier avatar highlight='both' ellipsis className='min-w-0 text-xs' disableCopy>{identifier}</Identifier>
+            content: <Identifier size='xs' avatar highlight='both' middleEllipsis='auto' className='min-w-0' disableCopy>{identifier}</Identifier>
           }))
         }
       : toType === 'platformAddress' && otherPlatformAddresses.length > 0
@@ -74,7 +74,7 @@ export function RecipientRow ({ draft, excludeIdentifier, network, ownCoreAddres
             icon: <WalletIcon size={14} />,
             recipients: otherPlatformAddresses.map(address => ({
               result: { identifier: address, type: 'platformAddress' },
-              content: <Identifier highlight='both' className='text-xs' disableCopy>{address}</Identifier>
+              content: <Identifier size='xs' highlight='both' disableCopy>{address}</Identifier>
             }))
           }
         : null

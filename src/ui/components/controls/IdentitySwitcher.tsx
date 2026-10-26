@@ -26,7 +26,7 @@ export function IdentitySwitcher ({ identifier, identities, onSelect }: Identity
         <div className='w-6 h-6 rounded-full overflow-hidden shrink-0'>
           <Avatar username={identity.identifier} className='w-6 h-6' />
         </div>
-        <Identifier highlight='both' middleEllipsis edgeChars={4} className='!text-sm'>
+        <Identifier highlight='both' middleEllipsis edgeChars={4}>
           {identity.identifier}
         </Identifier>
       </div>
@@ -45,7 +45,7 @@ export function IdentitySwitcher ({ identifier, identities, onSelect }: Identity
           <div className='w-6 h-6 rounded-full overflow-hidden shrink-0'>
             <Avatar username={identifier} className='w-6 h-6' />
           </div>
-          <Identifier highlight='both' middleEllipsis edgeChars={4} className='!text-sm'>
+          <Identifier highlight='both' middleEllipsis edgeChars={4}>
             {identifier}
           </Identifier>
         </div>

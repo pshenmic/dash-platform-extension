@@ -45,7 +45,7 @@ export function ConfirmStep ({ draft, config, amount, balance, fee, received, is
           <div className='flex flex-col gap-2'>
             {draft.recipients.map(recipient => (
               <div key={recipient.id} className='flex items-center justify-between gap-3'>
-                <Identifier highlight='both' middleEllipsis edgeChars={6} className='!text-xs min-w-0'>{recipient.address}</Identifier>
+                <Identifier size='xs' highlight='both' middleEllipsis edgeChars={6} className='min-w-0'>{recipient.address}</Identifier>
                 <Text size='xs' className='shrink-0'><span className='font-bold'>{formatDashAmount(parseDashAmount(recipient.amount, balance.decimals) ?? 0n, balance.decimals)}</span> Dash</Text>
               </div>
             ))}

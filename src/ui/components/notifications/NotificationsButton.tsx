@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import { Badge, Button, Popover, Text } from 'dash-ui-kit/react'
+import { Badge, BellIcon, Button, Popover, Text } from 'dash-ui-kit/react'
 import { useNotifications, useOpenContinueOperation, useWalletCapabilities } from '../../hooks'
-import { BellIcon } from './BellIcon'
 import { NotificationItem } from './NotificationItem'
 
 interface NotificationsButtonProps {
@@ -54,7 +53,7 @@ export function NotificationsButton ({ walletId, network, isLightChrome }: Notif
           className={isLightChrome ? '!text-dash-primary-dark-blue' : undefined}
         />
         {notifications.length > 0 && (
-          <Badge variant='solid' color='red' size='xxs' className='absolute -top-1 -right-1 min-w-5 h-5 justify-center !py-0 !text-[0.625rem] leading-none'>
+          <Badge variant='solid' color='red' size='counter' className='absolute -top-1 -right-1'>
             {notifications.length}
           </Badge>
         )}

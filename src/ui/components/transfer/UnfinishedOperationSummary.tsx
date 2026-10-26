@@ -17,7 +17,7 @@ export function UnfinishedOperationSummary ({ operation }: { operation: Unfinish
         Unfinished {OPERATION_LABELS[operation.purpose]} of <span className='font-bold'>{formatDashAmount(operation.lockedDuffs, CORE_DASH_DECIMALS)}</span> Dash to{operation.recipient == null && ' your shielded balance'}
       </Text>
       {operation.recipient != null && (
-        <Identifier avatar={operation.purpose === 'topUp'} highlight='both' middleEllipsis edgeChars={6} className='!text-xs'>{operation.recipient}</Identifier>
+        <Identifier size='xs' avatar={operation.purpose === 'topUp'} highlight='both' middleEllipsis edgeChars={6}>{operation.recipient}</Identifier>
       )}
     </div>
   )

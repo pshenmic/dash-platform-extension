@@ -63,9 +63,9 @@ export const IdentityPreview: React.FC<IdentityPreviewProps> = ({ identity, clas
               </Text>
             )}
             <Identifier
+              size='xs'
               key={identity.id}
               highlight='both'
-              className='text-xs'
               linesAdjustment={false}
             >
               {identity.id}

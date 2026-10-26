@@ -241,8 +241,8 @@ export function RecipientSearchInput ({
           {(selectedResult?.name != null) && (
             <div className='px-3 pb-3'>
               <Identifier
+                size='xs'
                 highlight='both'
-                className='text-xs'
                 disableCopy
               >
                 {selectedResult.identifier}
@@ -321,7 +321,7 @@ export function RecipientSearchInput ({
                         >
                           <div className='flex flex-col gap-1'>
                             <Text className='text-xs' dim>{ADDRESS_RESULT_LABELS[recipientType] ?? 'Address:'}</Text>
-                            <Identifier highlight='both' className='text-xs' disableCopy>
+                            <Identifier size='xs' highlight='both' disableCopy>
                               {addressResult.identifier}
                             </Identifier>
                           </div>
@@ -348,9 +348,9 @@ export function RecipientSearchInput ({
                               >
                                 <div className='flex flex-col gap-2.5'>
                                   <Identifier
+                                    size='xs'
                                     avatar
                                     highlight='both'
-                                    className='text-xs'
                                   >
                                     {result.identifier}
                                   </Identifier>

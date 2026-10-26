@@ -25,7 +25,7 @@ function TargetRow ({ target }: { target: ReceiveTarget }): React.JSX.Element {
       <div className='w-6 h-6 rounded-full overflow-hidden shrink-0'>
         <Avatar username={target.value} className='w-6 h-6' />
       </div>
-      <Identifier highlight='both' middleEllipsis edgeChars={5} className='!text-sm'>
+      <Identifier highlight='both' middleEllipsis edgeChars={5}>
         {target.value}
       </Identifier>
     </div>

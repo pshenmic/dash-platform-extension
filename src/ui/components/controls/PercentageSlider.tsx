@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import styles from './PercentageSlider.module.pcss'
+import { Slider } from 'dash-ui-kit/react'
 
 interface PercentageSliderProps {
   /** Raw amount string (same units as maxBalance) */
@@ -39,9 +39,6 @@ export function PercentageSlider ({
     onPercentage(pct / 100)
   }
 
-  // `--pct` drives the filled portion of the track
-  const sliderStyle: React.CSSProperties & Record<'--pct', string> = { '--pct': `${sliderValue}%` }
-
   return (
     <div className={`flex items-center gap-[1.125rem] w-full ${className ?? ''}`}>
       {!hideZero && (
@@ -55,15 +52,7 @@ export function PercentageSlider ({
       )}
 
       <div className='flex-1 min-w-0'>
-        <input
-          type='range'
-          min={0}
-          max={100}
-          value={sliderValue}
-          onChange={(e) => handleChange(Number(e.target.value))}
-          className={`${styles.slider} w-full block`}
-          style={sliderStyle}
-        />
+        <Slider value={sliderValue} onChange={handleChange} />
       </div>
 
       <button

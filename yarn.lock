@@ -3750,10 +3750,10 @@ dash-core-sdk@1.1.3:
     typescript "^5.9.2"
     ws "^8.18.3"
 
-dash-platform-sdk@1.5.3:
-  version "1.5.3"
-  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.5.3.tgz#f5ec2a81ab95b15046a5648c99d270a96483039d"
-  integrity sha512-wsp4dPESg+TdDVRORvifyo2dTbSTPHdtGmav6Mkc0TJI7iU0bOggZ0px2Oz+YmQO7COeP1ChAWUWvpY0aYeZGw==
+dash-platform-sdk@1.6.0-dev.1:
+  version "1.6.0-dev.1"
+  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.6.0-dev.1.tgz#d249704838d723be29969f3225784298bf017f7c"
+  integrity sha512-TtbTuWogUmM2PuQG+0VqPE6TtmvImFlOUDfXhAWrx7ZJ35nTosaq8DlErjHnKcfUj/lZWqzPBT82ROUvwH0qEw==
   dependencies:
     "@bufbuild/protobuf" "^2.6.0"
     "@protobuf-ts/grpcweb-transport" "^2.11.1"
@@ -3761,13 +3761,12 @@ dash-platform-sdk@1.5.3:
     "@scure/bip32" "^2.0.0"
     "@scure/bip39" "^2.0.0"
     "@scure/btc-signer" "^2.0.1"
-    cbor2 "^2.3.0"
-    pshenmic-dpp "2.0.0-dev.29"
+    pshenmic-dpp "2.0.1-dev.2"
 
-dash-ui-kit@2.1.5:
-  version "2.1.5"
-  resolved "https://registry.yarnpkg.com/dash-ui-kit/-/dash-ui-kit-2.1.5.tgz#c5d4db396cf0fdf145ec3842cb17e9ee8c65e3d3"
-  integrity sha512-QRLYQJlqJVrjI75r7H+ueORMs9z6ldoPtSHFm4EwNM1wq3zrDWDgkSoeaD60ugICuXupwEXK295xk2xpJXOURg==
+dash-ui-kit@2.1.6:
+  version "2.1.6"
+  resolved "https://registry.yarnpkg.com/dash-ui-kit/-/dash-ui-kit-2.1.6.tgz#a8c3667846d7b16568e31f7d008d3b92a595ae7d"
+  integrity sha512-dHUM9H4Q5H08ZdFg4CnunGPVct13YrOmtpzU3pwpQ02HDU/XQApSc59CUaEgsnhxj70M6Ciiw2y3boWXpJzIHQ==
   dependencies:
     "@radix-ui/react-accordion" "^1.2.12"
     "@radix-ui/react-dialog" "^1.1.14"
@@ -4612,10 +4611,10 @@ fdir@^6.5.0:
   resolved "https://registry.yarnpkg.com/fdir/-/fdir-6.5.0.tgz#ed2ab967a331ade62f18d077dae192684d50d350"
   integrity sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==
 
-fflate@^0.8.2:
-  version "0.8.2"
-  resolved "https://registry.npmjs.org/fflate/-/fflate-0.8.2.tgz"
-  integrity sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==
+fflate@^0.8.3:
+  version "0.8.3"
+  resolved "https://registry.yarnpkg.com/fflate/-/fflate-0.8.3.tgz#bc27d8eb30343d4d512abb03480202ce65d825fc"
+  integrity sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==
 
 file-entry-cache@^6.0.1:
   version "6.0.1"
@@ -6937,15 +6936,15 @@ proxy-addr@~2.0.7:
     forwarded "0.2.0"
     ipaddr.js "1.9.1"
 
-pshenmic-dpp@2.0.0-dev.29:
-  version "2.0.0-dev.29"
-  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-2.0.0-dev.29.tgz#e67d6fd53a3f9ffb7f4cff9a776993dfc8b6e338"
-  integrity sha512-vdlXHy7lvwvbB69UWqCx3YS7ROb+U2md2V9qO/0nEgZCO3eh6cOiQfrYYCb1g+mJWxAj4v3Mp+awzAi+r8ZDaQ==
+pshenmic-dpp@2.0.1-dev.2:
+  version "2.0.1-dev.2"
+  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-2.0.1-dev.2.tgz#8db115ae23ea163c59e289268865adc47aa8e9ed"
+  integrity sha512-g6UKjFhL+87k8NjAZNn89UfAnxlqNJ61mtD1N6SW541DsvqH2KXhrLODn4iqKf5ZGZHs/zOLHnO1b4N033JoCQ==
   dependencies:
     "@emnapi/core" "1.9.0"
     "@emnapi/runtime" "1.9.0"
     "@tybys/wasm-util" "^0.10.1"
-    fflate "^0.8.2"
+    fflate "^0.8.3"
 
 punycode@^2.1.0:
   version "2.3.1"

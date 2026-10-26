@@ -113,10 +113,11 @@ export function TransactionRow ({ item, hide, onClick, rate }: TransactionRowPro
             {item.detailAsIdentifier === true
               ? (
                 <Identifier
+                  weight='light'
                   middleEllipsis
                   edgeChars={4}
                   highlight='both'
-                  className='!text-[0.625rem] !font-light !leading-[1.2] min-w-0'
+                  className='!text-[0.625rem] !leading-[1.2] min-w-0'
                 >
                   {item.detailValue}
                 </Identifier>

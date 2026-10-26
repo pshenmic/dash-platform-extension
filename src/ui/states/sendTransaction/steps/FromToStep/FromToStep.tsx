@@ -1,6 +1,6 @@
 import React from 'react'
-import { Badge, Button, CreditsIcon, FilterIcon, PendingIcon, Text } from 'dash-ui-kit/react'
-import { Checkbox, SideActionButton } from '../../../../components/controls'
+import { Badge, Button, Checkbox, CreditsIcon, FilterIcon, PendingIcon, Text } from 'dash-ui-kit/react'
+import { SideActionButton } from '../../../../components/controls'
 import { EndpointCard, EndpointTypeSelect } from '../../../../components/transfer'
 import type { EndpointTypeOption } from '../../../../components/transfer'
 import { InfoCard } from '../../../../components/common'

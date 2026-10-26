@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronIcon, OverlayMenu, Text } from 'dash-ui-kit/react'
+import { OverlayMenu, Text } from 'dash-ui-kit/react'
 import { LayerBadge, endpointLayer } from '../controls'
 import type { EndpointType } from '../../states/sendTransaction/types'
 
@@ -30,7 +30,7 @@ function EndpointTypeRow ({ type, hint, showLayer = false }: { type: EndpointTyp
 
   return (
     <div className='flex items-center gap-2 min-w-0'>
-      <LayerBadge layer={layer} className='!rounded-full !text-xs !font-extrabold' />
+      <LayerBadge layer={layer} shape='circle' className='!text-xs !font-extrabold' />
       <div className='flex flex-col min-w-0'>
         <Text size='sm' weight='medium' className='truncate'>
           {ENDPOINT_TYPE_LABELS[type]}
@@ -56,12 +56,7 @@ export function EndpointTypeSelect ({
 }: EndpointTypeSelectProps): React.JSX.Element {
   return (
     <OverlayMenu
-      triggerContent={(
-        <div className='flex items-center justify-between gap-3 min-w-0'>
-          <EndpointTypeRow type={value} />
-          <ChevronIcon size={14} color='currentColor' className='shrink-0 text-dash-primary-dark-blue/48 dark:text-white/48' />
-        </div>
-      )}
+      triggerContent={<EndpointTypeRow type={value} />}
       items={options.map(option => ({
         id: option.type,
         disabled: option.disabled,
@@ -72,11 +67,11 @@ export function EndpointTypeSelect ({
       colorScheme='lightGray'
       filled
       border={false}
-      showArrow={false}
+      arrowClassName='text-dash-primary-dark-blue/48 dark:text-white/48'
       disabled={disabled}
       wrapperClassName={className}
       className='!w-full'
-      triggerClassName='!h-[3.25rem] !px-3 !py-1.5 !rounded-2xl [&>div]:min-w-0'
+      triggerClassName='gap-3 !h-[3.25rem] !px-3 !py-1.5 !rounded-2xl'
     />
   )
 }

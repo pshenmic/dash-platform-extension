@@ -15,7 +15,7 @@ export function IdentityIdRow ({ identifier, network }: IdentityIdRowProps): Rea
       <div className='w-6 h-6 rounded-full overflow-hidden shrink-0'>
         <Avatar username={identifier} className='w-6 h-6' />
       </div>
-      <Identifier highlight='both' className='!text-sm !leading-[1.2] flex-1'>
+      <Identifier highlight='both' className='!leading-[1.2] flex-1'>
         {identifier}
       </Identifier>
       <IconChip label='View in explorer' href={getIdentityExplorerUrl(identifier, network)}>

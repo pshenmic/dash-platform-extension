@@ -63,7 +63,7 @@ export function RecipientCard ({ index, recipient, isCore, decimals, maxAmount, 
           )
         : (
           <div className='flex items-center gap-3 px-3 py-4 rounded-2xl bg-dash-primary-dark-blue/[0.05] dark:bg-white/5'>
-            <Identifier avatar highlight='both' ellipsis className='min-w-0 flex-1 !text-sm !font-light'>{recipient.address}</Identifier>
+            <Identifier weight='light' avatar highlight='both' middleEllipsis='auto' className='min-w-0 flex-1'>{recipient.address}</Identifier>
             <button
               type='button'
               onClick={() => { setText(recipient.address); setIsEditing(true) }}

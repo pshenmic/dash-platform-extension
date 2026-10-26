@@ -18,17 +18,19 @@ export function endpointLayer (type: EndpointType): LayerType {
 
 interface LayerBadgeProps {
   layer: LayerType
+  shape?: 'square' | 'circle'
   className?: string
 }
 
 /** Small blue square marking the layer: L1, L2 or a shield for the shielded pool. */
-export function LayerBadge ({ layer, className }: LayerBadgeProps): React.JSX.Element {
+export function LayerBadge ({ layer, shape = 'square', className }: LayerBadgeProps): React.JSX.Element {
   return (
     <Badge
       color='blue'
       variant='flat'
-      size='xxs'
-      className={`!rounded-[0.375rem] w-6 h-6 shrink-0 !p-0 !text-[0.625rem] !leading-none ${className ?? ''}`}
+      size='icon'
+      shape={shape}
+      className={className}
     >
       {layer === 'shielded'
         ? <ShieldSmallIcon color='currentColor' className='w-3 h-3' />

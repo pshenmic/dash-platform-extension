@@ -17,7 +17,7 @@ function IdentityRow ({ identifier }: { identifier: string }): React.JSX.Element
       <div className='w-6 h-6 rounded-full overflow-hidden shrink-0'>
         <Avatar username={identifier} className='w-6 h-6' />
       </div>
-      <Identifier highlight='both' middleEllipsis edgeChars={5} className='!text-sm'>
+      <Identifier highlight='both' middleEllipsis edgeChars={5}>
         {identifier}
       </Identifier>
     </div>

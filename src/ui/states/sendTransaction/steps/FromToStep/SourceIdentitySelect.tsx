@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronIcon, Identifier, OverlayMenu, Text } from 'dash-ui-kit/react'
+import { Identifier, OverlayMenu, Text } from 'dash-ui-kit/react'
 import { PLATFORM_DASH_DECIMALS } from '../../../../../utils'
 import type { SourceBalance } from '../../hooks/useSourceBalance'
 import type { SourceIdentity } from '../../types'
@@ -17,7 +17,7 @@ interface SourceIdentitySelectProps {
 function IdentityRow ({ identifier, balance, rate }: { identifier: string, balance: SourceBalance, rate: number | null }): React.JSX.Element {
   return (
     <div className='flex flex-col gap-1 min-w-0'>
-      <Identifier avatar highlight='both' ellipsis className='min-w-0 !text-[0.65625rem] !font-light'>{identifier}</Identifier>
+      <Identifier weight='light' avatar highlight='both' middleEllipsis='auto' className='min-w-0 !text-[0.65625rem]'>{identifier}</Identifier>
       <SourceBalanceLabel balance={balance} rate={rate} />
     </div>
   )
@@ -34,12 +34,9 @@ export function SourceIdentitySelect ({ identities, value, onChange, balance, ra
   return (
     <OverlayMenu
       triggerContent={(
-        <div className='flex items-center justify-between gap-2 min-w-0'>
-          {value != null
-            ? <IdentityRow identifier={value} balance={valueBalance} rate={rate} />
-            : <Text size='sm' dim>Select identity</Text>}
-          <ChevronIcon size={14} color='currentColor' className='shrink-0 text-dash-primary-dark-blue/48 dark:text-white/48' />
-        </div>
+        value != null
+          ? <IdentityRow identifier={value} balance={valueBalance} rate={rate} />
+          : <Text size='sm' dim>Select identity</Text>
       )}
       items={identities.map(identity => ({
         id: identity.identifier,
@@ -49,10 +46,10 @@ export function SourceIdentitySelect ({ identities, value, onChange, balance, ra
       }))}
       size='md'
       border={false}
-      showArrow={false}
+      arrowClassName='text-dash-primary-dark-blue/48 dark:text-white/48'
       className='!w-full'
       contentClassName='!w-full'
-      triggerClassName='!px-3 !py-3 !rounded-2xl border border-dash-primary-dark-blue/24 !bg-transparent dark:border-white/24 [&>div]:min-w-0'
+      triggerClassName='gap-2 !px-3 !py-3 !rounded-2xl border border-dash-primary-dark-blue/24 !bg-transparent dark:border-white/24'
     />
   )
 }

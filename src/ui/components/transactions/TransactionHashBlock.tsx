@@ -48,10 +48,11 @@ export default function TransactionHashBlock ({
       )}
       <div className='flex justify-between gap-2'>
         <Identifier
+          weight='medium'
           highlight='both'
           ellipsis={!isFull}
           linesAdjustment={isFull ? false : undefined}
-          className='font-medium flex-grow'
+          className='flex-grow'
         >
           {hash}
         </Identifier>

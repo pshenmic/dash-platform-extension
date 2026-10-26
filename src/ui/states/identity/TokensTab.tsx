@@ -58,7 +58,7 @@ function TokenCard ({
           </Text>
         </div>
         <div className='flex items-start gap-2'>
-          <Identifier highlight='both' className='!text-sm !leading-[1.2] flex-1'>
+          <Identifier highlight='both' className='!leading-[1.2] flex-1'>
             {token.identifier}
           </Identifier>
           <IconChip
