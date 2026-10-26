@@ -54,17 +54,12 @@ import { ShieldFromCoreHandler } from './private/wallet/shieldFromCore'
 import { ShieldFromWalletHandler } from './private/wallet/shieldFromWallet'
 import { TopUpIdentityFromWalletHandler } from './private/identities/topUpIdentityFromWallet'
 import { FundPlatformAddressFromWalletHandler } from './private/wallet/fundPlatformAddressFromWallet'
-import { PendingAssetLocksRepository } from '../repository/PendingAssetLocksRepository'
 import { RegisterIdentityFromWalletHandler } from './private/identities/registerIdentityFromWallet'
-import { ListPendingAssetLocksHandler } from './private/assetLocks/listPendingAssetLocks'
-import { DiscardAssetLockFundingHandler } from './private/assetLocks/discardAssetLockFunding'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
-import { RegisterIdentityFromWalletHandler } from './private/identities/registerIdentityFromWallet'
 import { RemoveWalletHandler } from './private/wallet/removeWallet'
 import { TopUpIdentityHandler } from './private/identities/topUpIdentity'
-import { TopUpIdentityFromWalletHandler } from './private/identities/topUpIdentityFromWallet'
 import { WalletSettingsRepository } from '../repository/WalletSettingsRepository'
 import { GetSettingsHandler } from './private/settings/getSettings'
 import { SetSettingsHandler } from './private/settings/setSettings'
@@ -77,7 +72,6 @@ import { GetCoreTransactionsHandler } from './private/core/getCoreTransactions'
 import { SendCoreTransferHandler } from './private/core/sendCoreTransfer'
 import { SendCoreTransactionHandler } from './private/core/sendCoreTransaction'
 import { EstimateCoreTransferHandler } from './private/core/estimateCoreTransfer'
-import { ListCoreUtxosHandler } from './private/core/listCoreUtxos'
 import { GeneratePlatformAddressesHandler } from './private/wallet/generatePlatformAddresses'
 import { ListPlatformAddressesHandler } from './private/wallet/listPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
@@ -90,7 +84,6 @@ import { WithdrawPlatformAddressToCoreHandler } from './private/wallet/withdrawP
 import { EstimateWithdrawalFeeHandler } from './private/wallet/estimateWithdrawalFee'
 import { RegisterIdentityFromAddressHandler } from './private/wallet/registerIdentityFromAddress'
 import { FundPlatformAddressFromCoreHandler } from './private/wallet/fundPlatformAddressFromCore'
-import { FundPlatformAddressFromWalletHandler } from './private/wallet/fundPlatformAddressFromWallet'
 import { GenerateShieldedAddressesHandler } from './private/wallet/generateShieldedAddresses'
 import { GetShieldedAddressesHandler } from './private/wallet/getShieldedAddresses'
 import { GetShieldedBalanceHandler } from './private/wallet/getShieldedBalance'
@@ -101,8 +94,6 @@ import { ShieldedService } from '../services/ShieldedService'
 import { EstimateShieldedFeeHandler } from './private/wallet/estimateShieldedFee'
 import { InitShieldHandler } from './private/wallet/initShield'
 import { ShieldFromPlatformAddressHandler } from './private/wallet/shieldFromPlatformAddress'
-import { ShieldFromWalletHandler } from './private/wallet/shieldFromWallet'
-import { ShieldFromCoreHandler } from './private/wallet/shieldFromCore'
 import { SendShieldedTransferHandler } from './private/wallet/sendShieldedTransfer'
 import { UnshieldToPlatformAddressHandler } from './private/wallet/unshieldToPlatformAddress'
 import { WithdrawShieldedToCoreHandler } from './private/wallet/withdrawShieldedToCore'
@@ -181,7 +172,6 @@ export class PrivateAPI {
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
     const assetLockFundingAddressesRepository = new AssetLockFundingAddressesRepository(this.storageAdapter)
-    const pendingAssetLocksRepository = new PendingAssetLocksRepository(this.storageAdapter)
     const walletSettingsRepository = new WalletSettingsRepository(this.storageAdapter)
     const pendingAssetLocksRepository = new PendingAssetLocksRepository(this.storageAdapter)
     const coreExplorer = new CoreExplorerService()
@@ -332,17 +322,6 @@ export class PrivateAPI {
       [MessagingMethods.ESTIMATE_SHIELDED_FEE]: new EstimateShieldedFeeHandler(walletRepository, shielded),
       [MessagingMethods.INIT_SHIELD]: new InitShieldHandler(this.sdk),
       [MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS]: new ShieldFromPlatformAddressHandler(walletRepository, this.sdk, shielded),
-      [MessagingMethods.SHIELD_FROM_CORE]: shieldFromCore,
-      [MessagingMethods.SHIELD_FROM_WALLET]: new ShieldFromWalletHandler(
-        walletRepository,
-        assetLockFundingAddressesRepository,
-        pendingAssetLocksRepository,
-        assetLockFunding,
-        requestAssetLockFundingAddress,
-        shieldFromCore,
-        this.sdk,
-        shielded
-      ),
       [MessagingMethods.SEND_SHIELDED_TRANSFER]: new SendShieldedTransferHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.UNSHIELD_TO_PLATFORM_ADDRESS]: new UnshieldToPlatformAddressHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.WITHDRAW_SHIELDED_TO_CORE]: new WithdrawShieldedToCoreHandler(walletRepository, this.sdk, shielded)

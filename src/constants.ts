@@ -184,7 +184,6 @@ export const SHIELDED_UNSHIELD_ADDRESS_STORAGE_BYTES = 222n
 // 1 999 000 000 credits was refused for a note of 1 836 148 800 with "needs
 // 2 049 000 000 credits to start processing", which puts the fee at
 // 212 851 200 - exactly the action fees plus this.
-export const SHIELDED_ASSET_LOCK_FEE_CREDITS = 50_000_000n
 export const SHIELDED_WITHDRAWAL_DOCUMENT_STORAGE_BYTES = 4100n
 // Orchard pads every bundle to at least this many actions.
 export const SHIELDED_MIN_ACTIONS = 2
