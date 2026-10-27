@@ -7,21 +7,25 @@ import { CoreExplorerService } from '../../../services/CoreExplorerService'
 import { NetworkType } from '../../../../types/PlatformExplorer'
 import { CoreAddressChain } from '../../../../types/enums/CoreAddressChain'
 import { CoreAddressEntry, deriveCoreAddressesFromXpub, deriveCoreAddressPrivateKey } from '../../../../utils/coreAddresses'
-import { buildCoreTransfer, selectCoreUtxos } from '../../../../utils/coreTransfer'
+import { buildCoreTransfer, CoreTransferOutput, selectCoreUtxos } from '../../../../utils/coreTransfer'
 import { deriveWalletHdKey, validateCoreAddress } from '../../../../utils'
-import { SendCoreTransferPayload } from '../../../../types/messages/payloads/SendCoreTransferPayload'
-import { SendCoreTransferResponse } from '../../../../types/messages/response/SendCoreTransferResponse'
+import { CORE_DUST_THRESHOLD, MAX_CORE_OUTPUTS } from '../../../../constants'
+import { SendCoreTransactionPayload } from '../../../../types/messages/payloads/SendCoreTransactionPayload'
+import { SendCoreTransactionResponse } from '../../../../types/messages/response/SendCoreTransactionResponse'
 
-// Sends Core (L1) funds from the wallet's own addresses to a Core address.
-// The L1 counterpart of SendPlatformTransfer: reads the wallet's unspent outputs
-// from the explorer, picks enough of them to cover amount + fee, derives the key
-// of each spent address (needs the password), signs the transaction and
-// broadcasts it over DAPI.
+// Sends Core (L1) funds from the wallet's own addresses to one or more Core
+// addresses. The L1 counterpart of SendPlatformTransaction: reads the wallet's
+// unspent outputs from the explorer, picks enough of them to cover the
+// recipients plus the fee, derives the key of each spent address (needs the
+// password), signs the transaction and broadcasts it over DAPI.
+//
+// One recipient is the common case and needs no separate method: it is this one
+// with a single output.
 //
 // Which addresses the wallet owns comes from the explorer's own gap scan of the
 // account xpub, so outputs paid to addresses created by another install on the
 // same seed are spendable here too.
-export class SendCoreTransferHandler implements APIHandler {
+export class SendCoreTransactionHandler implements APIHandler {
   walletRepository: WalletRepository
   coreExplorer: CoreExplorerService
   sdk: DashPlatformSDK
@@ -34,8 +38,8 @@ export class SendCoreTransferHandler implements APIHandler {
     this.coreSDK = coreSDK
   }
 
-  async handle (event: EventData): Promise<SendCoreTransferResponse> {
-    const payload: SendCoreTransferPayload = event.payload
+  async handle (event: EventData): Promise<SendCoreTransactionResponse> {
+    const payload: SendCoreTransactionPayload = event.payload
     const wallet = await this.walletRepository.getCurrent()
 
     if (wallet == null) {
@@ -44,12 +48,22 @@ export class SendCoreTransferHandler implements APIHandler {
     if (wallet.type !== 'seedphrase') {
       throw new Error('Core transfer is only supported for a seedphrase wallet')
     }
-    if (!validateCoreAddress(payload.toAddress, wallet.network)) {
-      throw new Error(`Invalid recipient Core address for ${wallet.network}`)
+
+    const recipients: CoreTransferOutput[] = payload.outputs.map(output => ({
+      address: output.address,
+      amountDuffs: BigInt(output.amountDuffs)
+    }))
+
+    for (const recipient of recipients) {
+      if (!validateCoreAddress(recipient.address, wallet.network)) {
+        throw new Error(`Invalid recipient Core address for ${wallet.network}: ${recipient.address}`)
+      }
     }
 
     const account = 0
-    const amountDuffs = BigInt(payload.amountDuffs)
+    // What the recipients get between them. The change is worked out on top of
+    // this, so it is not part of the amount the caller asked to pay out.
+    const amountDuffs = recipients.reduce((sum, recipient) => sum + recipient.amountDuffs, 0n)
 
     const xpub = await this.walletRepository.getCoreAccountXpub(account)
 
@@ -99,7 +113,7 @@ export class SendCoreTransferHandler implements APIHandler {
         : 'This wallet has no unspent Core outputs to spend')
     }
 
-    const selection = selectCoreUtxos(spendable, amountDuffs)
+    const selection = selectCoreUtxos(spendable, amountDuffs, recipients.length)
 
     // Change goes to the next free address on the internal chain. Two sends in a
     // row can reuse it: the explorer only lists mined outputs, so the first
@@ -109,7 +123,7 @@ export class SendCoreTransferHandler implements APIHandler {
     )
 
     const transaction = buildCoreTransfer(
-      selection.inputs, payload.toAddress, amountDuffs, changeEntry.address, selection.change, wallet.network
+      selection.inputs, recipients, changeEntry.address, selection.change, wallet.network
     )
 
     // One decryption of the seed for the whole transaction, then one key per
@@ -144,19 +158,38 @@ export class SendCoreTransferHandler implements APIHandler {
       amountDuffs: amountDuffs.toString(),
       feeDuffs: selection.fee.toString(),
       changeDuffs: selection.change.toString(),
-      toAddress: payload.toAddress,
+      outputs: recipients.map(recipient => ({
+        address: recipient.address,
+        amountDuffs: recipient.amountDuffs.toString()
+      })),
       changeAddress: selection.change > 0n ? changeEntry.address : null,
       fromAddresses: [...new Set(selection.inputs.map(utxo => utxo.address))]
     }
   }
 
-  validatePayload (payload: SendCoreTransferPayload): string | null {
-    if (typeof payload.toAddress !== 'string' || payload.toAddress.length === 0) {
-      return 'Recipient address must be provided'
+  validatePayload (payload: SendCoreTransactionPayload): string | null {
+    if (!Array.isArray(payload.outputs) || payload.outputs.length === 0) {
+      return 'outputs must be a non-empty array'
     }
-    if (typeof payload.amountDuffs !== 'string' || !/^\d+$/.test(payload.amountDuffs) || BigInt(payload.amountDuffs) <= 0n) {
-      return 'Amount must be a positive integer string of duffs'
+    if (payload.outputs.length > MAX_CORE_OUTPUTS) {
+      return `A transaction pays at most ${MAX_CORE_OUTPUTS} recipients, ${payload.outputs.length} given`
     }
+
+    for (const output of payload.outputs) {
+      if (typeof output?.address !== 'string' || output.address.length === 0) {
+        return 'Every output must name an address'
+      }
+      if (typeof output?.amountDuffs !== 'string' || !/^\d+$/.test(output.amountDuffs)) {
+        return 'Every output amount must be an integer string of duffs'
+      }
+      // An output at or below the dust threshold is one no node would relay, so
+      // it is refused here rather than spending the inputs on a dead
+      // transaction.
+      if (BigInt(output.amountDuffs) <= CORE_DUST_THRESHOLD) {
+        return `Every output must be greater than ${CORE_DUST_THRESHOLD.toString()} duffs`
+      }
+    }
+
     if (typeof payload.password !== 'string' || payload.password.length === 0) {
       return 'Password must be provided'
     }

@@ -1,8 +1,9 @@
 import { PrivateKey } from 'dash-core-sdk'
-import { SendCoreTransferHandler } from '../../../../src/content-script/api/private/core/sendCoreTransfer'
+import { SendCoreTransactionHandler } from '../../../../src/content-script/api/private/core/sendCoreTransaction'
 import { CoreAddressChain } from '../../../../src/types/enums/CoreAddressChain'
 import { deriveCoreAddressesFromXpub, deriveCoreAddressPrivateKey } from '../../../../src/utils/coreAddresses'
 import { deriveWalletHdKey } from '../../../../src/utils'
+import { MAX_CORE_OUTPUTS } from '../../../../src/constants'
 
 jest.mock('../../../../src/utils/coreAddresses', () => {
   const actual = jest.requireActual('../../../../src/utils/coreAddresses')
@@ -29,6 +30,7 @@ const deriveWalletHdKeyMock = deriveWalletHdKey as jest.MockedFunction<typeof de
 const RECEIVING = ['yWjF8BxE6xr3hew5FUVNBdZhQLcLQq7Tej', 'yWjGKfvcPT5nPTkqFX7H2EQ764Hp5PrCff']
 const CHANGE = ['yVMvvEvrZVRvBcyvG4w8VLbbko3EuPcQLA', 'yVMx7iuEqyfesRogG7Z3KwS1SWiibPVUfh']
 const DESTINATION = 'yVUKAMNURsDaGB4GFZgJUmYBoBJTW32stY'
+const DESTINATION_2 = 'yed5KHEApak7fxVNPAVYUpHMwb4yM1bfT9'
 
 // One input, recipient plus change: 226 bytes at 1 duff/byte.
 const FEE_1_IN = 226n
@@ -40,14 +42,14 @@ const utxo = (address: string, amount: bigint, vout = 0): any => ({
   address
 })
 
-describe('SendCoreTransferHandler', () => {
+describe('SendCoreTransactionHandler', () => {
   const password = 'test'
 
   let walletRepository: any
   let coreExplorer: any
   let sdk: any
   let coreSDK: any
-  let handler: SendCoreTransferHandler
+  let handler: SendCoreTransactionHandler
 
   const event = (payload: any): any => ({ payload })
 
@@ -99,11 +101,11 @@ describe('SendCoreTransferHandler', () => {
     sdk = {}
     coreSDK = { broadcastTransaction: jest.fn(async () => ({ transactionId: 'broadcasted' })) }
 
-    handler = new SendCoreTransferHandler(walletRepository, coreExplorer, sdk, coreSDK)
+    handler = new SendCoreTransactionHandler(walletRepository, coreExplorer, sdk, coreSDK)
   })
 
   it('spends the wallet outputs, signs and broadcasts the transaction', async () => {
-    const response = await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
+    const response = await handler.handle(event({ outputs: [{ address: DESTINATION, amountDuffs: '10000' }], password }))
 
     expect(coreSDK.broadcastTransaction).toHaveBeenCalledTimes(1)
     expect(response).toEqual({
@@ -111,20 +113,41 @@ describe('SendCoreTransferHandler', () => {
       amountDuffs: '10000',
       feeDuffs: FEE_1_IN.toString(),
       changeDuffs: (100_000n - 10_000n - FEE_1_IN).toString(),
-      toAddress: DESTINATION,
+      outputs: [{ address: DESTINATION, amountDuffs: '10000' }],
       changeAddress: CHANGE[1],
       fromAddresses: [RECEIVING[0]]
     })
   })
 
+  it('pays several recipients from one transaction', async () => {
+    const response = await handler.handle(event({
+      outputs: [
+        { address: DESTINATION, amountDuffs: '10000' },
+        { address: DESTINATION_2, amountDuffs: '20000' }
+      ],
+      password
+    }))
+
+    expect(coreSDK.broadcastTransaction).toHaveBeenCalledTimes(1)
+    expect(response.outputs).toEqual([
+      { address: DESTINATION, amountDuffs: '10000' },
+      { address: DESTINATION_2, amountDuffs: '20000' }
+    ])
+    // The amount is what the recipients got between them, change excluded, and
+    // the fee is priced on three outputs rather than two.
+    expect(response.amountDuffs).toEqual('30000')
+    expect(BigInt(response.feeDuffs)).toBeGreaterThan(FEE_1_IN)
+    expect(BigInt(response.amountDuffs) + BigInt(response.feeDuffs) + BigInt(response.changeDuffs)).toEqual(100_000n)
+  })
+
   it('queries every owned address when no source is given', async () => {
-    await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
+    await handler.handle(event({ outputs: [{ address: DESTINATION, amountDuffs: '10000' }], password }))
 
     expect(coreExplorer.getAddressesUtxos).toHaveBeenCalledWith([...RECEIVING, ...CHANGE], 'testnet')
   })
 
   it('limits the spend to the requested source address', async () => {
-    await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password, fromAddress: RECEIVING[0] }))
+    await handler.handle(event({ outputs: [{ address: DESTINATION, amountDuffs: '10000' }], password, fromAddress: RECEIVING[0] }))
 
     expect(coreExplorer.getAddressesUtxos).toHaveBeenCalledWith([RECEIVING[0]], 'testnet')
   })
@@ -135,7 +158,7 @@ describe('SendCoreTransferHandler', () => {
       utxo(CHANGE[0], 7_000n, 1)
     ])
 
-    await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
+    await handler.handle(event({ outputs: [{ address: DESTINATION, amountDuffs: '10000' }], password }))
 
     expect(deriveCoreAddressPrivateKeyMock.mock.calls.map(call => [call[3], call[4]])).toEqual([
       [CoreAddressChain.change, 0],
@@ -146,31 +169,31 @@ describe('SendCoreTransferHandler', () => {
   it('refuses to sign when the derived key does not match the address it spends', async () => {
     deriveCoreAddressPrivateKeyMock.mockResolvedValue(PrivateKey.fromBytes(new Uint8Array(32).fill(7), 'testnet'))
 
-    await expect(handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password })))
+    await expect(handler.handle(event({ outputs: [{ address: DESTINATION, amountDuffs: '10000' }], password })))
       .rejects.toThrow('the stored xpub and the wallet seed disagree')
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
   it('does not keep its own view of what it spent: the explorer indexes the mempool', async () => {
-    await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
+    await handler.handle(event({ outputs: [{ address: DESTINATION, amountDuffs: '10000' }], password }))
 
     // A second send reads the explorer again, which by then lists neither the
     // inputs this one spent nor anything but its change.
     coreExplorer.getAddressesUtxos.mockResolvedValue([utxo(CHANGE[1], 89_774n, 1)])
 
-    const second = await handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password }))
+    const second = await handler.handle(event({ outputs: [{ address: DESTINATION, amountDuffs: '10000' }], password }))
 
     expect(second.fromAddresses).toEqual([CHANGE[1]])
   })
 
   it('rejects a source address the wallet does not own', async () => {
-    await expect(handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password, fromAddress: DESTINATION })))
+    await expect(handler.handle(event({ outputs: [{ address: DESTINATION, amountDuffs: '10000' }], password, fromAddress: DESTINATION })))
       .rejects.toThrow('Source address not found in this wallet')
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
   it('rejects a recipient from another network before touching the explorer', async () => {
-    await expect(handler.handle(event({ toAddress: 'XanAvE5GMB8CsPH78B9moJq9viEVKvCS4f', amountDuffs: '10000', password })))
+    await expect(handler.handle(event({ outputs: [{ address: 'XanAvE5GMB8CsPH78B9moJq9viEVKvCS4f', amountDuffs: '10000' }], password })))
       .rejects.toThrow('Invalid recipient Core address for testnet')
     expect(coreExplorer.getXpubSummary).not.toHaveBeenCalled()
   })
@@ -178,37 +201,50 @@ describe('SendCoreTransferHandler', () => {
   it('throws when the wallet has no unspent outputs', async () => {
     coreExplorer.getAddressesUtxos.mockResolvedValue([])
 
-    await expect(handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password })))
+    await expect(handler.handle(event({ outputs: [{ address: DESTINATION, amountDuffs: '10000' }], password })))
       .rejects.toThrow('This wallet has no unspent Core outputs to spend')
   })
 
   it('throws when the Core xpub has never been initialized', async () => {
     walletRepository.getCoreAccountXpub.mockResolvedValue(null)
 
-    await expect(handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password })))
+    await expect(handler.handle(event({ outputs: [{ address: DESTINATION, amountDuffs: '10000' }], password })))
       .rejects.toThrow('Core xpub is not initialized')
   })
 
   it('refuses a wallet that has no seed phrase to derive keys from', async () => {
     walletRepository.getCurrent.mockResolvedValue({ walletId: 'w', type: 'keystore', network: 'testnet' })
 
-    await expect(handler.handle(event({ toAddress: DESTINATION, amountDuffs: '10000', password })))
+    await expect(handler.handle(event({ outputs: [{ address: DESTINATION, amountDuffs: '10000' }], password })))
       .rejects.toThrow('only supported for a seedphrase wallet')
   })
 
   describe('validatePayload', () => {
+    const outputs = [{ address: DESTINATION, amountDuffs: '10000' }]
+
     it('accepts a well formed payload', () => {
-      expect(handler.validatePayload({ toAddress: DESTINATION, amountDuffs: '10000', password })).toBeNull()
+      expect(handler.validatePayload({ outputs, password })).toBeNull()
     })
 
-    it('rejects a non-positive or non-integer amount', () => {
-      expect(handler.validatePayload({ toAddress: DESTINATION, amountDuffs: '0', password })).toMatch(/positive integer/)
-      expect(handler.validatePayload({ toAddress: DESTINATION, amountDuffs: '0.5', password })).toMatch(/positive integer/)
+    it('rejects an empty or missing recipient list', () => {
+      expect(handler.validatePayload({ outputs: [], password } as any)).toMatch(/non-empty/)
+      expect(handler.validatePayload({ password } as any)).toMatch(/non-empty/)
     })
 
-    it('rejects a missing recipient or password', () => {
-      expect(handler.validatePayload({ toAddress: '', amountDuffs: '10000', password })).toMatch(/Recipient/)
-      expect(handler.validatePayload({ toAddress: DESTINATION, amountDuffs: '10000', password: '' })).toMatch(/Password/)
+    it('rejects more recipients than a transaction may pay', () => {
+      const tooMany = Array.from({ length: MAX_CORE_OUTPUTS + 1 }, () => ({ address: DESTINATION, amountDuffs: '10000' }))
+
+      expect(handler.validatePayload({ outputs: tooMany, password })).toMatch(/at most 1000 recipients/)
+    })
+
+    it('rejects a non-integer amount, and one that would be dust', () => {
+      expect(handler.validatePayload({ outputs: [{ address: DESTINATION, amountDuffs: '0.5' }], password })).toMatch(/integer string/)
+      expect(handler.validatePayload({ outputs: [{ address: DESTINATION, amountDuffs: '546' }], password })).toMatch(/greater than 546/)
+    })
+
+    it('rejects a missing address or password', () => {
+      expect(handler.validatePayload({ outputs: [{ address: '', amountDuffs: '10000' }], password })).toMatch(/must name an address/)
+      expect(handler.validatePayload({ outputs, password: '' })).toMatch(/Password/)
     })
   })
 })

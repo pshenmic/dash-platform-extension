@@ -106,9 +106,10 @@ describe('selectCoreUtxos', () => {
 
 describe('buildCoreTransfer', () => {
   const inputs = [utxo(CHANGE, 100_000n), utxo(CHANGE, 50_000n, 3)]
+  const one = [{ address: RECIPIENT, amountDuffs: 10_000n }]
 
   it('pays the recipient and returns the change to our own address', () => {
-    const transaction = buildCoreTransfer(inputs, RECIPIENT, 10_000n, CHANGE, 5_000n, 'testnet')
+    const transaction = buildCoreTransfer(inputs, one, CHANGE, 5_000n, 'testnet')
 
     expect(transaction.outputs).toHaveLength(2)
     expect(transaction.outputs[0].satoshis).toBe(10_000n)
@@ -117,14 +118,30 @@ describe('buildCoreTransfer', () => {
     expect(transaction.outputs[1].getAddress('testnet')).toBe(CHANGE)
   })
 
+  it('pays every recipient in the order it was given, change last', () => {
+    const transaction = buildCoreTransfer(
+      inputs,
+      [{ address: RECIPIENT, amountDuffs: 10_000n }, { address: CHANGE, amountDuffs: 20_000n }],
+      CHANGE,
+      5_000n,
+      'testnet'
+    )
+
+    expect(transaction.outputs.map(output => [output.getAddress('testnet'), output.satoshis])).toEqual([
+      [RECIPIENT, 10_000n],
+      [CHANGE, 20_000n],
+      [CHANGE, 5_000n]
+    ])
+  })
+
   it('omits the change output when there is no change', () => {
-    const transaction = buildCoreTransfer(inputs, RECIPIENT, 10_000n, CHANGE, 0n, 'testnet')
+    const transaction = buildCoreTransfer(inputs, one, CHANGE, 0n, 'testnet')
 
     expect(transaction.outputs).toHaveLength(1)
   })
 
   it('carries one final input per selected output', () => {
-    const transaction = buildCoreTransfer(inputs, RECIPIENT, 10_000n, CHANGE, 5_000n, 'testnet')
+    const transaction = buildCoreTransfer(inputs, one, CHANGE, 5_000n, 'testnet')
 
     expect(transaction.inputs.map(input => [input.txId, input.vOut, input.sequence])).toEqual([
       [inputs[0].txid, 0, 0xffffffff],
@@ -133,7 +150,16 @@ describe('buildCoreTransfer', () => {
   })
 
   it('refuses a recipient address from another network', () => {
-    expect(() => buildCoreTransfer(inputs, 'XanAvE5GMB8CsPH78B9moJq9viEVKvCS4f', 10_000n, CHANGE, 0n, 'testnet'))
-      .toThrow(/not a valid testnet address/)
+    expect(() => buildCoreTransfer(
+      inputs, [{ address: 'XanAvE5GMB8CsPH78B9moJq9viEVKvCS4f', amountDuffs: 10_000n }], CHANGE, 0n, 'testnet'
+    )).toThrow(/not a valid testnet address/)
+  })
+
+  it('prices the extra outputs into the selection', () => {
+    // 1 input, 3 outputs (two recipients and change): 10 + 148 + 102 = 260.
+    const selection = selectCoreUtxos([utxo(RECIPIENT, 100_000n)], 30_000n, 2)
+
+    expect(selection.fee).toBe(260n)
+    expect(selection.change).toBe(100_000n - 30_000n - 260n)
   })
 })

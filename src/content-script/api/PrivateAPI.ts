@@ -53,7 +53,7 @@ import { GetCoreReceiveAddressHandler } from './private/core/getCoreReceiveAddre
 import { ListCoreAddressesHandler } from './private/core/listCoreAddresses'
 import { GetCoreBalanceHandler } from './private/core/getCoreBalance'
 import { GetCoreTransactionsHandler } from './private/core/getCoreTransactions'
-import { SendCoreTransferHandler } from './private/core/sendCoreTransfer'
+import { SendCoreTransactionHandler } from './private/core/sendCoreTransaction'
 import { GeneratePlatformAddressesHandler } from './private/wallet/generatePlatformAddresses'
 import { ListPlatformAddressesHandler } from './private/wallet/listPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
@@ -185,7 +185,7 @@ export class PrivateAPI {
       [MessagingMethods.LIST_CORE_ADDRESSES]: new ListCoreAddressesHandler(walletRepository, coreExplorer, this.sdk),
       [MessagingMethods.GET_CORE_BALANCE]: new GetCoreBalanceHandler(walletRepository, coreExplorer),
       [MessagingMethods.GET_CORE_TRANSACTIONS]: new GetCoreTransactionsHandler(walletRepository, coreExplorer),
-      [MessagingMethods.SEND_CORE_TRANSFER]: new SendCoreTransferHandler(walletRepository, coreExplorer, this.sdk, this.coreSDK),
+      [MessagingMethods.SEND_CORE_TRANSACTION]: new SendCoreTransactionHandler(walletRepository, coreExplorer, this.sdk, this.coreSDK),
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk),

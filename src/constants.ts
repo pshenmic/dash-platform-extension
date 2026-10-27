@@ -85,6 +85,11 @@ export const PLATFORM_ADDRESS_GENERATE_BATCH = 10
 // balance check and the estimated fee. Sized to the SDK's ~15M pre-flight demand.
 // MIN_OUTPUT_CREDITS guards against dust outputs.
 export const MIN_OUTPUT_CREDITS = 500_000n
+// Most recipients one transition or one transaction may pay. Platform refuses
+// an address transition above its own `max_address_outputs`; on L1 the limit is
+// practical rather than consensus - a transaction has to stay relayable, and
+// 1000 outputs is already 34 KB of them.
+export const MAX_CORE_OUTPUTS = 1000
 export const TRANSFER_FEE_CREDITS = 15_000_000n
 // Core (L1) base58check version bytes for decoding a withdrawal address to a script.
 export const CORE_ADDRESS_VERSIONS = {
