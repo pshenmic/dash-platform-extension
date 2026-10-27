@@ -36,29 +36,6 @@ export const TOPUP_FUNDING_GAP_LIMIT = 20
 export const IDENTITY_LOOKUP_ATTEMPTS = 3
 export const IDENTITY_INDEX_SCAN_LIMIT = 20
 
-// Platform nodes this extension is willing to talk to. The ones answering at
-// boot make up the pool: the SDK picks a node at random per call and never
-// retries on another, so an unreachable node in the pool costs its share of
-// every request.
-//
-// The SDK ships a single hardcoded seed and discovers the rest through the
-// platform explorer. On 12 October 2026 the explorer and that seed went down
-// together and took Platform with them, for every wallet on both networks.
-//
-// Mainnet keeps the node it has had until its alternatives are verified against
-// the live chain; testnet carries the official seeds, which were.
-export const PLATFORM_DAPI_URLS = {
-  testnet: [
-    'https://158.160.14.115:1443',
-    'https://seed-1.testnet.networks.dash.org:1443',
-    'https://seed-2.testnet.networks.dash.org:1443',
-    'https://seed-4.testnet.networks.dash.org:1443'
-  ],
-  mainnet: [
-    'https://158.160.14.115:1443'
-  ]
-}
-
 // dashscan (L1 / Dash Core): REST API for balances, addresses and transaction
 // history, plus the web explorer the UI links rows out to.
 export const CORE_EXPLORER_URLS = {

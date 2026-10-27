@@ -1,8 +1,6 @@
 import { EventData } from '../../types/EventData'
 import { DashCoreSDK } from 'dash-core-sdk'
 import { Network } from '../../types/enums/Network'
-import { PLATFORM_DAPI_URLS } from '../../constants'
-import { asCoreDapiUrl, pickLiveDapiUrls } from '../../utils/dapiNodes'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
@@ -103,17 +101,10 @@ export class PrivateAPI {
    * talking to the old chain until the extension was reloaded.
    */
   async setNetwork (network: Network): Promise<void> {
-    // The SDK rebuilds its connection pool from the options it was built with,
-    // and the nodes differ per network - so the list has to be swapped before
-    // the switch, or mainnet would be asked of testnet nodes.
-    const dapiUrl = await pickLiveDapiUrls(PLATFORM_DAPI_URLS[network])
-
-    if (this.sdk.options?.grpc != null) {
-      this.sdk.options.grpc.dapiUrl = dapiUrl
-    }
-
     this.sdk.setNetwork(network)
-    this.coreSDK = new DashCoreSDK({ network, dapiUrl: asCoreDapiUrl(dapiUrl) })
+    // The core SDK is fixed to the network it was built with, so switching the
+    // platform side alone would leave L1 calls pointed at the old one.
+    this.coreSDK = new DashCoreSDK({ network })
 
     this.buildHandlers()
   }

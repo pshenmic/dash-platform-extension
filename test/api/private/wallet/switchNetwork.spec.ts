@@ -10,8 +10,7 @@ import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
 import { MessagingMethods } from '../../../../src/types/enums/MessagingMethods'
-import { PLATFORM_DAPI_URLS } from '../../../../src/constants'
-import { testCoreSdk } from '../../../helpers/testSdk'
+import { testCoreSdk, testSdk } from '../../../helpers/testSdk'
 
 describe('create wallet', () => {
   let privateAPI: PrivateAPI
@@ -22,10 +21,7 @@ describe('create wallet', () => {
 
   beforeEach(async () => {
     const memoryStorageAdapter = new MemoryStorageAdapter()
-    sdk = new DashPlatformSDK({
-      network: 'testnet',
-      grpc: { poolLimit: 5, dapiUrl: PLATFORM_DAPI_URLS.testnet }
-    })
+    sdk = await testSdk()
     const coreSDK = await testCoreSdk()
 
     storage = memoryStorageAdapter
@@ -92,10 +88,10 @@ describe('create wallet', () => {
     expect(privateAPI.handlers[MessagingMethods.GET_STATUS]).not.toBe(before)
   })
 
-  test('should point the platform SDK at the new network nodes', async () => {
+  test('should point the platform SDK at the new network', async () => {
     await privateAPIClient.switchNetwork('mainnet')
 
-    expect(sdk.options?.grpc?.dapiUrl).toEqual(PLATFORM_DAPI_URLS.mainnet)
+    expect(sdk.getNetwork()).toBe('mainnet')
   })
 
   test('should leave everything alone when the network is already current', async () => {
