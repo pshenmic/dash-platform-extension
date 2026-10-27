@@ -1,4 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPIClient } from '../../../../src/types/PrivateAPIClient'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { connectBackend } from '../../../helpers/connectBackend'
@@ -10,7 +11,6 @@ import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
 import runMigrations from '../../../../src/content-script/storage/runMigrations'
 import { MessagingMethods } from '../../../../src/types/enums/MessagingMethods'
-import { testCoreSdk, testSdk } from '../../../helpers/testSdk'
 
 describe('create wallet', () => {
   let privateAPI: PrivateAPI
@@ -21,8 +21,8 @@ describe('create wallet', () => {
 
   beforeEach(async () => {
     const memoryStorageAdapter = new MemoryStorageAdapter()
-    sdk = await testSdk()
-    const coreSDK = await testCoreSdk()
+    sdk = new DashPlatformSDK({ network: 'testnet' })
+    const coreSDK = new DashCoreSDK({ network: 'testnet' })
 
     storage = memoryStorageAdapter
     await runMigrations(storage)

@@ -1,5 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { testCoreSdk, testSdk } from '../../../helpers/testSdk'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateKey } from 'eciesjs'
 import hash from 'hash.js'
 import { PrivateAPIClient, WalletType } from '../../../../src/types'
@@ -19,8 +19,8 @@ describe('import masternode identity', () => {
   let secretKey: PrivateKey
 
   beforeAll(async () => {
-    sdk = await testSdk()
-    const coreSDK = await testCoreSdk()
+    sdk = new DashPlatformSDK({ network: 'testnet' })
+    const coreSDK = new DashCoreSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter
