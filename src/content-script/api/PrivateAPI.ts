@@ -46,6 +46,7 @@ import { CoreSpendService } from '../services/CoreSpendService'
 import { AssetLockFundingService } from '../services/AssetLockFundingService'
 import { PendingAssetLocksRepository } from '../repository/PendingAssetLocksRepository'
 import { RegisterIdentityFromWalletHandler } from './private/identities/registerIdentityFromWallet'
+import { TopUpIdentityFromWalletHandler } from './private/identities/topUpIdentityFromWallet'
 import { ListPendingAssetLocksHandler } from './private/assetLocks/listPendingAssetLocks'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
@@ -162,6 +163,16 @@ export class PrivateAPI {
     const coreUtxos = new CoreUtxosService(this.sdk, coreExplorer)
     const coreSpend = new CoreSpendService(this.sdk, this.coreSDK, coreUtxos)
     const assetLockFunding = new AssetLockFundingService(coreExplorer, coreSpend)
+    const requestTopUpFundingAddress = new RequestTopUpFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, coreExplorer, this.sdk, this.storageAdapter)
+    const topUpIdentity = new TopUpIdentityHandler(
+      walletRepository,
+      identitiesRepository,
+      assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
+      this.sdk,
+      this.coreSDK,
+      coreExplorer
+    )
 
     // Shared with the chains below: they hand the same instances their own scope
     // rather than building a second copy per call.
@@ -212,7 +223,7 @@ export class PrivateAPI {
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
       [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: requestAssetLockFundingAddress,
       [MessagingMethods.LIST_PENDING_ASSET_LOCKS]: new ListPendingAssetLocksHandler(pendingAssetLocksRepository, assetLockFundingAddressesRepository),
-      [MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS]: new RequestTopUpFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, coreExplorer, this.sdk, this.storageAdapter),
+      [MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS]: requestTopUpFundingAddress,
       [MessagingMethods.REGISTER_IDENTITY]: registerIdentity,
       [MessagingMethods.REGISTER_IDENTITY_FROM_WALLET]: new RegisterIdentityFromWalletHandler(
         walletRepository,
@@ -223,10 +234,14 @@ export class PrivateAPI {
         registerIdentity,
         this.sdk
       ),
-      [MessagingMethods.TOP_UP_IDENTITY]: new TopUpIdentityHandler(
+      [MessagingMethods.TOP_UP_IDENTITY]: topUpIdentity,
+      [MessagingMethods.TOP_UP_IDENTITY_FROM_WALLET]: new TopUpIdentityFromWalletHandler(
         walletRepository,
-        identitiesRepository,
         assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
+        assetLockFunding,
+        requestTopUpFundingAddress,
+        topUpIdentity,
         this.sdk,
         this.coreSDK
       ),
