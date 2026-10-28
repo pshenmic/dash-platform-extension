@@ -3,39 +3,23 @@ import { EventData } from '../../../../types/EventData'
 import { RejectAppConnectPayload } from '../../../../types/messages/payloads/RejectAppConnectPayload'
 import { VoidResponse } from '../../../../types/messages/response/VoidResponse'
 import { AppConnectRepository } from '../../../repository/AppConnectRepository'
-import { StorageAdapter } from '../../../storage/storageAdapter'
-import { AppConnectsStorageSchema } from '../../../storage/storageSchema'
 import { AppConnectStatus } from '../../../../types/enums/AppConnectStatus'
 
 export class RejectAppConnectHandler implements APIHandler {
   appConnectRepository: AppConnectRepository
-  storageAdapter: StorageAdapter
 
-  constructor (appConnectRepository: AppConnectRepository, storageAdapter: StorageAdapter) {
+  constructor (appConnectRepository: AppConnectRepository) {
     this.appConnectRepository = appConnectRepository
-    this.storageAdapter = storageAdapter
   }
 
   async handle (event: EventData): Promise<VoidResponse> {
     const payload: RejectAppConnectPayload = event.payload
 
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const storageKey = `appConnects_${network}_${walletId}`
-    const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
-
-    if (appConnects[payload.id] == null) {
+    if (await this.appConnectRepository.getById(payload.id) == null) {
       throw new Error('AppConnect not found')
     }
 
-    appConnects[payload.id].status = AppConnectStatus.rejected
-
-    await this.storageAdapter.set(storageKey, appConnects)
+    await this.appConnectRepository.setStatus(payload.id, AppConnectStatus.rejected)
 
     return {}
   }

@@ -1,4 +1,5 @@
-import { testCoreSdk, testSdk } from '../../../helpers/testSdk'
+import { DashPlatformSDK } from 'dash-platform-sdk'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { connectBackend } from '../../../helpers/connectBackend'
 import { StorageAdapter } from '../../../../src/content-script/storage/storageAdapter'
@@ -16,8 +17,8 @@ describe('get available key pairs', () => {
   let storage: StorageAdapter
 
   beforeEach(async () => {
-    const sdk = await testSdk()
-    const coreSDK = await testCoreSdk()
+    const sdk = new DashPlatformSDK({ network: 'testnet' })
+    const coreSDK = new DashCoreSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter

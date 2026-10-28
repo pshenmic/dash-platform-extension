@@ -1,4 +1,5 @@
-import { testCoreSdk, testSdk } from '../../../helpers/testSdk'
+import { DashPlatformSDK } from 'dash-platform-sdk'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPIClient, WalletType } from '../../../../src/types'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { connectBackend } from '../../../helpers/connectBackend'
@@ -17,8 +18,8 @@ describe('app connects', () => {
   let secretKey: PrivateKey
 
   beforeEach(async () => {
-    const sdk = await testSdk()
-    const coreSDK = await testCoreSdk()
+    const sdk = new DashPlatformSDK({ network: 'testnet' })
+    const coreSDK = new DashCoreSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter
@@ -50,8 +51,8 @@ describe('app connects', () => {
     await privateAPIClient.importIdentity(identity, [privateKey])
 
     const mockAppConnects: AppConnectsStorageSchema = {
-      mockId1: { id: 'mockId1', url: 'http://localhost:8080', status: AppConnectStatus.approved },
-      mockId2: { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected }
+      mockId1: { id: 'mockId1', url: 'http://localhost:8080', status: AppConnectStatus.approved, identities: [] },
+      mockId2: { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected, identities: [] }
     }
 
     await storage.set(`appConnects_testnet_${walletId}`, mockAppConnects)
@@ -61,8 +62,9 @@ describe('app connects', () => {
     const expectedAppConnects = [{
       id: 'mockId1',
       url: 'http://localhost:8080',
-      status: AppConnectStatus.approved
-    }, { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected }]
+      status: AppConnectStatus.approved,
+      identities: []
+    }, { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected, identities: [] }]
 
     expect(appConnects).toStrictEqual(expectedAppConnects)
   })

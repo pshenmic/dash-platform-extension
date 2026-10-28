@@ -13,10 +13,13 @@ const start = async (): Promise<void> => {
     throw new Error('WebAssembly not supported')
   }
 
-  // Dynamic import to bypass automatic WebAssembly modules initialization
+  // Dynamic import to bypass automatic WebAssembly modules initialization.
+  // Eager, so it costs no separate chunk: webpack resolves a lazy chunk against
+  // the document, which in a content script is the website, and loading
+  // https://<site>/488.js is both wrong and blocked by the site's CSP.
   // eslint-disable-next-line
   // @ts-ignore
-  const { initApp } = await import('./initApp')
+  const { initApp } = await import(/* webpackMode: "eager" */ './initApp')
 
   await initApp()
 

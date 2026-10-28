@@ -1,5 +1,4 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { testSdk } from '../helpers/testSdk'
 import { deriveCoreAccountXpub, deriveCoreAddressesFromXpub } from '../../src/utils/coreAddresses'
 import { CoreAddressChain } from '../../src/types/enums/CoreAddressChain'
 import { WalletType } from '../../src/types/WalletType'
@@ -88,7 +87,7 @@ describe('core address derivation', () => {
   })
 
   test('rejects a non-seedphrase wallet', async () => {
-    const sdk = await testSdk()
+    const sdk = new DashPlatformSDK({ network: 'testnet' })
     const wallet = { ...buildWallet('testnet'), type: WalletType.keystore }
 
     await expect(deriveCoreAccountXpub(wallet, PASSWORD, 0, sdk))
@@ -96,7 +95,7 @@ describe('core address derivation', () => {
   })
 
   test('derives a distinct xpub per account', async () => {
-    const sdk = await testSdk()
+    const sdk = new DashPlatformSDK({ network: 'testnet' })
     const wallet = buildWallet('testnet')
 
     const [first, second] = await Promise.all([

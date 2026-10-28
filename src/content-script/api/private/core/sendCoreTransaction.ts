@@ -7,9 +7,9 @@ import { SendCoreTransactionResponse } from '../../../../types/messages/response
 import { validateCoreOutputsPayload } from './estimateCoreTransfer'
 import { validateCoreAddress } from '../../../../utils'
 
-// Sends one Core (L1) transaction paying several recipients, optionally out of
-// outputs the caller picked and with change to an address it names. The general
-// form of SEND_CORE_TRANSFER, which stays as the one-recipient shorthand.
+// Sends one Core (L1) transaction paying one or more recipients, optionally out
+// of outputs the caller picked and with change to an address it names. One
+// recipient is this with a single output, so it needs no method of its own.
 export class SendCoreTransactionHandler implements APIHandler {
   walletRepository: WalletRepository
   coreSpend: CoreSpendService

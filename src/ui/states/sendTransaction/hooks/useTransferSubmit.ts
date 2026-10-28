@@ -72,7 +72,7 @@ const startTransfer = async (context: TransferContext): Promise<TransferResult> 
 
   switch (mode) {
     case 'coreSend':
-      return await corePayment(api.sendCoreTransfer(recipient, amount, password))
+      return await corePayment(api.sendCoreTransaction([{ address: recipient, amountDuffs: amount }], password))
     case 'coreTopUp':
       return await coreFunding(api.topUpIdentityFromWallet(recipient, amount, password, walletId, network))
     case 'coreFund':

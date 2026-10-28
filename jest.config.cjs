@@ -1,6 +1,6 @@
 module.exports = {
-  // Public Platform nodes answer slower than the one the SDK used to hardcode,
-  // and every suite probes which of them are up before it starts.
+  // Each SDK health-checks its own pool before the first call can be answered,
+  // and that round takes tens of seconds when some of the seeds are down.
   testTimeout: 60000,
   // Several suites talk to live Platform nodes, and those nodes drop
   // connections when a whole machine's worth of workers opens them at once:

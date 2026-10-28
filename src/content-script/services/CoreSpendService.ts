@@ -3,7 +3,7 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { Wallet } from '../../types/Wallet'
 import { CoreAddressChain } from '../../types/enums/CoreAddressChain'
 import { CoreAddressEntry, deriveCoreAddressesFromXpub, deriveCoreAddressKeyAtIndex } from '../../utils/coreAddresses'
-import { buildCoreTransferMulti, CoreTransferOutput, maxCoreSpend, selectCoreUtxos } from '../../utils/coreTransfer'
+import { buildCoreTransfer, CoreTransferOutput, maxCoreSpend, selectCoreUtxos } from '../../utils/coreTransfer'
 import { deriveWalletHdKey, hexToBytes } from '../../utils'
 import { CoreWalletUtxo } from './CoreExplorerService'
 import { CoreUtxosService } from './CoreUtxosService'
@@ -171,7 +171,7 @@ export class CoreSpendService {
     const { inputs, amountDuffs, feeDuffs, changeDuffs, changeAddress, owned } = plan
     const account = params.account ?? 0
 
-    const transaction = buildCoreTransferMulti(
+    const transaction = buildCoreTransfer(
       inputs, plan.outputs, changeAddress, changeDuffs, wallet.network
     )
 

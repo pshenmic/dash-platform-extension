@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 9
+export const SCHEMA_VERSION = 10
 export const MESSAGING_TIMEOUT = 3 * 60 * 1000
 // Shielded (Orchard) Halo2 proofs are CPU-heavy and run well past the normal
 // timeout in the popup — give these calls a much longer window.
@@ -31,35 +31,12 @@ export const MIN_TOPUP_FUNDING_DASH = Number(MIN_TOPUP_FUNDING_DUFFS) / 1e8
 // Gap limit for scanning DIP-13 top-up funding indexes (m/9'/coin'/5'/2'/N).
 export const TOPUP_FUNDING_GAP_LIMIT = 20
 
-// Upper bound for scanning identity indexes when picking the next free one.
 // How many times an identity lookup is retried before the scan gives up. The
 // SDK picks a node at random per call and never retries, so a single unlucky
 // pick would otherwise truncate the wallet's identity list.
 export const IDENTITY_LOOKUP_ATTEMPTS = 3
+// Upper bound for scanning identity indexes when picking the next free one.
 export const IDENTITY_INDEX_SCAN_LIMIT = 20
-
-// Platform nodes this extension is willing to talk to. The ones answering at
-// boot make up the pool: the SDK picks a node at random per call and never
-// retries on another, so an unreachable node in the pool costs its share of
-// every request.
-//
-// The SDK ships a single hardcoded seed and discovers the rest through the
-// platform explorer. On 12 October 2026 the explorer and that seed went down
-// together and took Platform with them, for every wallet on both networks.
-//
-// Mainnet keeps the node it has had until its alternatives are verified against
-// the live chain; testnet carries the official seeds, which were.
-export const PLATFORM_DAPI_URLS = {
-  testnet: [
-    'https://158.160.14.115:1443',
-    'https://seed-1.testnet.networks.dash.org:1443',
-    'https://seed-2.testnet.networks.dash.org:1443',
-    'https://seed-4.testnet.networks.dash.org:1443'
-  ],
-  mainnet: [
-    'https://158.160.14.115:1443'
-  ]
-}
 
 // dashscan (L1 / Dash Core): REST API for balances, addresses and transaction
 // history, plus the web explorer the UI links rows out to.
@@ -187,6 +164,9 @@ export const SHIELDED_UNSHIELD_ADDRESS_STORAGE_BYTES = 222n
 export const SHIELDED_WITHDRAWAL_DOCUMENT_STORAGE_BYTES = 4100n
 // Orchard pads every bundle to at least this many actions.
 export const SHIELDED_MIN_ACTIONS = 2
+// Sentinel recipient for `shieldFromPlatformAddress` (which derives the destination from the
+// seed and takes no recipient) — carries "own pool" from send form to confirm.
+export const SHIELDED_POOL_RECIPIENT = 'shielded-pool'
 
 export const PLATFORM_EXPLORER_URLS = {
   testnet: {

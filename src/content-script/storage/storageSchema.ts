@@ -68,6 +68,9 @@ export interface AppConnectStorageSchema {
   id: string
   url: string
   status: string
+  // Identifiers of the identities this website was granted. Empty until the
+  // user approves the connection, and never wider than what they picked.
+  identities: string[]
 }
 
 export interface AppConnectsStorageSchema {

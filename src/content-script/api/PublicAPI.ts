@@ -4,7 +4,8 @@ import { StorageAdapter } from '../storage/storageAdapter'
 import { AppConnectRepository } from '../repository/AppConnectRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
-import { APIHandler } from './APIHandler'
+import { PublicAPIHandler } from './PublicAPIHandler'
+import { AppConnectStatus } from '../../types/enums/AppConnectStatus'
 import { ConnectAppHandler } from './public/connectApp'
 import { RequestStateTransitionApprovalHandler } from './public/requestStateTransitionApproval'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
@@ -27,7 +28,7 @@ export class PublicAPI {
   }
 
   handlers: {
-    [key: string]: APIHandler
+    [key: string]: PublicAPIHandler
   }
 
   async handleMessage (event: MessageEvent): Promise<any> {
@@ -42,8 +43,10 @@ export class PublicAPI {
 
     const appConnect = await this.appConnectRepository.getByURL(origin)
 
-    // check that origin exists in appConnect
-    if (method !== MessagingMethods.CONNECT_APP && (appConnect == null || appConnect.status !== 'approved')) {
+    // Connecting is the one thing an unknown origin may ask for. Everything
+    // else needs an approved connection, and the handler is handed it so that
+    // it can serve only what this website was granted.
+    if (method !== MessagingMethods.CONNECT_APP && (appConnect == null || appConnect.status !== AppConnectStatus.approved)) {
       throw new Error(`Application on url ${origin} is not authorized`)
     }
 
@@ -53,10 +56,15 @@ export class PublicAPI {
       throw new Error(`Invalid payload: ${validation}`)
     }
 
-    return await handler.handle(data)
+    return await handler.handle(data, { origin, appConnect })
   }
 
   init (): void {
+    this.buildHandlers()
+    this.listen()
+  }
+
+  buildHandlers (): void {
     const appConnectRepository = new AppConnectRepository(this.storageAdapter)
     this.appConnectRepository = appConnectRepository
 
@@ -73,7 +81,9 @@ export class PublicAPI {
       [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository, identitiesRepository, walletRepository, this.storageAdapter),
       [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(stateTransitionsRepository)
     }
+  }
 
+  listen (): void {
     window.addEventListener('message', (message: MessageEvent) => {
       const data = message.data as EventData
 

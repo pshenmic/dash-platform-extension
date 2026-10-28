@@ -10,7 +10,7 @@ import type { PrivateAPI } from '../content-script/api/PrivateAPI'
  * the backend is still booting queue on it instead of hitting "receiving end
  * does not exist" — the listener is registered synchronously by the caller.
  */
-export function attachMessaging (backend: Promise<PrivateAPI>): (data: EventData) => void {
+export function attachMessaging (backend: Promise<PrivateAPI>): void {
   const respond = (request: EventData, payload: any, error: string | null): void => {
     const message: EventData = {
       id: request.id,
@@ -31,13 +31,16 @@ export function attachMessaging (backend: Promise<PrivateAPI>): (data: EventData
   }
 
   const onMessage = (data: EventData): void => {
-    if (data?.context !== 'dash-platform-extension') return
-    if (data.type === 'response') return
+    if (data?.context !== 'dash-platform-extension' || data.type === 'response') {
+      return
+    }
 
     // Only act on the copy the service worker forwarded. sendMessage reaches
     // every extension context, so the popup's original request lands here too
     // — handling both would run every operation twice.
-    if (data.target !== 'offscreen') return
+    if (data.target !== 'offscreen') {
+      return
+    }
 
     backend
       .then(async (privateAPI) => await privateAPI.handleMessage(data))
@@ -50,8 +53,4 @@ export function attachMessaging (backend: Promise<PrivateAPI>): (data: EventData
   }
 
   ext.runtime.onMessage.addListener(onMessage)
-
-  // Handed back so a caller that attaches more than one backend over the life of
-  // a page - the tests do, one per case - can take the previous one off the bus.
-  return onMessage
 }

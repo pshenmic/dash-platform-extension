@@ -8,32 +8,28 @@ import type { PrivateAPI } from '../../src/content-script/api/PrivateAPI'
  * for the two production contexts: the offscreen document (attachMessaging)
  * and the service worker that tags requests for it.
  */
-// Listeners the previous call left on the shared message bus. A suite wires a
-// fresh backend in every beforeEach, and without dropping these the old ones
-// keep answering: whichever replies first wins, so a test can be answered by the
-// backend of the test before it.
-let wired: Array<(data: EventData) => void> = []
-
 export function connectBackend (privateAPI: PrivateAPI): void {
-  for (const listener of wired) {
-    ext.runtime.onMessage.removeListener(listener)
-  }
+  // A suite wires a fresh backend per case onto the bus the whole file shares.
+  // Without this the previous backends keep listening and answer out of their
+  // own storage. removeAllListeners belongs to the test bus alone, which is why
+  // it is not on the extension's own type.
+  const bus = ext.runtime.onMessage as unknown as { removeAllListeners: () => void }
 
-  wired = []
+  bus.removeAllListeners()
 
   privateAPI.buildHandlers()
 
-  wired.push(attachMessaging(Promise.resolve(privateAPI)))
+  attachMessaging(Promise.resolve(privateAPI))
 
   // Service-worker stand-in. The real one also creates the offscreen document;
   // here only the routing tag matters.
   const forward = (data: EventData): void => {
-    if (data?.context !== 'dash-platform-extension') return
-    if (data.type === 'response' || data.target === 'offscreen') return
+    if (data?.context !== 'dash-platform-extension' || data.type === 'response' || data.target === 'offscreen') {
+      return
+    }
 
     void ext.runtime.sendMessage({ ...data, target: 'offscreen' })
   }
 
   ext.runtime.onMessage.addListener(forward)
-  wired.push(forward)
 }

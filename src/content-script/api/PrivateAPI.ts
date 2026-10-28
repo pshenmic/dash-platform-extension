@@ -1,8 +1,6 @@
 import { EventData } from '../../types/EventData'
 import { DashCoreSDK } from 'dash-core-sdk'
 import { Network } from '../../types/enums/Network'
-import { PLATFORM_DAPI_URLS } from '../../constants'
-import { asCoreDapiUrl, pickLiveDapiUrls } from '../../utils/dapiNodes'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
@@ -36,15 +34,13 @@ import { SwitchNetworkHandler } from './private/wallet/switchNetwork'
 import { RemoveIdentityPrivateKeyHandler } from './private/identities/removePrivateKey'
 import { GetAllAppConnectsHandler } from './private/appConnect/getAllAppConnects'
 import { RemoveAppConnectHandler } from './private/appConnect/removeAppConnect'
+import { SetAppConnectIdentitiesHandler } from './private/appConnect/setAppConnectIdentities'
 import { ExportPrivateKeyHandler } from './private/identities/exportPrivateKey'
 import { RegisterUsernameHandler } from './private/identities/registerUsername'
 import { ImportMasternodeIdentityHandler } from './private/identities/importMasternodeIdentity'
 import { CreateStateTransitionHandler } from './private/stateTransitions/createStateTransition'
 import { CreateIdentityPrivateKeyHandler } from './private/identities/createIdentityPrivateKey'
 import { AssetLockFundingAddressesRepository } from '../repository/AssetLockFundingAddressesRepository'
-import { PendingAssetLocksRepository } from '../repository/PendingAssetLocksRepository'
-import { ListPendingAssetLocksHandler } from './private/assetLocks/listPendingAssetLocks'
-import { DiscardAssetLockFundingHandler } from './private/assetLocks/discardAssetLockFunding'
 import { CoreExplorerService } from '../services/CoreExplorerService'
 import { CoreUtxosService } from '../services/CoreUtxosService'
 import { CoreSpendService } from '../services/CoreSpendService'
@@ -54,7 +50,10 @@ import { ShieldFromCoreHandler } from './private/wallet/shieldFromCore'
 import { ShieldFromWalletHandler } from './private/wallet/shieldFromWallet'
 import { TopUpIdentityFromWalletHandler } from './private/identities/topUpIdentityFromWallet'
 import { FundPlatformAddressFromWalletHandler } from './private/wallet/fundPlatformAddressFromWallet'
+import { PendingAssetLocksRepository } from '../repository/PendingAssetLocksRepository'
 import { RegisterIdentityFromWalletHandler } from './private/identities/registerIdentityFromWallet'
+import { ListPendingAssetLocksHandler } from './private/assetLocks/listPendingAssetLocks'
+import { DiscardAssetLockFundingHandler } from './private/assetLocks/discardAssetLockFunding'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
@@ -66,12 +65,11 @@ import { SetSettingsHandler } from './private/settings/setSettings'
 import { InitAccountXpubsHandler } from './private/wallet/initAccountXpubs'
 import { GetCoreReceiveAddressHandler } from './private/core/getCoreReceiveAddress'
 import { ListCoreAddressesHandler } from './private/core/listCoreAddresses'
-import { ListCoreUtxosHandler } from './private/core/listCoreUtxos'
 import { GetCoreBalanceHandler } from './private/core/getCoreBalance'
 import { GetCoreTransactionsHandler } from './private/core/getCoreTransactions'
-import { SendCoreTransferHandler } from './private/core/sendCoreTransfer'
 import { SendCoreTransactionHandler } from './private/core/sendCoreTransaction'
 import { EstimateCoreTransferHandler } from './private/core/estimateCoreTransfer'
+import { ListCoreUtxosHandler } from './private/core/listCoreUtxos'
 import { GeneratePlatformAddressesHandler } from './private/wallet/generatePlatformAddresses'
 import { ListPlatformAddressesHandler } from './private/wallet/listPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
@@ -122,17 +120,10 @@ export class PrivateAPI {
    * talking to the old chain until the extension was reloaded.
    */
   async setNetwork (network: Network): Promise<void> {
-    // The SDK rebuilds its connection pool from the options it was built with,
-    // and the nodes differ per network - so the list has to be swapped before
-    // the switch, or mainnet would be asked of testnet nodes.
-    const dapiUrl = await pickLiveDapiUrls(PLATFORM_DAPI_URLS[network])
-
-    if (this.sdk.options?.grpc != null) {
-      this.sdk.options.grpc.dapiUrl = dapiUrl
-    }
-
     this.sdk.setNetwork(network)
-    this.coreSDK = new DashCoreSDK({ network, dapiUrl: asCoreDapiUrl(dapiUrl) })
+    // The core SDK is fixed to the network it was built with, so switching the
+    // platform side alone would leave L1 calls pointed at the old one.
+    this.coreSDK = new DashCoreSDK({ network })
 
     this.buildHandlers()
   }
@@ -241,8 +232,9 @@ export class PrivateAPI {
       [MessagingMethods.GET_APP_CONNECT]: new GetAppConnectHandler(appConnectRepository),
       [MessagingMethods.GET_ALL_APP_CONNECTS]: new GetAllAppConnectsHandler(appConnectRepository),
       [MessagingMethods.REMOVE_APP_CONNECT]: new RemoveAppConnectHandler(appConnectRepository),
-      [MessagingMethods.APPROVE_APP_CONNECT]: new ApproveAppConnectHandler(appConnectRepository, this.storageAdapter),
-      [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository, this.storageAdapter),
+      [MessagingMethods.APPROVE_APP_CONNECT]: new ApproveAppConnectHandler(appConnectRepository, identitiesRepository),
+      [MessagingMethods.REJECT_APP_CONNECT]: new RejectAppConnectHandler(appConnectRepository),
+      [MessagingMethods.SET_APP_CONNECT_IDENTITIES]: new SetAppConnectIdentitiesHandler(appConnectRepository, identitiesRepository),
       [MessagingMethods.REGISTER_USERNAME]: new RegisterUsernameHandler(identitiesRepository, walletRepository, keypairRepository, this.sdk),
       [MessagingMethods.CREATE_STATE_TRANSITION]: new CreateStateTransitionHandler(stateTransitionsRepository),
       [MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY]: new CreateIdentityPrivateKeyHandler(walletRepository, identitiesRepository, keypairRepository, this.storageAdapter, stateTransitionsRepository, this.sdk),
@@ -278,7 +270,6 @@ export class PrivateAPI {
       [MessagingMethods.GET_CORE_BALANCE]: new GetCoreBalanceHandler(walletRepository, coreExplorer, coreUtxos),
       [MessagingMethods.LIST_CORE_UTXOS]: new ListCoreUtxosHandler(walletRepository, coreUtxos),
       [MessagingMethods.GET_CORE_TRANSACTIONS]: new GetCoreTransactionsHandler(walletRepository, coreExplorer),
-      [MessagingMethods.SEND_CORE_TRANSFER]: new SendCoreTransferHandler(walletRepository, coreSpend, this.sdk),
       [MessagingMethods.SEND_CORE_TRANSACTION]: new SendCoreTransactionHandler(walletRepository, coreSpend),
       [MessagingMethods.ESTIMATE_CORE_TRANSFER]: new EstimateCoreTransferHandler(walletRepository, coreSpend),
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),

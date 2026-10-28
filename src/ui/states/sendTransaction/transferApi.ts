@@ -158,11 +158,6 @@ export class TransferApi {
     return { txHash: (await this.extensionAPI.withdrawShieldedToCore(toCoreAddress, amountCredits.toString(), password)).stHash }
   }
 
-  async sendCoreTransfer (toAddress: string, amountDuffs: bigint, password: string): Promise<CorePaymentResult> {
-    const { txid, feeDuffs } = await this.extensionAPI.sendCoreTransfer(toAddress, amountDuffs.toString(), password)
-    return { txHash: txid, feeDuffs: BigInt(feeDuffs) }
-  }
-
   async sendCoreTransaction (outputs: CoreOutput[], password: string, changeAddress?: string): Promise<CorePaymentResult> {
     const { txid, feeDuffs } = await this.extensionAPI.sendCoreTransaction({ outputs: toOutputPayload(outputs), changeAddress }, password)
     return { txHash: txid, feeDuffs: BigInt(feeDuffs) }

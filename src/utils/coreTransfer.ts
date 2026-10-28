@@ -117,7 +117,7 @@ export interface CoreTransferOutput {
  * P2SH script rather than being mis-encoded as P2PKH. Change is always ours and
  * always P2PKH.
  */
-export const buildCoreTransferMulti = (
+export const buildCoreTransfer = (
   inputs: CoreWalletUtxo[],
   recipients: CoreTransferOutput[],
   changeAddress: string,
@@ -142,18 +142,6 @@ export const buildCoreTransferMulti = (
   }
 
   return transaction
-}
-
-// One recipient, the common case.
-export const buildCoreTransfer = (
-  inputs: CoreWalletUtxo[],
-  toAddress: string,
-  amountDuffs: bigint,
-  changeAddress: string,
-  changeDuffs: bigint,
-  network: NetworkType
-): Transaction => {
-  return buildCoreTransferMulti(inputs, [{ address: toAddress, amountDuffs }], changeAddress, changeDuffs, network)
 }
 
 // The largest amount `inputs` can pay out across `outputCount` outputs: their

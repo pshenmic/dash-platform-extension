@@ -1,4 +1,5 @@
-import { testCoreSdk, testSdk } from '../../../helpers/testSdk'
+import { DashPlatformSDK } from 'dash-platform-sdk'
+import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPIClient, WalletType } from '../../../../src/types'
 import { PrivateAPI } from '../../../../src/content-script/api/PrivateAPI'
 import { connectBackend } from '../../../helpers/connectBackend'
@@ -24,8 +25,8 @@ describe('remove wallet', () => {
   const password = 'test'
 
   beforeEach(async () => {
-    const sdk = await testSdk()
-    const coreSDK = await testCoreSdk()
+    const sdk = new DashPlatformSDK({ network: 'testnet' })
+    const coreSDK = new DashCoreSDK({ network: 'testnet' })
     const memoryStorageAdapter = new MemoryStorageAdapter()
 
     storage = memoryStorageAdapter
@@ -78,7 +79,7 @@ describe('remove wallet', () => {
     }
 
     const mockAppConnects: AppConnectsStorageSchema = {
-      mockId1: { id: 'mockId1', url: 'http://localhost:8080', status: AppConnectStatus.approved }
+      mockId1: { id: 'mockId1', url: 'http://localhost:8080', status: AppConnectStatus.approved, identities: [] }
     }
 
     await storage.set(`identities_testnet_${walletId}`, mockIdentities)

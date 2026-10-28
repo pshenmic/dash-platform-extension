@@ -34,10 +34,13 @@ describe('run migrations', () => {
     await storage.set('stateTransitions_testnet_w1', {
       h1: { hash: 'h1', unsigned: 'unsigned', signature: null, signaturePublicKeyId: null, status: 'pending' }
     })
+    await storage.set('appConnects_testnet_w1', {
+      abc123: { id: 'abc123', url: 'https://app.example.com', status: 'approved' }
+    })
 
     await runMigrations(storage)
 
-    expect(await storage.get('schema_version')).toBe(9)
+    expect(await storage.get('schema_version')).toBe(10)
     // 6: the selected identity moved into the wallet
     expect(await storage.get('currentIdentity')).toBeNull()
     expect(await storage.get('wallet_testnet_w1')).toMatchObject({ currentIdentity: 'id1' })
@@ -49,5 +52,7 @@ describe('run migrations', () => {
     expect(await storage.get('stateTransitions_testnet_w1')).toEqual({
       h1: { unsignedHash: 'h1', signedHash: null, unsigned: 'unsigned', signature: null, signaturePublicKeyId: null, status: 'pending', error: null }
     })
+    // 10: connections made before permissions existed are dropped
+    expect(await storage.get('appConnects_testnet_w1')).toEqual({})
   })
 })
