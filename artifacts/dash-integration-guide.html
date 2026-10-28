@@ -1,0 +1,155 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><title>Dash — инструкция по интеграции</title>
+<style>
+@page{size:A4;margin:17mm 18mm}*{box-sizing:border-box}body{font:9.5pt/1.38 'DejaVu Sans',sans-serif;color:#172536;margin:0}h1{font-size:28pt;line-height:1.15;margin:15px 0}h2{font-size:19pt;margin:12px 0;color:#087fc1}h3{font-size:12pt;margin:12px 0 6px}p{margin:8px 0}small,.muted{color:#536477;font-size:9pt}.tag{font-size:10pt;letter-spacing:2px;color:#087fc1}pre{font:7.8pt/1.35 'DejaVu Sans Mono',monospace;background:#eff4f8;padding:9px;white-space:pre-wrap;overflow-wrap:anywhere;border-radius:5px}code{font-family:'DejaVu Sans Mono',monospace;font-size:9pt}table{border-collapse:collapse;width:100%;font-size:9.5pt;margin:12px 0}td,th{text-align:left;vertical-align:top;border-bottom:1px solid #d9e1e8;padding:6px}th{background:#eff4f8}.note{border-left:3px solid #087fc1;background:#f0f7fc;padding:10px 13px;margin:14px 0;font-size:9pt}.page{break-after:page}.page:last-child{break-after:auto}a{color:#087fc1}ul,ol{padding-left:23px}li{margin:6px 0}.footer{margin-top:20px;font-size:8.5pt;color:#617184}
+</style>
+<section class="page">
+<div class="tag">РУКОВОДСТВО ДЛЯ РАЗРАБОТЧИКА · 28.10.2026</div>
+<h1>Приём DASH<br>и подключение кошелька</h1>
+<p style="font-size:16pt;color:#536477">DashPayBox + Dash Platform Extension</p>
+<h2>1. Архитектура интеграции</h2>
+<p>Для подключения оплаты нужны два компонента: микросервис DashPayBox на стороне магазина и расширение Dash Platform Extension у покупателя. Backend создаёт счёт, сайт вызывает requestSendPayment с адресом и суммой, кошелёк выполняет перевод. DashPayBox обнаруживает платёж и подтверждает заказ через webhook.</p>
+<table><tr><th>Компонент</th><th>Задача</th></tr><tr><td>Frontend магазина</td><td>Показывает счёт, QR-код, срок оплаты и статус заказа. Предлагает оплату через расширение при наличии requestSendPayment, а также QR-код и dash: URI.</td></tr><tr><td>Backend магазина</td><td>Определяет сумму заказа, создаёт счёт через API DashPayBox, проверяет webhook и выдаёт товар или доступ.</td></tr><tr><td>DashPayBox</td><td>Создаёт одноразовый адрес, фиксирует курс fiat → DASH, отслеживает платёж и переводит средства на адрес продавца.</td></tr><tr><td>Dash Platform Extension</td><td>Планируемый requestSendPayment показывает запрос оплаты, получает подтверждение покупателя и выполняет перевод. Приватные ключи остаются в кошельке.</td></tr></table>
+<h3>Поток оплаты</h3>
+<p>Покупатель → checkout → backend магазина → DashPayBox → адрес и сумма → requestSendPayment или QR → подтверждение в кошельке → подписанный webhook → заказ оплачен.</p>
+<h3>Что подключает разработчик магазина</h3>
+<p>HTTP API DashPayBox на backend, обработчик подписанного webhook и одну кнопку на frontend с вызовом requestSendPayment. Устанавливать Dash SDK на сайт, создавать State Transition или реализовывать подпись транзакций не требуется: перевод выполняет расширение.</p>
+<div class="note"><b>Статус DashPayBox:</b> версия 0.1.0, pre-1.0 / testnet / evaluation-grade. BLS-проверка InstantLock и ChainLock ещё не реализована; финальность определяется по данным DAPI-узла. Перед использованием для реальных платежей требуется устранить это ограничение. Для пилота используйте testnet и доверенные DAPI-узлы.</div>
+<p class="footer">Инструкция составлена по локальному исходному коду DashPayBox 0.1.0 и Dash Platform Extension 1.5.0. Раздел requestSendPayment описывает планируемый API, наличие и контракт которого нужно проверить в установленной версии. Сквозная проверка с реальным платежом в рамках подготовки документа не проводилась.</p>
+</section>
+<section class="page">
+<div class="tag">DASHPAYBOX · РАЗВЁРТЫВАНИЕ И СОЗДАНИЕ СЧЁТА</div>
+<h2>2. Подключить приём оплаты</h2>
+<h3>Шаг 1. Развернуть сервис</h3>
+<p>В каталоге DashPayBox соберите Docker-образ:</p>
+<pre>docker build -t dashpaybox:local .</pre>
+<p>Создайте файл <code>dashpaybox.env</code>, подставив адрес testnet и три независимых случайных секрета:</p>
+<pre>NETWORK=testnet
+OWNER_STORAGE_ADDRESS=&lt;адрес продавца в testnet&gt;
+AUTH_SECRET=&lt;секрет API&gt;
+KEYS_ENCRYPTION_SECRET=&lt;секрет шифрования ключей&gt;
+CALLBACK_URL=https://your-site.com/webhooks/dash
+CALLBACK_SECRET=&lt;секрет подписи webhook&gt;</pre>
+<p>Например, каждый секрет можно получить командой <code>openssl rand -hex 32</code>. Храните файл вне репозитория с ограниченным доступом.</p>
+<pre>docker run -d --name dashpaybox --restart unless-stopped \
+  --env-file dashpaybox.env \
+  -p 127.0.0.1:8090:8090 \
+  -v dashpaybox-data:/app/data dashpaybox:local</pre>
+<p>При таком запуске backend на том же хосте обращается к <code>http://127.0.0.1:8090</code>. Для backend в другом контейнере используйте общую Docker-сеть и адрес сервиса. Сохраняйте volume и секрет шифрования: они нужны для доступа к одноразовым ключам. DAPI-узлы обнаруживаются автоматически; <code>DAPI_SEEDS</code> позволяет задать доверенные узлы явно.</p>
+<h3>Шаг 2. Создать счёт из backend</h3>
+<pre>const res = await fetch('http://127.0.0.1:8090/intents', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Dash-Auth': process.env.DASH_AUTH_SECRET,
+  },
+  body: JSON.stringify({
+    order_id: 'order-123',
+    amount_minor: 1500, // 15 USD в центах
+    currency: 'USD',
+    instant_send: true,
+    min_confirmations: 1,
+  }),
+});
+if (!res.ok) throw new Error(`DashPayBox: ${res.status}`);
+const invoice = await res.json();</pre>
+<p>Сумму определяет backend по данным заказа. Сохраните связь <code>order_id ↔ intent_id</code>. Каждый POST создаёт новый счёт: повторный запрос с тем же <code>order_id</code> не является идемпотентным. Защитите создание счёта от повторных кликов и повторов на стороне магазина.</p>
+</section>
+<section class="page">
+<div class="tag">DASHPAYBOX · CHECKOUT И ПОДТВЕРЖДЕНИЕ</div>
+<h2>3. Подтвердить оплату</h2>
+<h3>Шаг 3. Показать счёт покупателю</h3>
+<p>Ответ <code>POST /intents</code> содержит <code>intent_id</code>, <code>address</code>, <code>duffs</code>, <code>amount</code>, <code>rate</code>, <code>rate_source</code>, <code>uri</code> и <code>expires_at</code>.</p>
+<ul><li>Покажите адрес и точную сумму <code>amount</code> в DASH. При наличии метода предложите кнопку «Оплатить через расширение» (раздел 4).</li><li>Сформируйте QR-код из <code>uri</code> вида <code>dash:ADDRESS?amount=...</code> и ссылку «Открыть кошелёк» с этим URI.</li><li>Покажите срок оплаты: по умолчанию 900 секунд. Покупатель может платить Dash-кошельком без установки расширения.</li><li>Frontend запрашивает состояние заказа у вашего backend. Для сверки backend использует <code>GET /intents/:id</code> с <code>X-Dash-Auth</code>.</li></ul>
+<h3>Шаг 4. Проверить webhook</h3>
+<p>На <code>CALLBACK_URL</code> приходит POST. Проверяйте подпись по исходным байтам тела до JSON-разбора. Пример функции для Node.js:</p>
+<pre>import { createHmac, timingSafeEqual } from 'node:crypto';
+
+function verifyWebhook(rawBody, signature, secret) {
+  if (typeof signature !== 'string' ||
+      !/^[0-9a-f]{64}$/i.test(signature)) return false;
+  const expected = createHmac('sha256', secret)
+    .update(rawBody).digest();
+  const received = Buffer.from(signature, 'hex');
+  return expected.length === received.length &amp;&amp;
+    timingSafeEqual(expected, received);
+}
+// rawBody: Buffer из HTTP-запроса
+// signature: заголовок X-Dash-Signature
+// secret: значение CALLBACK_SECRET</pre>
+<table><tr><th>event</th><th>Обработка</th></tr><tr><td>confirmed</td><td>Заказ оплачен. Переплата также считается оплатой.</td></tr><tr><td>mismatch</td><td>Недоплата: автоматическую выдачу не выполнять.</td></tr><tr><td>expired</td><td>Срок счёта истёк без оплаты.</td></tr><tr><td>late</td><td>Поздняя оплата: автоматическая выдача не выполняется, решение о возврате принимается вручную.</td></tr></table>
+<p>После проверки подписи сопоставьте <code>intent_id</code> и <code>order_id</code> с сохранённым счётом. В одной транзакции БД сохраните событие с уникальным ключом <code>(intent_id, event)</code> и измените заказ. Повтор события — без повторной выдачи. Отвечайте <code>2xx</code> после надёжного сохранения; сервис повторяет неуспешную доставку.</p>
+<p class="muted">AUTH_SECRET и CALLBACK_SECRET не передаются в браузер. Средства консолидируются на OWNER_STORAGE_ADDRESS; у sweep есть комиссия и минимальный порог. Автоматические возвраты и автосписания по подписке не реализованы.</p>
+</section>
+<section class="page">
+<div class="tag">CHECKOUT · ОПЛАТА ЧЕРЕЗ РАСШИРЕНИЕ</div>
+<h2>4. Вызвать requestSendPayment</h2>
+<div class="note"><b>Планируемый API.</b> Пример ниже основан на предлагаемом контракте. Перед подключением проверьте наличие метода в релизе расширения и окончательный контракт. В этом сценарии сайт вызывает один платёжный метод; необходимые разрешения и подтверждение обрабатывает расширение. Наличие метода не гарантирует поддержку всех источников средств.</div>
+<p>DashPayBox возвращает Core-адрес счёта. По нажатию пользователя сайт передаёт его и точную сумму в расширение. Пользователь видит получателя, сумму и комиссии и подтверждает платёж внутри кошелька.</p>
+<pre>// invoice получен от вашего backend после создания счёта.
+// Вызывайте из обработчика кнопки пользователя.
+async function payWithExtension(invoice) {
+  const extension = window.dashPlatformExtension;
+  if (typeof extension?.requestSendPayment !== 'function') {
+    throw new Error('Используйте QR-код или dash: ссылку');
+  }
+  if (Date.now() &gt;= Date.parse(invoice.expires_at)) {
+    throw new Error('Срок счёта истёк — запросите новый счёт');
+  }
+
+  const result = await extension.requestSendPayment({
+    address: invoice.address,
+    amountDuffs: String(invoice.duffs),
+  });
+  // Результат означает выполнение этапа операции в кошельке.
+  // Статус заказа получайте от своего backend.
+  return result;
+}</pre>
+<p><code>amountDuffs</code> — целочисленная строка: 1 DASH = 100 000 000 duffs. Предлагаемый контракт задаёт сумму получателю, комиссии оплачиваются сверху. Не пересчитывайте её из округлённого отображения DASH.</p>
+<h3>Сеть, источники и результат</h3>
+<p>Сайт не передаёт сеть и не переключает её запросом оплаты. Пользователь выбирает в расширении сеть, совпадающую с сетью магазина и DashPayBox. Расширение проверяет адрес и контекст операции. Для первого релиза ожидается Core → Core; оплата с Platform и Orchard зависит от поддержки соответствующих маршрутов в релизе.</p>
+<p>После добавления выбора источников сайт по-прежнему передаёт только адрес и сумму. Расширение само определяет маршрут. Формат результата пока не закреплён: возможны Core txid, хеш State Transition и несколько идентификаторов для составного перевода. Успешный withdrawal в Platform ещё не равен поступлению в Core.</p>
+<h3>Состояния checkout</h3>
+<p>Пока запрос выполняется, блокируйте повторное нажатие. После результата показывайте «Ожидаем подтверждения оплаты». При отказе или ошибке объясните состояние; при таймауте сначала проверьте заказ через backend, не запускайте платёж автоматически повторно. Заказ выдавайте только после проверенного webhook confirmed.</p>
+<p class="muted">QR-код, адрес и dash: URI остаются доступны для других кошельков и версий расширения без метода. Для платежей из Platform/Orchard учитывайте длительность вывода относительно expires_at; не обещайте мгновенное зачисление. Сеть магазина должна быть явно указана на checkout; расширение проверяет соответствие адреса текущей сети кошелька.</p>
+</section>
+<section class="page">
+<div class="tag">ИНТЕГРАЦИЯ · ПОЛНЫЙ СЦЕНАРИЙ</div>
+<h2>5. Связать компоненты</h2>
+<h3>Backend магазина</h3>
+<ol>
+<li>По запросу авторизованного покупателя найдите заказ и определите сумму из своей базы.</li>
+<li>Создайте счёт через POST /intents в DashPayBox. Сохраните intent_id вместе с заказом и верните frontend адрес, duffs, uri и expires_at.</li>
+<li>На webhook проверьте HMAC и принадлежность счёта заказу. По confirmed атомарно отметьте заказ оплаченным и сохраните событие для защиты от повторной выдачи.</li>
+<li>Предоставьте frontend свой endpoint статуса заказа. Не передавайте браузеру секрет доступа к DashPayBox.</li>
+</ol>
+<h3>Frontend магазина</h3>
+<pre>// Пример endpoints магазина — их реализует ваш backend.
+const invoiceResponse = await fetch(
+  '/api/orders/order-123/dash-invoice', { method: 'POST' },
+);
+if (!invoiceResponse.ok) throw new Error('Не удалось создать счёт');
+const invoice = await invoiceResponse.json();
+
+// Сохраните invoice и покажите сумму, срок оплаты и кнопку.
+// По нажатию кнопки:
+const extension = window.dashPlatformExtension;
+if (typeof extension?.requestSendPayment === 'function') {
+  const result = await extension.requestSendPayment({
+    address: invoice.address,
+    amountDuffs: String(invoice.duffs),
+  });
+  // Покажите «Ожидаем подтверждения оплаты».
+  // result не используется как доказательство оплаты заказа.
+} else {
+  // Покажите QR-код из invoice.uri и адрес для копирования.
+}
+
+// Запрашивайте статус у backend магазина:
+// GET /api/orders/order-123/status
+// Оплачено — только когда backend обработал confirmed.</pre>
+<p>Пример иллюстрирует поток; обработку ошибок, блокировку повторного нажатия и проверку expires_at добавьте в UI, как описано в разделе 4. Endpoints магазина должны проверять права покупателя на заказ.</p>
+<h3>Что делает покупатель</h3>
+<p>Устанавливает расширение, выбирает нужную сеть и пополняет кошелёк. На checkout нажимает «Оплатить через Dash Platform Extension», проверяет сумму и комиссию в кошельке и подтверждает. Выбор доступного источника средств и создание транзакций выполняет расширение.</p>
+<div class="note"><b>Граница интеграции:</b> магазин выставляет счёт и ждёт подтверждение, расширение выполняет перевод, DashPayBox отслеживает поступление. Создавать транзакции через SDK, управлять nonce, ключами или State Transition разработчику магазина не нужно.</div>
+<p class="footer">Исходники: <a href="https://github.com/lexxxell/dashpaybox">github.com/lexxxell/dashpaybox</a> · <a href="https://github.com/pshenmic/dash-platform-extension">github.com/pshenmic/dash-platform-extension</a><br>Примеры backend и webhook: dashpaybox/examples/. Раздел requestSendPayment описывает планируемый контракт, который нужно сверить с выпущенной версией расширения.</p>
+</section></html>
