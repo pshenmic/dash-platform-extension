@@ -1,6 +1,7 @@
 import { base64 } from '@scure/base'
 import { PublicAPIContext, PublicAPIHandler } from '../PublicAPIHandler'
 import { StateTransitionsRepository } from '../../repository/StateTransitionsRepository'
+import { StateTransitionRequests } from '../../services/StateTransitionRequests'
 import { EventData } from '../../../types/EventData'
 import {
   RequestStateTransitionApprovalResponse
@@ -12,9 +13,11 @@ import { StateTransitionWASM } from 'dash-platform-sdk/types'
 
 export class RequestStateTransitionApprovalHandler implements PublicAPIHandler {
   stateTransitionsRepository: StateTransitionsRepository
+  requests: StateTransitionRequests
 
-  constructor (stateTransitionsRepository: StateTransitionsRepository) {
+  constructor (stateTransitionsRepository: StateTransitionsRepository, requests: StateTransitionRequests) {
     this.stateTransitionsRepository = stateTransitionsRepository
+    this.requests = requests
   }
 
   async handle (event: EventData, context: PublicAPIContext): Promise<RequestStateTransitionApprovalResponse> {
@@ -39,6 +42,10 @@ export class RequestStateTransitionApprovalHandler implements PublicAPIHandler {
     if (stateTransition == null) {
       stateTransition = await this.stateTransitionsRepository.create(stateTransitionWASM)
     }
+
+    // Followed from here on, so the page is told when the user answers instead
+    // of asking again every half second.
+    this.requests.track(stateTransition.unsignedHash)
 
     return {
       stateTransition,
