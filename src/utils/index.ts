@@ -4,7 +4,7 @@ import { IdentityWASM, PrivateKeyWASM, IdentityPublicKeyWASM } from 'dash-platfo
 import type { DashPlatformSDK } from 'dash-platform-sdk'
 import { Network } from '../types/enums/Network'
 import { NetworkType, Wallet } from '../types'
-import { CORE_ADDRESS_VERSIONS, PLATFORM_ADDRESS_COIN_TYPE, PLATFORM_ADDRESS_FEATURE, PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS } from '../constants'
+import { CORE_ADDRESS_VERSIONS, IDENTITY_LOOKUP_ATTEMPTS, PLATFORM_ADDRESS_COIN_TYPE, PLATFORM_ADDRESS_FEATURE, PLATFORM_ADDRESS_KEY_CLASS_CLEAR_FUNDS } from '../constants'
 import type { PlatformSourceCandidate } from './platformTransfer'
 import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
@@ -348,12 +348,40 @@ export const coreAddressToScript = (coreAddress: string, network: NetworkType): 
   throw new Error(`Core address ${coreAddress} is not a valid ${network} address`)
 }
 
+// "This index has no identity" and "the lookup did not happen" are different
+// answers, and the SDK tells them apart in the message: a proof of absence is an
+// answer, anything else is a node that did not reply. The scan below stops at the
+// first index with no identity, and its caller replaces the stored list with
+// whatever came back - so reading a failure as an absence could drop identities
+// the wallet owns.
+const isAbsence = (e: unknown): boolean => e instanceof Error && e.message.includes('not found')
+
+// The SDK picks a node at random for every call and never retries, so one
+// unlucky pick must not decide the shape of a whole wallet.
+const lookupIdentity = async (query: () => Promise<IdentityWASM>): Promise<IdentityWASM | null> => {
+  let lastError: unknown
+
+  for (let attempt = 0; attempt < IDENTITY_LOOKUP_ATTEMPTS; attempt++) {
+    try {
+      return await query()
+    } catch (e) {
+      if (isAbsence(e)) {
+        return null
+      }
+
+      lastError = e
+    }
+  }
+
+  throw lastError
+}
+
 export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformSDK, network: Network): Promise<IdentityWASM[]> => {
   const walletHDKey = sdk.keyPair.seedToHdKey(seed, network)
 
-  const identities = []
+  const identities: IdentityWASM[] = []
 
-  let identity = null
+  let identity: IdentityWASM | null = null
   let identityIndex = 0
 
   do {
@@ -366,21 +394,12 @@ export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformS
 
     const pkh = PrivateKeyWASM.fromBytes(privateKey, network).getPublicKeyHash()
 
-    let uniqueIdentity
+    const uniqueIdentity = await lookupIdentity(async () => await sdk.identities.getIdentityByPublicKeyHash(pkh))
+    const nonUniqueIdentity = uniqueIdentity != null
+      ? null
+      : await lookupIdentity(async () => await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh))
 
-    try {
-      uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(pkh)
-    } catch (e) {
-    }
-
-    let nonUniqueIdentity
-
-    try {
-      nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh)
-    } catch (e) {
-    }
-
-    [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e != null)
+    identity = uniqueIdentity ?? nonUniqueIdentity
 
     if (identity != null) {
       identities.push(identity)

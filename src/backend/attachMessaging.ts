@@ -30,14 +30,17 @@ export function attachMessaging (backend: Promise<PrivateAPI>): void {
     })
   }
 
-  ext.runtime.onMessage.addListener((data: EventData) => {
-    if (data?.context !== 'dash-platform-extension') return
-    if (data.type === 'response') return
+  const onMessage = (data: EventData): void => {
+    if (data?.context !== 'dash-platform-extension' || data.type === 'response') {
+      return
+    }
 
     // Only act on the copy the service worker forwarded. sendMessage reaches
     // every extension context, so the popup's original request lands here too
     // — handling both would run every operation twice.
-    if (data.target !== 'offscreen') return
+    if (data.target !== 'offscreen') {
+      return
+    }
 
     backend
       .then(async (privateAPI) => await privateAPI.handleMessage(data))
@@ -47,5 +50,7 @@ export function attachMessaging (backend: Promise<PrivateAPI>): void {
         e instanceof BroadcastError ? { signedHex: e.signedHex } : null,
         e.message
       ))
-  })
+  }
+
+  ext.runtime.onMessage.addListener(onMessage)
 }
