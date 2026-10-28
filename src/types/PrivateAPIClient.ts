@@ -13,6 +13,8 @@ import { EstimateCoreTransferResponse } from './messages/response/EstimateCoreTr
 import { EstimateCoreTransferPayload } from './messages/payloads/EstimateCoreTransferPayload'
 import { SendCoreTransactionResponse } from './messages/response/SendCoreTransactionResponse'
 import { SendCoreTransactionPayload } from './messages/payloads/SendCoreTransactionPayload'
+import { DiscardAssetLockFundingResponse } from './messages/response/DiscardAssetLockFundingResponse'
+import { DiscardAssetLockFundingPayload } from './messages/payloads/DiscardAssetLockFundingPayload'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
@@ -485,6 +487,20 @@ export class PrivateAPIClient {
 
   // Sends Core (L1) funds from the wallet's own addresses. `fromAddress` limits
   // the spend to one of them; omitted, the largest unspent outputs are picked.
+  // Forgets a funding payment the network never took, so the operation can pay
+  // its address again. Only for an operation stuck on a record written before
+  // the signed payment was kept; it refuses while any source still has that
+  // transaction, because then the operation can simply be repeated.
+  async discardAssetLockFunding (fundingAddress: string, walletId?: string, network?: NetworkType): Promise<DiscardAssetLockFundingResponse> {
+    const payload: DiscardAssetLockFundingPayload = {
+      fundingAddress,
+      ...(walletId != null ? { walletId } : {}),
+      ...(network != null ? { network } : {})
+    }
+
+    return await this._rpcCall(MessagingMethods.DISCARD_ASSET_LOCK_FUNDING, payload)
+  }
+
   async listCoreUtxos (): Promise<ListCoreUtxosResponse['utxos']> {
     const payload: EmptyPayload = {}
 

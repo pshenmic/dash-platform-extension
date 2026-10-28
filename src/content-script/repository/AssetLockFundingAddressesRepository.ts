@@ -80,7 +80,7 @@ export class AssetLockFundingAddressesRepository {
   // payment is refused rather than overwriting the first, because the asset lock
   // is built from one funding transaction and the earlier payment would be left
   // at the address with nothing coming back for it.
-  async markAsFunded (address: string, fundingTxid: string, amountDuffs?: string): Promise<void> {
+  async markAsFunded (address: string, fundingTxid: string, amountDuffs?: string, fundingTxHex?: string): Promise<void> {
     const storageKey = await this.getStorageKey()
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
 
@@ -95,6 +95,16 @@ export class AssetLockFundingAddressesRepository {
     }
 
     if (entry.fundingTxid === fundingTxid) {
+      // Same payment again. Keep the bytes if this call brought them and the
+      // record was written without them, so the payment stays re-sendable.
+      if (fundingTxHex == null || entry.fundingTxHex != null) {
+        return
+      }
+
+      addresses[address] = { ...entry, fundingTxHex }
+
+      await this.storageAdapter.set(storageKey, addresses)
+
       return
     }
 
@@ -107,12 +117,45 @@ export class AssetLockFundingAddressesRepository {
     addresses[address] = {
       ...entry,
       fundingTxid,
-      ...(amountDuffs != null ? { fundedAmountDuffs: amountDuffs, fundedAt: Date.now() } : {})
+      ...(amountDuffs != null ? { fundedAmountDuffs: amountDuffs, fundedAt: Date.now() } : {}),
+      ...(fundingTxHex != null ? { fundingTxHex } : {})
     }
 
     await this.storageAdapter.set(storageKey, addresses)
   }
 
+  // Forgets a payment that never reached the network, so the operation can pay
+  // the address again. Only for a recorded transaction the network does not
+  // know and cannot come to know: once an asset lock spends the deposit, or the
+  // address is used, the payment is part of a committed chain and the caller has
+  // to finish that chain instead.
+  async clearFunding (address: string): Promise<void> {
+    const storageKey = await this.getStorageKey()
+    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
+
+    const entry = addresses[address]
+
+    if (entry == null) {
+      throw new Error(`Asset lock funding address ${address} not found`)
+    }
+
+    if (entry.used || entry.assetLockTxid != null) {
+      throw new Error(
+        `Asset lock funding address ${address} has an asset lock built from its deposit and cannot be unfunded`
+      )
+    }
+
+    const { fundingTxid, fundedAmountDuffs, fundedAt, fundingTxHex, ...rest } = entry
+
+    addresses[address] = rest
+
+    await this.storageAdapter.set(storageKey, addresses)
+  }
+
+  // Reserves an address for the recipient of a funding or a shield, the way
+  // bindToIdentity reserves one for an identity. Idempotent for the same
+  // recipient; an entry already reserved for another one is never re-pointed,
+  // since that is how one recipient's deposit ends up credited to another.
   async bindToRecipient (address: string, recipient: string): Promise<void> {
     const storageKey = await this.getStorageKey()
     const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
