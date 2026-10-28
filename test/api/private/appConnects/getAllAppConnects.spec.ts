@@ -51,8 +51,8 @@ describe('app connects', () => {
     await privateAPIClient.importIdentity(identity, [privateKey])
 
     const mockAppConnects: AppConnectsStorageSchema = {
-      mockId1: { id: 'mockId1', url: 'http://localhost:8080', status: AppConnectStatus.approved },
-      mockId2: { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected }
+      mockId1: { id: 'mockId1', url: 'http://localhost:8080', status: AppConnectStatus.approved, identities: [] },
+      mockId2: { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected, identities: [] }
     }
 
     await storage.set(`appConnects_testnet_${walletId}`, mockAppConnects)
@@ -62,8 +62,9 @@ describe('app connects', () => {
     const expectedAppConnects = [{
       id: 'mockId1',
       url: 'http://localhost:8080',
-      status: AppConnectStatus.approved
-    }, { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected }]
+      status: AppConnectStatus.approved,
+      identities: []
+    }, { id: 'mockId2', url: 'https://google.com', status: AppConnectStatus.rejected, identities: [] }]
 
     expect(appConnects).toStrictEqual(expectedAppConnects)
   })

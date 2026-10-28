@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 9
+export const SCHEMA_VERSION = 10
 export const MESSAGING_TIMEOUT = 3 * 60 * 1000
 // Shielded (Orchard) Halo2 proofs are CPU-heavy and run well past the normal
 // timeout in the popup — give these calls a much longer window.

@@ -25,7 +25,8 @@ export class AppConnectRepository {
     const appConnectRequest: AppConnect = {
       id,
       status: AppConnectStatus.pending,
-      url
+      url,
+      identities: []
     }
 
     const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
@@ -61,7 +62,8 @@ export class AppConnectRepository {
 
     return {
       ...appConnects[id],
-      status: AppConnectStatus[appConnects[id].status]
+      status: AppConnectStatus[appConnects[id].status],
+      identities: appConnects[id].identities ?? []
     }
   }
 
@@ -83,7 +85,8 @@ export class AppConnectRepository {
           {
             id,
             url: entry.url,
-            status: AppConnectStatus[entry.status]
+            status: AppConnectStatus[entry.status],
+            identities: entry.identities ?? []
           }
         ]),
       [])
@@ -129,7 +132,52 @@ export class AppConnectRepository {
 
     return {
       ...appConnects[id],
-      status: AppConnectStatus[appConnects[id].status]
+      status: AppConnectStatus[appConnects[id].status],
+      identities: appConnects[id].identities ?? []
     }
+  }
+
+  // Identities this website may see. Replaces the whole grant, so revoking is
+  // the same call with a shorter list.
+  async setIdentities (id: string, identities: string[]): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `appConnects_${network}_${walletId}`
+
+    const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
+
+    if (appConnects[id] == null) {
+      throw new Error(`Could not find AppConnect with id ${id}`)
+    }
+
+    appConnects[id].identities = identities
+
+    await this.storageAdapter.set(storageKey, appConnects)
+  }
+
+  async setStatus (id: string, status: AppConnectStatus): Promise<void> {
+    const network = await this.storageAdapter.get('network') as string
+    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
+
+    if (walletId == null) {
+      throw new Error('Wallet is not chosen')
+    }
+
+    const storageKey = `appConnects_${network}_${walletId}`
+
+    const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
+
+    if (appConnects[id] == null) {
+      throw new Error(`Could not find AppConnect with id ${id}`)
+    }
+
+    appConnects[id].status = status
+
+    await this.storageAdapter.set(storageKey, appConnects)
   }
 }

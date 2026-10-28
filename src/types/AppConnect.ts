@@ -4,4 +4,5 @@ export interface AppConnect {
   id: string
   url: string
   status: AppConnectStatus
+  identities: string[]
 }
