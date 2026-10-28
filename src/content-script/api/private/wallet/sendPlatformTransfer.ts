@@ -6,10 +6,10 @@ import { PlatformAddressWASM } from 'pshenmic-dpp'
 import {
   buildPlatformSourceCandidates,
   derivePlatformAddressPrivateKey,
+  platformTransferFeeCredits,
   selectPlatformSource,
   buildSignedPlatformTransfer
 } from '../../../../utils'
-import { TRANSFER_FEE_CREDITS } from '../../../../constants'
 import { SendPlatformTransferPayload } from '../../../../types/messages/payloads/SendPlatformTransferPayload'
 import { SendPlatformTransferResponse } from '../../../../types/messages/response/SendPlatformTransferResponse'
 
@@ -58,7 +58,8 @@ export class SendPlatformTransferHandler implements APIHandler {
 
     const candidates = await buildPlatformSourceCandidates(this.sdk, xpub, wallet.network, account, count)
     const fromAddress = payload.fromAddress != null && payload.fromAddress.length > 0 ? payload.fromAddress : undefined
-    const source = selectPlatformSource(candidates, amountCredits, fromAddress)
+    const feeCredits = platformTransferFeeCredits(1)
+    const source = selectPlatformSource(candidates, amountCredits, fromAddress, feeCredits)
 
     if (payload.toAddress === source.platformAddress) {
       throw new Error('Recipient must be different from the source address')
@@ -73,7 +74,7 @@ export class SendPlatformTransferHandler implements APIHandler {
     return {
       stHash: signedSt.hash(false),
       amountCredits: amountCredits.toString(),
-      feeCredits: TRANSFER_FEE_CREDITS.toString(),
+      feeCredits: feeCredits.toString(),
       fromAddress: source.platformAddress,
       toAddress: payload.toAddress
     }
