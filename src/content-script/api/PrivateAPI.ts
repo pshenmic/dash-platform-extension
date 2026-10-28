@@ -44,9 +44,13 @@ import { CoreExplorerService } from '../services/CoreExplorerService'
 import { CoreUtxosService } from '../services/CoreUtxosService'
 import { CoreSpendService } from '../services/CoreSpendService'
 import { AssetLockFundingService } from '../services/AssetLockFundingService'
+import { AssetLockService } from '../services/AssetLockService'
+import { ShieldFromCoreHandler } from './private/wallet/shieldFromCore'
+import { ShieldFromWalletHandler } from './private/wallet/shieldFromWallet'
+import { TopUpIdentityFromWalletHandler } from './private/identities/topUpIdentityFromWallet'
+import { FundPlatformAddressFromWalletHandler } from './private/wallet/fundPlatformAddressFromWallet'
 import { PendingAssetLocksRepository } from '../repository/PendingAssetLocksRepository'
 import { RegisterIdentityFromWalletHandler } from './private/identities/registerIdentityFromWallet'
-import { TopUpIdentityFromWalletHandler } from './private/identities/topUpIdentityFromWallet'
 import { ListPendingAssetLocksHandler } from './private/assetLocks/listPendingAssetLocks'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
@@ -76,7 +80,6 @@ import { WithdrawPlatformAddressToCoreHandler } from './private/wallet/withdrawP
 import { EstimateWithdrawalFeeHandler } from './private/wallet/estimateWithdrawalFee'
 import { RegisterIdentityFromAddressHandler } from './private/wallet/registerIdentityFromAddress'
 import { FundPlatformAddressFromCoreHandler } from './private/wallet/fundPlatformAddressFromCore'
-import { FundPlatformAddressFromWalletHandler } from './private/wallet/fundPlatformAddressFromWallet'
 import { GenerateShieldedAddressesHandler } from './private/wallet/generateShieldedAddresses'
 import { GetShieldedAddressesHandler } from './private/wallet/getShieldedAddresses'
 import { GetShieldedBalanceHandler } from './private/wallet/getShieldedBalance'
@@ -164,7 +167,12 @@ export class PrivateAPI {
     const coreUtxos = new CoreUtxosService(this.sdk, coreExplorer)
     const coreSpend = new CoreSpendService(this.sdk, this.coreSDK, coreUtxos)
     const assetLockFunding = new AssetLockFundingService(coreExplorer, coreSpend)
-    const fundPlatformAddressFromCore = new FundPlatformAddressFromCoreHandler(walletRepository, assetLockFundingAddressesRepository, pendingAssetLocksRepository, this.sdk, this.coreSDK)
+    const assetLock = new AssetLockService(this.sdk, this.coreSDK)
+    const shielded = new ShieldedService(this.storageAdapter, this.sdk)
+
+    // Shared with the chains below: they hand the same instances their own scope
+    // rather than building a second copy per call.
+    const requestAssetLockFundingAddress = new RequestAssetLockFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, this.sdk, this.storageAdapter)
     const requestTopUpFundingAddress = new RequestTopUpFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, coreExplorer, this.sdk, this.storageAdapter)
     const topUpIdentity = new TopUpIdentityHandler(
       walletRepository,
@@ -175,10 +183,15 @@ export class PrivateAPI {
       this.coreSDK,
       coreExplorer
     )
-
-    // Shared with the chains below: they hand the same instances their own scope
-    // rather than building a second copy per call.
-    const requestAssetLockFundingAddress = new RequestAssetLockFundingAddressHandler(assetLockFundingAddressesRepository, walletRepository, this.sdk, this.storageAdapter)
+    const fundPlatformAddressFromCore = new FundPlatformAddressFromCoreHandler(walletRepository, assetLockFundingAddressesRepository, pendingAssetLocksRepository, this.sdk, this.coreSDK)
+    const shieldFromCore = new ShieldFromCoreHandler(
+      walletRepository,
+      assetLockFundingAddressesRepository,
+      pendingAssetLocksRepository,
+      assetLock,
+      this.sdk,
+      shielded
+    )
     const registerIdentity = new RegisterIdentityHandler(
       walletRepository,
       identitiesRepository,
@@ -189,7 +202,6 @@ export class PrivateAPI {
       this.coreSDK,
       coreExplorer
     )
-    const shielded = new ShieldedService(this.storageAdapter, this.sdk)
 
     this.handlers = {
       [MessagingMethods.GET_STATUS]: new GetStatusHandler(this.storageAdapter, walletRepository),
@@ -276,6 +288,17 @@ export class PrivateAPI {
         requestAssetLockFundingAddress,
         fundPlatformAddressFromCore,
         this.sdk
+      ),
+      [MessagingMethods.SHIELD_FROM_CORE]: shieldFromCore,
+      [MessagingMethods.SHIELD_FROM_WALLET]: new ShieldFromWalletHandler(
+        walletRepository,
+        assetLockFundingAddressesRepository,
+        pendingAssetLocksRepository,
+        assetLockFunding,
+        requestAssetLockFundingAddress,
+        shieldFromCore,
+        this.sdk,
+        shielded
       ),
       [MessagingMethods.GENERATE_SHIELDED_ADDRESSES]: new GenerateShieldedAddressesHandler(walletRepository, shielded),
       [MessagingMethods.GET_SHIELDED_ADDRESSES]: new GetShieldedAddressesHandler(walletRepository, shielded),
