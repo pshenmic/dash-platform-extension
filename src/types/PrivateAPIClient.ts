@@ -116,6 +116,18 @@ import { TopUpIdentityPayload } from './messages/payloads/TopUpIdentityPayload'
 import { TopUpIdentityResponse } from './messages/response/TopUpIdentityResponse'
 import { GetSettingsResponse } from './messages/response/GetSettingsResponse'
 import { SetSettingsPayload } from './messages/payloads/SetSettingsPayload'
+import { RegisterIdentityFromWalletPayload } from './messages/payloads/RegisterIdentityFromWalletPayload'
+import { RegisterIdentityFromWalletResponse } from './messages/response/RegisterIdentityFromWalletResponse'
+import { TopUpIdentityFromWalletPayload } from './messages/payloads/TopUpIdentityFromWalletPayload'
+import { TopUpIdentityFromWalletResponse } from './messages/response/TopUpIdentityFromWalletResponse'
+import { FundPlatformAddressFromWalletPayload } from './messages/payloads/FundPlatformAddressFromWalletPayload'
+import { FundPlatformAddressFromWalletResponse } from './messages/response/FundPlatformAddressFromWalletResponse'
+import { ShieldFromWalletPayload } from './messages/payloads/ShieldFromWalletPayload'
+import { ShieldFromWalletResponse } from './messages/response/ShieldFromWalletResponse'
+import { ShieldFromCorePayload } from './messages/payloads/ShieldFromCorePayload'
+import { ShieldFromCoreResponse } from './messages/response/ShieldFromCoreResponse'
+import { ListPendingAssetLocksResponse } from './messages/response/ListPendingAssetLocksResponse'
+import { RequestAssetLockFundingAddressPayload } from './messages/payloads/RequestAssetLockFundingAddressPayload'
 
 export class PrivateAPIClient {
   constructor () {
@@ -402,10 +414,15 @@ export class PrivateAPIClient {
     return await this._rpcCall(MessagingMethods.CREATE_IDENTITY_PRIVATE_KEY, payload)
   }
 
-  async requestAssetLockFundingAddress (): Promise<RequestAssetLockFundingAddressResponse> {
+  // `purpose` keeps the pools apart: 'fundAddress' never hands out the address
+  // an unfinished identity registration is waiting on. Defaults to
+  // 'registration'.
+  async requestAssetLockFundingAddress (purpose?: RequestAssetLockFundingAddressPayload['purpose']): Promise<RequestAssetLockFundingAddressResponse> {
+    const payload: RequestAssetLockFundingAddressPayload = { purpose }
+
     return await this._rpcCall(
       MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS,
-      {}
+      payload
     )
   }
 
@@ -786,5 +803,74 @@ export class PrivateAPIClient {
         // this send regardless; the timeout above covers a genuine failure.
       })
     })
+  }
+
+  // Registers an identity with the wallet's own Core coins: reserves a funding
+  // address, pays it from the wallet's unspent outputs and creates the identity
+  // from that deposit. Safe to call again after an interruption - it continues
+  // from the deposit already on L1 instead of paying twice.
+  async registerIdentityFromWallet (amountDuffs: string, password: string): Promise<RegisterIdentityFromWalletResponse> {
+    const payload: RegisterIdentityFromWalletPayload = { amountDuffs, password }
+
+    return await this._rpcCall(MessagingMethods.REGISTER_IDENTITY_FROM_WALLET, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
+  // Tops up an identity with the wallet's own Core coins: reserves a DIP-13
+  // top-up funding address, pays it from the wallet's unspent outputs and turns
+  // that deposit into credits. `identityId` may be any identity on the network,
+  // not only one of this wallet's; omitted, the current one is topped up. Safe
+  // to call again after an interruption - it continues from the deposit already
+  // on L1 instead of paying twice.
+  async topUpIdentityFromWallet (
+    amountDuffs: string,
+    password: string,
+    identityId?: string,
+    walletId?: string,
+    network?: NetworkType
+  ): Promise<TopUpIdentityFromWalletResponse> {
+    const payload: TopUpIdentityFromWalletPayload = { amountDuffs, password, identityId, walletId, network }
+
+    return await this._rpcCall(MessagingMethods.TOP_UP_IDENTITY_FROM_WALLET, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
+  // Credits a platform address with the wallet's own Core coins: reserves a
+  // funding address, pays it from the wallet's unspent outputs and turns that
+  // deposit into credits. Safe to call again after an interruption - it
+  // continues from the deposit already on L1 instead of paying twice.
+  async fundPlatformAddressFromWallet (platformAddress: string, amountDuffs: string, password: string): Promise<FundPlatformAddressFromWalletResponse> {
+    const payload: FundPlatformAddressFromWalletPayload = { platformAddress, amountDuffs, password }
+
+    return await this._rpcCall(MessagingMethods.FUND_PLATFORM_ADDRESS_FROM_WALLET, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
+  // Shields the wallet's own Core (L1) coins: pays an asset lock funding address
+  // out of the wallet, locks the deposit and deposits its credits into the pool
+  // in one transition. `toShieldedAddress` omitted shields to this wallet's own
+  // shielded address. Safe to call again after an interruption - it continues
+  // from the deposit already on L1 instead of paying twice.
+  async shieldFromWallet (amountDuffs: string, password: string, toShieldedAddress?: string, memo?: string, account?: number): Promise<ShieldFromWalletResponse> {
+    const payload: ShieldFromWalletPayload = { amountDuffs, password, toShieldedAddress, memo, account }
+
+    return await this._rpcCall(MessagingMethods.SHIELD_FROM_WALLET, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  // Turns a deposit already sitting on an asset lock funding address into a
+  // shielded note. This is how an interrupted shieldFromWallet is finished:
+  // listPendingAssetLocks reports the address and the transaction to pass, and
+  // calling shieldFromWallet again instead would start over and pay twice.
+  async shieldFromCore (assetLockFundingAddress: string, assetLockFundingTxid: string, password: string, toShieldedAddress?: string, memo?: string, account?: number): Promise<ShieldFromCoreResponse> {
+    const payload: ShieldFromCorePayload = { assetLockFundingAddress, assetLockFundingTxid, password, toShieldedAddress, memo, account }
+
+    return await this._rpcCall(MessagingMethods.SHIELD_FROM_CORE, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  // Asset locks on L1 whose Platform side never finished: money committed by an
+  // operation that was interrupted.
+  async listPendingAssetLocks (): Promise<ListPendingAssetLocksResponse['assetLocks']> {
+    const payload: EmptyPayload = {}
+
+    const response: ListPendingAssetLocksResponse = await this._rpcCall(MessagingMethods.LIST_PENDING_ASSET_LOCKS, payload)
+
+    return response.assetLocks
   }
 }
