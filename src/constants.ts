@@ -29,6 +29,10 @@ export const MIN_TOPUP_FUNDING_DASH = Number(MIN_TOPUP_FUNDING_DUFFS) / 1e8
 // Gap limit for scanning DIP-13 top-up funding indexes (m/9'/coin'/5'/2'/N).
 export const TOPUP_FUNDING_GAP_LIMIT = 20
 
+// How many times an identity lookup is retried before the scan gives up. The
+// SDK picks a node at random per call and never retries, so a single unlucky
+// pick would otherwise truncate the wallet's identity list.
+export const IDENTITY_LOOKUP_ATTEMPTS = 3
 // Upper bound for scanning identity indexes when picking the next free one.
 export const IDENTITY_INDEX_SCAN_LIMIT = 20
 
@@ -49,6 +53,30 @@ export const CORE_EXPLORER_MAX_PAGE_LIMIT = 100
 // Transactions per page when the caller does not ask for a size (the explorer's own default).
 export const CORE_TRANSACTIONS_DEFAULT_LIMIT = 25
 
+// ── Core (L1) spending ───────────────────────────────────────────────────────
+// Sizes of the pieces of a signed P2PKH transaction, in bytes, used to price the
+// fee before the inputs are signed. These are exact upper bounds rather than
+// guesses: dash-core-sdk signs with lowS, so s never carries a sign-padding byte
+// and the scriptSig tops out at 107 — a signed transaction lands on the estimate
+// or just under it, never above.
+//   input : 32 txid + 4 vout + 1 script length + 107 scriptSig + 4 sequence
+//   output: 8 value + 1 script length + 25 P2PKH script
+//   header: 4 version|type + 1 input count + 1 output count + 4 nLockTime
+export const CORE_P2PKH_INPUT_BYTES = 148
+export const CORE_P2PKH_OUTPUT_BYTES = 34
+export const CORE_TX_OVERHEAD_BYTES = 10
+// Dash's minimum relay fee is 1000 duffs per kB, which is 1 duff per byte. Note
+// that MIN_FEE_RELAY above is that same rate written per kB: it is a rate, not a
+// minimum fee amount, so it must not be used as a floor on a computed fee.
+export const CORE_FEE_PER_BYTE = 1n
+// Dash Core's dust threshold for a P2PKH output: (34 output + 148 spending
+// input) * 3000 duffs/kB dustRelayFee. Outputs at or below it are non-standard,
+// so an amount that small is rejected and change that small is dropped into the fee.
+export const CORE_DUST_THRESHOLD = 546n
+// dashscan takes the address list in the query string; chunk it so a wallet with
+// many used addresses cannot blow the URL length limit.
+export const CORE_UTXO_ADDRESS_BATCH = 50
+
 // ── DIP-17 Platform payment addresses ────────────────────────────
 // Derived at m/9'/coin'/17'/account'/keyClass'/index; keyClass 0 = clear funds.
 // Address derivation and DIP-18 encoding live in the SDK (sdk.keyPair); these
@@ -61,6 +89,11 @@ export const PLATFORM_ADDRESS_GENERATE_BATCH = 10
 // balance check and the estimated fee. Sized to the SDK's ~15M pre-flight demand.
 // MIN_OUTPUT_CREDITS guards against dust outputs.
 export const MIN_OUTPUT_CREDITS = 500_000n
+// Most recipients one transition or one transaction may pay. Platform refuses
+// an address transition above its own `max_address_outputs`; on L1 the limit is
+// practical rather than consensus - a transaction has to stay relayable, and
+// 1000 outputs is already 34 KB of them.
+export const MAX_CORE_OUTPUTS = 1000
 export const TRANSFER_FEE_CREDITS = 15_000_000n
 // Core (L1) base58check version bytes for decoding a withdrawal address to a script.
 export const CORE_ADDRESS_VERSIONS = {

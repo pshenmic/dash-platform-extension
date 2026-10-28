@@ -1,6 +1,7 @@
 const EventEmitter = require('node:events')
 
 const eventBus = new EventEmitter()
+const runtimeListeners = new Set()
 global.chrome = {
   runtime: {
     getURL: () => {
@@ -8,13 +9,27 @@ global.chrome = {
     },
     onMessage: {
       removeListener (listener) {
+        runtimeListeners.delete(listener)
         eventBus.removeListener('message', listener)
       },
       addListener (listener) {
+        runtimeListeners.add(listener)
         eventBus.on('message', listener)
       },
       dispatch (message) {
         eventBus.emit('message', message)
+      },
+      // Test-only. The bus is shared by the whole file, so a suite that wires a
+      // fresh backend per case leaves the previous ones listening on it: they
+      // answer requests meant for the current backend, out of their own storage,
+      // and node warns about the pile of listeners. The real runtime has one
+      // backend for the life of the page and needs none of this.
+      removeAllListeners () {
+        for (const listener of runtimeListeners) {
+          eventBus.removeListener('message', listener)
+        }
+
+        runtimeListeners.clear()
       }
     },
     // Mirrors chrome.runtime.sendMessage: delivers to every registered

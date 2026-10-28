@@ -1,5 +1,6 @@
 import { EventData } from '../../types/EventData'
 import { DashCoreSDK } from 'dash-core-sdk'
+import { Network } from '../../types/enums/Network'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
@@ -53,6 +54,7 @@ import { GetCoreReceiveAddressHandler } from './private/core/getCoreReceiveAddre
 import { ListCoreAddressesHandler } from './private/core/listCoreAddresses'
 import { GetCoreBalanceHandler } from './private/core/getCoreBalance'
 import { GetCoreTransactionsHandler } from './private/core/getCoreTransactions'
+import { SendCoreTransactionHandler } from './private/core/sendCoreTransaction'
 import { GeneratePlatformAddressesHandler } from './private/wallet/generatePlatformAddresses'
 import { ListPlatformAddressesHandler } from './private/wallet/listPlatformAddresses'
 import { GetPlatformAddressesInfosHandler } from './private/wallet/getPlatformAddressesInfos'
@@ -88,6 +90,24 @@ export class PrivateAPI {
     this.sdk = sdk
     this.coreSDK = coreSDK
     this.storageAdapter = storageAdapter
+  }
+
+  /**
+   * Points this backend at another network, as SWITCH_NETWORK asks it to.
+   *
+   * The platform SDK can be re-pointed in place, but DashCoreSDK has no setter:
+   * it is fixed to the network it was built with. The handlers hold both
+   * instances from the moment they were built, so a new core SDK only reaches
+   * them if the table is built again - which is what left a switched wallet
+   * talking to the old chain until the extension was reloaded.
+   */
+  async setNetwork (network: Network): Promise<void> {
+    this.sdk.setNetwork(network)
+    // The core SDK is fixed to the network it was built with, so switching the
+    // platform side alone would leave L1 calls pointed at the old one.
+    this.coreSDK = new DashCoreSDK({ network })
+
+    this.buildHandlers()
   }
 
   handlers: {
@@ -150,7 +170,7 @@ export class PrivateAPI {
       [MessagingMethods.CREATE_WALLET]: new CreateWalletHandler(walletRepository, this.sdk, this.storageAdapter),
       [MessagingMethods.REMOVE_WALLET]: new RemoveWalletHandler(walletRepository, this.storageAdapter),
       [MessagingMethods.SWITCH_WALLET]: new SwitchWalletHandler(walletRepository, this.storageAdapter),
-      [MessagingMethods.SWITCH_NETWORK]: new SwitchNetworkHandler(walletRepository, this.storageAdapter, this.sdk),
+      [MessagingMethods.SWITCH_NETWORK]: new SwitchNetworkHandler(walletRepository, this.storageAdapter, async network => await this.setNetwork(network)),
       [MessagingMethods.RESYNC_IDENTITIES]: new ResyncIdentitiesHandler(identitiesRepository, walletRepository, this.sdk, this.storageAdapter),
       [MessagingMethods.SET_WALLET_LABEL]: new SetWalletLabelHandler(walletRepository),
       [MessagingMethods.GET_APP_CONNECT]: new GetAppConnectHandler(appConnectRepository),
@@ -184,6 +204,7 @@ export class PrivateAPI {
       [MessagingMethods.LIST_CORE_ADDRESSES]: new ListCoreAddressesHandler(walletRepository, coreExplorer, this.sdk),
       [MessagingMethods.GET_CORE_BALANCE]: new GetCoreBalanceHandler(walletRepository, coreExplorer),
       [MessagingMethods.GET_CORE_TRANSACTIONS]: new GetCoreTransactionsHandler(walletRepository, coreExplorer),
+      [MessagingMethods.SEND_CORE_TRANSACTION]: new SendCoreTransactionHandler(walletRepository, coreExplorer, this.sdk, this.coreSDK),
       [MessagingMethods.GENERATE_PLATFORM_ADDRESSES]: new GeneratePlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.LIST_PLATFORM_ADDRESSES]: new ListPlatformAddressesHandler(walletRepository, this.sdk),
       [MessagingMethods.GET_PLATFORM_ADDRESSES_INFOS]: new GetPlatformAddressesInfosHandler(this.sdk),

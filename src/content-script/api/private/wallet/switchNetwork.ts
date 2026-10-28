@@ -5,17 +5,22 @@ import { WalletRepository } from '../../../repository/WalletRepository'
 import { SwitchNetworkPayload } from '../../../../types/messages/payloads/SwitchNetworkPayload'
 import { Network } from '../../../../types/enums/Network'
 import { StorageAdapter } from '../../../storage/storageAdapter'
-import { DashPlatformSDK } from 'dash-platform-sdk'
 
+// Switches the extension to another network: the stored selection, the wallet
+// that selection makes current, and the SDKs the backend talks to.
+//
+// Re-pointing the SDKs is handed back to whoever built this handler, because
+// only the composition root can replace the core SDK - it is fixed to the
+// network it was constructed with - and rebuild the handler table around it.
 export class SwitchNetworkHandler implements APIHandler {
   walletRepository: WalletRepository
   storageAdapter: StorageAdapter
-  sdk: DashPlatformSDK
+  setNetwork: (network: Network) => Promise<void>
 
-  constructor (walletRepository: WalletRepository, storageAdapter: StorageAdapter, sdk: DashPlatformSDK) {
+  constructor (walletRepository: WalletRepository, storageAdapter: StorageAdapter, setNetwork: (network: Network) => Promise<void>) {
     this.walletRepository = walletRepository
     this.storageAdapter = storageAdapter
-    this.sdk = sdk
+    this.setNetwork = setNetwork
   }
 
   async handle (event: EventData): Promise<VoidResponse> {
@@ -34,7 +39,9 @@ export class SwitchNetworkHandler implements APIHandler {
 
     await this.storageAdapter.set('currentWalletId', wallet?.walletId ?? null)
 
-    this.sdk.setNetwork(Network[payload.network])
+    // Last, so a failure above leaves the backend pointed where the stored
+    // selection still says it is.
+    await this.setNetwork(network)
 
     return {}
   }
