@@ -1,4 +1,4 @@
-import { buildCoreTransfer, estimateCoreFee, estimateCoreTxSize, selectCoreUtxos } from '../../src/utils/coreTransfer'
+import { buildCoreTransfer, estimateCoreFee, estimateCoreTxSize, maxCoreSpend, selectCoreUtxos } from '../../src/utils/coreTransfer'
 import { CoreWalletUtxo } from '../../src/content-script/services/CoreExplorerService'
 import { CORE_DUST_THRESHOLD } from '../../src/constants'
 
@@ -161,5 +161,20 @@ describe('buildCoreTransfer', () => {
 
     expect(selection.fee).toBe(260n)
     expect(selection.change).toBe(100_000n - 30_000n - 260n)
+  })
+})
+
+describe('maxCoreSpend', () => {
+  it('is what the inputs hold less the fee of spending all of them', () => {
+    // 2 inputs, 1 output: 10 + 296 + 34 = 340.
+    expect(maxCoreSpend([utxo(CHANGE, 100_000n), utxo(CHANGE, 50_000n, 3)])).toBe(150_000n - 340n)
+  })
+
+  it('counts the extra outputs of a multi-recipient payment', () => {
+    expect(maxCoreSpend([utxo(CHANGE, 100_000n)], 3)).toBe(100_000n - (10n + 148n + 102n))
+  })
+
+  it('is zero when the inputs cannot cover their own fee', () => {
+    expect(maxCoreSpend([utxo(CHANGE, 100n)])).toBe(0n)
   })
 })

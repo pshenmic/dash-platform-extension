@@ -143,3 +143,14 @@ export const buildCoreTransfer = (
 
   return transaction
 }
+
+// The largest amount `inputs` can pay out across `outputCount` outputs: their
+// total minus the fee of the transaction that spends all of them, with no change
+// output. Zero when they cannot even cover that fee. This is what a Max button
+// means on L1.
+export const maxCoreSpend = (inputs: CoreWalletUtxo[], outputCount: number = 1): bigint => {
+  const totalIn = inputs.reduce((sum, utxo) => sum + utxo.amount, 0n)
+  const max = totalIn - estimateCoreFee(inputs.length, outputCount)
+
+  return max > 0n ? max : 0n
+}
