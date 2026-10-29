@@ -58,7 +58,7 @@ const TWO_STEP_SHIELDING_CARD: InfoCardConfig = {
 
 const CROSS_CHAIN_WITHDRAWAL_CARD: InfoCardConfig = {
   title: 'Cross-chain withdrawal',
-  text: `Withdrawing to Core costs a ${FEE_PLACEHOLDER} network fee and the Dash payout arrives asynchronously after the withdrawal is processed.`,
+  text: `Withdrawing to Core costs a ${FEE_PLACEHOLDER} network fee.`,
   duration: CROSS_LAYER_DURATION
 }
 
