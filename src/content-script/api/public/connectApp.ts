@@ -6,10 +6,7 @@ import { IdentitiesRepository } from '../../repository/IdentitiesRepository'
 import { WalletRepository } from '../../repository/WalletRepository'
 import { StorageAdapter } from '../../storage/storageAdapter'
 import { AppConnectStatus } from '../../../types/enums/AppConnectStatus'
-
-interface AppConnectRequestPayload {
-  url: string
-}
+import { ConnectAppPayload } from '../../../types/messages/payloads/ConnectAppPayload'
 
 export class ConnectAppHandler implements PublicAPIHandler {
   appConnectRepository: AppConnectRepository
@@ -25,7 +22,7 @@ export class ConnectAppHandler implements PublicAPIHandler {
   }
 
   async handle (event: EventData, context: PublicAPIContext): Promise<ConnectAppResponse> {
-    const payload: AppConnectRequestPayload = event.payload
+    const payload: ConnectAppPayload = event.payload
 
     // The connection belongs to the origin the browser reports, so a page
     // cannot ask for one in the name of another website.
@@ -42,7 +39,10 @@ export class ConnectAppHandler implements PublicAPIHandler {
     let appConnect = context.appConnect
 
     // todo remove after events system
-    if (appConnect?.status === AppConnectStatus.rejected) {
+    // A website that was turned down may ask again, and a new call starts a
+    // new request. One still waiting is told the answer instead: the toolbar
+    // popup gives it no window to watch, so this is how it learns it.
+    if (appConnect?.status === AppConnectStatus.rejected && payload.waiting !== true) {
       await this.appConnectRepository.removeById(appConnect.id)
       appConnect = null
     }
@@ -74,7 +74,7 @@ export class ConnectAppHandler implements PublicAPIHandler {
     }
   }
 
-  validatePayload (payload: AppConnectRequestPayload): null | string {
+  validatePayload (payload: ConnectAppPayload): null | string {
     // check it is a string
     if (typeof payload?.url !== 'string') {
       return 'Url is missing'

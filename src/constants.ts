@@ -178,6 +178,17 @@ export const PLATFORM_EXPLORER_URLS = {
   }
 }
 
+// ── Website payment requests ─────────────────────────────────────────────────
+// How long a request waits for the user. After that the website stops waiting
+// and the backend refuses to confirm it.
+export const PAYMENT_REQUEST_TTL_MS = 10 * 60 * 1000
+// How long the website waits for a confirmed payment to finish. Sized for the
+// slowest route: a chain through an asset lock, or a shielded proof.
+export const PAYMENT_PROCESSING_TIMEOUT_MS = BLOCKCHAIN_MESSAGING_TIMEOUT
+export const PAYMENT_POLL_INTERVAL_MS = 500
+// Core's MAX_MONEY: no amount above it is a valid payment on any layer.
+export const MAX_PAYMENT_DUFFS = 21_000_000n * 100_000_000n
+
 // ── Auto-lock ────────────────────────────────────────────────────────────────
 // Idle time after which the UI asks for the password again.
 export const AUTO_LOCK_TIMEOUT_MS = 15 * 60 * 1000

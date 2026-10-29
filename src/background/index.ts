@@ -2,11 +2,21 @@ import { ext } from '../platform'
 import { EventData } from '../types'
 import { ExtensionStorageAdapter } from '../content-script/storage/extensionStorageAdapter'
 import { STORAGE_MESSAGE, StorageRequest, StorageResponse } from '../backend/storageMessages'
+import {
+  isRequestWindow,
+  isRequestWindowPath,
+  OPEN_POPUP_MESSAGE,
+  OpenPopupRequest,
+  OpenPopupResponse,
+  REQUEST_WINDOW_PORT,
+  RequestWindow
+} from '../types/RequestWindow'
+import { closeRequestWindow } from './requestWindows'
 
 /**
  * Chrome MV3 service worker.
  *
- * Two jobs, neither of which touches the SDK:
+ * Three jobs, none of which touches the SDK:
  *
  *  1. Make sure the offscreen document that hosts the backend exists, and hand
  *     wallet requests to it. Replies do not come back through here — the
@@ -14,6 +24,9 @@ import { STORAGE_MESSAGE, StorageRequest, StorageResponse } from '../backend/sto
  *  2. Perform storage on the offscreen document's behalf. Chrome exposes only
  *     the `chrome.runtime` messaging APIs to offscreen documents, so they
  *     cannot reach `chrome.storage` themselves.
+ *  3. Show a website's request - a connection, a payment - in the toolbar
+ *     popup, and decline it when the user closes that page undecided. Only
+ *     the extension can open its own popup, and only the extension sees it close.
  */
 
 const OFFSCREEN_PATH = 'offscreen.html'
@@ -38,6 +51,29 @@ async function ensureOffscreen (): Promise<void> {
   }
 
   await creating
+}
+
+let popupOpening: Promise<void> = Promise.resolve()
+
+// The toolbar popup can be opened but not pointed at a page, so for the moment
+// it takes to open, its page is the request's, then the manifest's again. One at
+// a time, so two requests cannot open on each other's page.
+async function openPopupAt (path: string, windowId?: number): Promise<void> {
+  const opening = popupOpening.catch(() => {}).then(async () => {
+    const defaultPopup = chrome.runtime.getManifest().action?.default_popup ?? 'index.html'
+
+    await chrome.action.setPopup({ popup: path })
+
+    try {
+      await chrome.action.openPopup(windowId != null ? { windowId } : undefined)
+    } finally {
+      await chrome.action.setPopup({ popup: defaultPopup })
+    }
+  })
+
+  popupOpening = opening
+
+  await opening
 }
 
 async function handleStorage (request: StorageRequest): Promise<any> {
@@ -69,6 +105,25 @@ ext.runtime.onMessage.addListener((data: any, sender, sendResponse) => {
     return true
   }
 
+  // Answered with whether the popup opened: a browser that will not open it
+  // (before Chrome 127, or with no focused window) leaves the website to fall
+  // back to a window of its own.
+  if (data.type === OPEN_POPUP_MESSAGE) {
+    const { path } = data as OpenPopupRequest
+
+    if (!isRequestWindowPath(path)) {
+      sendResponse({ ok: false, error: 'Only the page of a website request can be opened' } satisfies OpenPopupResponse)
+
+      return false
+    }
+
+    openPopupAt(path, sender.tab?.windowId)
+      .then(() => sendResponse({ ok: true } satisfies OpenPopupResponse))
+      .catch(e => sendResponse({ ok: false, error: e.message } satisfies OpenPopupResponse))
+
+    return true
+  }
+
   const event = data as EventData
 
   // Responses flow popup <- offscreen directly; ignore them here.
@@ -79,6 +134,29 @@ ext.runtime.onMessage.addListener((data: any, sender, sendResponse) => {
   ensureOffscreen()
     .then(async () => await ext.runtime.sendMessage({ ...event, target: 'offscreen' }))
     .catch(e => console.error('Failed to route request to offscreen backend', e))
+})
+
+// The page of a website's request keeps a port open while it is shown, and
+// opens it again if this worker is stopped meanwhile. Its disconnecting is the
+// page going away.
+ext.runtime.onConnect.addListener((port) => {
+  if (port.name !== REQUEST_WINDOW_PORT || port.sender?.url?.startsWith(chrome.runtime.getURL('')) !== true) {
+    return
+  }
+
+  let shown: RequestWindow | null = null
+
+  port.onMessage.addListener((message) => {
+    if (isRequestWindow(message)) {
+      shown = message
+    }
+  })
+
+  port.onDisconnect.addListener(() => {
+    if (shown != null) {
+      closeRequestWindow(storage, shown).catch(e => console.error('Failed to decline a request whose page was closed', e))
+    }
+  })
 })
 
 // Pre-warm the backend when the browser starts (or the extension is installed or

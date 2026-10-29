@@ -16,6 +16,14 @@ import { SendCoreTransactionPayload } from './messages/payloads/SendCoreTransact
 import { DiscardAssetLockFundingResponse } from './messages/response/DiscardAssetLockFundingResponse'
 import { DiscardAssetLockFundingPayload } from './messages/payloads/DiscardAssetLockFundingPayload'
 import { MessagingMethods } from './enums/MessagingMethods'
+import { GetPaymentRequestPayload } from './messages/payloads/GetPaymentRequestPayload'
+import { GetPaymentRequestResponse } from './messages/response/GetPaymentRequestResponse'
+import { EstimatePaymentRequestPayload } from './messages/payloads/EstimatePaymentRequestPayload'
+import { EstimatePaymentRequestResponse } from './messages/response/EstimatePaymentRequestResponse'
+import { ApprovePaymentRequestPayload } from './messages/payloads/ApprovePaymentRequestPayload'
+import { RejectPaymentRequestPayload } from './messages/payloads/RejectPaymentRequestPayload'
+import { PaymentRequestResponse } from './messages/response/PaymentRequestResponse'
+import { PaymentSourceType } from './PaymentRequest'
 import { GetStateTransitionResponse } from './messages/response/GetStateTransitionResponse'
 import { GetCurrentIdentityResponse } from './messages/response/GetCurrentIdentityResponse'
 import { GetStatusResponse } from './messages/response/GetStatusResponse'
@@ -746,6 +754,34 @@ export class PrivateAPIClient {
     const payload: WithdrawShieldedToCorePayload = { toCoreAddress, amountCredits, password, account, memo }
 
     return await this._rpcCall(MessagingMethods.WITHDRAW_SHIELDED_TO_CORE, payload, SHIELDED_PROVE_TIMEOUT)
+  }
+
+  // A website's payment request, for the page where the user confirms it.
+  async getPaymentRequest (id: string): Promise<GetPaymentRequestResponse> {
+    const payload: GetPaymentRequestPayload = { id }
+
+    return await this._rpcCall(MessagingMethods.GET_PAYMENT_REQUEST, payload)
+  }
+
+  async estimatePaymentRequest (id: string, source: PaymentSourceType): Promise<EstimatePaymentRequestResponse> {
+    const payload: EstimatePaymentRequestPayload = { id, source }
+
+    return await this._rpcCall(MessagingMethods.ESTIMATE_PAYMENT_REQUEST, payload)
+  }
+
+  // Pays the request from `source`. The password is needed to sign, not to
+  // finish a payment an earlier attempt already signed. Sized for the slowest
+  // route, which waits on L1.
+  async approvePaymentRequest (id: string, source: PaymentSourceType, confirmedFeeDuffs: string, password?: string): Promise<PaymentRequestResponse> {
+    const payload: ApprovePaymentRequestPayload = { id, source, confirmedFeeDuffs, password }
+
+    return await this._rpcCall(MessagingMethods.APPROVE_PAYMENT_REQUEST, payload, BLOCKCHAIN_MESSAGING_TIMEOUT)
+  }
+
+  async rejectPaymentRequest (id: string): Promise<PaymentRequestResponse> {
+    const payload: RejectPaymentRequestPayload = { id }
+
+    return await this._rpcCall(MessagingMethods.REJECT_PAYMENT_REQUEST, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object, timeoutMs: number = MESSAGING_TIMEOUT): Promise<T> {

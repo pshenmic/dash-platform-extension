@@ -3,14 +3,25 @@ import { EventData } from './EventData'
 import { MessagingMethods } from './enums/MessagingMethods'
 import { ConnectAppResponse } from './messages/response/ConnectAppResponse'
 import { RequestStateTransitionApprovalResponse } from './messages/response/RequestStateTransitionApprovalResponse'
+import { RequestSendPaymentResponse } from './messages/response/RequestSendPaymentResponse'
+import { RequestSendPaymentPayload } from './messages/payloads/RequestSendPaymentPayload'
+import { GetPaymentStatusPayload } from './messages/payloads/GetPaymentStatusPayload'
+import { CancelPaymentRequestPayload } from './messages/payloads/CancelPaymentRequestPayload'
+import { PaymentRequestView } from './PaymentRequest'
+import { ConnectAppPayload } from './messages/payloads/ConnectAppPayload'
+import { OpenRequestPopupPayload } from './messages/payloads/OpenRequestPopupPayload'
+import { OpenRequestPopupResponse } from './messages/response/OpenRequestPopupResponse'
 import { generateRandomHex } from '../utils'
 
 export class PublicAPIClient {
-  async connectApp (url: string): Promise<ConnectAppResponse> {
-    return await this._rpcCall(MessagingMethods.CONNECT_APP,
-      {
-        url
-      })
+  async connectApp (url: string, waiting?: boolean): Promise<ConnectAppResponse> {
+    const payload: ConnectAppPayload = { url, waiting }
+
+    return await this._rpcCall(MessagingMethods.CONNECT_APP, payload)
+  }
+
+  async openRequestPopup (request: OpenRequestPopupPayload): Promise<OpenRequestPopupResponse> {
+    return await this._rpcCall(MessagingMethods.OPEN_REQUEST_POPUP, request)
   }
 
   async requestTransactionApproval (base64: string): Promise<RequestStateTransitionApprovalResponse> {
@@ -18,6 +29,24 @@ export class PublicAPIClient {
       {
         base64
       })
+  }
+
+  async requestSendPayment (address: string, amountDuffs: string): Promise<RequestSendPaymentResponse> {
+    const payload: RequestSendPaymentPayload = { address, amountDuffs }
+
+    return await this._rpcCall(MessagingMethods.REQUEST_SEND_PAYMENT, payload)
+  }
+
+  async getPaymentStatus (id: string): Promise<PaymentRequestView> {
+    const payload: GetPaymentStatusPayload = { id }
+
+    return await this._rpcCall(MessagingMethods.GET_PAYMENT_STATUS, payload)
+  }
+
+  async cancelPaymentRequest (id: string, reason: CancelPaymentRequestPayload['reason']): Promise<PaymentRequestView> {
+    const payload: CancelPaymentRequestPayload = { id, reason }
+
+    return await this._rpcCall(MessagingMethods.CANCEL_PAYMENT_REQUEST, payload)
   }
 
   async _rpcCall<T>(method: string, payload?: object): Promise<T> {

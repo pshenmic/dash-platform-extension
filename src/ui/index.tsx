@@ -19,6 +19,7 @@ const LoginState = React.lazy(async () => await import('./states/login/LoginStat
 const CreateWalletState = React.lazy(async () => await import('./states/wallet/CreateWalletState'))
 const ApproveTransactionState = React.lazy(async () => await import('./states/approveTransaction/ApproveTransactionState'))
 const AppConnectState = React.lazy(async () => await import('./states/appConnect/AppConnectState'))
+const PaymentRequestState = React.lazy(async () => await import('./states/paymentRequest/PaymentRequestState'))
 const SendTransactionState = React.lazy(async () => await import('./states/sendTransaction/SendTransactionState'))
 const ImportSeedPhrase = React.lazy(async () => await import('./states/importIdentity/ImportSeedPhrase'))
 const ChooseWalletType = React.lazy(async () => await import('./states/wallet/ChooseWalletType'))
@@ -210,6 +211,15 @@ const App: React.FC = function () {
         {
           path: '/connect/:id',
           element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><AppConnectState /></Suspense></PageWithHeader>,
+          handle: {
+            headerProps: {
+              variant: 'simple'
+            }
+          }
+        },
+        {
+          path: '/payment/:id',
+          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><PaymentRequestState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
               variant: 'simple'

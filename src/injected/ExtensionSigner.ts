@@ -9,6 +9,7 @@ import {
 } from '../types/messages/response/RequestStateTransitionApprovalResponse'
 import { ConnectAppResponse } from '../types/messages/response/ConnectAppResponse'
 import { WalletInfo } from '../types/WalletInfo'
+import { showRequest } from './showRequest'
 
 export class ExtensionSigner {
   publicAPIClient: PublicAPIClient
@@ -24,7 +25,7 @@ export class ExtensionSigner {
 
     let popupRef: Window | null = null
     if (response.status === 'pending') {
-      popupRef = popupWindow(response.redirectUrl, 'connectApp', window, 430, 600)
+      popupRef = (await showRequest(this.publicAPIClient, { kind: 'connect' }, response.redirectUrl, 'connectApp', window)).window
     }
 
     const startTimestamp = new Date()
@@ -36,7 +37,9 @@ export class ExtensionSigner {
         throw new Error('Failed to receive state transition signing approval due timeout')
       }
 
-      response = await this.publicAPIClient.connectApp(url)
+      // Waiting, so a rejection is reported rather than replaced by a new
+      // request: in the toolbar popup there is no window to see closing.
+      response = await this.publicAPIClient.connectApp(url, true)
 
       // Checked after the handler poll so Approve/Reject status transitions
       // resolve through the normal path first.

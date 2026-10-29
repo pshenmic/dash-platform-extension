@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
+import { useRequestWindow } from '../../hooks/useRequestWindow'
 import { Text, Button, Heading, ValueCard } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import ButtonRow from '../../components/layout/ButtonRow'
@@ -152,4 +153,12 @@ function AppConnectState (): React.JSX.Element {
   )
 }
 
-export default withAccessControl(AppConnectState)
+const GuardedAppConnectState = withAccessControl(AppConnectState)
+
+// Watched from before the access check: a locked wallet sends the user to the
+// password screen first, and closing the popup there declines the request too.
+export default function AppConnectStatePage (): React.JSX.Element {
+  useRequestWindow('connect', useParams().id)
+
+  return <GuardedAppConnectState />
+}

@@ -188,6 +188,48 @@ export const handleSendMessageButton = async () => {
 }
 ```
 
+## Requesting a payment
+
+A connected website can ask the user to pay an address with
+`window.dashPlatformExtension.requestSendPayment()`. The website names the recipient and the amount; the user picks
+where the money comes from, sees the fee and confirms with their password in the extension window. The network is
+the wallet's current one: the website neither passes nor switches it.
+
+```typescript
+interface SendPaymentResult {
+  id: string                       // a fresh id for every request
+  address: string                  // the recipient, as the extension parsed it
+  amountDuffs: string              // what the recipient receives
+  delivery: 'sent' | 'queued'      // 'queued': Platform accepted a withdrawal that pays a Core address later
+  transactions: Array<{ type: 'core', txid: string } | { type: 'platform', stateTransitionHash: string }>
+}
+
+requestSendPayment: (params: { address: string, amountDuffs: string }) => Promise<SendPaymentResult>
+```
+
+```js
+try {
+  const { transactions } = await window.dashPlatformExtension.requestSendPayment({
+    address: 'yVUKAMNURsDaGB4GFZgJUmYBoBJTW32stY',
+    amountDuffs: '10000000' // 0.1 DASH to the recipient
+  })
+
+  console.log('Paid, Core txid:', transactions[0].txid)
+} catch (e) {
+  // Declined, window closed, expired, wallet or network switched, or not payable
+  console.error(e.message)
+}
+```
+
+- `amountDuffs` is a positive integer string. It is what the recipient receives: fees are paid on top of it.
+- `address` is fully parsed (checksum, length, network). An address of another network is refused.
+- Every call is a payment of its own, confirmed separately: a connection does not authorize spending.
+- The promise rejects when the user declines or closes the window, when the request expires (10 minutes), or when
+  the wallet or network changes before the user confirms. Once confirmed, the payment is completed by the extension
+  even if the window is closed, and is never paid twice.
+- Currently payable: a Core address from the wallet's Core funds. Platform and Orchard recipients and other sources
+  are refused as not supported yet.
+
 
 ## Technical details
 

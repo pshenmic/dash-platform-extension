@@ -95,6 +95,13 @@ import { ShieldFromPlatformAddressHandler } from './private/wallet/shieldFromPla
 import { SendShieldedTransferHandler } from './private/wallet/sendShieldedTransfer'
 import { UnshieldToPlatformAddressHandler } from './private/wallet/unshieldToPlatformAddress'
 import { WithdrawShieldedToCoreHandler } from './private/wallet/withdrawShieldedToCore'
+import { PaymentRequestsRepository } from '../repository/PaymentRequestsRepository'
+import { PaymentRouter } from './private/payments/PaymentRouter'
+import { CoreToCorePaymentRoute } from './private/payments/CoreToCorePaymentRoute'
+import { GetPaymentRequestHandler } from './private/payments/getPaymentRequest'
+import { EstimatePaymentRequestHandler } from './private/payments/estimatePaymentRequest'
+import { ApprovePaymentRequestHandler } from './private/payments/approvePaymentRequest'
+import { RejectPaymentRequestHandler } from './private/payments/rejectPaymentRequest'
 
 /**
  * Handlers for a messages within extension context
@@ -171,6 +178,12 @@ export class PrivateAPI {
     const assetLockFunding = new AssetLockFundingService(coreExplorer, coreSpend)
     const assetLock = new AssetLockService(this.sdk, this.coreSDK)
     const shielded = new ShieldedService(this.storageAdapter, this.sdk)
+    const paymentRequestsRepository = new PaymentRequestsRepository(this.storageAdapter)
+    // Every way a website's payment request can be paid. A (source, recipient)
+    // pair missing here is refused as not supported.
+    const paymentRouter = new PaymentRouter([
+      new CoreToCorePaymentRoute(coreSpend, coreExplorer)
+    ])
 
     // Shared with the chains below: they hand the same instances their own scope
     // rather than building a second copy per call.
@@ -315,7 +328,11 @@ export class PrivateAPI {
       [MessagingMethods.SHIELD_FROM_PLATFORM_ADDRESS]: new ShieldFromPlatformAddressHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.SEND_SHIELDED_TRANSFER]: new SendShieldedTransferHandler(walletRepository, this.sdk, shielded),
       [MessagingMethods.UNSHIELD_TO_PLATFORM_ADDRESS]: new UnshieldToPlatformAddressHandler(walletRepository, this.sdk, shielded),
-      [MessagingMethods.WITHDRAW_SHIELDED_TO_CORE]: new WithdrawShieldedToCoreHandler(walletRepository, this.sdk, shielded)
+      [MessagingMethods.WITHDRAW_SHIELDED_TO_CORE]: new WithdrawShieldedToCoreHandler(walletRepository, this.sdk, shielded),
+      [MessagingMethods.GET_PAYMENT_REQUEST]: new GetPaymentRequestHandler(paymentRequestsRepository, walletRepository),
+      [MessagingMethods.ESTIMATE_PAYMENT_REQUEST]: new EstimatePaymentRequestHandler(paymentRequestsRepository, walletRepository, paymentRouter),
+      [MessagingMethods.APPROVE_PAYMENT_REQUEST]: new ApprovePaymentRequestHandler(paymentRequestsRepository, walletRepository, paymentRouter),
+      [MessagingMethods.REJECT_PAYMENT_REQUEST]: new RejectPaymentRequestHandler(paymentRequestsRepository)
     }
   }
 }
