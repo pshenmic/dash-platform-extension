@@ -7,8 +7,8 @@ import hash from 'hash.js'
 import { AppConnectStorageSchema } from './storage/storageSchema'
 import { AppConnectStatus } from '../types/enums/AppConnectStatus'
 import { EventData } from '../types'
-import { MessagingMethods } from '../types/enums/MessagingMethods'
 import { injectScript } from '../utils'
+import { isAppConnectApproval } from '../utils/appConnectApproval'
 import { Network } from '../types/enums/Network'
 
 export async function initApp (): Promise<void> {
@@ -55,7 +55,7 @@ export async function initApp (): Promise<void> {
   const handleMessage = (event: MessageEvent): void => {
     const data: EventData = event.data
 
-    if (data?.type !== 'response' && data?.method !== MessagingMethods.CONNECT_APP && data?.payload?.status !== 'approved') {
+    if (!isAppConnectApproval(data)) {
       return
     }
 
