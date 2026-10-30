@@ -10,7 +10,7 @@ Identity public keys preview on import of identity and bugfixes (fixes error on 
 
 **Full Changelog**: https://github.com/pshenmic/dash-platform-extension/compare/1.0.0...1.0.1
 
-# 1.0.0 (Narmada)
+# 1.0.0
 
 - Mainnet support
 - DashPay seedphrases (no create / register yet)

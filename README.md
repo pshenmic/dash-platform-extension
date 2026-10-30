@@ -24,7 +24,10 @@ interface for developers to integrate their application and create transactions.
 
 ## Versioning
 
-### 1.5.x (WIP)
+### 1.6.x (WIP)
+- Dash Platform v5.0 support
+
+### 1.5.x
 - Dash Core chain support
 - New Dashboards (per wallet, per core, per platform)
 - Major UX rehaul
