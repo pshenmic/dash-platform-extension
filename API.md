@@ -1,609 +1,141 @@
-# Dash Platform Extension API Documentation
+# Dash Extension API reference
 
-This document provides detailed information about the APIs available in the Dash Platform Extension.
+The reference for what a web page can call. Most dApps should follow the [integration guide](docs/INTEGRATION.md) and use `window.dashPlatformExtension.signer`, which wraps everything below.
 
-## Overview
+## Page globals
 
-The Dash Platform Extension provides two types of APIs:
+| Global | Available | Type |
+|---|---|---|
+| `window.dashPlatformExtension` | Shortly after page load | `{ signer: ExtensionSigner }` |
+| `window.dashPlatformSDK` | Once the site is approved | `DashPlatformSDK` from [dash-platform-sdk](https://github.com/pshenmic/dash-platform-sdk), starting on mainnet |
 
-1. **Public API** - For web pages to interact with the extension
-2. **Private API** - For internal extension communication
+## `signer.connect()`
 
-## Message Format
+```ts
+connect (): Promise<WalletInfo>
 
-All API communications use a standardized message format:
+interface WalletInfo {
+  identities: IdentityInfo[]
+  currentIdentity: string | null
+}
 
-```typescript
+interface IdentityInfo {
+  identifier: string
+  type: 'regular' | 'masternode' | 'voting'
+  proTxHash: string | null
+}
+```
+
+Asks to connect the current origin. Opens an approval popup if the origin has no decision yet, and polls every 500 ms until the user decides.
+
+`currentIdentity` is the wallet's current identity if the site was granted it, otherwise the first granted identity.
+
+**Rejects** with `App connection was rejected` if the user rejects or closes the popup, or with a timeout error after 3 minutes.
+
+## `signer.signAndBroadcast()`
+
+```ts
+signAndBroadcast (stateTransition: string | Uint8Array | StateTransitionWASM): Promise<StateTransitionWASM>
+```
+
+Asks the user to sign a state transition, then broadcasts it and waits for the result.
+
+| Input | Notes |
+|---|---|
+| `string` | Hex or base64 |
+| `Uint8Array` | Raw bytes |
+| `StateTransitionWASM` | Only an instance of the signer's own bundled class. Instances from `window.dashPlatformSDK` or your own SDK fail the `instanceof` check, so serialize those first. |
+
+**Resolves** with the state transition, with its signature and signature key ID set. Call `.hash(false)` on it for the signed transaction hash.
+
+**Rejects** with:
+
+- `Transaction signing was rejected` if the user cancels.
+- `Internal error during singing the transaction` if signing or broadcasting fails.
+- `Signature is missing` if the extension returns no signature.
+- `Failed to receive state transition signing approval due timeout` after 3 minutes without a decision.
+- `Unrecognized state transition type, must be StateTransitionWASM or string hex or string base64 or Uint8Array` for other inputs.
+
+## Message protocol
+
+The signer talks to the extension's content script through `window.postMessage`. You only need this level if you aren't using the signer.
+
+```ts
 interface EventData {
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request' | 'response';
-  method: string;
-  payload: any;
-  error: string | null;
+  id: string // matches a response to its request
+  context: 'dash-platform-extension'
+  type: 'request' | 'response' | 'event'
+  method: string
+  payload?: any
+  error?: string | null
 }
 ```
 
-## Public API
+The extension uses the origin reported by the browser, never one named in a message, to decide what a page may do. A page that isn't approved can only call `CONNECT_APP`.
 
-The Public API allows web pages to interact with the extension through `window.postMessage()`.
+### `CONNECT_APP`
 
-### CONNECT_APP
+The payload's `url` must exactly equal the calling page's origin.
 
-Connects a DApp to the extension.
+```ts
+// Request payload
+{ url: string }
 
-**Request:**
-```typescript
+// Response payload
 {
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'CONNECT_APP';
-  payload: {
-    appName: string;
-    appUrl: string;
-  };
+  redirectUrl: string // the approval page to open
+  status: 'pending' | 'approved' | 'rejected' | 'error'
+  identities: IdentityInfo[] // empty until approved
+  currentIdentity: string | null
+  network: string | null // null until approved
 }
 ```
 
-**Response:**
-```typescript
+Calling it again after a rejection starts a new `pending` request.
+
+### `REQUEST_STATE_TRANSITION_APPROVAL`
+
+The transition's owner must be an identity granted to the calling origin.
+
+```ts
+// Request payload
+{ base64: string } // serialized state transition
+
+// Response payload
 {
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'CONNECT_APP';
-  payload: {
-    connected: boolean;
-    appId: string;
-  };
-  error: null;
-}
-```
-
-**Example:**
-```javascript
-window.postMessage({
-  id: 'connect-1',
-  context: 'dash-platform-extension',
-  type: 'request',
-  method: 'CONNECT_APP',
-  payload: {
-    appName: 'My DApp',
-    appUrl: window.location.origin
+  redirectUrl: string // the approval page to open
+  stateTransition: {
+    unsignedHash: string
+    signedHash: string | null
+    unsigned: string
+    signature: string | null // hex
+    signaturePublicKeyId: number | null
+    status: 'pending' | 'approved' | 'rejected' | 'error'
+    error: string | null
   }
-}, '*');
-```
-
-### REQUEST_STATE_TRANSITION_APPROVAL
-
-Requests approval for a state transition from the user.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'REQUEST_STATE_TRANSITION_APPROVAL';
-  payload: {
-    stateTransition: any; // Dash Platform state transition object
-    appName: string;
-  };
 }
 ```
 
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'REQUEST_STATE_TRANSITION_APPROVAL';
-  payload: {
-    approved: boolean;
-    stateTransitionId: string;
-  };
-  error: null;
-}
-```
+Repeating a request with the same transition returns its current status, which is how the signer polls for a decision.
 
-**Example:**
-```javascript
-window.postMessage({
-  id: 'approval-1',
-  context: 'dash-platform-extension',
-  type: 'request',
-  method: 'REQUEST_STATE_TRANSITION_APPROVAL',
-  payload: {
-    stateTransition: myStateTransition,
-    appName: 'My DApp'
-  }
-}, '*');
-```
+### `content-script-ready` event
 
-## Private API
+The content script posts this message, with `type: 'event'`, once it can accept requests. The `window.dashPlatformExtension` global can arrive after it, so don't use this event to detect the global.
 
-The Private API is used for internal extension communication through Chrome's messaging system.
+### Errors
 
-### Extension Management
+A failed request produces a `response` message with `payload: null` and the reason in `error`:
 
-#### GET_STATUS
+| Error | Cause |
+|---|---|
+| `Application on url <origin> is not authorized` | The origin isn't approved |
+| `Could not find handler for method <method>` | Unknown method |
+| `Invalid payload: <reason>` | The payload failed validation |
+| `Connection must be requested for the calling origin <origin>` | `url` doesn't match the page's origin |
+| `No wallet loaded in the extension` | The user has no wallet |
+| `State transition has no owner identity to check the connection against` | For example, an identity creation transition |
+| `State transition owner <id> is not granted to this application` | The owner isn't a granted identity |
 
-Gets the current status of the extension.
+## Internal API
 
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'GET_STATUS';
-  payload: {};
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'GET_STATUS';
-  payload: {
-    isInitialized: boolean;
-    hasPassword: boolean;
-    currentIdentity: string | null;
-    currentWallet: string | null;
-  };
-  error: null;
-}
-```
-
-#### SETUP_PASSWORD
-
-Sets up password protection for the extension.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'SETUP_PASSWORD';
-  payload: {
-    password: string;
-  };
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'SETUP_PASSWORD';
-  payload: {
-    success: boolean;
-  };
-  error: null;
-}
-```
-
-#### CHECK_PASSWORD
-
-Verifies the provided password.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'CHECK_PASSWORD';
-  payload: {
-    password: string;
-  };
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'CHECK_PASSWORD';
-  payload: {
-    isValid: boolean;
-  };
-  error: null;
-}
-```
-
-### Identity Management
-
-#### CREATE_IDENTITY
-
-Creates a new identity.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'CREATE_IDENTITY';
-  payload: {
-    privateKey: string; // WIF format
-    name?: string;
-  };
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'CREATE_IDENTITY';
-  payload: {
-    identityId: string;
-    name: string;
-    createdAt: string;
-  };
-  error: null;
-}
-```
-
-#### GET_AVAILABLE_IDENTITIES
-
-Lists all available identities.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'GET_AVAILABLE_IDENTITIES';
-  payload: {};
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'GET_AVAILABLE_IDENTITIES';
-  payload: {
-    identities: Array<{
-      id: string;
-      name: string;
-      createdAt: string;
-      isActive: boolean;
-    }>;
-  };
-  error: null;
-}
-```
-
-#### GET_CURRENT_IDENTITY
-
-Gets the currently active identity.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'GET_CURRENT_IDENTITY';
-  payload: {};
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'GET_CURRENT_IDENTITY';
-  payload: {
-    identity: {
-      id: string;
-      name: string;
-      createdAt: string;
-      balance?: string;
-    } | null;
-  };
-  error: null;
-}
-```
-
-#### SWITCH_IDENTITY
-
-Switches to a different identity.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'SWITCH_IDENTITY';
-  payload: {
-    identityId: string;
-  };
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'SWITCH_IDENTITY';
-  payload: {
-    success: boolean;
-    identityId: string;
-  };
-  error: null;
-}
-```
-
-### Wallet Management
-
-#### CREATE_WALLET
-
-Creates a new wallet.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'CREATE_WALLET';
-  payload: {
-    name: string;
-    type: 'HD' | 'SIMPLE';
-  };
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'CREATE_WALLET';
-  payload: {
-    walletId: string;
-    name: string;
-    type: string;
-    address: string;
-  };
-  error: null;
-}
-```
-
-#### SWITCH_WALLET
-
-Switches to a different wallet.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'SWITCH_WALLET';
-  payload: {
-    walletId: string;
-  };
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'SWITCH_WALLET';
-  payload: {
-    success: boolean;
-    walletId: string;
-  };
-  error: null;
-}
-```
-
-### State Transition Management
-
-#### GET_STATE_TRANSITION
-
-Gets details of a specific state transition.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'GET_STATE_TRANSITION';
-  payload: {
-    stateTransitionId: string;
-  };
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'GET_STATE_TRANSITION';
-  payload: {
-    stateTransition: {
-      id: string;
-      type: string;
-      status: 'PENDING' | 'APPROVED' | 'REJECTED';
-      data: any;
-      createdAt: string;
-      appName?: string;
-    };
-  };
-  error: null;
-}
-```
-
-#### APPROVE_STATE_TRANSITION
-
-Approves a state transition.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'APPROVE_STATE_TRANSITION';
-  payload: {
-    stateTransitionId: string;
-    password?: string; // Required if password protection is enabled
-  };
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'APPROVE_STATE_TRANSITION';
-  payload: {
-    success: boolean;
-    transactionId?: string;
-  };
-  error: null;
-}
-```
-
-#### REJECT_STATE_TRANSITION
-
-Rejects a state transition.
-
-**Request:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'request';
-  method: 'REJECT_STATE_TRANSITION';
-  payload: {
-    stateTransitionId: string;
-    reason?: string;
-  };
-}
-```
-
-**Response:**
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: 'REJECT_STATE_TRANSITION';
-  payload: {
-    success: boolean;
-  };
-  error: null;
-}
-```
-
-## Error Handling
-
-All API responses may include error information:
-
-```typescript
-{
-  id: string;
-  context: 'dash-platform-extension';
-  type: 'response';
-  method: string;
-  payload: null;
-  error: string; // Error message
-}
-```
-
-### Common Error Types
-
-- `PayloadNotValidError` - Invalid request payload
-- `IdentityAlreadyExistsError` - Identity already exists
-- `CurrentIdentityNotSetError` - No active identity
-- `WalletNotFoundError` - Wallet not found
-- `StateTransitionAlreadyExistsError` - State transition already exists
-
-## Dash Platform SDK Integration
-
-The extension injects a Dash Platform SDK instance into web pages, providing access to:
-
-- Identity management
-- Document creation and management
-- State transition creation and signing
-- Contract interactions
-
-### Example Usage
-
-```javascript
-// Access the SDK
-const { dashPlatformSDK } = window;
-
-// Create a document
-const document = await dashPlatformSDK.documents.create(
-  dataContractId,
-  documentType,
-  documentData,
-  nonce,
-  identityId
-);
-
-// Create a state transition
-const transition = new dashPlatformSDK.wasm.DocumentCreateTransitionWASM(
-  document,
-  nonce,
-  documentType
-);
-
-// Sign the transition
-await dashPlatformSDK.signer.signStateTransition(transition);
-```
-
-## Security Notes
-
-- All private keys are stored securely in the extension's encrypted storage
-- State transitions require explicit user approval
-- Password protection can be enabled for additional security
-- The extension only exposes necessary APIs to web pages
-- Private key operations are performed within the extension context
-
-## Best Practices
-
-1. Always handle errors gracefully
-2. Validate payloads before sending requests
-3. Use unique IDs for each request
-4. Implement proper timeout handling
-5. Test with both approved and rejected scenarios
-6. Follow the message format exactly
-7. Use appropriate error handling for network issues 
+The popup and the extension's backend use a separate private API over `chrome.runtime` messaging. Web pages can't reach it and it isn't a stable contract. Its methods are listed in [`src/types/enums/MessagingMethods.ts`](src/types/enums/MessagingMethods.ts).
