@@ -75,7 +75,7 @@ export const MenuItem: React.FC<MenuItemProps> = ({
       <div className='flex items-center gap-4'>
         {(icon != null) && (
           <div className='flex-shrink-0 rounded-full flex items-center justify-center w-[35px] h-[35px] bg-white'>
-            <div className='w-4 h-4 flex items-center justify-center'>
+            <div className='w-4 h-4 flex items-center justify-center [&_svg]:!w-4 [&_svg]:!h-4'>
               {icon}
             </div>
           </div>

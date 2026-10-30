@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import { MenuSection } from '../MenuSection'
 import {
   KeyIcon,
@@ -6,9 +7,11 @@ import {
   ChainSmallIcon,
   DashLogo,
   QuestionMessageIcon,
-  WebIcon
+  WebIcon,
+  LockIcon
 } from 'dash-ui-kit/react'
 import { NetworkSelector } from '../../controls'
+import { lockSession } from '../../../utils/lockSession'
 import type { SettingsScreenProps, ScreenConfig } from '../types'
 import type { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
 import type { NetworkType } from '../../../../types'
@@ -48,7 +51,7 @@ export const helpSupportConfig: ScreenConfig = {
 export const aboutDashConfig: ScreenConfig = {
   id: 'about-dash',
   title: 'About Dash Extension',
-  icon: <DashLogo className='!text-dash-primary-dark-blue w-4 h-4' />,
+  icon: <DashLogo className='!text-dash-primary-dark-blue' />,
   category: 'other',
   content: []
 }
@@ -101,7 +104,8 @@ interface MainSettingsScreenProps extends SettingsScreenProps {
 const createDynamicMainScreenConfig = (
   currentWallet?: WalletAccountInfo | null,
   currentIdentity?: string | null,
-  networkControl?: React.ReactNode
+  networkControl?: React.ReactNode,
+  onLock?: () => void
 ): ScreenConfig => {
   const isPrivateKeysDisabled = currentWallet == null || currentIdentity == null
 
@@ -116,7 +120,7 @@ const createDynamicMainScreenConfig = (
               {
                 id: 'network-item',
                 title: 'Network',
-                icon: <WebIcon size={16} className='!text-dash-primary-dark-blue' />,
+                icon: <WebIcon className='!text-dash-primary-dark-blue' />,
                 control: networkControl
               }
             ]
@@ -136,13 +140,26 @@ const createDynamicMainScreenConfig = (
           }
         ]
       },
-      ...mainScreenConfig.content
+      ...mainScreenConfig.content,
+      {
+        id: 'lock-wallet',
+        title: '',
+        items: [
+          {
+            id: 'lock-wallet-item',
+            title: 'Lock Wallet',
+            icon: <LockIcon className='text-dash-primary-dark-blue' />,
+            onAction: onLock
+          }
+        ]
+      }
     ]
   }
 }
 
 export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
   onItemSelect,
+  onClose,
   currentWallet,
   currentIdentity,
   currentNetwork,
@@ -160,7 +177,18 @@ export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
       )
     : undefined
 
-  const dynamicConfig = createDynamicMainScreenConfig(currentWallet, currentIdentity, networkControl)
+  const navigate = useNavigate()
+
+  // Drops the session marker, so the password is asked again.
+  const handleLock = async (): Promise<void> => {
+    await lockSession()
+    onClose()
+    void navigate('/login', { replace: true })
+  }
+
+  const dynamicConfig = createDynamicMainScreenConfig(currentWallet, currentIdentity, networkControl, () => {
+    handleLock().catch(e => console.log('lock wallet error:', e))
+  })
 
   return (
     <div className='menu-sections-container'>

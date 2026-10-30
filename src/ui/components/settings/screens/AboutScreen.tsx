@@ -4,7 +4,7 @@ import { MenuSection } from '../MenuSection'
 import { EXTENSION_REPO_URL, DASH_WEBSITE_URL } from '../../../constants'
 import type { SettingsScreenProps, ScreenConfig, MenuSection as MenuSectionType } from '../types'
 
-const ICON_CLASS = '!text-dash-primary-dark-blue w-4 h-4'
+const ICON_CLASS = '!text-dash-primary-dark-blue'
 
 // Menu item id -> external url opened on click.
 const LINKS: Record<string, string> = {
@@ -20,7 +20,7 @@ const sections: MenuSectionType[] = [
       {
         id: 'website',
         title: 'Dash.org',
-        icon: <WebIcon size={16} className={ICON_CLASS} />,
+        icon: <WebIcon className={ICON_CLASS} />,
         external: true
       },
       {
