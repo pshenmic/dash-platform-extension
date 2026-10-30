@@ -3,72 +3,42 @@ import { useAsyncState, useSdk, usePlatformExplorerClient } from '../../../hooks
 import type { AsyncState } from '../../../hooks'
 import type { NetworkType, TokenData } from '../../../../types'
 
-interface UseSendScreenDataParams {
-  senderIdentity: string | null
-  // Identity whose tokens are offered, or null when the screen sends credits only.
-  tokensIdentity: string | null
-  currentNetwork: NetworkType | null
-}
-
 interface UseSendScreenDataResult {
   balance: bigint | null
   rate: number | null
   tokensState: AsyncState<TokenData[]>
 }
 
-/**
- * Screen data for the send flow: sender balance, exchange rate and token list.
- */
-export function useSendScreenData ({
-  senderIdentity,
-  tokensIdentity,
-  currentNetwork
-}: UseSendScreenDataParams): UseSendScreenDataResult {
+// Balance, tokens and the exchange rate of the sending identity; null identity loads the rate only.
+export function useSendScreenData (identityId: string | null, network: NetworkType): UseSendScreenDataResult {
   const sdk = useSdk()
   const platformExplorerClient = usePlatformExplorerClient()
   const [balance, setBalance] = useState<bigint | null>(null)
   const [rate, setRate] = useState<number | null>(null)
   const [tokensState, loadTokens] = useAsyncState<TokenData[]>()
 
-  // Load balance and exchange rate
   useEffect(() => {
-    const loadBalance = async (): Promise<void> => {
-      if (senderIdentity !== null && senderIdentity !== undefined) {
-        try {
-          const identityBalance = await sdk.identities.getIdentityBalance(senderIdentity)
-          setBalance(identityBalance)
-        } catch (err) {
-          console.error('Failed to load balance:', err)
-        }
-      }
+    setBalance(null)
+
+    if (identityId != null) {
+      sdk.identities.getIdentityBalance(identityId)
+        .then(setBalance)
+        .catch(e => console.error('Failed to load balance:', e))
     }
 
-    const loadRate = async (): Promise<void> => {
-      try {
-        const rate = await platformExplorerClient.fetchRate(currentNetwork ?? 'testnet')
-        setRate(rate)
-      } catch (err) {
-        console.log('Failed to load exchange rate:', err)
+    platformExplorerClient.fetchRate(network)
+      .then(setRate)
+      .catch(e => {
+        console.log('Failed to load exchange rate:', e)
         setRate(null)
-      }
-    }
+      })
+  }, [identityId, sdk, network, platformExplorerClient])
 
-    void loadBalance().catch(e => console.log('loadBalance error:', e))
-    void loadRate().catch(e => console.log('loadRate error:', e))
-  }, [senderIdentity, sdk, currentNetwork, platformExplorerClient])
-
-  // Load the tokens of the identity the screen was opened for. Without one the
-  // list resolves empty, so the screen still leaves the loading state.
+  // Without an identity the list resolves empty, so the screen still leaves the loading state.
   useEffect(() => {
-    if (tokensIdentity === null) {
-      loadTokens(async () => []).catch(e => console.log('loadTokens error:', e))
-      return
-    }
-
-    loadTokens(async () => {
-      return await platformExplorerClient.fetchTokens(tokensIdentity, currentNetwork as NetworkType, 100, 1)
-    }).catch(e => console.log('loadTokens error:', e))
-  }, [tokensIdentity, currentNetwork, platformExplorerClient, loadTokens])
+    loadTokens(async () => identityId == null ? [] : await platformExplorerClient.fetchTokens(identityId, network, 100, 1))
+      .catch(e => console.log('loadTokens error:', e))
+  }, [identityId, network, platformExplorerClient, loadTokens])
 
   return { balance, rate, tokensState }
 }

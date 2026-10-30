@@ -22,7 +22,7 @@ export function ReceiveCard ({ target }: ReceiveCardProps): React.JSX.Element {
       </div>
 
       <div className='flex items-start gap-2 w-full min-w-0'>
-        <Identifier highlight='both' className='!text-sm !leading-[1.2] flex-1'>
+        <Identifier highlight='both' className='!leading-[1.2] flex-1'>
           {target.value}
         </Identifier>
         {target.explorerUrl != null && (

@@ -1,5 +1,4 @@
-export { MIN_CREDIT_TRANSFER, ESTIMATED_FEES } from './transaction'
-export type { NetworkType, AssetType } from './transaction'
+export { MIN_CREDIT_TRANSFER, ESTIMATED_FEES, CORE_FALLBACK_FEE_INPUTS, PLATFORM_TRANSFER_FALLBACK_FEE_CREDITS, WITHDRAWAL_FALLBACK_FEE_CREDITS } from './transaction'
 export {
   PROVING_NOTE,
   PROVING_WARNING,

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import styles from './PercentageSlider.module.pcss'
+import { Slider } from 'dash-ui-kit/react'
 
 interface PercentageSliderProps {
   /** Raw amount string (same units as maxBalance) */
@@ -10,6 +10,8 @@ interface PercentageSliderProps {
   onPercentage: (percentage: number) => void
   /** Called when user explicitly clears (sets to 0) */
   onClear: () => void
+  // Drops the 0 button on the left of the track.
+  hideZero?: boolean
   className?: string
 }
 
@@ -18,6 +20,7 @@ export function PercentageSlider ({
   maxBalance,
   onPercentage,
   onClear,
+  hideZero = false,
   className
 }: PercentageSliderProps): React.JSX.Element {
   const sliderValue = useMemo((): number => {
@@ -36,29 +39,20 @@ export function PercentageSlider ({
     onPercentage(pct / 100)
   }
 
-  // `--pct` drives the filled portion of the track
-  const sliderStyle: React.CSSProperties & Record<'--pct', string> = { '--pct': `${sliderValue}%` }
-
   return (
     <div className={`flex items-center gap-[1.125rem] w-full ${className ?? ''}`}>
-      <button
-        type='button'
-        className='text-[0.75rem] font-medium leading-[1.2] text-brand border-none bg-transparent cursor-pointer p-0 rounded shrink-0'
-        onClick={() => handleChange(0)}
-      >
-        0
-      </button>
+      {!hideZero && (
+        <button
+          type='button'
+          className='text-[0.75rem] font-medium leading-[1.2] text-brand border-none bg-transparent cursor-pointer p-0 rounded shrink-0'
+          onClick={() => handleChange(0)}
+        >
+          0
+        </button>
+      )}
 
       <div className='flex-1 min-w-0'>
-        <input
-          type='range'
-          min={0}
-          max={100}
-          value={sliderValue}
-          onChange={(e) => handleChange(Number(e.target.value))}
-          className={`${styles.slider} w-full block`}
-          style={sliderStyle}
-        />
+        <Slider value={sliderValue} onChange={handleChange} />
       </div>
 
       <button

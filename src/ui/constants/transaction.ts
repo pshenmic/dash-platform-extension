@@ -15,5 +15,14 @@ export const ESTIMATED_FEES = {
   }
 } as const
 
-export type NetworkType = keyof typeof ESTIMATED_FEES
-export type AssetType = keyof typeof ESTIMATED_FEES.testnet
+// Coins a fallback Core fee pays for; the common send spends 1, and a send-max of a typical wallet stays under 20.
+export const CORE_FALLBACK_FEE_INPUTS = 20
+
+// Fallback A->A fee: the flat 15M transfer reserve, over 2x dpp's 6.5M one-output fee.
+export const PLATFORM_TRANSFER_FALLBACK_FEE_CREDITS = 15_000_000n
+
+// Fallback fee of every recipient past the first: 2x dpp's 6M per output.
+export const PLATFORM_TRANSFER_FALLBACK_FEE_PER_OUTPUT_CREDITS = 12_000_000n
+
+// Fallback withdrawal fee: dpp asks ~400M from an identity or an address, plus a 25% margin.
+export const WITHDRAWAL_FALLBACK_FEE_CREDITS = 500_000_000n

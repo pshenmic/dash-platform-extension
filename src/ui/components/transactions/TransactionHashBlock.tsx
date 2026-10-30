@@ -15,6 +15,8 @@ interface TransactionHashBlockProps {
   label?: string
   shadow?: boolean
   colorScheme?: ValueCardProps['colorScheme']
+  // Overrides the Platform explorer link, e.g. for a Core transaction.
+  explorerUrl?: string
 }
 
 export default function TransactionHashBlock ({
@@ -26,13 +28,12 @@ export default function TransactionHashBlock ({
   label = 'Hash',
   showActions = true,
   shadow = false,
-  colorScheme = 'white'
+  colorScheme = 'white',
+  explorerUrl
 }: TransactionHashBlockProps): React.JSX.Element {
   const isFull = variant === 'full'
   const openExplorer = (): void => {
-    const explorerUrl = PLATFORM_EXPLORER_URLS[network].explorer
-    const url = `${explorerUrl}/transaction/${hash}`
-    window.open(url, '_blank')
+    window.open(explorerUrl ?? `${PLATFORM_EXPLORER_URLS[network].explorer}/transaction/${hash}`, '_blank')
   }
 
   return (
@@ -47,10 +48,11 @@ export default function TransactionHashBlock ({
       )}
       <div className='flex justify-between gap-2'>
         <Identifier
+          weight='medium'
           highlight='both'
           ellipsis={!isFull}
           linesAdjustment={isFull ? false : undefined}
-          className='font-medium flex-grow'
+          className='flex-grow'
         >
           {hash}
         </Identifier>

@@ -8,7 +8,7 @@ interface AssetOptionCardProps {
   symbol?: string
   balance?: string
   // 'selectable' shows a selected/unselected state (SelectableCard). 'plain' is a
-  // neutral clickable card with no pre-selected highlight — for an initial choice.
+  // neutral clickable card with no pre-selected highlight - for an initial choice.
   variant?: 'selectable' | 'plain'
   selected?: boolean
   onClick: () => void
