@@ -1,5 +1,12 @@
 export const SCHEMA_VERSION = 10
 export const MESSAGING_TIMEOUT = 3 * 60 * 1000
+
+// The oldest Platform protocol version whose nodes we are willing to talk to.
+// An SDK release pins one LATEST_PLATFORM_VERSION and, without this, admits
+// only nodes running exactly that - which is why a build for testnet (now on
+// 14) refused every mainnet node (still on 13). Naming a floor lets one build
+// serve both; raise it once every network has moved past the version below.
+export const MIN_PLATFORM_PROTOCOL_VERSION = 13
 // Shielded (Orchard) Halo2 proofs are CPU-heavy and run well past the normal
 // timeout in the popup — give these calls a much longer window.
 export const SHIELDED_PROVE_TIMEOUT = 20 * 60 * 1000
