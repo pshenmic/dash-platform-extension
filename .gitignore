@@ -9,3 +9,6 @@ package-lock.json
 # Claude Code local config
 .claude/
 .agents
+
+# Local reports and demos: never part of the repository.
+artifacts/
