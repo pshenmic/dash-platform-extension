@@ -117,6 +117,8 @@ export const WITHDRAWAL_CORE_FEE_PER_BYTE = 1
 export const WITHDRAWAL_POOLING = 'Never'
 export const MIN_WITHDRAWAL_CREDITS = 1_000_000n
 export const MAX_WITHDRAWAL_CREDITS = 50_000_000_000_000n
+// Oldest Platform protocol the SDK node pool accepts: mainnet may lag the SDK's latest.
+export const MIN_PLATFORM_PROTOCOL_VERSION = 13
 export const PLATFORM_ADDRESS_COIN_TYPE = {
   testnet: 1,
   mainnet: 5

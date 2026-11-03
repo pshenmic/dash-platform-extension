@@ -1,4 +1,5 @@
 import type { DashPlatformSDK } from 'dash-platform-sdk'
+import { MIN_PLATFORM_PROTOCOL_VERSION } from '../constants'
 
 let sdkInstance: DashPlatformSDK | null = null
 let sdkLoadPromise: Promise<DashPlatformSDK> | null = null
@@ -37,7 +38,7 @@ export function getSdkNetwork (): 'mainnet' | 'testnet' {
 export function getSdkPromise (): Promise<DashPlatformSDK> {
   if (sdkLoadPromise === null) {
     sdkLoadPromise = import('dash-platform-sdk').then(module => {
-      sdkInstance = new module.DashPlatformSDK({ network: desiredNetwork })
+      sdkInstance = new module.DashPlatformSDK({ network: desiredNetwork, grpc: { minProtocolVersion: MIN_PLATFORM_PROTOCOL_VERSION } })
       return sdkInstance
     })
   }
