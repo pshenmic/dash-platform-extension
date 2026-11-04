@@ -24,7 +24,7 @@
     "@scure/bip32": "^2.4.0",
     "@scure/bip39": "^1.6.0",
     "dash-core-sdk": "1.1.4",
-    "dash-platform-sdk": "1.6.0-dev.7",
+    "dash-platform-sdk": "1.6.0-dev.8",
     "dash-ui-kit": "2.1.6",
     "eciesjs": "^0.4.18",
     "hash.js": "^1.1.7",

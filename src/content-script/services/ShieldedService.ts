@@ -9,7 +9,7 @@ import { NetworkType } from '../../types/NetworkType'
 import { ShieldedAddressBalance, ShieldedNote, ShieldedNotesAccount, ShieldedStoredAddress, ShieldedSyncPhase } from '../../types/ShieldedNotes'
 import { Network } from '../../types/enums/Network'
 import { ShieldedSpendKind } from '../../types/ShieldedSpendKind'
-import { MIN_PLATFORM_PROTOCOL_VERSION, PLATFORM_ADDRESS_COIN_TYPE, SHIELDED_MEMO_BYTES, SHIELDED_NOTES_PAGE_SIZE, SHIELDED_NULLIFIER_QUERY_LIMIT } from '../../constants'
+import { PLATFORM_ADDRESS_COIN_TYPE, SHIELDED_MEMO_BYTES, SHIELDED_NOTES_PAGE_SIZE, SHIELDED_NULLIFIER_QUERY_LIMIT } from '../../constants'
 import { ShieldedSyncState } from '../../types/messages/response/GetShieldedSyncStateResponse'
 import { bytesToHex, decryptMnemonic, hexToBytes, selectShieldedNotes, utf8ToBytes } from '../../utils'
 
@@ -66,7 +66,7 @@ export class ShieldedService {
     let sdk = this.shared.sdks.get(network)
 
     if (sdk == null) {
-      sdk = new DashPlatformSDK({ network: Network[network], grpc: { minProtocolVersion: MIN_PLATFORM_PROTOCOL_VERSION } })
+      sdk = new DashPlatformSDK({ network: Network[network] })
       this.shared.sdks.set(network, sdk)
     }
 

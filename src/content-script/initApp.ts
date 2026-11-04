@@ -10,13 +10,12 @@ import { EventData } from '../types'
 import { injectScript } from '../utils'
 import { isAppConnectApproval } from '../utils/appConnectApproval'
 import { Network } from '../types/enums/Network'
-import { MIN_PLATFORM_PROTOCOL_VERSION } from '../constants'
 
 export async function initApp (): Promise<void> {
   const extensionStorageAdapter = new ExtensionStorageAdapter()
   const network = await extensionStorageAdapter.get('network') as string
 
-  const sdk = new DashPlatformSDK({ network: Network[network], grpc: { minProtocolVersion: MIN_PLATFORM_PROTOCOL_VERSION } })
+  const sdk = new DashPlatformSDK({ network: Network[network] })
   const coreSDK = new DashCoreSDK({ network: Network[network] })
 
   const privateAPI = new PrivateAPI(sdk, coreSDK, extensionStorageAdapter)

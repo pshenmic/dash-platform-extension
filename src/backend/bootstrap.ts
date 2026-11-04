@@ -4,7 +4,6 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { DashCoreSDK } from 'dash-core-sdk'
 import { PrivateAPI } from '../content-script/api/PrivateAPI'
 import { Network } from '../types/enums/Network'
-import { MIN_PLATFORM_PROTOCOL_VERSION } from '../constants'
 
 /**
  * Boots the wallet backend: runs storage migrations, constructs the SDKs and
@@ -26,7 +25,7 @@ export async function startBackend (): Promise<PrivateAPI> {
   await runMigrations(storageAdapter)
 
   const network = await storageAdapter.get('network') as string
-  const sdk = new DashPlatformSDK({ network: Network[network], grpc: { minProtocolVersion: MIN_PLATFORM_PROTOCOL_VERSION } })
+  const sdk = new DashPlatformSDK({ network: Network[network] })
   const coreSDK = new DashCoreSDK({ network: Network[network] })
 
   const privateAPI = new PrivateAPI(sdk, coreSDK, storageAdapter)
