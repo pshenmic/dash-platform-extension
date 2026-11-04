@@ -4037,10 +4037,10 @@ dash-core-sdk@1.1.4:
     typescript "^5.9.2"
     ws "^8.18.3"
 
-dash-platform-sdk@1.6.0-dev.3:
-  version "1.6.0-dev.3"
-  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.6.0-dev.3.tgz#acf2037ff6c2cd3d512f4d5f6949871426756222"
-  integrity sha512-mKCo8sGtZ7jS/GnshRH28jYlZ+xnZkvTyxPRpIbJOIi+2IUNytqhMVAYP16UNeMoNT+dC4hHodua++TGRe/oxg==
+dash-platform-sdk@1.6.0-dev.8:
+  version "1.6.0-dev.8"
+  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.6.0-dev.8.tgz#4d333def5666dc4d6ca2b33eb181b575fe958e0b"
+  integrity sha512-jH8yaktAg1AWlTZgTXyKD8LkxqeZGaGeUHgYgePD+5Nru4jut5Vie1FJWXZAMhRcT9+SsIjcdF1gnMzNJGdzDQ==
   dependencies:
     "@bufbuild/protobuf" "^2.6.0"
     "@protobuf-ts/grpcweb-transport" "^2.11.1"
@@ -4048,7 +4048,7 @@ dash-platform-sdk@1.6.0-dev.3:
     "@scure/bip32" "^2.0.0"
     "@scure/bip39" "^2.0.0"
     "@scure/btc-signer" "^2.0.1"
-    pshenmic-dpp "2.0.1-dev.4"
+    pshenmic-dpp "2.0.1-dev.5"
 
 dash-ui-kit@2.1.6:
   version "2.1.6"
@@ -7238,10 +7238,10 @@ proxy-addr@~2.0.7:
     forwarded "0.2.0"
     ipaddr.js "1.9.1"
 
-pshenmic-dpp@2.0.1-dev.4:
-  version "2.0.1-dev.4"
-  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-2.0.1-dev.4.tgz#91e2c7af972a6b3d8d0d5080060392683b3f1bdf"
-  integrity sha512-Gx/0k7j5VcN0SwkA1oLPsX5d01KjJBbHVf6vQYKkZk3ky1RltUpJTAp4SNywVjfWTYCIxpJibGOdJt7gEqXQiw==
+pshenmic-dpp@2.0.1-dev.5:
+  version "2.0.1-dev.5"
+  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-2.0.1-dev.5.tgz#364600263e40190d6108709c570e0ac1cf634d79"
+  integrity sha512-oJVLKM1Cgz9cKuSLBAvmLVZcVZNba7225zx7F8ApD/6Vhh5RuO3anNweNxlkWFwmw02q+zGi0q0t09gs+sBK9g==
   dependencies:
     "@emnapi/core" "1.9.0"
     "@emnapi/runtime" "1.9.0"
