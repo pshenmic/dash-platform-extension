@@ -215,17 +215,6 @@ const App: React.FC = function () {
             }
           }
         },
-        // Temporary preview routes with mocked data - remove after design work.
-        {
-          path: '/preview/connect/:id',
-          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><AppConnectState /></Suspense></PageWithHeader>,
-          handle: { headerProps: { variant: 'transaction' } }
-        },
-        {
-          path: '/preview/approve/:txhash',
-          element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><ApproveTransactionState /></Suspense></PageWithHeader>,
-          handle: { headerProps: { variant: 'transaction' } }
-        },
         {
           path: '/wallet-created',
           element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><WalletSuccessfullyCreated /></Suspense></PageWithHeader>,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams, useOutletContext, useLocation, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
 import { Accordion, Button, Identifier } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
@@ -19,7 +19,6 @@ import { TransactionTypeChip } from './TransactionTypeChip'
 import { detailsShowIdentity, transactionCredits, transactionTypeTitle } from './transactionMeta'
 import { PLATFORM_DASH_DECIMALS, dashAmountToUsd, decodeStateTransition, formatDashAmount, getStateTransitionKeyRequirements } from '../../../utils'
 import { SigningErrorDetails } from '../../components/errors'
-import { PREVIEW_TX_HASH, isPreviewMode } from '../../preview/PreviewAPIClient'
 
 function ApproveTransactionState (): React.JSX.Element {
   const navigate = useNavigate()
@@ -33,9 +32,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const returnToHome = location.state?.returnToHome === true
 
   const [transactionDecodeError, setTransactionDecodeError] = useState<string | null>(null)
-  const [searchParams] = useSearchParams()
-  // Temporary: ?success opens the success screen in preview mode.
-  const [txHash, setTxHash] = useState<string | null>(isPreviewMode() && searchParams.has('success') ? PREVIEW_TX_HASH : null)
+  const [txHash, setTxHash] = useState<string | null>(null)
   const [isLoadingTransaction, setIsLoadingTransaction] = useState<boolean>(false)
   const [transactionNotFound, setTransactionNotFound] = useState<boolean>(false)
 
