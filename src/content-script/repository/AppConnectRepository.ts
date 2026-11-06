@@ -2,25 +2,43 @@ import { AppConnect } from '../../types'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { AppConnectsStorageSchema } from '../storage/storageSchema'
 import { AppConnectStatus } from '../../types/enums/AppConnectStatus'
+import { RepositoryScope } from '../../types/RepositoryScope'
 import hash from 'hash.js'
 
 export class AppConnectRepository {
   storageAdapter: StorageAdapter
+  scope?: RepositoryScope
 
-  constructor (storageAdapter: StorageAdapter) {
+  constructor (storageAdapter: StorageAdapter, scope?: RepositoryScope) {
     this.storageAdapter = storageAdapter
+    this.scope = scope
   }
 
-  async create (url: string): Promise<AppConnect> {
+  // Returns a repository pinned to one (network, wallet) pair instead of
+  // re-reading the current one on every call. A caller that already knows the
+  // pair uses this, so a switch halfway through cannot repoint its reads.
+  forScope (scope: RepositoryScope): AppConnectRepository {
+    return new AppConnectRepository(this.storageAdapter, scope)
+  }
+
+  private async getStorageKey (): Promise<string> {
+    if (this.scope != null) {
+      return `appConnects_${this.scope.network}_${this.scope.walletId}`
+    }
+
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-    const id = hash.sha256().update(url).digest('hex').substring(0, 6)
 
     if (walletId == null) {
       throw new Error('Wallet is not chosen')
     }
 
-    const storageKey = `appConnects_${network}_${walletId}`
+    return `appConnects_${network}_${walletId}`
+  }
+
+  async create (url: string): Promise<AppConnect> {
+    const storageKey = await this.getStorageKey()
+    const id = hash.sha256().update(url).digest('hex').substring(0, 6)
 
     const appConnectRequest: AppConnect = {
       id,
@@ -43,14 +61,7 @@ export class AppConnectRepository {
   }
 
   async getByURL (url: string): Promise<AppConnect | null> {
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const storageKey = `appConnects_${network}_${walletId}`
+    const storageKey = await this.getStorageKey()
 
     const id = hash.sha256().update(url).digest('hex').substring(0, 6)
 
@@ -68,14 +79,7 @@ export class AppConnectRepository {
   }
 
   async getAll (): Promise<AppConnect[]> {
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const storageKey = `appConnects_${network}_${walletId}`
+    const storageKey = await this.getStorageKey()
 
     const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
 
@@ -93,14 +97,7 @@ export class AppConnectRepository {
   }
 
   async removeById (id: string): Promise<void> {
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const storageKey = `appConnects_${network}_${walletId}`
+    const storageKey = await this.getStorageKey()
 
     const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
 
@@ -115,14 +112,7 @@ export class AppConnectRepository {
   }
 
   async getById (id: string): Promise<AppConnect | null> {
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const storageKey = `appConnects_${network}_${walletId}`
+    const storageKey = await this.getStorageKey()
 
     const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
 
@@ -140,14 +130,7 @@ export class AppConnectRepository {
   // Identities this website may see. Replaces the whole grant, so revoking is
   // the same call with a shorter list.
   async setIdentities (id: string, identities: string[]): Promise<void> {
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const storageKey = `appConnects_${network}_${walletId}`
+    const storageKey = await this.getStorageKey()
 
     const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
 
@@ -161,14 +144,7 @@ export class AppConnectRepository {
   }
 
   async setStatus (id: string, status: AppConnectStatus): Promise<void> {
-    const network = await this.storageAdapter.get('network') as string
-    const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    if (walletId == null) {
-      throw new Error('Wallet is not chosen')
-    }
-
-    const storageKey = `appConnects_${network}_${walletId}`
+    const storageKey = await this.getStorageKey()
 
     const appConnects = (await this.storageAdapter.get(storageKey) ?? {}) as AppConnectsStorageSchema
 
