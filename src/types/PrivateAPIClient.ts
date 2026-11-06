@@ -127,10 +127,13 @@ import { ShieldFromWalletResponse } from './messages/response/ShieldFromWalletRe
 import { ShieldFromCorePayload } from './messages/payloads/ShieldFromCorePayload'
 import { ShieldFromCoreResponse } from './messages/response/ShieldFromCoreResponse'
 import { ListPendingAssetLocksResponse } from './messages/response/ListPendingAssetLocksResponse'
-import { ListRecoverableAssetLockFundsPayload } from './messages/payloads/ListRecoverableAssetLockFundsPayload'
-import { ListRecoverableAssetLockFundsResponse } from './messages/response/ListRecoverableAssetLockFundsResponse'
+import { ListAssetLockFundingAddressesPayload } from './messages/payloads/ListAssetLockFundingAddressesPayload'
+import { ListAssetLockFundingAddressesResponse } from './messages/response/ListAssetLockFundingAddressesResponse'
+import { HasAssetLockFundingAddressesResponse } from './messages/response/HasAssetLockFundingAddressesResponse'
+import { ScopedPayload } from '../utils/validateRepositoryScopePayload'
 import { RecoverAssetLockFundsPayload } from './messages/payloads/RecoverAssetLockFundsPayload'
 import { RecoverAssetLockFundsResponse } from './messages/response/RecoverAssetLockFundsResponse'
+import { ClearAssetLockFundingAddressesResponse } from './messages/response/ClearAssetLockFundingAddressesResponse'
 import { RequestAssetLockFundingAddressPayload } from './messages/payloads/RequestAssetLockFundingAddressPayload'
 
 export class PrivateAPIClient {
@@ -878,35 +881,59 @@ export class PrivateAPIClient {
     return response.assetLocks
   }
 
-  // Asset lock funding addresses never finished with, whose deposits are still
-  // spendable. Unlike listPendingAssetLocks these carry no record of a payment -
-  // the money was sent from outside the wallet - so only the chain can say what
-  // is there. Pass withBalances to read it; left off, the answer is storage-only,
-  // which is what a menu uses to decide whether to show the entry at all.
-  async listRecoverableAssetLockFunds (withBalances: boolean = false, walletId?: string, network?: NetworkType): Promise<ListRecoverableAssetLockFundsResponse['addresses']> {
-    const payload: ListRecoverableAssetLockFundsPayload = { withBalances, walletId, network }
+  // Every asset lock funding address this wallet was ever given, with where each
+  // one stands. All of them, not only the spendable ones: these entries hold the
+  // only copy of a one-time key, and the screen offers a button that deletes them,
+  // so what it deletes has to be visible. Unlike listPendingAssetLocks these carry
+  // no record of a payment - the money was sent from outside the wallet - so only
+  // the chain can say what is there. Pass withBalances to read it; left off, the
+  // answer is storage-only.
+  async listAssetLockFundingAddresses (withBalances: boolean = false, walletId?: string, network?: NetworkType): Promise<ListAssetLockFundingAddressesResponse['addresses']> {
+    const payload: ListAssetLockFundingAddressesPayload = { withBalances, walletId, network }
 
-    const response: ListRecoverableAssetLockFundsResponse = await this._rpcCall(MessagingMethods.LIST_RECOVERABLE_ASSET_LOCK_FUNDS, payload)
+    const response: ListAssetLockFundingAddressesResponse = await this._rpcCall(MessagingMethods.LIST_ASSET_LOCK_FUNDING_ADDRESSES, payload)
 
     return response.addresses
   }
 
-  // Sends a stranded deposit out of its funding address. Needs the password
+  // Whether this wallet was ever handed a funding address at all, spent or not.
+  // The cheap half of listAssetLockFundingAddresses: one boolean, no listing, so
+  // opening settings costs one storage read and no network. This is what the
+  // settings menu checks to decide whether to offer recovery.
+  async hasAssetLockFundingAddresses (walletId?: string, network?: NetworkType): Promise<boolean> {
+    const payload: ScopedPayload = { walletId, network }
+
+    const response: HasAssetLockFundingAddressesResponse = await this._rpcCall(MessagingMethods.HAS_ASSET_LOCK_FUNDING_ADDRESSES, payload)
+
+    return response.hasAny
+  }
+
+  // Drains a stranded deposit out of its funding address. Needs the password
   // because the funding key is stored encrypted to a key derived from it, and it
-  // was a one-time random key - there is no seed path that regenerates it.
-  // Omit amountDuffs (or pass sendMax) to drain the address, which also closes
-  // the entry out; a partial spend leaves its change there and keeps it listed.
-  async recoverAssetLockFunds (fundingAddress: string, toAddress: string, password: string, amountDuffs?: string, walletId?: string, network?: NetworkType): Promise<RecoverAssetLockFundsResponse> {
+  // was a one-time random key - there is no seed path that regenerates it. Always
+  // a full sweep, which closes the entry out so it stops being offered.
+  async recoverAssetLockFunds (fundingAddress: string, toAddress: string, password: string, walletId?: string, network?: NetworkType): Promise<RecoverAssetLockFundsResponse> {
     const payload: RecoverAssetLockFundsPayload = {
       fundingAddress,
       toAddress,
       password,
-      amountDuffs,
-      sendMax: amountDuffs == null,
       walletId,
       network
     }
 
     return await this._rpcCall(MessagingMethods.RECOVER_ASSET_LOCK_FUNDS, payload)
+  }
+
+  // Deletes every funding address this wallet holds, which makes the recovery
+  // entry stop being offered. Irreversible - it destroys the only copy of the
+  // funding keys, and they were never derivable from the seed - so the backend
+  // refuses unless every address is inert: nothing recoverable, no unfinished
+  // asset lock, and no unspent output on chain.
+  async clearAssetLockFundingAddresses (walletId?: string, network?: NetworkType): Promise<number> {
+    const payload: ScopedPayload = { walletId, network }
+
+    const response: ClearAssetLockFundingAddressesResponse = await this._rpcCall(MessagingMethods.CLEAR_ASSET_LOCK_FUNDING_ADDRESSES, payload)
+
+    return response.cleared
   }
 }

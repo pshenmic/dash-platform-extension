@@ -102,23 +102,9 @@ describe('RecoverAssetLockFundsHandler', () => {
     expect(repository.markAsUsed).toHaveBeenCalledWith(FUNDING_ADDRESS)
     expect(result.fromAddress).toBe(FUNDING_ADDRESS)
     expect(result.toAddress).toBe(RECIPIENT)
-    expect(result.swept).toBe(true)
-    expect(result.changeDuffs).toBe('0')
     expect(result.txid).toMatch(/^[0-9a-f]{64}$/)
     // 100_000 in, less the fee for one input and one output.
     expect(BigInt(result.amountDuffs) + BigInt(result.feeDuffs)).toBe(100_000n)
-  })
-
-  it('leaves a partial spend listed, since its change is still recoverable', async () => {
-    const { handler, repository, coreSDK } = buildHarness(entry())
-
-    const result = await handler.handle(event({ amountDuffs: '40000' }))
-
-    expect(coreSDK.broadcastTransaction).toHaveBeenCalledTimes(1)
-    expect(repository.markAsUsed).not.toHaveBeenCalled()
-    expect(result.swept).toBe(false)
-    expect(result.amountDuffs).toBe('40000')
-    expect(BigInt(result.changeDuffs)).toBeGreaterThan(0n)
   })
 
   it('spends every output at the address, not just one', async () => {
@@ -139,19 +125,43 @@ describe('RecoverAssetLockFundsHandler', () => {
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
-  it('refuses an entry already spent', async () => {
-    const { handler, coreSDK } = buildHarness(entry({ used: true }))
+  // A used address is the operation being finished, so its asset lock already
+  // took the input it needed. Anything still sitting here arrived afterwards and
+  // belongs to nobody else - refusing it left those funds visible but unreachable.
+  it('sweeps a finished entry that still holds a stray deposit', async () => {
+    const { handler, coreSDK } = buildHarness(entry({ used: true }), [utxo(50_000n)])
 
-    await expect(handler.handle(event({}))).rejects.toThrow(/already been spent/)
+    const result = await handler.handle(event({}))
+
+    expect(coreSDK.broadcastTransaction).toHaveBeenCalledTimes(1)
+    expect(BigInt(result.amountDuffs) + BigInt(result.feeDuffs)).toBe(50_000n)
+  })
+
+  it('sweeps a finished registration whose asset lock is already on L1', async () => {
+    const { handler, coreSDK } = buildHarness(
+      entry({ used: true, assetLockTxid: 'a'.repeat(64) }),
+      [utxo(50_000n)]
+    )
+
+    const result = await handler.handle(event({}))
+
+    expect(coreSDK.broadcastTransaction).toHaveBeenCalledTimes(1)
+    expect(BigInt(result.amountDuffs)).toBeGreaterThan(0n)
+  })
+
+  it('still refuses a finished entry with nothing left on it', async () => {
+    const { handler, coreSDK } = buildHarness(entry({ used: true }), [])
+
+    await expect(handler.handle(event({}))).rejects.toThrow(/no unspent outputs/)
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
-  // The deposit is an asset lock's input. Sweeping it would double-spend and
-  // strand a registration that can still be finished.
-  it('refuses an entry whose deposit is committed to an asset lock', async () => {
+  // The deposit is an asset lock's input and that operation can still finish.
+  // Sweeping it would double-spend and strand the registration.
+  it('refuses an unfinished entry whose deposit is committed to an asset lock', async () => {
     const { handler, coreSDK } = buildHarness(entry({ assetLockTxid: 'a'.repeat(64) }))
 
-    await expect(handler.handle(event({}))).rejects.toThrow(/already has an asset lock on L1/)
+    await expect(handler.handle(event({}))).rejects.toThrow(/whose registration never finished/)
     expect(coreSDK.broadcastTransaction).not.toHaveBeenCalled()
   })
 
@@ -206,22 +216,14 @@ describe('RecoverAssetLockFundsHandler', () => {
 
     const valid = { fundingAddress: FUNDING_ADDRESS, toAddress: RECIPIENT, password: PASSWORD }
 
-    it('accepts a sweep and a partial spend', () => {
+    it('accepts a sweep request', () => {
       expect(validate(valid)).toBeNull()
-      expect(validate({ ...valid, amountDuffs: '1000' })).toBeNull()
-      expect(validate({ ...valid, sendMax: true })).toBeNull()
     })
 
     it('requires the address, destination and password', () => {
       expect(validate({ ...valid, fundingAddress: '' })).toMatch(/fundingAddress/)
       expect(validate({ ...valid, toAddress: '' })).toMatch(/toAddress/)
       expect(validate({ ...valid, password: '' })).toMatch(/password/)
-    })
-
-    it('rejects a malformed or non-positive amount', () => {
-      expect(validate({ ...valid, amountDuffs: 'not-a-number' })).toMatch(/amountDuffs/)
-      expect(validate({ ...valid, amountDuffs: '-5' })).toMatch(/amountDuffs/)
-      expect(validate({ ...valid, amountDuffs: '0' })).toMatch(/greater than zero/)
     })
 
     it('takes the scope pair together or not at all', () => {

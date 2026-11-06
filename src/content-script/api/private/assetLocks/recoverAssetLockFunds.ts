@@ -59,18 +59,21 @@ export class RecoverAssetLockFundsHandler implements APIHandler {
       throw new Error(`Asset lock funding address ${payload.fundingAddress} is not known on ${scope.network}`)
     }
 
-    if (entry.used) {
-      throw new Error(`Asset lock funding address ${payload.fundingAddress} has already been spent`)
-    }
-
-    // Not `used`, but its deposit is already committed: an asset lock on L1 spends
-    // it. Sweeping that would double-spend the asset lock's input and leave a
-    // registration that can never be finished, so the operation has to be resumed
-    // instead of recovered.
-    if (entry.assetLockTxid != null) {
+    // A `used` entry is deliberately allowed through. `used` means the operation
+    // that this address existed for already finished, so its asset lock has taken
+    // the input it needed; anything still sitting here is a stray deposit nobody
+    // else lays claim to, and is worth sweeping. Refusing it left those funds
+    // visible but unreachable.
+    //
+    // The dangerous case is the opposite one: not used, but an asset lock on L1
+    // already spends it. Sweeping there would double-spend the asset lock's input
+    // and leave a registration that can never be finished, so that operation has
+    // to be resumed instead.
+    if (!entry.used && entry.assetLockTxid != null) {
       throw new Error(
         `Asset lock funding address ${payload.fundingAddress} already has an asset lock on L1 ` +
-        `(${entry.assetLockTxid}). Finish that operation instead of recovering its deposit`
+        `(${entry.assetLockTxid}) whose registration never finished. Finish that operation ` +
+        'instead of recovering its deposit'
       )
     }
 
@@ -106,36 +109,25 @@ export class RecoverAssetLockFundsHandler implements APIHandler {
     // input to derive its locking script. Every output here pays the same address.
     const walletUtxos: CoreWalletUtxo[] = utxos.map(utxo => ({ ...utxo, address: entry.address }))
 
-    const amountDuffs = payload.sendMax === true || payload.amountDuffs == null
-      ? undefined
-      : BigInt(payload.amountDuffs)
-
     const recovery = buildFundingAddressRecovery(
       walletUtxos,
       payload.toAddress,
       entry.address,
       privateKey.WIF(),
-      network,
-      amountDuffs
+      network
     )
 
     await this.coreSDK.broadcastTransaction(recovery.transaction.bytes())
 
-    // Only a drain closes the entry out. A partial spend leaves change at the
-    // address, and marking it used would hide money that is still there and still
-    // recoverable.
-    if (recovery.swept) {
-      await repository.markAsUsed(entry.address)
-    }
+    // The address is drained, so close the entry out and stop offering it.
+    await repository.markAsUsed(entry.address)
 
     return {
       txid: recovery.txid,
       fromAddress: entry.address,
       toAddress: payload.toAddress,
       amountDuffs: recovery.amountDuffs.toString(),
-      feeDuffs: recovery.feeDuffs.toString(),
-      changeDuffs: recovery.changeDuffs.toString(),
-      swept: recovery.swept
+      feeDuffs: recovery.feeDuffs.toString()
     }
   }
 
@@ -168,20 +160,6 @@ export class RecoverAssetLockFundsHandler implements APIHandler {
 
     if (typeof payload.password !== 'string' || payload.password.length === 0) {
       return 'password must be a non-empty string'
-    }
-
-    if (payload.amountDuffs != null) {
-      if (typeof payload.amountDuffs !== 'string' || !/^\d+$/.test(payload.amountDuffs)) {
-        return 'amountDuffs must be an integer string of duffs'
-      }
-
-      if (BigInt(payload.amountDuffs) <= 0n) {
-        return 'amountDuffs must be greater than zero'
-      }
-    }
-
-    if (payload.sendMax != null && typeof payload.sendMax !== 'boolean') {
-      return 'sendMax must be a boolean'
     }
 
     return validateRepositoryScopePayload(payload)

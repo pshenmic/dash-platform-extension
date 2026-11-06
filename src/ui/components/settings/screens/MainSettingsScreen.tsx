@@ -120,18 +120,25 @@ const createDynamicMainScreenConfig = (
       return sections
     }
 
-    return sections.map(section => section.id === 'wallet-settings'
+    return sections.map(section => section.id === 'other'
       ? {
           ...section,
+          // Ahead of Help and About: those are informational, this one moves money.
           items: [
-            ...section.items,
             {
-              id: 'recover-asset-lock-funds-item',
+              // The item id must be the screen id, not a `<screen>-item` suffix.
+              // navigateToScreen resolves a click either by looking the id up in
+              // screenConfigs directly, or by searching the *static* main config
+              // for a matching item - and this one is injected at render time, so
+              // it is in neither. Same reason the private-keys item above is
+              // named for its screen.
+              id: recoverAssetLockFundsScreenConfig.id,
               title: recoverAssetLockFundsScreenConfig.title,
               icon: recoverAssetLockFundsScreenConfig.icon,
               screenId: recoverAssetLockFundsScreenConfig.id,
               hasSubMenu: true
-            }
+            },
+            ...section.items
           ]
         }
       : section)
@@ -210,19 +217,21 @@ export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
   const extensionAPI = useExtensionAPI()
   const [hasRecoverableFunds, setHasRecoverableFunds] = useState(false)
 
-  // Storage-only listing, so opening settings does not fire an explorer request
-  // per address. The menu only needs to know whether there is anything to show.
+  // Storage-only, so opening settings does not fire an explorer request per
+  // address. Offered to anyone who was ever handed a funding address, not only
+  // to those with an entry that still looks recoverable: a deposit can arrive at
+  // one long after the operation that reserved it was abandoned.
   useEffect(() => {
     let cancelled = false
 
-    extensionAPI.listRecoverableAssetLockFunds()
-      .then(addresses => {
+    extensionAPI.hasAssetLockFundingAddresses()
+      .then(hasAny => {
         if (!cancelled) {
-          setHasRecoverableFunds(addresses.length > 0)
+          setHasRecoverableFunds(hasAny)
         }
       })
       .catch((e) => {
-        console.warn('Failed to check for recoverable asset lock funds:', e)
+        console.warn('Failed to check for asset lock funding addresses:', e)
       })
 
     return () => {

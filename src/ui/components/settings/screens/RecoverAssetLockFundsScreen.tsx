@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { Button, Input, Text, ValueCard, WalletIcon } from 'dash-ui-kit/react'
+import { Button, Checkbox, CheckmarkIcon, Input, Text, ValueCard, WalletIcon } from 'dash-ui-kit/react'
 import type { ScreenConfig, SettingsScreenProps } from '../types'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { useAsyncState } from '../../../hooks/useAsyncState'
 import { PasswordGate } from '../../forms'
 import { FieldLabel } from '../../typography'
 import { Banner } from '../../cards'
-import { CORE_DASH_DECIMALS, formatDashAmount, parseDashAmount } from '../../../../utils'
-import type { RecoverableAssetLockFundingAddress } from '../../../../types/messages/response/ListRecoverableAssetLockFundsResponse'
+import { CORE_DASH_DECIMALS, formatDashAmount } from '../../../../utils'
+import type { AssetLockFundingAddressInfo } from '../../../../types/messages/response/ListAssetLockFundingAddressesResponse'
 import type { RecoverAssetLockFundsResponse } from '../../../../types/messages/response/RecoverAssetLockFundsResponse'
 
 export const recoverAssetLockFundsScreenConfig: ScreenConfig = {
@@ -25,33 +25,47 @@ const PURPOSE_LABELS: Record<string, string> = {
   shield: 'Shielding'
 }
 
+const STATE_LABELS: Record<AssetLockFundingAddressInfo['state'], string> = {
+  recoverable: 'Ready to recover',
+  committed: 'Asset lock on L1',
+  spent: 'Spent'
+}
+
 const dash = (duffs: string | null): string =>
   duffs == null ? '—' : `${formatDashAmount(BigInt(duffs), CORE_DASH_DECIMALS)} DASH`
 
-interface SendFormState {
-  toAddress: string
-  amountInput: string
-  // Empty amount means drain the address, which is what the backend does when it
-  // is given no amount. The fee then comes out of the deposit, so the UI does not
-  // have to estimate it to offer a Max.
-  sendMax: boolean
-}
-
-const emptyForm = (): SendFormState => ({ toAddress: '', amountInput: '', sendMax: true })
+// Sweepable wherever the key is here, something is on the address, and no
+// unfinished asset lock already claims it.
+//
+// `spent` qualifies: a finished operation leaves behind anything that arrived
+// after it, and that money is as stranded as a never-used address's. Only
+// `committed` is excluded - its asset lock already spends the deposit, so
+// sweeping would double-spend and strand a registration that can still finish.
+const isSweepable = (entry: AssetLockFundingAddressInfo): boolean =>
+  entry.state !== 'committed' &&
+  entry.hasKey &&
+  entry.balanceDuffs != null &&
+  BigInt(entry.balanceDuffs) > 0n
 
 const AddressCard: React.FC<{
-  entry: RecoverableAssetLockFundingAddress
+  entry: AssetLockFundingAddressInfo
   isSelected: boolean
   onSelect: () => void
 }> = ({ entry, isSelected, onSelect }) => {
+  const sweepable = isSweepable(entry)
   const balance = entry.balanceDuffs == null ? null : BigInt(entry.balanceDuffs)
-  const empty = balance != null && balance === 0n
+  const hasFunds = balance != null && balance > 0n
+
+  // `spent` normally means the deposit was consumed, so the address is empty.
+  // When it is not, the local record and the chain disagree - a deposit arrived
+  // after the operation finished, most likely - and it is still worth sweeping.
+  const spentButFunded = entry.state === 'spent' && hasFunds
 
   return (
     <ValueCard
       colorScheme={isSelected ? 'brand' : 'lightGray'}
-      className='cursor-pointer'
-      onClick={onSelect}
+      className={sweepable ? 'cursor-pointer' : undefined}
+      onClick={sweepable ? onSelect : undefined}
     >
       <div className='flex flex-col gap-2'>
         <div className='flex items-start justify-between gap-2'>
@@ -63,6 +77,9 @@ const AddressCard: React.FC<{
           </Text>
         </div>
         <div className='flex flex-wrap items-center gap-2'>
+          <Text size='xs' weight='medium' dim>
+            {STATE_LABELS[entry.state]}
+          </Text>
           <Text size='xs' dim>
             {PURPOSE_LABELS[entry.purpose] ?? entry.purpose}
           </Text>
@@ -72,35 +89,86 @@ const AddressCard: React.FC<{
             </Text>
           )}
         </div>
-        {!entry.hasKey && (
-          <Text size='xs' color='red'>
-            No key stored for this address — its deposit cannot be signed for
+        {entry.state === 'committed' && (
+          <Text size='xs' dim className='break-all'>
+            An asset lock already spends this address and its registration never
+            finished, so the funds come back by finishing that operation — there is
+            nothing here to sweep.
+            {entry.assetLockTxid != null && ` Asset lock ${entry.assetLockTxid}.`}
           </Text>
         )}
-        {entry.hasKey && empty && (
-          <Text size='xs' dim>Nothing left to recover</Text>
+        {spentButFunded && entry.hasKey && (
+          <Text size='xs' color='red'>
+            Marked as spent, but {dash(entry.balanceDuffs)} is still on this address.
+            The deposit arrived after the operation finished — recover it to an
+            address you control.
+          </Text>
+        )}
+        {hasFunds && !entry.hasKey && entry.state !== 'committed' && (
+          <Text size='xs' color='red'>
+            {dash(entry.balanceDuffs)} is on this address, but no key is stored for
+            it, so it cannot be signed for.
+          </Text>
+        )}
+        {entry.state === 'spent' && balance != null && balance === 0n && (
+          <Text size='xs' dim>Already spent, so nothing is left at this address.</Text>
+        )}
+        {entry.state === 'recoverable' && entry.hasKey && !hasFunds && (
+          <Text size='xs' dim>Nothing on this address to recover yet</Text>
         )}
       </div>
     </ValueCard>
   )
 }
 
-export const RecoverAssetLockFundsScreen: React.FC<SettingsScreenProps> = () => {
+export const RecoverAssetLockFundsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
   const extensionAPI = useExtensionAPI()
-  const [listState, loadList] = useAsyncState<RecoverableAssetLockFundingAddress[]>([])
+  const [listState, loadList] = useAsyncState<AssetLockFundingAddressInfo[]>([])
   const [selected, setSelected] = useState<string | null>(null)
-  const [form, setForm] = useState<SendFormState>(emptyForm)
+  const [toAddress, setToAddress] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  const [acknowledged, setAcknowledged] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<RecoverAssetLockFundsResponse | null>(null)
 
   useEffect(() => {
-    loadList(async () => await extensionAPI.listRecoverableAssetLockFunds(true))
-      .catch((e) => { console.warn('Failed to list recoverable funds:', e) })
+    loadList(async () => await extensionAPI.listAssetLockFundingAddresses(true))
+      // The affirmation is about specific balances, so a fresh read voids it.
+      .then(() => { setAcknowledged(false) })
+      .catch((e) => { console.warn('Failed to list asset lock funding addresses:', e) })
   }, [extensionAPI, loadList])
 
-  const selectedEntry = listState.data?.find(entry => entry.address === selected) ?? null
+  const entries = listState.data ?? []
+  const selectedEntry = entries.find(entry => entry.address === selected) ?? null
+
+  // Offered once every address reads zero on chain, so nothing is left to sweep.
+  //
+  // A `committed` entry also reads zero - an asset lock already spends it - but
+  // that money is on L1 and its registration can still finish, and
+  // `registrationIdentityIndex` in that same record is what rebuilds the
+  // transaction. The backend refuses those, so offering the button would only
+  // produce a failed click.
+  const allBalancesZero = entries.every(entry => entry.balanceDuffs != null && BigInt(entry.balanceDuffs) === 0n)
+  const hasCommitted = entries.some(entry => entry.state === 'committed')
+  const canAcknowledge = entries.length > 0 && allBalancesZero && !hasCommitted
+
+  // Deletes every funding address this wallet holds, then leaves settings. The
+  // backend re-checks that nothing is at stake and says what if so.
+  const handleAcknowledge = async (): Promise<void> => {
+    setClearing(true)
+    setError(null)
+
+    try {
+      await extensionAPI.clearAssetLockFundingAddresses()
+      onClose()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setClearing(false)
+    }
+  }
 
   const handleSubmit = async (password: string): Promise<string | null> => {
     if (selectedEntry == null) {
@@ -112,27 +180,18 @@ export const RecoverAssetLockFundsScreen: React.FC<SettingsScreenProps> = () => 
     setResult(null)
 
     try {
-      // An empty amount drains the address; the backend works out the fee.
-      const amountDuffs = form.sendMax || form.amountInput.trim() === ''
-        ? undefined
-        : parseDashAmount(form.amountInput.trim(), CORE_DASH_DECIMALS)?.toString()
-
-      if (amountDuffs == null && !form.sendMax && form.amountInput.trim() !== '') {
-        return 'Enter a valid amount, or leave it empty to send everything'
-      }
-
       const response = await extensionAPI.recoverAssetLockFunds(
         selectedEntry.address,
-        form.toAddress.trim(),
-        password,
-        amountDuffs
+        toAddress.trim(),
+        password
       )
 
       setResult(response)
       setSelected(null)
-      setForm(emptyForm())
+      setToAddress('')
       setConfirmOpen(false)
-      await loadList(async () => await extensionAPI.listRecoverableAssetLockFunds(true))
+      await loadList(async () => await extensionAPI.listAssetLockFundingAddresses(true))
+      setAcknowledged(false)
 
       return null
     } catch (e) {
@@ -147,15 +206,13 @@ export const RecoverAssetLockFundsScreen: React.FC<SettingsScreenProps> = () => 
     }
   }
 
-  const canSubmit = selectedEntry?.hasKey === true &&
-    form.toAddress.trim().length > 0 &&
-    (form.sendMax || parseDashAmount(form.amountInput.trim(), CORE_DASH_DECIMALS) != null)
+  const canSubmit = selectedEntry != null && isSweepable(selectedEntry) && toAddress.trim().length > 0
 
   return (
     <div className='flex flex-col gap-4 h-full overflow-y-auto'>
       <Text size='sm' dim className='text-dash-primary-dark-blue'>
-        Deposits sent to an asset lock funding address that was never turned into
-        credits. Send them to any Dash address you control.
+        Every asset lock funding address this wallet was given. Sweep the ones that
+        still hold a deposit to an address you control.
       </Text>
 
       {listState.loading && <Text dim>Loading…</Text>}
@@ -176,36 +233,21 @@ export const RecoverAssetLockFundsScreen: React.FC<SettingsScreenProps> = () => 
               {result.txid}
             </Text>
             <Text size='xs' dim>
-              Network fee {dash(result.feeDuffs)}
-              {result.swept
-                ? ' · address drained and closed'
-                : ` · ${dash(result.changeDuffs)} left at the funding address`}
+              Network fee {dash(result.feeDuffs)} · address drained and closed
             </Text>
           </div>
         </ValueCard>
       )}
 
-      {!listState.loading && listState.data != null && listState.data.length === 0 && (
-        <ValueCard colorScheme='lightGray' className='flex flex-col gap-2'>
-          <Text size='lg' weight='medium' className='text-gray-600'>
-            Nothing to recover
-          </Text>
-          <Text size='sm' className='text-gray-500'>
-            This wallet has no unfinished asset lock funding addresses.
-          </Text>
-        </ValueCard>
-      )}
-
       <div className='flex flex-col gap-3'>
-        {listState.data?.map(entry => (
+        {entries.map(entry => (
           <React.Fragment key={entry.address}>
             <AddressCard
               entry={entry}
               isSelected={selected === entry.address}
               onSelect={() => {
-                if (!entry.hasKey) return
                 setSelected(prev => prev === entry.address ? null : entry.address)
-                setForm(emptyForm())
+                setToAddress('')
                 setResult(null)
                 setError(null)
               }}
@@ -217,47 +259,16 @@ export const RecoverAssetLockFundsScreen: React.FC<SettingsScreenProps> = () => 
                   <FieldLabel>Send to</FieldLabel>
                   <Input
                     placeholder='Dash address'
-                    value={form.toAddress}
+                    value={toAddress}
                     onChange={(e) => {
-                      const value = e.target.value
-                      setForm(prev => ({ ...prev, toAddress: value }))
+                      setToAddress(e.target.value)
                       setError(null)
                     }}
                     size='xl'
                     className='w-full break-all'
                   />
-                </div>
-
-                <div className='flex flex-col gap-2'>
-                  <FieldLabel>Amount</FieldLabel>
-                  <div className='flex gap-2'>
-                    <Input
-                      placeholder='Everything'
-                      value={form.sendMax ? '' : form.amountInput}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        setForm(prev => ({ ...prev, amountInput: value, sendMax: false }))
-                        setError(null)
-                      }}
-                      size='xl'
-                      inputMode='decimal'
-                      disabled={form.sendMax}
-                      className='w-full'
-                    />
-                    <Button
-                      colorScheme={form.sendMax ? 'brand' : 'lightGray'}
-                      onClick={() => {
-                        setForm(prev => ({ ...prev, sendMax: !prev.sendMax }))
-                        setError(null)
-                      }}
-                    >
-                      Max
-                    </Button>
-                  </div>
                   <Text size='xs' dim>
-                    {form.sendMax
-                      ? `Sends the whole deposit (${dash(entry.balanceDuffs)}) less the network fee`
-                      : 'The rest stays at the funding address and remains recoverable'}
+                    Sends the whole deposit ({dash(entry.balanceDuffs)}) less the network fee
                   </Text>
                 </div>
 
@@ -275,16 +286,53 @@ export const RecoverAssetLockFundsScreen: React.FC<SettingsScreenProps> = () => 
         ))}
       </div>
 
+      {/* Only after a successful read, and only once nothing is left to recover or
+          finish. If the balance fetch failed the list stays empty, and offering
+          this next to an error would invite deleting keys we never got to check. */}
+      {!listState.loading && listState.error == null && canAcknowledge && (
+        <ValueCard colorScheme='lightGray' className='flex flex-col gap-3'>
+          <div className='flex items-center gap-2'>
+            <CheckmarkIcon className='text-green-600 shrink-0' size={18} />
+            <Text size='lg' weight='medium' className='text-gray-600'>
+              Nothing to recover
+            </Text>
+          </div>
+          <Text size='sm' className='text-gray-500'>
+            This wallet has no asset lock funding address with a deposit left on it.
+            These addresses were generated automatically in previous versions, they are not part of the seedphrase,
+            and is no longer being used. They can be safely removed now.
+          </Text>
+          <Text size='sm' className='text-gray-500'>
+            The button below clears all {entries.length} of your old
+            {entries.length === 1 ? ' address' : ' addresses'}, and removes them from the wallet.
+          </Text>
+          <Checkbox
+            checked={acknowledged}
+            onChange={setAcknowledged}
+            label='I agree that the balance on the addresses is zero and that it will remove the addresses from the wallet'
+          />
+          <Button
+            colorScheme='lightGray'
+            disabled={clearing || !acknowledged}
+            onClick={() => {
+              handleAcknowledge().catch(e => console.warn('Failed to clear funding addresses:', e))
+            }}
+          >
+            {clearing ? 'Removing…' : 'Clear addresses'}
+          </Button>
+        </ValueCard>
+      )}
+
       {confirmOpen && selectedEntry != null && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
           <div className='w-full max-w-sm rounded-2xl bg-white p-4'>
             <Text size='lg' weight='medium'>Confirm recovery</Text>
             <div className='mt-2 flex flex-col gap-1'>
               <Text size='sm' dim>
-                Send {form.sendMax ? 'the whole deposit' : dash(parseDashAmount(form.amountInput.trim(), CORE_DASH_DECIMALS)?.toString() ?? null)}
+                Send {dash(selectedEntry.balanceDuffs)} less the network fee
               </Text>
               <Text size='xs' dim className='break-all' monospace>
-                to {form.toAddress.trim()}
+                to {toAddress.trim()}
               </Text>
             </div>
             <div className='mt-3'>

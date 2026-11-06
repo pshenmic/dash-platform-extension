@@ -2,9 +2,7 @@ export interface RecoverAssetLockFundsResponse {
   txid: string
   fromAddress: string
   toAddress: string
+  // What the destination receives: the whole deposit, less the network fee.
   amountDuffs: string
   feeDuffs: string
-  changeDuffs: string
-  // True when the address was drained and marked used, so it stops being offered.
-  swept: boolean
 }
