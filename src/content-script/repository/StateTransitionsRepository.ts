@@ -4,7 +4,7 @@ import { StateTransitionWASM } from 'dash-platform-sdk/types'
 import { base64 } from '@scure/base'
 import { StateTransitionsStoreSchema, StateTransitionStoreSchema } from '../storage/storageSchema'
 import { StateTransition } from '../../types'
-import { bytesToHex } from '../../utils'
+import { bytesToHex } from '../../utils/browser'
 
 export class StateTransitionsRepository {
   storageAdapter: StorageAdapter

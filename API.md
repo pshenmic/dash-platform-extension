@@ -7,7 +7,10 @@ The reference for what a web page can call. Most dApps should follow the [integr
 | Global | Available | Type |
 |---|---|---|
 | `window.dashPlatformExtension` | Shortly after page load | `{ signer: ExtensionSigner }` |
-| `window.dashPlatformSDK` | Once the site is approved | `DashPlatformSDK` from [dash-platform-sdk](https://github.com/pshenmic/dash-platform-sdk), starting on mainnet |
+
+The signer is the only thing the extension puts on the page. Build your transitions with your own copy of [dash-platform-sdk](https://github.com/pshenmic/dash-platform-sdk) — see the [integration guide](docs/INTEGRATION.md).
+
+> The extension no longer injects an SDK. It used to add `window.dashPlatformSDK` on approved sites; that global is gone. Its WASM needed `crossOriginIsolated`, which a third-party page does not have.
 
 ## `signer.connect()`
 
@@ -35,18 +38,33 @@ Asks to connect the current origin. Opens an approval popup if the origin has no
 ## `signer.signAndBroadcast()`
 
 ```ts
-signAndBroadcast (stateTransition: string | Uint8Array | StateTransitionWASM): Promise<StateTransitionWASM>
+signAndBroadcast (stateTransition: string): Promise<SignedStateTransitionData>
+
+interface SignedStateTransitionData {
+  signature: string // hex
+  signaturePublicKeyId: number
+  unsignedBase64: string // the transition as you sent it
+}
 ```
 
 Asks the user to sign a state transition, then broadcasts it and waits for the result.
 
 | Input | Notes |
 |---|---|
-| `string` | Hex or base64 |
-| `Uint8Array` | Raw bytes |
-| `StateTransitionWASM` | Only an instance of the signer's own bundled class. Instances from `window.dashPlatformSDK` or your own SDK fail the `instanceof` check, so serialize those first. |
+| `string` | Hex or base64. Serialize your own transition first — a `StateTransitionWASM` object is not accepted, because the signer no longer bundles one. |
 
-**Resolves** with the state transition, with its signature and signature key ID set. Call `.hash(false)` on it for the signed transaction hash.
+**Resolves** with the signature and the key ID it was made with. The transition is already broadcast and confirmed; you do not need to send it again.
+
+To get the signed hash, apply the signature to your own transition:
+
+```js
+const signed = await signer.signAndBroadcast(transition.hex())
+
+transition.signature = hexToBytes(signed.signature)
+transition.signaturePublicKeyId = signed.signaturePublicKeyId
+
+transition.hash(false) // signed transaction hash
+```
 
 **Rejects** with:
 
@@ -54,7 +72,6 @@ Asks the user to sign a state transition, then broadcasts it and waits for the r
 - `Internal error during singing the transaction` if signing or broadcasting fails.
 - `Signature is missing` if the extension returns no signature.
 - `Failed to receive state transition signing approval due timeout` after 3 minutes without a decision.
-- `Unrecognized state transition type, must be StateTransitionWASM or string hex or string base64 or Uint8Array` for other inputs.
 
 ## Message protocol
 

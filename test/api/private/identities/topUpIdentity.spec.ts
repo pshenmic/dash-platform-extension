@@ -824,7 +824,7 @@ describe('IdentitiesRepository remove', () => {
     })
 
     const { IdentitiesRepository } = await import('../../../../src/content-script/repository/IdentitiesRepository')
-    const repo = new IdentitiesRepository(storage, {} as any)
+    const repo = new IdentitiesRepository(storage)
 
     await repo.remove('idA')
 
@@ -835,7 +835,7 @@ describe('IdentitiesRepository remove', () => {
 
   test('remove is a no-op for missing identifier', async () => {
     const { IdentitiesRepository } = await import('../../../../src/content-script/repository/IdentitiesRepository')
-    const repo = new IdentitiesRepository(storage, {} as any)
+    const repo = new IdentitiesRepository(storage)
 
     await expect(repo.remove('missing')).resolves.toBeUndefined()
   })

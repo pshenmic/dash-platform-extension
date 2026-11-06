@@ -157,7 +157,7 @@ export class PrivateAPI {
    * event page.
    */
   buildHandlers (): void {
-    const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk)
+    const identitiesRepository = new IdentitiesRepository(this.storageAdapter)
     const walletRepository = new WalletRepository(this.storageAdapter, identitiesRepository)
     const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk)
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)

@@ -6,7 +6,7 @@ import { STORAGE_MESSAGE, StorageRequest, StorageResponse } from '../backend/sto
 /**
  * Chrome MV3 service worker.
  *
- * Two jobs, neither of which touches the SDK:
+ * Three jobs, none of which touches the SDK:
  *
  *  1. Make sure the offscreen document that hosts the backend exists, and hand
  *     wallet requests to it. Replies do not come back through here — the
@@ -14,11 +14,22 @@ import { STORAGE_MESSAGE, StorageRequest, StorageResponse } from '../backend/sto
  *  2. Perform storage on the offscreen document's behalf. Chrome exposes only
  *     the `chrome.runtime` messaging APIs to offscreen documents, so they
  *     cannot reach `chrome.storage` themselves.
+ *  3. Relay page requests a content script cannot serve itself, and carry the
+ *     reply back. `runtime.sendMessage` does not reach content scripts, so the
+ *     offscreen document's broadcast answer is matched to the request that
+ *     opened it and delivered over that request's own response channel.
  */
 
 const OFFSCREEN_PATH = 'offscreen.html'
 
 const storage = new ExtensionStorageAdapter()
+
+// Request id -> the response channel of the content script waiting on it. A
+// relayed page call is short (the approval wait is client-side polling), so an
+// entry whose reply never lands is dropped rather than held for the worker's
+// lifetime.
+const pendingPublicRelays = new Map<string, (response: EventData) => void>()
+const RELAY_REPLY_TIMEOUT = 60 * 1000
 
 let creating: Promise<void> | null = null
 
@@ -55,6 +66,25 @@ async function handleStorage (request: StorageRequest): Promise<any> {
   }
 }
 
+const failRelay = (event: EventData, message: string): void => {
+  const respond = pendingPublicRelays.get(event.id)
+
+  if (respond == null) {
+    return
+  }
+
+  pendingPublicRelays.delete(event.id)
+
+  respond({
+    id: event.id,
+    context: event.context,
+    type: 'response',
+    method: event.method,
+    payload: null,
+    error: message
+  })
+}
+
 ext.runtime.onMessage.addListener((data: any, sender, sendResponse) => {
   if (data?.context !== 'dash-platform-extension') return
 
@@ -71,10 +101,37 @@ ext.runtime.onMessage.addListener((data: any, sender, sendResponse) => {
 
   const event = data as EventData
 
-  // Responses flow popup <- offscreen directly; ignore them here.
-  if (event.type === 'response') return
+  if (event.type === 'response') {
+    // Popup replies flow popup <- offscreen directly. Only a relayed page call
+    // is waiting on this worker to hand its answer back.
+    const respond = pendingPublicRelays.get(event.id)
+
+    if (respond != null) {
+      pendingPublicRelays.delete(event.id)
+      respond(event)
+    }
+
+    return
+  }
+
   // Our own forwarded copy comes back around on the shared bus — don't re-forward.
   if (event.target === 'offscreen') return
+
+  // A page request the content script could not serve itself. The reply is
+  // matched by id when the offscreen document broadcasts it.
+  if (event.target === 'public-api') {
+    pendingPublicRelays.set(event.id, sendResponse)
+    setTimeout(() => pendingPublicRelays.delete(event.id), RELAY_REPLY_TIMEOUT)
+
+    ensureOffscreen()
+      .then(async () => await ext.runtime.sendMessage({ ...event, target: 'offscreen' }))
+      .catch(e => {
+        console.error('Failed to relay page request to offscreen backend', e)
+        failRelay(event, e.message)
+      })
+
+    return true
+  }
 
   ensureOffscreen()
     .then(async () => await ext.runtime.sendMessage({ ...event, target: 'offscreen' }))

@@ -1,5 +1,6 @@
 import { StorageAdapter } from '../storage/storageAdapter'
-import { bytesToHex, generateWalletId, utf8ToBytes } from '../../utils'
+import { bytesToHex, utf8ToBytes } from '../../utils/browser'
+import { generateWalletId } from '../../utils/random'
 import { WalletStoreSchema } from '../storage/storageSchema'
 import { WalletType } from '../../types/WalletType'
 import { Wallet } from '../../types/Wallet'

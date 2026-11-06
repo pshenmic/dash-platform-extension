@@ -4,8 +4,10 @@ import { base64 } from '@scure/base'
 import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
 import { PrivateAPIClient, WalletType } from '../../../src/types'
+import { EventData } from '../../../src/types/EventData'
 import { PrivateAPI } from '../../../src/content-script/api/PrivateAPI'
 import { PublicAPI } from '../../../src/content-script/api/PublicAPI'
+import { PublicBackendAPI } from '../../../src/backend/publicBackendAPI'
 import { MessagingMethods } from '../../../src/types/enums/MessagingMethods'
 import { MemoryStorageAdapter } from '../../../src/content-script/storage/memoryStorageAdapter'
 import { StorageAdapter } from '../../../src/content-script/storage/storageAdapter'
@@ -25,18 +27,26 @@ describe('what a connected website may see', () => {
   let sdk: DashPlatformSDK
   let privateAPIClient: PrivateAPIClient
   let publicAPI: PublicAPI
+  let publicBackendAPI: PublicBackendAPI
   let storage: StorageAdapter
   let walletId: string
   let connectId: string
 
   const call = async (method: MessagingMethods, payload: object, from: string = origin): Promise<any> => {
     // Shaped like the message a page posts, which is all handleMessage reads.
-    const event: any = {
-      origin: from,
-      data: { context: 'dash-platform-extension', id: 'id', type: 'request', method, payload }
+    const data: EventData = {
+      context: 'dash-platform-extension',
+      id: 'id',
+      type: 'request',
+      method,
+      payload
     }
 
-    return await publicAPI.handleMessage(event)
+    // The production split: a content script serves what needs no WASM and
+    // relays the rest to the offscreen backend.
+    return publicBackendAPI.owns(method)
+      ? await publicBackendAPI.handleMessage(data, from)
+      : await publicAPI.handleMessage(data, from)
   }
 
   const connect = async (from: string = origin): Promise<any> =>
@@ -70,8 +80,8 @@ describe('what a connected website may see', () => {
 
     // Handlers only: the page listener would answer the private client's
     // messages too, because the test bus is shared.
-    publicAPI = new PublicAPI(sdk, storage)
-    publicAPI.buildHandlers()
+    publicAPI = new PublicAPI(storage)
+    publicBackendAPI = new PublicBackendAPI(storage)
 
     await connect()
 

@@ -2,13 +2,25 @@ import { attachMessaging } from '../../src/backend/attachMessaging'
 import { ext } from '../../src/platform'
 import { EventData } from '../../src/types'
 import type { PrivateAPI } from '../../src/content-script/api/PrivateAPI'
+import type { PublicDispatcher } from '../../src/backend/bootstrap'
 
 /**
- * Boots a PrivateAPI onto the real messaging transport for tests, standing in
- * for the two production contexts: the offscreen document (attachMessaging)
- * and the service worker that tags requests for it.
+ * Serves no page request. Suites that exercise the public API pass a real
+ * PublicBackendAPI; the rest only ever send private methods.
  */
-export function connectBackend (privateAPI: PrivateAPI): void {
+const noPublicAPI: PublicDispatcher = {
+  owns: () => false,
+  handleMessage: async () => {
+    throw new Error('No public handler is wired up in this test')
+  }
+}
+
+/**
+ * Boots a backend onto the real messaging transport for tests, standing in for
+ * the two production contexts: the offscreen document (attachMessaging) and the
+ * service worker that tags requests for it.
+ */
+export function connectBackend (privateAPI: PrivateAPI, publicAPI: PublicDispatcher = noPublicAPI): void {
   // A suite wires a fresh backend per case onto the bus the whole file shares.
   // Without this the previous backends keep listening and answer out of their
   // own storage. removeAllListeners belongs to the test bus alone, which is why
@@ -19,7 +31,7 @@ export function connectBackend (privateAPI: PrivateAPI): void {
 
   privateAPI.buildHandlers()
 
-  attachMessaging(Promise.resolve(privateAPI))
+  attachMessaging(Promise.resolve({ privateAPI, publicAPI }))
 
   // Service-worker stand-in. The real one also creates the offscreen document;
   // here only the routing tag matters.

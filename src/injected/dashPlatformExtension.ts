@@ -11,7 +11,9 @@ declare global {
 // initialize messaging layer
 const publicAPIClient = new PublicAPIClient()
 
-// create custom signer function for DashPlatformSDK
+// The only thing the extension puts on a page. It must stay free of the SDK:
+// pshenmic-dpp allocates a shared WebAssembly.Memory at import time, which
+// needs crossOriginIsolated, and a third-party page never has it.
 const extensionSigner = new ExtensionSigner(publicAPIClient)
 
 window.dashPlatformExtension = { signer: extensionSigner }
