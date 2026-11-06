@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MenuSection } from '../MenuSection'
 import {
@@ -12,7 +12,9 @@ import {
 } from 'dash-ui-kit/react'
 import { NetworkSelector } from '../../controls'
 import { lockSession } from '../../../utils/lockSession'
-import type { SettingsScreenProps, ScreenConfig } from '../types'
+import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
+import type { SettingsScreenProps, ScreenConfig, MenuSection as MenuSectionType } from '../types'
+import { recoverAssetLockFundsScreenConfig } from './RecoverAssetLockFundsScreen'
 import type { WalletAccountInfo } from '../../../../types/messages/response/GetAllWalletsResponse'
 import type { NetworkType } from '../../../../types'
 
@@ -105,9 +107,35 @@ const createDynamicMainScreenConfig = (
   currentWallet?: WalletAccountInfo | null,
   currentIdentity?: string | null,
   networkControl?: React.ReactNode,
-  onLock?: () => void
+  onLock?: () => void,
+  hasRecoverableFunds: boolean = false
 ): ScreenConfig => {
   const isPrivateKeysDisabled = currentWallet == null || currentIdentity == null
+
+  // Deposits stranded on funding addresses of a registration flow that no longer
+  // exists. Offered only where there is something to recover: the entry is
+  // meaningless otherwise, and most wallets never had one.
+  const withRecovery = (sections: MenuSectionType[]): MenuSectionType[] => {
+    if (!hasRecoverableFunds) {
+      return sections
+    }
+
+    return sections.map(section => section.id === 'wallet-settings'
+      ? {
+          ...section,
+          items: [
+            ...section.items,
+            {
+              id: 'recover-asset-lock-funds-item',
+              title: recoverAssetLockFundsScreenConfig.title,
+              icon: recoverAssetLockFundsScreenConfig.icon,
+              screenId: recoverAssetLockFundsScreenConfig.id,
+              hasSubMenu: true
+            }
+          ]
+        }
+      : section)
+  }
 
   return {
     ...mainScreenConfig,
@@ -140,7 +168,7 @@ const createDynamicMainScreenConfig = (
           }
         ]
       },
-      ...mainScreenConfig.content,
+      ...withRecovery(mainScreenConfig.content),
       {
         id: 'lock-wallet',
         title: '',
@@ -179,6 +207,30 @@ export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
 
   const navigate = useNavigate()
 
+  const extensionAPI = useExtensionAPI()
+  const [hasRecoverableFunds, setHasRecoverableFunds] = useState(false)
+
+  // Storage-only listing, so opening settings does not fire an explorer request
+  // per address. The menu only needs to know whether there is anything to show.
+  useEffect(() => {
+    let cancelled = false
+
+    extensionAPI.listRecoverableAssetLockFunds()
+      .then(addresses => {
+        if (!cancelled) {
+          setHasRecoverableFunds(addresses.length > 0)
+        }
+      })
+      .catch((e) => {
+        console.warn('Failed to check for recoverable asset lock funds:', e)
+      })
+
+    return () => {
+      cancelled = true
+    }
+    // Entries are per (network, wallet), so switching either re-reads them.
+  }, [extensionAPI, currentWallet, currentNetwork])
+
   // Drops the session marker, so the password is asked again.
   const handleLock = async (): Promise<void> => {
     await lockSession()
@@ -188,7 +240,7 @@ export const MainSettingsScreen: React.FC<MainSettingsScreenProps> = ({
 
   const dynamicConfig = createDynamicMainScreenConfig(currentWallet, currentIdentity, networkControl, () => {
     handleLock().catch(e => console.log('lock wallet error:', e))
-  })
+  }, hasRecoverableFunds)
 
   return (
     <div className='menu-sections-container'>

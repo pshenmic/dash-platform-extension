@@ -9,6 +9,7 @@ import { aboutScreenConfig } from './AboutScreen'
 import { privateKeysScreenConfig } from './PrivateKeysScreen'
 import { importPrivateKeysScreenConfig } from './ImportPrivateKeysScreen'
 import { createKeyScreenConfig } from './CreateKeyScreen'
+import { recoverAssetLockFundsScreenConfig } from './RecoverAssetLockFundsScreen'
 
 export const screenConfigs: Record<string, ScreenConfig> = {
   main: mainScreenConfig,
@@ -17,6 +18,7 @@ export const screenConfigs: Record<string, ScreenConfig> = {
   'private-keys': privateKeysScreenConfig,
   'import-private-keys-settings': importPrivateKeysScreenConfig,
   'create-key-settings': createKeyScreenConfig,
+  'recover-asset-lock-funds': recoverAssetLockFundsScreenConfig,
   'help-support': helpSupportScreenConfig,
   'about-dash': aboutScreenConfig
 }
