@@ -44,7 +44,7 @@ function HomeState (): React.JSX.Element {
   const { hideBalance, toggleHide } = useHideBalance()
   const { hasCoreLayer, hasAddressLayer } = useWalletCapabilities()
   const { balance: coreBalance, loading: coreLoading, reload: reloadCore } = useCoreBalance(currentWallet, hasCoreLayer)
-  const { identities: platformIdentities, totalCredits, totalTxCount, loading: platformLoading, reload: reloadPlatform } =
+  const { identities: platformIdentities, totalCredits, loading: platformLoading, reload: reloadPlatform } =
     useWalletPlatformData(availableIdentities, currentNetwork)
   const { transaction: lastPlatformTransaction, loading: lastPlatformLoading, reload: reloadLastPlatform } =
     useLastPlatformTransaction(availableIdentities, currentNetwork)
@@ -91,7 +91,7 @@ function HomeState (): React.JSX.Element {
   }
 
   return (
-    <div className='flex flex-col gap-6'>
+    <div className='flex flex-col gap-5'>
       <TotalBalance
         hideBalance={hideBalance}
         totalDuffs={totalDuffs}
@@ -111,12 +111,6 @@ function HomeState (): React.JSX.Element {
       />
       <ActionRow />
       <Statistics
-        identityCount={availableIdentities.length}
-        coreTxCount={coreBalance?.txCount ?? null}
-        platformTxCount={platformDuffs != null ? totalTxCount : null}
-        coreLoading={coreLoading}
-        platformLoading={platformLoading}
-        showCore={hasCoreLayer}
         lastTransaction={(
           <LastTransaction
             loading={lastTransactionLoading}
