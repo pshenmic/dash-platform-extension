@@ -211,7 +211,7 @@ const App: React.FC = function () {
           element: <PageWithHeader><Suspense fallback={<ScreenLoader />}><AppConnectState /></Suspense></PageWithHeader>,
           handle: {
             headerProps: {
-              variant: 'simple'
+              variant: 'transaction'
             }
           }
         },

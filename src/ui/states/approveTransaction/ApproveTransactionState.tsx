@@ -1,22 +1,23 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { Text, Button, ValueCard } from 'dash-ui-kit/react'
+import { Accordion, Button, Identifier } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
-import { Banner } from '../../components/cards'
-import ButtonRow from '../../components/layout/ButtonRow'
+import { Banner, SummaryRow } from '../../components/cards'
 import { PasswordField } from '../../components/forms'
-import { FieldLabel } from '../../components/typography'
 import { TitleBlock } from '../../components/layout/TitleBlock'
-import { useExtensionAPI, useSigningKeys } from '../../hooks'
+import { ResultHeader } from '../../components/layout/ResultHeader'
+import { TransactionHashBlock } from '../../components/transactions'
+import { useDashRate, useExtensionAPI, useSigningKeys, useStaticAsset } from '../../hooks'
 import { StateTransitionWASM } from 'dash-platform-sdk/types'
 import { withAccessControl } from '../../components/auth/withAccessControl'
 import type { OutletContext } from '../../types'
 import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
-import { IdentitySelect } from '../../components/identity/IdentitySelect'
 import { TransactionDetails } from './details'
-import { decodeStateTransition, getStateTransitionKeyRequirements } from '../../../utils'
+import { TransactionTypeChip } from './TransactionTypeChip'
+import { detailsShowIdentity, transactionCredits, transactionTypeTitle } from './transactionMeta'
+import { PLATFORM_DASH_DECIMALS, dashAmountToUsd, decodeStateTransition, formatDashAmount, getStateTransitionKeyRequirements } from '../../../utils'
 import { SigningErrorDetails } from '../../components/errors'
 
 function ApproveTransactionState (): React.JSX.Element {
@@ -56,6 +57,9 @@ function ApproveTransactionState (): React.JSX.Element {
   } = useSigningKeys({
     identity: currentIdentity
   })
+
+  const { rate } = useDashRate(currentNetwork)
+  const coinImage = useStaticAsset('coin.png')
 
   // Set header config override based on navigation state
   useEffect(() => {
@@ -191,29 +195,17 @@ function ApproveTransactionState (): React.JSX.Element {
 
   if (!hasWallet) {
     return (
-      <div className='screen-content'>
-        <TitleBlock title='No Wallet Found' showLogo={false} />
-
-        <ValueCard colorScheme='lightGray' size='xl' border={false} className='flex flex-col items-start gap-2'>
-          <Text size='md'>
-            You need to create a wallet before you can approve transactions.
-          </Text>
-          <Text size='md'>
-            Create a new wallet to manage your identities and approve transactions.
-          </Text>
-        </ValueCard>
-
-        <div className='flex flex-col gap-2 w-full'>
-          <Button
-            onClick={() => { void navigate('/create-wallet') }}
-            colorScheme='brand'
-          >
+      <div className='screen-content gap-6'>
+        <TitleBlock
+          variant='screen'
+          title='No Wallet Found'
+          description='You need to create a wallet before you can approve transactions. Create a new wallet to manage your identities and approve transactions.'
+        />
+        <div className='flex flex-col gap-2.5 w-full mt-auto'>
+          <Button colorScheme='brand' size='xl' onClick={() => { void navigate('/create-wallet') }}>
             Create Wallet
           </Button>
-          <Button
-            onClick={() => window.close()}
-            colorScheme='lightBlue'
-          >
+          <Button colorScheme='lightBlue' size='xl' onClick={() => window.close()}>
             Cancel
           </Button>
         </div>
@@ -221,32 +213,19 @@ function ApproveTransactionState (): React.JSX.Element {
     )
   }
 
-  // Show no identities message only after loading is complete
   if (identities.length === 0) {
     return (
-      <div className='screen-content'>
-        <TitleBlock title='No Identities Available' showLogo={false} />
-
-        <ValueCard colorScheme='lightGray' border={false} className='flex flex-col items-start gap-4'>
-          <Text size='md'>
-            You need to have at least one identity to approve transactions.
-          </Text>
-          <Text size='md'>
-            Import an existing identity or create a new one to continue.
-          </Text>
-        </ValueCard>
-
-        <div className='flex flex-col gap-2 w-full'>
-          <Button
-            onClick={() => { void navigate('/choose-wallet-type') }}
-            colorScheme='brand'
-          >
+      <div className='screen-content gap-6'>
+        <TitleBlock
+          variant='screen'
+          title='No Identities Available'
+          description='You need at least one identity to approve transactions. Import an existing identity or create a new one to continue.'
+        />
+        <div className='flex flex-col gap-2.5 w-full mt-auto'>
+          <Button colorScheme='brand' size='xl' onClick={() => { void navigate('/choose-wallet-type') }}>
             Import Identity
           </Button>
-          <Button
-            onClick={() => window.close()}
-            colorScheme='lightBlue'
-          >
+          <Button colorScheme='lightBlue' size='xl' onClick={() => window.close()}>
             Cancel
           </Button>
         </div>
@@ -319,90 +298,76 @@ function ApproveTransactionState (): React.JSX.Element {
     }
   }
 
+  const typeTitle = decodedTransaction != null ? transactionTypeTitle(decodedTransaction) : null
+  const credits = decodedTransaction != null ? transactionCredits(decodedTransaction) : null
+  const isReady = !isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null
+
   if (txHash != null) {
     return (
-      <div className='screen-content'>
-        <div className='flex flex-col gap-6'>
-          <TitleBlock
-            title={
-              <>
-                <span className='font-normal'>Transaction was</span><br />
-                <span className='font-medium'>successfully broadcasted</span>
-              </>
+      <div className='screen-content gap-4'>
+        <ResultHeader
+          status='success'
+          illustration={coinImage}
+          amount={credits != null
+            ? <><span className='font-bold'>{formatDashAmount(BigInt(credits), PLATFORM_DASH_DECIMALS)}</span> Dash</>
+            : <span className='font-bold'>{typeTitle ?? 'Transaction'}</span>}
+          usd={credits != null ? dashAmountToUsd(BigInt(credits), PLATFORM_DASH_DECIMALS, rate) : undefined}
+          message='Transaction was signed and broadcast to Dash Platform'
+        />
+
+        <TransactionHashBlock hash={txHash} network={currentNetwork ?? 'testnet'} label='Transaction Hash:' />
+
+        {decodedTransaction != null && (
+          <Accordion title='Details' showSeparator={false}>
+            <TransactionDetails data={decodedTransaction} signed />
+          </Accordion>
+        )}
+
+        <Button
+          colorScheme='brand'
+          size='xl'
+          className='w-full mt-auto'
+          onClick={() => {
+            if (returnToHome) {
+              void navigate('/', { replace: true })
+            } else {
+              window.close()
             }
-            description='You can check the transaction details below'
-            showLogo={false}
-          />
-
-          {/* Transaction details after success */}
-          {decodedTransaction != null && (
-            <TransactionDetails
-              data={decodedTransaction}
-              transactionHash={txHash}
-              network={currentNetwork ?? 'testnet'}
-              signed
-            />
-          )}
-
-          <div>
-            <Button
-              className='w-full'
-              onClick={() => {
-                if (returnToHome) {
-                  void navigate('/', { replace: true })
-                } else {
-                  window.close()
-                }
-              }}
-              colorScheme='brand'
-            >
-              Close
-            </Button>
-          </div>
-        </div>
+          }}
+        >
+          Done
+        </Button>
       </div>
     )
   }
 
   return (
-    <div className='screen-content'>
-      <div className='flex flex-col gap-6'>
-        <TitleBlock
-          title={<>Transaction<br />Approval</>}
-          description='Carefully check the transaction details before signing'
-          showLogo={false}
-        />
+    <div className='screen-content gap-4'>
+      <TitleBlock
+        variant='screen'
+        title='Sign Transaction'
+        badge={typeTitle != null ? <TransactionTypeChip title={typeTitle} /> : null}
+      />
 
-        {/* Transaction details */}
-        {isLoadingTransaction && <ScreenLoader className='min-h-[120px]' />}
-        {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
-        <Banner variant='error' message={transactionDecodeError} />
+      {isLoadingTransaction && <ScreenLoader className='min-h-[120px]' />}
+      {transactionNotFound && <Banner variant='error' message='Could not find transaction with hash' />}
+      <Banner variant='error' message={transactionDecodeError} />
 
-        {/* Decoded transaction details */}
-        {decodedTransaction != null && (
-          <TransactionDetails
-            data={decodedTransaction}
-            network={currentNetwork ?? 'testnet'}
-          />
-        )}
+      {decodedTransaction != null && (
+        <TransactionDetails data={decodedTransaction} />
+      )}
 
-        {/* Identity (read-only, auto-set from transaction) */}
-        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
-          <div className='flex flex-col gap-2.5'>
-            <FieldLabel>Identity</FieldLabel>
-            <IdentitySelect
-              identities={identities}
-              value={currentIdentity ?? ''}
-              onChange={() => {}}
-              showArrow={false}
-              size='xl'
-              disabled
+      {isReady && (
+        <div className='flex flex-col gap-2.5'>
+          {(decodedTransaction == null || !detailsShowIdentity(decodedTransaction)) && (
+            <SummaryRow
+              label='Sign as:'
+              value={currentIdentity != null
+                ? <Identifier size='xs' avatar highlight='both' middleEllipsis edgeChars={5} className='min-w-0'>{currentIdentity}</Identifier>
+                : '-'}
             />
-          </div>
-        )}
+          )}
 
-        {/* Choose Signing Key */}
-        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <PublicKeySelect
             keys={signingKeys}
             value={selectedSigningKey}
@@ -410,58 +375,50 @@ function ApproveTransactionState (): React.JSX.Element {
             loading={signingKeysLoading}
             error={signingKeysError}
             keyRequirements={keyRequirements}
+            showLabel={false}
           />
-        )}
 
-        {/* Password */}
-        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM != null && (
           <PasswordField
+            label={null}
             value={password}
             onChange={setPassword}
             placeholder='Your Password'
             error={passwordError}
             variant='outlined'
           />
-        )}
+        </div>
+      )}
 
-        {/* Error details */}
-        {signingErrorDetails != null && (
-          <SigningErrorDetails
-            name={signingErrorDetails.name}
-            message={signingErrorDetails.message}
-            hex={signingErrorDetails.hex}
-          />
-        )}
+      {signingErrorDetails != null && (
+        <SigningErrorDetails
+          name={signingErrorDetails.name}
+          message={signingErrorDetails.message}
+          hex={signingErrorDetails.hex}
+        />
+      )}
 
-        {/* Buttons */}
-        {!isLoadingTransaction && !transactionNotFound && stateTransitionWASM == null
-          ? (
-            <div className='w-full'>
-              <Button
-                onClick={() => { void navigate('/', { replace: true }) }}
-                className='w-full'
-                colorScheme='lightBlue'
-              >
-                Close
-              </Button>
-            </div>
-            )
-          : (stateTransitionWASM != null && (
-            <ButtonRow
-              leftButton={{
-                text: 'Cancel',
-                onClick: reject,
-                colorScheme: 'lightBlue'
-              }}
-              rightButton={{
-                text: isSigningInProgress ? 'Signing...' : 'Sign',
-                onClick: () => { void doSign() },
-                colorScheme: 'brand',
-                disabled: isSigningInProgress || selectedSigningKey === null
-              }}
-            />
-            ))}
-      </div>
+      {!isLoadingTransaction && stateTransitionWASM == null && (
+        <Button colorScheme='lightBlue' size='xl' className='w-full mt-auto' onClick={() => { void navigate('/', { replace: true }) }}>
+          Close
+        </Button>
+      )}
+
+      {isReady && (
+        <div className='flex gap-2.5 mt-auto pt-2'>
+          <Button colorScheme='lightBlue' size='xl' className='flex-1' onClick={reject}>
+            Reject
+          </Button>
+          <Button
+            colorScheme='brand'
+            size='xl'
+            className='flex-1'
+            disabled={isSigningInProgress || selectedSigningKey === null || password === ''}
+            onClick={() => { void doSign() }}
+          >
+            {isSigningInProgress ? 'Signing...' : 'Sign'}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
