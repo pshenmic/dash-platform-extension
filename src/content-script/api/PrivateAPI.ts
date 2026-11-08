@@ -54,6 +54,10 @@ import { PendingAssetLocksRepository } from '../repository/PendingAssetLocksRepo
 import { RegisterIdentityFromWalletHandler } from './private/identities/registerIdentityFromWallet'
 import { ListPendingAssetLocksHandler } from './private/assetLocks/listPendingAssetLocks'
 import { DiscardAssetLockFundingHandler } from './private/assetLocks/discardAssetLockFunding'
+import { ListAssetLockFundingAddressesHandler } from './private/assetLocks/listAssetLockFundingAddresses'
+import { HasAssetLockFundingAddressesHandler } from './private/assetLocks/hasAssetLockFundingAddresses'
+import { RecoverAssetLockFundsHandler } from './private/assetLocks/recoverAssetLockFunds'
+import { ClearAssetLockFundingAddressesHandler } from './private/assetLocks/clearAssetLockFundingAddresses'
 import { RequestAssetLockFundingAddressHandler } from './private/assetLocks/requestAssetLockFundingAddress'
 import { RequestTopUpFundingAddressHandler } from './private/assetLocks/requestTopUpFundingAddress'
 import { RegisterIdentityHandler } from './private/identities/registerIdentity'
@@ -241,6 +245,10 @@ export class PrivateAPI {
       [MessagingMethods.REQUEST_ASSET_LOCK_FUNDING_ADDRESS]: requestAssetLockFundingAddress,
       [MessagingMethods.LIST_PENDING_ASSET_LOCKS]: new ListPendingAssetLocksHandler(pendingAssetLocksRepository, assetLockFundingAddressesRepository),
       [MessagingMethods.DISCARD_ASSET_LOCK_FUNDING]: new DiscardAssetLockFundingHandler(walletRepository, assetLockFundingAddressesRepository, coreExplorer, this.coreSDK),
+      [MessagingMethods.LIST_ASSET_LOCK_FUNDING_ADDRESSES]: new ListAssetLockFundingAddressesHandler(walletRepository, assetLockFundingAddressesRepository, coreExplorer),
+      [MessagingMethods.HAS_ASSET_LOCK_FUNDING_ADDRESSES]: new HasAssetLockFundingAddressesHandler(walletRepository, assetLockFundingAddressesRepository),
+      [MessagingMethods.RECOVER_ASSET_LOCK_FUNDS]: new RecoverAssetLockFundsHandler(walletRepository, assetLockFundingAddressesRepository, coreExplorer, this.coreSDK, this.sdk),
+      [MessagingMethods.CLEAR_ASSET_LOCK_FUNDING_ADDRESSES]: new ClearAssetLockFundingAddressesHandler(walletRepository, assetLockFundingAddressesRepository, coreExplorer),
       [MessagingMethods.REQUEST_TOP_UP_FUNDING_ADDRESS]: requestTopUpFundingAddress,
       [MessagingMethods.REGISTER_IDENTITY]: registerIdentity,
       [MessagingMethods.REGISTER_IDENTITY_FROM_WALLET]: new RegisterIdentityFromWalletHandler(
