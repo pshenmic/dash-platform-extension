@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { CheckIcon, Text } from 'dash-ui-kit/react'
-import { IdentityAccessChip, IdentityChecklist } from '../../components/identity'
+import { IdentityMultiSelectChip, IdentityChecklist } from '../../components/identity'
 import type { NetworkType } from '../../../types/NetworkType'
 
 interface AppConnectPermissionsProps {
@@ -48,7 +48,7 @@ export function AppConnectPermissions ({ identities, selected, allSelected, onTo
     ? (
       <div className='flex items-center gap-1.5 min-w-0'>
         <Text size='sm' weight='medium' className='shrink-0'>See</Text>
-        <IdentityAccessChip
+        <IdentityMultiSelectChip
           selected={selected}
           total={identities.length}
           allSelected={allSelected}

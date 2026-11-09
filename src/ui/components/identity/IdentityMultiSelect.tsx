@@ -1,7 +1,7 @@
 import React from 'react'
 import { Avatar, Checkbox, ChevronIcon, Identifier, Text } from 'dash-ui-kit/react'
 
-interface IdentityAccessChipProps {
+interface IdentityMultiSelectChipProps {
   selected: string[]
   total: number
   allSelected: boolean
@@ -28,7 +28,7 @@ const selectionLabel = (selected: number, total: number, allSelected: boolean): 
 }
 
 /** Pill with stacked avatars and a summary of the identities a website can see; toggles the checklist. */
-export function IdentityAccessChip ({ selected, total, allSelected, open, onClick, disabled = false }: IdentityAccessChipProps): React.JSX.Element {
+export function IdentityMultiSelectChip ({ selected, total, allSelected, open, onClick, disabled = false }: IdentityMultiSelectChipProps): React.JSX.Element {
   return (
     <button
       type='button'

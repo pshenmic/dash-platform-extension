@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Button, Text, WebIcon } from 'dash-ui-kit/react'
-import { IdentityAccessChip, IdentityChecklist } from '../identity'
+import { IdentityMultiSelectChip, IdentityChecklist } from '../identity'
 import { getFaviconUrl } from '../../../utils'
 import type { AppConnect } from '../../../types'
 
@@ -74,7 +74,7 @@ export const ConnectedWebsiteItem: React.FC<ConnectedWebsiteItemProps> = ({
           <div className='flex flex-col gap-2'>
             <div className='flex items-center gap-1.5 min-w-0'>
               <Text size='xs' weight='medium' dim className='shrink-0'>Can see</Text>
-              <IdentityAccessChip
+              <IdentityMultiSelectChip
                 selected={selected}
                 total={walletIdentities.length}
                 allSelected={allSelected}
