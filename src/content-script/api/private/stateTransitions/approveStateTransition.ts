@@ -101,6 +101,23 @@ export class ApproveStateTransitionHandler implements APIHandler {
       throw new Error(`Could not find Identity Public Key with Key ID ${keyId} in Identity ${identity.identifier}`)
     }
 
+    // A disabled key still signs, and the signature still looks well formed -
+    // Platform is the one that rejects it, after the transition has spent its
+    // nonce. The wallet's own screens filter these out before offering a key,
+    // but a website asking the signer to approve a transition names the key id
+    // itself, so the check belongs here too.
+    if (identityPublicKey.disabledAt != null) {
+      throw new Error(`Identity Public Key with Key ID ${keyId} is disabled and cannot sign`)
+    }
+
+    // The key the caller named has to be the one this wallet derives for it.
+    // Signing with a mismatched key produces a well formed signature that
+    // Platform refuses, and the nonce is spent either way. Compared by public
+    // key hash, which both sides expose as the same hex string.
+    if (privateKeyWASM.getPublicKey().getPublicKeyHash() !== identityPublicKey.getPublicKeyHash()) {
+      throw new Error(`Identity Public Key with Key ID ${keyId} does not match the key this wallet derives for it`)
+    }
+
     stateTransitionWASM.sign(privateKeyWASM, identityPublicKey)
 
     return stateTransitionWASM

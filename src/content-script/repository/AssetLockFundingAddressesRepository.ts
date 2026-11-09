@@ -235,6 +235,51 @@ export class AssetLockFundingAddressesRepository {
     })
   }
 
+  // Every entry, whatever its state.
+  async findAll (): Promise<AssetLockFundingAddressSchema[]> {
+    const storageKey = await this.getStorageKey()
+    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
+
+    return Object.values(addresses)
+  }
+
+  // Drops the whole store, encrypted funding keys included, and reports how many
+  // entries went with it. Irreversible: these keys were one-time random ones,
+  // never derived from the seed, so an address cleared here can never be spent
+  // again. Callers are responsible for proving nothing is left at stake first -
+  // see clearAssetLockFundingAddresses.
+  async clearAll (): Promise<number> {
+    const count = (await this.findAll()).length
+
+    await this.storageAdapter.remove(await this.getStorageKey())
+
+    return count
+  }
+
+  // Whether this wallet was ever handed a funding address, spent or not. A
+  // different question from findAllRecoverable, and the one the settings menu
+  // asks: it offers recovery to anyone who had an address, because a deposit can
+  // arrive at one long after the local entry stopped looking recoverable.
+  async hasAny (): Promise<boolean> {
+    return (await this.findAll()).length > 0
+  }
+
+  // Entries whose deposit this extension can still spend: never used, and no
+  // asset lock committed against them. Unlike findAllUnused this ignores
+  // purpose, because recovery covers every kind of funding address handed out,
+  // and it ignores ownership, because a stranded deposit belongs to whoever the
+  // address was reserved for or to nobody at all.
+  //
+  // An entry with an assetLockTxid is deliberately excluded even though it is
+  // not `used`: its deposit is already spent by an asset lock on L1, and sweeping
+  // it would destroy a registration that can still be finished.
+  async findAllRecoverable (): Promise<AssetLockFundingAddressSchema[]> {
+    const storageKey = await this.getStorageKey()
+    const addresses = (await this.storageAdapter.get(storageKey) ?? {}) as AssetLockFundingAddressesSchema
+
+    return Object.values(addresses).filter(entry => !entry.used && entry.assetLockTxid == null)
+  }
+
   // The mirror image of findAllUnused: deposit entries whose asset lock is on L1
   // but was never consumed. Money committed with nothing to show for it yet.
   async findAllBroadcasted (): Promise<AssetLockFundingAddressSchema[]> {
