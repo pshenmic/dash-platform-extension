@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { Accordion, Button, Identifier } from 'dash-ui-kit/react'
+import { Accordion, Button } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { Banner, SummaryRow } from '../../components/cards'
 import { PasswordField } from '../../components/forms'
@@ -15,6 +15,7 @@ import type { OutletContext } from '../../types'
 import ScreenLoader from '../../components/layout/screens/ScreenLoader'
 import { PublicKeySelect, type KeyRequirement } from '../../components/keys'
 import { TransactionDetails } from './details'
+import { IdentityValue } from './details/IdentityValue'
 import { TransactionTypeChip } from './TransactionTypeChip'
 import { detailsShowIdentity, transactionCredits, transactionTypeTitle } from './transactionMeta'
 import { PLATFORM_DASH_DECIMALS, dashAmountToUsd, decodeStateTransition, formatDashAmount, getStateTransitionKeyRequirements } from '../../../utils'
@@ -363,7 +364,7 @@ function ApproveTransactionState (): React.JSX.Element {
             <SummaryRow
               label='Sign as:'
               value={currentIdentity != null
-                ? <Identifier size='xs' avatar highlight='both' middleEllipsis edgeChars={5} className='min-w-0'>{currentIdentity}</Identifier>
+                ? <IdentityValue identifier={currentIdentity} />
                 : '-'}
             />
           )}

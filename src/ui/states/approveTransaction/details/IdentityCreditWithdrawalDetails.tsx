@@ -4,6 +4,7 @@ import type { DecodedIdentityCreditWithdrawalTransition } from '../../../../type
 import { TransactionAmountCard } from './TransactionAmountCard'
 import { DetailRow } from './DetailRow'
 import { MoreDetails } from './MoreDetails'
+import { IdentityValue } from './IdentityValue'
 import { useTransactionSigned } from './index'
 
 interface IdentityCreditWithdrawalDetailsProps {
@@ -17,7 +18,7 @@ export function IdentityCreditWithdrawalDetails ({ data }: IdentityCreditWithdra
     <TransactionAmountCard label='Withdrawal Amount' credits={data.amount}>
       <DetailRow
         label='Identity:'
-        value={<Identifier size='xs' avatar highlight='both' middleEllipsis edgeChars={5} className='min-w-0'>{data.identityId}</Identifier>}
+        value={<IdentityValue identifier={data.identityId} />}
       />
       <MoreDetails>
         <DetailRow label='Identity Nonce:' value={data.identityNonce} />
