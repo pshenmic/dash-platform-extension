@@ -6,6 +6,7 @@ import { ConnectedWebsitesScreen } from './screens/ConnectedWebsitesScreen'
 import { PrivateKeysScreen } from './screens/PrivateKeysScreen'
 import { ImportPrivateKeysScreen } from './screens/ImportPrivateKeysScreen'
 import { CreateKeyScreen } from './screens/CreateKeyScreen'
+import { RecoverAssetLockFundsScreen } from './screens/RecoverAssetLockFundsScreen'
 import { HelpSupportScreen } from './screens/HelpSupportScreen'
 import { AboutScreen } from './screens/AboutScreen'
 import { MenuSection } from './MenuSection'
@@ -14,7 +15,7 @@ import type { MenuSection as MenuSectionType, SettingsScreenProps } from './type
 import { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { NetworkType } from '../../../types'
 
-type ScreenType = 'main' | 'current-wallet' | 'connected-websites' | 'private-keys' | 'import-private-keys-settings' | 'create-key-settings' | 'help-support' | 'about-dash'
+type ScreenType = 'main' | 'current-wallet' | 'connected-websites' | 'private-keys' | 'import-private-keys-settings' | 'create-key-settings' | 'recover-asset-lock-funds' | 'help-support' | 'about-dash'
 
 const SCREEN_COMPONENTS: Record<string, React.ComponentType<SettingsScreenProps>> = {
   'current-wallet': WalletSettingsScreen,
@@ -22,6 +23,7 @@ const SCREEN_COMPONENTS: Record<string, React.ComponentType<SettingsScreenProps>
   'private-keys': PrivateKeysScreen,
   'import-private-keys-settings': ImportPrivateKeysScreen,
   'create-key-settings': CreateKeyScreen,
+  'recover-asset-lock-funds': RecoverAssetLockFundsScreen,
   'help-support': HelpSupportScreen,
   'about-dash': AboutScreen
 }
