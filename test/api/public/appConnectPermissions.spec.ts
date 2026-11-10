@@ -7,7 +7,7 @@ import { PrivateAPIClient, WalletType } from '../../../src/types'
 import { EventData } from '../../../src/types/EventData'
 import { PrivateAPI } from '../../../src/content-script/api/PrivateAPI'
 import { PublicAPI } from '../../../src/content-script/api/PublicAPI'
-import { PublicBackendAPI } from '../../../src/backend/publicBackendAPI'
+import { inspectStateTransition } from '../../../src/backend/codec'
 import { MessagingMethods } from '../../../src/types/enums/MessagingMethods'
 import { MemoryStorageAdapter } from '../../../src/content-script/storage/memoryStorageAdapter'
 import { StorageAdapter } from '../../../src/content-script/storage/storageAdapter'
@@ -15,6 +15,7 @@ import { AppConnectsStorageSchema } from '../../../src/content-script/storage/st
 import { AppConnectStatus } from '../../../src/types/enums/AppConnectStatus'
 import runMigrations from '../../../src/content-script/storage/runMigrations'
 import { connectBackend } from '../../helpers/connectBackend'
+import { MAX_STATE_TRANSITION_SIZE_BASE64 } from '../../../src/constants'
 
 // A website sees what the user granted it and nothing else. These go through
 // PublicAPI.handleMessage, the same entry point a page's postMessage reaches,
@@ -27,7 +28,6 @@ describe('what a connected website may see', () => {
   let sdk: DashPlatformSDK
   let privateAPIClient: PrivateAPIClient
   let publicAPI: PublicAPI
-  let publicBackendAPI: PublicBackendAPI
   let storage: StorageAdapter
   let walletId: string
   let connectId: string
@@ -42,11 +42,9 @@ describe('what a connected website may see', () => {
       payload
     }
 
-    // The production split: a content script serves what needs no WASM and
-    // relays the rest to the offscreen backend.
-    return publicBackendAPI.owns(method)
-      ? await publicBackendAPI.handleMessage(data, from)
-      : await publicAPI.handleMessage(data, from)
+    // The production path: the content script serves every page method, asking
+    // the backend only to decode a transition when one is involved.
+    return await publicAPI.handleMessage(data, from)
   }
 
   const connect = async (from: string = origin): Promise<any> =>
@@ -80,8 +78,7 @@ describe('what a connected website may see', () => {
 
     // Handlers only: the page listener would answer the private client's
     // messages too, because the test bus is shared.
-    publicAPI = new PublicAPI(storage)
-    publicBackendAPI = new PublicBackendAPI(storage)
+    publicAPI = new PublicAPI(storage, async (encoded) => inspectStateTransition(encoded))
 
     await connect()
 
@@ -151,6 +148,13 @@ describe('what a connected website may see', () => {
     })
   })
 
+  describe('the wallet API', () => {
+    it('is not reachable from a page', async () => {
+      await expect(call(MessagingMethods.GET_ALL_WALLETS, {}))
+        .rejects.toThrow('Could not find handler for method GET_ALL_WALLETS')
+    })
+  })
+
   describe('signing', () => {
     const transitionOf = (identityId: string): string => base64.encode(
       sdk.identities.createStateTransition('creditTransfer', {
@@ -176,7 +180,16 @@ describe('what a connected website may see', () => {
       const response = await call(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL, { base64: transitionOf(identityA) })
 
       expect(response.stateTransition.status).toBe('pending')
+      expect(response.stateTransition.origin).toBe(origin)
       expect(response.redirectUrl).toContain(response.stateTransition.unsignedHash)
+    })
+
+    it('refuses a transition larger than the size bound before decoding it', async () => {
+      await privateAPIClient.approveAppConnect(connectId, [identityA])
+
+      await expect(call(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL, {
+        base64: 'A'.repeat(MAX_STATE_TRANSITION_SIZE_BASE64 + 1)
+      })).rejects.toThrow('State transition is too large')
     })
   })
 })

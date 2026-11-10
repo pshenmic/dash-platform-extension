@@ -8,4 +8,6 @@ export interface StateTransition {
   signaturePublicKeyId: number | null
   status: StateTransitionStatus
   error: string | null
+  // Origin that asked for the transition, null when the extension built it.
+  origin: string | null
 }

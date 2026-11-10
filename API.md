@@ -129,11 +129,14 @@ The transition's owner must be an identity granted to the calling origin.
     signaturePublicKeyId: number | null
     status: 'pending' | 'approved' | 'rejected' | 'error'
     error: string | null
+    origin: string | null // the calling origin, shown on the approval screen
   }
 }
 ```
 
 Repeating a request with the same transition returns its current status, which is how the signer polls for a decision.
+
+A transition is accepted only when it deserializes, its owner is granted to the calling origin, it is not already signed, and it fits `MAX_STATE_TRANSITION_SIZE_BASE64` (512 KiB of base64). The extension keeps a bounded number of them per wallet and forgets pending entries after an hour and resolved ones after a day.
 
 ### `content-script-ready` event
 
