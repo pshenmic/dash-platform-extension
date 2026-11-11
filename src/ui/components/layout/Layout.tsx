@@ -25,7 +25,7 @@ export interface LayoutContext {
   // Same for identities, and only for the wallet they were loaded from.
   identitiesLoaded: boolean
   reloadWallets: () => Promise<void>
-  reloadIdentities: () => Promise<void>
+  reloadIdentities: (walletId?: string | null) => Promise<void>
   availableIdentities: Identity[]
   createWallet: (walletType: any, mnemonic?: string) => Promise<any>
   headerComponent: React.ReactNode
@@ -67,12 +67,13 @@ const Layout: FC = () => {
     }
   }, [isApiReady, extensionAPI])
 
-  const loadIdentities = useCallback(async (): Promise<void> => {
-    if (!isApiReady || currentWallet == null) return
+  // walletId is for callers that switched wallet in the same tick and still hold the old currentWallet.
+  const loadIdentities = useCallback(async (walletId: string | null = currentWallet): Promise<void> => {
+    if (!isApiReady || walletId == null) return
     try {
       const identities = await extensionAPI.getIdentities()
       setAvailableIdentities(identities)
-      setIdentitiesLoadedFor(currentWallet)
+      setIdentitiesLoadedFor(walletId)
     } catch (error) {
       console.log('Failed to load identities:', error)
     }

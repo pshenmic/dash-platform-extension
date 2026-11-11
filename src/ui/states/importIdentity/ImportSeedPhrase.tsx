@@ -10,7 +10,7 @@ import { TitleBlock } from '../../components/layout/TitleBlock'
 function ImportSeedPhrase (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
-  const { setCurrentWallet, setCurrentIdentity, createWallet } = useOutletContext<OutletContext>()
+  const { setCurrentWallet, setCurrentIdentity, createWallet, reloadIdentities } = useOutletContext<OutletContext>()
   const [seedWords, setSeedWords] = useState<string[]>(Array(12).fill(''))
   const [wordCount, setWordCount] = useState<12 | 24>(12)
   const [password, setPassword] = useState('')
@@ -115,6 +115,8 @@ function ImportSeedPhrase (): React.JSX.Element {
       setCurrentWallet(walletId)
 
       await extensionAPI.resyncIdentities(password)
+      // Layout loaded this wallet's identities before the resync filled them.
+      await reloadIdentities(walletId)
       const identities = await extensionAPI.getIdentities()
       const [avalibleIdentity] = identities ?? []
 
