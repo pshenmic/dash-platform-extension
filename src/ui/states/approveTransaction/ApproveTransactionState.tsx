@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useOutletContext, useLocation } from 'react-router-dom'
 import { base64 as base64Decoder } from '@scure/base'
-import { Accordion, Button } from 'dash-ui-kit/react'
+import { Accordion, Button, Text } from 'dash-ui-kit/react'
 import { GetStateTransitionResponse } from '../../../types/messages/response/GetStateTransitionResponse'
 import { Banner, SummaryRow } from '../../components/cards'
 import { PasswordField } from '../../components/forms'
@@ -364,6 +364,14 @@ function ApproveTransactionState (): React.JSX.Element {
 
       {isReady && (
         <div className='flex flex-col gap-2.5'>
+          {/* Who queued it. Absent for transitions the extension built itself. */}
+          {stateTransitionOrigin != null && (
+            <SummaryRow
+              label='Requested by:'
+              value={<Text size='xs' weight='medium' className='break-all'>{stateTransitionOrigin}</Text>}
+            />
+          )}
+
           {(decodedTransaction == null || !detailsShowIdentity(decodedTransaction)) && (
             <SummaryRow
               label='Sign as:'
