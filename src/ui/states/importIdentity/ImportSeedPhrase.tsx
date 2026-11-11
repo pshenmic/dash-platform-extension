@@ -109,14 +109,13 @@ function ImportSeedPhrase (): React.JSX.Element {
     try {
       const validWords = seedWords.slice(0, wordCount).filter(word => word.trim() !== '')
       const mnemonic = validWords.join(' ')
-
       const { walletId } = await createWallet(WalletType.seedphrase, mnemonic)
       await extensionAPI.switchWallet(walletId)
-      await extensionAPI.resyncIdentities(password)
-      const identities = await extensionAPI.getIdentities()
 
       setCurrentWallet(walletId)
 
+      await extensionAPI.resyncIdentities(password)
+      const identities = await extensionAPI.getIdentities()
       const [avalibleIdentity] = identities ?? []
 
       if (avalibleIdentity?.identifier != null) {

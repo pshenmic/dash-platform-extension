@@ -201,6 +201,32 @@ const Layout: FC = () => {
     loadData().catch(e => console.log('loadData error', e))
   }, [isApiReady, loadWallets, loadIdentities, loadCurrentIdentity])
 
+  // Repairs a selection that is missing from the network's wallets: backend choice first, else the first wallet.
+  useEffect(() => {
+    if (!isApiReady || !walletsLoaded) return
+
+    const networkWallets = allWallets.filter(w => w.network === currentNetwork)
+    if (networkWallets.length === 0 || networkWallets.some(w => w.walletId === currentWallet)) return
+
+    let cancelled = false
+
+    const repairSelection = async (): Promise<void> => {
+      const status = await extensionAPI.getStatus()
+      if (cancelled) return
+
+      if (networkWallets.some(w => w.walletId === status.currentWalletId)) {
+        setCurrentWallet(status.currentWalletId)
+        return
+      }
+
+      await applyWalletChange(networkWallets[0].walletId)
+    }
+
+    repairSelection().catch(e => console.log('repairSelection error', e))
+
+    return () => { cancelled = true }
+  }, [isApiReady, walletsLoaded, allWallets, currentNetwork, currentWallet, extensionAPI, applyWalletChange])
+
   // body sits outside the React root, so its tab-mode class is synced here
   useEffect(() => {
     if (!isTabView()) return
