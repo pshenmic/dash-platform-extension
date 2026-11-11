@@ -13,7 +13,7 @@ import { buildIdentityTransactionsUrl } from '../utils/explorerUrls'
 // Largest tokens page the explorer serves.
 const TOKENS_PAGE_LIMIT = 100
 
-export {
+export type {
   NetworkType,
   TransactionData,
   IdentityApiData,
