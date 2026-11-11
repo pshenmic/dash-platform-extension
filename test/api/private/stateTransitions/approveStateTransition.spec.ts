@@ -83,18 +83,46 @@ describe('ApproveStateTransitionHandler.sign', () => {
   })
 })
 
-// Approving names the identity to sign as, and the handler replaces the owner
-// and the nonce when it is not the transition's own. That rewrite changes
-// `hash(true)`, so the record the page is waiting on can only be found by the
-// hash it was created under.
+// A transition is signed as its own owner: approving as another identity used
+// to rewrite the owner and the nonces, which made a different transition out
+// of the one the caller submitted.
 describe('ApproveStateTransitionHandler.handle', () => {
   const OTHER_IDENTITY_ID = 'Aa1ZUSjKsQDNJTV53NYs7PtaxKjCxdegZrqeywFy5y4M'
 
   let storage: MemoryStorageAdapter
   let stateTransitionsRepository: StateTransitionsRepository
   let broadcast: jest.Mock
-  let handler: ApproveStateTransitionHandler
   let queuedHash: string
+
+  const handlerFor = (identifier: string): ApproveStateTransitionHandler => {
+    const identityPublicKey = new IdentityPublicKeyWASM(
+      KEY_ID, 'TRANSFER', 'CRITICAL', 'ECDSA_SECP256K1', false,
+      bytesToHex(walletKey.getPublicKey().bytes())
+    )
+
+    const sdkMock = {
+      identities: {
+        getIdentityByIdentifier: jest.fn(async () => ({ getPublicKeys: () => [identityPublicKey] })),
+        getIdentityNonce: jest.fn(async () => 7n)
+      },
+      stateTransitions: {
+        broadcast,
+        waitForStateTransitionResult: jest.fn()
+      }
+    }
+
+    return new ApproveStateTransitionHandler(
+      stateTransitionsRepository,
+      { getByIdentifier: jest.fn(async () => ({ identifier, index: 0 })) } as any,
+      { getCurrent: jest.fn(async () => ({ type: WalletType.seedphrase })) } as any,
+      {} as any,
+      storage,
+      sdkMock as any
+    )
+  }
+
+  const approveAs = async (identifier: string): Promise<any> =>
+    await handlerFor(identifier).handle({ payload: { hash: queuedHash, identity: identifier, keyId: KEY_ID, password: 'password' } } as any)
 
   beforeEach(async () => {
     jest.clearAllMocks()
@@ -120,54 +148,33 @@ describe('ApproveStateTransitionHandler.handle', () => {
     await stateTransitionsRepository.createFromEncoded(queued.base64(), queuedHash, 'https://app.example.com')
 
     broadcast = jest.fn()
-
-    const identityPublicKey = new IdentityPublicKeyWASM(
-      KEY_ID, 'TRANSFER', 'CRITICAL', 'ECDSA_SECP256K1', false,
-      bytesToHex(walletKey.getPublicKey().bytes())
-    )
-
-    const sdkMock = {
-      identities: {
-        getIdentityByIdentifier: jest.fn(async () => ({ getPublicKeys: () => [identityPublicKey] })),
-        getIdentityNonce: jest.fn(async () => 7n)
-      },
-      stateTransitions: {
-        broadcast,
-        waitForStateTransitionResult: jest.fn()
-      }
-    }
-
-    handler = new ApproveStateTransitionHandler(
-      stateTransitionsRepository,
-      { getByIdentifier: jest.fn(async () => ({ identifier: OTHER_IDENTITY_ID, index: 0 })) } as any,
-      { getCurrent: jest.fn(async () => ({ type: WalletType.seedphrase })) } as any,
-      {} as any,
-      storage,
-      sdkMock as any
-    )
   })
 
-  it('resolves the record the page is waiting on', async () => {
-    await handler.handle({ payload: { hash: queuedHash, identity: OTHER_IDENTITY_ID, keyId: KEY_ID, password: 'password' } } as any)
+  it('refuses to sign a transition as an identity that does not own it', async () => {
+    await expect(approveAs(OTHER_IDENTITY_ID))
+      .rejects.toThrow(`State transition is owned by ${IDENTITY_ID} and cannot be signed as ${OTHER_IDENTITY_ID}`)
+
+    expect(broadcast).not.toHaveBeenCalled()
+  })
+
+  it('leaves the record for the caller to see why it failed', async () => {
+    await expect(approveAs(OTHER_IDENTITY_ID)).rejects.toThrow()
 
     const stateTransition = await stateTransitionsRepository.getByHash(queuedHash)
 
-    expect(broadcast).toHaveBeenCalledTimes(1)
-    expect(stateTransition?.status).toBe('approved')
-    expect(stateTransition?.signedHash).not.toBeNull()
+    expect(stateTransition?.status).toBe('pending')
+    expect(stateTransition?.signed).toBeNull()
   })
 
-  it('stores the transition that was signed, not the one the page supplied', async () => {
-    await handler.handle({ payload: { hash: queuedHash, identity: OTHER_IDENTITY_ID, keyId: KEY_ID, password: 'password' } } as any)
+  it('records what it signed and broadcast', async () => {
+    await approveAs(IDENTITY_ID)
 
     const stateTransition = await stateTransitionsRepository.getByHash(queuedHash)
     const signed = StateTransitionWASM.fromBase64(stateTransition?.signed as string)
 
-    // What the page holds still names the old owner, so a page that applied
-    // the signature to its own copy would report a transition nobody sent.
-    expect(signed.getOwnerId()?.base58()).toBe(OTHER_IDENTITY_ID)
-    expect(signed.hash(true)).not.toBe(queuedHash)
+    expect(broadcast).toHaveBeenCalledTimes(1)
+    expect(stateTransition?.status).toBe('approved')
     expect(signed.hash(false)).toBe(stateTransition?.signedHash)
-    expect(stateTransition?.signed).not.toBe(stateTransition?.unsigned)
+    expect(signed.hash(true)).toBe(queuedHash)
   })
 })

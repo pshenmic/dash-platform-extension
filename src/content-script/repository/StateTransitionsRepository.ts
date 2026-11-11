@@ -148,10 +148,10 @@ export class StateTransitionsRepository {
   /**
    * Records the user's decision on a transition.
    *
-   * Keyed by the hash the record was created under rather than by the
-   * transition's own hash: approving can re-own the transition, and re-owning
-   * changes `hash(true)`, so a lookup by the signed transition's own hash
-   * would miss the record it belongs to.
+   * Keyed by the hash the record was created under rather than by a hash
+   * recomputed from the transition. Recomputing ties the store to the caller
+   * handing back exactly the transition it was given, and rejecting does not
+   * need the transition at all.
    */
   async resolve (unsignedHash: string, status: StateTransitionStatus, error?: string): Promise<StateTransition> {
     return await this.write(unsignedHash, (stateTransition) => {
@@ -163,10 +163,9 @@ export class StateTransitionsRepository {
   /**
    * Records an approval together with what was actually signed.
    *
-   * The signed copy is stored, not just the signature, because the page that
-   * queued the transition cannot always derive it: the extension may have
-   * replaced the owner and the nonces before signing, so the bytes the page
-   * holds are not the bytes that went to the network.
+   * The signed copy is stored, not just the signature, so that the caller can
+   * be handed what went to the network without rebuilding it from the
+   * unsigned bytes and the signature.
    */
   async approve (unsignedHash: string, stateTransitionWASM: StateTransitionWASM): Promise<StateTransition> {
     const { signature, signaturePublicKeyId } = stateTransitionWASM

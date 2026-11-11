@@ -185,8 +185,8 @@ describe('the transition store', () => {
       expect(stateTransition.signed).not.toBe(stateTransition.unsigned)
     })
 
-    // Approving can re-own a transition, which changes its unsigned hash. The
-    // record still belongs to the hash the page is waiting on.
+    // The record belongs to the hash the page is waiting on, whatever hash the
+    // transition handed back computes to.
     it('keys the approval by the hash the record was created under', async () => {
       const queued = transition(1n)
       const rewritten = signed(transition(9n))

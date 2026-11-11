@@ -65,7 +65,7 @@ const signed = await signer.signAndBroadcast(transition.hex())
 signed.signedHash // signed transaction hash
 ```
 
-Approving can replace the transition's owner and its nonces before signing. `signedBase64` then holds different bytes from `unsignedBase64`, and the signature belongs to those bytes only.
+`signedBase64` is the transition the extension broadcast, so a caller that passed a serialized transition it did not build itself still gets the bytes and the hash back.
 
 **Rejects** with:
 

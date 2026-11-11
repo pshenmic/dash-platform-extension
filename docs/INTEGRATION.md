@@ -172,7 +172,7 @@ The result describes the transition that actually went out:
 | `unsignedBase64` | The transition as you supplied it |
 
 > [!WARNING]
-> Use `signedHash`, not a hash computed from your own transition. Approving can replace the transition's owner and its nonces before signing, in which case `signedBase64` is not the transition you supplied and applying `signature` to your own copy describes a transition nobody broadcast.
+> Use `signedHash` rather than computing the hash yourself. The extension has already broadcast the transition under that hash, and you don't have to keep the object you built or apply the signature to it.
 
 The site may only submit transitions owned by an identity it was granted. Sites can't submit identity creation transitions.
 
