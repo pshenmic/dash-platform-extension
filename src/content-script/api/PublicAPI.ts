@@ -23,7 +23,8 @@ import type { StateTransitionInspector } from '../../types/StateTransitionInspec
  * Business logic stays here. The one thing that genuinely needs the SDK —
  * decoding a serialized state transition into its owner and unsigned hash —
  * is asked of the offscreen document through `inspectStateTransition` (see
- * backend/codec.ts). The values that come back are the extension's own decode,
+ * backend/inspectStateTransition.ts). The values that come back are the
+ * extension's own decode,
  * so the grant check below still cannot be steered by the page.
  */
 export class PublicAPI {

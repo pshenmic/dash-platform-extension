@@ -7,7 +7,7 @@ import { PrivateAPIClient, WalletType } from '../../../src/types'
 import { EventData } from '../../../src/types/EventData'
 import { PrivateAPI } from '../../../src/content-script/api/PrivateAPI'
 import { PublicAPI } from '../../../src/content-script/api/PublicAPI'
-import { inspectStateTransition } from '../../../src/backend/codec'
+import { InspectStateTransitionHandler } from '../../../src/backend/inspectStateTransition'
 import { MessagingMethods } from '../../../src/types/enums/MessagingMethods'
 import { MemoryStorageAdapter } from '../../../src/content-script/storage/memoryStorageAdapter'
 import { StorageAdapter } from '../../../src/content-script/storage/storageAdapter'
@@ -78,7 +78,9 @@ describe('what a connected website may see', () => {
 
     // Handlers only: the page listener would answer the private client's
     // messages too, because the test bus is shared.
-    publicAPI = new PublicAPI(storage, async (encoded) => inspectStateTransition(encoded))
+    const inspector = new InspectStateTransitionHandler()
+
+    publicAPI = new PublicAPI(storage, async (encoded) => inspector.inspect(encoded))
 
     await connect()
 

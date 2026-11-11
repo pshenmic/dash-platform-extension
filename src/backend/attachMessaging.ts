@@ -2,8 +2,9 @@ import { ext } from '../platform'
 import { EventData } from '../types'
 import { MessagingMethods } from '../types/enums/MessagingMethods'
 import { BroadcastError } from '../content-script/errors/BroadcastError'
+import { MessageDispatcher } from '../content-script/api/MessageDispatcher'
 import type { PrivateAPI } from '../content-script/api/PrivateAPI'
-import { inspectStateTransition } from './codec'
+import { InspectStateTransitionHandler } from './inspectStateTransition'
 
 /**
  * Wires a booted backend up to extension messaging.
@@ -12,11 +13,16 @@ import { inspectStateTransition } from './codec'
  * the backend is still booting queue on it instead of hitting "receiving end
  * does not exist" — the listener is registered synchronously by the caller.
  *
- * Serves two kinds of request: wallet calls from extension pages, and the
- * decode primitive a content script needs for the public layer. The primitive
- * is stateless, so it is answered without waiting for the wallet to boot.
+ * Two handler tables share the transport. `internalHandlers` are calls the
+ * content script needs from an extension page — today only the transition
+ * decode that keeps the public layer SDK-free — and answer without the wallet.
+ * Everything else is a wallet call from an extension page, served by PrivateAPI.
  */
 export function attachMessaging (backend: Promise<PrivateAPI>): void {
+  const internalAPI = new MessageDispatcher({
+    [MessagingMethods.INSPECT_STATE_TRANSITION]: new InspectStateTransitionHandler()
+  })
+
   const respond = (request: EventData, payload: any, error: string | null): void => {
     const message: EventData = {
       id: request.id,
@@ -52,18 +58,11 @@ export function attachMessaging (backend: Promise<PrivateAPI>): void {
       return
     }
 
-    if (data.method === MessagingMethods.INSPECT_STATE_TRANSITION) {
-      try {
-        respond(data, inspectStateTransition(data.payload.base64), null)
-      } catch (e) {
-        respond(data, null, e.message)
-      }
+    const dispatch = internalAPI.owns(data.method)
+      ? internalAPI.handleMessage(data)
+      : backend.then(async (privateAPI) => await privateAPI.handleMessage(data))
 
-      return
-    }
-
-    backend
-      .then(async (privateAPI) => await privateAPI.handleMessage(data))
+    dispatch
       .then(result => respond(data, result, null))
       .catch(e => respond(
         data,
