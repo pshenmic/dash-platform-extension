@@ -115,7 +115,6 @@ function ImportSeedPhrase (): React.JSX.Element {
       setCurrentWallet(walletId)
 
       await extensionAPI.resyncIdentities(password)
-      // Layout loaded this wallet's identities before the resync filled them.
       await reloadIdentities(walletId)
       const identities = await extensionAPI.getIdentities()
       const [avalibleIdentity] = identities ?? []

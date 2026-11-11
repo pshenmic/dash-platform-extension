@@ -19,7 +19,6 @@ function CreateWalletState (): React.JSX.Element {
     setError(null)
 
     try {
-      // Goes through Layout, so the header sees the new wallet and selection.
       const { walletId } = await createWallet(WalletType.keystore)
       await extensionAPI.switchWallet(walletId)
       setCurrentWallet(walletId)
