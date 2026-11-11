@@ -1,4 +1,3 @@
-import { EventData } from '../../types/EventData'
 import { DashCoreSDK } from 'dash-core-sdk'
 import { Network } from '../../types/enums/Network'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
@@ -10,7 +9,7 @@ import { GetCurrentIdentityHandler } from './private/identities/getCurrentIdenti
 import { GetStateTransitionHandler } from './private/stateTransitions/getStateTransition'
 import { ApproveStateTransitionHandler } from './private/stateTransitions/approveStateTransition'
 import { RejectStateTransitionHandler } from './private/stateTransitions/rejectStateTransition'
-import { APIHandler } from './APIHandler'
+import { MessageDispatcher } from './MessageDispatcher'
 import { CreateWalletHandler } from './private/wallet/createWallet'
 import { SwitchWalletHandler } from './private/wallet/switchWallet'
 import { KeypairRepository } from '../repository/KeypairRepository'
@@ -103,12 +102,14 @@ import { WithdrawShieldedToCoreHandler } from './private/wallet/withdrawShielded
 /**
  * Handlers for a messages within extension context
  */
-export class PrivateAPI {
+export class PrivateAPI extends MessageDispatcher {
   sdk: DashPlatformSDK
   coreSDK: DashCoreSDK
   storageAdapter: StorageAdapter
 
   constructor (sdk: DashPlatformSDK, coreSDK: DashCoreSDK, storageAdapter: StorageAdapter) {
+    super({})
+
     this.sdk = sdk
     this.coreSDK = coreSDK
     this.storageAdapter = storageAdapter
@@ -132,28 +133,6 @@ export class PrivateAPI {
     this.buildHandlers()
   }
 
-  handlers: {
-    [key: string]: APIHandler
-  }
-
-  async handleMessage (data: EventData): Promise<any> {
-    const { method, payload } = data
-
-    const handler = this.handlers[method]
-
-    if (handler == null) {
-      throw new Error(`Could not find handler for method ${method}`)
-    }
-
-    const validation = handler.validatePayload(payload)
-
-    if (validation != null) {
-      throw new Error(`Invalid payload: ${validation}`)
-    }
-
-    return await handler.handle(data)
-  }
-
   /**
    * Builds the handler table. Transport is deliberately NOT registered here —
    * the hosting context owns it (see src/offscreen/index.ts), so the same
@@ -161,7 +140,7 @@ export class PrivateAPI {
    * event page.
    */
   buildHandlers (): void {
-    const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk)
+    const identitiesRepository = new IdentitiesRepository(this.storageAdapter)
     const walletRepository = new WalletRepository(this.storageAdapter, identitiesRepository)
     const keypairRepository = new KeypairRepository(this.storageAdapter, this.sdk)
     const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)

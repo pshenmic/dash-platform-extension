@@ -6,7 +6,7 @@ import { STORAGE_MESSAGE, StorageRequest, StorageResponse } from '../backend/sto
 /**
  * Chrome MV3 service worker.
  *
- * Two jobs, neither of which touches the SDK:
+ * Three jobs, none of which touches the SDK:
  *
  *  1. Make sure the offscreen document that hosts the backend exists, and hand
  *     wallet requests to it. Replies do not come back through here — the
@@ -14,11 +14,21 @@ import { STORAGE_MESSAGE, StorageRequest, StorageResponse } from '../backend/sto
  *  2. Perform storage on the offscreen document's behalf. Chrome exposes only
  *     the `chrome.runtime` messaging APIs to offscreen documents, so they
  *     cannot reach `chrome.storage` themselves.
+ *  3. Carry the backend's answer to a content-script call back to it.
+ *     `runtime.sendMessage` does not reach content scripts, so the offscreen
+ *     document's broadcast reply is matched to the request that opened it and
+ *     delivered over that request's own response channel.
  */
 
 const OFFSCREEN_PATH = 'offscreen.html'
 
 const storage = new ExtensionStorageAdapter()
+
+// Request id -> the response channel of the content script waiting on it. A
+// codec call is a decode, so an entry whose reply never lands is dropped
+// rather than held for the worker's lifetime.
+const pendingBackendCalls = new Map<string, (response: EventData) => void>()
+const CALL_REPLY_TIMEOUT = 60 * 1000
 
 let creating: Promise<void> | null = null
 
@@ -55,6 +65,25 @@ async function handleStorage (request: StorageRequest): Promise<any> {
   }
 }
 
+const failBackendCall = (event: EventData, message: string): void => {
+  const respond = pendingBackendCalls.get(event.id)
+
+  if (respond == null) {
+    return
+  }
+
+  pendingBackendCalls.delete(event.id)
+
+  respond({
+    id: event.id,
+    context: event.context,
+    type: 'response',
+    method: event.method,
+    payload: null,
+    error: message
+  })
+}
+
 ext.runtime.onMessage.addListener((data: any, sender, sendResponse) => {
   if (data?.context !== 'dash-platform-extension') return
 
@@ -71,10 +100,37 @@ ext.runtime.onMessage.addListener((data: any, sender, sendResponse) => {
 
   const event = data as EventData
 
-  // Responses flow popup <- offscreen directly; ignore them here.
-  if (event.type === 'response') return
+  if (event.type === 'response') {
+    // Popup replies flow popup <- offscreen directly. Only a content script
+    // call is waiting on this worker to hand its answer back.
+    const respond = pendingBackendCalls.get(event.id)
+
+    if (respond != null) {
+      pendingBackendCalls.delete(event.id)
+      respond(event)
+    }
+
+    return
+  }
+
   // Our own forwarded copy comes back around on the shared bus — don't re-forward.
   if (event.target === 'offscreen') return
+
+  // A decode the content script asked the backend for. The reply is matched by
+  // id when the offscreen document broadcasts it.
+  if (event.target === 'codec') {
+    pendingBackendCalls.set(event.id, sendResponse)
+    setTimeout(() => pendingBackendCalls.delete(event.id), CALL_REPLY_TIMEOUT)
+
+    ensureOffscreen()
+      .then(async () => await ext.runtime.sendMessage({ ...event, target: 'offscreen' }))
+      .catch(e => {
+        console.error('Failed to hand content-script call to offscreen backend', e)
+        failBackendCall(event, e.message)
+      })
+
+    return true
+  }
 
   ensureOffscreen()
     .then(async () => await ext.runtime.sendMessage({ ...event, target: 'offscreen' }))

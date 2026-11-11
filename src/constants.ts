@@ -179,6 +179,24 @@ export const PLATFORM_EXPLORER_URLS = {
   }
 }
 
+// ── Website-built state transitions ─────────────────────────────────────────
+// A website queues serialized transitions for approval, so the bytes are
+// untrusted and sit in storage until the user decides. `chrome.storage.local`
+// is capped at 10 MB and the extension asks for no `unlimitedStorage`, so a
+// connected site must not be able to fill it: bound each transition, bound the
+// store's total size, and forget records whose page has long stopped polling.
+// MESSAGING_TIMEOUT gives up at 3 minutes, so an hour is 20x the window in
+// which a page can still be waiting for the decision.
+export const STATE_TRANSITION_PENDING_TTL_MS = 60 * 60 * 1000
+// A resolved record is only kept long enough for the page to read the outcome.
+export const STATE_TRANSITION_RESOLVED_TTL_MS = 24 * 60 * 60 * 1000
+// Base64 characters, so roughly 384 KiB of transition bytes.
+export const MAX_STATE_TRANSITION_SIZE_BASE64 = 512 * 1024
+// Total base64 kept for one wallet, well under the 10 MB storage quota so other
+// writes still fit when the store is full.
+export const MAX_STATE_TRANSITIONS_SIZE_BASE64 = 4 * 1024 * 1024
+export const MAX_STORED_STATE_TRANSITIONS = 200
+
 // ── Auto-lock ────────────────────────────────────────────────────────────────
 // Idle time after which the UI asks for the password again.
 export const AUTO_LOCK_TIMEOUT_MS = 15 * 60 * 1000

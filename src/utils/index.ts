@@ -10,7 +10,7 @@ import formatBigNumber from './formatBigNumber'
 import hash from 'hash.js'
 import { decrypt, PrivateKey } from 'eciesjs'
 import { KeypairRepository } from '../content-script/repository/KeypairRepository'
-import { generateRandomHex } from './random'
+import { hexToBytes, bytesToUtf8 } from './browser'
 
 export { formatBigNumber }
 export { loadSigningKeys, isKeyCompatible, getStateTransitionKeyRequirements, pickSigningKey } from './signingKeys'
@@ -19,7 +19,7 @@ export { decodeStateTransition } from './decodeStateTransition'
 export { copyToClipboard } from './copyToClipboard'
 export { amountFractionScale } from './amountFontScale'
 export { formatStatNumber } from './formatStatNumber'
-export { generateRandomHex } from './random'
+export { generateRandomHex, generateWalletId } from './random'
 export { getTransactionExplorerUrl, getPlatformAddressExplorerUrl, getIdentityExplorerUrl, buildIdentityTransactionsUrl } from './explorerUrls'
 export { getCoreTransactionExplorerUrl } from './explorerUrls'
 export { countHeldTokens } from './tokens'
@@ -28,6 +28,7 @@ export { creditsToDuffs, duffsToDashParts, duffsToFiatLabel } from './dashAmount
 export type { DashParts } from './dashAmount'
 export type { CoreTransactionDirection, CoreTransactionEffect } from './coreTransactions'
 export { selectPlatformSource, assertSourceCoversFee, buildSignedPlatformTransfer, buildSignedPlatformTransferMulti, platformTransferFeeCredits, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
+export { hexToBytes, bytesToHex, utf8ToBytes, bytesToUtf8, wait, validateHex, popupWindow, injectScript } from './browser'
 export type { PlatformSourceCandidate, PlatformTransferOutput } from './platformTransfer'
 export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, maxShieldedSpend } from './shieldedFee'
 export type { ShieldedNoteSelection, ShieldedSpendEstimate } from './shieldedFee'
@@ -45,31 +46,8 @@ export type { TransferAmountLimits } from './transferAmount'
 export { transferAmountInput, validateTransfer } from './transferValidation'
 export type { TransferAmountInput, TransferValidation } from './transferValidation'
 
-export const hexToBytes = (hex: string): Uint8Array => {
-  return Uint8Array.from((hex.match(/.{1,2}/g) ?? []).map((byte) => parseInt(byte, 16)))
-}
-
-export const bytesToHex = (bytes: Uint8Array): string => {
-  return Array.prototype.map.call(bytes, (x: number) => ('00' + x.toString(16)).slice(-2)).join('')
-}
-
-export const wait = async (ms: number): Promise<void> => {
-  return await new Promise((resolve, reject) => setTimeout(resolve, ms))
-}
-
-export const validateHex = (str: string = ''): boolean => {
-  try {
-    return /[0-9a-fA-F]{32}/.test(str)
-  } catch (e) {
-    return false
-  }
-}
-
 export const validateWalletId = (walletId: string): boolean => {
   return /[0-9a-fA-F]{6}/.test(walletId)
-}
-export const generateWalletId = (): string => {
-  return generateRandomHex(6)
 }
 
 export const findNextLocalIdentityIndex = (existingIndices: number[]): number => {
@@ -136,13 +114,6 @@ export const detectRecipientType = (value: string, network: NetworkType): Recipi
 
     return 'unknown'
   }
-}
-
-export const utf8ToBytes = (str: string): Uint8Array => {
-  return new TextEncoder().encode(str)
-}
-export const bytesToUtf8 = (bytes: Uint8Array): string => {
-  return new TextDecoder().decode(bytes)
 }
 
 export const deriveKeystorePrivateKey = async (wallet: Wallet, password: string, identityId: string, keyId: number, keyPairRepository: KeypairRepository): Promise<PrivateKeyWASM> => {
@@ -422,31 +393,6 @@ export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformS
   } while (identity != null)
 
   return identities
-}
-
-export const popupWindow = (url: string, windowName: string, win: Window, w: number, h: number): Window | null => {
-  if (win.top == null) {
-    throw new Error('Could not detect window size')
-  }
-
-  const y = win.top.outerHeight / 2 + win.top.screenY - (h / 2)
-  const x = win.top.outerWidth / 2 + win.top.screenX - (w / 2)
-
-  return win.open(url, windowName, `popup, width=${w}, height=${h}, top=${y}, left=${x}`)
-}
-
-export const injectScript = (document: Document, src: string): void => {
-  if (document.getElementById(src) != null) {
-    return
-  }
-
-  const s = document.createElement('script')
-  s.id = src
-  s.src = chrome.runtime.getURL(src);
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-  (document.head || document.documentElement).append(s)
-
-  console.log(`Injected ${src}`)
 }
 
 /**

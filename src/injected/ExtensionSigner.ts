@@ -1,5 +1,4 @@
-import { StateTransitionWASM } from 'dash-platform-sdk/types'
-import { hexToBytes, popupWindow, validateHex, wait } from '../utils'
+import { hexToBytes, popupWindow, validateHex, wait } from '../utils/browser'
 import { MESSAGING_TIMEOUT } from '../constants'
 import { StateTransitionStatus } from '../types/enums/StateTransitionStatus'
 import { PublicAPIClient } from '../types'
@@ -9,6 +8,7 @@ import {
 } from '../types/messages/response/RequestStateTransitionApprovalResponse'
 import { ConnectAppResponse } from '../types/messages/response/ConnectAppResponse'
 import { WalletInfo } from '../types/WalletInfo'
+import { SignedStateTransitionData } from '../types/SignedStateTransitionData'
 
 export class ExtensionSigner {
   publicAPIClient: PublicAPIClient
@@ -56,26 +56,16 @@ export class ExtensionSigner {
     return { currentIdentity: response.currentIdentity, identities: response.identities }
   }
 
-  async signAndBroadcast (stateTransition: StateTransitionWASM | string | Uint8Array): Promise<StateTransitionWASM> {
-    let stateTransitionWASM: StateTransitionWASM
+  async signAndBroadcast (stateTransition: string): Promise<SignedStateTransitionData> {
+    let stateTransitionBase64: string
 
-    // hex or base64
-    if (typeof stateTransition === 'string') {
-      if (validateHex((stateTransition).substring(0, 32))) {
-        stateTransitionWASM = StateTransitionWASM.fromHex(stateTransition)
-      } else {
-        stateTransitionWASM = StateTransitionWASM.fromBase64(stateTransition)
-      }
-      // Uint8Array (bytes)
-    } else if (typeof stateTransition === 'object' && (stateTransition as Uint8Array) instanceof Uint8Array) {
-      stateTransitionWASM = StateTransitionWASM.fromBytes(stateTransition as Uint8Array)
-    } else if (stateTransition instanceof StateTransitionWASM) {
-      stateTransitionWASM = stateTransition
+    if (validateHex(stateTransition.substring(0, 32))) {
+      stateTransitionBase64 = base64.encode(hexToBytes(stateTransition))
     } else {
-      throw new Error('Unrecognized state transition type, must be StateTransitionWASM or string hex or string base64 or Uint8Array')
+      stateTransitionBase64 = stateTransition
     }
 
-    let response: RequestStateTransitionApprovalResponse = await this.publicAPIClient.requestTransactionApproval(base64.encode(stateTransitionWASM.bytes()))
+    let response: RequestStateTransitionApprovalResponse = await this.publicAPIClient.requestTransactionApproval(stateTransitionBase64)
 
     popupWindow(response.redirectUrl, 'approval', window, 430, 600)
 
@@ -88,7 +78,7 @@ export class ExtensionSigner {
         throw new Error('Failed to receive state transition signing approval due timeout')
       }
 
-      response = await this.publicAPIClient.requestTransactionApproval(stateTransitionWASM.base64())
+      response = await this.publicAPIClient.requestTransactionApproval(stateTransitionBase64)
     }
 
     if (response.stateTransition.status === StateTransitionStatus.rejected) {
@@ -105,9 +95,10 @@ export class ExtensionSigner {
       throw new Error('Signature is missing')
     }
 
-    stateTransitionWASM.signature = hexToBytes(signature)
-    stateTransitionWASM.signaturePublicKeyId = signaturePublicKeyId
-
-    return stateTransitionWASM
+    return {
+      signature,
+      signaturePublicKeyId,
+      unsignedBase64: stateTransitionBase64
+    }
   }
 }
