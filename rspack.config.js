@@ -1,9 +1,17 @@
-const path = require('path')
-const webpack = require('webpack')
-const HtmlWebpackPlugin = require('html-webpack-plugin')
-const CopyWebpackPlugin = require('copy-webpack-plugin')
+import path from 'node:path'
+import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
+import {
+  CopyRspackPlugin,
+  HtmlRspackPlugin,
+  ProvidePlugin
+} from '@rspack/core'
+import { TsCheckerRspackPlugin } from 'ts-checker-rspack-plugin'
 
-module.exports = (env, argv) => {
+const require = createRequire(import.meta.url)
+const dirname = path.dirname(fileURLToPath(import.meta.url))
+
+export default (env, argv) => {
   const mode = argv.mode || 'development'
   const isProduction = mode === 'production'
 
@@ -19,7 +27,7 @@ module.exports = (env, argv) => {
     },
     output: {
       publicPath: '',
-      path: path.resolve(__dirname, 'dist'),
+      path: path.resolve(dirname, 'dist'),
       filename: '[name].js'
     },
     module: {
@@ -37,17 +45,19 @@ module.exports = (env, argv) => {
           exclude: /\.module\.p?css$/i,
           use: ['style-loader', 'css-loader', 'postcss-loader']
         },
-        // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
-        { test: /\.tsx?$/, loader: 'ts-loader' },
+        // tsconfig sets jsx: react-jsx, so the automatic runtime is what ts-loader
+        // used to emit. Type checking is not dropped with ts-loader: it runs in
+        // TsCheckerRspackPlugin below.
         {
-          test: /\.(?:js|mjs|cjs|jsx)$/,
-          exclude: /node_modules/,
-          use: {
-            loader: 'babel-loader',
-            options: {
-              presets: [
-                ['@babel/preset-env', { targets: 'defaults' }], '@babel/preset-react'
-              ]
+          test: /\.tsx?$/,
+          loader: 'builtin:swc-loader',
+          options: {
+            env: { targets: 'chrome >= 119' },
+            jsc: {
+              parser: { syntax: 'typescript', tsx: true },
+              transform: {
+                react: { runtime: 'automatic', development: !isProduction }
+              }
             }
           }
         }
@@ -110,17 +120,13 @@ module.exports = (env, argv) => {
       sideEffects: true // Honor package.json sideEffects flag
     },
     plugins: [
-      new CopyWebpackPlugin({
+      new CopyRspackPlugin({
         patterns: [
-          {
-            from: './src/ui/assets',
-            to: 'assets',
-            toType: 'dir'
-          },
+          { from: './src/ui/assets', to: 'assets' },
           { from: 'manifest.json' }
         ]
       }),
-      new HtmlWebpackPlugin({
+      new HtmlRspackPlugin({
         filename: 'index.html',
         template: 'src/ui/index.html',
         // The popup is UI only. The backend it talks to lives in the offscreen
@@ -131,20 +137,21 @@ module.exports = (env, argv) => {
         inject: 'body',
         scriptLoading: 'defer'
       }),
-      new HtmlWebpackPlugin({
+      new HtmlRspackPlugin({
         filename: 'offscreen.html',
         template: 'src/offscreen/offscreen.html',
         chunks: ['offscreen'],
         inject: 'body',
         scriptLoading: 'blocking'
       }),
-      new webpack.ProvidePlugin({
+      new ProvidePlugin({
         Buffer: ['buffer', 'Buffer']
-      })
+      }),
+      new TsCheckerRspackPlugin({ async: false })
     ],
     devServer: {
       static: {
-        directory: path.resolve(__dirname, 'src/ui')
+        directory: path.resolve(dirname, 'src/ui')
       }
     },
     performance: {
