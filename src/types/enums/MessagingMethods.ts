@@ -85,4 +85,10 @@ export enum MessagingMethods {
   CONNECT_APP = 'CONNECT_APP',
   REQUEST_STATE_TRANSITION_APPROVAL = 'REQUEST_STATE_TRANSITION_APPROVAL',
   GET_AVAILABLE_IDENTITIES = 'GET_AVAILABLE_IDENTITIES',
+
+  // internal
+  // Content script -> offscreen: decode a serialized transition. Not a page
+  // method; a page cannot ask for it because the content script only ever
+  // sends it on its own behalf.
+  INSPECT_STATE_TRANSITION = 'INSPECT_STATE_TRANSITION',
 }

@@ -40,7 +40,6 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "injectSdk.js",
         "injectExtension.js",
         "index.html",
         "/assets/dash_logo.png",

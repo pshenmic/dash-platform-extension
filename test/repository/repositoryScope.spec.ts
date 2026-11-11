@@ -26,11 +26,9 @@ const SCOPE: RepositoryScope = { network: 'testnet', walletId: 'wallet1' }
 
 describe('repository scope', () => {
   let storage: TestStorageAdapter
-  let sdk: any
 
   beforeEach(() => {
     storage = new TestStorageAdapter()
-    sdk = {}
 
     // The extension's current selection points somewhere else entirely, so any
     // read that falls back to it addresses the wrong store.
@@ -79,7 +77,7 @@ describe('repository scope', () => {
 
   describe('IdentitiesRepository', () => {
     test('writes and reads under the scoped key, not the current selection', async () => {
-      const repository = new IdentitiesRepository(storage, sdk).forScope(SCOPE)
+      const repository = new IdentitiesRepository(storage).forScope(SCOPE)
 
       await repository.create('identity1', IdentityType.regular, 0)
 
@@ -89,10 +87,10 @@ describe('repository scope', () => {
     })
 
     test('does not see identities of the currently selected wallet', async () => {
-      const unscoped = new IdentitiesRepository(storage, sdk)
+      const unscoped = new IdentitiesRepository(storage)
       await unscoped.create('identity2', IdentityType.regular, 0)
 
-      const repository = new IdentitiesRepository(storage, sdk).forScope(SCOPE)
+      const repository = new IdentitiesRepository(storage).forScope(SCOPE)
 
       expect(await repository.getByIdentifier('identity2')).toBeNull()
       expect(await repository.getAll()).toEqual([])
@@ -114,7 +112,7 @@ describe('repository scope', () => {
       storage.cache[`wallet_${SCOPE.network}_${SCOPE.walletId}`] = walletSchema
       storage.cache.wallet_mainnet_wallet2 = { ...walletSchema, walletId: 'wallet2', network: 'mainnet' }
 
-      const repository = new WalletRepository(storage, new IdentitiesRepository(storage, sdk)).forScope(SCOPE)
+      const repository = new WalletRepository(storage, new IdentitiesRepository(storage)).forScope(SCOPE)
 
       expect(await repository.getCurrent()).toMatchObject({ walletId: SCOPE.walletId, network: SCOPE.network })
     })
@@ -122,16 +120,16 @@ describe('repository scope', () => {
     test('getById looks the wallet up on the scoped network', async () => {
       storage.cache[`wallet_${SCOPE.network}_${SCOPE.walletId}`] = walletSchema
 
-      const repository = new WalletRepository(storage, new IdentitiesRepository(storage, sdk)).forScope(SCOPE)
+      const repository = new WalletRepository(storage, new IdentitiesRepository(storage)).forScope(SCOPE)
 
       expect(await repository.getById(SCOPE.walletId)).toMatchObject({ walletId: SCOPE.walletId })
-      expect(await new WalletRepository(storage, new IdentitiesRepository(storage, sdk)).getById(SCOPE.walletId)).toBeNull()
+      expect(await new WalletRepository(storage, new IdentitiesRepository(storage)).getById(SCOPE.walletId)).toBeNull()
     })
 
     test('carries the scope into the identities repository it owns', async () => {
       storage.cache[`wallet_${SCOPE.network}_${SCOPE.walletId}`] = walletSchema
 
-      const repository = new WalletRepository(storage, new IdentitiesRepository(storage, sdk)).forScope(SCOPE)
+      const repository = new WalletRepository(storage, new IdentitiesRepository(storage)).forScope(SCOPE)
 
       await repository.identitiesRepository.create('identity1', IdentityType.regular, 0)
       await repository.switchIdentity('identity1')

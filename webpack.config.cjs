@@ -14,8 +14,7 @@ module.exports = (env, argv) => {
         background: './src/background/index.ts',
         offscreen: './src/offscreen/index.ts',
         'content-script': './src/content-script/index.ts',
-        injectExtension: './src/injected/dashPlatformExtension.ts',
-        injectSdk: './src/injected/dashPlatformSdk.ts'
+        injectExtension: './src/injected/dashPlatformExtension.ts'
       })
     },
     output: {

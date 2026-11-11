@@ -44,6 +44,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const [isCheckingWallet, setIsCheckingWallet] = useState<boolean>(true)
   const [hasWallet, setHasWallet] = useState<boolean>(false)
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
+  const [stateTransitionOrigin, setStateTransitionOrigin] = useState<string | null>(null)
   const [keyRequirements, setKeyRequirements] = useState<KeyRequirement[]>([])
   const [decodedTransaction, setDecodedTransaction] = useState<any>(null)
 
@@ -117,10 +118,13 @@ function ApproveTransactionState (): React.JSX.Element {
       setIsLoadingTransaction(true)
       setTransactionNotFound(false)
       setTransactionDecodeError(null)
+      setStateTransitionOrigin(null)
 
       extensionAPI
         .getStateTransition(transactionHash)
         .then((stateTransitionResponse: GetStateTransitionResponse) => {
+          setStateTransitionOrigin(stateTransitionResponse.stateTransition.origin ?? null)
+
           let receivedStateTransitionWASM: StateTransitionWASM
 
           try {
@@ -384,6 +388,16 @@ function ApproveTransactionState (): React.JSX.Element {
             data={decodedTransaction}
             network={currentNetwork ?? 'testnet'}
           />
+        )}
+
+        {/* Who queued it. Absent for transitions the extension built itself. */}
+        {!isLoadingTransaction && !transactionNotFound && stateTransitionOrigin != null && (
+          <div className='flex flex-col gap-2.5'>
+            <FieldLabel>Requested by</FieldLabel>
+            <ValueCard colorScheme='lightGray' size='xl' border={false} className='break-all'>
+              <Text size='md'>{stateTransitionOrigin}</Text>
+            </ValueCard>
+          </div>
         )}
 
         {/* Identity (read-only, auto-set from transaction) */}

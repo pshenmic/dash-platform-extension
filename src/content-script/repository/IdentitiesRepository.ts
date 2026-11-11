@@ -1,17 +1,14 @@
 import { StorageAdapter } from '../storage/storageAdapter'
 import { Identity } from '../../types'
 import { IdentitiesStoreSchema, IdentityStoreSchema } from '../storage/storageSchema'
-import { DashPlatformSDK } from 'dash-platform-sdk'
 import { IdentityType } from '../../types/enums/IdentityType'
 import { RepositoryScope } from '../../types/RepositoryScope'
 
 export class IdentitiesRepository {
   storageAdapter: StorageAdapter
-  sdk: DashPlatformSDK
   scope?: RepositoryScope
 
-  constructor (storageAdapter: StorageAdapter, sdk: DashPlatformSDK, scope?: RepositoryScope) {
-    this.sdk = sdk
+  constructor (storageAdapter: StorageAdapter, scope?: RepositoryScope) {
     this.storageAdapter = storageAdapter
     this.scope = scope
   }
@@ -20,7 +17,7 @@ export class IdentitiesRepository {
   // keep addressing the same wallet across a long operation use this instead of
   // the shared instance, which re-reads the current wallet on every call.
   forScope (scope: RepositoryScope): IdentitiesRepository {
-    return new IdentitiesRepository(this.storageAdapter, this.sdk, scope)
+    return new IdentitiesRepository(this.storageAdapter, scope)
   }
 
   private async getStorageKey (): Promise<string> {

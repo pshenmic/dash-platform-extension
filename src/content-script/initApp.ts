@@ -1,72 +1,56 @@
 import { ExtensionStorageAdapter } from './storage/extensionStorageAdapter'
-import { DashPlatformSDK } from 'dash-platform-sdk'
-import { DashCoreSDK } from 'dash-core-sdk'
-import { PrivateAPI } from './api/PrivateAPI'
 import { PublicAPI } from './api/PublicAPI'
-import hash from 'hash.js'
-import { AppConnectStorageSchema } from './storage/storageSchema'
-import { AppConnectStatus } from '../types/enums/AppConnectStatus'
-import { EventData } from '../types'
-import { injectScript } from '../utils'
-import { isAppConnectApproval } from '../utils/appConnectApproval'
-import { Network } from '../types/enums/Network'
+import { EventData } from '../types/EventData'
+import { MessagingMethods } from '../types/enums/MessagingMethods'
+import { generateRandomHex } from '../utils/random'
+import { injectScript } from '../utils/browser'
+import { ext } from '../platform'
+import type { StateTransitionInspection } from '../types/StateTransitionInspection'
 
+/**
+ * Content script bootstrap.
+ *
+ * Nothing here may import the SDK, directly or transitively: pshenmic-dpp
+ * allocates a `shared: true` WebAssembly.Memory while its module is evaluated,
+ * and that needs `crossOriginIsolated`. A content script shares the website's
+ * document, so it never has it, and the allocation throws.
+ *
+ * The public API still owns all of its business logic. The only thing it asks
+ * the offscreen backend for is a decode: a serialized transition in, its owner
+ * and unsigned hash out.
+ */
 export async function initApp (): Promise<void> {
   const extensionStorageAdapter = new ExtensionStorageAdapter()
-  const network = await extensionStorageAdapter.get('network') as string
 
-  const sdk = new DashPlatformSDK({ network: Network[network] })
-  const coreSDK = new DashCoreSDK({ network: Network[network] })
-
-  const privateAPI = new PrivateAPI(sdk, coreSDK, extensionStorageAdapter)
-  const publicAPI = new PublicAPI(sdk, extensionStorageAdapter)
-
-  // Handler table only — the popup now talks to the offscreen backend over
-  // real runtime messaging, which does not reach content scripts.
-  privateAPI.buildHandlers()
-  publicAPI.init()
-
-  // get current wallet
-  const checkAppConnectedAndInjectScript = async (): Promise<void> => {
-    const network = await extensionStorageAdapter.get('network') as string
-    const walletId = await extensionStorageAdapter.get('currentWalletId') as string | null
-    const origin = window.location.origin
-
-    if (walletId == null) {
-      return
+  // The offscreen document broadcasts its reply with runtime.sendMessage,
+  // which does not reach content scripts, so the service worker matches it by
+  // id and answers over this same channel (see background/index.ts).
+  const inspectStateTransition = async (encoded: string): Promise<StateTransitionInspection> => {
+    const message: EventData = {
+      id: generateRandomHex(8),
+      context: 'dash-platform-extension',
+      type: 'request',
+      method: MessagingMethods.INSPECT_STATE_TRANSITION,
+      payload: { base64: encoded },
+      target: 'codec'
     }
 
-    const appConnects = await extensionStorageAdapter.get(`appConnects_${network}_${walletId}`)
+    const reply = await ext.runtime.sendMessage(message)
 
-    if (appConnects == null) {
-      return
+    if (reply == null) {
+      throw new Error('Backend did not answer the request')
     }
 
-    const id = hash.sha256().update(origin).digest('hex').substring(0, 6)
-    const appConnect = appConnects[id] as AppConnectStorageSchema
-
-    if (appConnect == null || appConnect.status !== AppConnectStatus.approved) {
-      return
+    if (reply.error != null) {
+      throw new Error(reply.error)
     }
 
-    injectScript(document, 'injectSdk.js')
+    return reply.payload
   }
 
-  const handleMessage = (event: MessageEvent): void => {
-    const data: EventData = event.data
+  const publicAPI = new PublicAPI(extensionStorageAdapter, inspectStateTransition)
 
-    if (!isAppConnectApproval(data)) {
-      return
-    }
-
-    injectScript(document, 'injectSdk.js')
-  }
-
-  window.addEventListener('message', handleMessage)
+  publicAPI.listen()
 
   injectScript(document, 'injectExtension.js')
-
-  checkAppConnectedAndInjectScript().catch((e) => {
-    console.error('Failed to inject Dash Platform SDK', e)
-  })
 }

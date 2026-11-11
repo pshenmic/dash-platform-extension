@@ -27,33 +27,41 @@ sequenceDiagram
     Ext->>User: Website Connection Request
     User-->>Ext: Allow
     Ext-->>App: identities and currentIdentity
-    Note over App,Ext: window.dashPlatformSDK is injected shortly after
-    App->>App: Build the state transition with the SDK
+    App->>App: Build the state transition with your own SDK
     App->>Ext: signer.signAndBroadcast(transition.hex())
     Ext->>User: Transaction Approval
     User-->>Ext: Choose a key, enter password, Sign
     Ext->>Net: Broadcast and wait for the result
     Net-->>Ext: Confirmed
-    Ext-->>App: Signed state transition
+    Ext-->>App: signature and signaturePublicKeyId
 ```
 
-Two globals are involved:
+One global is involved, and one package you install yourself:
 
-| Global | Available | What it is |
+| What | Available | What it is |
 |---|---|---|
 | `window.dashPlatformExtension` | Shortly after page load, on every `http(s)` page | The signer: `connect()` and `signAndBroadcast()` |
-| `window.dashPlatformSDK` | After the site is approved | A [Dash Platform SDK](https://github.com/pshenmic/dash-platform-sdk) instance for queries and for building transitions |
+| `dash-platform-sdk` (npm) | Once you install it | Builds and queries transitions. See [Using your own SDK](#using-your-own-sdk) |
+
+> [!IMPORTANT]
+> The extension no longer injects `window.dashPlatformSDK`. It used to, on approved sites, but its WebAssembly needs `crossOriginIsolated`, which a third-party page cannot have — so the injection threw a `SharedArrayBuffer` error and downloaded ~4 MB on every approved page. Install the SDK from npm instead.
 
 ## Quickstart
 
-A complete example that publishes a `note` document on testnet. It's a plain script with no build step. Call `publishNote` from a click handler so that the browser allows the popups.
+A complete example that publishes a `note` document on testnet. Call `publishNote` from a click handler so that the browser allows the popups.
+
+```bash
+npm install dash-platform-sdk
+```
 
 ```js
+import { DashPlatformSDK } from 'dash-platform-sdk'
+
 // Set this to the network your dApp and its data contract live on
 const NETWORK = 'testnet'
 const DATA_CONTRACT_ID = '9jf2T5mLuoEXN2r24w9Kd5MNtJUnoMoB7YtFQNRznem3'
 
-// Neither global exists at the moment your script starts, so wait for them
+// The signer doesn't exist at the moment your script starts, so wait for it
 async function waitFor (getValue, timeoutMs) {
   const deadline = Date.now() + timeoutMs
 
@@ -63,6 +71,10 @@ async function waitFor (getValue, timeoutMs) {
   }
 
   return getValue()
+}
+
+function hexToBytes (hex) {
+  return Uint8Array.from(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
 }
 
 async function connectWallet () {
@@ -78,14 +90,7 @@ async function connectWallet () {
     throw new Error('This wallet has no identities yet')
   }
 
-  const sdk = await waitFor(() => window.dashPlatformSDK, 10000)
-
-  if (sdk == null) {
-    throw new Error('Dash Platform SDK was not injected')
-  }
-
-  // The injected SDK always starts on mainnet
-  sdk.setNetwork(NETWORK)
+  const sdk = new DashPlatformSDK({ network: NETWORK })
 
   return { signer: extension.signer, sdk, currentIdentity, identities }
 }
@@ -103,7 +108,11 @@ async function publishNote (message) {
   // Resolves once the network has confirmed the transaction.
   const signed = await signer.signAndBroadcast(transition.hex())
 
-  return signed.hash(false)
+  // The signature arrives separately from the transition you built
+  transition.signature = hexToBytes(signed.signature)
+  transition.signaturePublicKeyId = signed.signaturePublicKeyId
+
+  return transition.hash(false)
 }
 ```
 
@@ -138,42 +147,42 @@ The result looks like this:
 
 `type` is `regular`, `masternode` or `voting`. `identities` holds the identity objects, not plain ID strings. Approving grants the site the identities the wallet holds at that moment.
 
-### 3. Wait for the SDK
+### 3. Build a state transition
 
-On a first-time connection, `window.dashPlatformSDK` is still `undefined` when `connect()` resolves, and arrives a moment later. On later visits to an approved site it's injected on page load. Wait for it either way, as the quickstart does.
+Fetch the current nonce, add one, and build the transition with your own SDK. The method depends on what you're doing. See [Recipes](#recipes) and the [SDK documentation](https://pshenmic.github.io/dash-platform-sdk/index.html).
 
-### 4. Build a state transition
-
-Fetch the current nonce, add one, and build the transition with the SDK. The method depends on what you're doing. See [Recipes](#recipes) and the [SDK documentation](https://pshenmic.github.io/dash-platform-sdk/index.html).
-
-### 5. Sign and broadcast
+### 4. Sign and broadcast
 
 ```js
 const signed = await window.dashPlatformExtension.signer.signAndBroadcast(transition.hex())
-console.log('Transaction hash:', signed.hash(false))
+
+transition.signature = hexToBytes(signed.signature)
+transition.signaturePublicKeyId = signed.signaturePublicKeyId
+
+console.log('Transaction hash:', transition.hash(false))
 ```
 
 > [!IMPORTANT]
-> Don't pass a `StateTransitionWASM` from `window.dashPlatformSDK` directly. The SDK and the signer are separate bundles, so the signer's `instanceof` check fails with `Unrecognized state transition type`. Pass `transition.hex()`, `transition.base64()` or `transition.bytes()`.
+> Pass a serialized transition, not a `StateTransitionWASM`. The signer takes a hex or base64 string: `transition.hex()` or `transition.base64()`.
 
 The extension opens the Transaction Approval popup, where the user reviews the decoded transaction, chooses a signing key and enters their password. The promise settles as follows:
 
-- **Resolves** with the signed state transition after it has been broadcast and the network has returned its result. You don't need to call `waitForStateTransitionResult` yourself.
+- **Resolves** with `{ signature, signaturePublicKeyId, unsignedBase64 }` after the transition has been broadcast and the network has returned its result. You don't need to call `waitForStateTransitionResult` yourself. The signature is hex; set it on your own transition to read the signed hash.
 - **Rejects** if the user cancels, if broadcasting fails, or after 3 minutes without a decision.
 
 The site may only submit transitions owned by an identity it was granted. Sites can't submit identity creation transitions.
 
 ## Choosing a network
 
-The injected SDK always starts on mainnet, whichever network the wallet is on, so a dApp should call `sdk.setNetwork(...)` every time.
+You construct the SDK, so you choose the network: `new DashPlatformSDK({ network: 'testnet' })`.
 
-`connect()` doesn't currently tell you the wallet's network. If your dApp supports both networks, you can read it from the same underlying call that `connect()` uses:
+`connect()` doesn't tell you the wallet's network. If your dApp supports both networks, you can read it from the same underlying call that `connect()` uses:
 
 ```js
 const { signer } = window.dashPlatformExtension
 const { network } = await signer.publicAPIClient.connectApp(window.location.origin)
 
-window.dashPlatformSDK.setNetwork(network)
+const sdk = new DashPlatformSDK({ network })
 ```
 
 > [!NOTE]
@@ -213,12 +222,12 @@ The extension fails silently when a page doesn't meet these, so check them first
 | Requirement | Why |
 |---|---|
 | Declare UTF-8 with `<meta charset="utf-8">` or the `Content-Type` header | Otherwise the injected bundle is misread and fails with `invalid block type` in the console |
-| Allow `'wasm-unsafe-eval'` in `script-src` if the page has a Content Security Policy | Otherwise WebAssembly is blocked and the extension doesn't load on the page |
+| Allow `'wasm-unsafe-eval'` in `script-src` if the page has a Content Security Policy | Your own SDK uses WebAssembly, and a CSP without it blocks the SDK |
 | Run in the top-level window | The extension isn't injected into iframes |
 | Serve over `http` or `https` | Connections from other protocols, such as `file://`, are refused |
 | Call `connect()` and `signAndBroadcast()` from a user action, such as a click | Browsers can block popups that don't follow a user action |
 
-The injected bundles are large, more than 4 MB each, so give them a moment on slow machines. You may also see `SharedArrayBuffer transfer requires self.crossOriginIsolated` in the console on approved sites. It didn't stop any of the flows in this guide.
+The signer the extension injects is about 13 KB and contains no WebAssembly, so it loads immediately. Heavy WASM now lives in your own bundled SDK and in the extension's own contexts, not on the page.
 
 ## Recipes
 
@@ -272,8 +281,6 @@ The SDK repository has [examples](https://github.com/pshenmic/dash-platform-sdk/
 The extension doesn't publish a types package yet. Add these declarations to your project:
 
 ```ts
-import type { DashPlatformSDK, StateTransitionWASM } from 'dash-platform-sdk'
-
 interface IdentityInfo {
   identifier: string
   type: 'regular' | 'masternode' | 'voting'
@@ -285,15 +292,20 @@ interface WalletInfo {
   currentIdentity: string | null
 }
 
+interface SignedStateTransitionData {
+  signature: string // hex
+  signaturePublicKeyId: number
+  unsignedBase64: string
+}
+
 interface ExtensionSigner {
   connect: () => Promise<WalletInfo>
-  signAndBroadcast: (stateTransition: string | Uint8Array) => Promise<StateTransitionWASM>
+  signAndBroadcast: (stateTransition: string) => Promise<SignedStateTransitionData>
 }
 
 declare global {
   interface Window {
     dashPlatformExtension?: { signer: ExtensionSigner }
-    dashPlatformSDK?: DashPlatformSDK
   }
 }
 ```
@@ -312,7 +324,7 @@ declare global {
 
 ## Using your own SDK
 
-You don't have to use the injected SDK. Install it from npm and build transitions with your own instance, which also gives you your own version and types:
+Building and querying transitions needs the SDK, which you install yourself. That also gives you your own version and types, independent of the extension's release cycle:
 
 ```bash
 npm install dash-platform-sdk
@@ -324,6 +336,6 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 const sdk = new DashPlatformSDK({ network: 'testnet' })
 ```
 
-Your instance still has its own WebAssembly classes, so pass `transition.hex()` to the signer here too.
+Your instance has its own WebAssembly classes, which is why the signer takes `transition.hex()` rather than the object.
 
 For the underlying message protocol, see [API.md](../API.md).
