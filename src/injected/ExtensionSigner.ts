@@ -89,13 +89,15 @@ export class ExtensionSigner {
       throw new Error('Internal error during singing the transaction')
     }
 
-    const { signature, signaturePublicKeyId } = response.stateTransition
+    const { signedHash, signed, signature, signaturePublicKeyId } = response.stateTransition
 
-    if (signature == null || signaturePublicKeyId == null) {
-      throw new Error('Signature is missing')
+    if (signedHash == null || signed == null || signature == null || signaturePublicKeyId == null) {
+      throw new Error('The extension approved the transition but did not report what it signed')
     }
 
     return {
+      signedHash,
+      signedBase64: signed,
       signature,
       signaturePublicKeyId,
       unsignedBase64: stateTransitionBase64

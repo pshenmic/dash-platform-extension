@@ -6,7 +6,6 @@ import { validateHex } from '../../../../utils'
 import { APIHandler } from '../../APIHandler'
 import { WalletRepository } from '../../../repository/WalletRepository'
 import { StateTransitionStatus } from '../../../../types/enums/StateTransitionStatus'
-import { StateTransitionWASM } from 'dash-platform-sdk/types'
 
 export class RejectStateTransitionHandler implements APIHandler {
   stateTransitionsRepository: StateTransitionsRepository
@@ -32,10 +31,8 @@ export class RejectStateTransitionHandler implements APIHandler {
       throw new Error(`State transition with hash ${payload.hash} was not found`)
     }
 
-    const stateTransitionWASM = StateTransitionWASM.fromBase64(stateTransition.unsigned)
-
     return {
-      stateTransition: await this.stateTransitionsRepository.update(stateTransitionWASM, StateTransitionStatus.rejected)
+      stateTransition: await this.stateTransitionsRepository.resolve(payload.hash, StateTransitionStatus.rejected)
     }
   }
 

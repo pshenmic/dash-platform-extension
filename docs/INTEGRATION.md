@@ -33,7 +33,7 @@ sequenceDiagram
     User-->>Ext: Choose a key, enter password, Sign
     Ext->>Net: Broadcast and wait for the result
     Net-->>Ext: Confirmed
-    Ext-->>App: signature and signaturePublicKeyId
+    Ext-->>App: the signed transition and its hash
 ```
 
 One global is involved, and one package you install yourself:
@@ -73,10 +73,6 @@ async function waitFor (getValue, timeoutMs) {
   return getValue()
 }
 
-function hexToBytes (hex) {
-  return Uint8Array.from(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)))
-}
-
 async function connectWallet () {
   const extension = await waitFor(() => window.dashPlatformExtension, 5000)
 
@@ -108,11 +104,9 @@ async function publishNote (message) {
   // Resolves once the network has confirmed the transaction.
   const signed = await signer.signAndBroadcast(transition.hex())
 
-  // The signature arrives separately from the transition you built
-  transition.signature = hexToBytes(signed.signature)
-  transition.signaturePublicKeyId = signed.signaturePublicKeyId
-
-  return transition.hash(false)
+  // The hash of what the extension actually signed, which is not necessarily
+  // the transition you built. See "Sign and broadcast" below.
+  return signed.signedHash
 }
 ```
 
@@ -154,12 +148,9 @@ Fetch the current nonce, add one, and build the transition with your own SDK. Th
 ### 4. Sign and broadcast
 
 ```js
-const signed = await window.dashPlatformExtension.signer.signAndBroadcast(transition.hex())
+const { signedHash } = await window.dashPlatformExtension.signer.signAndBroadcast(transition.hex())
 
-transition.signature = hexToBytes(signed.signature)
-transition.signaturePublicKeyId = signed.signaturePublicKeyId
-
-console.log('Transaction hash:', transition.hash(false))
+console.log('Transaction hash:', signedHash)
 ```
 
 > [!IMPORTANT]
@@ -167,8 +158,21 @@ console.log('Transaction hash:', transition.hash(false))
 
 The extension opens the Transaction Approval popup, where the user reviews the decoded transaction, chooses a signing key and enters their password. The promise settles as follows:
 
-- **Resolves** with `{ signature, signaturePublicKeyId, unsignedBase64 }` after the transition has been broadcast and the network has returned its result. You don't need to call `waitForStateTransitionResult` yourself. The signature is hex; set it on your own transition to read the signed hash.
+- **Resolves** after the transition has been broadcast and the network has returned its result. You don't need to call `waitForStateTransitionResult` yourself.
 - **Rejects** if the user cancels, if broadcasting fails, or after 3 minutes without a decision.
+
+The result describes the transition that actually went out:
+
+| Field | What it is |
+|---|---|
+| `signedHash` | Hash of the signed transition: its id on the network |
+| `signedBase64` | The signed transition, base64. Decode it with `StateTransitionWASM.fromBase64()` if you need to inspect it |
+| `signature` | Hex |
+| `signaturePublicKeyId` | Key the user signed with |
+| `unsignedBase64` | The transition as you supplied it |
+
+> [!WARNING]
+> Use `signedHash`, not a hash computed from your own transition. Approving can replace the transition's owner and its nonces before signing, in which case `signedBase64` is not the transition you supplied and applying `signature` to your own copy describes a transition nobody broadcast.
 
 The site may only submit transitions owned by an identity it was granted. Sites can't submit identity creation transitions.
 
@@ -293,6 +297,8 @@ interface WalletInfo {
 }
 
 interface SignedStateTransitionData {
+  signedHash: string
+  signedBase64: string
   signature: string // hex
   signaturePublicKeyId: number
   unsignedBase64: string

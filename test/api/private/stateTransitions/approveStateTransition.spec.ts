@@ -1,8 +1,11 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { PrivateKeyWASM } from 'pshenmic-dpp'
+import { IdentityPublicKeyWASM, PrivateKeyWASM, StateTransitionWASM } from 'pshenmic-dpp'
+import { MemoryStorageAdapter } from '../../../../src/content-script/storage/memoryStorageAdapter'
+import { StateTransitionsRepository } from '../../../../src/content-script/repository/StateTransitionsRepository'
 import { ApproveStateTransitionHandler } from '../../../../src/content-script/api/private/stateTransitions/approveStateTransition'
 import { WalletType } from '../../../../src/types/WalletType'
 import { deriveIdentityPrivateKey } from '../../../../src/utils'
+import { bytesToHex } from '../../../../src/utils/browser'
 
 jest.mock('../../../../src/utils', () => ({
   ...jest.requireActual('../../../../src/utils'),
@@ -77,5 +80,94 @@ describe('ApproveStateTransitionHandler.sign', () => {
   it('still refuses a key id the identity does not hold', async () => {
     await expect(signWith({ ...publicKey(), keyId: KEY_ID + 5 }))
       .rejects.toThrow(`Could not find Identity Public Key with Key ID ${KEY_ID}`)
+  })
+})
+
+// Approving names the identity to sign as, and the handler replaces the owner
+// and the nonce when it is not the transition's own. That rewrite changes
+// `hash(true)`, so the record the page is waiting on can only be found by the
+// hash it was created under.
+describe('ApproveStateTransitionHandler.handle', () => {
+  const OTHER_IDENTITY_ID = 'Aa1ZUSjKsQDNJTV53NYs7PtaxKjCxdegZrqeywFy5y4M'
+
+  let storage: MemoryStorageAdapter
+  let stateTransitionsRepository: StateTransitionsRepository
+  let broadcast: jest.Mock
+  let handler: ApproveStateTransitionHandler
+  let queuedHash: string
+
+  beforeEach(async () => {
+    jest.clearAllMocks()
+    deriveIdentityPrivateKeyMock.mockResolvedValue(walletKey)
+
+    storage = new MemoryStorageAdapter()
+    await storage.set('network', 'testnet')
+    await storage.set('currentWalletId', 'wallet1')
+    await storage.set('stateTransitions_testnet_wallet1', {})
+
+    stateTransitionsRepository = new StateTransitionsRepository(storage)
+
+    const sdk = new DashPlatformSDK({ network: 'testnet' })
+    const queued = sdk.identities.createStateTransition('creditTransfer', {
+      identityId: IDENTITY_ID,
+      recipientId: OTHER_IDENTITY_ID,
+      amount: 1000n,
+      identityNonce: 1n
+    })
+
+    queuedHash = queued.hash(true)
+
+    await stateTransitionsRepository.createFromEncoded(queued.base64(), queuedHash, 'https://app.example.com')
+
+    broadcast = jest.fn()
+
+    const identityPublicKey = new IdentityPublicKeyWASM(
+      KEY_ID, 'TRANSFER', 'CRITICAL', 'ECDSA_SECP256K1', false,
+      bytesToHex(walletKey.getPublicKey().bytes())
+    )
+
+    const sdkMock = {
+      identities: {
+        getIdentityByIdentifier: jest.fn(async () => ({ getPublicKeys: () => [identityPublicKey] })),
+        getIdentityNonce: jest.fn(async () => 7n)
+      },
+      stateTransitions: {
+        broadcast,
+        waitForStateTransitionResult: jest.fn()
+      }
+    }
+
+    handler = new ApproveStateTransitionHandler(
+      stateTransitionsRepository,
+      { getByIdentifier: jest.fn(async () => ({ identifier: OTHER_IDENTITY_ID, index: 0 })) } as any,
+      { getCurrent: jest.fn(async () => ({ type: WalletType.seedphrase })) } as any,
+      {} as any,
+      storage,
+      sdkMock as any
+    )
+  })
+
+  it('resolves the record the page is waiting on', async () => {
+    await handler.handle({ payload: { hash: queuedHash, identity: OTHER_IDENTITY_ID, keyId: KEY_ID, password: 'password' } } as any)
+
+    const stateTransition = await stateTransitionsRepository.getByHash(queuedHash)
+
+    expect(broadcast).toHaveBeenCalledTimes(1)
+    expect(stateTransition?.status).toBe('approved')
+    expect(stateTransition?.signedHash).not.toBeNull()
+  })
+
+  it('stores the transition that was signed, not the one the page supplied', async () => {
+    await handler.handle({ payload: { hash: queuedHash, identity: OTHER_IDENTITY_ID, keyId: KEY_ID, password: 'password' } } as any)
+
+    const stateTransition = await stateTransitionsRepository.getByHash(queuedHash)
+    const signed = StateTransitionWASM.fromBase64(stateTransition?.signed as string)
+
+    // What the page holds still names the old owner, so a page that applied
+    // the signature to its own copy would report a transition nobody sent.
+    expect(signed.getOwnerId()?.base58()).toBe(OTHER_IDENTITY_ID)
+    expect(signed.hash(true)).not.toBe(queuedHash)
+    expect(signed.hash(false)).toBe(stateTransition?.signedHash)
+    expect(stateTransition?.signed).not.toBe(stateTransition?.unsigned)
   })
 })

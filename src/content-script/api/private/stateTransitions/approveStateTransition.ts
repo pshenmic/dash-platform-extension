@@ -169,7 +169,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       await this.sdk.stateTransitions.broadcast(stateTransitionWASM)
       await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransitionWASM)
 
-      await this.stateTransitionsRepository.update(stateTransitionWASM, StateTransitionStatus.approved)
+      await this.stateTransitionsRepository.approve(payload.hash, stateTransitionWASM)
 
       // Check for pending keys (from keystore wallet key creation) and save them
       const actionType = stateTransitionWASM.getActionType()
@@ -186,7 +186,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       }
     } catch (e) {
       console.log('Failed to broadcast transaction', e)
-      await this.stateTransitionsRepository.update(stateTransitionWASM, StateTransitionStatus.error, e.message)
+      await this.stateTransitionsRepository.resolve(payload.hash, StateTransitionStatus.error, e.message)
 
       throw new BroadcastError(e.message ?? e, signedHex)
     }
