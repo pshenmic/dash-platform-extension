@@ -4,8 +4,10 @@ import { base64 } from '@scure/base'
 import hash from 'hash.js'
 import { PrivateKey } from 'eciesjs'
 import { PrivateAPIClient, WalletType } from '../../../src/types'
+import { EventData } from '../../../src/types/EventData'
 import { PrivateAPI } from '../../../src/content-script/api/PrivateAPI'
 import { PublicAPI } from '../../../src/content-script/api/PublicAPI'
+import { InspectStateTransitionHandler } from '../../../src/backend/inspectStateTransition'
 import { MessagingMethods } from '../../../src/types/enums/MessagingMethods'
 import { MemoryStorageAdapter } from '../../../src/content-script/storage/memoryStorageAdapter'
 import { StorageAdapter } from '../../../src/content-script/storage/storageAdapter'
@@ -13,6 +15,7 @@ import { AppConnectsStorageSchema } from '../../../src/content-script/storage/st
 import { AppConnectStatus } from '../../../src/types/enums/AppConnectStatus'
 import runMigrations from '../../../src/content-script/storage/runMigrations'
 import { connectBackend } from '../../helpers/connectBackend'
+import { MAX_STATE_TRANSITION_SIZE_BASE64 } from '../../../src/constants'
 
 // A website sees what the user granted it and nothing else. These go through
 // PublicAPI.handleMessage, the same entry point a page's postMessage reaches,
@@ -31,12 +34,17 @@ describe('what a connected website may see', () => {
 
   const call = async (method: MessagingMethods, payload: object, from: string = origin): Promise<any> => {
     // Shaped like the message a page posts, which is all handleMessage reads.
-    const event: any = {
-      origin: from,
-      data: { context: 'dash-platform-extension', id: 'id', type: 'request', method, payload }
+    const data: EventData = {
+      context: 'dash-platform-extension',
+      id: 'id',
+      type: 'request',
+      method,
+      payload
     }
 
-    return await publicAPI.handleMessage(event)
+    // The production path: the content script serves every page method, asking
+    // the backend only to decode a transition when one is involved.
+    return await publicAPI.handleMessage(data, from)
   }
 
   const connect = async (from: string = origin): Promise<any> =>
@@ -70,8 +78,9 @@ describe('what a connected website may see', () => {
 
     // Handlers only: the page listener would answer the private client's
     // messages too, because the test bus is shared.
-    publicAPI = new PublicAPI(sdk, storage)
-    publicAPI.buildHandlers()
+    const inspector = new InspectStateTransitionHandler()
+
+    publicAPI = new PublicAPI(storage, async (encoded) => inspector.inspect(encoded))
 
     await connect()
 
@@ -141,6 +150,13 @@ describe('what a connected website may see', () => {
     })
   })
 
+  describe('the wallet API', () => {
+    it('is not reachable from a page', async () => {
+      await expect(call(MessagingMethods.GET_ALL_WALLETS, {}))
+        .rejects.toThrow('Could not find handler for method GET_ALL_WALLETS')
+    })
+  })
+
   describe('signing', () => {
     const transitionOf = (identityId: string): string => base64.encode(
       sdk.identities.createStateTransition('creditTransfer', {
@@ -166,7 +182,16 @@ describe('what a connected website may see', () => {
       const response = await call(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL, { base64: transitionOf(identityA) })
 
       expect(response.stateTransition.status).toBe('pending')
+      expect(response.stateTransition.origin).toBe(origin)
       expect(response.redirectUrl).toContain(response.stateTransition.unsignedHash)
+    })
+
+    it('refuses a transition larger than the size bound before decoding it', async () => {
+      await privateAPIClient.approveAppConnect(connectId, [identityA])
+
+      await expect(call(MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL, {
+        base64: 'A'.repeat(MAX_STATE_TRANSITION_SIZE_BASE64 + 1)
+      })).rejects.toThrow('State transition is too large')
     })
   })
 })

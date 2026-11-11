@@ -1,54 +1,77 @@
-import { DashPlatformSDK } from 'dash-platform-sdk'
+import { authorizeOrigin } from './authorizeOrigin'
 import { EventData } from '../../types/EventData'
 import { StorageAdapter } from '../storage/storageAdapter'
 import { AppConnectRepository } from '../repository/AppConnectRepository'
-import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
 import { MessagingMethods } from '../../types/enums/MessagingMethods'
 import { PublicAPIHandler } from './PublicAPIHandler'
-import { AppConnectStatus } from '../../types/enums/AppConnectStatus'
 import { ConnectAppHandler } from './public/connectApp'
 import { RequestStateTransitionApprovalHandler } from './public/requestStateTransitionApproval'
 import { IdentitiesRepository } from '../repository/IdentitiesRepository'
 import { WalletRepository } from '../repository/WalletRepository'
+import { StateTransitionsRepository } from '../repository/StateTransitionsRepository'
+import type { StateTransitionInspector } from '../../types/StateTransitionInspection'
 
 /**
- * Handlers for a messages from a webpage to extension (potentially insecure)
+ * The entire interface a webpage talks to, served beside the website.
+ *
+ * This module must stay free of `dash-platform-sdk` and `pshenmic-dpp`, even
+ * transitively: pshenmic-dpp allocates a `shared: true` WebAssembly.Memory
+ * while its module is evaluated, and that needs `crossOriginIsolated`. A
+ * content script shares the website's document and never has it, so the import
+ * itself throws.
+ *
+ * Business logic stays here. The one thing that genuinely needs the SDK —
+ * decoding a serialized state transition into its owner and unsigned hash —
+ * is asked of the offscreen document through `inspectStateTransition` (see
+ * backend/inspectStateTransition.ts). The values that come back are the
+ * extension's own decode,
+ * so the grant check below still cannot be steered by the page.
  */
 export class PublicAPI {
-  sdk: DashPlatformSDK
   storageAdapter: StorageAdapter
   appConnectRepository: AppConnectRepository
-  stateTransitionsRepository: StateTransitionsRepository
   identitiesRepository: IdentitiesRepository
   walletRepository: WalletRepository
-
-  constructor (sdk: DashPlatformSDK, storageAdapter: StorageAdapter) {
-    this.sdk = sdk
-    this.storageAdapter = storageAdapter
-  }
+  stateTransitionsRepository: StateTransitionsRepository
 
   handlers: {
     [key: string]: PublicAPIHandler
   }
 
-  async handleMessage (event: MessageEvent): Promise<any> {
-    const { origin, data } = event
+  constructor (storageAdapter: StorageAdapter, inspectStateTransition: StateTransitionInspector) {
+    this.storageAdapter = storageAdapter
+
+    const appConnectRepository = new AppConnectRepository(storageAdapter)
+    const identitiesRepository = new IdentitiesRepository(storageAdapter)
+
+    this.appConnectRepository = appConnectRepository
+    this.identitiesRepository = identitiesRepository
+    this.walletRepository = new WalletRepository(storageAdapter, identitiesRepository)
+    this.stateTransitionsRepository = new StateTransitionsRepository(storageAdapter)
+
+    this.handlers = {
+      [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository, identitiesRepository, this.walletRepository, storageAdapter),
+      [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(this.stateTransitionsRepository, inspectStateTransition)
+    }
+  }
+
+  /**
+   * Serves one request from a webpage.
+   *
+   * The origin is passed in rather than read off a MessageEvent so that tests
+   * can drive the same entry point the page transport uses. Only the content
+   * script supplies it, so a page cannot claim to be another website.
+   */
+  async handleMessage (data: EventData, origin: string): Promise<any> {
     const { method, payload } = data
 
     const handler = this.handlers[method]
 
     if (handler == null) {
-      throw new Error(`Could not find handler for method ${method as string}`)
+      throw new Error(`Could not find handler for method ${method}`)
     }
 
-    const appConnect = await this.appConnectRepository.getByURL(origin)
-
-    // Connecting is the one thing an unknown origin may ask for. Everything
-    // else needs an approved connection, and the handler is handed it so that
-    // it can serve only what this website was granted.
-    if (method !== MessagingMethods.CONNECT_APP && (appConnect == null || appConnect.status !== AppConnectStatus.approved)) {
-      throw new Error(`Application on url ${origin} is not authorized`)
-    }
+    const appConnect = await authorizeOrigin(method, this.appConnectRepository, origin)
 
     const validation = handler.validatePayload(payload)
 
@@ -59,30 +82,11 @@ export class PublicAPI {
     return await handler.handle(data, { origin, appConnect })
   }
 
-  init (): void {
-    this.buildHandlers()
-    this.listen()
-  }
-
-  buildHandlers (): void {
-    const appConnectRepository = new AppConnectRepository(this.storageAdapter)
-    this.appConnectRepository = appConnectRepository
-
-    const stateTransitionsRepository = new StateTransitionsRepository(this.storageAdapter)
-    this.stateTransitionsRepository = stateTransitionsRepository
-
-    const identitiesRepository = new IdentitiesRepository(this.storageAdapter, this.sdk)
-    this.identitiesRepository = identitiesRepository
-
-    const walletRepository = new WalletRepository(this.storageAdapter, this.identitiesRepository)
-    this.walletRepository = walletRepository
-
-    this.handlers = {
-      [MessagingMethods.CONNECT_APP]: new ConnectAppHandler(appConnectRepository, identitiesRepository, walletRepository, this.storageAdapter),
-      [MessagingMethods.REQUEST_STATE_TRANSITION_APPROVAL]: new RequestStateTransitionApprovalHandler(stateTransitionsRepository)
-    }
-  }
-
+  /**
+   * Registers the page transport. Every method is served here — a method this
+   * scope does not know is an error, never a forward, so a page cannot reach
+   * the wallet's own API.
+   */
   listen (): void {
     window.addEventListener('message', (message: MessageEvent) => {
       const data = message.data as EventData
@@ -93,31 +97,22 @@ export class PublicAPI {
         return
       }
 
-      this.handleMessage(message)
-        .then((result: any) => {
-          const message: EventData = {
-            id,
-            context: 'dash-platform-extension',
-            type: 'response',
-            method,
-            payload: result,
-            error: null
-          }
+      const respond = (payload: any, error: string | null): void => {
+        const response: EventData = {
+          id,
+          context: 'dash-platform-extension',
+          type: 'response',
+          method,
+          payload,
+          error
+        }
 
-          window.postMessage(message)
-        })
-        .catch(e => {
-          const message: EventData = {
-            id,
-            context: 'dash-platform-extension',
-            type: 'response',
-            method,
-            payload: null,
-            error: e.message
-          }
+        window.postMessage(response)
+      }
 
-          window.postMessage(message)
-        })
+      this.handleMessage(data, message.origin)
+        .then((result: any) => respond(result, null))
+        .catch(e => respond(null, e.message))
     }, true)
   }
 }

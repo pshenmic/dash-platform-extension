@@ -62,6 +62,14 @@ export interface StateTransitionStoreSchema {
   signaturePublicKeyId: number | null
   status: string
   error: string | null
+  // Origin of the website that queued it, so the approval screen can say who
+  // is asking. Absent on transitions the extension built itself, and on
+  // records written before this field existed.
+  origin?: string | null
+  // Queued at, and resolved at. Optional because pre-existing records carry
+  // neither; those are treated as expired and pruned on the next write.
+  createdAt?: number
+  resolvedAt?: number | null
 }
 
 export interface AppConnectStorageSchema {

@@ -46,6 +46,7 @@ function ApproveTransactionState (): React.JSX.Element {
   const [isCheckingWallet, setIsCheckingWallet] = useState<boolean>(true)
   const [hasWallet, setHasWallet] = useState<boolean>(false)
   const [stateTransitionWASM, setStateTransitionWASM] = useState<StateTransitionWASM | null>(null)
+  const [stateTransitionOrigin, setStateTransitionOrigin] = useState<string | null>(null)
   const [keyRequirements, setKeyRequirements] = useState<KeyRequirement[]>([])
   const [decodedTransaction, setDecodedTransaction] = useState<any>(null)
 
@@ -122,10 +123,13 @@ function ApproveTransactionState (): React.JSX.Element {
       setIsLoadingTransaction(true)
       setTransactionNotFound(false)
       setTransactionDecodeError(null)
+      setStateTransitionOrigin(null)
 
       extensionAPI
         .getStateTransition(transactionHash)
         .then((stateTransitionResponse: GetStateTransitionResponse) => {
+          setStateTransitionOrigin(stateTransitionResponse.stateTransition.origin ?? null)
+
           let receivedStateTransitionWASM: StateTransitionWASM
 
           try {

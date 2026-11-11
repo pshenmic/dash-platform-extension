@@ -4,9 +4,9 @@ import { EventData } from '../../src/types'
 import type { PrivateAPI } from '../../src/content-script/api/PrivateAPI'
 
 /**
- * Boots a PrivateAPI onto the real messaging transport for tests, standing in
- * for the two production contexts: the offscreen document (attachMessaging)
- * and the service worker that tags requests for it.
+ * Boots a backend onto the real messaging transport for tests, standing in for
+ * the two production contexts: the offscreen document (attachMessaging) and the
+ * service worker that tags requests for it.
  */
 export function connectBackend (privateAPI: PrivateAPI): void {
   // A suite wires a fresh backend per case onto the bus the whole file shares.

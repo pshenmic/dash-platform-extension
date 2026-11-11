@@ -7,7 +7,7 @@ import { Network } from '../types/enums/Network'
 
 /**
  * Boots the wallet backend: runs storage migrations, constructs the SDKs and
- * builds the PrivateAPI handler table.
+ * builds the handler table.
  *
  * Deliberately platform-agnostic — it touches no DOM and no browser-specific
  * API, so the same function boots Chrome's offscreen document and (later)

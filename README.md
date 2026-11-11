@@ -74,16 +74,17 @@
 
 ## Integrate it into your dApp
 
-The extension adds `window.dashPlatformExtension` to web pages. Connect, build a transaction with the SDK, and let the extension do the rest.
+The extension adds `window.dashPlatformExtension` to web pages — a signer, and nothing else. You bring your own [dash-platform-sdk](https://github.com/pshenmic/dash-platform-sdk) to build transactions; the extension signs and broadcasts them.
 
 ```js
+import { DashPlatformSDK } from 'dash-platform-sdk'
+
 // 1. Ask the user to connect. Call this from a click handler.
 const { signer } = window.dashPlatformExtension
 const { currentIdentity } = await signer.connect()
 
-// 2. Build a transaction with the SDK, which is injected once the site is approved.
-const sdk = window.dashPlatformSDK
-sdk.setNetwork('testnet')
+// 2. Build a transaction with your own SDK.
+const sdk = new DashPlatformSDK({ network: 'testnet' })
 
 const contractId = '9jf2T5mLuoEXN2r24w9Kd5MNtJUnoMoB7YtFQNRznem3'
 const nonce = await sdk.identities.getIdentityContractNonce(currentIdentity, contractId)
@@ -94,19 +95,26 @@ const transition = sdk.documents.createStateTransition(document, 'create', { ide
 
 // 3. The user approves, then the extension signs, broadcasts and waits for confirmation.
 const signed = await signer.signAndBroadcast(transition.hex())
-console.log('Transaction hash:', signed.hash(false))
+
+// 4. The signature comes back separately — set it to read the signed hash.
+transition.signature = hexToBytes(signed.signature)
+transition.signaturePublicKeyId = signed.signaturePublicKeyId
+console.log('Transaction hash:', transition.hash(false))
 ```
 
-This shows the shape of the flow. For production, also wait for both globals to appear and handle rejections. The [integration guide](docs/INTEGRATION.md) has a complete version you can copy, plus recipes, error handling and TypeScript types.
+This shows the shape of the flow. For production, also wait for the signer to appear and handle rejections. The [integration guide](docs/INTEGRATION.md) has a complete version you can copy, plus recipes, error handling and TypeScript types.
+
+> **Breaking change:** the extension no longer injects `window.dashPlatformSDK`. Its WASM needed `crossOriginIsolated`, which a third-party page can't have, so every approved site threw a `SharedArrayBuffer` error and downloaded ~4 MB. Install the SDK from npm instead. `signAndBroadcast` also now resolves with `{ signature, signaturePublicKeyId, unsignedBase64 }` rather than a signed transition.
 
 ### Common mistakes
 
 | Do this | Not this | Why |
 |---|---|---|
 | Wait for `window.dashPlatformExtension` | Check it once at startup | It's injected shortly after the page starts |
-| Wait for `window.dashPlatformSDK` after `connect()` | Use it the moment `connect()` resolves | On a first connection it arrives a moment later |
-| Call `sdk.setNetwork(...)` | Assume it matches the wallet | The injected SDK always starts on mainnet |
-| Pass `transition.hex()` | Pass the transition object | The object fails with `Unrecognized state transition type` |
+| Install `dash-platform-sdk` from npm | Look for `window.dashPlatformSDK` | The extension doesn't inject an SDK any more |
+| Pick the network your users are on | Assume mainnet | `connect()` reports identities only, not the wallet's network |
+| Pass `transition.hex()` | Pass the transition object | The signer takes a string only |
+| Set `signature` and `signaturePublicKeyId` before `.hash(false)` | Read the hash off the return value | `signAndBroadcast` returns the signature, not a transition |
 | Use `currentIdentity` or `identities[i].identifier` | Treat `identities` as strings | Each entry is an object |
 | Declare UTF-8 and allow `'wasm-unsafe-eval'` in your CSP | Leave either one out | Otherwise the extension silently doesn't load on the page |
 
@@ -119,18 +127,20 @@ If you're a coding agent adding Dash Extension to a project, follow these rules.
 **Do:**
 
 1. Poll for `window.dashPlatformExtension` for about 5 seconds before deciding it isn't installed.
-2. Call `signer.connect()` from a user action, then poll for `window.dashPlatformSDK`.
-3. Call `sdk.setNetwork('mainnet' | 'testnet')` before any query.
+2. Call `signer.connect()` from a user action.
+3. Install `dash-platform-sdk` from npm and construct it yourself. The extension does not inject an SDK, so there is no `window.dashPlatformSDK` and no `sdk.setNetwork()`.
 4. Use the nonce plus one: `getIdentityContractNonce` for documents and tokens, `getIdentityNonce` for identity-level transitions.
 5. Pass `transition.hex()` to `signer.signAndBroadcast()`.
-6. Read errors as `error?.message ?? String(error)`, since some rejections are plain strings.
-7. Handle the no-extension, user-rejected, no-identity (`currentIdentity === null`) and 3-minute-timeout cases in the UI.
-8. Make sure the page declares UTF-8, and add `'wasm-unsafe-eval'` to `script-src` if it has a CSP.
+6. Set `signature` and `signaturePublicKeyId` from the result on your own transition before calling `.hash(false)`.
+7. Read errors as `error?.message ?? String(error)`, since some rejections are plain strings.
+8. Handle the no-extension, user-rejected, no-identity (`currentIdentity === null`) and 3-minute-timeout cases in the UI.
+9. Make sure the page declares UTF-8, and add `'wasm-unsafe-eval'` to `script-src` if it has a CSP.
 
 **Don't:**
 
 - Don't ask for, store or handle private keys, seed phrases or the wallet password. The extension handles them.
-- Don't pass a `StateTransitionWASM` object to the signer.
+- Don't pass a `StateTransitionWASM` object to the signer. It takes a hex or base64 string.
+- Don't expect an SDK on `window`. Older examples that read `window.dashPlatformSDK` no longer work.
 - Don't call `waitForStateTransitionResult` after `signAndBroadcast`. It has already waited.
 - Don't call `dashPlatformExtension.connect()`. The method is on `dashPlatformExtension.signer`.
 - Don't use mainnet for testing unless the user asks you to.
@@ -143,7 +153,7 @@ If you're a coding agent adding Dash Extension to a project, follow these rules.
 - **Password to sign.** Every signature needs your password, and the wallet locks after 15 minutes of inactivity and when the browser closes.
 - **Keys stay in the extension.** Websites receive signed transactions, never keys.
 - **Permissions per site.** Approvals apply to one origin, on one network, in one wallet. The extension takes the origin from the browser, so a page can't claim to be another site.
-- **The SDK only loads when needed.** Only the signer is added to every page. The SDK is injected only on sites you've approved.
+- **No wallet code runs on the page.** The page gets a 13 KB signer. The SDK and its WASM stay in the extension's own contexts, so a website can't reach them.
 
 Only connect to websites you trust, and check the decoded details before you sign.
 
@@ -153,26 +163,27 @@ Only connect to websites you trust, and check the decoded details before you sig
 flowchart LR
     subgraph Page["Web page"]
         App["Your dApp"]
+        SDK["your own dash-platform-sdk"]
         Signer["window.dashPlatformExtension"]
-        SDK["window.dashPlatformSDK"]
     end
 
     subgraph Extension["Dash Extension"]
         CS["Content script<br>public API"]
         Popup["Popup UI"]
         SW["Service worker"]
-        Backend["Offscreen document<br>wallet backend"]
+        Backend["Offscreen document<br>wallet backend + SDK"]
         Storage[("chrome.storage<br>encrypted keys")]
     end
 
     Net["Dash Core and Platform"]
 
-    App --> Signer
     App --> SDK
+    App --> Signer
     Signer <-- "postMessage" --> CS
+    CS <-- "relayed signing" --> SW
+    SW --> Backend
     CS --> Storage
     Popup <-- "runtime messages" --> Backend
-    SW --> Backend
     SW --> Storage
     Backend --> Net
     SDK --> Net

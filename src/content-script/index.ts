@@ -1,10 +1,17 @@
 // This file only runs in the extension context (content-script)
 import { ExtensionStorageAdapter } from './storage/extensionStorageAdapter'
-import runMigrations from './storage/runMigrations'
-import { EventData } from '../types'
-import { generateRandomHex } from '../utils'
+import { EventData } from '../types/EventData'
+import { MessagingMethods } from '../types/enums/MessagingMethods'
+import { generateRandomHex } from '../utils/random'
+import { wait } from '../utils/browser'
+import { SCHEMA_VERSION } from '../constants'
+import { ext } from '../platform'
 
 const extensionStorageAdapter = new ExtensionStorageAdapter()
+
+// How long to wait for the backend to finish migrating storage
+const SCHEMA_READY_TIMEOUT = 30 * 1000
+const SCHEMA_POLL_INTERVAL = 200
 
 const start = async (): Promise<void> => {
   const wasmSupport = checkWebAssembly()
@@ -14,9 +21,12 @@ const start = async (): Promise<void> => {
   }
 
   // Dynamic import to bypass automatic WebAssembly modules initialization.
-  // Eager, so it costs no separate chunk: webpack resolves a lazy chunk against
-  // the document, which in a content script is the website, and loading
-  // https://<site>/488.js is both wrong and blocked by the site's CSP.
+  //
+  // It must stay "eager": a lazy import() becomes a separate chunk that webpack
+  // loads with a <script> tag, and a content script's <script> tags resolve
+  // against the web page's origin (https://example.com/666.js), not the
+  // extension's. Eager keeps the module inside content-script.js and still only
+  // evaluates it here, after the WebAssembly check.
   // eslint-disable-next-line
   // @ts-ignore
   const { initApp } = await import(/* webpackMode: "eager" */ './initApp')
@@ -45,9 +55,58 @@ const checkWebAssembly = (): boolean => {
   }
 }
 
-// do migrations
-runMigrations(extensionStorageAdapter)
-  .then(start)
+// Any request makes the service worker create the offscreen document, which
+// boots the backend and runs the migrations. The reply is not needed (it goes
+// to extension pages, not to content scripts).
+const wakeBackend = (): void => {
+  const message: EventData = {
+    id: generateRandomHex(8),
+    context: 'dash-platform-extension',
+    type: 'request',
+    method: MessagingMethods.GET_STATUS,
+    payload: {}
+  }
+
+  ext.runtime.sendMessage(message).catch(() => {
+    // No receiver yet (worker still waking); the send starts it regardless
+  })
+}
+
+// Storage migrations belong to the backend alone (see backend/bootstrap.ts).
+// They used to run here as well, in every tab, at the same time as the
+// backend's own run: the two interleaved, one of them saw a half-migrated
+// schema_version, threw, and restored its storage backup over the other's
+// work. So the content script only waits for the schema to be ready.
+//
+// It also cannot run them any more: the migrations import pshenmic-dpp, whose
+// shared WebAssembly.Memory needs crossOriginIsolated, which a content script
+// never has.
+const waitForSchema = async (): Promise<void> => {
+  const startedAt = Date.now()
+  let woken = false
+
+  for (;;) {
+    const schemaVersion = await extensionStorageAdapter.get('schema_version')
+
+    if (schemaVersion === SCHEMA_VERSION) {
+      return
+    }
+
+    if (!woken) {
+      wakeBackend()
+      woken = true
+    }
+
+    if (Date.now() - startedAt > SCHEMA_READY_TIMEOUT) {
+      throw new Error(`Extension storage is not ready: schema version is ${String(schemaVersion)}, expected ${SCHEMA_VERSION}`)
+    }
+
+    await wait(SCHEMA_POLL_INTERVAL)
+  }
+}
+
+waitForSchema()
+  .then(async () => await start())
   .then(() => console.log('Dash Platform Extension API loaded (content-script)'))
   .catch((e) => {
     if (e?.message === 'WebAssembly not supported') {
