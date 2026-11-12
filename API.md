@@ -43,9 +43,6 @@ signAndBroadcast (stateTransition: string): Promise<SignedStateTransitionData>
 interface SignedStateTransitionData {
   signedHash: string // hash of the signed transition: its id on the network
   signedBase64: string // the transition as it was signed
-  signature: string // hex
-  signaturePublicKeyId: number
-  unsignedBase64: string // the transition as you sent it
 }
 ```
 
@@ -65,7 +62,7 @@ const signed = await signer.signAndBroadcast(transition.hex())
 signed.signedHash // signed transaction hash
 ```
 
-`signedBase64` is the transition the extension broadcast, so a caller that passed a serialized transition it did not build itself still gets the bytes and the hash back.
+`signedBase64` is the transition the extension broadcast, so a caller that passed a serialized transition it did not build itself still gets the bytes and the hash back. The signature and its key id are not reported separately: they are only useful for assembling a transition to broadcast later, and this one is already out.
 
 **Rejects** with:
 

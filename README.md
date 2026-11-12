@@ -102,7 +102,7 @@ console.log('Transaction hash:', signed.signedHash)
 
 This shows the shape of the flow. For production, also wait for the signer to appear and handle rejections. The [integration guide](docs/INTEGRATION.md) has a complete version you can copy, plus recipes, error handling and TypeScript types.
 
-> **Breaking change:** the extension no longer injects `window.dashPlatformSDK`. Its WASM needed `crossOriginIsolated`, which a third-party page can't have, so every approved site threw a `SharedArrayBuffer` error and downloaded ~4 MB. Install the SDK from npm instead. `signAndBroadcast` also no longer resolves with a `StateTransitionWASM`: it reports the signed transition as `signedHash` and `signedBase64`, alongside `signature`, `signaturePublicKeyId` and `unsignedBase64`.
+> **Breaking change:** the extension no longer injects `window.dashPlatformSDK`. Its WASM needed `crossOriginIsolated`, which a third-party page can't have, so every approved site threw a `SharedArrayBuffer` error and downloaded ~4 MB. Install the SDK from npm instead. `signAndBroadcast` also no longer resolves with a `StateTransitionWASM`: it reports the transition it broadcast as `{ signedHash, signedBase64 }`.
 
 ### Common mistakes
 

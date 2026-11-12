@@ -167,9 +167,6 @@ The result describes the transition that actually went out:
 |---|---|
 | `signedHash` | Hash of the signed transition: its id on the network |
 | `signedBase64` | The signed transition, base64. Decode it with `StateTransitionWASM.fromBase64()` if you need to inspect it |
-| `signature` | Hex |
-| `signaturePublicKeyId` | Key the user signed with |
-| `unsignedBase64` | The transition as you supplied it |
 
 > [!WARNING]
 > Use `signedHash` rather than computing the hash yourself. The extension has already broadcast the transition under that hash, and you don't have to keep the object you built or apply the signature to it.
@@ -299,9 +296,6 @@ interface WalletInfo {
 interface SignedStateTransitionData {
   signedHash: string
   signedBase64: string
-  signature: string // hex
-  signaturePublicKeyId: number
-  unsignedBase64: string
 }
 
 interface ExtensionSigner {

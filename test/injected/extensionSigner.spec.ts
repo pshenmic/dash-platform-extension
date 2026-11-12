@@ -8,8 +8,8 @@ jest.mock('../../src/utils/browser', () => ({
 
 const popupWindowMock = popupWindow as jest.MockedFunction<typeof popupWindow>
 
-// The page has no SDK of its own guaranteed to match what the extension
-// signed, so the signer has to hand back the signed transition itself.
+// The extension has already broadcast by the time it answers, so the page is
+// told what went out rather than handed the pieces to assemble it from.
 describe('ExtensionSigner.signAndBroadcast', () => {
   const unsignedBase64 = 'AQAAAA=='
   const signedBase64 = 'AQAAAAICAgI='
@@ -46,12 +46,7 @@ describe('ExtensionSigner.signAndBroadcast', () => {
 
     const result = await signer.signAndBroadcast(unsignedBase64)
 
-    expect(result.signedHash).toBe(signedHash)
-    expect(result.signedBase64).toBe(signedBase64)
-    expect(result.signaturePublicKeyId).toBe(1)
-    // Kept so a caller can see the transition it asked for; it is not
-    // necessarily the one that went out.
-    expect(result.unsignedBase64).toBe(unsignedBase64)
+    expect(result).toEqual({ signedHash, signedBase64 })
   })
 
   it('fails rather than returning an approval it cannot describe', async () => {
