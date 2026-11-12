@@ -1,14 +1,16 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 import { Button, List, Text, ValueCard } from 'dash-ui-kit/react'
 import { Banner } from '../../components/cards'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
 import { WalletType } from '../../../types'
 import { withAccessControl } from '../../components/auth/withAccessControl'
+import type { OutletContext } from '../../types'
 
 function CreateWalletState (): React.JSX.Element {
   const navigate = useNavigate()
   const extensionAPI = useExtensionAPI()
+  const { setCurrentWallet, createWallet } = useOutletContext<OutletContext>()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -17,8 +19,9 @@ function CreateWalletState (): React.JSX.Element {
     setError(null)
 
     try {
-      const { walletId } = await extensionAPI.createWallet(WalletType.keystore)
+      const { walletId } = await createWallet(WalletType.keystore)
       await extensionAPI.switchWallet(walletId)
+      setCurrentWallet(walletId)
 
       void navigate('/select-import-type')
     } catch (err) {
