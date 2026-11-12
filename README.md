@@ -96,15 +96,13 @@ const transition = sdk.documents.createStateTransition(document, 'create', { ide
 // 3. The user approves, then the extension signs, broadcasts and waits for confirmation.
 const signed = await signer.signAndBroadcast(transition.hex())
 
-// 4. The signature comes back separately — set it to read the signed hash.
-transition.signature = hexToBytes(signed.signature)
-transition.signaturePublicKeyId = signed.signaturePublicKeyId
-console.log('Transaction hash:', transition.hash(false))
+// 4. The result describes what went out, so there is nothing to reassemble.
+console.log('Transaction hash:', signed.signedHash)
 ```
 
 This shows the shape of the flow. For production, also wait for the signer to appear and handle rejections. The [integration guide](docs/INTEGRATION.md) has a complete version you can copy, plus recipes, error handling and TypeScript types.
 
-> **Breaking change:** the extension no longer injects `window.dashPlatformSDK`. Its WASM needed `crossOriginIsolated`, which a third-party page can't have, so every approved site threw a `SharedArrayBuffer` error and downloaded ~4 MB. Install the SDK from npm instead. `signAndBroadcast` also now resolves with `{ signature, signaturePublicKeyId, unsignedBase64 }` rather than a signed transition.
+> **Breaking change:** the extension no longer injects `window.dashPlatformSDK`. Its WASM needed `crossOriginIsolated`, which a third-party page can't have, so every approved site threw a `SharedArrayBuffer` error and downloaded ~4 MB. Install the SDK from npm instead. `signAndBroadcast` also no longer resolves with a `StateTransitionWASM`: it reports the transition it broadcast as `{ signedHash, signedBase64 }`.
 
 ### Common mistakes
 
@@ -114,7 +112,7 @@ This shows the shape of the flow. For production, also wait for the signer to ap
 | Install `dash-platform-sdk` from npm | Look for `window.dashPlatformSDK` | The extension doesn't inject an SDK any more |
 | Pick the network your users are on | Assume mainnet | `connect()` reports identities only, not the wallet's network |
 | Pass `transition.hex()` | Pass the transition object | The signer takes a string only |
-| Set `signature` and `signaturePublicKeyId` before `.hash(false)` | Read the hash off the return value | `signAndBroadcast` returns the signature, not a transition |
+| Read `signedHash` off the return value | Apply the signature to your own transition and hash it | The extension reports the hash it broadcast under |
 | Use `currentIdentity` or `identities[i].identifier` | Treat `identities` as strings | Each entry is an object |
 | Declare UTF-8 and allow `'wasm-unsafe-eval'` in your CSP | Leave either one out | Otherwise the extension silently doesn't load on the page |
 
@@ -131,7 +129,7 @@ If you're a coding agent adding Dash Extension to a project, follow these rules.
 3. Install `dash-platform-sdk` from npm and construct it yourself. The extension does not inject an SDK, so there is no `window.dashPlatformSDK` and no `sdk.setNetwork()`.
 4. Use the nonce plus one: `getIdentityContractNonce` for documents and tokens, `getIdentityNonce` for identity-level transitions.
 5. Pass `transition.hex()` to `signer.signAndBroadcast()`.
-6. Set `signature` and `signaturePublicKeyId` from the result on your own transition before calling `.hash(false)`.
+6. Take the transaction hash from `signedHash` on the result, and the signed transition from `signedBase64`.
 7. Read errors as `error?.message ?? String(error)`, since some rejections are plain strings.
 8. Handle the no-extension, user-rejected, no-identity (`currentIdentity === null`) and 3-minute-timeout cases in the UI.
 9. Make sure the page declares UTF-8, and add `'wasm-unsafe-eval'` to `script-src` if it has a CSP.
@@ -142,6 +140,7 @@ If you're a coding agent adding Dash Extension to a project, follow these rules.
 - Don't pass a `StateTransitionWASM` object to the signer. It takes a hex or base64 string.
 - Don't expect an SDK on `window`. Older examples that read `window.dashPlatformSDK` no longer work.
 - Don't call `waitForStateTransitionResult` after `signAndBroadcast`. It has already waited.
+- Don't apply `signature` to your own transition to get the transaction id. Read `signedHash` from the result instead.
 - Don't call `dashPlatformExtension.connect()`. The method is on `dashPlatformExtension.signer`.
 - Don't use mainnet for testing unless the user asks you to.
 

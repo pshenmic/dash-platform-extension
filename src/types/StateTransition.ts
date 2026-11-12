@@ -4,6 +4,8 @@ export interface StateTransition {
   signedHash: string | null
   unsignedHash: string
   unsigned: string
+  // The transition as it was signed, base64. Null until it is approved.
+  signed: string | null
   signature: string | null
   signaturePublicKeyId: number | null
   status: StateTransitionStatus

@@ -1,4 +1,7 @@
+import { DashPlatformSDK } from 'dash-platform-sdk'
+import { StateTransitionWASM } from 'pshenmic-dpp'
 import { MemoryStorageAdapter } from '../../src/content-script/storage/memoryStorageAdapter'
+import { StateTransitionStatus } from '../../src/types/enums/StateTransitionStatus'
 import { StateTransitionsRepository } from '../../src/content-script/repository/StateTransitionsRepository'
 import {
   MAX_STATE_TRANSITION_SIZE_BASE64,
@@ -20,6 +23,7 @@ const recordOf = (unsigned: string, overrides: Partial<StateTransitionStoreSchem
   unsignedHash: hashOf(0),
   signedHash: null,
   unsigned,
+  signed: null,
   signature: null,
   signaturePublicKeyId: null,
   status: 'pending',
@@ -56,6 +60,14 @@ describe('the transition store', () => {
 
     expect(response.origin).toBe('https://app.example.com')
     expect((await repository.getByHash(hashOf(1)))?.origin).toBe('https://app.example.com')
+  })
+
+  it('reports no signed copy on a record written before the field existed', async () => {
+    const { signed, ...legacy } = recordOf('AAAA', { unsignedHash: hashOf(1) })
+
+    await store({ [hashOf(1)]: legacy as StateTransitionStoreSchema })
+
+    expect(await repository.getByHash(hashOf(1))).toHaveProperty('signed', null)
   })
 
   it('refuses a key that is not a 32-byte hex digest', async () => {
@@ -113,6 +125,21 @@ describe('the transition store', () => {
       .rejects.toThrow('Too many state transitions are waiting for approval')
   })
 
+  // The store keeps both copies of an approved transition, so both have to
+  // count against the budget.
+  it('counts the signed copy against the store size budget', async () => {
+    await store({
+      [hashOf(1)]: recordOf('A'.repeat(MAX_STATE_TRANSITIONS_SIZE_BASE64 / 2), {
+        status: 'approved',
+        signed: 'B'.repeat(MAX_STATE_TRANSITIONS_SIZE_BASE64 / 2),
+        resolvedAt: Date.now()
+      })
+    })
+
+    await expect(repository.createFromEncoded('A'.repeat(16), hashOf(2)))
+      .rejects.toThrow('Too many state transitions are waiting for approval')
+  })
+
   it('refuses to grow past the record count cap', async () => {
     const records: StateTransitionsStoreSchema = {}
 
@@ -124,5 +151,86 @@ describe('the transition store', () => {
 
     await expect(repository.createFromEncoded('A', hashOf(MAX_STORED_STATE_TRANSITIONS)))
       .rejects.toThrow('Too many state transitions are waiting for approval')
+  })
+
+  describe('recording the decision', () => {
+    const sdk = new DashPlatformSDK({ network: 'testnet' })
+
+    const transition = (identityNonce: bigint): StateTransitionWASM =>
+      sdk.identities.createStateTransition('creditTransfer', {
+        identityId: 'HT3pUBM1Uv2mKgdPEN1gxa7A4PdsvNY89aJbdSKQb5wR',
+        recipientId: 'Aa1ZUSjKsQDNJTV53NYs7PtaxKjCxdegZrqeywFy5y4M',
+        amount: 1000n,
+        identityNonce
+      })
+
+    const signed = (stateTransitionWASM: StateTransitionWASM): StateTransitionWASM => {
+      stateTransitionWASM.signature = new Uint8Array(65).fill(3)
+      stateTransitionWASM.signaturePublicKeyId = 1
+
+      return stateTransitionWASM
+    }
+
+    it('stores the signed transition next to the one that was queued', async () => {
+      const queued = transition(1n)
+
+      await repository.createFromEncoded(queued.base64(), queued.hash(true))
+
+      const stateTransition = await repository.approve(queued.hash(true), signed(transition(1n)))
+
+      expect(stateTransition.status).toBe('approved')
+      expect(stateTransition.signature).toBe('03'.repeat(65))
+      expect(stateTransition.signaturePublicKeyId).toBe(1)
+      expect(stateTransition.signedHash).toBe(signed(transition(1n)).hash(false))
+      expect(stateTransition.signed).not.toBe(stateTransition.unsigned)
+    })
+
+    // The record belongs to the hash the page is waiting on, whatever hash the
+    // transition handed back computes to.
+    it('keys the approval by the hash the record was created under', async () => {
+      const queued = transition(1n)
+      const rewritten = signed(transition(9n))
+
+      await repository.createFromEncoded(queued.base64(), queued.hash(true))
+
+      await repository.approve(queued.hash(true), rewritten)
+
+      expect((await repository.getByHash(queued.hash(true)))?.status).toBe('approved')
+      expect((await repository.getByHash(rewritten.hash(true)))).toBeNull()
+    })
+
+    it('refuses an approval carrying no signature', async () => {
+      const queued = transition(1n)
+
+      await repository.createFromEncoded(queued.base64(), queued.hash(true))
+
+      await expect(repository.approve(queued.hash(true), transition(1n)))
+        .rejects.toThrow('Signature is not available after approval')
+    })
+
+    it('records a rejection without the transition itself', async () => {
+      await repository.createFromEncoded('AAAA', hashOf(1))
+
+      const stateTransition = await repository.resolve(hashOf(1), StateTransitionStatus.rejected)
+
+      expect(stateTransition.status).toBe('rejected')
+      expect(stateTransition.signed).toBeNull()
+      // Retention counts from the decision, so the store notes when it landed.
+      expect((await stored())[hashOf(1)].resolvedAt).not.toBeNull()
+    })
+
+    it('records a broadcast failure with its reason', async () => {
+      await repository.createFromEncoded('AAAA', hashOf(1))
+
+      const stateTransition = await repository.resolve(hashOf(1), StateTransitionStatus.error, 'deadline has elapsed')
+
+      expect(stateTransition.status).toBe('error')
+      expect(stateTransition.error).toBe('deadline has elapsed')
+    })
+
+    it('refuses to record a decision on a record that is not there', async () => {
+      await expect(repository.resolve(hashOf(7), StateTransitionStatus.rejected))
+        .rejects.toThrow(`State transition with hash ${hashOf(7)} does not exist`)
+    })
   })
 })

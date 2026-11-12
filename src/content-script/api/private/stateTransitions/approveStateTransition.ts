@@ -1,5 +1,5 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { BatchTransitionWASM, DataContractUpdateTransitionWASM, StateTransitionWASM, IdentityUpdateTransitionWASM } from 'dash-platform-sdk/types'
+import { StateTransitionWASM, IdentityUpdateTransitionWASM } from 'dash-platform-sdk/types'
 import { StateTransitionsRepository } from '../../../repository/StateTransitionsRepository'
 import { IdentitiesRepository } from '../../../repository/IdentitiesRepository'
 import { ApproveStateTransitionResponse } from '../../../../types/messages/response/ApproveStateTransitionResponse'
@@ -46,41 +46,12 @@ export class ApproveStateTransitionHandler implements APIHandler {
       throw new Error('Owner ID is missing from state transition')
     }
 
-    // handle changed owner from approve transaction screen
+    // A transition is signed as its own owner. Signing it as somebody else
+    // would mean rewriting the owner and the nonces, which makes a different
+    // transition out of the one the caller submitted - the caller builds a new
+    // one for the identity it wants instead.
     if (ownerId.base58() !== identity.identifier) {
-      if (stateTransitionWASM.getActionType() === 'IDENTITY_CREATE') {
-        throw new Error('Incorrect owner used for IdentityCreate transaction, changing is prohibited')
-      }
-
-      stateTransitionWASM.setOwnerId(identity.identifier)
-
-      // replace identityContractNonce
-      if (['BATCH', 'DATA_CONTRACT_UPDATE'].includes(stateTransitionWASM.getActionType())) {
-        let dataContractId
-
-        if (stateTransitionWASM.getActionType() === 'DATA_CONTRACT_UPDATE') {
-          const dataContractUpdateTransitionWASM = DataContractUpdateTransitionWASM.fromStateTransition(stateTransitionWASM)
-
-          dataContractId = dataContractUpdateTransitionWASM.getDataContract().id
-        }
-
-        if (stateTransitionWASM.getActionType() === 'BATCH') {
-          const batchTransition = BatchTransitionWASM.fromStateTransition(stateTransitionWASM)
-          const [transition] = batchTransition.transitions
-
-          dataContractId = transition.dataContractId
-        }
-
-        const identityContractNonce = await this.sdk.identities.getIdentityContractNonce(identity.identifier, dataContractId)
-
-        stateTransitionWASM.setIdentityContractNonce(identityContractNonce + 1n)
-      }
-
-      // replace identityNonce
-      if (['DATA_CONTRACT_CREATE', 'IDENTITY_CREDIT_WITHDRAWAL', 'IDENTITY_UPDATE', 'IDENTITY_CREDIT_TRANSFER', 'MASTERNODE_VOTE'].includes(stateTransitionWASM.getActionType())) {
-        const identityNonce = await this.sdk.identities.getIdentityNonce(identity.identifier)
-        stateTransitionWASM.setIdentityNonce(identityNonce + 1n)
-      }
+      throw new Error(`State transition is owned by ${ownerId.base58()} and cannot be signed as ${identity.identifier}`)
     }
 
     let privateKeyWASM
@@ -169,7 +140,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       await this.sdk.stateTransitions.broadcast(stateTransitionWASM)
       await this.sdk.stateTransitions.waitForStateTransitionResult(stateTransitionWASM)
 
-      await this.stateTransitionsRepository.update(stateTransitionWASM, StateTransitionStatus.approved)
+      await this.stateTransitionsRepository.approve(payload.hash, stateTransitionWASM)
 
       // Check for pending keys (from keystore wallet key creation) and save them
       const actionType = stateTransitionWASM.getActionType()
@@ -186,7 +157,7 @@ export class ApproveStateTransitionHandler implements APIHandler {
       }
     } catch (e) {
       console.log('Failed to broadcast transaction', e)
-      await this.stateTransitionsRepository.update(stateTransitionWASM, StateTransitionStatus.error, e.message)
+      await this.stateTransitionsRepository.resolve(payload.hash, StateTransitionStatus.error, e.message)
 
       throw new BroadcastError(e.message ?? e, signedHex)
     }

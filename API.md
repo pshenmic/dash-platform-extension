@@ -41,9 +41,8 @@ Asks to connect the current origin. Opens an approval popup if the origin has no
 signAndBroadcast (stateTransition: string): Promise<SignedStateTransitionData>
 
 interface SignedStateTransitionData {
-  signature: string // hex
-  signaturePublicKeyId: number
-  unsignedBase64: string // the transition as you sent it
+  signedHash: string // hash of the signed transition: its id on the network
+  signedBase64: string // the transition as it was signed
 }
 ```
 
@@ -53,24 +52,23 @@ Asks the user to sign a state transition, then broadcasts it and waits for the r
 |---|---|
 | `string` | Hex or base64. Serialize your own transition first — a `StateTransitionWASM` object is not accepted, because the signer no longer bundles one. |
 
-**Resolves** with the signature and the key ID it was made with. The transition is already broadcast and confirmed; you do not need to send it again.
+**Resolves** with the transition that was signed and broadcast. It is already confirmed; you do not need to send it again.
 
-To get the signed hash, apply the signature to your own transition:
+Take the transaction hash from the result rather than computing it yourself:
 
 ```js
 const signed = await signer.signAndBroadcast(transition.hex())
 
-transition.signature = hexToBytes(signed.signature)
-transition.signaturePublicKeyId = signed.signaturePublicKeyId
-
-transition.hash(false) // signed transaction hash
+signed.signedHash // signed transaction hash
 ```
+
+`signedBase64` is the transition the extension broadcast, so a caller that passed a serialized transition it did not build itself still gets the bytes and the hash back. The signature and its key id are not reported separately: they are only useful for assembling a transition to broadcast later, and this one is already out.
 
 **Rejects** with:
 
 - `Transaction signing was rejected` if the user cancels.
 - `Internal error during singing the transaction` if signing or broadcasting fails.
-- `Signature is missing` if the extension returns no signature.
+- `The extension approved the transition but did not report what it signed` if the approval carries no signed transition.
 - `Failed to receive state transition signing approval due timeout` after 3 minutes without a decision.
 
 ## Message protocol
@@ -125,6 +123,7 @@ The transition's owner must be an identity granted to the calling origin.
     unsignedHash: string
     signedHash: string | null
     unsigned: string
+    signed: string | null // the transition as it was signed, base64
     signature: string | null // hex
     signaturePublicKeyId: number | null
     status: 'pending' | 'approved' | 'rejected' | 'error'

@@ -58,6 +58,9 @@ export interface StateTransitionStoreSchema {
   unsignedHash: string
   signedHash: string | null
   unsigned: string
+  // The transition as it was signed, base64. Absent while pending, and on
+  // records written before this field existed.
+  signed?: string | null
   signature: string | null
   signaturePublicKeyId: number | null
   status: string

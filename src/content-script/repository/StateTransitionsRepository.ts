@@ -25,6 +25,15 @@ const isExpired = (stateTransition: StateTransitionStoreSchema, now: number): bo
   return now - since > ttl
 }
 
+// Records written before `signed` existed carry no such field, and the public
+// layer hands the whole row to the page, so normalize on the way out.
+const toStateTransition = (stateTransition: StateTransitionStoreSchema): StateTransition => ({
+  ...stateTransition,
+  status: StateTransitionStatus[stateTransition.status],
+  signed: stateTransition.signed ?? null,
+  origin: stateTransition.origin ?? null
+})
+
 export class StateTransitionsRepository {
   storageAdapter: StorageAdapter
 
@@ -84,8 +93,10 @@ export class StateTransitionsRepository {
       }
     }
 
+    // An approved record keeps the signed copy as well, so both count against
+    // the budget - otherwise the store can hold roughly twice what it promises.
     const storedSize = Object.values(kept)
-      .reduce((sum, stateTransition) => sum + stateTransition.unsigned.length, 0)
+      .reduce((sum, stateTransition) => sum + stateTransition.unsigned.length + (stateTransition.signed?.length ?? 0), 0)
 
     if (Object.keys(kept).length >= MAX_STORED_STATE_TRANSITIONS ||
       storedSize + unsigned.length > MAX_STATE_TRANSITIONS_SIZE_BASE64) {
@@ -96,6 +107,7 @@ export class StateTransitionsRepository {
       unsignedHash,
       signedHash: null,
       unsigned,
+      signed: null,
       status: StateTransitionStatus.pending,
       signature: null,
       signaturePublicKeyId: null,
@@ -109,11 +121,7 @@ export class StateTransitionsRepository {
 
     await this.storageAdapter.set(storageKey, kept)
 
-    return {
-      ...stateTransition,
-      status: StateTransitionStatus[stateTransition.status],
-      origin: stateTransition.origin ?? null
-    }
+    return toStateTransition(stateTransition)
   }
 
   async getByHash (hash: string): Promise<StateTransition | null> {
@@ -134,18 +142,59 @@ export class StateTransitionsRepository {
       return null
     }
 
-    return {
-      ...stateTransition,
-      status: StateTransitionStatus[stateTransition.status],
-      origin: stateTransition.origin ?? null
-    }
+    return toStateTransition(stateTransition)
   }
 
-  async update (stateTransitionWASM: StateTransitionWASM, status: StateTransitionStatus, error?: string): Promise<StateTransition> {
+  /**
+   * Records the user's decision on a transition.
+   *
+   * Keyed by the hash the record was created under rather than by a hash
+   * recomputed from the transition. Recomputing ties the store to the caller
+   * handing back exactly the transition it was given, and rejecting does not
+   * need the transition at all.
+   */
+  async resolve (unsignedHash: string, status: StateTransitionStatus, error?: string): Promise<StateTransition> {
+    return await this.write(unsignedHash, (stateTransition) => {
+      stateTransition.status = status
+      stateTransition.error = error ?? null
+    })
+  }
+
+  /**
+   * Records an approval together with what was actually signed.
+   *
+   * The signed copy is stored, not just the signature, so that the caller can
+   * be handed what went to the network without rebuilding it from the
+   * unsigned bytes and the signature.
+   */
+  async approve (unsignedHash: string, stateTransitionWASM: StateTransitionWASM): Promise<StateTransition> {
+    const { signature, signaturePublicKeyId } = stateTransitionWASM
+
+    // An unsigned transition carries an empty signature rather than none at
+    // all, and key id 0 is a real key, so the length is what tells them apart.
+    if (signature == null || signature.length === 0 || signaturePublicKeyId == null) {
+      throw new Error('Signature is not available after approval')
+    }
+
+    const signed = base64.encode(stateTransitionWASM.bytes())
+
+    if (signed.length > MAX_STATE_TRANSITION_SIZE_BASE64) {
+      throw new Error(`Signed state transition is too large: ${signed.length} base64 characters, maximum ${MAX_STATE_TRANSITION_SIZE_BASE64}`)
+    }
+
+    return await this.write(unsignedHash, (stateTransition) => {
+      stateTransition.signedHash = stateTransitionWASM.hash(false)
+      stateTransition.signed = signed
+      stateTransition.signature = bytesToHex(signature)
+      stateTransition.signaturePublicKeyId = signaturePublicKeyId
+      stateTransition.status = StateTransitionStatus.approved
+      stateTransition.error = null
+    })
+  }
+
+  private async write (unsignedHash: string, mutate: (stateTransition: StateTransitionStoreSchema) => void): Promise<StateTransition> {
     const network = await this.storageAdapter.get('network') as string
     const walletId = await this.storageAdapter.get('currentWalletId') as string | null
-
-    const unsignedHash = stateTransitionWASM.hash(true)
 
     if (walletId == null) {
       throw new Error('Wallet is not chosen')
@@ -161,31 +210,15 @@ export class StateTransitionsRepository {
 
     const stateTransition: StateTransitionStoreSchema = stateTransitions[unsignedHash]
 
-    if (status === StateTransitionStatus.approved) {
-      const { signature, signaturePublicKeyId } = stateTransitionWASM
+    mutate(stateTransition)
 
-      if (signature == null || signaturePublicKeyId == null) {
-        throw new Error('Signature is not available after approval')
-      }
-
-      stateTransition.signedHash = stateTransitionWASM.hash(false)
-      stateTransition.signature = bytesToHex(signature)
-      stateTransition.signaturePublicKeyId = signaturePublicKeyId
-    }
-
-    stateTransition.status = status
-    stateTransition.error = error ?? null
     // Retention counts from the decision, not from when the page queued it.
-    stateTransition.resolvedAt = status === StateTransitionStatus.pending ? null : Date.now()
+    stateTransition.resolvedAt = stateTransition.status === StateTransitionStatus.pending ? null : Date.now()
 
     stateTransitions[unsignedHash] = stateTransition
 
     await this.storageAdapter.set(storageKey, stateTransitions)
 
-    return {
-      ...stateTransition,
-      status: StateTransitionStatus[stateTransition.status],
-      origin: stateTransition.origin ?? null
-    }
+    return toStateTransition(stateTransition)
   }
 }
