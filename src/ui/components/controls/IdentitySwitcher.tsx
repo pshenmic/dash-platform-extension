@@ -1,6 +1,6 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Avatar, Identifier, OverlayMenu } from 'dash-ui-kit/react'
+import { Identifier, OverlayMenu } from 'dash-ui-kit/react'
 import type { Identity } from '../../../types'
 import { IdentityType } from '../../../types/enums/IdentityType'
 import { locationReturnPath, locationReturnState } from '../../types'
@@ -9,6 +9,10 @@ interface IdentitySwitcherProps {
   identifier: string
   identities: Identity[]
   onSelect: (identifier: string) => void
+}
+
+function IdentityRow ({ identifier }: { identifier: string }): React.JSX.Element {
+  return <Identifier avatar highlight='both' middleEllipsis edgeChars={4} className='min-w-0'>{identifier}</Identifier>
 }
 
 export function IdentitySwitcher ({ identifier, identities, onSelect }: IdentitySwitcherProps): React.JSX.Element {
@@ -21,16 +25,7 @@ export function IdentitySwitcher ({ identifier, identities, onSelect }: Identity
 
   const items = rows.map((identity) => ({
     id: identity.identifier,
-    content: (
-      <div className='flex items-center gap-2 min-w-0'>
-        <div className='w-6 h-6 rounded-full overflow-hidden shrink-0'>
-          <Avatar username={identity.identifier} className='w-6 h-6' />
-        </div>
-        <Identifier highlight='both' middleEllipsis edgeChars={4}>
-          {identity.identifier}
-        </Identifier>
-      </div>
-    ),
+    content: <IdentityRow identifier={identity.identifier} />,
     onClick: () => {
       onSelect(identity.identifier)
       void navigate(`/identity/${identity.identifier}`, { replace: true, state: locationReturnState(from) })
@@ -40,16 +35,7 @@ export function IdentitySwitcher ({ identifier, identities, onSelect }: Identity
   return (
     <OverlayMenu
       overlayLabel='Identity'
-      triggerContent={(
-        <div className='flex items-center gap-2 min-w-0'>
-          <div className='w-6 h-6 rounded-full overflow-hidden shrink-0'>
-            <Avatar username={identifier} className='w-6 h-6' />
-          </div>
-          <Identifier highlight='both' middleEllipsis edgeChars={4}>
-            {identifier}
-          </Identifier>
-        </div>
-      )}
+      triggerContent={<IdentityRow identifier={identifier} />}
       items={items}
       size='xl'
       border

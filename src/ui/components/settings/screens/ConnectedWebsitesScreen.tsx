@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { Text, Button, ValueCard } from 'dash-ui-kit/react'
+import { useOutletContext } from 'react-router-dom'
+import { Text, Button, WebIcon } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../../hooks/useExtensionAPI'
 import { useAsyncState } from '../../../hooks/useAsyncState'
 import { ConfirmDialog } from '../../controls'
+import { Banner } from '../../cards'
 import { ConnectedWebsiteItem } from '../../websites/ConnectedWebsiteItem'
 import type { SettingsScreenProps } from '../types'
 import type { AppConnect } from '../../../../types'
+import type { OutletContext } from '../../../types'
 
 interface ConfirmDialogState {
   open: boolean
@@ -15,23 +18,32 @@ interface ConfirmDialogState {
 }
 
 const EmptyListMessage = (): React.JSX.Element => (
-  <ValueCard colorScheme='lightGray' className='flex flex-col gap-2'>
-    <Text size='lg' weight='medium' className='text-gray-600'>
-      No Connected websites
-    </Text>
-    <Text size='sm' className='text-gray-500'>
-      When you connect to websites, they will appear here
-    </Text>
-  </ValueCard>
+  <div className='flex flex-col items-center gap-3 px-4 py-8 rounded-3xl bg-dash-primary-dark-blue/[0.03] text-center'>
+    <div className='flex items-center justify-center size-12 rounded-full bg-white'>
+      <WebIcon />
+    </div>
+    <div className='flex flex-col gap-1'>
+      <Text size='sm' weight='medium'>No connected websites</Text>
+      <Text size='xs' weight='medium' dim>When you connect to websites, they will appear here</Text>
+    </div>
+  </div>
 )
 
 export const ConnectedWebsitesScreen: React.FC<SettingsScreenProps> = () => {
   const [ConnectedWebsitesState, loadConnectedWebsites, setConnectedWebsites] = useAsyncState<AppConnect[]>([])
   const [disconnectingIds, setDisconnectingIds] = useState<Set<string>>(new Set())
+  const [savingIds, setSavingIds] = useState<Set<string>>(new Set())
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({ open: false, type: 'single' })
   const extensionAPI = useExtensionAPI()
+  const { availableIdentities } = useOutletContext<OutletContext>()
+  const walletIdentities = availableIdentities.map(identity => identity.identifier)
   const errorHiddenTime = 5000
+
+  const showError = (message: string): void => {
+    setErrorMessage(message)
+    setTimeout(() => setErrorMessage(null), errorHiddenTime)
+  }
 
   useEffect(() => {
     loadConnectedWebsites(async () => await extensionAPI.getAllAppConnects())
@@ -64,13 +76,29 @@ export const ConnectedWebsitesScreen: React.FC<SettingsScreenProps> = () => {
         setConnectedWebsites(ConnectedWebsitesState.data.filter(website => website.id !== websiteId))
       }
     } catch (error) {
-      setErrorMessage(`Failed to disconnect website ${websiteId}: ${String(error)}`)
-
-      setTimeout(() => {
-        setErrorMessage(null)
-      }, errorHiddenTime)
+      showError(`Failed to disconnect website ${websiteId}: ${String(error)}`)
     } finally {
       setDisconnectingIds(prev => {
+        const next = new Set(prev)
+        next.delete(websiteId)
+        return next
+      })
+    }
+  }
+
+  // Saves the identities a website can see; the list updates at once and rolls back on failure.
+  const handleIdentitiesChange = async (websiteId: string, identities: string[]): Promise<void> => {
+    const previous = ConnectedWebsitesState.data ?? []
+    setConnectedWebsites(previous.map(website => website.id === websiteId ? { ...website, identities } : website))
+    setSavingIds(prev => new Set(prev).add(websiteId))
+
+    try {
+      await extensionAPI.setAppConnectIdentities(websiteId, identities)
+    } catch (error) {
+      setConnectedWebsites(previous)
+      showError(`Failed to update website access: ${String(error)}`)
+    } finally {
+      setSavingIds(prev => {
         const next = new Set(prev)
         next.delete(websiteId)
         return next
@@ -92,11 +120,7 @@ export const ConnectedWebsitesScreen: React.FC<SettingsScreenProps> = () => {
       const websites = await extensionAPI.getAllAppConnects()
       setConnectedWebsites(websites)
 
-      setErrorMessage(`Failed to disconnect all websites: ${String(error)}`)
-
-      setTimeout(() => {
-        setErrorMessage(null)
-      }, errorHiddenTime)
+      showError(`Failed to disconnect all websites: ${String(error)}`)
     } finally {
       setDisconnectingIds(new Set())
     }
@@ -112,37 +136,41 @@ export const ConnectedWebsitesScreen: React.FC<SettingsScreenProps> = () => {
 
   return (
     <div className='flex flex-col gap-4 h-full'>
-      <Text size='sm' dim className='text-dash-primary-dark-blue'>
-        Manage websites you have connected to.
+      <Text size='xs' weight='medium' dim>
+        Websites you have connected to and the identities each of them can see.
       </Text>
 
-      <div className='flex flex-col gap-[0.875rem] h-full grow'>
+      <div className='flex flex-col gap-2.5 h-full grow'>
         {ConnectedWebsitesState.loading &&
-          <Text dim>loading...</Text>}
+          <Text size='sm' dim>Loading...</Text>}
 
         {ConnectedWebsitesState?.data?.length != null && ConnectedWebsitesState.data.length > 0
           ? ConnectedWebsitesState.data?.map(website => (
             <ConnectedWebsiteItem
               key={website.id}
               website={website}
+              walletIdentities={walletIdentities}
               isDisconnecting={disconnectingIds.has(website.id)}
+              isSaving={savingIds.has(website.id)}
               onDisconnect={showDisconnectDialog}
+              onIdentitiesChange={(websiteId, identities) => {
+                handleIdentitiesChange(websiteId, identities)
+                  .catch(e => console.warn('handleIdentitiesChange error:', e))
+              }}
             />
           ))
           : <EmptyListMessage />}
 
         {(errorMessage !== null || ConnectedWebsitesState.error != null) && (
-          <ValueCard colorScheme='yellow' className='break-all'>
-            <Text color='red'>
-              {errorMessage ?? ConnectedWebsitesState.error}
-            </Text>
-          </ValueCard>
+          <Banner variant='error' message={errorMessage ?? ConnectedWebsitesState.error ?? ''} className='break-all' />
         )}
       </div>
 
       {(ConnectedWebsitesState?.data?.length != null && ConnectedWebsitesState.data.length > 0) &&
-        <div className='mt-6'>
+        <div className='mt-auto pt-2'>
           <Button
+            colorScheme='lightBlue'
+            size='xl'
             className='w-full'
             onClick={showDisconnectAllDialog}
             disabled={disconnectingIds.size > 0}

@@ -8,7 +8,7 @@ interface PasswordFieldProps {
   onChange: (value: string) => void
   placeholder?: string
   error?: string | null
-  label?: string
+  label?: string | null
   className?: string
   variant?: 'outlined' | 'filled'
   colorScheme?: 'default' | 'brand'
@@ -28,9 +28,11 @@ export const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldPro
 }, ref) => {
   return (
     <div className={`flex flex-col gap-2 ${className ?? ''}`}>
-      <FieldLabel>
-        {label}
-      </FieldLabel>
+      {label != null && (
+        <FieldLabel>
+          {label}
+        </FieldLabel>
+      )}
       <Input
         ref={ref}
         type='password'

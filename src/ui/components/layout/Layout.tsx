@@ -9,7 +9,7 @@ import { GetStatusResponse } from '../../../types/messages/response/GetStatusRes
 import { NetworkType, Identity } from '../../../types'
 import type { HeaderConfigOverride } from '../../types'
 import ScreenLoader from './screens/ScreenLoader'
-import { isTabView } from '../../utils/extensionTab'
+import { isTabView, isPopupWindowView } from '../../utils/extensionTab'
 
 export interface LayoutContext {
   currentNetwork: NetworkType
@@ -25,7 +25,7 @@ export interface LayoutContext {
   // Same for identities, and only for the wallet they were loaded from.
   identitiesLoaded: boolean
   reloadWallets: () => Promise<void>
-  reloadIdentities: () => Promise<void>
+  reloadIdentities: (walletId?: string | null) => Promise<void>
   availableIdentities: Identity[]
   createWallet: (walletType: any, mnemonic?: string) => Promise<any>
   headerComponent: React.ReactNode
@@ -67,12 +67,13 @@ const Layout: FC = () => {
     }
   }, [isApiReady, extensionAPI])
 
-  const loadIdentities = useCallback(async (): Promise<void> => {
-    if (!isApiReady || currentWallet == null) return
+  // walletId is for callers that switched wallet in the same tick and still hold the old currentWallet.
+  const loadIdentities = useCallback(async (walletId: string | null = currentWallet): Promise<void> => {
+    if (!isApiReady || walletId == null) return
     try {
       const identities = await extensionAPI.getIdentities()
       setAvailableIdentities(identities)
-      setIdentitiesLoadedFor(currentWallet)
+      setIdentitiesLoadedFor(walletId)
     } catch (error) {
       console.log('Failed to load identities:', error)
     }
@@ -201,6 +202,32 @@ const Layout: FC = () => {
     loadData().catch(e => console.log('loadData error', e))
   }, [isApiReady, loadWallets, loadIdentities, loadCurrentIdentity])
 
+  // Repairs a selection that is missing from the network's wallets: backend choice first, else the first wallet.
+  useEffect(() => {
+    if (!isApiReady || !walletsLoaded) return
+
+    const networkWallets = allWallets.filter(w => w.network === currentNetwork)
+    if (networkWallets.length === 0 || networkWallets.some(w => w.walletId === currentWallet)) return
+
+    let cancelled = false
+
+    const repairSelection = async (): Promise<void> => {
+      const status = await extensionAPI.getStatus()
+      if (cancelled) return
+
+      if (networkWallets.some(w => w.walletId === status.currentWalletId)) {
+        setCurrentWallet(status.currentWalletId)
+        return
+      }
+
+      await applyWalletChange(networkWallets[0].walletId)
+    }
+
+    repairSelection().catch(e => console.log('repairSelection error', e))
+
+    return () => { cancelled = true }
+  }, [isApiReady, walletsLoaded, allWallets, currentNetwork, currentWallet, extensionAPI, applyWalletChange])
+
   // body sits outside the React root, so its tab-mode class is synced here
   useEffect(() => {
     if (!isTabView()) return
@@ -208,6 +235,15 @@ const Layout: FC = () => {
     document.body.classList.add('tab-view')
 
     return () => { document.body.classList.remove('tab-view') }
+  }, [])
+
+  // DApp popup windows are sized from the outside, so body fits their viewport
+  useEffect(() => {
+    isPopupWindowView()
+      .then(isWindow => { if (isWindow) document.body.classList.add('window-view') })
+      .catch(e => console.log('isPopupWindowView error', e))
+
+    return () => { document.body.classList.remove('window-view') }
   }, [])
 
   return (

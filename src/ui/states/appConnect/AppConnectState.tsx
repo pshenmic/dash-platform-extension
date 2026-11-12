@@ -1,19 +1,23 @@
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useOutletContext, useParams } from 'react-router-dom'
+import { Text, Button } from 'dash-ui-kit/react'
 import { useExtensionAPI } from '../../hooks/useExtensionAPI'
-import { Text, Button, Heading, ValueCard } from 'dash-ui-kit/react'
 import { withAccessControl } from '../../components/auth/withAccessControl'
-import ButtonRow from '../../components/layout/ButtonRow'
-import { TitleBlock } from '../../components/layout/TitleBlock'
 import ScreenLoader from '../../components/layout/screens/ScreenLoader'
+import { Banner } from '../../components/cards'
+import { TitleBlock } from '../../components/layout/TitleBlock'
 import { AppConnect } from '../../../types/AppConnect'
 import { AppConnectStatus } from '../../../types/enums/AppConnectStatus'
-import { getFaviconUrl } from '../../../utils'
-import './appConnect.state.css'
+import { AppConnectHero } from './AppConnectHero'
+import { AppConnectPermissions } from './AppConnectPermissions'
+import { useConnectIdentities } from './useConnectIdentities'
+import type { OutletContext } from '../../types'
 
 function AppConnectState (): React.JSX.Element {
   const extensionAPI = useExtensionAPI()
   const params = useParams()
+  const { currentNetwork } = useOutletContext<OutletContext>()
+  const { identities, selected, allSelected, toggle, toggleAll, loaded } = useConnectIdentities()
 
   const [appConnect, setAppConnect] = useState<AppConnect | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -51,7 +55,7 @@ function AppConnectState (): React.JSX.Element {
 
     setProcessingStatus('approving')
     try {
-      await extensionAPI.approveAppConnect(params.id)
+      await extensionAPI.approveAppConnect(params.id, identities.length > 0 ? selected : undefined)
       window.close()
     } catch (error) {
       console.log('Error during approval:', error)
@@ -80,31 +84,25 @@ function AppConnectState (): React.JSX.Element {
 
   if (error != null || appConnect == null) {
     return (
-      <div className='screen-content'>
-        <TitleBlock title='Error' showLogo={false} />
-        <ValueCard colorScheme='default' className='flex flex-col items-start gap-2 bg-red-50 border-red-200'>
-          <Text size='lg' color='red'>
-            {error ?? 'Unknown error'}
-          </Text>
-        </ValueCard>
-        <Button onClick={() => window.close()} className='mt-5 w-full'>
+      <div className='screen-content gap-6'>
+        <TitleBlock variant='screen' title='Connection Request' />
+        <Banner variant='error' message={error ?? 'Unknown error'} />
+        <Button colorScheme='lightBlue' size='xl' className='w-full mt-auto' onClick={() => window.close()}>
           Close
         </Button>
       </div>
     )
   }
 
-  // If the request is already processed
   if (appConnect.status !== AppConnectStatus.pending) {
     return (
-      <div className='screen-content'>
-        <TitleBlock title='Request already processed' showLogo={false} />
-        <ValueCard colorScheme='lightBlue' className='flex flex-col items-start gap-2'>
-          <Text size='lg'>
-            This connection request has already been {appConnect.status === AppConnectStatus.approved ? 'approved' : 'rejected'}.
-          </Text>
-        </ValueCard>
-        <Button onClick={() => window.close()} className='mt-5 w-full'>
+      <div className='screen-content gap-6'>
+        <AppConnectHero
+          url={appConnect.url}
+          title='Request already processed'
+          description={`This connection request has already been ${appConnect.status === AppConnectStatus.approved ? 'approved' : 'rejected'}.`}
+        />
+        <Button colorScheme='lightBlue' size='xl' className='w-full mt-auto' onClick={() => window.close()}>
           Close
         </Button>
       </div>
@@ -112,42 +110,38 @@ function AppConnectState (): React.JSX.Element {
   }
 
   return (
-    <div className='screen-content gap-8'>
-      <div className='flex flex-col items-center gap-2'>
-        <div className='w-12 h-12 rounded-lg overflow-hidden shadow-xl mx-auto'>
-          <img
-            src={getFaviconUrl(appConnect.url, 48)}
-            alt='Site favicon'
-            className='w-full h-full object-cover'
-            onError={(e) => {
-              e.currentTarget.src = getFaviconUrl(appConnect.url, 32)
-            }}
-          />
-        </div>
-
-        <Heading as='h1' size='xl' className='text-center'>
-          Website Connection Request
-        </Heading>
-
-        <Text size='sm' className='break-all text-center'>
-          {appConnect.url}
-        </Text>
-      </div>
-
-      <ButtonRow
-        leftButton={{
-          text: processingStatus === 'rejecting' ? 'Rejecting...' : 'Reject',
-          onClick: () => { handleReject().catch(e => console.log('handleReject error: ', e)) },
-          colorScheme: 'lightBlue',
-          disabled: processingStatus != null
-        }}
-        rightButton={{
-          text: processingStatus === 'approving' ? 'Approving...' : 'Allow',
-          onClick: () => { handleApprove().catch(e => console.log('handleApprove error: ', e)) },
-          colorScheme: 'brand',
-          disabled: processingStatus != null
-        }}
+    <div className='screen-content gap-4'>
+      <AppConnectHero
+        url={appConnect.url}
+        title='Connection Request'
       />
+
+      <AppConnectPermissions identities={identities} selected={selected} allSelected={allSelected} onToggle={toggle} onToggleAll={toggleAll} network={currentNetwork} />
+
+      <Text size='xs' weight='medium' dim className='text-center'>
+        Only connect to websites you trust
+      </Text>
+
+      <div className='flex gap-2.5 mt-auto pt-2'>
+        <Button
+          colorScheme='lightBlue'
+          size='xl'
+          className='flex-1'
+          disabled={processingStatus != null}
+          onClick={() => { handleReject().catch(e => console.log('handleReject error: ', e)) }}
+        >
+          {processingStatus === 'rejecting' ? 'Rejecting...' : 'Reject'}
+        </Button>
+        <Button
+          colorScheme='brand'
+          size='xl'
+          className='flex-1'
+          disabled={processingStatus != null || !loaded || (identities.length > 0 && selected.length === 0)}
+          onClick={() => { handleApprove().catch(e => console.log('handleApprove error: ', e)) }}
+        >
+          {processingStatus === 'approving' ? 'Connecting...' : 'Connect'}
+        </Button>
+      </div>
     </div>
   )
 }
