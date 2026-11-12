@@ -181,7 +181,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
         border
         showArrow
         showItemBorders
-        className={`${className} h-12`}
+        className={`${className} h-12 bg-white/60 backdrop-blur-[15px] hover:bg-dash-primary-dark-blue/[0.03] hover:outline-[rgba(12,28,51,0.6)]`}
       />
 
       {activeKebab != null && (

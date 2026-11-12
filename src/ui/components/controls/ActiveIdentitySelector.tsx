@@ -21,21 +21,23 @@ export function ActiveIdentitySelector ({ currentIdentity, identities, currentWa
       <button
         type='button'
         onClick={() => setOpen(true)}
-        className='w-12 h-12 shrink-0 flex items-center justify-center cursor-pointer rounded-[0.875rem] bg-white outline outline-1 outline-offset-[-1px] outline-[rgba(12,28,51,0.35)] focus:outline-[rgba(12,28,51,0.6)] transition-all'
+        className='w-12 h-12 shrink-0 flex items-center justify-center cursor-pointer rounded-[0.875rem] bg-white/60 backdrop-blur-[15px] outline outline-1 outline-offset-[-1px] outline-[rgba(12,28,51,0.35)] focus:outline-[rgba(12,28,51,0.6)] hover:bg-dash-primary-dark-blue/[0.03] hover:outline-[rgba(12,28,51,0.6)] transition-all'
       >
         <div className='w-6 h-6 rounded-full overflow-hidden'>
           <Avatar username={currentIdentity} className='w-6 h-6' />
         </div>
       </button>
 
-      <SelectIdentityDialog
-        open={open}
-        onOpenChange={setOpen}
-        identities={identifiers}
-        currentIdentity={currentIdentity}
-        onSelectIdentity={onSelect}
-        currentWallet={currentWallet}
-      />
+      {open && (
+        <SelectIdentityDialog
+          open={open}
+          onOpenChange={setOpen}
+          identities={identifiers}
+          currentIdentity={currentIdentity}
+          onSelectIdentity={onSelect}
+          currentWallet={currentWallet}
+        />
+      )}
     </>
   )
 }

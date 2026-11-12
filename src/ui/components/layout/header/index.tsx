@@ -391,7 +391,7 @@ export default function Header (): React.JSX.Element {
               />
               )
             : (
-              <BackButton onClick={handleBack} />
+              <BackButton onClick={handleBack} className='backdrop-blur-[15px]' />
               )}
 
           {config.showWalletSelector && walletAndIdentitySelectors}
@@ -427,7 +427,7 @@ export default function Header (): React.JSX.Element {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             colorScheme={isLightChrome ? 'lightGray' : 'brand'}
             size='xl'
-            className='w-12 h-12 p-0 relative z-10'
+            className='w-12 h-12 p-0 relative z-10 backdrop-blur-[15px]'
           >
             <BurgerMenuIcon
               color={isLightChrome ? undefined : 'white'}

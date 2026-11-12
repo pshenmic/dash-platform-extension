@@ -1,5 +1,7 @@
 import React from 'react'
-import { Avatar, BigNumber, Identifier, NotActive, Text } from 'dash-ui-kit/react'
+import { Avatar, Identifier, Text } from 'dash-ui-kit/react'
+import { DashAmount } from '../common'
+import { creditsToDuffs, duffsToDashParts, duffsToFiatLabel } from '../../../utils'
 
 export type IdentityOptionVariant = 'simple' | 'full'
 
@@ -20,6 +22,11 @@ export interface IdentityOptionProps {
    * Balance in credits (for 'full' variant)
    */
   balance?: bigint | null
+
+  /**
+   * DASH/USD rate for the fiat line under the balance (for 'full' variant)
+   */
+  rate?: number | null
 
   /**
    * Loading state for balance
@@ -62,6 +69,7 @@ export function IdentityOption ({
   identity,
   variant = 'simple',
   balance = null,
+  rate = null,
   loading = false,
   error = false,
   selected = false,
@@ -71,7 +79,7 @@ export function IdentityOption ({
 }: IdentityOptionProps): React.JSX.Element {
   const defaultIdentifierProps = variant === 'simple'
     ? { middleEllipsis: true, edgeChars: 6, avatar: true }
-    : { highlight: 'both' as const, copyButton: true, className: 'text-sm font-light' }
+    : { highlight: 'both' as const, copyButton: true, className: 'text-xs font-light' }
 
   const mergedIdentifierProps = { ...defaultIdentifierProps, ...identifierProps }
 
@@ -94,8 +102,8 @@ export function IdentityOption ({
       } ${className}`}
       onClick={onClick}
     >
-      <div className='w-10 h-10'>
-        <Avatar username={identity} />
+      <div className='w-7 h-7 shrink-0'>
+        <Avatar username={identity} className='w-7 h-7' />
       </div>
 
       <div className='flex flex-1 items-center gap-2'>
@@ -104,25 +112,29 @@ export function IdentityOption ({
         </Identifier>
       </div>
 
-      {(balance != null || loading || error) && (
-        <div className='flex flex-col items-end gap-1 text-right shrink-0'>
-          <Text weight='semibold' size='sm'>
-            {loading
-              ? 'Loading...'
-              : (
-                <>
-                  {(error || balance == null)
-                    ? <NotActive>n/a</NotActive>
-                    : <BigNumber>{balance.toString()}</BigNumber>}
-                  Credits
-                </>
-                )}
-          </Text>
-          <Text size='xs' className='text-gray-500'>
-            ~ $0.00
-          </Text>
-        </div>
-      )}
+      {(balance != null || loading || error) && ((): React.JSX.Element => {
+        const duffs = balance != null ? creditsToDuffs(balance) : null
+        const parts = duffs != null ? duffsToDashParts(duffs) : null
+        const fiat = duffs != null ? duffsToFiatLabel(duffs, rate) : null
+
+        return (
+          <div className='flex flex-col items-end gap-1 text-right shrink-0'>
+            <DashAmount
+              whole={parts?.whole ?? null}
+              fraction={parts?.fraction ?? ''}
+              hide={false}
+              loading={loading && parts == null}
+              className='!text-base !leading-tight'
+              wholeClassName='font-semibold'
+            />
+            {fiat != null && (
+              <Text size='sm' className='text-gray-500'>
+                {fiat}
+              </Text>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }

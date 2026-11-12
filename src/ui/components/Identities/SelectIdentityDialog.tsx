@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { Button, Dialog, PlusIcon } from 'dash-ui-kit/react'
 import { useNavigate } from 'react-router-dom'
-import { WalletType } from '../../../types'
+import { WalletType, type NetworkType } from '../../../types'
 import type { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { getSdkPromise } from '../../../utils/sdkLoader'
+import { useDashRate } from '../../hooks'
 import { IdentityOption } from '../identity'
 
 interface SelectIdentityDialogProps {
@@ -32,6 +33,7 @@ const fetchBalances = async (identities: string[]): Promise<Record<string, bigin
 // Dialog listing the wallet identities with balances to pick the active one.
 export function SelectIdentityDialog ({ open, onOpenChange, identities, currentIdentity, onSelectIdentity, currentWallet }: SelectIdentityDialogProps): React.JSX.Element {
   const navigate = useNavigate()
+  const { rate } = useDashRate(currentWallet?.network as NetworkType | undefined)
   const [balances, setBalances] = useState<BalancesState>({ data: null, loading: false, error: false })
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export function SelectIdentityDialog ({ open, onOpenChange, identities, currentI
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      className='w-[390px] max-w-[390px] max-h-[500px] border-0'
+      className='w-[390px] max-w-[390px] max-h-[500px] border-0 [&_h2]:!text-xl'
       title='Your identity'
       size='xl'
       showCloseButton
@@ -70,6 +72,7 @@ export function SelectIdentityDialog ({ open, onOpenChange, identities, currentI
               variant='full'
               selected={identity === currentIdentity}
               balance={balances.data?.[identity] ?? null}
+              rate={rate}
               loading={balances.loading}
               error={balances.error || balances.data?.[identity] == null}
               onClick={() => {

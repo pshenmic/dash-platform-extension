@@ -46,7 +46,7 @@ export function NotificationsButton ({ walletId, network, isLightChrome }: Notif
         aria-label='Notifications'
         colorScheme={isLightChrome ? 'lightGray' : 'brand'}
         size='xl'
-        className='w-12 h-12 p-0 relative z-10'
+        className='w-12 h-12 p-0 relative z-10 backdrop-blur-[15px]'
       >
         <BellIcon
           color={isLightChrome ? undefined : 'white'}
