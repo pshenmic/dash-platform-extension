@@ -9,7 +9,7 @@ import { GetStatusResponse } from '../../../types/messages/response/GetStatusRes
 import { NetworkType, Identity } from '../../../types'
 import type { HeaderConfigOverride } from '../../types'
 import ScreenLoader from './screens/ScreenLoader'
-import { isTabView } from '../../utils/extensionTab'
+import { isTabView, isPopupWindowView } from '../../utils/extensionTab'
 
 export interface LayoutContext {
   currentNetwork: NetworkType
@@ -235,6 +235,15 @@ const Layout: FC = () => {
     document.body.classList.add('tab-view')
 
     return () => { document.body.classList.remove('tab-view') }
+  }, [])
+
+  // DApp popup windows are sized from the outside, so body fits their viewport
+  useEffect(() => {
+    isPopupWindowView()
+      .then(isWindow => { if (isWindow) document.body.classList.add('window-view') })
+      .catch(e => console.log('isPopupWindowView error', e))
+
+    return () => { document.body.classList.remove('window-view') }
   }, [])
 
   return (

@@ -3,6 +3,7 @@ import { Text, ValueCard, Select, KeyIcon } from 'dash-ui-kit/react'
 import { getPurposeLabel, getSecurityLabel } from '../../../enums'
 import { isKeyCompatible } from '../../../utils'
 import { MissingRequiredKeyWarning } from './MissingRequiredKeyWarning'
+import { FieldLabel } from '../typography'
 
 export interface PublicKeyInfo {
   keyId: number
@@ -25,6 +26,7 @@ interface PublicKeySelectProps {
   loading?: boolean
   error?: string | null
   keyRequirements?: KeyRequirement[]
+  showLabel?: boolean
 }
 
 export function PublicKeySelect ({
@@ -34,7 +36,8 @@ export function PublicKeySelect ({
   disabled = false,
   loading = false,
   error = null,
-  keyRequirements = []
+  keyRequirements = [],
+  showLabel = true
 }: PublicKeySelectProps): React.JSX.Element {
   // Auto-select first compatible key when keys or requirements change
   useEffect(() => {
@@ -121,7 +124,7 @@ export function PublicKeySelect ({
 
   return (
     <div className='flex flex-col gap-2.5'>
-      <Text size='md' opacity='50'>Choose Signing Key</Text>
+      {showLabel && <FieldLabel>Signing Key</FieldLabel>}
       {loading
         ? (
           <ValueCard colorScheme='lightGray' size='xl' className='h-[3.75rem] flex items-center'>

@@ -84,6 +84,12 @@ body.tab-view .root {
   box-shadow: 0 1.5rem 3rem rgba(12, 28, 51, 0.18);
 }
 
+/* DApp popup window: its viewport is smaller than the fixed popup size, so fill it instead. */
+body.window-view {
+  width: 100vw;
+  height: 100vh;
+}
+
 [data-radix-popper-content-wrapper] {
   z-index: 9999 !important;
 }
