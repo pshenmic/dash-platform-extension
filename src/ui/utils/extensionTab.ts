@@ -15,6 +15,15 @@ export interface OpenExtensionTab {
 export const isTabView = (): boolean =>
   new URLSearchParams(window.location.search).get('view') === 'tab'
 
+// True for a separate window opened by a DApp (connect, approve), false for the toolbar popup and tab view.
+export const isPopupWindowView = async (): Promise<boolean> => {
+  if (isTabView() || chrome?.tabs?.getCurrent == null) return false
+
+  const tab = await chrome.tabs.getCurrent().catch(() => undefined)
+
+  return tab != null
+}
+
 export const buildExtensionTabUrl = (hashPath: string): string =>
   chrome.runtime.getURL(`index.html?${TAB_VIEW_QUERY}#${hashPath}`)
 
