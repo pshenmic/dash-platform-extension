@@ -108,3 +108,15 @@ export const formatDateTime = (timestamp: number): string => {
   const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   return `${day}, ${time}`
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+// Relative time within the last day ("2h ago"), absolute date and time after that.
+export const formatRecentDateTime = (timestamp: DateInput, now: number = Date.now()): string | null => {
+  const time = new Date(timestamp).getTime()
+  if (Number.isNaN(time)) return null
+
+  return now - time >= 0 && now - time < DAY_MS
+    ? getTimeDelta(time, now)
+    : formatDateTime(time)
+}

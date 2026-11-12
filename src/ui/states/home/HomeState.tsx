@@ -117,6 +117,8 @@ function HomeState (): React.JSX.Element {
             transaction={lastTransaction}
             explorerUrl={explorerUrlFor(lastTransaction, currentNetwork)}
             layer={lastTransaction != null ? (lastTransaction.layer === 'core' ? 'Core' : 'Platform') : undefined}
+            hide={hideBalance}
+            rate={rate}
           />
         )}
       />

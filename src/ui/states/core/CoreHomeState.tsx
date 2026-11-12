@@ -64,6 +64,8 @@ function CoreHomeState (): React.JSX.Element {
             ? getCoreTransactionExplorerUrl(lastTransaction.hash, currentNetwork ?? 'testnet')
             : undefined}
           layer='Core'
+          hide={hideBalance}
+          rate={rate}
         />
       </div>
     </div>
