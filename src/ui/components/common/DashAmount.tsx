@@ -12,6 +12,8 @@ interface DashAmountProps {
   /** Some part of the amount is still loading, the value shown is partial. */
   loading?: boolean
   className?: string
+  /** Font weight of the whole part, extrabold by default. */
+  wholeClassName?: string
   spinnerClassName?: string
 }
 
@@ -21,6 +23,7 @@ export function DashAmount ({
   hide,
   loading = false,
   className,
+  wholeClassName = 'font-extrabold',
   spinnerClassName
 }: DashAmountProps): React.JSX.Element {
   if (hide) {
@@ -44,7 +47,7 @@ export function DashAmount ({
   return (
     <span className='inline-flex items-center gap-2 min-w-0'>
       <Text as='span' className={className}>
-        <span className='font-extrabold'>{whole}</span>
+        <span className={wholeClassName}>{whole}</span>
         <span className='font-medium' style={{ fontSize: `${fractionScale}em` }}>.{fraction} Dash</span>
       </Text>
       {loading && <InlineSpinner className={spinnerClassName} />}

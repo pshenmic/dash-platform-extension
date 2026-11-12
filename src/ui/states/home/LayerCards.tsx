@@ -56,7 +56,7 @@ function LayerCard ({
       {disabled && (
         <div className='pointer-events-none absolute inset-0 z-20 bg-[#8E95A3]/65' />
       )}
-      <div className={`relative z-10 flex flex-col gap-5 ${contentClassName}`}>
+      <div className={`relative z-10 flex flex-col gap-3 ${contentClassName}`}>
         <Text size='sm' weight='medium' className='!text-white !tracking-[-0.03em] !leading-none'>
           {title}
         </Text>

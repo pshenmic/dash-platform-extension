@@ -8,6 +8,7 @@ import { BackButton } from '../../common'
 import { NetworkSelector } from '../../controls/NetworkSelector'
 import { WalletSelector } from '../../controls/WalletSelector'
 import { IdentitySwitcher } from '../../controls/IdentitySwitcher'
+import { ActiveIdentitySelector } from '../../controls/ActiveIdentitySelector'
 import { NotificationsButton } from '../../notifications'
 import type { LayoutContext } from '../Layout'
 import type { NetworkType } from '../../../../types'
@@ -343,6 +344,33 @@ export default function Header (): React.JSX.Element {
     return 'none'
   }
 
+  // Falls back to the first wallet identity when none is stored as current yet.
+  const activeIdentity = availableIdentities?.find(identity => identity.identifier === currentIdentity)?.identifier ??
+    availableIdentities?.[0]?.identifier ??
+    null
+  const showActiveIdentity = config.showWalletSelector && activeIdentity != null
+
+  const walletAndIdentitySelectors = (
+    <>
+      <WalletSelector
+        onSelect={setCurrentWallet}
+        onRemoved={() => { void reloadWallets?.() }}
+        currentNetwork={currentNetwork}
+        wallets={allWallets}
+        currentWalletId={currentWallet}
+        className={showActiveIdentity ? '!w-40' : undefined}
+      />
+      {showActiveIdentity && (
+        <ActiveIdentitySelector
+          currentIdentity={activeIdentity}
+          identities={availableIdentities ?? []}
+          currentWallet={allWallets?.find(wallet => wallet.walletId === currentWallet) ?? null}
+          onSelect={(id) => { void setCurrentIdentity?.(id) }}
+        />
+      )}
+    </>
+  )
+
   const headerIdentityId = routeIdentifier ?? currentIdentity ?? ''
   const isLightChrome = variantKey === 'dashboard' || variantKey === 'platform' || variantKey === 'identity' || variantKey === 'core' || variantKey === 'transactions' || variantKey === 'receive'
 
@@ -363,10 +391,10 @@ export default function Header (): React.JSX.Element {
               />
               )
             : (
-              <BackButton onClick={handleBack} />
+              <BackButton onClick={handleBack} className='backdrop-blur-[15px]' />
               )}
 
-          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} onRemoved={() => { void reloadWallets?.() }} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
+          {config.showWalletSelector && walletAndIdentitySelectors}
           {config.showIdentitySwitcher && headerIdentityId !== '' && (
             <IdentitySwitcher
               identifier={headerIdentityId}
@@ -381,7 +409,7 @@ export default function Header (): React.JSX.Element {
       {config.hideLeftSection && (config.showNetworkSelector || config.showWalletSelector) && (
         <div className='flex items-center gap-2.5 relative z-10'>
           {config.showNetworkSelector && <NetworkSelector onSelect={setCurrentNetwork} currentNetwork={currentNetwork as NetworkType} wallets={allWallets} />}
-          {config.showWalletSelector && <WalletSelector onSelect={setCurrentWallet} onRemoved={() => { void reloadWallets?.() }} currentNetwork={currentNetwork} wallets={allWallets} currentWalletId={currentWallet} />}
+          {config.showWalletSelector && walletAndIdentitySelectors}
         </div>
       )}
 
@@ -399,7 +427,7 @@ export default function Header (): React.JSX.Element {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             colorScheme={isLightChrome ? 'lightGray' : 'brand'}
             size='xl'
-            className='w-12 h-12 p-0 relative z-10'
+            className='w-12 h-12 p-0 relative z-10 backdrop-blur-[15px]'
           >
             <BurgerMenuIcon
               color={isLightChrome ? undefined : 'white'}

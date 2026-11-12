@@ -52,7 +52,7 @@ export function fiatLabelFor (item: TransactionRowItem, rate: number | null | un
   return `~ $${(dash * rate).toFixed(3)}`
 }
 
-function TypeIcon ({ direction, status }: { direction: TransactionDirection, status?: StatusKey | null }): React.JSX.Element {
+export function TypeIcon ({ direction, status }: { direction: TransactionDirection, status?: StatusKey | null }): React.JSX.Element {
   return (
     <div className='relative shrink-0'>
       <div className='w-10 h-10 rounded-2xl bg-dash-brand flex items-center justify-center'>

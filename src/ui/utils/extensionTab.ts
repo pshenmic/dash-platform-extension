@@ -21,7 +21,12 @@ export const isPopupWindowView = async (): Promise<boolean> => {
 
   const tab = await chrome.tabs.getCurrent().catch(() => undefined)
 
-  return tab != null
+  if (tab?.windowId == null || chrome.windows?.get == null) return false
+
+  // Some browsers (Arc) give the toolbar popup a tab too, so the window type tells them apart.
+  const currentWindow = await chrome.windows.get(tab.windowId).catch(() => undefined)
+
+  return currentWindow?.type === 'popup'
 }
 
 export const buildExtensionTabUrl = (hashPath: string): string =>

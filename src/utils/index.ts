@@ -34,7 +34,7 @@ export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, max
 export type { ShieldedNoteSelection, ShieldedSpendEstimate } from './shieldedFee'
 export { ENDPOINT_TYPE_ORDER, getSourceUnavailableReason, resolveTransferPair, fallbackTargetType, canPayShieldedAddress, canShieldToOthers, isShieldToMyself } from './transferDirection'
 export type { TransferCapabilities, TransferUnavailableReason } from './transferDirection'
-export { formatDateTime } from './datetime'
+export { formatDateTime, formatRecentDateTime } from './datetime'
 export { checkRecipients, coreRecipientOutputs, platformRecipientOutputs } from './transferRecipients'
 export type { RecipientsCheck } from './transferRecipients'
 export { coreMaxForOutputs, extraCoreOutputsFee } from './coreSendMax'

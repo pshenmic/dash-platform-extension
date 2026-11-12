@@ -58,14 +58,17 @@ export function TransactionRowsSkeleton ({ count = 3 }: { count?: number }): Rea
 
 export function LastTransactionSkeleton (): React.JSX.Element {
   return (
-    <div className='flex flex-col gap-4 p-4 rounded-3xl bg-[rgba(12,28,51,0.03)]'>
-      <div className='flex items-center gap-2'>
-        <div className='w-6 h-6 rounded-full bg-white shrink-0' />
+    <div className='flex flex-col gap-3 p-4 rounded-3xl bg-[rgba(12,28,51,0.03)]'>
+      <div className='flex items-center justify-between gap-2 min-h-6'>
         <Skeleton className='h-3.5 w-28' />
+        <Skeleton className='h-6 w-16 !rounded-full' />
       </div>
-      <div className='flex flex-col gap-2'>
-        <Skeleton className='h-[1.2rem] w-32' />
-        <Skeleton className='h-2.5 w-full' />
+      <div className='flex items-center gap-3'>
+        <Skeleton className='w-10 h-10 !rounded-2xl shrink-0' />
+        <div className='flex flex-col gap-1.5'>
+          <Skeleton className='h-4 w-32' />
+          <Skeleton className='h-3 w-40' />
+        </div>
       </div>
     </div>
   )

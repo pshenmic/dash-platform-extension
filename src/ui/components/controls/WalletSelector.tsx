@@ -12,6 +12,7 @@ interface WalletSelectorProps {
   currentNetwork?: string | null
   currentWalletId?: string | null
   wallets?: WalletAccountInfo[]
+  className?: string
 }
 
 const KEBAB_MENU_WIDTH = 121
@@ -42,7 +43,7 @@ const IconWrap: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className='w-4 h-4 flex items-center justify-center flex-shrink-0'>{children}</div>
 )
 
-export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemoved, currentNetwork, currentWalletId, wallets = [] }) => {
+export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemoved, currentNetwork, currentWalletId, wallets = [], className = '!w-44' }) => {
   const navigate = useNavigate()
   const api = useExtensionAPI()
 
@@ -180,7 +181,7 @@ export const WalletSelector: React.FC<WalletSelectorProps> = ({ onSelect, onRemo
         border
         showArrow
         showItemBorders
-        className='!w-44 h-12'
+        className={`${className} h-12 bg-white/60 backdrop-blur-[15px] hover:bg-dash-primary-dark-blue/[0.03] hover:outline-[rgba(12,28,51,0.6)]`}
       />
 
       {activeKebab != null && (
