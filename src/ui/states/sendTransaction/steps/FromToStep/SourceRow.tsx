@@ -1,5 +1,4 @@
 import React from 'react'
-import { Text } from 'dash-ui-kit/react'
 import { Banner } from '../../../../components/cards'
 import { ShieldedSyncStatus } from '../../../../components/addresses'
 import type { UseShieldedSourceResult } from '../../hooks/useShieldedSource'
@@ -41,9 +40,6 @@ export function SourceRow ({ draft, identities, onIdentityChange, balance, rate,
           />
           )
         : balanceLabel}
-      {isShielded && shielded.isWarmingProver && (
-        <Text size='xs' dim>Preparing private prover...</Text>
-      )}
       {isShielded && <Banner variant='error' message={shielded.error} />}
     </div>
   )
