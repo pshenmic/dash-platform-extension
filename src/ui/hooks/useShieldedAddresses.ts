@@ -17,8 +17,6 @@ export interface UseShieldedAddressesResult {
   // Values of the unspent notes, in credits.
   unspentValues: bigint[]
   totalNotes: number
-  // The pool holds notes the last sync has not decrypted, so a sync with the password may find more.
-  hasUnscannedNotes: boolean
   rate: number | null
   // When incoming notes were last looked for, null if never.
   updatedAt: number | null
@@ -201,7 +199,6 @@ export function useShieldedAddresses (
     spendableNotes: state?.spendableNotes ?? 0,
     unspentValues,
     totalNotes: state?.notes.length ?? 0,
-    hasUnscannedNotes: hasLoaded && state.total > state.fetched,
     rate,
     updatedAt: state?.updatedAt ?? null,
     hasLoaded,

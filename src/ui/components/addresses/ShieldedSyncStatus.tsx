@@ -5,15 +5,13 @@ import { RefreshButton } from '../common'
 interface ShieldedSyncStatusProps {
   hasLoaded: boolean
   isSyncing: boolean
-  // When false the refresh button is hidden, as there is nothing new to find.
-  hasUpdates?: boolean
   // Shown left of the refresh button, e.g. the shielded balance.
   label?: React.ReactNode
   onSync: (password: string) => Promise<string | null>
 }
 
 // Shielded sync progress and a refresh button to look for incoming notes again.
-export function ShieldedSyncStatus ({ hasLoaded, isSyncing, hasUpdates = true, label, onSync }: ShieldedSyncStatusProps): React.JSX.Element | null {
+export function ShieldedSyncStatus ({ hasLoaded, isSyncing, label, onSync }: ShieldedSyncStatusProps): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleSync = async (password: string): Promise<string | null> => {
@@ -30,10 +28,6 @@ export function ShieldedSyncStatus ({ hasLoaded, isSyncing, hasUpdates = true, l
         onSubmit={handleSync}
       />
     )
-  }
-
-  if (!hasUpdates && !isSyncing) {
-    return label != null ? <>{label}</> : null
   }
 
   const row = (

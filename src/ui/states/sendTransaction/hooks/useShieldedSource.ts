@@ -9,8 +9,6 @@ export interface UseShieldedSourceResult {
   balance: bigint | null
   hasLoaded: boolean
   isSyncing: boolean
-  // New notes are in the pool, so the balance may have changed since the last sync.
-  hasUpdates: boolean
   isWarmingProver: boolean
   error: string | null
   sync: (password: string) => Promise<string | null>
@@ -47,7 +45,6 @@ export function useShieldedSource (enabled: boolean, network: NetworkType | null
     balance: shielded.balance != null ? toCreditsBigInt(shielded.balance) : null,
     hasLoaded: shielded.hasLoaded,
     isSyncing: shielded.isSyncing,
-    hasUpdates: shielded.hasUnscannedNotes,
     isWarmingProver,
     error: shielded.error,
     sync: shielded.sync,
