@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import { RefreshIcon } from 'dash-ui-kit/react'
 import { PasswordGate } from '../forms'
-import { IconButton } from '../common'
+import { RefreshButton } from '../common'
 
 interface ShieldedSyncStatusProps {
   hasLoaded: boolean
@@ -41,9 +40,7 @@ export function ShieldedSyncStatus ({ hasLoaded, isSyncing, hasUpdates = true, l
     <div className='flex items-center gap-2'>
       {label}
       <div className='ml-auto shrink-0'>
-        <IconButton variant='subtle' label='Check for incoming shielded notes' onClick={() => { if (!isSyncing) setIsOpen(open => !open) }}>
-          <RefreshIcon size={12} className={`text-dash-primary-dark-blue ${isSyncing ? 'animate-spin' : ''}`} />
-        </IconButton>
+        <RefreshButton variant='subtle' label='Check for incoming shielded notes' loading={isSyncing} onClick={() => { if (!isSyncing) setIsOpen(open => !open) }} />
       </div>
     </div>
   )
