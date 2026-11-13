@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { WalletType, type NetworkType } from '../../../types'
 import type { WalletAccountInfo } from '../../../types/messages/response/GetAllWalletsResponse'
 import { getSdkPromise } from '../../../utils/sdkLoader'
-import { useDashRate } from '../../hooks'
+import { useDashRate, useIdentityNames } from '../../hooks'
 import { IdentityOption } from '../identity'
 
 interface SelectIdentityDialogProps {
@@ -33,7 +33,9 @@ const fetchBalances = async (identities: string[]): Promise<Record<string, bigin
 // Dialog listing the wallet identities with balances to pick the active one.
 export function SelectIdentityDialog ({ open, onOpenChange, identities, currentIdentity, onSelectIdentity, currentWallet }: SelectIdentityDialogProps): React.JSX.Element {
   const navigate = useNavigate()
-  const { rate } = useDashRate(currentWallet?.network as NetworkType | undefined)
+  const network = currentWallet?.network as NetworkType | undefined
+  const { rate } = useDashRate(network)
+  const namesById = useIdentityNames(identities, network ?? 'testnet')
   const [balances, setBalances] = useState<BalancesState>({ data: null, loading: false, error: false })
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export function SelectIdentityDialog ({ open, onOpenChange, identities, currentI
             <IdentityOption
               key={identity}
               identity={identity}
+              name={namesById.get(identity) ?? null}
               variant='full'
               selected={identity === currentIdentity}
               balance={balances.data?.[identity] ?? null}

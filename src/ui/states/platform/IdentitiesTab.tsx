@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import {
   Avatar,
@@ -9,9 +9,8 @@ import {
   Text
 } from 'dash-ui-kit/react'
 import type { Identity, NetworkType } from '../../../types'
-import { fetchNames, getIdentityExplorerUrl, splitDpns } from '../../../utils'
-import { getSdkPromise } from '../../../utils/sdkLoader'
-import { usePlatformExplorerClient } from '../../hooks'
+import { getIdentityExplorerUrl, splitDpns } from '../../../utils'
+import { useIdentityNames } from '../../hooks'
 import type { UseWalletPlatformDataResult } from '../../hooks'
 import { locationReturnState, type OutletContext } from '../../types'
 import { ExplorerCopyChips } from '../../components/common'
@@ -113,40 +112,11 @@ function IdentityCard ({
 
 export function IdentitiesTab ({ hide, identities, platformData }: IdentitiesTabProps): React.JSX.Element {
   const navigate = useNavigate()
-  const platformExplorerClient = usePlatformExplorerClient()
   const { currentNetwork, currentWallet, allWallets, setCurrentIdentity } = useOutletContext<OutletContext>()
   const network: NetworkType = currentNetwork ?? 'testnet'
   const walletType = allWallets.find(wallet => wallet.walletId === currentWallet)?.type
-  const [namesById, setNamesById] = useState<Map<string, string>>(new Map())
-
-  useEffect(() => {
-    if (identities.length === 0) {
-      setNamesById(new Map())
-      return
-    }
-
-    let cancelled = false
-
-    // Awaited here rather than via useSdk, which would suspend the whole page on the first tab open.
-    const load = async (): Promise<void> => {
-      const sdk = await getSdkPromise()
-      const entries = await Promise.all(identities.map(async (identity) => {
-        const names = await fetchNames(sdk, platformExplorerClient, identity.identifier, network)
-        const first = names[0]?.name
-        return [identity.identifier, first != null && first !== '' ? first : null] as const
-      }))
-      if (cancelled) return
-      setNamesById(new Map(
-        entries.filter((entry): entry is readonly [string, string] => entry[1] != null)
-      ))
-    }
-
-    void load().catch(e => console.log('load identity names error', e))
-
-    return () => {
-      cancelled = true
-    }
-  }, [identities, network, platformExplorerClient])
+  const identifiers = useMemo(() => identities.map(identity => identity.identifier), [identities])
+  const namesById = useIdentityNames(identifiers, network)
 
   const rows = useMemo((): IdentityRow[] => {
     const dataById = new Map(platformData.identities.map(item => [item.identifier, item]))
