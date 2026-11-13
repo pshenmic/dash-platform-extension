@@ -8,6 +8,7 @@ export { StatCard, StatCardSkeleton, StatValue, StatValueSkeleton } from './Stat
 export { IconButton } from './IconButton'
 export type { IconButtonVariant } from './IconButton'
 export { BalanceActions } from './BalanceActions'
+export { RefreshButton } from './RefreshButton'
 export { ExplorerCopyChips } from './ExplorerCopyChips'
 export { InlineSpinner } from './InlineSpinner'
 export { Username } from './Username'

@@ -77,12 +77,17 @@ export const selectShieldedNotes = (spendable: RecoveredNoteWASM[], amountCredit
 // cap, the value of the largest notes minus the fee for spending them. Zero, with
 // no notes, when no set of notes covers its own fee.
 export const maxShieldedSpend = (spendable: RecoveredNoteWASM[], kind: ShieldedSpendKind): ShieldedSpendEstimate => {
-  const sorted = sortByValueDesc(spendable)
+  return maxShieldedSpendForValues(spendable.map(note => note.note.value), kind)
+}
+
+// Same as maxShieldedSpend, from the values of the unspent notes alone.
+export const maxShieldedSpendForValues = (values: bigint[], kind: ShieldedSpendKind): ShieldedSpendEstimate => {
+  const sorted = [...values].sort((a, b) => (a < b ? 1 : -1))
 
   let best: ShieldedSpendEstimate = { amountCredits: 0n, feeCredits: computeShieldedSpendFee(kind, 0), notesCount: 0 }
   let total = 0n
   for (let count = 1; count <= Math.min(sorted.length, SHIELDED_MAX_SPEND_NOTES); count++) {
-    total += sorted[count - 1].note.value
+    total += sorted[count - 1]
     const feeCredits = computeShieldedSpendFee(kind, count)
     const amountCredits = total - feeCredits
 

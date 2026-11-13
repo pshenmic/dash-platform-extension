@@ -1,6 +1,7 @@
 import React from 'react'
-import { EyeClosedIcon, EyeOpenIcon, RefreshIcon } from 'dash-ui-kit/react'
+import { EyeClosedIcon, EyeOpenIcon } from 'dash-ui-kit/react'
 import { IconButton, type IconButtonVariant } from './IconButton'
+import { RefreshButton } from './RefreshButton'
 
 interface BalanceActionsProps {
   hide: boolean
@@ -29,9 +30,7 @@ export function BalanceActions ({
           ? <EyeClosedIcon size={iconSize} className={iconClassName} />
           : <EyeOpenIcon size={iconSize} className={iconClassName} />}
       </IconButton>
-      <IconButton variant={variant} label='Refresh' onClick={onRefresh}>
-        <RefreshIcon size={iconSize} className={loading ? `animate-spin ${iconClassName}` : iconClassName} />
-      </IconButton>
+      <RefreshButton variant={variant} loading={loading} onClick={onRefresh} />
     </div>
   )
 }

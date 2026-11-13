@@ -1,25 +1,17 @@
 import React, { useState } from 'react'
-import { Text } from 'dash-ui-kit/react'
 import { PasswordGate } from '../forms'
+import { RefreshButton } from '../common'
 
 interface ShieldedSyncStatusProps {
   hasLoaded: boolean
-  updatedAt: number | null
   isSyncing: boolean
+  // Shown left of the refresh button, e.g. the shielded balance.
+  label?: React.ReactNode
   onSync: (password: string) => Promise<string | null>
 }
 
-const formatCheckedAt = (timestamp: number): string => {
-  const date = new Date(timestamp)
-  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-
-  return date.toDateString() === new Date().toDateString()
-    ? time
-    : `${date.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${time}`
-}
-
-// Shows when incoming shielded notes were last looked for and lets the user look again.
-export function ShieldedSyncStatus ({ hasLoaded, updatedAt, isSyncing, onSync }: ShieldedSyncStatusProps): React.JSX.Element {
+// Shielded sync progress and a refresh button to look for incoming notes again.
+export function ShieldedSyncStatus ({ hasLoaded, isSyncing, label, onSync }: ShieldedSyncStatusProps): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleSync = async (password: string): Promise<string | null> => {
@@ -28,11 +20,7 @@ export function ShieldedSyncStatus ({ hasLoaded, updatedAt, isSyncing, onSync }:
     return syncError
   }
 
-  if (isSyncing) {
-    return <Text size='sm' dim>Syncing shielded notes...</Text>
-  }
-
-  if (!hasLoaded) {
+  if (!hasLoaded && !isSyncing) {
     return (
       <PasswordGate
         description='Enter your password to sync shielded addresses.'
@@ -42,29 +30,28 @@ export function ShieldedSyncStatus ({ hasLoaded, updatedAt, isSyncing, onSync }:
     )
   }
 
-  if (isOpen) {
-    return (
+  const row = (
+    <div className='flex items-center gap-2'>
+      {label}
+      <div className='ml-auto shrink-0'>
+        <RefreshButton variant='subtle' label='Check for incoming shielded notes' loading={isSyncing} onClick={() => { if (!isSyncing) setIsOpen(open => !open) }} />
+      </div>
+    </div>
+  )
+
+  if (!isOpen || isSyncing) {
+    return row
+  }
+
+  return (
+    <div className='flex flex-col gap-2'>
+      {row}
       <PasswordGate
         description='Enter your password to check for incoming shielded notes.'
         submitLabel='Check incoming'
         onSubmit={handleSync}
         onCancel={() => { setIsOpen(false) }}
       />
-    )
-  }
-
-  return (
-    <div className='flex items-center justify-between gap-2'>
-      <Text size='sm' dim>
-        Incoming checked {updatedAt != null ? formatCheckedAt(updatedAt) : '-'}
-      </Text>
-      <button
-        type='button'
-        className='border-0 bg-transparent p-0 cursor-pointer'
-        onClick={() => { setIsOpen(true) }}
-      >
-        <Text size='sm' weight='medium' className='!text-dash-brand'>Check now</Text>
-      </button>
     </div>
   )
 }

@@ -31,8 +31,6 @@ export const RECIPIENT_PLACEHOLDERS = {
   shielded: 'Shielded Address'
 }
 
-export const SHIELDED_UNLOCK_DESCRIPTION = 'Enter your password to unlock the shielded balance.'
-
 // Count of Advanced recipients, e.g. '2 recipients'.
 export const recipientsCountLabel = (count: number): string => `${count} ${count === 1 ? 'recipient' : 'recipients'}`
 

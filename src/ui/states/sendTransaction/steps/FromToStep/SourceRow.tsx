@@ -1,20 +1,11 @@
 import React from 'react'
-import { Text } from 'dash-ui-kit/react'
-import { PasswordGate } from '../../../../components/forms'
 import { Banner } from '../../../../components/cards'
-import { SHIELDED_UNLOCK_DESCRIPTION } from '../../constants'
+import { ShieldedSyncStatus } from '../../../../components/addresses'
+import type { UseShieldedSourceResult } from '../../hooks/useShieldedSource'
 import type { SourceIdentity, TransferDraft } from '../../types'
 import type { SourceBalance } from '../../hooks/useSourceBalance'
 import { SourceIdentitySelect } from './SourceIdentitySelect'
 import { SourceBalanceLabel } from './SourceBalanceLabel'
-
-interface ShieldedState {
-  balance: bigint | null
-  isUnlocking: boolean
-  isWarmingProver: boolean
-  error: string | null
-  unlock: (password: string) => Promise<string | null>
-}
 
 interface SourceRowProps {
   draft: TransferDraft
@@ -22,10 +13,10 @@ interface SourceRowProps {
   onIdentityChange: (identityId: string) => void
   balance: SourceBalance
   rate: number | null
-  shielded: ShieldedState
+  shielded: UseShieldedSourceResult
 }
 
-// Second row of the From card: identity picker, shielded unlock or the source balance.
+// Second row of the From card: identity picker, shielded sync or the source balance.
 export function SourceRow ({ draft, identities, onIdentityChange, balance, rate, shielded }: SourceRowProps): React.JSX.Element | null {
   if (draft.from.type === 'identity') {
     return (
@@ -33,25 +24,22 @@ export function SourceRow ({ draft, identities, onIdentityChange, balance, rate,
     )
   }
 
-  if (draft.from.type === 'shielded' && shielded.balance == null) {
-    return (
-      <PasswordGate
-        description={SHIELDED_UNLOCK_DESCRIPTION}
-        submitLabel='Unlock'
-        pendingLabel='Unlocking...'
-        isPending={shielded.isUnlocking}
-        onSubmit={async (password) => await shielded.unlock(password)}
-      />
-    )
-  }
+  const isShielded = draft.from.type === 'shielded'
+  const balanceLabel = <SourceBalanceLabel balance={balance} rate={rate} />
 
   return (
     <div className='flex flex-col gap-2'>
-      <SourceBalanceLabel balance={balance} rate={rate} />
-      {draft.from.type === 'shielded' && shielded.isWarmingProver && (
-        <Text size='xs' dim>Preparing private prover...</Text>
-      )}
-      <Banner variant='error' message={shielded.error} />
+      {isShielded
+        ? (
+          <ShieldedSyncStatus
+            hasLoaded={shielded.hasLoaded}
+            isSyncing={shielded.isSyncing}
+            label={balanceLabel}
+            onSync={async (password) => await shielded.sync(password)}
+          />
+          )
+        : balanceLabel}
+      {isShielded && <Banner variant='error' message={shielded.error} />}
     </div>
   )
 }

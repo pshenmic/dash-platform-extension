@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useExtensionAPI } from './useExtensionAPI'
 import { usePlatformExplorerClient } from './usePlatformExplorerClient'
 import type { ShieldedAddressData } from '../components/addresses'
@@ -14,6 +14,8 @@ export interface UseShieldedAddressesResult {
   // Unspent credits, null until the wallet has been synced.
   balance: string | null
   spendableNotes: number
+  // Values of the unspent notes, in credits.
+  unspentValues: bigint[]
   totalNotes: number
   rate: number | null
   // When incoming notes were last looked for, null if never.
@@ -187,10 +189,15 @@ export function useShieldedAddresses (
 
   const hasLoaded = state?.updatedAt != null
 
+  const unspentValues = useMemo((): bigint[] => (state?.notes ?? [])
+    .filter(note => !note.isSpent)
+    .map(note => toCreditsBigInt(note.value) ?? 0n), [state])
+
   return {
     rows: hasLoaded ? buildRows(state) : [],
     balance: hasLoaded ? state.balance : null,
     spendableNotes: state?.spendableNotes ?? 0,
+    unspentValues,
     totalNotes: state?.notes.length ?? 0,
     rate,
     updatedAt: state?.updatedAt ?? null,
