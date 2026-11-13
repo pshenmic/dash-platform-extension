@@ -8,7 +8,6 @@ import type { ShieldedSpendEstimate } from '../../../../utils'
 export interface UseShieldedSourceResult {
   balance: bigint | null
   hasLoaded: boolean
-  updatedAt: number | null
   isSyncing: boolean
   // New notes are in the pool, so the balance may have changed since the last sync.
   hasUpdates: boolean
@@ -47,7 +46,6 @@ export function useShieldedSource (enabled: boolean, network: NetworkType | null
   return {
     balance: shielded.balance != null ? toCreditsBigInt(shielded.balance) : null,
     hasLoaded: shielded.hasLoaded,
-    updatedAt: shielded.updatedAt,
     isSyncing: shielded.isSyncing,
     hasUpdates: shielded.hasUnscannedNotes,
     isWarmingProver,

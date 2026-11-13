@@ -4,24 +4,14 @@ import { PasswordGate } from '../forms'
 
 interface ShieldedSyncStatusProps {
   hasLoaded: boolean
-  updatedAt: number | null
   isSyncing: boolean
   // When false the check button is hidden, as there is nothing new to find.
   hasUpdates?: boolean
   onSync: (password: string) => Promise<string | null>
 }
 
-const formatCheckedAt = (timestamp: number): string => {
-  const date = new Date(timestamp)
-  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-
-  return date.toDateString() === new Date().toDateString()
-    ? time
-    : `${date.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${time}`
-}
-
-// Shows when incoming shielded notes were last looked for and lets the user look again.
-export function ShieldedSyncStatus ({ hasLoaded, updatedAt, isSyncing, hasUpdates = true, onSync }: ShieldedSyncStatusProps): React.JSX.Element {
+// Shielded sync progress and a button to look for incoming notes again.
+export function ShieldedSyncStatus ({ hasLoaded, isSyncing, hasUpdates = true, onSync }: ShieldedSyncStatusProps): React.JSX.Element | null {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleSync = async (password: string): Promise<string | null> => {
@@ -55,20 +45,19 @@ export function ShieldedSyncStatus ({ hasLoaded, updatedAt, isSyncing, hasUpdate
     )
   }
 
+  if (!hasUpdates) {
+    return null
+  }
+
   return (
-    <div className='flex items-center justify-between gap-2'>
-      <Text size='sm' dim>
-        Incoming checked {updatedAt != null ? formatCheckedAt(updatedAt) : '-'}
-      </Text>
-      {hasUpdates && (
-        <button
-          type='button'
-          className='border-0 bg-transparent p-0 cursor-pointer'
-          onClick={() => { setIsOpen(true) }}
-        >
-          <Text size='sm' weight='medium' className='!text-dash-brand'>Check now</Text>
-        </button>
-      )}
+    <div className='flex justify-end'>
+      <button
+        type='button'
+        className='border-0 bg-transparent p-0 cursor-pointer'
+        onClick={() => { setIsOpen(true) }}
+      >
+        <Text size='sm' weight='medium' className='!text-dash-brand'>Check now</Text>
+      </button>
     </div>
   )
 }

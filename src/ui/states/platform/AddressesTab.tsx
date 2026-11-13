@@ -346,7 +346,6 @@ export function AddressesTab ({
         <>
           <ShieldedSyncStatus
             hasLoaded={shielded.hasLoaded}
-            updatedAt={shielded.updatedAt}
             isSyncing={shielded.isSyncing}
             onSync={handleShieldedSync}
           />

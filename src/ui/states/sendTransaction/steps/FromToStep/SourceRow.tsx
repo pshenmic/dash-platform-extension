@@ -29,7 +29,6 @@ export function SourceRow ({ draft, identities, onIdentityChange, balance, rate,
   const syncStatus = (
     <ShieldedSyncStatus
       hasLoaded={shielded.hasLoaded}
-      updatedAt={shielded.updatedAt}
       isSyncing={shielded.isSyncing}
       hasUpdates={shielded.hasUpdates}
       onSync={async (password) => await shielded.sync(password)}
