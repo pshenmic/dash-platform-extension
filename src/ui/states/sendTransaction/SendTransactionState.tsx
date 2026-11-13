@@ -16,7 +16,7 @@ import type { EntryDefaults } from './entry/resolveEntryDefaults'
 import { resolveDirection } from './directions/resolveDirection'
 import { useTransferDraft } from './hooks/useTransferDraft'
 import { useSendScreenData } from './hooks/useSendScreenData'
-import { useShieldedBalance } from './hooks/useShieldedBalance'
+import { useShieldedSource } from './hooks/useShieldedSource'
 import { useSourceBalance } from './hooks/useSourceBalance'
 import { coreMaxAmount, recipientCount, shieldedMaxAmount, useTransferFee } from './hooks/useTransferFee'
 import { useTransferSubmit } from './hooks/useTransferSubmit'
@@ -70,7 +70,7 @@ function SendWizard ({ entry, capabilities, platformAddresses }: SendWizardProps
   const token = tokenId != null ? tokens.find(item => item.identifier === tokenId) : undefined
   // Platform Explorer answers faster than DAPI, so it supplies the balances of the identity list.
   const platformData = useWalletPlatformData(availableIdentities, currentNetwork)
-  const shielded = useShieldedBalance()
+  const shielded = useShieldedSource(draft.from.type === 'shielded', currentNetwork, currentWallet)
   const core = useCoreBalance(currentWallet, capabilities.hasCoreLayer)
   const coreBalance = core.balance != null ? BigInt(core.balance.balance) : null
 

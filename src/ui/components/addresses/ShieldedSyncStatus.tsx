@@ -6,6 +6,8 @@ interface ShieldedSyncStatusProps {
   hasLoaded: boolean
   updatedAt: number | null
   isSyncing: boolean
+  // When false the check button is hidden, as there is nothing new to find.
+  hasUpdates?: boolean
   onSync: (password: string) => Promise<string | null>
 }
 
@@ -19,7 +21,7 @@ const formatCheckedAt = (timestamp: number): string => {
 }
 
 // Shows when incoming shielded notes were last looked for and lets the user look again.
-export function ShieldedSyncStatus ({ hasLoaded, updatedAt, isSyncing, onSync }: ShieldedSyncStatusProps): React.JSX.Element {
+export function ShieldedSyncStatus ({ hasLoaded, updatedAt, isSyncing, hasUpdates = true, onSync }: ShieldedSyncStatusProps): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleSync = async (password: string): Promise<string | null> => {
@@ -58,13 +60,15 @@ export function ShieldedSyncStatus ({ hasLoaded, updatedAt, isSyncing, onSync }:
       <Text size='sm' dim>
         Incoming checked {updatedAt != null ? formatCheckedAt(updatedAt) : '-'}
       </Text>
-      <button
-        type='button'
-        className='border-0 bg-transparent p-0 cursor-pointer'
-        onClick={() => { setIsOpen(true) }}
-      >
-        <Text size='sm' weight='medium' className='!text-dash-brand'>Check now</Text>
-      </button>
+      {hasUpdates && (
+        <button
+          type='button'
+          className='border-0 bg-transparent p-0 cursor-pointer'
+          onClick={() => { setIsOpen(true) }}
+        >
+          <Text size='sm' weight='medium' className='!text-dash-brand'>Check now</Text>
+        </button>
+      )}
     </div>
   )
 }
