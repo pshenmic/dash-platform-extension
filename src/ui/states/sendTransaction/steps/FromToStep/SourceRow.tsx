@@ -26,23 +26,21 @@ export function SourceRow ({ draft, identities, onIdentityChange, balance, rate,
   }
 
   const isShielded = draft.from.type === 'shielded'
-  const syncStatus = (
-    <ShieldedSyncStatus
-      hasLoaded={shielded.hasLoaded}
-      isSyncing={shielded.isSyncing}
-      hasUpdates={shielded.hasUpdates}
-      onSync={async (password) => await shielded.sync(password)}
-    />
-  )
-
-  if (isShielded && !shielded.hasLoaded) {
-    return syncStatus
-  }
+  const balanceLabel = <SourceBalanceLabel balance={balance} rate={rate} />
 
   return (
     <div className='flex flex-col gap-2'>
-      <SourceBalanceLabel balance={balance} rate={rate} />
-      {isShielded && syncStatus}
+      {isShielded
+        ? (
+          <ShieldedSyncStatus
+            hasLoaded={shielded.hasLoaded}
+            isSyncing={shielded.isSyncing}
+            hasUpdates={shielded.hasUpdates}
+            label={balanceLabel}
+            onSync={async (password) => await shielded.sync(password)}
+          />
+          )
+        : balanceLabel}
       {isShielded && shielded.isWarmingProver && (
         <Text size='xs' dim>Preparing private prover...</Text>
       )}

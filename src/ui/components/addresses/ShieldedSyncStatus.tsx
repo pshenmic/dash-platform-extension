@@ -7,11 +7,13 @@ interface ShieldedSyncStatusProps {
   isSyncing: boolean
   // When false the check button is hidden, as there is nothing new to find.
   hasUpdates?: boolean
+  // Shown left of the check button, e.g. the shielded balance.
+  label?: React.ReactNode
   onSync: (password: string) => Promise<string | null>
 }
 
 // Shielded sync progress and a button to look for incoming notes again.
-export function ShieldedSyncStatus ({ hasLoaded, isSyncing, hasUpdates = true, onSync }: ShieldedSyncStatusProps): React.JSX.Element | null {
+export function ShieldedSyncStatus ({ hasLoaded, isSyncing, hasUpdates = true, label, onSync }: ShieldedSyncStatusProps): React.JSX.Element | null {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleSync = async (password: string): Promise<string | null> => {
@@ -21,7 +23,12 @@ export function ShieldedSyncStatus ({ hasLoaded, isSyncing, hasUpdates = true, o
   }
 
   if (isSyncing) {
-    return <Text size='sm' dim>Syncing shielded notes...</Text>
+    return (
+      <div className='flex flex-col gap-2'>
+        {label}
+        <Text size='sm' dim>Syncing shielded notes...</Text>
+      </div>
+    )
   }
 
   if (!hasLoaded) {
@@ -36,24 +43,28 @@ export function ShieldedSyncStatus ({ hasLoaded, isSyncing, hasUpdates = true, o
 
   if (isOpen) {
     return (
-      <PasswordGate
-        description='Enter your password to check for incoming shielded notes.'
-        submitLabel='Check incoming'
-        onSubmit={handleSync}
-        onCancel={() => { setIsOpen(false) }}
-      />
+      <div className='flex flex-col gap-2'>
+        {label}
+        <PasswordGate
+          description='Enter your password to check for incoming shielded notes.'
+          submitLabel='Check incoming'
+          onSubmit={handleSync}
+          onCancel={() => { setIsOpen(false) }}
+        />
+      </div>
     )
   }
 
   if (!hasUpdates) {
-    return null
+    return label != null ? <>{label}</> : null
   }
 
   return (
-    <div className='flex justify-end'>
+    <div className='flex items-center gap-2'>
+      {label}
       <button
         type='button'
-        className='border-0 bg-transparent p-0 cursor-pointer'
+        className='ml-auto shrink-0 border-0 bg-transparent p-0 cursor-pointer'
         onClick={() => { setIsOpen(true) }}
       >
         <Text size='sm' weight='medium' className='!text-dash-brand'>Check now</Text>
