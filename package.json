@@ -1,5 +1,5 @@
 {
-  "name": "dash-platform-extension",
+  "name": "dash-extension",
   "version": "1.5.3",
   "homepage": "https://github.com/pshenmic/dash-platform-extension",
   "description": "A browser extension wallet for interacting with Dash Platform, providing secure identity management, wallet functionality, and transaction signing capabilities for DApps.",
@@ -23,8 +23,8 @@
     "@scure/base": "^1.2.4",
     "@scure/bip32": "^2.4.0",
     "@scure/bip39": "^1.6.0",
-    "dash-core-sdk": "1.1.4",
-    "dash-platform-sdk": "1.6.0-dev.8",
+    "dash-core-sdk": "1.1.6-dev.2",
+    "dash-platform-sdk": "1.6.2",
     "dash-ui-kit": "2.1.6",
     "eciesjs": "^0.4.18",
     "hash.js": "^1.1.7",
