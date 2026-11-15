@@ -58,7 +58,7 @@
   </tr>
   <tr>
     <td align="center"><img src="public/img/screenshots/send.png" alt="Send screen" width="260"><br><sub><b>Send between layers</b></sub></td>
-    <td align="center"><img src="public/img/screenshots/connect.png" alt="Website connection request" width="260"><br><sub><b>Website permissions</b></sub></td>
+    <td align="center"><img src="public/img/screenshots/connect.png" alt="Connection request from a website, listing the identities it may see" width="260"><br><sub><b>Connection requests</b></sub></td>
     <td align="center"><img src="public/img/screenshots/approve-details.png" alt="Decoded transaction details" width="260"><br><sub><b>Decoded approvals</b></sub></td>
   </tr>
 </table>
