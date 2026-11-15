@@ -11,11 +11,11 @@ import {
   Tooltip,
   ValueCard
 } from 'dash-ui-kit/react'
-import { IconChip } from '../../components/common'
+import { IconChip, RefreshButton } from '../../components/common'
 import { PasswordGate } from '../../components/forms'
 import { usePlatformExplorerClient } from '../../hooks'
 import type { UsePlatformAddressesResult, UseShieldedAddressesResult } from '../../hooks'
-import { ShieldedSyncStatus, type AddressData, type ShieldedAddressData } from '../../components/addresses'
+import { type AddressData, type ShieldedAddressData } from '../../components/addresses'
 import type { OutletContext } from '../../types/OutletContext'
 import type { NetworkType } from '../../../types'
 import { creditsToDashDisplay, creditsToUsdEquivalent, getPlatformAddressExplorerUrl, toCreditsBigInt } from '../../../utils'
@@ -202,6 +202,7 @@ export function AddressesTab ({
   const platformExplorerClient = usePlatformExplorerClient()
   const [rate, setRate] = useState<number | null>(null)
   const [creatingShielded, setCreatingShielded] = useState(false)
+  const [checkingShielded, setCheckingShielded] = useState(false)
 
   useEffect(() => {
     platformExplorerClient.fetchRate(network)
@@ -223,7 +224,9 @@ export function AddressesTab ({
   }
 
   const handleShieldedSync = async (password: string): Promise<string | null> => {
-    return await shielded.sync(password)
+    const syncError = await shielded.sync(password)
+    if (syncError == null) setCheckingShielded(false)
+    return syncError
   }
 
   const handleAdd = (): void => {
@@ -281,18 +284,23 @@ export function AddressesTab ({
             )}
           </button>
         </div>
-        <Button
-          type='button'
-          colorScheme='lightBlue'
-          className='!h-[25px] !min-h-0 !rounded-lg !px-2 !py-2 !border-0 !normal-case gap-[0.3rem] !text-xs'
-          onClick={handleAdd}
-          disabled={addDisabled}
-        >
-          <PlusIcon size={14} className='!text-dash-brand shrink-0' />
-          <Text weight='medium' className={`${headerTextClassName} !text-dash-brand`}>
-            Add Address
-          </Text>
-        </Button>
+        <div className='flex items-center gap-2'>
+          <Button
+            type='button'
+            colorScheme='lightBlue'
+            className='!h-[25px] !min-h-0 !rounded-lg !px-2 !py-2 !border-0 !normal-case gap-[0.3rem] !text-xs'
+            onClick={handleAdd}
+            disabled={addDisabled}
+          >
+            <PlusIcon size={14} className='!text-dash-brand shrink-0' />
+            <Text weight='medium' className={`${headerTextClassName} !text-dash-brand`}>
+              Add Address
+            </Text>
+          </Button>
+          {addressType === 'shield' && (shielded.hasLoaded || shielded.isSyncing) && (
+            <RefreshButton variant='subtle' label='Check for incoming shielded notes' loading={shielded.isSyncing} onClick={() => { if (!shielded.isSyncing) setCheckingShielded(checking => !checking) }} />
+          )}
+        </div>
       </div>
 
       {addressType === 'shield' && creatingShielded && (
@@ -344,12 +352,21 @@ export function AddressesTab ({
 
       {addressType === 'shield' && (
         <>
-          <ShieldedSyncStatus
-            hasLoaded={shielded.hasLoaded}
-            updatedAt={shielded.updatedAt}
-            isSyncing={shielded.isSyncing}
-            onSync={handleShieldedSync}
-          />
+          {!shielded.hasLoaded && !shielded.isSyncing && (
+            <PasswordGate
+              description='Enter your password to sync shielded addresses.'
+              submitLabel='Sync Shielded Addresses'
+              onSubmit={handleShieldedSync}
+            />
+          )}
+          {shielded.hasLoaded && checkingShielded && !shielded.isSyncing && (
+            <PasswordGate
+              description='Enter your password to check for incoming shielded notes.'
+              submitLabel='Check incoming'
+              onSubmit={handleShieldedSync}
+              onCancel={() => { setCheckingShielded(false) }}
+            />
+          )}
           {shielded.error != null && (
             <ValueCard colorScheme='red' size='xl'>
               <Text size='sm' color='red'>{shielded.error}</Text>

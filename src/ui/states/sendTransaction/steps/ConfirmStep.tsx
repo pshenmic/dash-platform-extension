@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Accordion, Button, Identifier, Text } from 'dash-ui-kit/react'
 import { PasswordField } from '../../../components/forms'
 import { Banner } from '../../../components/cards'
-import { PROVING_WARNING } from '../../../constants/transferWarnings'
 import { formatDashAmount, parseDashAmount } from '../../../../utils'
 import { SHIELDED_MODES } from '../types'
 import { KEEP_OPEN_MESSAGE, PREPAID_TRANSFER_MESSAGE, WITHDRAW_WARNINGS, interruptedTransferMessage, recipientsCountLabel } from '../constants'
@@ -56,7 +55,6 @@ export function ConfirmStep ({ draft, config, amount, balance, fee, received, is
       <Banner variant='info' message={isPrepaid && !isAmountReplaced ? PREPAID_TRANSFER_MESSAGE : null} />
       <Banner variant='warning' message={isAmountReplaced ? interruptedTransferMessage(formatDashAmount(amount, balance.decimals)) : null} />
       <Banner variant='warning' message={WITHDRAW_WARNINGS[config.mode] ?? null} />
-      {isProving && <Banner variant='warning' message={PROVING_WARNING} />}
 
       <PasswordField
         label='Password'

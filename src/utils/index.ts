@@ -30,7 +30,7 @@ export type { CoreTransactionDirection, CoreTransactionEffect } from './coreTran
 export { selectPlatformSource, assertSourceCoversFee, buildSignedPlatformTransfer, buildSignedPlatformTransferMulti, platformTransferFeeCredits, buildSignedIdentityTopUpFromAddress, buildSignedAddressWithdrawal } from './platformTransfer'
 export { hexToBytes, bytesToHex, utf8ToBytes, bytesToUtf8, wait, validateHex, popupWindow, injectScript } from './browser'
 export type { PlatformSourceCandidate, PlatformTransferOutput } from './platformTransfer'
-export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, maxShieldedSpend } from './shieldedFee'
+export { SHIELDED_SPEND_KINDS, computeShieldedSpendFee, selectShieldedNotes, maxShieldedSpend, maxShieldedSpendForValues } from './shieldedFee'
 export type { ShieldedNoteSelection, ShieldedSpendEstimate } from './shieldedFee'
 export { ENDPOINT_TYPE_ORDER, getSourceUnavailableReason, resolveTransferPair, fallbackTargetType, canPayShieldedAddress, canShieldToOthers, isShieldToMyself } from './transferDirection'
 export type { TransferCapabilities, TransferUnavailableReason } from './transferDirection'
