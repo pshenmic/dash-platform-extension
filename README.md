@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <a href="https://chromewebstore.google.com/detail/dash-extension/odmphbcnlldggfhcpdjgnlhbehoicdnf?utm_source=github"><img src="https://img.shields.io/badge/Add_to_Chrome-4C7EFF?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Add to Chrome"></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/pshenmic/dash-platform-extension/releases/latest"><img src="https://img.shields.io/github/v/release/pshenmic/dash-platform-extension?style=flat-square&color=4C7EFF&label=release" alt="Latest release"></a>
   <a href="https://github.com/pshenmic/dash-platform-extension/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/pshenmic/dash-platform-extension/build.yml?style=flat-square&label=build" alt="Build status"></a>
   <img src="https://img.shields.io/badge/Chrome-119%2B-4C7EFF?style=flat-square&logo=googlechrome&logoColor=white" alt="Chrome 119 or later">
@@ -62,6 +66,14 @@
 <sub>Screenshots are from the development version (1.5.0) on testnet, so the latest release can differ slightly.</sub>
 
 ## Install
+
+<p>
+  <a href="https://chromewebstore.google.com/detail/dash-extension/odmphbcnlldggfhcpdjgnlhbehoicdnf"><img src="https://img.shields.io/badge/Add_to_Chrome-4C7EFF?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Add to Chrome"></a>
+</p>
+
+Install Dash Extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/dash-extension/odmphbcnlldggfhcpdjgnlhbehoicdnf), then pin it to your toolbar and open it to set a password.
+
+To run a build of your own instead:
 
 1. Download the zip for the [latest release](https://github.com/pshenmic/dash-platform-extension/releases/latest) and unzip it.
 2. Open `chrome://extensions` in Chrome.
