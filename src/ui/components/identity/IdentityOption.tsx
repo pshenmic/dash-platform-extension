@@ -1,7 +1,7 @@
 import React from 'react'
 import { Avatar, Identifier, Text } from 'dash-ui-kit/react'
 import { DashAmount } from '../common'
-import { creditsToDuffs, duffsToDashParts, duffsToFiatLabel } from '../../../utils'
+import { creditsToDuffs, duffsToDashParts, duffsToFiatLabel, splitDpns } from '../../../utils'
 
 export type IdentityOptionVariant = 'simple' | 'full'
 
@@ -10,6 +10,11 @@ export interface IdentityOptionProps {
    * Identity identifier string
    */
   identity: string
+
+  /**
+   * DPNS name shown above the identifier (for 'full' variant)
+   */
+  name?: string | null
 
   /**
    * Display variant
@@ -65,8 +70,24 @@ export interface IdentityOptionProps {
   onClick?: () => void
 }
 
+function IdentityName ({ name }: { name: string }): React.JSX.Element {
+  const { local, tld } = splitDpns(name)
+
+  return (
+    <Text size='sm' weight='bold' className='!font-extrabold !text-dash-primary-dark-blue !leading-[1.2] truncate'>
+      {local}
+      {tld != null && (
+        <Text as='span' size='sm' weight='bold' className='!font-extrabold !text-dash-brand !leading-[1.2]'>
+          {tld}
+        </Text>
+      )}
+    </Text>
+  )
+}
+
 export function IdentityOption ({
   identity,
+  name = null,
   variant = 'simple',
   balance = null,
   rate = null,
@@ -106,7 +127,8 @@ export function IdentityOption ({
         <Avatar username={identity} className='w-7 h-7' />
       </div>
 
-      <div className='flex flex-1 items-center gap-2'>
+      <div className='flex flex-1 flex-col justify-center gap-1 min-w-0'>
+        {name != null && name !== '' && <IdentityName name={name} />}
         <Identifier {...mergedIdentifierProps}>
           {identity}
         </Identifier>
