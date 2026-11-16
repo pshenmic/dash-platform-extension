@@ -26,7 +26,7 @@ export function attachMessaging (backend: Promise<PrivateAPI>): void {
   const respond = (request: EventData, payload: any, error: string | null): void => {
     const message: EventData = {
       id: request.id,
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       type: 'response',
       method: request.method,
       payload,
@@ -47,7 +47,7 @@ export function attachMessaging (backend: Promise<PrivateAPI>): void {
   }
 
   const onMessage = (data: EventData): void => {
-    if (data?.context !== 'dash-platform-extension' || data.type === 'response') {
+    if (data?.context !== 'dash-extension' || data.type === 'response') {
       return
     }
 

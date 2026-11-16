@@ -85,7 +85,7 @@ const buildHarness = (
 }
 
 const event = (payload: Record<string, any>): EventData => ({
-  context: 'dash-platform-extension',
+  context: 'dash-extension',
   id: 'request-id',
   type: 'request',
   method: MessagingMethods.RECOVER_ASSET_LOCK_FUNDS,

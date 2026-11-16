@@ -68,7 +68,7 @@ const buildHarness = (
 }
 
 const event = (payload: Record<string, any> = {}): EventData => ({
-  context: 'dash-platform-extension',
+  context: 'dash-extension',
   id: 'request-id',
   type: 'request',
   method: MessagingMethods.LIST_ASSET_LOCK_FUNDING_ADDRESSES,
@@ -174,7 +174,7 @@ describe('ListAssetLockFundingAddressesHandler', () => {
     const { handler, walletRepository } = buildHarness([entry('yMINE')])
 
     const { addresses } = await handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'request-id',
       type: 'request',
       method: MessagingMethods.LIST_ASSET_LOCK_FUNDING_ADDRESSES,

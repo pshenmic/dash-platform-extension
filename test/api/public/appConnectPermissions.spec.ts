@@ -35,7 +35,7 @@ describe('what a connected website may see', () => {
   const call = async (method: MessagingMethods, payload: object, from: string = origin): Promise<any> => {
     // Shaped like the message a page posts, which is all handleMessage reads.
     const data: EventData = {
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'id',
       type: 'request',
       method,

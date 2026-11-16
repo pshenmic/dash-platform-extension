@@ -42,7 +42,7 @@ describe('GenerateShieldedAddressesHandler', () => {
 
   const handle = async (payload: any = { password: 'password' }): Promise<any> => {
     return await handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'id',
       method: 'GENERATE_SHIELDED_ADDRESSES',
       payload

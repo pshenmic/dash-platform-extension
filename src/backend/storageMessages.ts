@@ -12,7 +12,7 @@ export const STORAGE_MESSAGE = 'storage'
 export type StorageOp = 'getAll' | 'get' | 'set' | 'remove'
 
 export interface StorageRequest {
-  context: 'dash-platform-extension'
+  context: 'dash-extension'
   type: typeof STORAGE_MESSAGE
   op: StorageOp
   key?: string

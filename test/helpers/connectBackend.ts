@@ -24,7 +24,7 @@ export function connectBackend (privateAPI: PrivateAPI): void {
   // Service-worker stand-in. The real one also creates the offscreen document;
   // here only the routing tag matters.
   const forward = (data: EventData): void => {
-    if (data?.context !== 'dash-platform-extension' || data.type === 'response' || data.target === 'offscreen') {
+    if (data?.context !== 'dash-extension' || data.type === 'response' || data.target === 'offscreen') {
       return
     }
 

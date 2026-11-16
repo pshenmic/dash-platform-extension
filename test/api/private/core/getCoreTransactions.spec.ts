@@ -10,7 +10,7 @@ describe('GetCoreTransactionsHandler', () => {
   let handler: GetCoreTransactionsHandler
 
   const handle = async (payload: any = {}): Promise<any> => {
-    return await handler.handle({ context: 'dash-platform-extension', id: 'id', method: 'GET_CORE_TRANSACTIONS', type: 'request', payload } as any)
+    return await handler.handle({ context: 'dash-extension', id: 'id', method: 'GET_CORE_TRANSACTIONS', type: 'request', payload } as any)
   }
 
   beforeEach(() => {

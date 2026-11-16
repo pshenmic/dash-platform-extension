@@ -96,7 +96,7 @@ describe('ShieldFromPlatformAddressHandler', () => {
 
   const handle = async (payload: any = {}): Promise<any> => {
     return await handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'id',
       method: 'SHIELD_FROM_PLATFORM_ADDRESS',
       type: 'request',

@@ -65,7 +65,7 @@ describe('GetShieldedBalanceHandler', () => {
 
   const handle = async (): Promise<any> => {
     return await handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'id',
       method: 'GET_SHIELDED_BALANCE',
       type: 'request',

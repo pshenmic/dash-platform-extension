@@ -203,7 +203,7 @@ describe('TopUpIdentityHandler', () => {
 
   const handle = async (extraPayload: any = {}): Promise<any> => {
     return await handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'id',
       method: 'TOP_UP_IDENTITY',
       type: 'request',
@@ -361,7 +361,7 @@ describe('TopUpIdentityHandler', () => {
 
   test('rejects wrong password without broadcasting', async () => {
     await expect(handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'id',
       method: 'TOP_UP_IDENTITY',
       type: 'request',

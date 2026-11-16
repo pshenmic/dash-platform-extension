@@ -198,7 +198,7 @@ describe('RegisterIdentityHandler', () => {
 
   const handle = async (): Promise<any> => {
     return await handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'id',
       method: 'REGISTER_IDENTITY',
       type: 'request',

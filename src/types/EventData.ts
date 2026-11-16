@@ -1,6 +1,6 @@
 export interface EventData {
   id: string
-  // always dash-platform-extension
+  // always dash-extension
   context: string
   method: string
   payload?: any

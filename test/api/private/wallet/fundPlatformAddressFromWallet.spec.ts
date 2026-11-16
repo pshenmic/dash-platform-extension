@@ -23,7 +23,7 @@ describe('FundPlatformAddressFromWalletHandler', () => {
   let sdk: any
   let handler: FundPlatformAddressFromWalletHandler
 
-  const event = (payload: any): any => ({ id: '1', context: 'dash-platform-extension', method: 'FUND_PLATFORM_ADDRESS_FROM_WALLET', type: 'request', payload })
+  const event = (payload: any): any => ({ id: '1', context: 'dash-extension', method: 'FUND_PLATFORM_ADDRESS_FROM_WALLET', type: 'request', payload })
 
   const handle = async (payload: any = { platformAddress: PLATFORM_ADDRESS, amountDuffs: '100000', password: 'test' }): Promise<any> =>
     await handler.handle(event(payload))

@@ -40,7 +40,7 @@ describe('EstimateShieldedFeeHandler', () => {
 
   const handle = async (payload: any): Promise<any> => {
     return await handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'id',
       method: 'ESTIMATE_SHIELDED_FEE',
       type: 'request',

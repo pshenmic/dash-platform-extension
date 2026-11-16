@@ -788,7 +788,7 @@ export class PrivateAPIClient {
       }, timeoutMs)
 
       const message: EventData = {
-        context: 'dash-platform-extension',
+        context: 'dash-extension',
         id,
         method,
         payload,

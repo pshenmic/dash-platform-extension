@@ -1,8 +1,24 @@
-const LOCAL_STORAGE_KEY = 'dash-platform-extension-storage'
+const LOCAL_STORAGE_KEY = 'dash-extension-storage'
+const LEGACY_LOCAL_STORAGE_KEY = 'dash-platform-extension-storage'
+
+const migrateLegacyKey = (): string | null => {
+  const legacy = localStorage.getItem(LEGACY_LOCAL_STORAGE_KEY)
+
+  if (legacy == null) {
+    return null
+  }
+
+  localStorage.setItem(LOCAL_STORAGE_KEY, legacy)
+  localStorage.removeItem(LEGACY_LOCAL_STORAGE_KEY)
+
+  return legacy
+}
 
 const localStorageAdapter = {
   async get (): Promise<Record<string, string>> {
-    const value = localStorage.getItem(LOCAL_STORAGE_KEY)
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY)
+
+    const value = stored == null || stored === '' ? migrateLegacyKey() : stored
 
     if (value == null || value === '') {
       return {}

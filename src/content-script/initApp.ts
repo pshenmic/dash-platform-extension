@@ -28,7 +28,7 @@ export async function initApp (): Promise<void> {
   const inspectStateTransition = async (encoded: string): Promise<StateTransitionInspection> => {
     const message: EventData = {
       id: generateRandomHex(8),
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       type: 'request',
       method: MessagingMethods.INSPECT_STATE_TRANSITION,
       payload: { base64: encoded },
