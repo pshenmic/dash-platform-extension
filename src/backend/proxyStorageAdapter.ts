@@ -14,7 +14,7 @@ import { STORAGE_MESSAGE, StorageOp, StorageRequest, StorageResponse } from './s
 export class ProxyStorageAdapter implements StorageAdapter {
   private async call (op: StorageOp, key?: string, value?: object | number | string | null): Promise<any> {
     const request: StorageRequest = {
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       type: STORAGE_MESSAGE,
       op,
       key,

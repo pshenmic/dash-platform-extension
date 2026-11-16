@@ -78,7 +78,7 @@ The signer talks to the extension's content script through `window.postMessage`.
 ```ts
 interface EventData {
   id: string // matches a response to its request
-  context: 'dash-platform-extension'
+  context: 'dash-extension'
   type: 'request' | 'response' | 'event'
   method: string
   payload?: any

@@ -35,7 +35,7 @@ const start = async (): Promise<void> => {
 
   const message: EventData = {
     id: generateRandomHex(8),
-    context: 'dash-platform-extension',
+    context: 'dash-extension',
     type: 'event',
     method: 'content-script-ready',
     payload: {}
@@ -61,7 +61,7 @@ const checkWebAssembly = (): boolean => {
 const wakeBackend = (): void => {
   const message: EventData = {
     id: generateRandomHex(8),
-    context: 'dash-platform-extension',
+    context: 'dash-extension',
     type: 'request',
     method: MessagingMethods.GET_STATUS,
     payload: {}

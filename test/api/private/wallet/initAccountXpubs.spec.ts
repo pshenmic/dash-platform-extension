@@ -32,7 +32,7 @@ describe('InitAccountXpubsHandler', () => {
   const key = (network: string, walletId: string): string => `${network}:${walletId}`
 
   const handle = async (password: string = PASSWORD): Promise<any> =>
-    await handler.handle({ context: 'dash-platform-extension', id: 'id', method: 'INIT_ACCOUNT_XPUBS', type: 'request', payload: { password } } as any)
+    await handler.handle({ context: 'dash-extension', id: 'id', method: 'INIT_ACCOUNT_XPUBS', type: 'request', payload: { password } } as any)
 
   // A repository pinned to one (network, wallet) pair, backed by `records`.
   // Mirrors the real repository: getCurrent throws for a missing record, getById

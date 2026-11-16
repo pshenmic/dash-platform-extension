@@ -3,7 +3,7 @@
   "name": "Dash Extension",
   "version": "1.5.3",
   "author": "pshenmic",
-  "homepage_url": "https://github.com/pshenmic/dash-platform-extension",
+  "homepage_url": "https://github.com/pshenmic/dash-extension",
   "minimum_chrome_version": "119",
   "description": "A browser extension wallet for the Dash blockchain: Core and Platform",
   "permissions": [

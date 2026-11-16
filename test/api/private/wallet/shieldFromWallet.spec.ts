@@ -24,7 +24,7 @@ describe('ShieldFromWalletHandler', () => {
     assetLockTxid: 'c'.repeat(64)
   }
 
-  const event = (payload: any): any => ({ id: '1', context: 'dash-platform-extension', method: 'SHIELD_FROM_WALLET', type: 'request', payload })
+  const event = (payload: any): any => ({ id: '1', context: 'dash-extension', method: 'SHIELD_FROM_WALLET', type: 'request', payload })
 
   const handle = async (payload: any = { amountDuffs: '100000000', password: 'test' }): Promise<any> =>
     await handler.handle(event(payload))

@@ -51,7 +51,7 @@ export class PublicAPIClient {
       }, MESSAGING_TIMEOUT)
 
       const message: EventData = {
-        context: 'dash-platform-extension',
+        context: 'dash-extension',
         id,
         method,
         payload,

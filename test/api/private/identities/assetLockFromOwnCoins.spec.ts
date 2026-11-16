@@ -150,7 +150,7 @@ describe('an asset lock funded from the wallet own coins', () => {
   const register = async (): Promise<any> => await new RegisterIdentityHandler(
     walletRepository, identitiesRepository, assetLockFundingAddressesRepository, pendingAssetLocksRepository, {} as any, sdk, coreSDK, coreExplorer
   ).handle({
-    context: 'dash-platform-extension',
+    context: 'dash-extension',
     id: 'id',
     method: 'REGISTER_IDENTITY',
     type: 'request',
@@ -164,7 +164,7 @@ describe('an asset lock funded from the wallet own coins', () => {
     pendingAssetLocksRepository,
     sdk, coreSDK, coreExplorer
   ).handle({
-    context: 'dash-platform-extension',
+    context: 'dash-extension',
     id: 'id',
     method: 'TOP_UP_IDENTITY',
     type: 'request',

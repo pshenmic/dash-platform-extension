@@ -127,15 +127,15 @@ describe('shielded notes handlers', () => {
   })
 
   const runSync = async (payload: any = { password: 'password' }): Promise<any> => await sync.handle({
-    context: 'dash-platform-extension', id: 'id', method: 'SYNC_SHIELDED_NOTES', type: 'request', payload
+    context: 'dash-extension', id: 'id', method: 'SYNC_SHIELDED_NOTES', type: 'request', payload
   } as any)
 
   const runRead = async (payload: any = {}): Promise<any> => await read.handle({
-    context: 'dash-platform-extension', id: 'id', method: 'GET_SHIELDED_SYNC_STATE', type: 'request', payload
+    context: 'dash-extension', id: 'id', method: 'GET_SHIELDED_SYNC_STATE', type: 'request', payload
   } as any)
 
   const runRefresh = async (payload: any = {}): Promise<any> => await refresh.handle({
-    context: 'dash-platform-extension', id: 'id', method: 'REFRESH_SHIELDED_NOTES', type: 'request', payload
+    context: 'dash-extension', id: 'id', method: 'REFRESH_SHIELDED_NOTES', type: 'request', payload
   } as any)
 
   it('stores the wallet notes, addresses and balance recovered from the pool', async () => {

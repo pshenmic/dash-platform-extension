@@ -70,7 +70,7 @@ const buildHarness = (
 }
 
 const event = (payload: Record<string, any> = {}): EventData => ({
-  context: 'dash-platform-extension',
+  context: 'dash-extension',
   id: 'request-id',
   type: 'request',
   method: MessagingMethods.CLEAR_ASSET_LOCK_FUNDING_ADDRESSES,
@@ -178,7 +178,7 @@ describe('ClearAssetLockFundingAddressesHandler', () => {
     const { handler, walletRepository } = buildHarness([entry('yMINE', { used: true })])
 
     const { cleared } = await handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'request-id',
       type: 'request',
       method: MessagingMethods.CLEAR_ASSET_LOCK_FUNDING_ADDRESSES,

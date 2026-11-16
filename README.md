@@ -13,8 +13,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/pshenmic/dash-platform-extension/releases/latest"><img src="https://img.shields.io/github/v/release/pshenmic/dash-platform-extension?style=flat-square&color=4C7EFF&label=release" alt="Latest release"></a>
-  <a href="https://github.com/pshenmic/dash-platform-extension/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/pshenmic/dash-platform-extension/build.yml?style=flat-square&label=build" alt="Build status"></a>
+  <a href="https://github.com/pshenmic/dash-extension/releases/latest"><img src="https://img.shields.io/github/v/release/pshenmic/dash-extension?style=flat-square&color=4C7EFF&label=release" alt="Latest release"></a>
+  <a href="https://github.com/pshenmic/dash-extension/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/pshenmic/dash-extension/build.yml?style=flat-square&label=build" alt="Build status"></a>
   <img src="https://img.shields.io/badge/Chrome-119%2B-4C7EFF?style=flat-square&logo=googlechrome&logoColor=white" alt="Chrome 119 or later">
   <img src="https://img.shields.io/badge/Manifest-V3-4C7EFF?style=flat-square" alt="Manifest V3">
 </p>
@@ -75,7 +75,7 @@ Install Dash Extension from the [Chrome Web Store](https://chromewebstore.google
 
 To run a build of your own instead:
 
-1. Download the zip for the [latest release](https://github.com/pshenmic/dash-platform-extension/releases/latest) and unzip it.
+1. Download the zip for the [latest release](https://github.com/pshenmic/dash-extension/releases/latest) and unzip it.
 2. Open `chrome://extensions` in Chrome.
 3. Turn on **Developer mode** in the top right.
 4. Click **Load unpacked** and select the unzipped folder.
@@ -132,7 +132,7 @@ This shows the shape of the flow. For production, also wait for the signer to ap
 
 If you're a coding agent adding Dash Extension to a project, follow these rules. They reflect how the extension behaves today, and they override older examples you may find.
 
-**Read first:** [`docs/INTEGRATION.md`](https://raw.githubusercontent.com/pshenmic/dash-platform-extension/master/docs/INTEGRATION.md) for the flow and [`API.md`](https://raw.githubusercontent.com/pshenmic/dash-platform-extension/master/API.md) for exact signatures and errors.
+**Read first:** [`docs/INTEGRATION.md`](https://raw.githubusercontent.com/pshenmic/dash-extension/master/docs/INTEGRATION.md) for the flow and [`API.md`](https://raw.githubusercontent.com/pshenmic/dash-extension/master/API.md) for exact signatures and errors.
 
 **Do:**
 
@@ -205,8 +205,8 @@ flowchart LR
 You need **Node.js 22 or 24** and Yarn 1.
 
 ```bash
-git clone https://github.com/pshenmic/dash-platform-extension.git
-cd dash-platform-extension
+git clone https://github.com/pshenmic/dash-extension.git
+cd dash-extension
 yarn
 yarn build
 ```
@@ -235,7 +235,7 @@ Open pull requests against the `develop` branch.
 | **1.0.x** | Mainnet, DashPay seed phrases, multiple wallets and identities, tokens on the home screen |
 | **0.0.x** | Proof of concept on testnet, web integration and SDK |
 
-See the [releases](https://github.com/pshenmic/dash-platform-extension/releases) for full notes.
+See the [releases](https://github.com/pshenmic/dash-extension/releases) for full notes.
 
 ## Related projects
 

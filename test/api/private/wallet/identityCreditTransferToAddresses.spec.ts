@@ -81,7 +81,7 @@ describe('IdentityCreditTransferToAddressesHandler', () => {
 
   const handle = async (payload: any): Promise<any> => {
     return await handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'id',
       method: 'IDENTITY_CREDIT_TRANSFER_TO_ADDRESSES',
       type: 'request',

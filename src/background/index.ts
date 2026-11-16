@@ -85,7 +85,7 @@ const failBackendCall = (event: EventData, message: string): void => {
 }
 
 ext.runtime.onMessage.addListener((data: any, sender, sendResponse) => {
-  if (data?.context !== 'dash-platform-extension') return
+  if (data?.context !== 'dash-extension') return
 
   // Storage proxy. Answered with sendResponse because these are short — unlike
   // wallet calls, which can run for minutes and must not depend on this worker

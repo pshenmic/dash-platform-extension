@@ -26,7 +26,7 @@ describe('RegisterIdentityFromWalletHandler', () => {
   let sdk: any
   let handler: RegisterIdentityFromWalletHandler
 
-  const event = (payload: any): any => ({ id: '1', context: 'dash-platform-extension', method: 'REGISTER_IDENTITY_FROM_WALLET', type: 'request', payload })
+  const event = (payload: any): any => ({ id: '1', context: 'dash-extension', method: 'REGISTER_IDENTITY_FROM_WALLET', type: 'request', payload })
 
   const handle = async (payload: any = { amountDuffs: '100000000', password: 'test' }): Promise<any> =>
     await handler.handle(event(payload))

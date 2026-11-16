@@ -60,7 +60,7 @@ const buildHarness = (entries: AssetLockFundingAddressSchema[] = []): HasHarness
 }
 
 const event = (payload: Record<string, any> = {}): EventData => ({
-  context: 'dash-platform-extension',
+  context: 'dash-extension',
   id: 'request-id',
   type: 'request',
   method: MessagingMethods.HAS_ASSET_LOCK_FUNDING_ADDRESSES,
@@ -113,7 +113,7 @@ describe('HasAssetLockFundingAddressesHandler', () => {
     storage.cache[STORAGE_KEY] = { yMINE: entry('yMINE') }
 
     const { hasAny } = await handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'request-id',
       type: 'request',
       method: MessagingMethods.HAS_ASSET_LOCK_FUNDING_ADDRESSES,
@@ -130,7 +130,7 @@ describe('HasAssetLockFundingAddressesHandler', () => {
     walletRepository.getCurrent.mockResolvedValueOnce(null)
 
     await expect(handler.handle({
-      context: 'dash-platform-extension',
+      context: 'dash-extension',
       id: 'request-id',
       type: 'request',
       method: MessagingMethods.HAS_ASSET_LOCK_FUNDING_ADDRESSES,

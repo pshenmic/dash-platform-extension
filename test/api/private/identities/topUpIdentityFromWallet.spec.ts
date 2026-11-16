@@ -15,7 +15,7 @@ describe('TopUpIdentityFromWalletHandler', () => {
   let coreSDK: any
   let handler: TopUpIdentityFromWalletHandler
 
-  const event = (payload: any): any => ({ id: '1', context: 'dash-platform-extension', method: 'TOP_UP_IDENTITY_FROM_WALLET', type: 'request', payload })
+  const event = (payload: any): any => ({ id: '1', context: 'dash-extension', method: 'TOP_UP_IDENTITY_FROM_WALLET', type: 'request', payload })
 
   const handle = async (payload: any = { amountDuffs: '100000', password: 'test' }): Promise<any> =>
     await handler.handle(event(payload))

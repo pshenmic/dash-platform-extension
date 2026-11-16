@@ -41,7 +41,7 @@ describe('ShieldFromCoreHandler', () => {
     password: 'test'
   }
 
-  const event = (payload: any): any => ({ id: '1', context: 'dash-platform-extension', method: 'SHIELD_FROM_CORE', type: 'request', payload })
+  const event = (payload: any): any => ({ id: '1', context: 'dash-extension', method: 'SHIELD_FROM_CORE', type: 'request', payload })
 
   const handle = async (payload: any = deposit): Promise<any> =>
     await handler.handle(event(payload))

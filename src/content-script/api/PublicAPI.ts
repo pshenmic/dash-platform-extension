@@ -93,14 +93,14 @@ export class PublicAPI {
 
       const { context, type, id, method } = data
 
-      if (context !== 'dash-platform-extension' || type === 'response') {
+      if (context !== 'dash-extension' || type === 'response') {
         return
       }
 
       const respond = (payload: any, error: string | null): void => {
         const response: EventData = {
           id,
-          context: 'dash-platform-extension',
+          context: 'dash-extension',
           type: 'response',
           method,
           payload,
